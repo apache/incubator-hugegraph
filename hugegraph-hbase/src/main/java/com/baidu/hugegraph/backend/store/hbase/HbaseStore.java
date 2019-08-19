@@ -379,6 +379,10 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
 
             registerTableManager(HugeType.SECONDARY_INDEX,
                                  new HbaseTables.SecondaryIndex(store));
+            registerTableManager(HugeType.VERTEX_LABEL_INDEX,
+                                 new HbaseTables.VertexLabelIndex(store));
+            registerTableManager(HugeType.EDGE_LABEL_INDEX,
+                                 new HbaseTables.EdgeLabelIndex(store));
             registerTableManager(HugeType.RANGE_INT_INDEX,
                                  HbaseTables.RangeIndex.rangeInt(store));
             registerTableManager(HugeType.RANGE_FLOAT_INDEX,

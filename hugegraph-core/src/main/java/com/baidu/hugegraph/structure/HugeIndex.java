@@ -60,6 +60,11 @@ public class HugeIndex implements GraphType {
 
     @Override
     public HugeType type() {
+        if (this.indexLabel == IndexLabel.label(HugeType.VERTEX)) {
+            return HugeType.VERTEX_LABEL_INDEX;
+        } else if (this.indexLabel == IndexLabel.label(HugeType.EDGE)) {
+            return HugeType.EDGE_LABEL_INDEX;
+        }
         return this.indexLabel.indexType().type();
     }
 

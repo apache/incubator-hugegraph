@@ -71,7 +71,7 @@ public class CoreOptions extends OptionHolder {
                     "store.system",
                     "The system table name, which store system data.",
                     disallowEmpty(),
-                    "system"
+                    "s"
             );
 
     public static final ConfigOption<String> STORE_SCHEMA =
@@ -79,7 +79,7 @@ public class CoreOptions extends OptionHolder {
                     "store.schema",
                     "The schema table name, which store meta data.",
                     disallowEmpty(),
-                    "schema"
+                    "m"
             );
 
     public static final ConfigOption<String> STORE_GRAPH =
@@ -87,7 +87,7 @@ public class CoreOptions extends OptionHolder {
                     "store.graph",
                     "The graph table name, which store vertex, edge and property.",
                     disallowEmpty(),
-                    "graph"
+                    "g"
             );
 
     public static final ConfigOption<String> SERIALIZER =

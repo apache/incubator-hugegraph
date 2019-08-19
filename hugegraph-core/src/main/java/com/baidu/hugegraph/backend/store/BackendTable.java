@@ -40,7 +40,7 @@ public abstract class BackendTable<Session extends BackendSession, Entry> {
     private final MetaDispatcher<Session> dispatcher;
 
     public BackendTable(String table) {
-        this.table = table;
+        this.table = table.toLowerCase();
         this.dispatcher = new MetaDispatcher<>();
 
         this.registerMetaHandlers();
@@ -98,7 +98,7 @@ public abstract class BackendTable<Session extends BackendSession, Entry> {
     }
 
     public static final String joinTableName(String prefix, String table) {
-        return prefix + "_" + table;
+        return prefix + "_" + table.toLowerCase();
     }
 
     public abstract void init(Session session);

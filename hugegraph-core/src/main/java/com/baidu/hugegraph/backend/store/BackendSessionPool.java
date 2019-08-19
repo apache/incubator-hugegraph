@@ -55,9 +55,9 @@ public abstract class BackendSessionPool {
             session = this.newSession();
             assert session != null;
             this.threadLocalSession.set(session);
-            this.sessionCount.incrementAndGet();
+            int sessionCount = this.sessionCount.incrementAndGet();
             LOG.debug("Now(after connect({})) session count is: {}",
-                      this, this.sessionCount.get());
+                      this, sessionCount);
         } else {
             this.detectSession(session);
         }
@@ -86,16 +86,23 @@ public abstract class BackendSessionPool {
     }
 
     public Pair<Integer, Integer> closeSession() {
+        int sessionCount = this.sessionCount.get();
+        if (sessionCount <= 0) {
+            assert sessionCount == 0 : sessionCount;
+            return Pair.of(-1, -1);
+        }
+
+        assert sessionCount > 0 : sessionCount;
         BackendSession session = this.threadLocalSession.get();
         if (session == null) {
-            LOG.warn("Current session has ever been closed");
-            return Pair.of(this.sessionCount.get(), -1);
+            LOG.warn("Current session has ever been closed: {}", this);
+            return Pair.of(sessionCount, -1);
         }
 
         int ref = session.detach();
         assert ref >= 0 : ref;
         if (ref > 0) {
-            return Pair.of(this.sessionCount.get(), ref);
+            return Pair.of(sessionCount, ref);
         }
 
         // Close session when ref=0

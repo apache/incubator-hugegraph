@@ -278,7 +278,7 @@ public class CassandraTables {
 
     public static class Edge extends CassandraTable {
 
-        public static final String TABLE_PREFIX = HugeType.EDGE.string();
+        public static final String TABLE_SUFFIX = HugeType.EDGE.string();
 
         private final String store;
         private final Directions direction;
@@ -483,7 +483,7 @@ public class CassandraTables {
 
         private static String table(Directions direction) {
             assert direction == Directions.OUT || direction == Directions.IN;
-            return TABLE_PREFIX + "_" + direction.string();
+            return direction.type().string() + TABLE_SUFFIX;
         }
 
         public static CassandraTable out(String store) {

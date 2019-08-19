@@ -293,10 +293,13 @@ public class GraphIndexTransaction extends AbstractTransaction {
         Id label = query.condition(HugeKeys.LABEL);
         assert label != null;
 
+        HugeType indexType;
         SchemaLabel schemaLabel;
         if (queryType.isVertex()) {
+            indexType = HugeType.VERTEX_LABEL_INDEX;
             schemaLabel = this.graph().vertexLabel(label);
         } else if (queryType.isEdge()) {
+            indexType = HugeType.EDGE_LABEL_INDEX;
             schemaLabel = this.graph().edgeLabel(label);
         } else {
             throw new BackendException("Can't query %s by label", queryType);
@@ -309,7 +312,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
         }
 
         ConditionQuery indexQuery;
-        indexQuery = new ConditionQuery(HugeType.SECONDARY_INDEX, query);
+        indexQuery = new ConditionQuery(indexType , query);
         indexQuery.eq(HugeKeys.INDEX_LABEL_ID, il.id());
         indexQuery.eq(HugeKeys.FIELD_VALUES, label);
         // Set offset and limit to avoid redundant element ids

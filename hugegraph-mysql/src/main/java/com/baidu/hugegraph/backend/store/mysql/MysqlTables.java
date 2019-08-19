@@ -103,7 +103,7 @@ public class MysqlTables {
             String idCol = formatKey(HugeKeys.ID);
 
             String select = String.format("SELECT ID FROM %s WHERE %s = '%s';",
-                                          TABLE, schemaCol, type.name());
+                                          this.table(), schemaCol, type.name());
             try {
                 ResultSet resultSet = session.select(select);
                 if (resultSet.next()) {
@@ -123,7 +123,7 @@ public class MysqlTables {
             String update = String.format(
                             "INSERT INTO %s VALUES ('%s', %s) " +
                             "ON DUPLICATE KEY UPDATE ID = ID + %s;",
-                            TABLE, type.name(), increment, increment);
+                            this.table(), type.name(), increment, increment);
             try {
                 session.execute(update);
             } catch (SQLException e) {
@@ -254,7 +254,7 @@ public class MysqlTables {
 
     public static class Edge extends MysqlTableTemplate {
 
-        public static final String TABLE_PREFIX = HugeType.EDGE.string();
+        public static final String TABLE_SUFFIX = HugeType.EDGE.string();
 
         private final Directions direction;
         private final String delByLabelTemplate;
@@ -381,7 +381,7 @@ public class MysqlTables {
 
         public static String table(Directions direction) {
             assert direction == Directions.OUT || direction == Directions.IN;
-            return TABLE_PREFIX + "_" + direction.string();
+            return direction.type().string() + TABLE_SUFFIX;
         }
 
         public static MysqlTable out(String store) {

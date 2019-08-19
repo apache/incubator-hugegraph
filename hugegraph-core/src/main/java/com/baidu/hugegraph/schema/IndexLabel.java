@@ -136,14 +136,14 @@ public class IndexLabel extends SchemaElement {
     private static final int ILN_IL_ID = -6;
 
     // Label index
-    static final IndexLabel VL_IL = new IndexLabel(VL_IL_ID, "~vli");
-    static final IndexLabel EL_IL = new IndexLabel(EL_IL_ID, "~eli");
+    private static final IndexLabel VL_IL = new IndexLabel(VL_IL_ID, "~vli");
+    private static final IndexLabel EL_IL = new IndexLabel(EL_IL_ID, "~eli");
 
     // Schema name index
-    static final IndexLabel PKN_IL = new IndexLabel(PKN_IL_ID, "~pkni");
-    static final IndexLabel VLN_IL = new IndexLabel(VLN_IL_ID, "~vlni");
-    static final IndexLabel ELN_IL = new IndexLabel(ELN_IL_ID, "~elni");
-    static final IndexLabel ILN_IL = new IndexLabel(ILN_IL_ID, "~ilni");
+    private static final IndexLabel PKN_IL = new IndexLabel(PKN_IL_ID, "~pkni");
+    private static final IndexLabel VLN_IL = new IndexLabel(VLN_IL_ID, "~vlni");
+    private static final IndexLabel ELN_IL = new IndexLabel(ELN_IL_ID, "~elni");
+    private static final IndexLabel ILN_IL = new IndexLabel(ILN_IL_ID, "~ilni");
 
     public static IndexLabel label(HugeType type) {
         switch (type) {
