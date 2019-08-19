@@ -608,7 +608,8 @@ public class BinarySerializer extends AbstractSerializer {
             // Convert range-index/shard-index query to id range query
             return this.writeRangeIndexQuery(cq);
         } else {
-            assert type.isSearchIndex() || type.isSecondaryIndex();
+            assert type.isSearchIndex() || type.isSecondaryIndex() ||
+                   type.isUniqueIndex();
             // Convert secondary-index or search-index query to id query
             return this.writeStringIndexQuery(cq);
         }

@@ -73,7 +73,8 @@ public class MysqlStoreProvider extends AbstractBackendStoreProvider {
          * [1.3] #270 & #398: support shard-index and vertex + sortkey prefix,
          *                    also split range table to rangeInt, rangeFloat,
          *                    rangeLong and rangeDouble
+         * [1.4] #633: support unique index
          */
-        return "1.3";
+        return "1.4";
     }
 }

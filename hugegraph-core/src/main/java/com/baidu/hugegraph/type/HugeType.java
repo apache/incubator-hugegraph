@@ -58,6 +58,7 @@ public enum HugeType implements SerialEnum {
     RANGE_DOUBLE_INDEX(163, "DI"),
     SEARCH_INDEX(170, "AI"),
     SHARD_INDEX(175, "HI"),
+    UNIQUE_INDEX(178, "UI"),
 
     TASK(180, "T"),
 
@@ -117,62 +118,53 @@ public enum HugeType implements SerialEnum {
     }
 
     public boolean isIndex() {
-        return this == HugeType.SECONDARY_INDEX ||
-               this == HugeType.VERTEX_LABEL_INDEX ||
-               this == HugeType.EDGE_LABEL_INDEX ||
-               this == HugeType.SEARCH_INDEX ||
-               this == HugeType.RANGE_INT_INDEX ||
-               this == HugeType.RANGE_FLOAT_INDEX ||
-               this == HugeType.RANGE_LONG_INDEX ||
-               this == HugeType.RANGE_DOUBLE_INDEX ||
-               this == HugeType.SHARD_INDEX;
+        return this == VERTEX_LABEL_INDEX || this == EDGE_LABEL_INDEX ||
+               this == SECONDARY_INDEX || this == SEARCH_INDEX ||
+               this == RANGE_INT_INDEX || this == RANGE_FLOAT_INDEX ||
+               this == RANGE_LONG_INDEX || this == RANGE_DOUBLE_INDEX ||
+               this == SHARD_INDEX || this == UNIQUE_INDEX;
     }
 
     public boolean isStringIndex() {
-        return this == HugeType.SECONDARY_INDEX ||
-               this == HugeType.VERTEX_LABEL_INDEX ||
-               this == HugeType.EDGE_LABEL_INDEX ||
-               this == HugeType.SEARCH_INDEX ||
-               this == HugeType.SHARD_INDEX;
+        return this == VERTEX_LABEL_INDEX || this == EDGE_LABEL_INDEX ||
+               this == SECONDARY_INDEX || this == SEARCH_INDEX ||
+               this == SHARD_INDEX || this == UNIQUE_INDEX;
     }
 
     public boolean isNumericIndex() {
-        return this == HugeType.RANGE_INT_INDEX ||
-               this == HugeType.RANGE_FLOAT_INDEX ||
-               this == HugeType.RANGE_LONG_INDEX ||
-               this == HugeType.RANGE_DOUBLE_INDEX ||
-               this == HugeType.SHARD_INDEX;
+        return this == RANGE_INT_INDEX || this == RANGE_FLOAT_INDEX ||
+               this == RANGE_LONG_INDEX || this == RANGE_DOUBLE_INDEX ||
+               this == SHARD_INDEX;
     }
 
     public boolean isSecondaryIndex() {
-        return this == HugeType.SECONDARY_INDEX ||
-               this == HugeType.VERTEX_LABEL_INDEX ||
-               this == HugeType.EDGE_LABEL_INDEX;
+        return this == VERTEX_LABEL_INDEX || this == EDGE_LABEL_INDEX ||
+               this == SECONDARY_INDEX;
     }
 
     public boolean isSearchIndex() {
-        return this == HugeType.SEARCH_INDEX;
+        return this == SEARCH_INDEX;
     }
 
     public boolean isRangeIndex() {
-        return this == HugeType.RANGE_INT_INDEX ||
-               this == HugeType.RANGE_FLOAT_INDEX ||
-               this == HugeType.RANGE_LONG_INDEX ||
-               this == HugeType.RANGE_DOUBLE_INDEX;
+        return this == RANGE_INT_INDEX || this == RANGE_FLOAT_INDEX ||
+               this == RANGE_LONG_INDEX || this == RANGE_DOUBLE_INDEX;
     }
 
     public boolean isRange4Index() {
-        return this == HugeType.RANGE_INT_INDEX ||
-               this == HugeType.RANGE_FLOAT_INDEX;
+        return this == RANGE_INT_INDEX || this == RANGE_FLOAT_INDEX;
     }
 
     public boolean isRange8Index() {
-        return this == HugeType.RANGE_LONG_INDEX ||
-               this == HugeType.RANGE_DOUBLE_INDEX;
+        return this == RANGE_LONG_INDEX || this == RANGE_DOUBLE_INDEX;
     }
 
     public boolean isShardIndex() {
-        return this == HugeType.SHARD_INDEX;
+        return this == SHARD_INDEX;
+    }
+
+    public boolean isUniqueIndex() {
+        return this == UNIQUE_INDEX;
     }
 
     public static HugeType fromString(String type) {

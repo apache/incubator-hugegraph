@@ -92,10 +92,11 @@ public final class ApiVersion {
      * [0.42] Issue-176: Let gremlin error response consistent with RESTful's
      * [0.43] Issue-270 & 398: support shard-index and vertex + sortke prefix,
      *        and split range to rangeInt, rangeFloat, rangeLong and rangeDouble
+     * [0.44] Issue-633: Support unique index
      */
 
     // The second parameter of Version.of() is for IDE running without JAR
-    public static final Version VERSION = Version.of(ApiVersion.class, "0.43");
+    public static final Version VERSION = Version.of(ApiVersion.class, "0.44");
 
     public static final void check() {
         // Check version of hugegraph-core. Firstly do check from version 0.3

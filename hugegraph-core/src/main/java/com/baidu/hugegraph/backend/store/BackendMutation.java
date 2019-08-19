@@ -92,6 +92,13 @@ public class BackendMutation {
                     }
                     break;
                 case APPEND:
+                    if (entry.type().isUniqueIndex() &&
+                        originAction == Action.APPEND) {
+                        throw new IllegalArgumentException(String.format(
+                                  "Unique constraint conflict is found in " +
+                                  "transaction between %s and %s",
+                                  entry, originItem.entry()));
+                    }
                 case ELIMINATE:
                     if (originAction == Action.INSERT ||
                         originAction == Action.DELETE) {
@@ -165,6 +172,25 @@ public class BackendMutation {
      */
     public List<BackendAction> mutation(HugeType type, Id id) {
         return this.updates.get(type, id);
+    }
+
+    /**
+     * Whether mutation contains entry and action
+     * @param entry entry
+     * @param action action
+     * @return true if have, otherwise false
+     */
+    public boolean contains(BackendEntry entry, Action action) {
+        List<BackendAction> items = this.updates.get(entry.type(), entry.id());
+        if (items == null || items.isEmpty()) {
+            return false;
+        }
+        for (BackendAction item : items) {
+            if (item.action().equals(action)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

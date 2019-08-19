@@ -3255,6 +3255,102 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testAddVertexWithUniqueIndex() {
+        SchemaManager schema = graph().schema();
+        schema.vertexLabel("user")
+              .properties("name")
+              .create();
+        schema.indexLabel("userByName").onV("user").by("name").unique()
+              .create();
+        Vertex v = graph().addVertex(T.label, "user", "name", "Tom");
+        graph().tx().commit();
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph().addVertex(T.label, "user", "name", "Tom");
+            graph().tx().commit();
+        });
+
+        v.remove();
+        graph().addVertex(T.label, "user", "name", "Tom");
+        graph().tx().commit();
+    }
+
+    @Test
+    public void testAddVerticesWithUniqueIndexInTx() {
+        SchemaManager schema = graph().schema();
+        schema.vertexLabel("user")
+              .properties("name")
+              .create();
+        schema.indexLabel("userByName").onV("user").by("name").unique()
+              .create();
+        graph().addVertex(T.label, "user", "name", "Tom");
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph().addVertex(T.label, "user", "name", "Tom");
+            graph().tx().commit();
+        });
+    }
+
+    @Test
+    public void testAddVerticesWithUniqueIndexForNullableProperties() {
+        SchemaManager schema = graph().schema();
+        schema.vertexLabel("user")
+              .properties("name", "city", "age")
+              .nullableKeys("name", "city", "age")
+              .create();
+        schema.indexLabel("userByName").onV("user").by("name", "city", "age")
+              .unique().create();
+        Vertex v = graph().addVertex(T.label, "user", "name", "Tom",
+                                     "city", "Beijing", "age", 18);
+        graph().tx().commit();
+        // Nullable properties
+        graph().addVertex(T.label, "user", "name", "Tom", "city", "Beijing");
+        graph().tx().commit();
+        graph().addVertex(T.label, "user", "name", "Tom", "age", 18);
+        graph().tx().commit();
+        graph().addVertex(T.label, "user", "city", "Beijing", "age", 18);
+        graph().tx().commit();
+        graph().addVertex(T.label, "user", "name", "Tom");
+        graph().tx().commit();
+        graph().addVertex(T.label, "user", "age", 18);
+        graph().tx().commit();
+        graph().addVertex(T.label, "user", "city", "Beijing");
+        graph().tx().commit();
+        graph().addVertex(T.label, "user");
+        graph().tx().commit();
+
+        // Empty String properties
+        graph().addVertex(T.label, "user", "name", "", "city", "", "age", 18);
+        graph().tx().commit();
+        graph().addVertex(T.label, "user", "name", "", "city", "");
+        graph().tx().commit();
+        graph().addVertex(T.label, "user", "name", "", "age", 18);
+        graph().tx().commit();
+        graph().addVertex(T.label, "user", "city", "", "age", 18);
+        graph().tx().commit();
+        graph().addVertex(T.label, "user", "name", "");
+        graph().tx().commit();
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph().addVertex(T.label, "user", "age", 18);
+            graph().tx().commit();
+        }, e -> {
+            String message = e.getMessage();
+            Assert.assertTrue(message.contains("Unique constraint userByName"));
+            Assert.assertTrue(message.contains("conflict is found"));
+        });
+        graph().addVertex(T.label, "user", "city", "");
+        graph().tx().commit();
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph().addVertex(T.label, "user");
+            graph().tx().commit();
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph().addVertex(T.label, "user", "city", "\u0001");
+            graph().tx().commit();
+        });
+    }
+
+    @Test
     public void testRemoveVertex() {
         HugeGraph graph = graph();
         init10Vertices();

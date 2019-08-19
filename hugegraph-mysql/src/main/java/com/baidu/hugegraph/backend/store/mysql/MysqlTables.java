@@ -440,6 +440,18 @@ public class MysqlTables {
         }
     }
 
+    /**
+     * TODO: set field value as key and set element id as value
+     */
+    public static class UniqueIndex extends SecondaryIndex {
+
+        public static final String TABLE = HugeType.UNIQUE_INDEX.string();
+
+        public UniqueIndex(String store) {
+            super(store, TABLE, TYPES_MAPPING);
+        }
+    }
+
     public static class RangeIndex extends Index {
 
         public RangeIndex(String store, String table) {

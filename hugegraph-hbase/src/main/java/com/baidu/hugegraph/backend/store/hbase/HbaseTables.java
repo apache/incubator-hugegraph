@@ -264,6 +264,15 @@ public class HbaseTables {
         }
     }
 
+    public static class UniqueIndex extends IndexTable {
+
+        public static final String TABLE = HugeType.UNIQUE_INDEX.string();
+
+        public UniqueIndex(String store) {
+            super(joinTableName(store, TABLE));
+        }
+    }
+
     public static class RangeIndex extends IndexTable {
 
         public RangeIndex(String store, String table) {

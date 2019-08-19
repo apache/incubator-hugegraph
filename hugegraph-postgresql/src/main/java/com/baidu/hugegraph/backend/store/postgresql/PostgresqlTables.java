@@ -190,6 +190,15 @@ public class PostgresqlTables {
         }
     }
 
+    public static class UniqueIndex extends SecondaryIndex {
+
+        public static final String TABLE = MysqlTables.UniqueIndex.TABLE;
+
+        public UniqueIndex(String store) {
+            super(store, TABLE);
+        }
+    }
+
     public static class RangeIntIndex extends PostgresqlTableTemplate {
 
         public static final String TABLE = HugeType.RANGE_INT_INDEX.string();

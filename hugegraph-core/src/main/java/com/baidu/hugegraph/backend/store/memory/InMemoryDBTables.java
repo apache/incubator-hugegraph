@@ -417,6 +417,13 @@ public class InMemoryDBTables {
         }
     }
 
+    public static class UniqueIndex extends SecondaryIndex {
+
+        public UniqueIndex() {
+            super(HugeType.UNIQUE_INDEX);
+        }
+    }
+
     public static class RangeIndex extends InMemoryDBTable {
 
         protected RangeIndex(HugeType type) {

@@ -24,6 +24,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
+import java.util.function.BiPredicate;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
@@ -246,6 +247,12 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
     }
 
     @Override
+    public IndexLabelBuilder unique() {
+        this.indexType = IndexType.UNIQUE;
+        return this;
+    }
+
+    @Override
     public IndexLabelBuilder on(HugeType baseType, String baseValue) {
         E.checkArgument(baseType == HugeType.VERTEX_LABEL ||
                         baseType == HugeType.EDGE_LABEL,
@@ -389,6 +396,9 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
             case SHARD:
                 this.checkRepeatShardIndex(schemaLabel);
                 break;
+            case UNIQUE:
+                this.checkRepeatUniqueIndex(schemaLabel);
+                break;
             default:
                 throw new AssertionError(String.format(
                           "Unsupported index type: %s", this.indexType));
@@ -402,15 +412,19 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
             if (!this.hasSubIndex(old)) {
                 continue;
             }
-
-            /*
-             * If existed label is prefix of new created label,
-             * remove the existed label.
-             */
             List<String> oldFields = this.transaction.graph()
                                          .mapPkId2Name(old.indexFields());
             List<String> newFields = this.indexFields;
-            if (CollectionUtil.prefixOf(oldFields, newFields)) {
+            /*
+             * Remove the existed index label if:
+             * 1. new unique index label is subset of existed unique index label
+             * or
+             * 2. existed index label is prefix of new created index label
+             * (except for unique index)
+             */
+            if (this.indexType.isUniuqe() && oldFields.containsAll(newFields) ||
+                !this.indexType.isUniuqe() &&
+                CollectionUtil.prefixOf(oldFields, newFields)) {
                 overrideIndexLabelIds.add(id);
             }
         }
@@ -429,6 +443,7 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
             VertexLabel vl = (VertexLabel) schemaLabel;
             if (vl.idStrategy().isPrimaryKey()) {
                 if (this.indexType.isSecondary() ||
+                    this.indexType.isUniuqe() ||
                     this.indexType.isShard() &&
                     this.allStringIndex(this.indexFields)) {
                     List<String> pks = this.transaction.graph()
@@ -445,8 +460,7 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
 
     private void checkRepeatRangeIndex(SchemaLabel schemaLabel) {
         this.checkRepeatIndex(schemaLabel, IndexType.RANGE_INT,
-                              IndexType.RANGE_FLOAT,
-                              IndexType.RANGE_LONG,
+                              IndexType.RANGE_FLOAT, IndexType.RANGE_LONG,
                               IndexType.RANGE_DOUBLE);
     }
 
@@ -465,7 +479,7 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
         if (this.oneNumericField()) {
             checkRepeatIndex(schemaLabel, IndexType.RANGE_INT,
                              IndexType.RANGE_FLOAT, IndexType.RANGE_LONG,
-                             IndexType.RANGE_DOUBLE);
+                             IndexType.RANGE_DOUBLE, IndexType.SHARD);
         } else if (this.allStringIndex(this.indexFields)) {
             this.checkRepeatIndex(schemaLabel, IndexType.SECONDARY,
                                   IndexType.SHARD);
@@ -474,22 +488,32 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
         }
     }
 
+    private void checkRepeatUniqueIndex(SchemaLabel schemaLabel) {
+        this.checkRepeatIndex(schemaLabel, List::containsAll, IndexType.UNIQUE);
+    }
+
     private void checkRepeatIndex(SchemaLabel schemaLabel,
+                                  IndexType... checkedTypes) {
+        this.checkRepeatIndex(schemaLabel, CollectionUtil::prefixOf,
+                              checkedTypes);
+    }
+
+    private void checkRepeatIndex(SchemaLabel schemaLabel,
+                                  BiPredicate<List, List> predicate,
                                   IndexType... checkedTypes) {
         for (Id id : schemaLabel.indexLabels()) {
             IndexLabel old = this.transaction.getIndexLabel(id);
-            if (!Arrays.asList(checkedTypes).contains(old.indexType()) &&
-                this.indexType != old.indexType()) {
+            if (!Arrays.asList(checkedTypes).contains(old.indexType())) {
                 continue;
             }
             List<String> newFields = this.indexFields;
             List<String> oldFields = this.transaction.graph()
                                          .mapPkId2Name(old.indexFields());
-            // New created label can't be prefix of existed label
-            E.checkArgument(!CollectionUtil.prefixOf(newFields, oldFields),
-                            "Fields %s of new index label '%s' is prefix of " +
-                            "fields %s of existed index label '%s'",
-                            newFields, this.name, oldFields, old.name());
+            E.checkArgument(!predicate.test(newFields, oldFields),
+                            "Repeated new index label %s(%s) with fields %s " +
+                            "due to existed index label %s(%s) with fields %s",
+                            this.name, this.indexType, newFields,
+                            old.name(), old.indexType(), old.indexFields());
         }
     }
 
@@ -501,8 +525,8 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
                 indexLabel.indexType().isShard() &&
                 this.allStringIndex(indexLabel.indexFields())) ||
                (this.indexType.isRange() &&
-                indexLabel.indexType().isSecondary() ||
-                indexLabel.indexType().isShard());
+                (indexLabel.indexType().isSecondary() ||
+                 indexLabel.indexType().isShard()));
     }
 
     private boolean allStringIndex(List<?> fields) {

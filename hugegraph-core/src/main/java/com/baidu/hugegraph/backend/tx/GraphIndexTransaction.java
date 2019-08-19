@@ -72,6 +72,7 @@ import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.task.HugeTask;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.Action;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IndexType;
 import com.baidu.hugegraph.util.CollectionUtil;
@@ -86,6 +87,7 @@ import com.google.common.collect.ImmutableSet;
 public class GraphIndexTransaction extends AbstractTransaction {
 
     private static final String INDEX_EMPTY_SYM = "\u0000";
+    private static final String INDEX_NULL_SYM = "\u0001";
 
     private final Analyzer textAnalyzer;
 
@@ -158,22 +160,33 @@ public class GraphIndexTransaction extends AbstractTransaction {
                         "Not exist index label with id '%s'", ilId);
 
         // Collect property values of index fields
-        List<Object> propValues = new ArrayList<>();
+        List<Object> allPropValues = new ArrayList<>();
+        int fieldsNum = indexLabel.indexFields().size();
+        int firstNullField = fieldsNum;
         for (Id fieldId : indexLabel.indexFields()) {
             HugeProperty<Object> property = element.getProperty(fieldId);
             if (property == null) {
                 E.checkState(hasNullableProp(element, fieldId),
                              "Non-null property '%s' is null for '%s'",
                              this.graph().propertyKey(fieldId) , element);
-                // Not build index for record with nullable field
-                break;
+                if (firstNullField == fieldsNum) {
+                    firstNullField = allPropValues.size();
+                }
+                allPropValues.add(INDEX_NULL_SYM);
+            } else {
+                E.checkArgument(!INDEX_NULL_SYM.equals(property.value()),
+                                "Illegal value of index property: '%s'",
+                                INDEX_NULL_SYM);
+                allPropValues.add(property.value());
             }
-            propValues.add(property.value());
         }
-        if (propValues.isEmpty()) {
+
+        if (firstNullField == 0 && !indexLabel.indexType().isUniuqe()) {
             // The property value of first index field is null
             return;
         }
+        // Not build index for record with nullable field except unique index
+        List<Object> propValues = allPropValues.subList(0, firstNullField);
 
         // Update index for each index type
         switch (indexLabel.indexType()) {
@@ -229,6 +242,25 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 }
                 this.updateIndex(indexLabel, value, element.id(), removed);
                 break;
+            case UNIQUE:
+                value = SplicingIdGenerator.concatValues(allPropValues);
+                // Use `\u0000` as escape for empty String and treat it as
+                // illegal value for text property
+                E.checkArgument(!value.equals(INDEX_EMPTY_SYM),
+                                "Illegal value of index property: '%s'",
+                                INDEX_EMPTY_SYM);
+                if (((String) value).isEmpty()) {
+                    value = INDEX_EMPTY_SYM;
+                }
+                Id id = element.id();
+                // TODO: add lock for updating unique index
+                if (!removed && this.existUniqueValue(indexLabel, value, id)) {
+                    throw new IllegalArgumentException(String.format(
+                              "Unique constraint %s conflict is found for %s",
+                              indexLabel, element));
+                }
+                this.updateIndex(indexLabel, value, element.id(), removed);
+                break;
             default:
                 throw new AssertionError(String.format(
                           "Unknown index type '%s'", indexLabel.indexType()));
@@ -246,6 +278,39 @@ public class GraphIndexTransaction extends AbstractTransaction {
         } else {
             this.doAppend(this.serializer.writeIndex(index));
         }
+    }
+
+    private boolean existUniqueValue(IndexLabel indexLabel,
+                                     Object value, Id id) {
+        return !this.hasEliminateInTx(indexLabel, value, id) &&
+               this.existUniqueValueInStore(indexLabel, value);
+    }
+
+    private boolean hasEliminateInTx(IndexLabel indexLabel, Object value,
+                                     Id elementId) {
+        HugeIndex index = new HugeIndex(indexLabel);
+        index.fieldValues(value);
+        index.elementIds(elementId);
+        BackendEntry entry = this.serializer.writeIndex(index);
+        return this.mutation().contains(entry, Action.ELIMINATE);
+    }
+
+    private boolean existUniqueValueInStore(IndexLabel indexLabel,
+                                            Object value) {
+        ConditionQuery query = new ConditionQuery(HugeType.UNIQUE_INDEX);
+        query.eq(HugeKeys.INDEX_LABEL_ID, indexLabel.id());
+        query.eq(HugeKeys.FIELD_VALUES, value);
+        Iterator<BackendEntry> iterator = this.query(query);
+        boolean exist = iterator.hasNext();
+        if (exist) {
+            LOG.debug("Already has existed unique index record {}",
+                      iterator.next());
+        }
+        while (iterator.hasNext()) {
+            LOG.warn("Unique constraint conflict found by record {}",
+                     iterator.next());
+        }
+        return exist;
     }
 
     /**

@@ -594,6 +594,8 @@ public abstract class CassandraStore
                                  new CassandraTables.SearchIndex(store));
             registerTableManager(HugeType.SHARD_INDEX,
                                  new CassandraTables.ShardIndex(store));
+            registerTableManager(HugeType.UNIQUE_INDEX,
+                                 new CassandraTables.UniqueIndex(store));
         }
 
         @Override

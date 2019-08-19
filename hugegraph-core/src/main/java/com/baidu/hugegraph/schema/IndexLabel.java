@@ -211,6 +211,8 @@ public class IndexLabel extends SchemaElement {
 
         Builder shard();
 
+        Builder unique();
+
         Builder on(HugeType baseType, String baseValue);
 
         Builder indexType(IndexType indexType);

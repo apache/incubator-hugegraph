@@ -37,7 +37,10 @@ public enum IndexType implements SerialEnum {
     SEARCH(3, "search"),
 
     // For prefix + range query
-    SHARD(4, "shard");
+    SHARD(4, "shard"),
+
+    // For unique index
+    UNIQUE(5, "unique");
 
     private byte code = 0;
     private String name = null;
@@ -77,6 +80,8 @@ public enum IndexType implements SerialEnum {
                 return HugeType.SEARCH_INDEX;
             case SHARD:
                 return HugeType.SHARD_INDEX;
+            case UNIQUE:
+                return HugeType.UNIQUE_INDEX;
             default:
                 throw new AssertionError(String.format(
                           "Unknown index type '%s'", this));
@@ -84,7 +89,8 @@ public enum IndexType implements SerialEnum {
     }
 
     public boolean isString() {
-        return this == SECONDARY || this == SEARCH || this == SHARD;
+        return this == SECONDARY || this == SEARCH ||
+               this == SHARD || this == UNIQUE;
     }
 
     public boolean isNumeric() {
@@ -108,5 +114,9 @@ public enum IndexType implements SerialEnum {
 
     public boolean isShard() {
         return this == SHARD;
+    }
+
+    public boolean isUniuqe() {
+        return this == UNIQUE;
     }
 }
