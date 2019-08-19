@@ -415,7 +415,15 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
             List<String> oldFields = this.transaction.graph()
                                          .mapPkId2Name(old.indexFields());
             List<String> newFields = this.indexFields;
+            /*
+             * Remove the existed index label if:
+             * 1. new unique index label is subset of existed unique index label
+             * or
+             * 2. existed index label is prefix of new created index label
+             * (except for unique index)
+             */
             if (this.indexType.isUniuqe() && oldFields.containsAll(newFields) ||
+                !this.indexType.isUniuqe() &&
                 CollectionUtil.prefixOf(oldFields, newFields)) {
                 overrideIndexLabelIds.add(id);
             }
@@ -502,7 +510,7 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
             List<String> oldFields = this.transaction.graph()
                                          .mapPkId2Name(old.indexFields());
             E.checkArgument(!predicate.test(newFields, oldFields),
-                            "Repeat new index label %s(%s) with fields %s " +
+                            "Repeated new index label %s(%s) with fields %s " +
                             "due to existed index label %s(%s) with fields %s",
                             this.name, this.indexType, newFields,
                             old.name(), old.indexType(), old.indexFields());
