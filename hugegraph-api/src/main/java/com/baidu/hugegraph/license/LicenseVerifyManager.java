@@ -19,16 +19,17 @@
 
 package com.baidu.hugegraph.license;
 
+import java.lang.management.ManagementFactory;
 import java.util.List;
-
-import javax.ws.rs.core.Context;
 
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
+import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.Log;
+import com.sun.management.OperatingSystemMXBean;
 
 import de.schlichtherle.license.LicenseContent;
 import de.schlichtherle.license.LicenseContentException;
@@ -38,11 +39,15 @@ public class LicenseVerifyManager extends CommonLicenseManager {
 
     private static final Logger LOG = Log.logger(LicenseVerifyManager.class);
 
-    @Context
-    private javax.inject.Provider<HugeConfig> configProvider;
+    private static final int NO_LIMIT = -1;
 
-    public LicenseVerifyManager(LicenseParam param) {
+    private final HugeConfig config;
+    private final MachineInfo machineInfo;
+
+    public LicenseVerifyManager(LicenseParam param, HugeConfig config) {
         super(param);
+        this.config = config;
+        this.machineInfo = new MachineInfo();
     }
 
     @Override
@@ -62,24 +67,16 @@ public class LicenseVerifyManager extends CommonLicenseManager {
                                               "is not authorized");
         }
 
-        MachineInfo machineInfo = new MachineInfo();
-        if(!checkIpOrMac(param.getIp(), machineInfo.getIpAddress())) {
-            throw new LicenseContentException("The current server's ip " +
-                                              "is not authorized");
-        }
-        if (!checkIpOrMac(param.getMac(), machineInfo.getMacAddress())) {
-            throw new LicenseContentException("The current server's mac " +
-                                              "is not authorized");
-        }
-//        checkCpu();
-//        checkRam();
-//        checkThreads();
-//        checkMemory();
+        this.checkIp(param);
+        this.checkMac(param);
+        this.checkCpu(param);
+        this.checkRam(param);
+        this.checkThreads(param);
+        this.checkMemory(param);
     }
 
     private String getServerId() {
-        HugeConfig config = this.configProvider.get();
-        return config.get(ServerOptions.SERVER_ID);
+        return this.config.get(ServerOptions.SERVER_ID);
     }
 
     private ExtraParam findMatchParam(String id, List<ExtraParam> extraParams) {
@@ -91,10 +88,78 @@ public class LicenseVerifyManager extends CommonLicenseManager {
         return null;
     }
 
-    private boolean checkIpOrMac(String expect, List<String> actualList) {
-        if (StringUtils.isEmpty(expect)) {
-            return true;
+    private void checkIp(ExtraParam param) throws LicenseContentException {
+        String expectIp = param.getIp();
+        if (StringUtils.isEmpty(expectIp)) {
+            return;
         }
-        return actualList.contains(expect);
+        List<String> actualIps = this.machineInfo.getIpAddress();
+        if (!actualIps.contains(expectIp)) {
+            throw new LicenseContentException(String.format(
+                      "The server's ip %s doesn't match the authorized '%s'",
+                      actualIps, expectIp));
+        }
+    }
+
+    private void checkMac(ExtraParam param) throws LicenseContentException {
+        String expectMac = param.getMac();
+        if (StringUtils.isEmpty(expectMac)) {
+            return;
+        }
+        List<String> actualMacs = this.machineInfo.getMacAddress();
+        if (!actualMacs.contains(expectMac)) {
+            throw new LicenseContentException(String.format(
+                      "The server's mac %s doesn't match the authorized '%s'",
+                      actualMacs, expectMac));
+        }
+    }
+
+    private void checkCpu(ExtraParam param) throws LicenseContentException {
+        int expectCpus = param.getCpu();
+        if (expectCpus == NO_LIMIT) {
+            return;
+        }
+        int actualCpus = Runtime.getRuntime().availableProcessors();
+        if (actualCpus > expectCpus) {
+            throw new LicenseContentException(String.format(
+                      "The server's cpus '%s' exceeded the limit '%s'",
+                      actualCpus, expectCpus));
+        }
+    }
+
+    private void checkRam(ExtraParam param) throws LicenseContentException {
+        int expectRam = param.getRam();
+        if (expectRam == NO_LIMIT) {
+            return;
+        }
+        OperatingSystemMXBean mxBean = (OperatingSystemMXBean) ManagementFactory
+                                       .getOperatingSystemMXBean();
+        long actualRam = mxBean.getTotalPhysicalMemorySize() / Bytes.MB;
+        if (actualRam > expectRam) {
+            throw new LicenseContentException(String.format(
+                      "The server's ram(MB) '%s' exceeded the limit(MB) '%s'",
+                      actualRam, expectRam));
+        }
+    }
+
+    private void checkThreads(ExtraParam param) throws LicenseContentException {
+        int expectThreads = param.getThreads();
+        if (expectThreads == NO_LIMIT) {
+            return;
+        }
+        int actualThreads = this.config.get(ServerOptions.MAX_WORKER_THREADS);
+        if (actualThreads > expectThreads) {
+            throw new LicenseContentException(String.format(
+                      "The server's max threads '%s' exceeded limit '%s'",
+                      actualThreads, expectThreads));
+        }
+    }
+
+    private void checkMemory(ExtraParam param) {
+        int expectMemory = param.getMemory();
+        if (expectMemory == NO_LIMIT) {
+            return;
+        }
+        // Now server doesn't have an option liked: MAX_MEMORY
     }
 }

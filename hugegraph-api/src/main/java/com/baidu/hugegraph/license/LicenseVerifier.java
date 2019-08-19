@@ -21,19 +21,20 @@ package com.baidu.hugegraph.license;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.Charset;
+import java.io.InputStream;
 import java.util.prefs.Preferences;
 
-import org.apache.commons.codec.Charsets;
-import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
-import com.baidu.hugegraph.util.JsonUtil;
+import com.baidu.hugegraph.config.HugeConfig;
+import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import de.schlichtherle.license.CipherParam;
 import de.schlichtherle.license.DefaultCipherParam;
+import de.schlichtherle.license.DefaultKeyStoreParam;
 import de.schlichtherle.license.DefaultLicenseParam;
 import de.schlichtherle.license.KeyStoreParam;
 import de.schlichtherle.license.LicenseContent;
@@ -43,21 +44,28 @@ public class LicenseVerifier {
 
     private static final Logger LOG = Log.logger(LicenseVerifier.class);
 
-    private static final Charset CHARSET = Charsets.UTF_8;
     private static final String LICENSE_PARAM_PATH = "/verify-license.json";
 
-    private static final LicenseVerifier INSTANCE = new LicenseVerifier();
+    private static volatile LicenseVerifier INSTANCE = null;
 
     private final LicenseVerifyParam verifyParam;
     private final LicenseVerifyManager manager;
 
-    private LicenseVerifier() {
+    private LicenseVerifier(HugeConfig config) {
+        E.checkNotNull(config, "huge config");
         this.verifyParam = buildVerifyParam(LICENSE_PARAM_PATH);
         LicenseParam licenseParam = this.initLicenseParam(this.verifyParam);
-        this.manager = new LicenseVerifyManager(licenseParam);
+        this.manager = new LicenseVerifyManager(licenseParam, config);
     }
 
-    public static LicenseVerifier instance() {
+    public static LicenseVerifier instance(HugeConfig config) {
+        if (INSTANCE == null) {
+            synchronized(LicenseVerifier.class) {
+                if (INSTANCE == null) {
+                    INSTANCE = new LicenseVerifier(config);
+                }
+            }
+        }
         return INSTANCE;
     }
 
@@ -88,7 +96,7 @@ public class LicenseVerifier {
                                   LicenseVerifier.class);
         CipherParam cipherParam = new DefaultCipherParam(
                                   param.getStorePassword());
-        KeyStoreParam keyStoreParam = new CommonKeyStoreParam(
+        KeyStoreParam keyStoreParam = new DefaultKeyStoreParam(
                                       LicenseVerifier.class,
                                       param.getPublicKeyPath(),
                                       param.getPublicAlias(),
@@ -99,15 +107,14 @@ public class LicenseVerifier {
     }
 
     private static LicenseVerifyParam buildVerifyParam(String path) {
-        File file = FileUtils.getFile(path);
-        String json;
+        InputStream stream = LicenseVerifier.class.getResourceAsStream(path);
+        ObjectMapper mapper = new ObjectMapper();
         try {
-            json = FileUtils.readFileToString(file, CHARSET);
+            return mapper.readValue(stream, LicenseVerifyParam.class);
         } catch (IOException e) {
             throw new RuntimeException(String.format(
                       "Failed to read file '%s'", path));
         }
-        return JsonUtil.fromJson(json, LicenseVerifyParam.class);
     }
 }
 
