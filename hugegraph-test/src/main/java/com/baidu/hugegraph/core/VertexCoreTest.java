@@ -2449,6 +2449,85 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testQueryByTextContainsPropertyOrderByMatchedCount() {
+        HugeGraph graph = graph();
+
+        graph.schema().indexLabel("authorByLived").onV("author")
+             .search().by("lived").create();
+
+        graph.addVertex(T.label, "author", "id", 1, "name", "Tank",  "age", 16,
+                        "lived", "Beijing");
+        graph.addVertex(T.label, "author", "id", 2, "name", "Dim",  "age", 40,
+                        "lived", "Shenzhen area");
+        graph.addVertex(T.label, "author", "id", 3, "name", "Tom",  "age", 19,
+                        "lived", "New York Bay");
+        graph.addVertex(T.label, "author", "id", 4, "name", "Jason",  "age", 20,
+                        "lived", "Tokyo Bay");
+        graph.addVertex(T.label, "author", "id", 5, "name", "James", "age", 62,
+                        "lived", "San Francisco Bay Area");
+        graph.tx().commit();
+
+        List<Vertex> vertices = graph.traversal().V()
+                                     .hasLabel("author")
+                                     .has("lived", Text.contains("Bay Area"))
+                                     .toList();
+
+        Assert.assertEquals(4, vertices.size());
+        Assert.assertEquals("James", vertices.get(0).value("name"));
+        Assert.assertEquals("Tom", vertices.get(1).value("name"));
+        Assert.assertEquals("Jason", vertices.get(2).value("name"));
+        Assert.assertEquals("Dim", vertices.get(3).value("name"));
+        assertContains(vertices,
+                       T.label, "author", "id", 2, "name", "Dim",
+                       "age", 40, "lived", "Shenzhen area");
+        assertContains(vertices,
+                       T.label, "author", "id", 3, "name", "Tom",
+                       "age", 19, "lived", "New York Bay");
+        assertContains(vertices,
+                       T.label, "author", "id", 4, "name", "Jason",
+                       "age", 20, "lived", "Tokyo Bay");
+        assertContains(vertices,
+                       T.label, "author", "id", 5, "name", "James",
+                       "age", 62, "lived", "San Francisco Bay Area");
+    }
+
+    @Test
+    public void testQueryByTextContainsPropertyOrderByMatchedCountWithPaging() {
+        Assume.assumeTrue("Not support paging",
+                          storeFeatures().supportsQueryByPage());
+
+        HugeGraph graph = graph();
+
+        graph.schema().indexLabel("authorByLived").onV("author")
+             .search().by("lived").create();
+
+        graph.addVertex(T.label, "author", "id", 1, "name", "Tank",  "age", 16,
+                        "lived", "Beijing");
+        graph.addVertex(T.label, "author", "id", 2, "name", "Dim",  "age", 40,
+                        "lived", "Shenzhen area");
+        graph.addVertex(T.label, "author", "id", 3, "name", "Tom",  "age", 19,
+                        "lived", "New York Bay");
+        graph.addVertex(T.label, "author", "id", 4, "name", "Jason",  "age", 20,
+                        "lived", "Tokyo Bay");
+        graph.addVertex(T.label, "author", "id", 5, "name", "James", "age", 62,
+                        "lived", "San Francisco Bay Area");
+        graph.tx().commit();
+
+        List<Vertex> vertices = graph.traversal().V()
+                                     .hasLabel("author")
+                                     .has("lived", Text.contains("Bay Area"))
+                                     .has("~page", "").limit(2)
+                                     .toList();
+        Assert.assertEquals(2, vertices.size());
+        assertContains(vertices,
+                       T.label, "author", "id", 3, "name", "Tom",
+                       "age", 19, "lived", "New York Bay");
+        assertContains(vertices,
+                       T.label, "author", "id", 4, "name", "Jason",
+                       "age", 20, "lived", "Tokyo Bay");
+    }
+
+    @Test
     public void testQueryByTextContainsPropertyWithLeftIndex() {
         HugeGraph graph = graph();
 
