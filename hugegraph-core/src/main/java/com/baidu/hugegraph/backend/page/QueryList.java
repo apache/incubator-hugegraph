@@ -224,10 +224,10 @@ public final class QueryList {
         @Override
         public Iterator<BackendEntry> iterator() {
             return new FlatMapperIterator<>(this.holders.iterator(), holder -> {
-                if (holder.ids().isEmpty()) {
+                Set<Id> ids = holder.ids();
+                if (ids.isEmpty()) {
                     return null;
                 }
-                Set<Id> ids = holder.ids();
                 if (parent().limit() != Query.NO_LIMIT &&
                     ids.size() > parent().limit()) {
                     /*
