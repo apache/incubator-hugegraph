@@ -475,11 +475,6 @@ public abstract class MysqlTable
                 String values = Strings.join((List<?>) value, ',');
                 sql.append(values);
                 sql.append(")");
-                sql.append(" ORDER BY FIELD(");
-                sql.append(key);
-                sql.append(",");
-                sql.append(values);
-                sql.append(")");
                 break;
             case CONTAINS_VALUE:
             case CONTAINS_KEY:
