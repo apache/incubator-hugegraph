@@ -307,7 +307,7 @@ public class SchemaTransaction extends IndexableTransaction {
         this.beforeRead();
         ConditionQuery query = new ConditionQuery(type);
         query.eq(HugeKeys.NAME, name);
-        Iterator<BackendEntry> iter = this.indexTx.query(query);
+        Iterator<BackendEntry> iter = this.indexTx.query(query).iterator();
         this.afterRead();
         if (iter.hasNext()) {
             T schema = this.deserialize(iter.next(), type);
@@ -320,7 +320,7 @@ public class SchemaTransaction extends IndexableTransaction {
 
     protected <T extends SchemaElement> List<T> getAllSchema(HugeType type) {
         Query query = new Query(type);
-        Iterator<BackendEntry> entries = this.query(query);
+        Iterator<BackendEntry> entries = this.query(query).iterator();
 
         List<T> result = new ArrayList<>();
         while (entries.hasNext()) {

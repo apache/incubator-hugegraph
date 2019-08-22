@@ -35,6 +35,7 @@ public class PageEntryIterator implements Iterator<BackendEntry>, Metadatable {
     private QueryList.PageIterator results;
     private PageInfo pageInfo;
     private long remaining;
+    private Query query;
 
     public PageEntryIterator(QueryList queries, long pageSize) {
         this.queries = queries;
@@ -42,6 +43,7 @@ public class PageEntryIterator implements Iterator<BackendEntry>, Metadatable {
         this.results = QueryList.PageIterator.EMPTY;
         this.pageInfo = this.parsePageState();
         this.remaining = queries.parent().limit();
+        this.query = null;
     }
 
     private PageInfo parsePageState() {
@@ -51,6 +53,11 @@ public class PageEntryIterator implements Iterator<BackendEntry>, Metadatable {
                      "Invalid page '%s' with an offset '%s' exceeds " +
                      "the size of IdHolderList", page, pageInfo.offset());
         return pageInfo;
+    }
+
+    public Query query() {
+        this.hasNext();
+        return this.query;
     }
 
     @Override
@@ -73,6 +80,7 @@ public class PageEntryIterator implements Iterator<BackendEntry>, Metadatable {
         }
         this.results = this.queries.fetchNext(this.pageInfo, pageSize);
         assert this.results != null;
+        this.query = this.results.query();
 
         if (this.results.iterator().hasNext()) {
             if (!this.results.hasNextPage()) {

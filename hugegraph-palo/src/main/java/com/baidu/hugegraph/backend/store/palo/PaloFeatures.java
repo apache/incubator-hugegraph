@@ -60,6 +60,11 @@ public class PaloFeatures implements BackendFeatures {
     }
 
     @Override
+    public boolean supportsQuerySortByInputIds() {
+        return false;
+    }
+
+    @Override
     public boolean supportsQueryWithContains() {
         return false;
     }

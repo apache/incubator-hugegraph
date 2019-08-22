@@ -45,6 +45,8 @@ public interface BackendFeatures {
 
     public boolean supportsQueryByPage();
 
+    public boolean supportsQuerySortByInputIds();
+
     public boolean supportsDeleteEdgeByLabel();
 
     public boolean supportsUpdateVertexProperty();

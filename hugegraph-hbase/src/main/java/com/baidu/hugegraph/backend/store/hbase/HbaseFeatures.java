@@ -56,6 +56,11 @@ public class HbaseFeatures implements BackendFeatures {
     }
 
     @Override
+    public boolean supportsQuerySortByInputIds() {
+        return true;
+    }
+
+    @Override
     public boolean supportsQueryWithOrderBy() {
         return true;
     }

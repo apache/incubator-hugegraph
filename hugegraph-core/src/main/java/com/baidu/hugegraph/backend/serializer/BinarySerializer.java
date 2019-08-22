@@ -364,7 +364,11 @@ public class BinarySerializer extends AbstractSerializer {
             if (this.indexWithIdPrefix) {
                 buffer.readIndexId(index.type());
             }
-            index.elementIds(buffer.readId(true));
+            Id elemId = buffer.readId(true);
+            if (index.indexLabel().queryType().isEdge()) {
+                elemId = EdgeId.parse(elemId.asString());
+            }
+            index.elementIds(elemId);
         }
     }
 
@@ -713,7 +717,7 @@ public class BinarySerializer extends AbstractSerializer {
     }
 
     private BinaryBackendEntry formatILDeletion(HugeIndex index) {
-        Id id = index.indexLabel();
+        Id id = index.indexLabelId();
         BinaryId bid = new BinaryId(id.asBytes(), id);
         BinaryBackendEntry entry = new BinaryBackendEntry(index.type(), bid);
         if (index.type().isStringIndex()) {

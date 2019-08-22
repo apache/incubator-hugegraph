@@ -330,13 +330,13 @@ public class TextSerializer extends AbstractSerializer {
          */
         if (index.fieldValues() == null && index.elementIds().size() == 0) {
             entry.column(HugeKeys.INDEX_LABEL_ID,
-                         writeId(index.indexLabel()));
+                         writeId(index.indexLabelId()));
         } else {
             // TODO: field-values may be a number (range index)
             entry.column(formatSyspropName(HugeKeys.FIELD_VALUES),
                          JsonUtil.toJson(index.fieldValues()));
             entry.column(formatSyspropName(HugeKeys.INDEX_LABEL_ID),
-                         writeId(index.indexLabel()));
+                         writeId(index.indexLabelId()));
             entry.column(formatSyspropName(HugeKeys.ELEMENT_IDS),
                          writeIds(index.elementIds()));
             entry.subId(index.elementId());
@@ -357,13 +357,18 @@ public class TextSerializer extends AbstractSerializer {
                 formatSyspropName(HugeKeys.FIELD_VALUES));
         String indexLabelId = entry.column(
                 formatSyspropName(HugeKeys.INDEX_LABEL_ID));
-        String elementIds = entry.column(
+        String elemIds = entry.column(
                 formatSyspropName(HugeKeys.ELEMENT_IDS));
 
         IndexLabel indexLabel = IndexLabel.label(graph, readId(indexLabelId));
         HugeIndex index = new HugeIndex(indexLabel);
         index.fieldValues(JsonUtil.fromJson(indexValues, Object.class));
-        index.elementIds(readIds(elementIds));
+        for (Id elemId : readIds(elemIds)) {
+            if (indexLabel.queryType().isEdge()) {
+                elemId = EdgeId.parse(elemId.asString());
+            }
+            index.elementIds(elemId);
+        }
         return index;
     }
 

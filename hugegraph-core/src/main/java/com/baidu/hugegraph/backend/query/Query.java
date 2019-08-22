@@ -41,6 +41,10 @@ public class Query implements Cloneable {
     public static final long NO_CAPACITY = -1L;
     public static final long DEFAULT_CAPACITY = 800000L; // HugeGraph-777
 
+    private static final ThreadLocal<Long> capacityContex = new ThreadLocal<>();
+
+    public static final Query NONE = new Query(HugeType.UNKNOWN);
+
     private HugeType resultType;
     private Map<HugeKeys, Order> orders;
     private long offset;
@@ -51,8 +55,6 @@ public class Query implements Cloneable {
     private boolean showDeleting;
 
     private Query originQuery;
-
-    private static final ThreadLocal<Long> capacityContex = new ThreadLocal<>();
 
     public Query(HugeType resultType) {
         this(resultType, null);
@@ -305,7 +307,7 @@ public class Query implements Cloneable {
     public String toString() {
         Map<String, Object> pairs = InsertionOrderUtil.newMap();
         if (this.page != null) {
-            pairs.put("page", this.page);
+            pairs.put("page", String.format("'%s'", this.page));
         }
         if (this.offset != 0) {
             pairs.put("offset", this.offset);

@@ -281,10 +281,10 @@ public abstract class TableSerializer extends AbstractSerializer {
          * meaningful for deletion of index data in secondary/range index.
          */
         if (index.fieldValues() == null && index.elementIds().size() == 0) {
-            entry.column(HugeKeys.INDEX_LABEL_ID, index.indexLabel().asLong());
+            entry.column(HugeKeys.INDEX_LABEL_ID, index.indexLabel().longId());
         } else {
             entry.column(HugeKeys.FIELD_VALUES, index.fieldValues());
-            entry.column(HugeKeys.INDEX_LABEL_ID, index.indexLabel().asLong());
+            entry.column(HugeKeys.INDEX_LABEL_ID, index.indexLabel().longId());
             entry.column(HugeKeys.ELEMENT_IDS,
                          IdUtil.writeString(index.elementId()));
             entry.subId(index.elementId());
@@ -309,8 +309,12 @@ public abstract class TableSerializer extends AbstractSerializer {
         IndexLabel indexLabel = graph.indexLabel(this.toId(indexLabelId));
         HugeIndex index = new HugeIndex(indexLabel);
         index.fieldValues(indexValues);
-        for (String id : elemIds) {
-            index.elementIds(IdUtil.readString(id));
+        for (String elemId : elemIds) {
+            Id id = IdUtil.readString(elemId);
+            if (indexLabel.queryType().isEdge()) {
+                id = EdgeId.parse(id.asString());
+            }
+            index.elementIds(id);
         }
         return index;
     }

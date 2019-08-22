@@ -44,13 +44,14 @@ import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaLabel;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.Idfiable;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 import com.google.common.collect.ImmutableMap;
 
-public abstract class HugeElement implements Element, GraphType {
+public abstract class HugeElement implements Element, GraphType, Idfiable {
 
     private static final Map<Id, HugeProperty<?>> EMPTY = ImmutableMap.of();
     private static final int MAX_PROPERTIES = BytesBuffer.UINT16_MAX;
