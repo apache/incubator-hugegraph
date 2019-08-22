@@ -127,6 +127,22 @@ org.apache.tinkerpop.gremlin.process.traversal.step.ComplexTest.Traversals.class
 org.apache.tinkerpop.gremlin.process.traversal.step.ComplexTest.Traversals.playlistPaths: long time
 org.apache.tinkerpop.gremlin.process.traversal.step.sideEffect.TreeTest.Traversals.g_V_out_out_treeXaX_capXaX: long time
 
+## unsupported predicate
+org.apache.tinkerpop.gremlin.process.traversal.step.filter.HasTest.Traversals.g_V_hasIdXwithoutXemptyXX_count: Unsupported hasId
+org.apache.tinkerpop.gremlin.process.traversal.step.filter.HasTest.Traversals.g_V_hasIdXemptyX_count: Unsupported hasId
+org.apache.tinkerpop.gremlin.process.traversal.step.filter.HasTest.Traversals.g_V_hasIdXwithinXemptyXX_count: Unsupported hasId
+
+org.apache.tinkerpop.gremlin.process.traversal.step.filter.HasTest.Traversals.g_V_hasXname_containingXarkXX: Unsupported predicate 'containing(ark)'
+org.apache.tinkerpop.gremlin.process.traversal.step.filter.HasTest.Traversals.g_V_hasXname_endingWithXasXX: Unsupported predicate 'endingWith(as)'
+org.apache.tinkerpop.gremlin.process.traversal.step.filter.HasTest.Traversals.g_V_hasXname_startingWithXmarXX: Unsupported predicate 'startingWith(mar)'
+org.apache.tinkerpop.gremlin.process.traversal.step.filter.HasTest.Traversals.g_V_hasXage_withoutX27X_count: Unsupported relation 'NEQ'
+org.apache.tinkerpop.gremlin.process.traversal.step.filter.HasTest.Traversals.g_V_hasXperson_name_containingXoX_andXltXmXXX: Unsupported predicate 'containing(o)'
+org.apache.tinkerpop.gremlin.process.traversal.step.filter.HasTest.Traversals.g_V_hasXname_not_startingWithXmarXX: Unsupported predicate 'notStartingWith(mar)'
+org.apache.tinkerpop.gremlin.process.traversal.step.filter.HasTest.Traversals.g_V_hasXname_not_containingXarkXX: Unsupported predicate 'notContaining(ark)'
+org.apache.tinkerpop.gremlin.process.traversal.step.filter.HasTest.Traversals.g_V_hasXname_not_endingWithXasXX: Unsupported predicate 'notEndingWith(as)'
+org.apache.tinkerpop.gremlin.process.traversal.step.filter.HasTest.Traversals.g_V_hasXage_withoutX27_29X_count: Unsupported relation 'NEQ'
+org.apache.tinkerpop.gremlin.process.traversal.step.filter.HasTest.Traversals.g_V_hasXname_gtXmX_andXcontainingXoXXX: Unsupported predicate 'containing(o)'
+
 ####################    structure performance suite    ####################
 
 org.apache.tinkerpop.gremlin.structure.GraphWritePerformanceTest.WriteToGraph.writeEmptyVertices: Vertices number exceeds 65536, can not delete by vertex label after tests

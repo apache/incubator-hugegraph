@@ -36,6 +36,7 @@ import org.apache.tinkerpop.gremlin.structure.io.Io;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.io.HugeGraphIoRegistry;
+import com.baidu.hugegraph.io.HugeGraphSONModule;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaManager;
@@ -231,6 +232,7 @@ public class TestGraph implements Graph {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
     public <I extends Io> I io(final Io.Builder<I> builder) {
+        HugeGraphSONModule.OPTIMIZE_SERIALIZE = false;
         return (I) builder.graph(this).onMapper(mapper ->
             mapper.addRegistry(HugeGraphIoRegistry.instance())
         ).create();
@@ -322,6 +324,10 @@ public class TestGraph implements Graph {
             case "String":
                 schema.propertyKey(key).ifNotExist().create();
                 break;
+            case "BooleanArray":
+                schema.propertyKey(key).asBoolean().valueList()
+                      .ifNotExist().create();
+                break;
             case "IntegerArray":
                 schema.propertyKey(key).asInt().valueList()
                       .ifNotExist().create();
@@ -352,7 +358,6 @@ public class TestGraph implements Graph {
                 throw new RuntimeException(
                           String.format("Wrong type %s for %s", type, key));
         }
-
     }
 
     @Watched
@@ -597,6 +602,12 @@ public class TestGraph implements Graph {
         schema.propertyKey("double").asDouble().ifNotExist().create();
         schema.propertyKey("string").ifNotExist().create();
         schema.propertyKey("integer").asInt().ifNotExist().create();
+        /*
+         * The method shouldHaveStandardStringRepresentationForEdgeProperty()
+         * in PropertyTest$BasicPropertyTest need 'short' property with
+         * datatype String
+         */
+        schema.propertyKey("short").asText().ifNotExist().create();
         schema.propertyKey("long").asLong().ifNotExist().create();
         schema.propertyKey("x").asInt().ifNotExist().create();
         schema.propertyKey("y").asInt().ifNotExist().create();
@@ -651,6 +662,7 @@ public class TestGraph implements Graph {
     private void initBasicVertexLabelV(IdStrategy idStrategy,
                                        String defaultVL) {
         SchemaManager schema = this.graph.schema();
+
         switch (idStrategy) {
             case CUSTOMIZE_STRING:
                 this.isLastIdCustomized = true;
@@ -725,14 +737,18 @@ public class TestGraph implements Graph {
               .properties("here")
               .nullableKeys("here")
               .ifNotExist().create();
+        schema.vertexLabel("blah")
+              .properties("test")
+              .nullableKeys("test")
+              .ifNotExist().create();
 
         schema.edgeLabel("self").link(defaultVL, defaultVL)
               .properties("__id", "test", "name", "some", "acl", "weight",
                           "here", "to-change", "dropped", "not-dropped", "new",
-                          "to-drop")
+                          "to-drop", "short", "long")
               .nullableKeys("__id", "test", "name", "some", "acl", "weight",
                             "here", "to-change", "dropped", "not-dropped",
-                            "new", "to-drop")
+                            "new", "to-drop", "short", "long")
               .ifNotExist().create();
         schema.edgeLabel("aTOa").link(defaultVL, defaultVL)
               .properties("gremlin.partitionGraphStrategy.partition")
@@ -758,11 +774,11 @@ public class TestGraph implements Graph {
               .properties("data", "test", "year", "boolean", "float",
                           "double", "string", "integer", "long", "weight",
                           "myEdgeId", "since", "acl", "stars", "aKey",
-                          "gremlin.partitionGraphStrategy.partition")
+                          "gremlin.partitionGraphStrategy.partition", "color")
               .nullableKeys("data", "test", "year", "boolean", "float",
                             "double", "string", "integer", "long", "weight",
                             "myEdgeId", "since", "acl", "stars", "aKey",
-                            "gremlin.partitionGraphStrategy.partition")
+                            "gremlin.partitionGraphStrategy.partition", "color")
               .ifNotExist().create();
         schema.edgeLabel("test").link(defaultVL, defaultVL)
               .properties("test", "xxx", "yyy")
@@ -813,8 +829,8 @@ public class TestGraph implements Graph {
               .nullableKeys("weight")
               .ifNotExist().create();
         schema.edgeLabel("created").link(defaultVL, defaultVL)
-              .properties("weight")
-              .nullableKeys("weight")
+              .properties("weight", "color")
+              .nullableKeys("weight", "color")
               .ifNotExist().create();
         schema.edgeLabel("next").link(defaultVL, defaultVL)
               .ifNotExist().create();

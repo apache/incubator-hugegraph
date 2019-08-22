@@ -38,9 +38,12 @@ public class HugeGraphGremlinPlugin extends AbstractGremlinPlugin {
     private static final String PACKAGE = "com.baidu.hugegraph";
     private static final String NAME = "com.baidu.hugegraph";
 
+    private static final HugeGraphGremlinPlugin instance;
     private static final ImportCustomizer imports;
 
     static {
+        instance = new HugeGraphGremlinPlugin();
+
         Iterator<ClassPath.ClassInfo> classInfos;
         try {
             classInfos = ReflectionUtil.classes(PACKAGE);
@@ -55,9 +58,6 @@ public class HugeGraphGremlinPlugin extends AbstractGremlinPlugin {
                                          .addClassImports(classes)
                                          .create();
     }
-
-    private static final HugeGraphGremlinPlugin instance =
-            new HugeGraphGremlinPlugin();
 
     public HugeGraphGremlinPlugin() {
         super(NAME, imports);

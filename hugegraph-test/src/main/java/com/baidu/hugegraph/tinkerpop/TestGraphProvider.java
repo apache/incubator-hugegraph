@@ -283,6 +283,13 @@ public class TestGraphProvider extends AbstractGraphProvider {
             testGraph.initPropertyKey("aKey", aKeyType);
         }
 
+        if (testMethod.equals(
+            "shouldHaveTruncatedStringRepresentationForEdgeProperty")) {
+            testGraph.initPropertyKey("long", "String");
+        } else {
+            testGraph.initPropertyKey("long", "Long");
+        }
+
         // Basic schema is initiated by default once a graph is open
         testGraph.initBasicSchema(idStrategy(config), TestGraph.DEFAULT_VL);
         testGraph.tx().commit();

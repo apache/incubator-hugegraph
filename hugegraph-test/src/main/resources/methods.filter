@@ -91,6 +91,10 @@ org.apache.tinkerpop.gremlin.process.traversal.step.map.AddVertexTest.Traversals
 org.apache.tinkerpop.gremlin.process.traversal.step.map.AddVertexTest.Traversals.g_addVXanimalX_propertyXname_mateoX_propertyXname_gateoX_propertyXname_cateoX_propertyXage_5X: Expect multi properties after setting single property multi times
 org.apache.tinkerpop.gremlin.process.traversal.step.map.AddVertexTest.Traversals.g_V_addVXanimalX_propertyXname_valuesXnameXX_propertyXname_an_animalX_propertyXvaluesXnameX_labelX: Expect multi properties after setting single property multi times
 
+## unsupported predicate
+org.apache.tinkerpop.gremlin.process.traversal.step.filter.HasTest.Traversals.g_V_hasXname_containingXarkXX: Unsupported predicate 'containing(ark)'
+
+
 ####################    structure performance suite    ####################
 
 org.apache.tinkerpop.gremlin.structure.GraphWritePerformanceTest.WriteToGraph.writeEmptyVertices: Vertices number exceeds 65536, can not delete by vertex label after tests
