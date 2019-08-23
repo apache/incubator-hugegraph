@@ -28,6 +28,8 @@ import com.baidu.hugegraph.util.E;
 
 public class PageState {
 
+    public static final byte[] EMPTY_BYTES = new byte[0];
+
     private final byte[] position;
     private final int offset;
     private final int total;
@@ -63,6 +65,13 @@ public class PageState {
         buffer.writeInt(this.offset);
         buffer.writeInt(this.total);
         return buffer.bytes();
+    }
+
+    public String page() {
+        if (Bytes.equals(this.position(), EMPTY_BYTES)) {
+            return null;
+        }
+        return this.toString();
     }
 
     public static PageState fromString(String page) {

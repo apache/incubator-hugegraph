@@ -577,13 +577,13 @@ public class GraphIndexTransaction extends AbstractTransaction {
             }
             // NOTE: Memory backend's iterator is not Metadatable
             if (!query.paging()) {
-                return new PageIds(ids, null);
+                return new PageIds(ids, (String) null);
             }
             E.checkState(entries instanceof Metadatable,
                          "The entries must be Metadatable when query " +
                          "in paging, but got '%s'",
                          entries.getClass().getName());
-            return new PageIds(ids, PageInfo.page(entries));
+            return new PageIds(ids, PageInfo.pageState(entries));
         } finally {
             locks.unlock();
         }

@@ -75,12 +75,12 @@ public class PageEntryIterator implements Iterator<BackendEntry>, Metadatable {
         assert this.results != null;
 
         if (this.results.iterator().hasNext()) {
-            if (this.results.page() == null) {
+            if (this.results.hasNullPage()) {
                 this.pageInfo.increase();
             } else {
                 this.pageInfo.page(this.results.page());
-                this.remaining -= this.results.total();
             }
+            this.remaining -= this.results.total();
             return true;
         } else {
             this.pageInfo.increase();
@@ -102,7 +102,7 @@ public class PageEntryIterator implements Iterator<BackendEntry>, Metadatable {
             if (this.pageInfo.offset() >= this.queries.total()) {
                 return null;
             }
-            return this.pageInfo.toString();
+            return this.pageInfo;
         }
         throw new NotSupportException("Invalid meta '%s'", meta);
     }

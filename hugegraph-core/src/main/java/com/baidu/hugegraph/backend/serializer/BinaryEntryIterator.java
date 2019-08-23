@@ -118,13 +118,12 @@ public class BinaryEntryIterator<Elem> extends BackendEntryIterator {
     }
 
     @Override
-    protected String pageState() {
+    protected PageState pageState() {
         byte[] position = this.results.position();
         if (position == null) {
-            return null;
+            position = PageState.EMPTY_BYTES;
         }
-        PageState page = new PageState(position, 0, (int) this.count());
-        return page.toString();
+        return new PageState(position, 0, (int) this.count());
     }
 
     private void removeLastRecord() {

@@ -124,39 +124,35 @@ public final class HugeVertexStep<E extends Element>
 
         ConditionQuery query = GraphTransaction.constructEdgesQuery(
                                vertex, direction, edgeLabelIds);
-        List<ConditionQuery> queries = ConditionQueryFlatten.flatten(query);
-        ExtendableIterator<Edge> results = new ExtendableIterator<>();
-        for (ConditionQuery q : queries) {
-            // Query by sort-keys
-            if (withEdgeCond && edgeLabels.length > 0) {
-                TraversalUtil.fillConditionQuery(conditions, q, graph);
-                if (!GraphTransaction.matchEdgeSortKeys(q, graph)) {
-                    // Can't query by sysprop and by index (HugeGraph-749)
-                    q.resetUserpropConditions();
-                }
-            }
-
-            // Query by has(id)
-            if (!q.ids().isEmpty()) {
-                // Ignore conditions if query by edge id in has-containers
-                // FIXME: should check that the edge id matches the `vertex`
-                q.resetConditions();
-                LOG.warn("It's not recommended to query by has(id)");
-            }
-
-            q = this.injectQueryInfo(q);
-
-            // Do query
-            Iterator<Edge> edges = graph.edges(q);
-
-            // Do filter by edge conditions
-            if (withEdgeCond) {
-                results.extend(TraversalUtil.filterResult(conditions, edges));
-            } else {
-                results.extend(edges);
+        // Query by sort-keys
+        ConditionQuery q = query;
+        if (withEdgeCond && edgeLabels.length > 0) {
+            TraversalUtil.fillConditionQuery(conditions, q, graph);
+            if (!GraphTransaction.matchEdgeSortKeys(q, graph)) {
+                // Can't query by sysprop and by index (HugeGraph-749)
+                q.resetUserpropConditions();
             }
         }
-        return results;
+
+        // Query by has(id)
+        if (!q.ids().isEmpty()) {
+            // Ignore conditions if query by edge id in has-containers
+            // FIXME: should check that the edge id matches the `vertex`
+            q.resetConditions();
+            LOG.warn("It's not recommended to query by has(id)");
+        }
+
+        q = this.injectQueryInfo(q);
+
+        // Do query
+        Iterator<Edge> edges = graph.edges(q);
+
+        // Do filter by edge conditions
+        if (withEdgeCond) {
+            return TraversalUtil.filterResult(conditions, edges);
+        } else {
+            return edges;
+        }
     }
 
     @Override

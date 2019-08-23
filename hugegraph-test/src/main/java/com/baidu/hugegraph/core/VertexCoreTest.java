@@ -4222,7 +4222,7 @@ public class VertexCoreTest extends BaseCoreTest {
             while (iterator.hasNext()) {
                 vertices.add(iterator.next());
             }
-            page = PageInfo.page(iterator);
+            page = PageInfo.pageInfo(iterator);
         }
         Assert.assertEquals(10, vertices.size());
     }

@@ -56,6 +56,7 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.page.PageInfo;
+import com.baidu.hugegraph.backend.page.PageState;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.Condition.Relation;
 import com.baidu.hugegraph.backend.query.Condition.RelationType;
@@ -587,15 +588,36 @@ public final class TraversalUtil {
     }
 
     public static String page(GraphTraversal<?, ?> traversal) {
-        QueryHolder holder = rootStep(traversal);
+        QueryHolder holder = firstPageStep(traversal);
         E.checkState(holder != null,
                      "Invalid paging traversal: %s", traversal.getClass());
-        return (String) holder.metadata(PageInfo.PAGE);
+        Object page = holder.metadata(PageInfo.PAGE);
+        if (page instanceof PageInfo) {
+            // Traversal with condition like: g.V().has("x", 1).has("~page", "")
+            return page.toString();
+        } else if (page instanceof PageState) {
+            // Traversal without condition like: g.V().has("~page", "")
+            return ((PageState) page).page();
+        } else {
+            // reach end
+            assert page == null;
+            return null;
+        }
     }
 
     public static QueryHolder rootStep(GraphTraversal<?, ?> traversal) {
         for (final Step<?, ?> step : traversal.asAdmin().getSteps()) {
             if (step instanceof QueryHolder) {
+                return (QueryHolder) step;
+            }
+        }
+        return null;
+    }
+
+    public static QueryHolder firstPageStep(GraphTraversal<?, ?> traversal) {
+        for (final Step<?, ?> step : traversal.asAdmin().getSteps()) {
+            if (step instanceof QueryHolder &&
+                ((QueryHolder) step).queryInfo().paging()) {
                 return (QueryHolder) step;
             }
         }

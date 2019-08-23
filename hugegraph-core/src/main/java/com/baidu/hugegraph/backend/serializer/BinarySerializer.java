@@ -546,10 +546,20 @@ public class BinarySerializer extends AbstractSerializer {
         Id startId = new BinaryId(start.bytes(), null);
         // Set endId as prefix if there is no end sort-value
         Id endId = new BinaryId(end.bytes(), null);
-        if (range.keyMax() == null) {
-            return new IdPrefixQuery(cq, startId, range.keyMinEq(), endId);
+
+        boolean paging = false;
+        if (cq.paging() && !cq.page().isEmpty()) {
+            paging = true;
+            byte[] position = PageState.fromString(cq.page()).position();
+            E.checkArgument(Bytes.compare(position, startId.asBytes()) >= 0,
+                            "Invalid page out of lower bound");
+            startId = new BinaryId(position, null);
         }
-        return new IdRangeQuery(cq, startId, range.keyMinEq(), endId,
+        boolean includeStart = paging || range.keyMinEq();
+        if (range.keyMax() == null) {
+            return new IdPrefixQuery(cq, startId, includeStart, endId);
+        }
+        return new IdRangeQuery(cq, startId, includeStart, endId,
                                 range.keyMaxEq());
     }
 
@@ -589,7 +599,7 @@ public class BinarySerializer extends AbstractSerializer {
 
         if (count > 0) {
             assert count == cq.conditions().size();
-            return new IdPrefixQuery(cq, new BinaryId(buffer.bytes(), null));
+            return prefixQuery(cq, new BinaryId(buffer.bytes(), null));
         }
 
         return null;
@@ -629,22 +639,7 @@ public class BinarySerializer extends AbstractSerializer {
         E.checkArgument(key != null, "Please specify the index key");
 
         Id prefix = formatIndexId(query.resultType(), index, key, true);
-
-        /*
-         * If used paging and the page number is not empty, deserialize
-         * the page to id and use it as the starting row for this query
-         */
-        Query newQuery;
-        if (query.paging() && !query.page().isEmpty()) {
-            byte[] position = PageState.fromString(query.page()).position();
-            E.checkArgument(Bytes.compare(position, prefix.asBytes()) >= 0,
-                            "Invalid page out of lower bound");
-            BinaryId start = new BinaryId(position, null);
-            newQuery = new IdPrefixQuery(query, start, prefix);
-        } else {
-            newQuery = new IdPrefixQuery(query, prefix);
-        }
-        return newQuery;
+        return prefixQuery(query, prefix);
     }
 
     private Query writeRangeIndexQuery(ConditionQuery query) {
@@ -747,6 +742,24 @@ public class BinarySerializer extends AbstractSerializer {
         buffer.writeId(edgeId.otherVertexId());
 
         return new BinaryId(buffer.bytes(), id);
+    }
+
+    private static Query prefixQuery(ConditionQuery query, Id prefix) {
+        Query newQuery;
+        if (query.paging() && !query.page().isEmpty()) {
+            /*
+             * If used paging and the page number is not empty, deserialize
+             * the page to id and use it as the starting row for this query
+             */
+            byte[] position = PageState.fromString(query.page()).position();
+            E.checkArgument(Bytes.compare(position, prefix.asBytes()) >= 0,
+                            "Invalid page out of lower bound");
+            BinaryId start = new BinaryId(position, null);
+            newQuery = new IdPrefixQuery(query, start, prefix);
+        } else {
+            newQuery = new IdPrefixQuery(query, prefix);
+        }
+        return newQuery;
     }
 
     protected static BinaryId formatIndexId(HugeType type, Id indexLabel,

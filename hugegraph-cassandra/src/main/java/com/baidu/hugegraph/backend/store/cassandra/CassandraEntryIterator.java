@@ -111,12 +111,12 @@ public class CassandraEntryIterator extends BackendEntryIterator {
     }
 
     @Override
-    protected String pageState() {
+    protected PageState pageState() {
         PagingState page = this.results.getExecutionInfo().getPagingState();
         if (page == null || this.results.isExhausted()) {
-            return null;
+            return new PageState(PageState.EMPTY_BYTES, 0, (int) this.count());
         }
         byte[] position = page.toBytes();
-        return new PageState(position, 0, (int) this.count()).toString();
+        return new PageState(position, 0, (int) this.count());
     }
 }

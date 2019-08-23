@@ -26,7 +26,8 @@ import com.google.common.collect.ImmutableSet;
 
 public final class PageIds {
 
-    public static final PageIds EMPTY = new PageIds(ImmutableSet.of(), null);
+    public static final PageIds EMPTY = new PageIds(ImmutableSet.of(),
+                                                    (String) null);
 
     private final Set<Id> ids;
     private final String page;
@@ -34,6 +35,11 @@ public final class PageIds {
     public PageIds(Set<Id> ids, String page) {
         this.ids = ids;
         this.page = page;
+    }
+
+    public PageIds(Set<Id> ids, PageState pageState) {
+        this.ids = ids;
+        this.page = pageState.toString();
     }
 
     public Set<Id> ids() {

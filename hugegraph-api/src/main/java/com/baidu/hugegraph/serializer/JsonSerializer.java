@@ -101,7 +101,7 @@ public class JsonSerializer implements Serializer {
                 if (iter instanceof GraphTraversal<?, ?>) {
                     page = TraversalUtil.page((GraphTraversal<?, ?>) iter);
                 } else if (iter instanceof Metadatable) {
-                    page = PageInfo.page(iter);
+                    page = PageInfo.pageInfo(iter);
                 } else {
                     throw new HugeException("Invalid paging iterator: %s",
                                             iter.getClass());

@@ -87,17 +87,16 @@ public class MysqlEntryIterator extends BackendEntryIterator {
     }
 
     @Override
-    protected String pageState() {
-        if (this.lastest == null) {
-            return null;
-        }
-        if (this.fetched() <= this.query.limit() && this.next == null) {
-            // There is no next page
-            return null;
+    protected PageState pageState() {
+        byte[] position;
+        // There is no latest or no next page
+        if (this.lastest == null ||
+            this.fetched() <= this.query.limit() && this.next == null) {
+            return new PageState(PageState.EMPTY_BYTES, 0, (int) this.count());
         }
         MysqlBackendEntry entry = (MysqlBackendEntry) this.lastest;
-        byte[] position = new PagePosition(entry.columnsMap()).toBytes();
-        return new PageState(position, 0, (int) this.count()).toString();
+        position = new PagePosition(entry.columnsMap()).toBytes();
+        return new PageState(position, 0, (int) this.count());
     }
 
     @Override

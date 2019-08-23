@@ -1461,7 +1461,7 @@ public class GraphTransaction extends IndexableTransaction {
                     }
                 }
                 if (query.paging()) {
-                    page = PageInfo.page(iter);
+                    page = PageInfo.pageState(iter).page();
                 }
             } while (page != null);
         }

@@ -35,6 +35,7 @@ import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.iterator.FlatMapperIterator;
+import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 import com.google.common.collect.ImmutableSet;
@@ -199,7 +200,7 @@ public final class QueryList {
             // Must iterate all entries before get the next page
             List<BackendEntry> results = IteratorUtils.list(iterator);
             return new PageIterator(results.iterator(),
-                                    PageInfo.page(iterator));
+                                    PageInfo.pageState(iterator));
         }
 
         @Override
@@ -271,8 +272,19 @@ public final class QueryList {
             this.page = page;
         }
 
+        public PageIterator(Iterator<BackendEntry> iterator,
+                            PageState pageState) {
+            this.iterator = iterator;
+            this.page = pageState.toString();
+        }
+
         public Iterator<BackendEntry> iterator() {
             return this.iterator;
+        }
+
+        public boolean hasNullPage() {
+            return Bytes.equals(PageState.fromString(this.page).position(),
+                                PageState.EMPTY_BYTES);
         }
 
         public String page() {
