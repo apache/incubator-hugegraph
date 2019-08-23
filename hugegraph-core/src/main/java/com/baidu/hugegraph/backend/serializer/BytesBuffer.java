@@ -380,8 +380,8 @@ public final class BytesBuffer {
             return value;
         }
 
-        int i;
-        for (i = 0; i < 5; i++) {
+        int i = 1;
+        for (; i < 5; i++) {
             byte b = this.read();
             if (b >= 0) {
                 value = b | (value << 7);
@@ -444,8 +444,8 @@ public final class BytesBuffer {
             return value;
         }
 
-        int i;
-        for (i = 0; i < 10; i++) {
+        int i = 1;
+        for (; i < 10; i++) {
             byte b = this.read();
             if (b >= 0) {
                 value = b | (value << 7);

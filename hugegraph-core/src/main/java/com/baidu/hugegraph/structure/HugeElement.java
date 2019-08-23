@@ -165,7 +165,7 @@ public abstract class HugeElement implements Element, GraphType {
         }
         PropertyKey pkey = prop.propertyKey();
         E.checkArgument(this.properties.containsKey(pkey.id()) ||
-                        this.properties.size() <= MAX_PROPERTIES,
+                        this.properties.size() < MAX_PROPERTIES,
                         "Exceeded the maximum number of properties");
         return this.properties.put(pkey.id(), prop);
     }
