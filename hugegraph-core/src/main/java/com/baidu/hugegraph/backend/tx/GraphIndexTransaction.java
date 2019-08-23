@@ -297,7 +297,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
         ConditionQuery query = new ConditionQuery(HugeType.UNIQUE_INDEX);
         query.eq(HugeKeys.INDEX_LABEL_ID, indexLabel.id());
         query.eq(HugeKeys.FIELD_VALUES, value);
-        Iterator<BackendEntry> iterator = this.query(query);
+        Iterator<BackendEntry> iterator = this.query(query).iterator();
         boolean exist = iterator.hasNext();
         if (exist) {
             HugeIndex index = this.serializer.readIndex(graph(), query,

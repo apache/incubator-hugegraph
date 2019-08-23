@@ -24,6 +24,7 @@ import java.util.NoSuchElementException;
 
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
+import com.baidu.hugegraph.backend.tx.AbstractTransaction.QueryResults;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.iterator.Metadatable;
 import com.baidu.hugegraph.util.E;
@@ -35,7 +36,7 @@ public class PageEntryIterator implements Iterator<BackendEntry>, Metadatable {
     private QueryList.PageIterator results;
     private PageInfo pageInfo;
     private long remaining;
-    private Query query;
+    private QueryResults queryResults; // for upper layer
 
     public PageEntryIterator(QueryList queries, long pageSize) {
         this.queries = queries;
@@ -43,7 +44,7 @@ public class PageEntryIterator implements Iterator<BackendEntry>, Metadatable {
         this.results = QueryList.PageIterator.EMPTY;
         this.pageInfo = this.parsePageState();
         this.remaining = queries.parent().limit();
-        this.query = null;
+        this.queryResults = new QueryResults(this);
     }
 
     private PageInfo parsePageState() {
@@ -55,14 +56,9 @@ public class PageEntryIterator implements Iterator<BackendEntry>, Metadatable {
         return pageInfo;
     }
 
-    public Query query() {
-        this.hasNext();
-        return this.query;
-    }
-
     @Override
     public boolean hasNext() {
-        if (this.results.iterator().hasNext()) {
+        if (this.results.get().hasNext()) {
             return true;
         }
         return this.fetch();
@@ -80,9 +76,9 @@ public class PageEntryIterator implements Iterator<BackendEntry>, Metadatable {
         }
         this.results = this.queries.fetchNext(this.pageInfo, pageSize);
         assert this.results != null;
-        this.query = this.results.query();
+        this.queryResults.setQuery(this.results.query());
 
-        if (this.results.iterator().hasNext()) {
+        if (this.results.get().hasNext()) {
             if (!this.results.hasNextPage()) {
                 this.pageInfo.increase();
             } else {
@@ -101,7 +97,7 @@ public class PageEntryIterator implements Iterator<BackendEntry>, Metadatable {
         if (!this.hasNext()) {
             throw new NoSuchElementException();
         }
-        return this.results.iterator().next();
+        return this.results.get().next();
     }
 
     @Override
@@ -113,5 +109,9 @@ public class PageEntryIterator implements Iterator<BackendEntry>, Metadatable {
             return this.pageInfo;
         }
         throw new NotSupportException("Invalid meta '%s'", meta);
+    }
+
+    public QueryResults results() {
+        return this.queryResults;
     }
 }

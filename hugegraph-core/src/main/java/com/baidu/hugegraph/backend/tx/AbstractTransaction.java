@@ -359,9 +359,16 @@ public abstract class AbstractTransaction implements Transaction {
             this.addQuery(query);
         }
 
-        private QueryResults(Iterator<BackendEntry> results) {
+        public QueryResults(Iterator<BackendEntry> results) {
             this.results = results;
             this.queries = InsertionOrderUtil.newList();
+        }
+
+        public void setQuery(Query query) {
+            if (this.queries.size() > 0) {
+                this.queries.clear();
+            }
+            this.addQuery(query);
         }
 
         private void addQuery(Query query) {
@@ -389,27 +396,37 @@ public abstract class AbstractTransaction implements Transaction {
 
         protected <T extends Idfiable> Iterator<T> keepInputOrderIfNeeded(
                                                    Iterator<T> origin) {
+            if (!origin.hasNext()) {
+                // Empty result found
+                return origin;
+            }
             Set<Id> ids;
-            if (!origin.hasNext() || this.paging() ||
+            if (this.paging() || !this.mustSortByInputIds() ||
                 (ids = this.queryIds()).size() <= 1) {
                 /*
                  * Return the original iterator if it's paging query or if the
-                 * query input is less than one id, or empty result found.
+                 * query input is less than one id, or don't have to do sort.
                  */
                 return origin;
             }
 
             // Fill map with all elements
             Map<Id, T> results = new HashMap<>();
-            while (origin.hasNext()) {
-                T result = origin.next();
-                assert result.id() != null;
-                results.put(result.id(), result);
-            }
+            fillMap(origin, results);
 
             return new MapperIterator<>(ids.iterator(), id -> {
                 return results.get(id);
             });
+        }
+
+        private boolean mustSortByInputIds() {
+            if (this.queries.size() == 1) {
+                Query query = this.queries.get(0);
+                if (query instanceof IdQuery) {
+                    return ((IdQuery) query).mustSortByInput();
+                }
+            }
+            return true;
         }
 
         private boolean paging() {
@@ -432,6 +449,15 @@ public abstract class AbstractTransaction implements Transaction {
                 ids.addAll(query.ids());
             }
             return ids;
+        }
+
+        public static <T extends Idfiable> void fillMap(Iterator<T> iterator,
+                                                        Map<Id, T> map) {
+            while (iterator.hasNext()) {
+                T result = iterator.next();
+                assert result.id() != null;
+                map.put(result.id(), result);
+            }
         }
 
         public static QueryResults empty() {

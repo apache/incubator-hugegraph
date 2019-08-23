@@ -504,9 +504,10 @@ public class GraphTransaction extends IndexableTransaction {
     public Iterator<Vertex> queryVertices(Object... vertexIds) {
         // NOTE: allowed duplicated vertices if query by duplicated ids
         List<Id> ids = InsertionOrderUtil.newList();
-        Map<Id, Vertex> vertices = new HashMap<>();
+        Map<Id, HugeVertex> vertices = new HashMap<>();
 
         IdQuery query = new IdQuery(HugeType.VERTEX);
+        query.mustSortByInput(false);
         for (Object vertexId : vertexIds) {
             HugeVertex vertex;
             Id id = HugeVertex.getIdValue(vertexId);
@@ -527,10 +528,7 @@ public class GraphTransaction extends IndexableTransaction {
         if (!query.empty()) {
             // Query from backend store
             Iterator<HugeVertex> it = this.queryVerticesFromBackend(query);
-            while (it.hasNext()) {
-                HugeVertex vertex = it.next();
-                vertices.put(vertex.id(), vertex);
-            }
+            QueryResults.fillMap(it, vertices);
         }
 
         return new MapperIterator<>(ids.iterator(), id -> {
@@ -646,9 +644,10 @@ public class GraphTransaction extends IndexableTransaction {
     public Iterator<Edge> queryEdges(Object... edgeIds) {
         // NOTE: allowed duplicated edges if query by duplicated ids
         List<Id> ids = InsertionOrderUtil.newList();
-        Map<Id, Edge> edges = new HashMap<>();
+        Map<Id, HugeEdge> edges = new HashMap<>();
 
         IdQuery query = new IdQuery(HugeType.EDGE);
+        query.mustSortByInput(false);
         for (Object edgeId : edgeIds) {
             HugeEdge edge;
             Id id = HugeEdge.getIdValue(edgeId);
@@ -669,10 +668,7 @@ public class GraphTransaction extends IndexableTransaction {
         if (!query.empty()) {
             // Query from backend store
             Iterator<HugeEdge> it = this.queryEdgesFromBackend(query);
-            while (it.hasNext()) {
-                HugeEdge edge = it.next();
-                edges.put(edge.id(), edge);
-            }
+            QueryResults.fillMap(it, edges);
         }
 
         return new MapperIterator<>(ids.iterator(), id -> {
