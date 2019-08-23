@@ -258,7 +258,7 @@ public final class BytesBuffer {
 
     public BytesBuffer writeBytes(byte[] bytes) {
         E.checkArgument(bytes.length <= UINT16_MAX,
-                        "The max length of bytes is %s, got %s",
+                        "The max length of bytes is %s, but got %s",
                         UINT16_MAX, bytes.length);
         require(SHORT_LEN + bytes.length);
         this.writeVInt(bytes.length);
@@ -558,7 +558,7 @@ public final class BytesBuffer {
                 int low = this.readUInt8();
                 len = high + low;
             }
-            len += 1; // mapping [0, 127] to [1, 128]
+            len += 1; // restore [0, 127] to [1, 128]
             byte[] id = this.read(len);
             return IdGenerator.of(id, IdType.STRING);
         }
