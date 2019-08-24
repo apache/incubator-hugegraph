@@ -32,4 +32,8 @@ public class NotFoundException extends HugeException {
     public NotFoundException(String message, Object... args) {
         super(message, args);
     }
+
+    public NotFoundException(String message, Throwable cause, Object... args) {
+        super(message, cause, args);
+    }
 }

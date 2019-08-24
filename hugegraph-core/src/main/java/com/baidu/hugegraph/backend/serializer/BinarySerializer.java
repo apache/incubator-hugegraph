@@ -30,6 +30,7 @@ import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
+import com.baidu.hugegraph.backend.id.IdUtil;
 import com.baidu.hugegraph.backend.page.PageState;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.Condition.RangeConditions;
@@ -328,11 +329,10 @@ public class BinarySerializer extends AbstractSerializer {
     }
 
     protected byte[] formatIndexName(HugeIndex index) {
-        Id elemId = index.elementId();
-        int idLen = 1 + elemId.length();
-
         BytesBuffer buffer;
         if (!this.indexWithIdPrefix) {
+            Id elemId = index.elementId();
+            int idLen = 1 + elemId.length();
             buffer = BytesBuffer.allocate(idLen);
             // Write element-id
             buffer.writeId(elemId, true);
@@ -342,12 +342,13 @@ public class BinarySerializer extends AbstractSerializer {
             if (!type.isNumericIndex() && indexIdLengthExceedLimit(indexId)) {
                 indexId = index.hashId();
             }
-            idLen += 1 + indexId.length();
+            String elemId = IdUtil.writeStoredString(index.elementId());
+            int idLen = 1 + elemId.length() + 1 + indexId.length();
             buffer = BytesBuffer.allocate(idLen);
             // Write index-id
             buffer.writeIndexId(indexId, type);
             // Write element-id
-            buffer.writeId(elemId, true);
+            buffer.writeString(elemId);
         }
 
         return buffer.bytes();
@@ -364,11 +365,8 @@ public class BinarySerializer extends AbstractSerializer {
             if (this.indexWithIdPrefix) {
                 buffer.readIndexId(index.type());
             }
-            Id elemId = buffer.readId(true);
-            if (index.indexLabel().queryType().isEdge()) {
-                elemId = EdgeId.parse(elemId.asString());
-            }
-            index.elementIds(elemId);
+            String elemId = buffer.readString();
+            index.elementIds(IdUtil.readStoredString(elemId));
         }
     }
 

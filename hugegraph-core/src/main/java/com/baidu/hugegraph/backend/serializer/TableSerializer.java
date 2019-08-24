@@ -86,9 +86,8 @@ public abstract class TableSerializer extends AbstractSerializer {
 
     protected void formatProperty(HugeProperty<?> prop,
                                   TableBackendEntry.Row row) {
-        row.column(HugeKeys.PROPERTIES,
-                   prop.propertyKey().id().asLong(),
-                   JsonUtil.toJson(prop.value()));
+        long pkid = prop.propertyKey().id().asLong();
+        row.column(HugeKeys.PROPERTIES, pkid, JsonUtil.toJson(prop.value()));
     }
 
     protected void parseProperty(Id key, String colValue, HugeElement owner) {
@@ -118,11 +117,13 @@ public abstract class TableSerializer extends AbstractSerializer {
         EdgeId id = edge.idWithDirection();
         TableBackendEntry.Row row = new TableBackendEntry.Row(edge.type(), id);
         // Id: ownerVertex + direction + edge-label + sortValues + otherVertex
-        row.column(HugeKeys.OWNER_VERTEX, IdUtil.writeString(id.ownerVertexId()));
+        row.column(HugeKeys.OWNER_VERTEX,
+                   IdUtil.writeStoredString(id.ownerVertexId()));
         row.column(HugeKeys.DIRECTION, id.direction().code());
         row.column(HugeKeys.LABEL, id.edgeLabelId().asLong());
         row.column(HugeKeys.SORT_VALUES, id.sortValues());
-        row.column(HugeKeys.OTHER_VERTEX, IdUtil.writeString(id.otherVertexId()));
+        row.column(HugeKeys.OTHER_VERTEX,
+                   IdUtil.writeStoredString(id.otherVertexId()));
 
         this.formatProperties(edge, row);
         return row;
@@ -146,7 +147,7 @@ public abstract class TableSerializer extends AbstractSerializer {
         String otherVertexId = row.column(HugeKeys.OTHER_VERTEX);
 
         if (vertex == null) {
-            Id ownerId = IdUtil.readString(ownerVertexId);
+            Id ownerId = IdUtil.readStoredString(ownerVertexId);
             vertex = new HugeVertex(graph, ownerId, null);
         }
 
@@ -154,7 +155,7 @@ public abstract class TableSerializer extends AbstractSerializer {
         VertexLabel srcLabel = graph.vertexLabel(edgeLabel.sourceLabel());
         VertexLabel tgtLabel = graph.vertexLabel(edgeLabel.targetLabel());
 
-        Id otherId = IdUtil.readString(otherVertexId);
+        Id otherId = IdUtil.readStoredString(otherVertexId);
         boolean isOutEdge = direction == Directions.OUT;
         HugeVertex otherVertex;
         if (isOutEdge) {
@@ -191,7 +192,7 @@ public abstract class TableSerializer extends AbstractSerializer {
     @Override
     public BackendEntry writeVertex(HugeVertex vertex) {
         TableBackendEntry entry = newBackendEntry(vertex);
-        entry.column(HugeKeys.ID, IdUtil.writeString(vertex.id()));
+        entry.column(HugeKeys.ID, IdUtil.writeStoredString(vertex.id()));
         entry.column(HugeKeys.LABEL, vertex.schemaLabel().id().asLong());
         // Add all properties of a Vertex
         this.formatProperties(vertex, entry.row());
@@ -203,7 +204,7 @@ public abstract class TableSerializer extends AbstractSerializer {
         HugeVertex vertex = prop.element();
         TableBackendEntry entry = newBackendEntry(vertex);
         entry.subId(IdGenerator.of(prop.key()));
-        entry.column(HugeKeys.ID, IdUtil.writeString(vertex.id()));
+        entry.column(HugeKeys.ID, IdUtil.writeStoredString(vertex.id()));
         entry.column(HugeKeys.LABEL, vertex.schemaLabel().id().asLong());
 
         this.formatProperty(prop, entry.row());
@@ -220,7 +221,7 @@ public abstract class TableSerializer extends AbstractSerializer {
         TableBackendEntry entry = this.convertEntry(backendEntry);
         assert entry.type().isVertex();
 
-        Id id = IdUtil.readString(entry.column(HugeKeys.ID));
+        Id id = IdUtil.readStoredString(entry.column(HugeKeys.ID));
         Number label = entry.column(HugeKeys.LABEL);
 
         VertexLabel vertexLabel = VertexLabel.NONE;
@@ -249,11 +250,13 @@ public abstract class TableSerializer extends AbstractSerializer {
         EdgeId id = edge.idWithDirection();
         TableBackendEntry.Row row = new TableBackendEntry.Row(edge.type(), id);
         // Id: ownerVertex + direction + edge-label + sortValues + otherVertex
-        row.column(HugeKeys.OWNER_VERTEX, IdUtil.writeString(id.ownerVertexId()));
+        row.column(HugeKeys.OWNER_VERTEX,
+                   IdUtil.writeStoredString(id.ownerVertexId()));
         row.column(HugeKeys.DIRECTION, id.direction().code());
         row.column(HugeKeys.LABEL, id.edgeLabelId().asLong());
         row.column(HugeKeys.SORT_VALUES, id.sortValues());
-        row.column(HugeKeys.OTHER_VERTEX, IdUtil.writeString(id.otherVertexId()));
+        row.column(HugeKeys.OTHER_VERTEX,
+                   IdUtil.writeStoredString(id.otherVertexId()));
         // Format edge property
         this.formatProperty(prop, row);
 
@@ -286,7 +289,7 @@ public abstract class TableSerializer extends AbstractSerializer {
             entry.column(HugeKeys.FIELD_VALUES, index.fieldValues());
             entry.column(HugeKeys.INDEX_LABEL_ID, index.indexLabel().longId());
             entry.column(HugeKeys.ELEMENT_IDS,
-                         IdUtil.writeString(index.elementId()));
+                         IdUtil.writeStoredString(index.elementId()));
             entry.subId(index.elementId());
         }
         return entry;
@@ -310,11 +313,7 @@ public abstract class TableSerializer extends AbstractSerializer {
         HugeIndex index = new HugeIndex(indexLabel);
         index.fieldValues(indexValues);
         for (String elemId : elemIds) {
-            Id id = IdUtil.readString(elemId);
-            if (indexLabel.queryType().isEdge()) {
-                id = EdgeId.parse(id.asString());
-            }
-            index.elementIds(id);
+            index.elementIds(IdUtil.readStoredString(elemId));
         }
         return index;
     }
@@ -331,7 +330,7 @@ public abstract class TableSerializer extends AbstractSerializer {
                 id = EdgeId.parse(id.asString());
             }
         } else if (type.isGraph()) {
-            id = IdGenerator.of(IdUtil.writeString(id));
+            id = IdGenerator.of(IdUtil.writeStoredString(id));
         }
         return id;
     }
@@ -345,7 +344,7 @@ public abstract class TableSerializer extends AbstractSerializer {
                 if (r.key() == HugeKeys.OWNER_VERTEX ||
                     r.key() == HugeKeys.OTHER_VERTEX) {
                     // Serialize vertex id
-                    String id = IdUtil.writeString((Id) value);
+                    String id = IdUtil.writeStoredString((Id) value);
                     r.serialValue(this.escapeString(id));
                 } else {
                     // Serialize label id

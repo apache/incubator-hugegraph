@@ -256,7 +256,7 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
     }
 
     @Override
-    public Builder useCustomizeUUid() {
+    public Builder useCustomizeUuid() {
         E.checkArgument(this.idStrategy == IdStrategy.DEFAULT ||
                         this.idStrategy == IdStrategy.CUSTOMIZE_UUID,
                         "Not allowed to change id strategy for " +

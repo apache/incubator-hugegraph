@@ -118,7 +118,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
         Assert.assertEquals(IdStrategy.CUSTOMIZE_NUMBER, person3.idStrategy());
 
         VertexLabel person4 = schema.vertexLabel("person4")
-                                    .useCustomizeUUid()
+                                    .useCustomizeUuid()
                                     .properties("name", "age", "city")
                                     .create();
         Assert.assertEquals(IdStrategy.CUSTOMIZE_UUID, person4.idStrategy());
