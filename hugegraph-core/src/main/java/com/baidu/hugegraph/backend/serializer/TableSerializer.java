@@ -375,7 +375,7 @@ public abstract class TableSerializer extends AbstractSerializer {
             }
 
             if (query.resultType().isGraph() &&
-                r.relation() == Condition.RelationType.CONTAINS) {
+                r.relation() == Condition.RelationType.CONTAINS_VALUE) {
                 r.serialValue(JsonUtil.toJson(r.serialValue()));
             }
         }

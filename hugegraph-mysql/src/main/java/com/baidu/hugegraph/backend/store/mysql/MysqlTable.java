@@ -476,7 +476,7 @@ public abstract class MysqlTable
                 sql.append(values);
                 sql.append(")");
                 break;
-            case CONTAINS:
+            case CONTAINS_VALUE:
             case CONTAINS_KEY:
             case SCAN:
             default:

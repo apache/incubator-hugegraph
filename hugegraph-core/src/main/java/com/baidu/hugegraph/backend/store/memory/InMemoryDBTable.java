@@ -242,7 +242,7 @@ public class InMemoryDBTable extends BackendTable<BackendSession,
         // TODO: deal with others Relation like: <, >=, ...
         if (r.relation() == Condition.RelationType.CONTAINS_KEY) {
             return entry.contains(r.serialValue().toString());
-        } else if (r.relation() == Condition.RelationType.CONTAINS) {
+        } else if (r.relation() == Condition.RelationType.CONTAINS_VALUE) {
             return entry.containsValue(r.serialValue().toString());
         } else if (r.relation() == Condition.RelationType.EQ) {
             return entry.contains(key, r.serialValue().toString());

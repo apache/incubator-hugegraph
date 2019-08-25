@@ -406,9 +406,8 @@ public final class TraversalUtil {
                                                   HasContainer has) {
         // Convert contains-key or contains-value
         BiPredicate<?, ?> bp = has.getPredicate().getBiPredicate();
-        E.checkArgument(bp == Compare.eq,
-                        "CONTAINS query with relation '%s' is not supported",
-                        bp);
+        E.checkArgument(bp == Compare.eq, "CONTAINS query with relation " +
+                        "'%s' is not supported", bp);
 
         HugeKeys key = string2HugeKey(has.getKey());
         Object value = has.getValue();
@@ -420,7 +419,7 @@ public final class TraversalUtil {
             return Condition.containsKey(key, value);
         } else {
             assert keyForContainsValue(has.getKey());
-            return Condition.contains(key, value);
+            return Condition.containsValue(key, value);
         }
     }
 
@@ -571,7 +570,7 @@ public final class TraversalUtil {
                                "Invalid data type of query value, " +
                                "expect '%s', actual '%s'",
                                pkey.dataType().clazz(),
-                               value.getClass());
+                               value == null ? null : value.getClass());
         return validValue;
     }
 

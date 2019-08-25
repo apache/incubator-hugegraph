@@ -277,6 +277,8 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     @Override
     public Object sysprop(HugeKeys key) {
         switch (key) {
+            case ID:
+                return this.id();
             case OWNER_VERTEX:
                 return this.ownerVertex().id();
             case LABEL:

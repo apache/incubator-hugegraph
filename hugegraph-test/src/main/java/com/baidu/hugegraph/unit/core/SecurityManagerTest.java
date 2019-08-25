@@ -120,6 +120,7 @@ public class SecurityManagerTest {
         assertError(result, "Not allowed to read file via Gremlin");
 
         // read file fd
+        @SuppressWarnings({ "unused", "resource" })
         FileInputStream fis = new FileInputStream(FileDescriptor.in);
         result = runGremlinJob("new FileInputStream(FileDescriptor.in)");
         assertError(result, "Not allowed to read fd via Gremlin");
@@ -136,6 +137,7 @@ public class SecurityManagerTest {
         assertError(result, "Not allowed to write file via Gremlin");
 
         // write file fd
+        @SuppressWarnings({ "unused", "resource" })
         FileOutputStream fos = new FileOutputStream(FileDescriptor.out);
         result = runGremlinJob("new FileOutputStream(FileDescriptor.out)");
         assertError(result, "Not allowed to write fd via Gremlin");

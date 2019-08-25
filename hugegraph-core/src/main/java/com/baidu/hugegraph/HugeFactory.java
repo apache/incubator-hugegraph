@@ -53,7 +53,7 @@ public class HugeFactory {
             graphs.put(name, graph);
         } else {
             String backend = conf.get(CoreOptions.BACKEND);
-            E.checkState(backend.equals(graph.backend()),
+            E.checkState(backend.equalsIgnoreCase(graph.backend()),
                          "Graph name '%s' has been used by backend '%s'",
                          name, graph.backend());
         }

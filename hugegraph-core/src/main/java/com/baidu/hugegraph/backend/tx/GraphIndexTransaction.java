@@ -29,6 +29,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -1369,7 +1370,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                         tx.doEliminate(serializer.writeIndex(index));
                         tx.commit();
                         // If deleted by error, re-add deleted index again
-                        if (this.deletedByError(q, element)) {
+                        if (this.deletedByError(query, element)) {
                             tx.doAppend(serializer.writeIndex(index));
                             tx.commit();
                         } else {
@@ -1454,12 +1455,12 @@ public class GraphIndexTransaction extends AbstractTransaction {
                     // It's inside/between Query (processed in range index)
                     return null;
                 }
-                Object propValue = errorElem.getProperty(key).value();
-                Object conditionValue = conditionValues.iterator().next();
-                if (!propValue.equals(conditionValue)) {
+                HugeProperty<?> prop = element.getProperty(key);
+                Object errorValue = conditionValues.iterator().next();
+                if (prop == null || !Objects.equals(prop.value(), errorValue)) {
                     PropertyKey pkey = this.graph().propertyKey(key);
-                    errorElem.addProperty(pkey, conditionValue);
-                    incorrectPKs.put(pkey, conditionValue);
+                    errorElem.addProperty(pkey, errorValue);
+                    incorrectPKs.put(pkey, errorValue);
                 }
             }
             return errorElem;
