@@ -27,19 +27,14 @@ import com.google.common.collect.ImmutableSet;
 public final class PageIds {
 
     public static final PageIds EMPTY = new PageIds(ImmutableSet.of(),
-                                                    (String) null);
+                                                    (PageState) null);
 
     private final Set<Id> ids;
-    private final String page;
-
-    public PageIds(Set<Id> ids, String page) {
-        this.ids = ids;
-        this.page = page;
-    }
+    private final PageState pageState;
 
     public PageIds(Set<Id> ids, PageState pageState) {
         this.ids = ids;
-        this.page = pageState.toString();
+        this.pageState = pageState;
     }
 
     public Set<Id> ids() {
@@ -47,7 +42,11 @@ public final class PageIds {
     }
 
     public String page() {
-        return this.page;
+        return this.pageState.toString();
+    }
+
+    public PageState pageState() {
+        return this.pageState;
     }
 
     public boolean empty() {

@@ -592,17 +592,17 @@ public final class TraversalUtil {
         E.checkState(holder != null,
                      "Invalid paging traversal: %s", traversal.getClass());
         Object page = holder.metadata(PageInfo.PAGE);
-        if (page instanceof PageInfo) {
-            // Traversal with condition like: g.V().has("x", 1).has("~page", "")
-            return page.toString();
-        } else if (page instanceof PageState) {
-            // Traversal without condition like: g.V().has("~page", "")
-            return ((PageState) page).page();
-        } else {
-            // reach end
-            assert page == null;
+        if (page == null) {
             return null;
         }
+        /*
+         * Page is instance of PageInfo if traversal with condition like:
+         * g.V().has("x", 1).has("~page", "").
+         * Page is instance of PageState if traversal without condition like:
+         * g.V().has("~page", "")
+         */
+        assert page instanceof PageInfo || page instanceof PageState;
+        return page.toString();
     }
 
     public static QueryHolder rootStep(GraphTraversal<?, ?> traversal) {

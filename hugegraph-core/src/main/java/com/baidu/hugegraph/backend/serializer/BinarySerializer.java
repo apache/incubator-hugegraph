@@ -547,15 +547,14 @@ public class BinarySerializer extends AbstractSerializer {
         // Set endId as prefix if there is no end sort-value
         Id endId = new BinaryId(end.bytes(), null);
 
-        boolean paging = false;
+        boolean includeStart = range.keyMinEq();
         if (cq.paging() && !cq.page().isEmpty()) {
-            paging = true;
+            includeStart = true;
             byte[] position = PageState.fromString(cq.page()).position();
             E.checkArgument(Bytes.compare(position, startId.asBytes()) >= 0,
                             "Invalid page out of lower bound");
             startId = new BinaryId(position, null);
         }
-        boolean includeStart = paging || range.keyMinEq();
         if (range.keyMax() == null) {
             return new IdPrefixQuery(cq, startId, includeStart, endId);
         }

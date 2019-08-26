@@ -249,7 +249,8 @@ public final class QueryList {
                 return PageIterator.EMPTY;
             }
             IdQuery query = new IdQuery(parent(), pageIds.ids());
-            return new PageIterator(fetcher().apply(query), pageIds.page());
+            return new PageIterator(fetcher().apply(query),
+                                    pageIds.pageState());
         }
 
         @Override
@@ -262,37 +263,32 @@ public final class QueryList {
 
         public static final PageIterator EMPTY = new PageIterator(
                                                  Collections.emptyIterator(),
-                                                 PageInfo.PAGE_NONE);
+                                                 PageState.EMPTY);
 
         private final Iterator<BackendEntry> iterator;
-        private final String page;
-
-        public PageIterator(Iterator<BackendEntry> iterator, String page) {
-            this.iterator = iterator;
-            this.page = page;
-        }
+        private final PageState pageState;
 
         public PageIterator(Iterator<BackendEntry> iterator,
                             PageState pageState) {
             this.iterator = iterator;
-            this.page = pageState.toString();
+            this.pageState = pageState;
         }
 
         public Iterator<BackendEntry> iterator() {
             return this.iterator;
         }
 
-        public boolean hasNullPage() {
-            return Bytes.equals(PageState.fromString(this.page).position(),
-                                PageState.EMPTY_BYTES);
+        public boolean hasNextPage() {
+            return !Bytes.equals(this.pageState.position(),
+                                 PageState.EMPTY_BYTES);
         }
 
         public String page() {
-            return this.page;
+            return this.pageState.toString();
         }
 
         public long total() {
-            return PageState.fromString(this.page).total();
+            return this.pageState.total();
         }
     }
 }

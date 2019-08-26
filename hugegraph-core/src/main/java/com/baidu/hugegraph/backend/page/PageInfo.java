@@ -106,7 +106,7 @@ public final class PageInfo {
                      "Invalid paging iterator: %s", iterator.getClass());
         Object page = ((Metadatable) iterator).metadata(PAGE);
         E.checkState(page instanceof PageState,
-                     "Invalid pageState '%s'", page);
+                     "Invalid PageState '%s'", page);
         return (PageState) page;
     }
 
@@ -120,7 +120,7 @@ public final class PageInfo {
                      "Invalid paging iterator: %s", iterator.getClass());
         Object page = ((Metadatable) iterator).metadata(PAGE);
         E.checkState(page == null || page instanceof PageInfo,
-                     "Invalid pageInfo '%s'", page);
+                     "Invalid PageInfo '%s'", page);
         return page == null ? null : page.toString();
     }
 }

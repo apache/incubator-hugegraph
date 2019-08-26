@@ -75,7 +75,7 @@ public class PageEntryIterator implements Iterator<BackendEntry>, Metadatable {
         assert this.results != null;
 
         if (this.results.iterator().hasNext()) {
-            if (this.results.hasNullPage()) {
+            if (!this.results.hasNextPage()) {
                 this.pageInfo.increase();
             } else {
                 this.pageInfo.page(this.results.page());

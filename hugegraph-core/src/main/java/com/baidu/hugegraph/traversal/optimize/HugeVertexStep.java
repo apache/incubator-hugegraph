@@ -125,34 +125,32 @@ public final class HugeVertexStep<E extends Element>
         ConditionQuery query = GraphTransaction.constructEdgesQuery(
                                vertex, direction, edgeLabelIds);
         // Query by sort-keys
-        ConditionQuery q = query;
         if (withEdgeCond && edgeLabels.length > 0) {
-            TraversalUtil.fillConditionQuery(conditions, q, graph);
-            if (!GraphTransaction.matchEdgeSortKeys(q, graph)) {
+            TraversalUtil.fillConditionQuery(conditions, query, graph);
+            if (!GraphTransaction.matchEdgeSortKeys(query, graph)) {
                 // Can't query by sysprop and by index (HugeGraph-749)
-                q.resetUserpropConditions();
+                query.resetUserpropConditions();
             }
         }
 
         // Query by has(id)
-        if (!q.ids().isEmpty()) {
+        if (!query.ids().isEmpty()) {
             // Ignore conditions if query by edge id in has-containers
             // FIXME: should check that the edge id matches the `vertex`
-            q.resetConditions();
+            query.resetConditions();
             LOG.warn("It's not recommended to query by has(id)");
         }
 
-        q = this.injectQueryInfo(q);
+        query = this.injectQueryInfo(query);
 
         // Do query
-        Iterator<Edge> edges = graph.edges(q);
+        Iterator<Edge> edges = graph.edges(query);
 
         // Do filter by edge conditions
         if (withEdgeCond) {
             return TraversalUtil.filterResult(conditions, edges);
-        } else {
-            return edges;
         }
+        return edges;
     }
 
     @Override
