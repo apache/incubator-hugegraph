@@ -27,7 +27,7 @@ import com.google.common.collect.ImmutableSet;
 public final class PageIds {
 
     public static final PageIds EMPTY = new PageIds(ImmutableSet.of(),
-                                                    (PageState) null);
+                                                    PageState.EMPTY);
 
     private final Set<Id> ids;
     private final PageState pageState;
