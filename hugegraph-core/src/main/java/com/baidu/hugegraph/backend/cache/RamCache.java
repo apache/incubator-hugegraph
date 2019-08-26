@@ -50,8 +50,8 @@ public class RamCache implements Cache {
     private volatile long expire = 0L;
 
     // NOTE: the count in number of items, not in bytes
-    private final int capacity;
-    private final int halfCapacity;
+    private volatile final int capacity;
+    private volatile final int halfCapacity;
 
     // Implement LRU cache
     private final ConcurrentMap<Id, LinkNode<Id, Object>> map;
