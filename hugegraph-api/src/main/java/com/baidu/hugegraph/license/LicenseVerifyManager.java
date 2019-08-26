@@ -128,6 +128,7 @@ public class LicenseVerifyManager extends CommonLicenseManager {
     }
 
     private void checkRam(ExtraParam param) throws LicenseContentException {
+        // Unit MB
         int expectRam = param.getRam();
         if (expectRam == NO_LIMIT) {
             return;
@@ -155,11 +156,17 @@ public class LicenseVerifyManager extends CommonLicenseManager {
         }
     }
 
-    private void checkMemory(ExtraParam param) {
+    private void checkMemory(ExtraParam param) throws LicenseContentException {
+        // Unit MB
         int expectMemory = param.getMemory();
         if (expectMemory == NO_LIMIT) {
             return;
         }
-        // Now server doesn't have an option liked: MAX_MEMORY
+        long actualMemory = Runtime.getRuntime().maxMemory() / Bytes.MB;
+        if (actualMemory > expectMemory) {
+            throw new LicenseContentException(String.format(
+                      "The server's max memory(MB) '%s' exceeded the " +
+                      "limit(MB) '%s'", actualMemory, expectMemory));
+        }
     }
 }

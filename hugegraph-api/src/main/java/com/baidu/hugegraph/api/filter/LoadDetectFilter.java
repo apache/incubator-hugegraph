@@ -19,8 +19,6 @@
 
 package com.baidu.hugegraph.api.filter;
 
-import java.time.Duration;
-import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 
@@ -58,9 +56,6 @@ public class LoadDetectFilter implements ContainerRequestFilter {
     private static final RateLimiter GC_RATE_LIMITER =
                          RateLimiter.create(1.0 / 30);
 
-    private static final Duration CHECK_INTERVAL = Duration.ofMinutes(10);
-    private static Instant lastCheckTime = Instant.now();
-
     @Context
     private javax.inject.Provider<HugeConfig> configProvider;
     @Context
@@ -68,12 +63,7 @@ public class LoadDetectFilter implements ContainerRequestFilter {
 
     @Override
     public void filter(ContainerRequestContext context) {
-        Instant now = Instant.now();
-        Duration interval = Duration.between(lastCheckTime, now);
-        if (!interval.minus(CHECK_INTERVAL).isNegative()) {
-            LicenseVerifier.instance(null).verify();
-            lastCheckTime = now;
-        }
+        LicenseVerifier.verifyIfNeeded();
 
         if (LoadDetectFilter.isWhiteAPI(context)) {
             return;

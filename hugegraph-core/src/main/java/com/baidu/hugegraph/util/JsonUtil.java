@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.util;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Date;
 
 import org.apache.tinkerpop.shaded.jackson.core.JsonGenerator;
@@ -113,6 +114,18 @@ public final class JsonUtil {
             return reader.readValue(json);
         } catch (IOException e) {
             throw new BackendException(e);
+        }
+    }
+
+    public static <T> T  fromJson(InputStream stream, Class<T> clazz) {
+        E.checkState(stream != null,
+                     "Stream can't be null for '%s'",
+                     clazz.getSimpleName());
+        try {
+            return mapper.readValue(stream, clazz);
+        } catch (IOException e) {
+            throw new RuntimeException(String.format(
+                      "Failed to read stream to class '%s'", clazz));
         }
     }
 

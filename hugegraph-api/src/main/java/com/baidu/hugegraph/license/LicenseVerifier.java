@@ -20,8 +20,9 @@
 package com.baidu.hugegraph.license;
 
 import java.io.File;
-import java.io.IOException;
 import java.io.InputStream;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.prefs.Preferences;
 
 import org.slf4j.Logger;
@@ -29,8 +30,8 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.JsonUtil;
 import com.baidu.hugegraph.util.Log;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import de.schlichtherle.license.CipherParam;
 import de.schlichtherle.license.DefaultCipherParam;
@@ -48,11 +49,14 @@ public class LicenseVerifier {
 
     private static volatile LicenseVerifier INSTANCE = null;
 
+    private static final Duration CHECK_INTERVAL = Duration.ofMinutes(10);
+    private static Instant lastCheckTime = Instant.now();
+
     private final LicenseVerifyParam verifyParam;
     private final LicenseVerifyManager manager;
 
     private LicenseVerifier(HugeConfig config) {
-        E.checkNotNull(config, "huge config");
+        E.checkNotNull(config, "config");
         this.verifyParam = buildVerifyParam(LICENSE_PARAM_PATH);
         LicenseParam licenseParam = this.initLicenseParam(this.verifyParam);
         this.manager = new LicenseVerifyManager(licenseParam, config);
@@ -67,6 +71,15 @@ public class LicenseVerifier {
             }
         }
         return INSTANCE;
+    }
+
+    public static void verifyIfNeeded() {
+        Instant now = Instant.now();
+        Duration interval = Duration.between(lastCheckTime, now);
+        if (!interval.minus(CHECK_INTERVAL).isNegative()) {
+            LicenseVerifier.instance(null).verify();
+            lastCheckTime = now;
+        }
     }
 
     public synchronized void install() {
@@ -108,13 +121,7 @@ public class LicenseVerifier {
 
     private static LicenseVerifyParam buildVerifyParam(String path) {
         InputStream stream = LicenseVerifier.class.getResourceAsStream(path);
-        ObjectMapper mapper = new ObjectMapper();
-        try {
-            return mapper.readValue(stream, LicenseVerifyParam.class);
-        } catch (IOException e) {
-            throw new RuntimeException(String.format(
-                      "Failed to read file '%s'", path));
-        }
+        return JsonUtil.fromJson(stream, LicenseVerifyParam.class);
     }
 }
 
