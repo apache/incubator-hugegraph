@@ -55,6 +55,7 @@ import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.structure.HugeVertexProperty;
 import com.baidu.hugegraph.testutil.Utils;
+import com.baidu.hugegraph.type.define.GraphMode;
 import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
@@ -292,6 +293,14 @@ public class TestGraphProvider extends AbstractGraphProvider {
 
         // Basic schema is initiated by default once a graph is open
         testGraph.initBasicSchema(idStrategy(config), TestGraph.DEFAULT_VL);
+        if (testClass.getName().equals(
+            "org.apache.tinkerpop.gremlin.process.traversal.step.map.ReadTest$Traversals")) {
+            testGraph.initPersonKnowsPersonEdgeLabel();
+            testGraph.initPersonCreatedSoftwareEdgeLabel();
+        } else {
+            testGraph.initDefaultKnowsEdgeLabel(TestGraph.DEFAULT_VL);
+            testGraph.initDefaultCreatedEdgeLabel(TestGraph.DEFAULT_VL);
+        }
         testGraph.tx().commit();
 
         testGraph.loadedGraph(getIoType(testClass, testMethod));
@@ -389,15 +398,28 @@ public class TestGraphProvider extends AbstractGraphProvider {
 
         switch (loadGraphWith) {
             case GRATEFUL:
+                LOG.info("Load graph with {} schema",
+                         LoadGraphWith.GraphData.GRATEFUL);
                 testGraph.initGratefulSchema(idStrategy);
                 break;
             case MODERN:
+                LOG.info("Load graph with {} schema",
+                         LoadGraphWith.GraphData.MODERN);
                 testGraph.initModernSchema(idStrategy);
                 break;
             case CLASSIC:
+                LOG.info("Load graph with {} schema",
+                         LoadGraphWith.GraphData.CLASSIC);
                 testGraph.initClassicSchema(idStrategy);
                 break;
             case CREW:
+                LOG.info("Load graph with {} schema",
+                         LoadGraphWith.GraphData.CREW);
+                break;
+            case SINK:
+                LOG.info("Load graph with {} schema",
+                         LoadGraphWith.GraphData.SINK);
+                testGraph.initSinkSchema(idStrategy);
                 break;
             default:
                 throw new AssertionError(String.format(

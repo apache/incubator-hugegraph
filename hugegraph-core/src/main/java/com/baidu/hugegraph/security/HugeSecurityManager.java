@@ -45,6 +45,10 @@ public class HugeSecurityManager extends SecurityManager {
             "org.codehaus.groovy.runtime.callsite.CallSiteClassLoader"
     );
 
+    private static final Set<String> CAFFEINE_CLASSES = ImmutableSet.of(
+            "com.github.benmanes.caffeine.cache.BoundedLocalCache"
+    );
+
     private static final Set<String> WHITE_SYSTEM_PROPERTYS = ImmutableSet.of(
             "line.separator",
             "file.separator"
@@ -132,7 +136,7 @@ public class HugeSecurityManager extends SecurityManager {
 
     @Override
     public void checkRead(String file) {
-        if (callFromGremlin()) {
+        if (callFromGremlin() && !callFromCaffeine()) {
             throw new SecurityException("Not allowed to read file via Gremlin");
         }
         super.checkRead(file);
@@ -140,7 +144,7 @@ public class HugeSecurityManager extends SecurityManager {
 
     @Override
     public void checkRead(String file, Object context) {
-        if (callFromGremlin()) {
+        if (callFromGremlin() && !callFromCaffeine()) {
             throw new SecurityException("Not allowed to read file via Gremlin");
         }
         super.checkRead(file, context);
@@ -314,9 +318,7 @@ public class HugeSecurityManager extends SecurityManager {
     }
 
     private static boolean callFromCaffeine() {
-        String clazz = "com.github.benmanes.caffeine.cache.BoundedLocalCache";
-        String method = "scheduleDrainBuffers";
-        return callFromMethod(clazz, method);
+        return callFromWorkerWithClass(CAFFEINE_CLASSES);
     }
 
     private static boolean callFromWorkerWithClass(Set<String> classes) {

@@ -127,7 +127,7 @@ org.apache.tinkerpop.gremlin.process.traversal.step.ComplexTest.Traversals.class
 org.apache.tinkerpop.gremlin.process.traversal.step.ComplexTest.Traversals.playlistPaths: long time
 org.apache.tinkerpop.gremlin.process.traversal.step.sideEffect.TreeTest.Traversals.g_V_out_out_treeXaX_capXaX: long time
 
-## unsupported predicate
+# unsupported predicate
 org.apache.tinkerpop.gremlin.process.traversal.step.filter.HasTest.Traversals.g_V_hasIdXwithoutXemptyXX_count: Unsupported hasId
 org.apache.tinkerpop.gremlin.process.traversal.step.filter.HasTest.Traversals.g_V_hasIdXemptyX_count: Unsupported hasId
 org.apache.tinkerpop.gremlin.process.traversal.step.filter.HasTest.Traversals.g_V_hasIdXwithinXemptyXX_count: Unsupported hasId
@@ -142,6 +142,13 @@ org.apache.tinkerpop.gremlin.process.traversal.step.filter.HasTest.Traversals.g_
 org.apache.tinkerpop.gremlin.process.traversal.step.filter.HasTest.Traversals.g_V_hasXname_not_endingWithXasXX: Unsupported predicate 'notEndingWith(as)'
 org.apache.tinkerpop.gremlin.process.traversal.step.filter.HasTest.Traversals.g_V_hasXage_withoutX27_29X_count: Unsupported relation 'NEQ'
 org.apache.tinkerpop.gremlin.process.traversal.step.filter.HasTest.Traversals.g_V_hasXname_gtXmX_andXcontainingXoXXX: Unsupported predicate 'containing(o)'
+
+# Unsupport edge label 'created': 'software' -> 'person'
+org.apache.tinkerpop.gremlin.process.traversal.step.map.AddEdgeTest.Traversals.g_V_hasXname_markoX_asXaX_outEXcreatedX_asXbX_inV_addEXselectXbX_labelX_toXaX: Unsupport edge from inV to outV
+
+# Can't customize vertex id when id strategy is 'AUTOMATIC' for vertex label 'person'
+org.apache.tinkerpop.gremlin.process.traversal.step.map.ReadTest.Traversals.g_io_read_withXreader_graphmlX: Can't customize vertex id when id strategy is 'AUTOMATIC'
+org.apache.tinkerpop.gremlin.process.traversal.step.map.ReadTest.Traversals.g_io_readXxmlX: Can't customize vertex id when id strategy is 'AUTOMATIC'
 
 ####################    structure performance suite    ####################
 

@@ -276,15 +276,13 @@ public class BinarySerializer extends AbstractSerializer {
 
         HugeEdge edge = new HugeEdge(graph, null, edgeLabel);
         edge.name(sk);
+        edge.vertices(isOutEdge, vertex, otherVertex);
+        edge.assignId();
 
         if (isOutEdge) {
-            edge.vertices(vertex, vertex, otherVertex);
-            edge.assignId();
             vertex.addOutEdge(edge);
             otherVertex.addInEdge(edge.switchOwner());
         } else {
-            edge.vertices(vertex, otherVertex, vertex);
-            edge.assignId();
             vertex.addInEdge(edge);
             otherVertex.addOutEdge(edge.switchOwner());
         }

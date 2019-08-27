@@ -287,9 +287,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
                             this.graph().mapPkId2Name(missed));
         }
 
-        HugeEdge edge = new HugeEdge(this, id, edgeLabel);
-
-        edge.vertices(this, targetVertex);
+        HugeEdge edge = new HugeEdge(this, id, edgeLabel, targetVertex);
 
         // Set properties
         ElementHelper.attachProperties(edge, keyValues);
@@ -313,7 +311,6 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     public void addOutEdge(HugeEdge edge) {
         if (edge.ownerVertex() == null) {
             edge.sourceVertex(this);
-            edge.ownerVertex(this);
         }
         E.checkState(edge.isDirection(Directions.OUT),
                      "The owner vertex('%s') of OUT edge '%s' should be '%s'",
@@ -328,7 +325,6 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     public void addInEdge(HugeEdge edge) {
         if (edge.ownerVertex() == null) {
             edge.targetVertex(this);
-            edge.ownerVertex(this);
         }
         E.checkState(edge.isDirection(Directions.IN),
                      "The owner vertex('%s') of IN edge '%s' should be '%s'",

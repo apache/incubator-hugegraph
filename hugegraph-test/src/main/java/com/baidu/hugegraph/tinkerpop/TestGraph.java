@@ -435,12 +435,15 @@ public class TestGraph implements Graph {
         schema.propertyKey("marko").ifNotExist().create();
         schema.propertyKey("ripple").ifNotExist().create();
         schema.propertyKey("lop").ifNotExist().create();
+        schema.propertyKey("test").ifNotExist().create();
 
         switch (idStrategy) {
             case AUTOMATIC:
+                schema.vertexLabel("name")
+                      .ifNotExist().create();
                 schema.vertexLabel("person")
-                      .properties("name", "age")
-                      .nullableKeys("name", "age")
+                      .properties("name", "age", "test")
+                      .nullableKeys("name", "age", "test")
                       .ifNotExist().create();
                 schema.vertexLabel("software")
                       .properties("name", "lang", "temp")
@@ -572,6 +575,8 @@ public class TestGraph implements Graph {
               .nullableKeys("weight")
               .ifNotExist().create();
 
+        schema.indexLabel("vertexByName").onV("vertex").by("name").secondary()
+              .ifNotExist().create();
         schema.indexLabel("vertexByAge").onV("vertex").by("age").range()
               .ifNotExist().create();
     }
@@ -730,8 +735,12 @@ public class TestGraph implements Graph {
         SchemaManager schema = this.graph.schema();
 
         schema.vertexLabel("person")
-              .properties("name")
-              .nullableKeys("name")
+              .properties("name", "age")
+              .nullableKeys("name", "age")
+              .ifNotExist().create();
+        schema.vertexLabel("software")
+              .properties("name", "lang")
+              .nullableKeys("name", "lang")
               .ifNotExist().create();
         schema.vertexLabel("thing")
               .properties("here")
@@ -770,15 +779,9 @@ public class TestGraph implements Graph {
               .properties("gremlin.partitionGraphStrategy.partition", "every")
               .nullableKeys("gremlin.partitionGraphStrategy.partition", "every")
               .ifNotExist().create();
-        schema.edgeLabel("knows").link(defaultVL, defaultVL)
-              .properties("data", "test", "year", "boolean", "float",
-                          "double", "string", "integer", "long", "weight",
-                          "myEdgeId", "since", "acl", "stars", "aKey",
-                          "gremlin.partitionGraphStrategy.partition", "color")
-              .nullableKeys("data", "test", "year", "boolean", "float",
-                            "double", "string", "integer", "long", "weight",
-                            "myEdgeId", "since", "acl", "stars", "aKey",
-                            "gremlin.partitionGraphStrategy.partition", "color")
+        schema.edgeLabel("relatesTo").link(defaultVL, defaultVL)
+              .properties("gremlin.partitionGraphStrategy.partition", "every")
+              .nullableKeys("gremlin.partitionGraphStrategy.partition", "every")
               .ifNotExist().create();
         schema.edgeLabel("test").link(defaultVL, defaultVL)
               .properties("test", "xxx", "yyy")
@@ -828,10 +831,6 @@ public class TestGraph implements Graph {
               .properties("weight")
               .nullableKeys("weight")
               .ifNotExist().create();
-        schema.edgeLabel("created").link(defaultVL, defaultVL)
-              .properties("weight", "color")
-              .nullableKeys("weight", "color")
-              .ifNotExist().create();
         schema.edgeLabel("next").link(defaultVL, defaultVL)
               .ifNotExist().create();
 
@@ -856,6 +855,69 @@ public class TestGraph implements Graph {
               .ifNotExist().create();
         schema.indexLabel("bTOcByGremlinPartition").onE("bTOc")
               .by("gremlin.partitionGraphStrategy.partition")
+              .ifNotExist().create();
+    }
+
+    public void initDefaultKnowsEdgeLabel(String defaultVL) {
+        SchemaManager schema = this.graph.schema();
+        schema.edgeLabel("knows").link(defaultVL, defaultVL)
+              .properties("data", "test", "year", "boolean", "float",
+                          "double", "string", "integer", "long", "weight",
+                          "myEdgeId", "since", "acl", "stars", "aKey",
+                          "gremlin.partitionGraphStrategy.partition", "color")
+              .nullableKeys("data", "test", "year", "boolean", "float",
+                            "double", "string", "integer", "long", "weight",
+                            "myEdgeId", "since", "acl", "stars", "aKey",
+                            "gremlin.partitionGraphStrategy.partition", "color")
+              .ifNotExist().create();
+    }
+
+    public void initDefaultCreatedEdgeLabel(String defaultVL) {
+        SchemaManager schema = this.graph.schema();
+        schema.edgeLabel("created").link(defaultVL, defaultVL)
+              .properties("weight", "color")
+              .nullableKeys("weight", "color")
+              .ifNotExist().create();
+    }
+
+    public void initPersonKnowsPersonEdgeLabel() {
+        SchemaManager schema = this.graph.schema();
+        schema.edgeLabel("knows").link("person", "person")
+              .properties("weight")
+              .nullableKeys("weight")
+              .ifNotExist().create();
+    }
+
+    public void initPersonCreatedSoftwareEdgeLabel() {
+        SchemaManager schema = this.graph.schema();
+        schema.edgeLabel("created").link("person", "software")
+              .properties("weight")
+              .nullableKeys("weight")
+              .ifNotExist().create();
+    }
+
+    public void initSinkSchema(IdStrategy idStrategy) {
+        SchemaManager schema = this.graph.schema();
+
+        schema.propertyKey("name").ifNotExist().create();
+
+        schema.vertexLabel("message")
+              .properties("name")
+              .nullableKeys("name")
+              .ifNotExist().create();
+
+        schema.vertexLabel("loops")
+              .properties("name")
+              .nullableKeys("name")
+              .ifNotExist().create();
+
+        schema.edgeLabel("link").link("message", "message")
+              .ifNotExist().create();
+        schema.edgeLabel("self").link("loops", "loops")
+              .ifNotExist().create();
+
+        schema.indexLabel("loopsByName").onV("loops")
+              .secondary().by("name")
               .ifNotExist().create();
     }
 }

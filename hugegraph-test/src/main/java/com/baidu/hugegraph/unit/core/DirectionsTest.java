@@ -39,9 +39,7 @@ public class DirectionsTest {
     public void testType() {
         Assert.assertEquals(HugeType.EDGE_OUT, Directions.OUT.type());
         Assert.assertEquals(HugeType.EDGE_IN, Directions.IN.type());
-        Assert.assertThrows(IllegalArgumentException.class, () -> {
-            Directions.BOTH.type();
-        });
+        Assert.assertEquals(HugeType.EDGE_IN, Directions.BOTH.type());
     }
 
     @Test
