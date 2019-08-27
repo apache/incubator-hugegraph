@@ -50,7 +50,7 @@ public class LicenseVerifier {
     private static volatile LicenseVerifier INSTANCE = null;
 
     private static final Duration CHECK_INTERVAL = Duration.ofMinutes(10);
-    private static Instant lastCheckTime = Instant.now();
+    private static volatile Instant lastCheckTime = Instant.now();
 
     private final LicenseVerifyParam verifyParam;
     private final LicenseVerifyManager manager;

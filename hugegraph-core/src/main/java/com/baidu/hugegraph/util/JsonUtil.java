@@ -36,6 +36,7 @@ import org.apache.tinkerpop.shaded.jackson.databind.deser.std.StdDeserializer;
 import org.apache.tinkerpop.shaded.jackson.databind.module.SimpleModule;
 import org.apache.tinkerpop.shaded.jackson.databind.ser.std.StdSerializer;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.backend.id.IdGenerator;
@@ -124,8 +125,8 @@ public final class JsonUtil {
         try {
             return mapper.readValue(stream, clazz);
         } catch (IOException e) {
-            throw new RuntimeException(String.format(
-                      "Failed to read stream to class '%s'", clazz));
+            throw new HugeException(
+                      "Failed to read stream to class '%s'", clazz);
         }
     }
 
