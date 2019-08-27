@@ -35,6 +35,7 @@ import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.iterator.FlatMapperIterator;
+import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 import com.google.common.collect.ImmutableSet;
@@ -199,7 +200,7 @@ public final class QueryList {
             // Must iterate all entries before get the next page
             List<BackendEntry> results = IteratorUtils.list(iterator);
             return new PageIterator(results.iterator(),
-                                    PageInfo.page(iterator));
+                                    PageInfo.pageState(iterator));
         }
 
         @Override
@@ -248,7 +249,8 @@ public final class QueryList {
                 return PageIterator.EMPTY;
             }
             IdQuery query = new IdQuery(parent(), pageIds.ids());
-            return new PageIterator(fetcher().apply(query), pageIds.page());
+            return new PageIterator(fetcher().apply(query),
+                                    pageIds.pageState());
         }
 
         @Override
@@ -261,26 +263,32 @@ public final class QueryList {
 
         public static final PageIterator EMPTY = new PageIterator(
                                                  Collections.emptyIterator(),
-                                                 PageInfo.PAGE_NONE);
+                                                 PageState.EMPTY);
 
         private final Iterator<BackendEntry> iterator;
-        private final String page;
+        private final PageState pageState;
 
-        public PageIterator(Iterator<BackendEntry> iterator, String page) {
+        public PageIterator(Iterator<BackendEntry> iterator,
+                            PageState pageState) {
             this.iterator = iterator;
-            this.page = page;
+            this.pageState = pageState;
         }
 
         public Iterator<BackendEntry> iterator() {
             return this.iterator;
         }
 
+        public boolean hasNextPage() {
+            return !Bytes.equals(this.pageState.position(),
+                                 PageState.EMPTY_BYTES);
+        }
+
         public String page() {
-            return this.page;
+            return this.pageState.toString();
         }
 
         public long total() {
-            return PageState.fromString(this.page).total();
+            return this.pageState.total();
         }
     }
 }

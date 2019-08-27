@@ -24,6 +24,7 @@ import java.util.NoSuchElementException;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.page.PageInfo;
+import com.baidu.hugegraph.backend.page.PageState;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.exception.LimitExceedException;
 import com.baidu.hugegraph.exception.NotSupportException;
@@ -163,7 +164,7 @@ public abstract class BackendEntryIterator
 
     protected abstract boolean fetch();
 
-    protected abstract String pageState();
+    protected abstract PageState pageState();
 
     public static final class EmptyIterator extends BackendEntryIterator {
 
@@ -177,7 +178,7 @@ public abstract class BackendEntryIterator
         }
 
         @Override
-        protected String pageState() {
+        protected PageState pageState() {
             return null;
         }
 

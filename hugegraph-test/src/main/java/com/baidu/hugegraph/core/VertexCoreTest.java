@@ -4266,7 +4266,7 @@ public class VertexCoreTest extends BaseCoreTest {
                 Assert.assertTrue(query.test((HugeElement) vertex));
                 vertices.add(vertex);
             }
-            page = PageInfo.page(iterator);
+            page = PageInfo.pageInfo(iterator);
         }
         Assert.assertEquals(10, vertices.size());
     }
