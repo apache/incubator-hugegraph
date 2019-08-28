@@ -423,7 +423,7 @@ public class TaskScheduler {
         }
 
         @SuppressWarnings("unused")
-        private void deleteIndex(HugeVertex vertex) {
+        public void deleteIndex(HugeVertex vertex) {
             // Delete the old record if exist
             Iterator<Vertex> old = this.queryVertices(vertex.id());
             if (old.hasNext()) {
@@ -437,7 +437,7 @@ public class TaskScheduler {
             }
         }
 
-        protected void initSchema() {
+        public void initSchema() {
             HugeGraph graph = this.graph();
             VertexLabel label = graph.schemaTransaction().getVertexLabel(TASK);
             if (label != null) {

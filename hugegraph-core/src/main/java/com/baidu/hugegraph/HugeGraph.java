@@ -39,6 +39,7 @@ import org.slf4j.Logger;
 
 import com.baidu.hugegraph.analyzer.Analyzer;
 import com.baidu.hugegraph.analyzer.AnalyzerFactory;
+import com.baidu.hugegraph.auth.UserManager;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.cache.CachedGraphTransaction;
 import com.baidu.hugegraph.backend.cache.CachedSchemaTransaction;
@@ -109,6 +110,7 @@ public class HugeGraph implements GremlinGraph {
     private final EventHub indexEventHub;
     private final RateLimiter rateLimiter;
     private final TaskManager taskManager;
+    private final UserManager userManager;
 
     private final HugeFeatures features;
 
@@ -150,6 +152,7 @@ public class HugeGraph implements GremlinGraph {
 
         this.taskManager.addScheduler(this);
 
+        this.userManager = new UserManager(this);
         this.variables = null;
     }
 
@@ -491,6 +494,7 @@ public class HugeGraph implements GremlinGraph {
         }
 
         LOG.info("Close graph {}", this);
+        this.userManager.close();
         this.taskManager.closeScheduler(this);
         try {
             this.closeTx();
@@ -526,8 +530,13 @@ public class HugeGraph implements GremlinGraph {
             this.variables = new HugeVariables(this);
         }
         // Ensure variables() work after variables schema was cleared
-        this.variables.initSchema();
+        this.variables.initSchemaIfNeeded();
         return this.variables;
+    }
+
+    public UserManager userManager() {
+        // this.userManager.initSchemaIfNeeded();
+        return this.userManager;
     }
 
     @Override

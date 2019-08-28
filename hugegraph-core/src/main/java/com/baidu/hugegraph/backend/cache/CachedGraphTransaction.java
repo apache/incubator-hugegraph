@@ -143,7 +143,7 @@ public final class CachedGraphTransaction extends GraphTransaction {
     }
 
     @Override
-    protected Iterator<HugeVertex> queryVerticesFromBackend(Query query) {
+    protected final Iterator<HugeVertex> queryVerticesFromBackend(Query query) {
         if (!query.ids().isEmpty() && query.conditions().isEmpty()) {
             return this.queryVerticesByIds((IdQuery) query);
         } else {
@@ -178,7 +178,7 @@ public final class CachedGraphTransaction extends GraphTransaction {
     }
 
     @Override
-    protected Iterator<HugeEdge> queryEdgesFromBackend(Query query) {
+    protected final Iterator<HugeEdge> queryEdgesFromBackend(Query query) {
         if (query.empty() || query.paging()) {
             // Query all edges or query edges in paging, don't cache it
             return super.queryEdgesFromBackend(query);
@@ -199,7 +199,7 @@ public final class CachedGraphTransaction extends GraphTransaction {
 
 
     @Override
-    protected void commitMutation2Backend(BackendMutation... mutations) {
+    protected final void commitMutation2Backend(BackendMutation... mutations) {
         // Collect changes before commit
         Collection<HugeVertex> changes = this.verticesInTxUpdated();
         Collection<HugeVertex> deletions = this.verticesInTxRemoved();
@@ -227,7 +227,7 @@ public final class CachedGraphTransaction extends GraphTransaction {
     }
 
     @Override
-    public void removeIndex(IndexLabel indexLabel) {
+    public final void removeIndex(IndexLabel indexLabel) {
         try {
             super.removeIndex(indexLabel);
         } finally {

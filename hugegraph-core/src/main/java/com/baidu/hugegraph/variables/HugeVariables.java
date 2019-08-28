@@ -105,7 +105,7 @@ public class HugeVariables implements Graph.Variables {
         this.graph = graph;
     }
 
-    public void initSchema() {
+    public void initSchemaIfNeeded() {
         SchemaManager schema = this.graph.schema();
 
         try {
