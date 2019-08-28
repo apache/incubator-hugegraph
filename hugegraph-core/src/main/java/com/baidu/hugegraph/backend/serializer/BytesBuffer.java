@@ -352,16 +352,16 @@ public final class BytesBuffer {
 
     public BytesBuffer writeVInt(int value) {
         // NOTE: negative numbers are not compressed
-        if(value > 0x0fffffff || value < 0) {
+        if (value > 0x0fffffff || value < 0) {
             this.write(0x80 | ((value >>> 28) & 0x7f));
         }
-        if(value > 0x1fffff || value < 0) {
+        if (value > 0x1fffff || value < 0) {
             this.write(0x80 | ((value >>> 21) & 0x7f));
         }
-        if(value > 0x3fff || value < 0) {
+        if (value > 0x3fff || value < 0) {
             this.write(0x80 | ((value >>> 14) & 0x7f));
         }
-        if(value > 0x7f || value < 0) {
+        if (value > 0x7f || value < 0) {
             this.write(0x80 | ((value >>>  7) & 0x7f));
         }
         this.write(value & 0x7f);
@@ -401,31 +401,31 @@ public final class BytesBuffer {
     }
 
     public BytesBuffer writeVLong(long value) {
-        if(value < 0) {
+        if (value < 0) {
             this.write((byte) 0x81);
         }
-        if(value > 0xffffffffffffffL || value < 0L) {
+        if (value > 0xffffffffffffffL || value < 0L) {
             this.write(0x80 | ((int) (value >>> 56) & 0x7f));
         }
-        if(value > 0x1ffffffffffffL || value < 0L) {
+        if (value > 0x1ffffffffffffL || value < 0L) {
             this.write(0x80 | ((int) (value >>> 49) & 0x7f));
         }
-        if(value > 0x3ffffffffffL || value < 0L) {
+        if (value > 0x3ffffffffffL || value < 0L) {
             this.write(0x80 | ((int) (value >>> 42) & 0x7f));
         }
-        if(value > 0x7ffffffffL || value < 0L) {
+        if (value > 0x7ffffffffL || value < 0L) {
             this.write(0x80 | ((int) (value >>> 35) & 0x7f));
         }
-        if(value > 0xfffffffL || value < 0L) {
+        if (value > 0xfffffffL || value < 0L) {
             this.write(0x80 | ((int) (value >>> 28) & 0x7f));
         }
-        if(value > 0x1fffffL || value < 0L) {
+        if (value > 0x1fffffL || value < 0L) {
             this.write(0x80 | ((int) (value >>> 21) & 0x7f));
         }
-        if(value > 0x3fffL || value < 0L) {
+        if (value > 0x3fffL || value < 0L) {
             this.write(0x80 | ((int) (value >>> 14) & 0x7f));
         }
-        if(value > 0x7fL || value < 0L) {
+        if (value > 0x7fL || value < 0L) {
             this.write(0x80 | ((int) (value >>>  7) & 0x7f));
         }
         this.write((int) value & 0x7f);
