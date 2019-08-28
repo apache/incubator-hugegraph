@@ -68,8 +68,8 @@ public class ApplicationConfig extends ResourceConfig {
         register(new InstrumentedResourceMethodApplicationListener(registry));
     }
 
-    private void installLicense(HugeConfig config) {
-        LicenseVerifier.instance().install(config);
+    private void installLicense(HugeConfig config, GraphManager manager) {
+        LicenseVerifier.instance().install(config, manager);
     }
 
     private class ConfFactory extends AbstractBinder
@@ -110,8 +110,8 @@ public class ApplicationConfig extends ResourceConfig {
                 @Override
                 public void onEvent(ApplicationEvent event) {
                     if (event.getType() == this.EVENT_INITED) {
-                        ApplicationConfig.this.installLicense(conf);
                         GraphManagerFactory.this.manager = new GraphManager(conf);
+                        ApplicationConfig.this.installLicense(conf, manager);
                     }
                 }
 

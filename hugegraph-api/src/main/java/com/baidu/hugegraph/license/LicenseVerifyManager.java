@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.license;
 
+import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.util.List;
 
@@ -27,8 +28,14 @@ import org.slf4j.Logger;
 
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
+import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.util.Bytes;
+import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
+import com.baidu.hugegraph.util.VersionUtil;
+import com.baidu.hugegraph.version.CoreVersion;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.management.OperatingSystemMXBean;
 
 import de.schlichtherle.license.LicenseContent;
@@ -39,9 +46,11 @@ public class LicenseVerifyManager extends CommonLicenseManager {
 
     private static final Logger LOG = Log.logger(LicenseVerifyManager.class);
 
+    private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final int NO_LIMIT = -1;
 
     private HugeConfig config;
+    private GraphManager graphManager;
     private final MachineInfo machineInfo;
 
     public LicenseVerifyManager(LicenseParam param) {
@@ -53,6 +62,22 @@ public class LicenseVerifyManager extends CommonLicenseManager {
         this.config = config;
     }
 
+    public HugeConfig config() {
+        E.checkState(this.config != null,
+                     "license verify manager has not been installed");
+        return this.config;
+    }
+
+    public void graphManager(GraphManager graphManager) {
+        this.graphManager = graphManager;
+    }
+
+    public GraphManager graphManager() {
+        E.checkState(this.graphManager != null,
+                     "license verify manager has not been installed");
+        return this.graphManager;
+    }
+
     @Override
     protected synchronized void validate(LicenseContent content)
                                          throws LicenseContentException {
@@ -60,16 +85,24 @@ public class LicenseVerifyManager extends CommonLicenseManager {
         super.validate(content);
 
         // Verify the customized license parameters.
-        @SuppressWarnings("unchecked")
-        List<ExtraParam> extraParams = (List<ExtraParam>) content.getExtra();
+        List<ExtraParam> extraParams;
+        try {
+            TypeReference type = new TypeReference<List<ExtraParam>>() {};
+            extraParams = MAPPER.readValue((String) content.getExtra(), type);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to read extra params", e);
+        }
+
         String serverId = this.getServerId();
         LOG.debug("server id is {}", serverId);
-        ExtraParam param = this.findMatchParam(serverId, extraParams);
+        ExtraParam param = this.matchParam(serverId, extraParams);
         if (param == null) {
             throw new LicenseContentException("The current server's id " +
                                               "is not authorized");
         }
 
+        this.checkVersion(param);
+        this.checkGraphs(param);
         this.checkIp(param);
         this.checkMac(param);
         this.checkCpu(param);
@@ -79,46 +112,72 @@ public class LicenseVerifyManager extends CommonLicenseManager {
     }
 
     private String getServerId() {
-        return this.config.get(ServerOptions.SERVER_ID);
+        return this.config().get(ServerOptions.SERVER_ID);
     }
 
-    private ExtraParam findMatchParam(String id, List<ExtraParam> extraParams) {
+    private ExtraParam matchParam(String id, List<ExtraParam> extraParams) {
         for (ExtraParam param : extraParams) {
-            if (param.getId().equals(id)) {
+            if (param.id().equals(id)) {
                 return param;
             }
         }
         return null;
     }
 
+    private void checkVersion(ExtraParam param) throws LicenseContentException {
+        String expectVersion = param.version();
+        if (StringUtils.isEmpty(expectVersion)) {
+            return;
+        }
+        VersionUtil.Version acutalVersion = CoreVersion.VERSION;
+        if (acutalVersion.compareTo(VersionUtil.Version.of(expectVersion)) > 0) {
+            throw newLicenseException(
+                  "The server's version '%s' exceeded the authorized '%s'",
+                  acutalVersion.get(), expectVersion);
+        }
+    }
+
+    private void checkGraphs(ExtraParam param) throws LicenseContentException {
+        int expectGraphs = param.graphs();
+        if (expectGraphs == NO_LIMIT) {
+            return;
+        }
+        int actualGraphs = this.graphManager().graphs().size();
+        if (actualGraphs > expectGraphs) {
+            throw newLicenseException(
+                  "The server's graphs '%s' exceeded the authorized '%s'",
+                  actualGraphs, expectGraphs);
+        }
+    }
+
     private void checkIp(ExtraParam param) throws LicenseContentException {
-        String expectIp = param.getIp();
+        String expectIp = param.ip();
         if (StringUtils.isEmpty(expectIp)) {
             return;
         }
         List<String> actualIps = this.machineInfo.getIpAddress();
         if (!actualIps.contains(expectIp)) {
             throw newLicenseException(
-                  "The server's ip %s doesn't match the authorized '%s'",
+                  "The server's ip '%s' doesn't match the authorized '%s'",
                   actualIps, expectIp);
         }
     }
 
     private void checkMac(ExtraParam param) throws LicenseContentException {
-        String expectMac = param.getMac();
+        String expectMac = param.mac();
         if (StringUtils.isEmpty(expectMac)) {
             return;
         }
         List<String> actualMacs = this.machineInfo.getMacAddress();
         if (!actualMacs.contains(expectMac)) {
             throw newLicenseException(
-                  "The server's mac %s doesn't match the authorized '%s'",
+                  "The server's mac '%s' doesn't match the authorized '%s'",
                   actualMacs, expectMac);
         }
     }
 
     private void checkCpu(ExtraParam param) throws LicenseContentException {
-        int expectCpus = param.getCpu();
+        int expectCpus = param.cpus();
         if (expectCpus == NO_LIMIT) {
             return;
         }
@@ -132,7 +191,7 @@ public class LicenseVerifyManager extends CommonLicenseManager {
 
     private void checkRam(ExtraParam param) throws LicenseContentException {
         // Unit MB
-        int expectRam = param.getRam();
+        int expectRam = param.ram();
         if (expectRam == NO_LIMIT) {
             return;
         }
@@ -147,11 +206,11 @@ public class LicenseVerifyManager extends CommonLicenseManager {
     }
 
     private void checkThreads(ExtraParam param) throws LicenseContentException {
-        int expectThreads = param.getThreads();
+        int expectThreads = param.threads();
         if (expectThreads == NO_LIMIT) {
             return;
         }
-        int actualThreads = this.config.get(ServerOptions.MAX_WORKER_THREADS);
+        int actualThreads = this.config().get(ServerOptions.MAX_WORKER_THREADS);
         if (actualThreads > expectThreads) {
             throw newLicenseException(
                   "The server's max threads '%s' exceeded limit '%s'",
@@ -161,7 +220,7 @@ public class LicenseVerifyManager extends CommonLicenseManager {
 
     private void checkMemory(ExtraParam param) throws LicenseContentException {
         // Unit MB
-        int expectMemory = param.getMemory();
+        int expectMemory = param.memory();
         if (expectMemory == NO_LIMIT) {
             return;
         }

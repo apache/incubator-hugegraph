@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.license;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.time.Duration;
 import java.time.Instant;
@@ -30,9 +31,10 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.config.HugeConfig;
-import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.baidu.hugegraph.util.Log;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import de.schlichtherle.license.CipherParam;
 import de.schlichtherle.license.DefaultCipherParam;
@@ -77,16 +79,18 @@ public class LicenseVerifier {
         Instant now = Instant.now();
         Duration interval = Duration.between(this.lastCheckTime, now);
         if (!interval.minus(CHECK_INTERVAL).isNegative()) {
-            LicenseVerifier.instance().verify();
+            this.verify();
             this.lastCheckTime = now;
         }
     }
 
-    public synchronized void install(HugeConfig config) {
+    public synchronized void install(HugeConfig config,
+                                     GraphManager graphManager) {
         this.manager.config(config);
+        this.manager.graphManager(graphManager);
         try {
             this.manager.uninstall();
-            File licenseFile = new File(this.verifyParam.getLicensePath());
+            File licenseFile = new File(this.verifyParam.licensePath());
             LicenseContent content = this.manager.install(licenseFile);
             LOG.info("The license is successfully installed, valid for {} - {}",
                      content.getNotBefore(), content.getNotAfter());
@@ -109,20 +113,27 @@ public class LicenseVerifier {
         Preferences preferences = Preferences.userNodeForPackage(
                                   LicenseVerifier.class);
         CipherParam cipherParam = new DefaultCipherParam(
-                                  param.getStorePassword());
+                                  param.storePassword());
         KeyStoreParam keyStoreParam = new DefaultKeyStoreParam(
                                       LicenseVerifier.class,
-                                      param.getPublicKeyPath(),
-                                      param.getPublicAlias(),
-                                      param.getStorePassword(),
+                                      param.publicKeyPath(),
+                                      param.publicAlias(),
+                                      param.storePassword(),
                                       null);
-        return new DefaultLicenseParam(param.getSubject(), preferences,
+        return new DefaultLicenseParam(param.subject(), preferences,
                                        keyStoreParam, cipherParam);
     }
 
     private static LicenseVerifyParam buildVerifyParam(String path) {
         InputStream stream = LicenseVerifier.class.getResourceAsStream(path);
-        return JsonUtil.fromJson(stream, LicenseVerifyParam.class);
+        // NOTE: can't use JsonUtil due to it bind tinkerpop jackson
+        ObjectMapper mapper = new ObjectMapper();
+        try {
+            return mapper.readValue(stream, LicenseVerifyParam.class);
+        } catch (IOException e) {
+            throw new HugeException("Failed to read json stream to %s",
+                                    LicenseVerifyParam.class);
+        }
     }
 }
 

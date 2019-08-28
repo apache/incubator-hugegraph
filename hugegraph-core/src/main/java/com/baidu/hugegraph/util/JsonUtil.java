@@ -120,7 +120,7 @@ public final class JsonUtil {
 
     public static <T> T  fromJson(InputStream stream, Class<T> clazz) {
         E.checkState(stream != null,
-                     "Stream can't be null for '%s'",
+                     "Json stream can't be null for '%s'",
                      clazz.getSimpleName());
         try {
             return mapper.readValue(stream, clazz);
