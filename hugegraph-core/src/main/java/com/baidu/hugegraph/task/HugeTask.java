@@ -582,12 +582,8 @@ public class HugeTask<V> extends FutureTask<V> {
         //public static final String PARENT = hide("parent");
         //public static final String CHILDREN = hide("children");
 
-        public static String hide(String key) {
-            return Hidden.hide("task" + "_" + key);
-        }
-
         public static String unhide(String key) {
-            final String prefix = Hidden.hide("task" + "_");
+            final String prefix = Hidden.hide("task_");
             if (key.startsWith(prefix)) {
                 return key.substring(prefix.length());
             }

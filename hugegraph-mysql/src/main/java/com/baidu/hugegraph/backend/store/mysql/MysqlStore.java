@@ -127,8 +127,10 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
                 !e.getMessage().endsWith("does not exist")) {
                 throw new ConnectionException("Failed to connect to MySQL", e);
             }
-            LOG.info("Failed to open database '{}', " +
-                     "try to init database later", this.database);
+            if (this.isSchemaStore()) {
+                LOG.info("Failed to open database '{}', " +
+                         "try to init database later", this.database);
+            }
         }
 
         try {
@@ -408,6 +410,11 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
             Session session = super.sessions.session();
             return this.counters.getCounter(session, type);
         }
+
+        @Override
+        public boolean isSchemaStore() {
+            return true;
+        }
     }
 
     public static class MysqlGraphStore extends MysqlStore {
@@ -440,6 +447,11 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
                                  new MysqlTables.ShardIndex(store));
             registerTableManager(HugeType.UNIQUE_INDEX,
                                  new MysqlTables.UniqueIndex(store));
+        }
+
+        @Override
+        public boolean isSchemaStore() {
+            return false;
         }
 
         @Override

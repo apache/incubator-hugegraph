@@ -138,6 +138,11 @@ public class CachedBackendStore implements BackendStore {
     }
 
     @Override
+    public boolean isSchemaStore() {
+        return this.store.isSchemaStore();
+    }
+
+    @Override
     public void mutate(BackendMutation mutation) {
         // TODO: invalid cache, or set expire time at least
         this.store.mutate(mutation);
