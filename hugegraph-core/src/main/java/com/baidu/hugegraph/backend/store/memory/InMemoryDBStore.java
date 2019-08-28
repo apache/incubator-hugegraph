@@ -268,6 +268,11 @@ public abstract class InMemoryDBStore
             this.counter.reset();
             super.truncate();
         }
+
+        @Override
+        public boolean isSchemaStore() {
+            return true;
+        }
     }
 
     public static class InMemoryGraphStore extends InMemoryDBStore {
@@ -298,6 +303,11 @@ public abstract class InMemoryDBStore
                                  new InMemoryDBTables.ShardIndex());
             registerTableManager(HugeType.UNIQUE_INDEX,
                                  new InMemoryDBTables.UniqueIndex());
+        }
+
+        @Override
+        public boolean isSchemaStore() {
+            return false;
         }
 
         @Override

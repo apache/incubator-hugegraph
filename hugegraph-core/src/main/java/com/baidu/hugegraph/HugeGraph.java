@@ -39,6 +39,7 @@ import org.slf4j.Logger;
 
 import com.baidu.hugegraph.analyzer.Analyzer;
 import com.baidu.hugegraph.analyzer.AnalyzerFactory;
+import com.baidu.hugegraph.auth.UserManager;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.cache.CachedGraphTransaction;
 import com.baidu.hugegraph.backend.cache.CachedSchemaTransaction;
@@ -109,6 +110,7 @@ public class HugeGraph implements GremlinGraph {
     private final EventHub indexEventHub;
     private final RateLimiter rateLimiter;
     private final TaskManager taskManager;
+    private final UserManager userManager;
 
     private final HugeFeatures features;
 
@@ -150,6 +152,7 @@ public class HugeGraph implements GremlinGraph {
 
         this.taskManager.addScheduler(this);
 
+        this.userManager = new UserManager(this);
         this.variables = null;
     }
 
@@ -263,6 +266,17 @@ public class HugeGraph implements GremlinGraph {
         }
     }
 
+    private SysTransaction openSystemTransaction() throws HugeException {
+        this.checkGraphNotClosed();
+        try {
+            return new SysTransaction(this, this.loadSystemStore());
+        } catch (BackendException e) {
+            String message = "Failed to open system transaction";
+            LOG.error("{}", message, e);
+            throw new HugeException(message);
+        }
+    }
+
     private GraphTransaction openGraphTransaction() throws HugeException {
         this.checkGraphNotClosed();
         try {
@@ -307,6 +321,16 @@ public class HugeGraph implements GremlinGraph {
          * Don't need to open tinkerpop tx by readWrite() and commit manually.
          */
         return this.tx.schemaTransaction();
+    }
+
+    public GraphTransaction systemTransaction() {
+        this.checkGraphNotClosed();
+        /*
+         * NOTE: graph operations must be committed manually,
+         * Maybe users need to auto open tinkerpop tx by readWrite().
+         */
+        this.tx.readWrite();
+        return this.tx.systemTransaction();
     }
 
     public GraphTransaction graphTransaction() {
@@ -470,6 +494,7 @@ public class HugeGraph implements GremlinGraph {
         }
 
         LOG.info("Close graph {}", this);
+        this.userManager.close();
         this.taskManager.closeScheduler(this);
         try {
             this.closeTx();
@@ -505,8 +530,13 @@ public class HugeGraph implements GremlinGraph {
             this.variables = new HugeVariables(this);
         }
         // Ensure variables() work after variables schema was cleared
-        this.variables.initSchema();
+        this.variables.initSchemaIfNeeded();
         return this.variables;
+    }
+
+    public UserManager userManager() {
+        // this.userManager.initSchemaIfNeeded();
+        return this.userManager;
     }
 
     @Override
@@ -726,6 +756,10 @@ public class HugeGraph implements GremlinGraph {
             return this.getOrNewTransaction().schemaTx;
         }
 
+        public GraphTransaction systemTransaction() {
+            return this.getOrNewTransaction().systemTx;
+        }
+
         private GraphTransaction graphTransaction() {
             return this.getOrNewTransaction().graphTx;
         }
@@ -740,7 +774,9 @@ public class HugeGraph implements GremlinGraph {
             Txs txs = this.transactions.get();
             if (txs == null) {
                 // TODO: close SchemaTransaction if GraphTransaction is error
-                txs = new Txs(openSchemaTransaction(), openGraphTransaction());
+                txs = new Txs(openSchemaTransaction(),
+                              openSystemTransaction(),
+                              openGraphTransaction());
                 this.transactions.set(txs);
             }
             return txs;
@@ -764,25 +800,23 @@ public class HugeGraph implements GremlinGraph {
     private static final class Txs {
 
         public final SchemaTransaction schemaTx;
+        public final SysTransaction systemTx;
         public final GraphTransaction graphTx;
 
-        public Txs(SchemaTransaction schemaTx, GraphTransaction graphTx) {
-            assert schemaTx != null && graphTx != null;
+        public Txs(SchemaTransaction schemaTx, SysTransaction systemTx,
+                   GraphTransaction graphTx) {
+            assert schemaTx != null && systemTx != null && graphTx != null;
             this.schemaTx = schemaTx;
+            this.systemTx = systemTx;
             this.graphTx = graphTx;
         }
 
         public void commit() {
-            this.schemaTx.commit();
             this.graphTx.commit();
         }
 
         public void rollback() {
-            try {
-                this.schemaTx.rollback();
-            } finally {
-                this.graphTx.rollback();
-            }
+            this.graphTx.rollback();
         }
 
         public void close() {
@@ -790,6 +824,12 @@ public class HugeGraph implements GremlinGraph {
                 this.graphTx.close();
             } catch (Exception e) {
                 LOG.error("Failed to close GraphTransaction", e);
+            }
+
+            try {
+                this.systemTx.close();
+            } catch (Exception e) {
+                LOG.error("Failed to close SystemTransaction", e);
             }
 
             try {
@@ -801,8 +841,16 @@ public class HugeGraph implements GremlinGraph {
 
         @Override
         public String toString() {
-            return String.format("{schemaTx=%s,graphTx=%s}",
-                                 this.schemaTx, this.graphTx);
+            return String.format("{schemaTx=%s,systemTx=%s,graphTx=%s}",
+                                 this.schemaTx, this.systemTx, this.graphTx);
+        }
+    }
+
+    private static class SysTransaction extends CachedGraphTransaction {
+
+        public SysTransaction(HugeGraph graph, BackendStore store) {
+            super(graph, store);
+            this.autoCommit(true);
         }
     }
 }

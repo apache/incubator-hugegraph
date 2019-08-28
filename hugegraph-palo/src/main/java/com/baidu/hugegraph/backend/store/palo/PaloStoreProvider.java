@@ -102,6 +102,10 @@ public class PaloStoreProvider extends MysqlStoreProvider {
             return this.counter.getCounter(type);
         }
 
+        @Override
+        public boolean isSchemaStore() {
+            return true;
+        }
     }
 
     public static class PaloGraphStore extends PaloStore {
@@ -137,6 +141,11 @@ public class PaloStoreProvider extends MysqlStoreProvider {
         @Override
         public BackendFeatures features() {
             return FEATURES;
+        }
+
+        @Override
+        public boolean isSchemaStore() {
+            return false;
         }
 
         @Override

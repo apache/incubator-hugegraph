@@ -39,6 +39,9 @@ public interface BackendStore {
     // Get the parent provider
     public BackendStoreProvider provider();
 
+    // Whether it is the storage of schema
+    public boolean isSchemaStore();
+
     // Open/close database
     public void open(HugeConfig config);
     public void close();

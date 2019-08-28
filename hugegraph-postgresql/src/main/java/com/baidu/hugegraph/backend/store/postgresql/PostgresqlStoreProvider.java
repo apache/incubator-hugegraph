@@ -102,6 +102,11 @@ public class PostgresqlStoreProvider extends MysqlStoreProvider {
             MysqlSessions.Session session = this.session(type);
             return this.counters.getCounter(session, type);
         }
+
+        @Override
+        public boolean isSchemaStore() {
+            return true;
+        }
     }
 
     public static class PostgresqlGraphStore extends PostgresqlStore {
@@ -134,6 +139,11 @@ public class PostgresqlStoreProvider extends MysqlStoreProvider {
                                  new PostgresqlTables.ShardIndex(store));
             registerTableManager(HugeType.UNIQUE_INDEX,
                                  new PostgresqlTables.UniqueIndex(store));
+        }
+
+        @Override
+        public boolean isSchemaStore() {
+            return false;
         }
 
         @Override
