@@ -69,7 +69,7 @@ public class ApplicationConfig extends ResourceConfig {
     }
 
     private void installLicense(HugeConfig config) {
-        LicenseVerifier.instance(config).install();
+        LicenseVerifier.instance().install(config);
     }
 
     private class ConfFactory extends AbstractBinder

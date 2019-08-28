@@ -63,7 +63,7 @@ public class LoadDetectFilter implements ContainerRequestFilter {
 
     @Override
     public void filter(ContainerRequestContext context) {
-        LicenseVerifier.verifyIfNeeded();
+        LicenseVerifier.instance().verifyIfNeeded();
 
         if (LoadDetectFilter.isWhiteAPI(context)) {
             return;

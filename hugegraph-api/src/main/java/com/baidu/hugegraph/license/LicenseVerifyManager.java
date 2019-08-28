@@ -41,13 +41,16 @@ public class LicenseVerifyManager extends CommonLicenseManager {
 
     private static final int NO_LIMIT = -1;
 
-    private final HugeConfig config;
+    private HugeConfig config;
     private final MachineInfo machineInfo;
 
-    public LicenseVerifyManager(LicenseParam param, HugeConfig config) {
+    public LicenseVerifyManager(LicenseParam param) {
         super(param);
-        this.config = config;
         this.machineInfo = new MachineInfo();
+    }
+
+    public void config(HugeConfig config) {
+        this.config = config;
     }
 
     @Override
@@ -95,9 +98,9 @@ public class LicenseVerifyManager extends CommonLicenseManager {
         }
         List<String> actualIps = this.machineInfo.getIpAddress();
         if (!actualIps.contains(expectIp)) {
-            throw new LicenseContentException(String.format(
-                      "The server's ip %s doesn't match the authorized '%s'",
-                      actualIps, expectIp));
+            throw newLicenseException(
+                  "The server's ip %s doesn't match the authorized '%s'",
+                  actualIps, expectIp);
         }
     }
 
@@ -108,9 +111,9 @@ public class LicenseVerifyManager extends CommonLicenseManager {
         }
         List<String> actualMacs = this.machineInfo.getMacAddress();
         if (!actualMacs.contains(expectMac)) {
-            throw new LicenseContentException(String.format(
-                      "The server's mac %s doesn't match the authorized '%s'",
-                      actualMacs, expectMac));
+            throw newLicenseException(
+                  "The server's mac %s doesn't match the authorized '%s'",
+                  actualMacs, expectMac);
         }
     }
 
@@ -121,9 +124,9 @@ public class LicenseVerifyManager extends CommonLicenseManager {
         }
         int actualCpus = Runtime.getRuntime().availableProcessors();
         if (actualCpus > expectCpus) {
-            throw new LicenseContentException(String.format(
-                      "The server's cpus '%s' exceeded the limit '%s'",
-                      actualCpus, expectCpus));
+            throw newLicenseException(
+                  "The server's cpus '%s' exceeded the limit '%s'",
+                  actualCpus, expectCpus);
         }
     }
 
@@ -137,9 +140,9 @@ public class LicenseVerifyManager extends CommonLicenseManager {
                                        .getOperatingSystemMXBean();
         long actualRam = mxBean.getTotalPhysicalMemorySize() / Bytes.MB;
         if (actualRam > expectRam) {
-            throw new LicenseContentException(String.format(
-                      "The server's ram(MB) '%s' exceeded the limit(MB) '%s'",
-                      actualRam, expectRam));
+            throw newLicenseException(
+                  "The server's ram(MB) '%s' exceeded the limit(MB) '%s'",
+                  actualRam, expectRam);
         }
     }
 
@@ -150,9 +153,9 @@ public class LicenseVerifyManager extends CommonLicenseManager {
         }
         int actualThreads = this.config.get(ServerOptions.MAX_WORKER_THREADS);
         if (actualThreads > expectThreads) {
-            throw new LicenseContentException(String.format(
-                      "The server's max threads '%s' exceeded limit '%s'",
-                      actualThreads, expectThreads));
+            throw newLicenseException(
+                  "The server's max threads '%s' exceeded limit '%s'",
+                  actualThreads, expectThreads);
         }
     }
 
@@ -164,9 +167,14 @@ public class LicenseVerifyManager extends CommonLicenseManager {
         }
         long actualMemory = Runtime.getRuntime().maxMemory() / Bytes.MB;
         if (actualMemory > expectMemory) {
-            throw new LicenseContentException(String.format(
-                      "The server's max memory(MB) '%s' exceeded the " +
-                      "limit(MB) '%s'", actualMemory, expectMemory));
+            throw newLicenseException(
+                  "The server's max memory(MB) '%s' exceeded the " +
+                  "limit(MB) '%s'", actualMemory, expectMemory);
         }
+    }
+
+    private LicenseContentException newLicenseException(String message,
+                                                        Object... args) {
+        return new LicenseContentException(String.format(message, args));
     }
 }

@@ -28,6 +28,7 @@ import java.util.prefs.Preferences;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
+import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
@@ -43,46 +44,46 @@ import de.schlichtherle.license.LicenseParam;
 
 public class LicenseVerifier {
 
-    private static final Logger LOG = Log.logger(LicenseVerifier.class);
+    private static final Logger LOG = Log.logger(HugeGraph.class);
 
     private static final String LICENSE_PARAM_PATH = "/verify-license.json";
 
     private static volatile LicenseVerifier INSTANCE = null;
 
     private static final Duration CHECK_INTERVAL = Duration.ofMinutes(10);
-    private static volatile Instant lastCheckTime = Instant.now();
+    private volatile Instant lastCheckTime = Instant.now();
 
     private final LicenseVerifyParam verifyParam;
     private final LicenseVerifyManager manager;
 
-    private LicenseVerifier(HugeConfig config) {
-        E.checkNotNull(config, "config");
+    private LicenseVerifier() {
         this.verifyParam = buildVerifyParam(LICENSE_PARAM_PATH);
         LicenseParam licenseParam = this.initLicenseParam(this.verifyParam);
-        this.manager = new LicenseVerifyManager(licenseParam, config);
+        this.manager = new LicenseVerifyManager(licenseParam);
     }
 
-    public static LicenseVerifier instance(HugeConfig config) {
+    public static LicenseVerifier instance() {
         if (INSTANCE == null) {
             synchronized(LicenseVerifier.class) {
                 if (INSTANCE == null) {
-                    INSTANCE = new LicenseVerifier(config);
+                    INSTANCE = new LicenseVerifier();
                 }
             }
         }
         return INSTANCE;
     }
 
-    public static void verifyIfNeeded() {
+    public void verifyIfNeeded() {
         Instant now = Instant.now();
-        Duration interval = Duration.between(lastCheckTime, now);
+        Duration interval = Duration.between(this.lastCheckTime, now);
         if (!interval.minus(CHECK_INTERVAL).isNegative()) {
-            LicenseVerifier.instance(null).verify();
-            lastCheckTime = now;
+            LicenseVerifier.instance().verify();
+            this.lastCheckTime = now;
         }
     }
 
-    public synchronized void install() {
+    public synchronized void install(HugeConfig config) {
+        this.manager.config(config);
         try {
             this.manager.uninstall();
             File licenseFile = new File(this.verifyParam.getLicensePath());
