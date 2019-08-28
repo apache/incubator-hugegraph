@@ -858,7 +858,7 @@ public class TestGraph implements Graph {
               .ifNotExist().create();
     }
 
-    public void initDefaultKnowsEdgeLabel(String defaultVL) {
+    public void initEdgeLabelDefaultKnowsDefault(String defaultVL) {
         SchemaManager schema = this.graph.schema();
         schema.edgeLabel("knows").link(defaultVL, defaultVL)
               .properties("data", "test", "year", "boolean", "float",
@@ -872,7 +872,7 @@ public class TestGraph implements Graph {
               .ifNotExist().create();
     }
 
-    public void initDefaultCreatedEdgeLabel(String defaultVL) {
+    public void initEdgeLabelDefaultCreatedDefault(String defaultVL) {
         SchemaManager schema = this.graph.schema();
         schema.edgeLabel("created").link(defaultVL, defaultVL)
               .properties("weight", "color")
@@ -880,7 +880,7 @@ public class TestGraph implements Graph {
               .ifNotExist().create();
     }
 
-    public void initPersonKnowsPersonEdgeLabel() {
+    public void initEdgeLabelPersonKnowsPerson() {
         SchemaManager schema = this.graph.schema();
         schema.edgeLabel("knows").link("person", "person")
               .properties("weight")
@@ -888,7 +888,7 @@ public class TestGraph implements Graph {
               .ifNotExist().create();
     }
 
-    public void initPersonCreatedSoftwareEdgeLabel() {
+    public void initEdgeLabelPersonCreatedSoftware() {
         SchemaManager schema = this.graph.schema();
         schema.edgeLabel("created").link("person", "software")
               .properties("weight")
@@ -896,7 +896,7 @@ public class TestGraph implements Graph {
               .ifNotExist().create();
     }
 
-    public void initSinkSchema(IdStrategy idStrategy) {
+    public void initSinkSchema() {
         SchemaManager schema = this.graph.schema();
 
         schema.propertyKey("name").ifNotExist().create();

@@ -36,6 +36,9 @@ public class HugeGraphServer {
 
     public HugeGraphServer(String gremlinServerConf, String restServerConf)
                            throws Exception {
+        // Only switch on security manager after HugeGremlinServer started
+        SecurityManager securityManager = System.getSecurityManager();
+        System.setSecurityManager(null);
         try {
             // Start GremlinServer
             this.gremlinServer = HugeGremlinServer.start(gremlinServerConf);
@@ -43,6 +46,8 @@ public class HugeGraphServer {
             LOG.error("HugeGremlinServer start error: ", e);
             HugeGraph.shutdown(30L);
             throw e;
+        } finally {
+            System.setSecurityManager(securityManager);
         }
 
         try {

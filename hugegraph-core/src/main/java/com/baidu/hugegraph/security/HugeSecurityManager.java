@@ -144,7 +144,7 @@ public class HugeSecurityManager extends SecurityManager {
 
     @Override
     public void checkRead(String file, Object context) {
-        if (callFromGremlin() && !callFromCaffeine()) {
+        if (callFromGremlin()) {
             throw new SecurityException("Not allowed to read file via Gremlin");
         }
         super.checkRead(file, context);
@@ -336,6 +336,7 @@ public class HugeSecurityManager extends SecurityManager {
         return false;
     }
 
+    @SuppressWarnings("unused")
     private static boolean callFromMethod(String clazz, String method) {
         Thread curThread = Thread.currentThread();
         StackTraceElement[] elements = curThread.getStackTrace();
