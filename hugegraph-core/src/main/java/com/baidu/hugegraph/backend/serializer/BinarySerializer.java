@@ -65,7 +65,6 @@ import com.baidu.hugegraph.type.define.SerialEnum;
 import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
-import com.baidu.hugegraph.util.KryoUtil;
 import com.baidu.hugegraph.util.NumericUtil;
 import com.baidu.hugegraph.util.StringEncoding;
 
@@ -162,15 +161,17 @@ public class BinarySerializer extends AbstractSerializer {
     }
 
     protected BackendColumn formatProperty(HugeProperty<?> prop) {
-        return BackendColumn.of(this.formatPropertyName(prop),
-                                KryoUtil.toKryo(prop.value()));
+        BytesBuffer buffer = BytesBuffer.allocate(64);
+        buffer.writeProperty(prop.propertyKey(), prop.value());
+        return BackendColumn.of(this.formatPropertyName(prop), buffer.bytes());
     }
 
-    protected void parseProperty(Id pkeyId, byte[] val, HugeElement owner) {
+    protected void parseProperty(Id pkeyId, BytesBuffer buffer,
+                                 HugeElement owner) {
         PropertyKey pkey = owner.graph().propertyKey(pkeyId);
 
         // Parse value
-        Object value = KryoUtil.fromKryo(val, pkey.implementClazz());
+        Object value = buffer.readProperty(pkey);
 
         // Set properties of vertex/edge
         if (pkey.cardinality() == Cardinality.SINGLE) {
@@ -189,19 +190,22 @@ public class BinarySerializer extends AbstractSerializer {
     protected void formatProperties(Collection<HugeProperty<?>> props,
                                     BytesBuffer buffer) {
         // Write properties size
-        buffer.writeInt(props.size());
+        buffer.writeVInt(props.size());
 
         // Write properties data
         for (HugeProperty<?> property : props) {
-            buffer.writeId(property.propertyKey().id());
-            buffer.writeBytes(KryoUtil.toKryo(property.value()));
+            PropertyKey pkey = property.propertyKey();
+            buffer.writeVInt(SchemaElement.schemaId(pkey.id()));
+            buffer.writeProperty(pkey, property.value());
         }
     }
 
     protected void parseProperties(BytesBuffer buffer, HugeElement owner) {
-        int size = buffer.readInt();
+        int size = buffer.readVInt();
+        assert size >= 0;
         for (int i = 0; i < size; i++) {
-            this.parseProperty(buffer.readId(), buffer.readBytes(), owner);
+            Id pkeyId = IdGenerator.of(buffer.readVInt());
+            this.parseProperty(pkeyId, buffer, owner);
         }
     }
 
@@ -305,7 +309,7 @@ public class BinarySerializer extends AbstractSerializer {
         // Parse property
         if (type == HugeType.PROPERTY.code()) {
             Id pkeyId = buffer.readId();
-            this.parseProperty(pkeyId, col.value, vertex);
+            this.parseProperty(pkeyId, BytesBuffer.wrap(col.value), vertex);
         }
         // Parse edge
         else if (type == HugeType.EDGE_IN.code() ||

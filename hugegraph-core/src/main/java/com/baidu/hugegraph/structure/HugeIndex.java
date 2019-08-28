@@ -151,7 +151,7 @@ public class HugeIndex implements GraphType {
             assert type.isRangeIndex();
             int length = type.isRange4Index() ? 4 : 8;
             BytesBuffer buffer = BytesBuffer.allocate(4 + length);
-            buffer.writeInt((int) indexLabel.asLong());
+            buffer.writeInt(SchemaElement.schemaId(indexLabel));
             if (fieldValues != null) {
                 E.checkState(fieldValues instanceof Number,
                              "Field value of range index must be number:" +

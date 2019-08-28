@@ -19,7 +19,6 @@
 
 package com.baidu.hugegraph.type.define;
 
-import java.io.Serializable;
 import java.util.Date;
 import java.util.UUID;
 
@@ -28,7 +27,7 @@ import com.baidu.hugegraph.util.DateUtil;
 public enum DataType implements SerialEnum {
 
     // This property has sub properties
-    OBJECT(1, "object", Serializable.class),
+    OBJECT(1, "object", Object.class),
     BOOLEAN(2, "boolean", Boolean.class),
     BYTE(3, "byte", Byte.class),
     INT(4, "int", Integer.class),

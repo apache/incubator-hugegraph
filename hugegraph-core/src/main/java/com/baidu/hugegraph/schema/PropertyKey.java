@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.exception.NotSupportException;
@@ -119,6 +120,16 @@ public class PropertyKey extends SchemaElement implements Propfiable {
                           "Unsupported cardinality: '%s'", this.cardinality));
         }
         return cls;
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T> T newValue() {
+        try {
+            return (T) this.implementClazz().newInstance();
+        } catch (Exception e) {
+            throw new HugeException("Failed to new instance of %s: %s",
+                                    this.implementClazz(), e.toString());
+        }
     }
 
     /**

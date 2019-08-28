@@ -37,6 +37,7 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
+import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -52,6 +53,7 @@ import com.google.common.collect.ImmutableMap;
 public abstract class HugeElement implements Element, GraphType {
 
     private static final Map<Id, HugeProperty<?>> EMPTY = ImmutableMap.of();
+    private static final int MAX_PROPERTIES = BytesBuffer.UINT16_MAX;
 
     private final HugeGraph graph;
 
@@ -158,10 +160,13 @@ public abstract class HugeElement implements Element, GraphType {
 
     @Watched(prefix = "element")
     public <V> HugeProperty<?> setProperty(HugeProperty<V> prop) {
-        PropertyKey pkey = prop.propertyKey();
         if (this.properties == EMPTY) {
             this.properties = new HashMap<>();
         }
+        PropertyKey pkey = prop.propertyKey();
+        E.checkArgument(this.properties.containsKey(pkey.id()) ||
+                        this.properties.size() < MAX_PROPERTIES,
+                        "Exceeded the maximum number of properties");
         return this.properties.put(pkey.id(), prop);
     }
 
