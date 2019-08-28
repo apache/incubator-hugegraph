@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 import javax.ws.rs.core.MultivaluedMap;
 
 import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
@@ -48,17 +49,20 @@ public class CustomizedCrosspointsTraverser extends HugeTraverser {
         super(graph);
     }
 
-    public CrosspointsPaths crosspointsPaths(List<HugeVertex> vertices,
+    public CrosspointsPaths crosspointsPaths(Iterator<Vertex> vertices,
                                              List<PathPattern> pathPatterns,
                                              long capacity, long limit) {
-        E.checkArgument(!vertices.isEmpty(),
+        E.checkArgument(vertices.hasNext(),
                         "The source vertices can't be empty");
         E.checkArgument(!pathPatterns.isEmpty(),
                         "The steps pattern can't be empty");
         checkCapacity(capacity);
         checkLimit(limit);
         MultivaluedMap<Id, Node> initialSources = newMultivalueMap();
-        for (HugeVertex vertex : vertices) {
+        List<HugeVertex> verticesList = new ArrayList<>();
+        while (vertices.hasNext()) {
+            HugeVertex vertex = (HugeVertex) vertices.next();
+            verticesList.add(vertex);
             Node node = new Node(vertex.id(), null);
             initialSources.add(vertex.id(), node);
         }
@@ -111,7 +115,7 @@ public class CustomizedCrosspointsTraverser extends HugeTraverser {
                 }
             }
         }
-        return intersectionPaths(vertices, paths, limit);
+        return intersectionPaths(verticesList, paths, limit);
     }
 
     private static CrosspointsPaths intersectionPaths(List<HugeVertex> sources,

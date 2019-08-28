@@ -47,12 +47,11 @@ public class SourceVertices {
     @JsonProperty("properties")
     public Map<String, Object> properties;
 
-    public List<HugeVertex> sourcesVertices(HugeGraph g) {
+    public Iterator<Vertex> sourcesVertices(HugeGraph g) {
         Map<String, Object> props = this.properties;
         E.checkArgument(!((this.ids == null || this.ids.isEmpty()) &&
                         (props == null || props.isEmpty()) &&
                         this.label == null), "No source vertices provided");
-        List<HugeVertex> vertices = new ArrayList<>();
         Iterator<Vertex> iter;
         if (this.ids != null && !this.ids.isEmpty()) {
             List<Id> sourceIds = new ArrayList<>(this.ids.size());
@@ -85,10 +84,7 @@ public class SourceVertices {
                             "label '%s' and properties '%s'",
                             this.label, props);
         }
-        while (iter.hasNext()) {
-            vertices.add((HugeVertex) iter.next());
-        }
-        return vertices;
+        return iter;
     }
 
     @Override

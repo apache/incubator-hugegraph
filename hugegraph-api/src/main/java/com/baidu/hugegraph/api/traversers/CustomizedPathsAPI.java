@@ -19,13 +19,6 @@
 
 package com.baidu.hugegraph.api.traversers;
 
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPACITY;
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PATHS_LIMIT;
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_SAMPLE;
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_WEIGHT;
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.NO_LIMIT;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -53,7 +46,6 @@ import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.server.RestServer;
-import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.traversal.algorithm.CustomizePathsTraverser;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
 import com.baidu.hugegraph.type.define.Directions;
@@ -61,6 +53,13 @@ import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPACITY;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PATHS_LIMIT;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_SAMPLE;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_WEIGHT;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.NO_LIMIT;
 
 @Path("graphs/{graph}/traversers/customizedpaths")
 @Singleton
@@ -91,7 +90,7 @@ public class CustomizedPathsAPI extends API {
                   request.withVertex);
 
         HugeGraph g = graph(manager, graph);
-        List<HugeVertex> sources = request.sources.sourcesVertices(g);
+        Iterator<Vertex> sources = request.sources.sourcesVertices(g);
         List<CustomizePathsTraverser.Step> steps = step(g, request);
         boolean sorted = request.sortBy != SortBy.NONE;
 
