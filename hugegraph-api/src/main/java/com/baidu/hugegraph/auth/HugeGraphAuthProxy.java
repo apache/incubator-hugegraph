@@ -39,6 +39,7 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.GremlinGraph;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.auth.HugeAuthenticator.RoleAction;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.schema.SchemaManager;
@@ -50,7 +51,7 @@ public class HugeGraphAuthProxy implements GremlinGraph {
 
     private static final Logger LOG = Log.logger(HugeGraph.class);
 
-    private static final String ROLE_ADMIN = StandardAuthenticator.ROLE_ADMIN;
+    private static final String ROLE_ADMIN = HugeAuthenticator.ROLE_ADMIN;
 
     private final HugeGraph hugegraph;
 
@@ -161,6 +162,18 @@ public class HugeGraphAuthProxy implements GremlinGraph {
     }
 
     @Override
+    public String matchUser(String username, String password) {
+        // Can't verifyPermission() here, login first
+        return this.hugegraph.matchUser(username, password);
+    }
+
+    @Override
+    public UserManager userManager() {
+        this.verifyPermission();
+        return this.hugegraph.userManager();
+    }
+
+    @Override
     public String backend() {
         this.verifyPermission();
         return this.hugegraph.backend();
@@ -190,7 +203,7 @@ public class HugeGraphAuthProxy implements GremlinGraph {
          * NOTE: the graph names in gremlin-server.yaml/graphs and
          * hugegraph.properties/store must be the same if enable auth.
          */
-        this.verifyPermission(this.hugegraph.name());
+        this.verifyPermission(RoleAction.ownerFor(this.hugegraph.name()));
     }
 
     private void verifyPermission(String permission) {
@@ -199,7 +212,7 @@ public class HugeGraphAuthProxy implements GremlinGraph {
                      "Missing authentication context " +
                      "when accessing a Graph with permission control");
         String role = context.user().role();
-        if (!role.equals(ROLE_ADMIN) && !role.equals(permission)) {
+        if (!role.equals(ROLE_ADMIN) && !RoleAction.match(role, permission)) {
             throw new ForbiddenException("Permission denied");
         }
     }

@@ -40,8 +40,9 @@ import javax.xml.bind.DatatypeConverter;
 import org.apache.tinkerpop.gremlin.server.auth.AuthenticationException;
 import org.glassfish.grizzly.utils.Charsets;
 
+import com.baidu.hugegraph.auth.HugeAuthenticator;
+import com.baidu.hugegraph.auth.HugeAuthenticator.RoleAction;
 import com.baidu.hugegraph.auth.HugeAuthenticator.User;
-import com.baidu.hugegraph.auth.StandardAuthenticator;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.util.E;
 import com.google.common.collect.ImmutableMap;
@@ -98,8 +99,8 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         // Validate the extracted credentials
         try {
             return manager.authenticate(ImmutableMap.of(
-                           StandardAuthenticator.KEY_USERNAME, username,
-                           StandardAuthenticator.KEY_PASSWORD, password));
+                           HugeAuthenticator.KEY_USERNAME, username,
+                           HugeAuthenticator.KEY_PASSWORD, password));
         } catch (AuthenticationException e) {
             String msg = String.format("Authentication failed for user '%s'",
                                        username);
@@ -135,17 +136,15 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         }
 
         @Override
-        public boolean isUserInRole(String role) {
-            if (role.equals(StandardAuthenticator.ROLE_DYNAMIC)) {
+        public boolean isUserInRole(String permission) {
+            if (permission.equals(HugeAuthenticator.ROLE_DYNAMIC)) {
                 // Let the resource itself dynamically determine
                 return true;
-            } else if (role.startsWith(StandardAuthenticator.ROLE_OWNER)) {
-                // Role format like: "$owner=name"
-                String[] owner = role.split("=", 2);
-                E.checkState(owner.length == 2, "Bad role format: '%s'", role);
-                role = this.getPathParameter(owner[1]);
+            } else if (permission.startsWith(HugeAuthenticator.ROLE_OWNER)) {
+                return this.matchPermission(permission);
+            } else {
+                return permission.equals(this.user.role());
             }
-            return role.equals(this.user.role());
         }
 
         @Override
@@ -156,6 +155,18 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         @Override
         public String getAuthenticationScheme() {
             return SecurityContext.BASIC_AUTH;
+        }
+
+        private boolean matchPermission(String permission) {
+            // Role format like: "$owner=name $action=vertex-write"
+            RoleAction rolePermission = RoleAction.fromPermission(permission);
+            RoleAction roleAction = RoleAction.fromRole(this.role());
+
+            String owner = this.getPathParameter(rolePermission.owner());
+            if (!roleAction.matchOwner(owner)) {
+                return false;
+            }
+            return roleAction.matchAction(rolePermission.actions());
         }
 
         private String getPathParameter(String key) {

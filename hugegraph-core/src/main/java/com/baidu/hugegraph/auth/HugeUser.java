@@ -37,9 +37,9 @@ import com.baidu.hugegraph.util.E;
 public class HugeUser {
 
     /*
-     * TODO: add vertex label: group and action
+     * TODO: add vertex label: group and action (or group and graph)
      * add edge label belongto: user belongto group
-     * add edge label allowed: group allowed action
+     * add edge label access: group is allowed action (to graph)
      * action: write/read vertex|edge(limit label), write/read schema
      */
 

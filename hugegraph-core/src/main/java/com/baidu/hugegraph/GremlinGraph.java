@@ -21,6 +21,7 @@ package com.baidu.hugegraph;
 
 import org.apache.tinkerpop.gremlin.structure.Graph;
 
+import com.baidu.hugegraph.auth.UserManager;
 import com.baidu.hugegraph.schema.SchemaManager;
 
 /**
@@ -31,6 +32,9 @@ public interface GremlinGraph extends Graph {
     public String name();
 
     public SchemaManager schema();
+
+    public String matchUser(String username, String password);
+    public UserManager userManager();
 
     public String backend();
 
