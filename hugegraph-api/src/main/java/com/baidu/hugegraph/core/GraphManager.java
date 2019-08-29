@@ -62,12 +62,7 @@ public final class GraphManager {
 
     public GraphManager(HugeConfig conf) {
         this.graphs = new ConcurrentHashMap<>();
-
-        if (conf.get(ServerOptions.AUTHENTICATOR).isEmpty()) {
-            this.authenticator = null;
-        } else {
-            this.authenticator = HugeAuthenticator.loadAuthenticator(conf);
-        }
+        this.authenticator = HugeAuthenticator.loadAuthenticator(conf);
 
         this.loadGraphs(conf.getMap(ServerOptions.GRAPHS));
         this.checkBackendVersionOrExit();

@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.api.profile;
 
 import java.io.File;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -41,13 +42,14 @@ import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
+import com.baidu.hugegraph.auth.HugeAuthenticator;
+import com.baidu.hugegraph.auth.HugeAuthenticator.RoleAction;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.type.define.GraphMode;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 @Path("graphs")
@@ -66,17 +68,18 @@ public class GraphsAPI extends API {
                        @Context SecurityContext sc) {
         Set<String> graphs = manager.graphs();
         String role = sc.getUserPrincipal().getName();
-        if (role.equals("admin")) {
-            return ImmutableMap.of("graphs", graphs);
-        } else {
+        if (!role.equals(HugeAuthenticator.ROLE_ADMIN)) {
             // Filter by user role
-            String graph = role;
-            if (graphs.contains(graph)) {
-                return ImmutableMap.of("graphs", ImmutableList.of(graph));
-            } else {
-                return ImmutableMap.of("graphs", ImmutableList.of());
+            RoleAction roleAction = RoleAction.fromRole(role);
+            Set<String> newGraphs = new HashSet<>();
+            for (String graph : graphs) {
+                if (roleAction.owners().contains(graph)) {
+                    newGraphs.add(graph);
+                }
             }
+            graphs = newGraphs;
         }
+        return ImmutableMap.of("graphs", graphs);
     }
 
     @GET

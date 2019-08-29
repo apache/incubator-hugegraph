@@ -19,31 +19,33 @@
 
 package com.baidu.hugegraph.auth;
 
-import org.apache.commons.lang.NotImplementedException;
-import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
+import java.util.HashMap;
+import java.util.Map;
 
-import com.baidu.hugegraph.GremlinGraph;
+import org.apache.commons.lang.NotImplementedException;
+import org.apache.tinkerpop.gremlin.groovy.jsr223.dsl.credential.CredentialGraphTokens;
+
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.util.E;
-import com.baidu.hugegraph.util.StringEncoding;
 
-public class StandardAuthenticator implements HugeAuthenticator {
+public class ConfigAuthenticator implements HugeAuthenticator {
 
-    private GremlinGraph graph = null;
+    public static final String KEY_USERNAME =
+                               CredentialGraphTokens.PROPERTY_USERNAME;
+    public static final String KEY_PASSWORD =
+                               CredentialGraphTokens.PROPERTY_PASSWORD;
+
+    private final Map<String, String> tokens;
+
+    public ConfigAuthenticator() {
+        this.tokens = new HashMap<>();
+    }
 
     @Override
     public void setup(HugeConfig config) {
-        String graphName = config.get(ServerOptions.AUTH_GRAPH_STORE);
-        String graphPath = config.getMap(ServerOptions.GRAPHS).get(graphName);
-        E.checkArgument(graphPath != null,
-                        "Invalid graph name '%s'", graphName);
-        this.graph = (GremlinGraph) GraphFactory.open(graphPath);
-    }
-
-    protected String matchUser(String username, String password) {
-        E.checkState(this.graph != null, "Must setup Authenticator first");
-        return this.graph.matchUser(username, password);
+        this.tokens.put(User.USER_ADMIN, config.get(ServerOptions.ADMIN_TOKEN));
+        this.tokens.putAll(config.getMap(ServerOptions.USER_TOKENS));
     }
 
     /**
@@ -59,10 +61,14 @@ public class StandardAuthenticator implements HugeAuthenticator {
         E.checkArgumentNotNull(password,
                                "The password parameter can't be null");
 
-        String role = this.matchUser(username, StringEncoding.sha256(password));
-        if (role == null) {
+        String role;
+        if (password.equals(this.tokens.get(username))) {
+            // Return user name as role
+            role = new RoleAction().owner(username).toRole();
+        } else {
             role = ROLE_NONE;
         }
+
         return role;
     }
 

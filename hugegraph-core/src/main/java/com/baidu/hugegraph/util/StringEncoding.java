@@ -18,6 +18,9 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Base64;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -30,6 +33,17 @@ import com.google.common.base.CharMatcher;
  * @author Matthias Broecheler (me@matthiasb.com)
  */
 public final class StringEncoding {
+
+    private static final MessageDigest DIGEST;
+
+    static {
+        final String ALG = "SHA-256";
+        try {
+            DIGEST = MessageDigest.getInstance(ALG);
+        } catch (NoSuchAlgorithmException e) {
+            throw new HugeException("Failed to load algorithm %s", e, ALG);
+        }
+    }
 
     // Similar to {@link StringSerializer}
     public static int writeAsciiString(byte[] array, int offset, String value) {
@@ -114,6 +128,12 @@ public final class StringEncoding {
         } catch (IOException e) {
             throw new BackendException("Failed to decompress: %s", e, value);
         }
+    }
+
+    public static String sha256(String string) {
+        byte[] stringBytes = StringEncoding.encode(string);
+        DIGEST.reset();
+        return Base64.getEncoder().encodeToString(DIGEST.digest(stringBytes));
     }
 
     public static String format(byte[] bytes) {
