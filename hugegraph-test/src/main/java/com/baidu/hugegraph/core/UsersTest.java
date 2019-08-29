@@ -35,6 +35,7 @@ import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.testutil.Assert;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 public class UsersTest extends BaseCoreTest {
 
@@ -139,8 +140,10 @@ public class UsersTest extends BaseCoreTest {
 
         List<HugeUser> users = userManager.listAllUsers(-1);
         Assert.assertEquals(2, users.size());
-        Assert.assertEquals("tom", users.get(0).name());
-        Assert.assertEquals("james", users.get(1).name());
+        Assert.assertTrue(ImmutableSet.of("tom", "james").contains(
+                          users.get(0).name()));
+        Assert.assertTrue(ImmutableSet.of("tom", "james").contains(
+                          users.get(1).name()));
 
         Assert.assertEquals(0, userManager.listAllUsers(0).size());
         Assert.assertEquals(1, userManager.listAllUsers(1).size());

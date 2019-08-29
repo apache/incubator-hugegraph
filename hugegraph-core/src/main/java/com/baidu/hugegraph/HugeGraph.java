@@ -39,6 +39,7 @@ import org.slf4j.Logger;
 
 import com.baidu.hugegraph.analyzer.Analyzer;
 import com.baidu.hugegraph.analyzer.AnalyzerFactory;
+import com.baidu.hugegraph.auth.HugeUser;
 import com.baidu.hugegraph.auth.UserManager;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.cache.CachedGraphTransaction;
@@ -534,6 +535,16 @@ public class HugeGraph implements GremlinGraph {
         return this.variables;
     }
 
+    @Override
+    public String matchUser(String username, String password) {
+        HugeUser user = this.userManager.matchUser(username, password);
+        if (user == null) {
+            return null;
+        }
+        return this.userManager.roleAction(user);
+    }
+
+    @Override
     public UserManager userManager() {
         // this.userManager.initSchemaIfNeeded();
         return this.userManager;

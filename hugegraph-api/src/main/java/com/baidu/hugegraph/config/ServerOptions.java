@@ -185,6 +185,15 @@ public class ServerOptions extends OptionHolder {
                     ""
             );
 
+    public static final ConfigOption<String> AUTH_GRAPH_STORE =
+            new ConfigOption<>(
+                    "auth.graph_store",
+                    "The graph name used to store users.",
+                    disallowEmpty(),
+                    "hugegraph"
+            );
+
+
     public static final ConfigOption<String> ADMIN_TOKEN =
             new ConfigOption<>(
                     "auth.admin_token",

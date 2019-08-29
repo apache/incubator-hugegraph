@@ -50,6 +50,8 @@ import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Events;
+import com.baidu.hugegraph.util.JsonUtil;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
@@ -81,7 +83,11 @@ public class UserManager {
         EventListener eventListener = event -> {
             // Ensure user schema create after system info initialized
             if (storeEvents.contains(event.name())) {
-                this.initSchemaIfNeeded();
+                try {
+                    this.initSchemaIfNeeded();
+                } finally {
+                    this.graph().closeTx();
+                }
                 return true;
             }
             return false;
@@ -121,14 +127,14 @@ public class UserManager {
         return user;
     }
 
-    public boolean matchUser(String name, String password) {
+    public HugeUser matchUser(String name, String password) {
         E.checkArgumentNotNull(name, "User name can't be null");
         E.checkArgumentNotNull(password, "User password can't be null");
         HugeUser user = this.queryUser(name);
-        if (user == null) {
-            return false;
+        if (user != null && user.password().equals(password)) {
+            return user;
         }
-        return user.password().equals(password);
+        return null;
     }
 
     public HugeUser getUser(Id id) {
@@ -205,6 +211,15 @@ public class UserManager {
                                     user.id(), user.name());
         }
         return this.tx().constructVertex(false, user.asArray());
+    }
+
+    public String roleAction(HugeUser user) {
+        // TODO: improve
+        Object role = ImmutableMap.of("owners",
+                                      ImmutableList.of("hugegraph", "hugegraph1"),
+                                      "actions",
+                                      ImmutableList.of("vertex-read"));
+        return JsonUtil.toJson(role);
     }
 
     public void initSchemaIfNeeded() {
