@@ -70,17 +70,24 @@ public class RestServer {
         E.checkState(listeners.size() > 0,
                      "Http Server should have some listeners, but now is none");
         NetworkListener listener = listeners.iterator().next();
+
         // Option max_worker_threads
         int maxWorkerThreads = this.conf.get(ServerOptions.MAX_WORKER_THREADS);
         listener.getTransport()
                 .getWorkerThreadPoolConfig()
                 .setCorePoolSize(maxWorkerThreads)
                 .setMaxPoolSize(maxWorkerThreads);
+
         // Option keep_alive
         int idleTimeout = this.conf.get(ServerOptions.CONN_IDLE_TIMEOUT);
         int maxRequests = this.conf.get(ServerOptions.CONN_MAX_REQUESTS);
         listener.getKeepAlive().setIdleTimeoutInSeconds(idleTimeout);
         listener.getKeepAlive().setMaxRequestsCount(maxRequests);
+
+        // Option transaction timeout
+        int transactionTimeout = this.conf.get(ServerOptions.REQUEST_TIMEOUT);
+        listener.setTransactionTimeout(transactionTimeout);
+
         return server;
     }
 

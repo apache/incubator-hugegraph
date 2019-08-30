@@ -66,6 +66,16 @@ public class ServerOptions extends OptionHolder {
                     256
             );
 
+
+    public static final ConfigOption<Integer> REQUEST_TIMEOUT =
+        new ConfigOption<>(
+                "restserver.request_timeout",
+                "The time in seconds within which a request must complete, " +
+                "-1 means no timeout.",
+                rangeInt(-1, Integer.MAX_VALUE),
+                30
+        );
+
     public static final ConfigOption<Integer> CONN_IDLE_TIMEOUT =
             new ConfigOption<>(
                     "restserver.connection_idle_timeout",
