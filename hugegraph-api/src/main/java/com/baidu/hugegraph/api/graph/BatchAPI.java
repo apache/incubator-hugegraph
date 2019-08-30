@@ -140,6 +140,10 @@ public class BatchAPI extends API {
                                newElement.properties.get(key));
                 value = g.propertyKey(key).convValue(value, false);
                 newElement.properties.put(key, value);
+            } else if (oldElement.property(key).isPresent() &&
+                       !newElement.properties.containsKey(key)) {
+                // If new property is null & old is present, use old property
+                newElement.properties.put(key, oldElement.property(key).value());
             }
         }
     }

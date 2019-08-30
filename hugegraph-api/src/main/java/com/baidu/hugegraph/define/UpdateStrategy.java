@@ -139,6 +139,18 @@ public enum UpdateStrategy {
         void checkPropertyType(Object oldProperty, Object newProperty) {
             this.checkCollectionType(oldProperty, newProperty);
         }
+    },
+
+    OVERRIDE {
+        @Override
+        Object updatePropertyValue(Object oldProperty, Object newProperty) {
+            return newProperty;
+        }
+
+        @Override
+        void checkPropertyType(Object oldProperty, Object newProperty) {
+            // Allow any type
+        }
     };
 
     abstract Object updatePropertyValue(Object oldProperty, Object newProperty);
