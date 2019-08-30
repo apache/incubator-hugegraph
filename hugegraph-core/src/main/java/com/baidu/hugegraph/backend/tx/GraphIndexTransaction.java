@@ -305,8 +305,14 @@ public class GraphIndexTransaction extends AbstractTransaction {
         Iterator<BackendEntry> iterator = this.query(query);
         boolean exist = iterator.hasNext();
         if (exist) {
+            HugeIndex index = this.serializer.readIndex(graph(), query,
+                                                        iterator.next());
+            // Memory backend might return empty BackendEntry
+            if (index.elementIds().isEmpty()) {
+                return false;
+            }
             LOG.debug("Already has existed unique index record {}",
-                      iterator.next());
+                      index.elementId());
         }
         while (iterator.hasNext()) {
             LOG.warn("Unique constraint conflict found by record {}",

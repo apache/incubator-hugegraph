@@ -100,13 +100,13 @@ public class GraphTransaction extends IndexableTransaction {
     private Map<Id, HugeEdge> addedEdges;
     private Map<Id, HugeEdge> removedEdges;
 
-    /*
-     * These are used to rollback state
-     * NOTE: props updates will be put into mutation directly(due to difficult)
-     */
+    // These are used to rollback state
     private Map<Id, HugeVertex> updatedVertices;
     private Map<Id, HugeEdge> updatedEdges;
-    private Set<HugeProperty<?>> updatedProps; // Oldest props
+    private Set<HugeProperty<?>> updatedOldestProps; // Oldest props
+
+    private Set<HugeProperty<?>> addedProps;
+    private Set<HugeProperty<?>> removedProps;
 
     private LockUtil.LocksTable locksTable;
 
@@ -152,7 +152,9 @@ public class GraphTransaction extends IndexableTransaction {
         this.removedEdges = InsertionOrderUtil.newMap();
         this.updatedEdges = InsertionOrderUtil.newMap();
 
-        this.updatedProps = InsertionOrderUtil.newSet();
+        this.updatedOldestProps = InsertionOrderUtil.newSet();
+        this.addedProps = InsertionOrderUtil.newSet();
+        this.removedProps = InsertionOrderUtil.newSet();
     }
 
     @Override
@@ -208,10 +210,16 @@ public class GraphTransaction extends IndexableTransaction {
         if (this.removedVertices.size() > 0 || this.removedEdges.size() > 0) {
             this.prepareDeletions(this.removedVertices, this.removedEdges);
         }
+
+        if (this.addedProps.size() > 0 || this.removedProps.size() > 0) {
+            this.prepareUpdates(this.addedProps, this.removedProps);
+        }
+
         // Serialize and add updates into super.additions
         if (this.addedVertices.size() > 0 || this.addedEdges.size() > 0) {
             this.prepareAdditions(this.addedVertices, this.addedEdges);
         }
+
         return this.mutation();
     }
 
@@ -288,6 +296,63 @@ public class GraphTransaction extends IndexableTransaction {
         }
     }
 
+    protected void prepareUpdates(Set<HugeProperty<?>> addedProps,
+                                  Set<HugeProperty<?>> removedProps) {
+        for (HugeProperty<?> p : removedProps) {
+            if (p.element().type().isVertex()) {
+                HugeVertexProperty<?> prop = (HugeVertexProperty<?>) p;
+                if (this.store().features().supportsUpdateVertexProperty()) {
+                    this.indexTx.updateVertexIndex(prop.element(), false);
+                    // Eliminate the property(OUT and IN owner edge)
+                    this.doEliminate(this.serializer.writeVertexProperty(prop));
+                } else {
+                    // Override vertex
+                    this.addVertex(prop.element());
+                }
+            } else {
+                assert p.element().type().isEdge();
+                HugeEdgeProperty<?> prop = (HugeEdgeProperty<?>) p;
+                if (this.store().features().supportsUpdateEdgeProperty()) {
+                    this.indexTx.updateEdgeIndex(prop.element(), false);
+                    // Eliminate the property(OUT and IN owner edge)
+                    this.doEliminate(this.serializer.writeEdgeProperty(prop));
+                    this.doEliminate(this.serializer.writeEdgeProperty(
+                                     prop.switchEdgeOwner()));
+                } else {
+                    // Override edge(it will be in addedEdges & updatedEdges)
+                    this.addEdge(prop.element());
+                }
+            }
+        }
+        for (HugeProperty<?> p : addedProps) {
+            if (p.element().type().isVertex()) {
+                HugeVertexProperty<?> prop = (HugeVertexProperty<?>) p;
+                if (this.store().features().supportsUpdateVertexProperty()) {
+                    this.indexTx.updateVertexIndex(prop.element(), false);
+                    // Append new property(OUT and IN owner edge)
+                    this.doAppend(this.serializer.writeVertexProperty(prop));
+                } else {
+                    // Override vertex
+                    this.addVertex(prop.element());
+                }
+            } else {
+                assert p.element().type().isEdge();
+                HugeEdgeProperty<?> prop = (HugeEdgeProperty<?>) p;
+                if (this.store().features().supportsUpdateEdgeProperty()) {
+                    this.indexTx.updateEdgeIndex(prop.element(), false);
+                    // Append new property(OUT and IN owner edge)
+                    this.doAppend(this.serializer.writeEdgeProperty(prop));
+                    this.doAppend(this.serializer.writeEdgeProperty(
+                                  prop.switchEdgeOwner()));
+                } else {
+                    // Override edge (it will be in addedEdges & updatedEdges)
+                    this.addEdge(prop.element());
+                }
+            }
+        }
+
+    }
+
     @Override
     public void commit() throws BackendException {
         try {
@@ -300,7 +365,7 @@ public class GraphTransaction extends IndexableTransaction {
     @Override
     public void rollback() throws BackendException {
         // Rollback properties changes
-        for (HugeProperty<?> prop : this.updatedProps) {
+        for (HugeProperty<?> prop : this.updatedOldestProps) {
             prop.element().setProperty(prop);
         }
         try {
@@ -710,16 +775,7 @@ public class GraphTransaction extends IndexableTransaction {
             this.indexTx.updateVertexIndex(vertex, true);
 
             // Update index of current vertex (with new property)
-            this.propertyUpdated(vertex, vertex.setProperty(prop));
-            this.indexTx.updateVertexIndex(vertex, false);
-
-            if (this.store().features().supportsUpdateVertexProperty()) {
-                // Append new property(OUT and IN owner edge)
-                this.doAppend(this.serializer.writeVertexProperty(prop));
-            } else {
-                // Override vertex
-                this.addVertex(vertex);
-            }
+            this.propertyUpdated(vertex, prop, vertex.setProperty(prop));
         });
     }
 
@@ -760,16 +816,8 @@ public class GraphTransaction extends IndexableTransaction {
             this.indexTx.updateVertexIndex(vertex, true);
 
             // Update index of current vertex (without the property)
-            this.propertyUpdated(vertex, vertex.removeProperty(propKey.id()));
-            this.indexTx.updateVertexIndex(vertex, false);
-
-            if (this.store().features().supportsUpdateVertexProperty()) {
-                // Eliminate the property(OUT and IN owner edge)
-                this.doEliminate(this.serializer.writeVertexProperty(prop));
-            } else {
-                // Override vertex
-                this.addVertex(vertex);
-            }
+            HugeProperty<?> removed = vertex.removeProperty(propKey.id());
+            this.propertyUpdated(vertex, null, removed);
         });
     }
 
@@ -807,18 +855,7 @@ public class GraphTransaction extends IndexableTransaction {
             this.indexTx.updateEdgeIndex(edge, true);
 
             // Update index of current edge (with new property)
-            this.propertyUpdated(edge, edge.setProperty(prop));
-            this.indexTx.updateEdgeIndex(edge, false);
-
-            if (this.store().features().supportsUpdateEdgeProperty()) {
-                // Append new property(OUT and IN owner edge)
-                this.doAppend(this.serializer.writeEdgeProperty(prop));
-                this.doAppend(this.serializer.writeEdgeProperty(
-                              prop.switchEdgeOwner()));
-            } else {
-                // Override edge(the edge will be in addedEdges & updatedEdges)
-                this.addEdge(edge);
-            }
+            this.propertyUpdated(edge, prop, edge.setProperty(prop));
         });
     }
 
@@ -858,18 +895,8 @@ public class GraphTransaction extends IndexableTransaction {
             this.indexTx.updateEdgeIndex(edge, true);
 
             // Update index of current edge (without the property)
-            this.propertyUpdated(edge, edge.removeProperty(propKey.id()));
-            this.indexTx.updateEdgeIndex(edge, false);
-
-            if (this.store().features().supportsUpdateEdgeProperty()) {
-                // Eliminate the property(OUT and IN owner edge)
-                this.doEliminate(this.serializer.writeEdgeProperty(prop));
-                this.doEliminate(this.serializer.writeEdgeProperty(
-                                 prop.switchEdgeOwner()));
-            } else {
-                // Override edge(the edge will be in addedEdges & updatedEdges)
-                this.addEdge(edge);
-            }
+            this.propertyUpdated(edge, null,
+                                 edge.removeProperty(propKey.id()));
         });
     }
 
@@ -1325,17 +1352,23 @@ public class GraphTransaction extends IndexableTransaction {
         }
     }
 
-    private void propertyUpdated(HugeVertex vertex, HugeProperty<?> property) {
-        this.updatedVertices.put(vertex.id(), vertex);
-        if (property != null) {
-            this.updatedProps.add(property);
+    private void propertyUpdated(HugeElement element, HugeProperty<?> property,
+                                 HugeProperty<?> oldProperty) {
+        if (element.type().isVertex()) {
+            this.updatedVertices.put(element.id(), (HugeVertex) element);
+        } else {
+            assert element.type().isEdge();
+            this.updatedEdges.put(element.id(), (HugeEdge) element);
         }
-    }
 
-    private void propertyUpdated(HugeEdge edge, HugeProperty<?> property) {
-        this.updatedEdges.put(edge.id(), edge);
-        if (property != null) {
-            this.updatedProps.add(property);
+        if (oldProperty != null) {
+            this.updatedOldestProps.add(oldProperty);
+        }
+        if (property == null) {
+            this.removedProps.add(oldProperty);
+        } else {
+            this.addedProps.remove(property);
+            this.addedProps.add(property);
         }
     }
 

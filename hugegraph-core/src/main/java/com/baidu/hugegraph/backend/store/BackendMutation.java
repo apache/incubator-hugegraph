@@ -95,8 +95,8 @@ public class BackendMutation {
                     if (entry.type().isUniqueIndex() &&
                         originAction == Action.APPEND) {
                         throw new IllegalArgumentException(String.format(
-                                  "Unique constraint conflict is found in " +
-                                  "transaction between %s and %s",
+                                  "Unique constraint conflict is found in" +
+                                  " transaction between %s and %s",
                                   entry, originItem.entry()));
                     }
                 case ELIMINATE:
