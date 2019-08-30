@@ -177,7 +177,7 @@ public class TestGraph implements Graph {
             this.initBasicSchema(idStrategy, defaultVL);
             this.tx().commit();
             if (!this.autoPerson &&
-                defaultVL.equals("person") &&
+                "person".equals(defaultVL) &&
                 idStrategy == IdStrategy.AUTOMATIC) {
                 this.autoPerson = true;
             }

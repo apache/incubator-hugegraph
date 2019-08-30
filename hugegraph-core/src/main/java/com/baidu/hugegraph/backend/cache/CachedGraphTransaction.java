@@ -110,7 +110,7 @@ public final class CachedGraphTransaction extends GraphTransaction {
                       this.graph(), event);
             event.checkArgs(String.class, Id.class);
             Object[] args = event.args();
-            if (args[0].equals("invalid")) {
+            if ("invalid".equals(args[0])) {
                 Id id = (Id) args[1];
                 if (this.verticesCache.get(id) != null) {
                     // Invalidate vertex cache
@@ -120,7 +120,7 @@ public final class CachedGraphTransaction extends GraphTransaction {
                     this.edgesCache.invalidate(id);
                 }
                 return true;
-            } else if (args[0].equals("clear")) {
+            } else if ("clear".equals(args[0])) {
                 this.verticesCache.clear();
                 this.edgesCache.clear();
                 return true;

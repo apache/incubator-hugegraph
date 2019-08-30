@@ -102,7 +102,7 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
                       this.graph(), event);
             event.checkArgs(String.class, Id.class);
             Object[] args = event.args();
-            if (args[0].equals("invalid")) {
+            if ("invalid".equals(args[0])) {
                 Id id = (Id) args[1];
                 Object value = this.idCache.get(id);
                 if (value != null) {
@@ -116,7 +116,7 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
                     this.nameCache.invalidate(prefixedName);
                 }
                 return true;
-            } else if (args[0].equals("clear")) {
+            } else if ("clear".equals(args[0])) {
                 this.idCache.clear();
                 this.nameCache.clear();
                 this.cachedTypes.clear();

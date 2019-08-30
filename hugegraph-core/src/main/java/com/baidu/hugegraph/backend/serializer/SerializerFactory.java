@@ -34,11 +34,11 @@ public class SerializerFactory {
 
     public static AbstractSerializer serializer(String name) {
         name = name.toLowerCase();
-        if (name.equals("binary")) {
+        if ("binary".equals(name)) {
             return new BinarySerializer();
-        } else if (name.equals("binaryinline")) {
+        } else if ("binaryinline".equals(name)) {
             return new BinaryInlineSerializer();
-        } else if (name.equals("text")) {
+        } else if ("text".equals(name)) {
             return new TextSerializer();
         }
 

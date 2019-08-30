@@ -38,10 +38,12 @@ public abstract class PostgresqlTable extends MysqlTable {
         super(table);
     }
 
+    @Override
     protected String buildDropTemplate() {
         return String.format("DROP TABLE IF EXISTS %s CASCADE;", this.table());
     }
 
+    @Override
     protected String buildTruncateTemplate() {
         return String.format("TRUNCATE TABLE %s CASCADE;", this.table());
     }
@@ -112,6 +114,7 @@ public abstract class PostgresqlTable extends MysqlTable {
     }
 
     // Set order-by to keep results order consistence for PostgreSQL result
+    @Override
     protected String orderByKeys() {
         if (this.orderByKeys != null) {
             return this.orderByKeys;

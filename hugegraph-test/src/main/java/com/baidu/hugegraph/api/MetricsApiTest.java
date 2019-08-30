@@ -82,7 +82,7 @@ public class MetricsApiTest extends BaseApiTest {
                 for (Map.Entry<?, ?> e : graph.entrySet()) {
                     String key = (String) e.getKey();
                     value = e.getValue();
-                    if (key.equals("backend")) {
+                    if ("backend".equals(key)) {
                         continue;
                     }
                     Assert.assertTrue(String.format(

@@ -56,6 +56,7 @@ public class MysqlSessions extends BackendSessionPool {
         this.opened = false;
     }
 
+    @Override
     public HugeConfig config() {
         return this.config;
     }
