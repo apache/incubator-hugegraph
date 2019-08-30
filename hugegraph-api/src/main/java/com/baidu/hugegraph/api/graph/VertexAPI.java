@@ -54,6 +54,7 @@ import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.core.GraphManager;
+import com.baidu.hugegraph.define.UpdateStrategy;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.server.RestServer;

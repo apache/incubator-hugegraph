@@ -33,7 +33,7 @@ import javax.ws.rs.ext.Provider;
 
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
-import com.baidu.hugegraph.core.WorkLoad;
+import com.baidu.hugegraph.define.WorkLoad;
 import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
 import com.google.common.collect.ImmutableSet;

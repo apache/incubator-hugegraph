@@ -36,7 +36,7 @@ import org.glassfish.jersey.server.monitoring.RequestEventListener;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.core.GraphManager;
-import com.baidu.hugegraph.core.WorkLoad;
+import com.baidu.hugegraph.define.WorkLoad;
 import com.baidu.hugegraph.util.E;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.jersey2.InstrumentedResourceMethodApplicationListener;

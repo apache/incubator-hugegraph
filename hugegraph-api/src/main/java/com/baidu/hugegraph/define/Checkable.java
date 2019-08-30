@@ -1,4 +1,4 @@
-package com.baidu.hugegraph.api.schema;
+package com.baidu.hugegraph.define;
 
 public interface Checkable {
 
