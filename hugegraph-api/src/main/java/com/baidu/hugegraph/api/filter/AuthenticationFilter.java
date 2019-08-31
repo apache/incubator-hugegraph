@@ -39,18 +39,23 @@ import javax.xml.bind.DatatypeConverter;
 
 import org.apache.tinkerpop.gremlin.server.auth.AuthenticationException;
 import org.glassfish.grizzly.utils.Charsets;
+import org.slf4j.Logger;
 
 import com.baidu.hugegraph.auth.HugeAuthenticator;
 import com.baidu.hugegraph.auth.HugeAuthenticator.RoleAction;
 import com.baidu.hugegraph.auth.HugeAuthenticator.User;
 import com.baidu.hugegraph.core.GraphManager;
+import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.Log;
 import com.google.common.collect.ImmutableMap;
 
 @Provider
 @PreMatching
 @Priority(Priorities.AUTHENTICATION)
 public class AuthenticationFilter implements ContainerRequestFilter {
+
+    private static final Logger LOG = Log.logger(RestServer.class);
 
     @Context
     private javax.inject.Provider<GraphManager> managerProvider;
@@ -137,14 +142,21 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
         @Override
         public boolean isUserInRole(String permission) {
+            boolean valid;
             if (permission.equals(HugeAuthenticator.ROLE_DYNAMIC)) {
                 // Let the resource itself dynamically determine
-                return true;
+                valid = true;
             } else if (permission.startsWith(HugeAuthenticator.ROLE_OWNER)) {
-                return this.matchPermission(permission);
+                valid = this.matchPermission(permission);
             } else {
-                return permission.equals(this.user.role());
+                valid = permission.equals(this.user.role());
             }
+
+            if (!valid && LOG.isDebugEnabled()) {
+                LOG.debug("Permission denied to {}, expect permission '{}'",
+                          this.user, permission);
+            }
+            return valid;
         }
 
         @Override

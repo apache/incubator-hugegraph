@@ -19,15 +19,23 @@
 
 package com.baidu.hugegraph;
 
+import java.util.List;
+
 import org.apache.tinkerpop.gremlin.structure.Graph;
 
 import com.baidu.hugegraph.auth.UserManager;
+import com.baidu.hugegraph.backend.store.Shard;
 import com.baidu.hugegraph.schema.SchemaManager;
+import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.GraphMode;
 
 /**
  * Graph interface for Gremlin operations
  */
 public interface GremlinGraph extends Graph {
+
+    public HugeGraph hugegraph();
+    public HugeGraph hugegraph(String permission);
 
     public String name();
 
@@ -41,4 +49,8 @@ public interface GremlinGraph extends Graph {
     public void initBackend();
     public void clearBackend();
     public void truncateBackend();
+
+    public GraphMode mode();
+
+    public List<Shard> metadata(HugeType type, String meta, Object... args);
 }

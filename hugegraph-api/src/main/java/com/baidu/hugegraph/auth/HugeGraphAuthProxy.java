@@ -20,6 +20,9 @@
 package com.baidu.hugegraph.auth;
 
 import java.util.Iterator;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -40,10 +43,13 @@ import com.baidu.hugegraph.GremlinGraph;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.auth.HugeAuthenticator.RoleAction;
+import com.baidu.hugegraph.backend.store.Shard;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.structure.HugeFeatures;
+import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.GraphMode;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 
@@ -58,6 +64,18 @@ public class HugeGraphAuthProxy implements GremlinGraph {
     public HugeGraphAuthProxy(HugeGraph hugegraph) {
         LOG.info("Wrap graph '{}' with HugeGraphAuthProxy", hugegraph.name());
         this.hugegraph = hugegraph;
+    }
+
+    @Override
+    public HugeGraph hugegraph(String action) {
+        this.verifyPermissionAction(action);
+        return this.hugegraph;
+    }
+
+    @Override
+    public HugeGraph hugegraph() {
+        this.verifyPermission(ROLE_ADMIN);
+        return this.hugegraph;
     }
 
     @Override
@@ -125,7 +143,7 @@ public class HugeGraphAuthProxy implements GremlinGraph {
     @Override
     public Variables variables() {
         this.verifyPermission();
-        return this.hugegraph.variables();
+        return new VariablesProxy(this.hugegraph.variables());
     }
 
     @Override
@@ -139,20 +157,23 @@ public class HugeGraphAuthProxy implements GremlinGraph {
         return this.hugegraph.toString();
     }
 
-    public HugeGraph graph() {
-        this.verifyPermission();
-        return this.hugegraph;
-    }
-
-    public HugeGraph hugegraph() {
-        this.verifyPermission(ROLE_ADMIN);
-        return this.hugegraph;
-    }
-
     @Override
     public String name() {
         this.verifyPermission();
         return this.hugegraph.name();
+    }
+
+    @Override
+    public GraphMode mode() {
+        this.verifyPermission();
+        return this.hugegraph.mode();
+    }
+
+    @Override
+    public List<Shard> metadata(HugeType type, String meta, Object... args) {
+        // TODO: deal with META_WRITE
+        this.verifyPermissionAction(HugePermission.META_READ.string());
+        return this.hugegraph.metadata(type, meta, args);
     }
 
     @Override
@@ -206,6 +227,11 @@ public class HugeGraphAuthProxy implements GremlinGraph {
         this.verifyPermission(RoleAction.ownerFor(this.hugegraph.name()));
     }
 
+    private void verifyPermissionAction(String action) {
+        String permission = RoleAction.ownerFor(this.hugegraph.name(), action);
+        this.verifyPermission(permission);
+    }
+
     private void verifyPermission(String permission) {
         Context context = getContext();
         E.checkState(context != null,
@@ -225,8 +251,41 @@ public class HugeGraphAuthProxy implements GremlinGraph {
 
         @Override
         public Graph getGraph() {
-            verifyPermission();
+            verifyPermissionAction(HugePermission.GREMLIN.string());
             return this.graph;
+        }
+    }
+
+    private class VariablesProxy implements Variables {
+
+        private final Variables variables;
+
+        public VariablesProxy(Variables variables) {
+            this.variables = variables;
+        }
+
+        @Override
+        public <R> Optional<R> get(String key) {
+            verifyPermissionAction(HugePermission.VAR_READ.string());
+            return this.variables.get(key);
+        }
+
+        @Override
+        public Set<String> keys() {
+            verifyPermissionAction(HugePermission.VAR_READ.string());
+            return this.variables.keys();
+        }
+
+        @Override
+        public void set(String key, Object value) {
+            verifyPermissionAction(HugePermission.VAR_WRITE.string());
+            this.variables.set(key, value);
+        }
+
+        @Override
+        public void remove(String key) {
+            verifyPermissionAction(HugePermission.VAR_DELETE.string());
+            this.variables.remove(key);
         }
     }
 

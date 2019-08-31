@@ -90,7 +90,7 @@ public class CustomizedPathsAPI extends API {
                   request.sortBy, request.capacity, request.limit,
                   request.withVertex);
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph4path(manager, graph);
         List<HugeVertex> sources = request.sources.sourcesVertices(g);
         List<CustomizePathsTraverser.Step> steps = step(g, request);
         boolean sorted = request.sortBy != SortBy.NONE;
@@ -189,9 +189,11 @@ public class CustomizedPathsAPI extends API {
             E.checkArgument(this.sample > 0 || this.sample == NO_LIMIT,
                             "The sample must be > 0, but got: %s",
                             this.sample);
-            E.checkArgument(this.degree == NO_LIMIT || this.degree >= sample,
+            E.checkArgument(this.degree == NO_LIMIT ||
+                            this.degree >= this.sample,
                             "Degree must be greater than or equal to sample," +
-                            " but got degree %s and sample %s", degree, sample);
+                            " but got degree %s and sample %s",
+                            this.degree, this.sample);
             Map<Id, String> labelIds = new HashMap<>();
             if (this.labels != null) {
                 for (String label : this.labels) {

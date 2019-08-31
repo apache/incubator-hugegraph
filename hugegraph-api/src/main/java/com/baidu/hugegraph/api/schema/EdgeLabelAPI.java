@@ -22,6 +22,7 @@ package com.baidu.hugegraph.api.schema;
 import java.util.List;
 import java.util.Map;
 
+import javax.annotation.security.RolesAllowed;
 import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -36,7 +37,7 @@ import javax.ws.rs.core.Context;
 
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.GremlinGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.backend.id.Id;
@@ -61,13 +62,14 @@ public class EdgeLabelAPI extends API {
     @Status(Status.CREATED)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin", "$owner=graph $action=schema_write"})
     public String create(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          JsonEdgeLabel jsonEdgeLabel) {
         LOG.debug("Graph [{}] create edge label: {}", graph, jsonEdgeLabel);
         checkCreatingBody(jsonEdgeLabel);
 
-        HugeGraph g = graph(manager, graph);
+        GremlinGraph g = graph(manager, graph);
         EdgeLabel.Builder builder = jsonEdgeLabel.convert2Builder(g);
         EdgeLabel edgeLabel = builder.create();
         return manager.serializer(g).writeEdgeLabel(edgeLabel);
@@ -78,6 +80,7 @@ public class EdgeLabelAPI extends API {
     @Path("{name}")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin", "$owner=graph $action=schema_write"})
     public String update(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          @PathParam("name") String name,
@@ -93,7 +96,7 @@ public class EdgeLabelAPI extends API {
         // Parse action param
         boolean append = checkAndParseAction(action);
 
-        HugeGraph g = graph(manager, graph);
+        GremlinGraph g = graph(manager, graph);
         EdgeLabel.Builder builder = jsonEdgeLabel.convert2Builder(g);
         EdgeLabel edgeLabel = append ? builder.append() : builder.eliminate();
         return manager.serializer(g).writeEdgeLabel(edgeLabel);
@@ -102,11 +105,12 @@ public class EdgeLabelAPI extends API {
     @GET
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin", "$owner=graph $action=schema_read"})
     public String list(@Context GraphManager manager,
                        @PathParam("graph") String graph) {
         LOG.debug("Graph [{}] get edge labels", graph);
 
-        HugeGraph g = graph(manager, graph);
+        GremlinGraph g = graph(manager, graph);
         List<EdgeLabel> labels = g.schema().getEdgeLabels();
         return manager.serializer(g).writeEdgeLabels(labels);
     }
@@ -115,12 +119,13 @@ public class EdgeLabelAPI extends API {
     @Timed
     @Path("{name}")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin", "$owner=graph $action=schema_read"})
     public String get(@Context GraphManager manager,
                       @PathParam("graph") String graph,
                       @PathParam("name") String name) {
         LOG.debug("Graph [{}] get edge label by name '{}'", graph, name);
 
-        HugeGraph g = graph(manager, graph);
+        GremlinGraph g = graph(manager, graph);
         EdgeLabel edgeLabel = g.schema().getEdgeLabel(name);
         return manager.serializer(g).writeEdgeLabel(edgeLabel);
     }
@@ -131,12 +136,13 @@ public class EdgeLabelAPI extends API {
     @Status(Status.ACCEPTED)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin", "$owner=graph $action=schema_delete"})
     public Map<String, Id> delete(@Context GraphManager manager,
                                   @PathParam("graph") String graph,
                                   @PathParam("name") String name) {
         LOG.debug("Graph [{}] remove edge label by name '{}'", graph, name);
 
-        HugeGraph g = graph(manager, graph);
+        GremlinGraph g = graph(manager, graph);
         // Throw 404 if not exists
         g.schema().getEdgeLabel(name);
         return ImmutableMap.of("task_id",
@@ -177,7 +183,7 @@ public class EdgeLabelAPI extends API {
                                    "The name of edge label can't be null");
         }
 
-        private EdgeLabel.Builder convert2Builder(HugeGraph g) {
+        private EdgeLabel.Builder convert2Builder(GremlinGraph g) {
             EdgeLabel.Builder builder = g.schema().edgeLabel(this.name);
             if (this.id != 0) {
                 E.checkArgument(this.id > 0,
