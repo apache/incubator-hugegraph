@@ -87,7 +87,7 @@ public class PersonalRankAPI extends API {
                   request.degree, request.maxDepth, request.sorted);
 
         Id sourceId = HugeVertex.getIdValue(request.source);
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph4path(manager, graph);
 
         PersonalRankTraverser traverser;
         traverser = new PersonalRankTraverser(g, request.alpha, request.degree,

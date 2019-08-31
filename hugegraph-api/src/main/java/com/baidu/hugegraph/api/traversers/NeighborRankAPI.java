@@ -83,7 +83,7 @@ public class NeighborRankAPI extends API {
                   request.steps, request.alpha, request.capacity);
 
         Id sourceId = HugeVertex.getIdValue(request.source);
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph4path(manager, graph);
 
         List<NeighborRankTraverser.Step> steps = steps(g, request);
         NeighborRankTraverser traverser;

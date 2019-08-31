@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.auth;
 
+import java.net.InetAddress;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -73,7 +74,7 @@ public class ConfigAuthenticator implements HugeAuthenticator {
     }
 
     @Override
-    public SaslNegotiator newSaslNegotiator() {
+    public SaslNegotiator newSaslNegotiator(InetAddress remoteAddress) {
         throw new NotImplementedException("SaslNegotiator is unsupported");
     }
 }

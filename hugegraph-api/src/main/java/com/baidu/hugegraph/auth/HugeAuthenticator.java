@@ -206,15 +206,29 @@ public interface HugeAuthenticator extends Authenticator {
             return this.owners.contains(owner);
         }
 
-        public boolean matchAction(String action) {
-            if (action == null) {
+        public boolean matchAction(Set<String> actions) {
+            if (this.actions.containsAll(actions)) {
                 return true;
             }
-            return this.actions.contains(action);
+            for (String action : actions) {
+                if (!this.matchAction(action)) {
+                    // Permission denied for `action`
+                    return false;
+                }
+            }
+            return true;
         }
 
-        public boolean matchAction(Set<String> actions) {
-            return this.actions.containsAll(actions);
+        public boolean matchAction(String action) {
+            if (action == null || this.actions.contains(action)) {
+                return true;
+            }
+            for (String role : this.actions) {
+                if (action.matches(role)) {
+                    return true;
+                }
+            }
+            return false;
         }
 
         public String toRole() {
@@ -226,8 +240,12 @@ public interface HugeAuthenticator extends Authenticator {
             return this.toRole();
         }
 
-        public static String ownerFor(String name) {
-            return ROLE_OWNER + "=" + name;
+        public static String ownerFor(String owner) {
+            return ROLE_OWNER + "=" + owner;
+        }
+
+        public static String ownerFor(String owner, String action) {
+            return ROLE_OWNER + "=" + owner + " " + ACTION + "=" + action;
         }
 
         public static RoleAction fromRole(String role) {

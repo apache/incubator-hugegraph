@@ -218,7 +218,7 @@ public class UserManager {
         Object role = ImmutableMap.of("owners",
                                       ImmutableList.of("hugegraph", "hugegraph1"),
                                       "actions",
-                                      ImmutableList.of("vertex-read"));
+                                      ImmutableList.of(".*read", ".*write", "gremlin"));
         return JsonUtil.toJson(role);
     }
 

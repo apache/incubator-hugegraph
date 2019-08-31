@@ -34,6 +34,7 @@ import org.apache.tinkerpop.gremlin.structure.Transaction;
 import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
 import org.slf4j.Logger;
 
+import com.baidu.hugegraph.GremlinGraph;
 import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.auth.HugeAuthenticator;
@@ -91,17 +92,13 @@ public final class GraphManager {
         return Collections.unmodifiableSet(this.graphs.keySet());
     }
 
-    public HugeGraph graph(String name) {
+    public GremlinGraph graph(String name) {
         Graph graph = this.graphs.get(name);
-
         if (graph == null) {
             return null;
-        } else if (graph instanceof HugeGraphAuthProxy) {
-            return ((HugeGraphAuthProxy) graph).graph();
-        } else if (graph instanceof HugeGraph) {
-            return (HugeGraph) graph;
+        } else if (graph instanceof GremlinGraph) {
+            return (GremlinGraph) graph;
         }
-
         throw new NotSupportException("graph instance of %s", graph.getClass());
     }
 
@@ -190,7 +187,7 @@ public final class GraphManager {
     private void checkBackendVersionOrExit() {
         for (String graph : this.graphs()) {
             // TODO: close tx from main thread
-            HugeGraph hugegraph = this.graph(graph);
+            HugeGraph hugegraph = this.graph(graph).hugegraph();
             boolean persistence = hugegraph.graphTransaction().store()
                                            .features().supportsPersistence();
             if (!persistence) {
@@ -211,7 +208,7 @@ public final class GraphManager {
 
     private void restoreUncompletedTasks() {
         for (String graph : this.graphs()) {
-            HugeGraph hugegraph = this.graph(graph);
+            HugeGraph hugegraph = this.graph(graph).hugegraph();
             assert hugegraph != null;
             LOG.info("Restoring incomplete tasks for graph '{}'...", graph);
             hugegraph.taskScheduler().restoreTasks();
