@@ -43,6 +43,7 @@ import com.baidu.hugegraph.GremlinGraph;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.auth.HugeAuthenticator.RoleAction;
+import com.baidu.hugegraph.auth.HugeAuthenticator.RolePerm;
 import com.baidu.hugegraph.backend.store.Shard;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.exception.NotSupportException;
@@ -224,12 +225,13 @@ public class HugeGraphAuthProxy implements GremlinGraph {
          * NOTE: the graph names in gremlin-server.yaml/graphs and
          * hugegraph.properties/store must be the same if enable auth.
          */
-        this.verifyPermission(RoleAction.ownerFor(this.hugegraph.name()));
+        String owner = this.hugegraph.name();
+        this.verifyPermission(RoleAction.ownerFor(owner));
     }
 
     private void verifyPermissionAction(String action) {
-        String permission = RoleAction.ownerFor(this.hugegraph.name(), action);
-        this.verifyPermission(permission);
+        String owner = this.hugegraph.name();
+        this.verifyPermission(RoleAction.ownerFor(owner, action));
     }
 
     private void verifyPermission(String permission) {
@@ -238,7 +240,7 @@ public class HugeGraphAuthProxy implements GremlinGraph {
                      "Missing authentication context " +
                      "when accessing a Graph with permission control");
         String role = context.user().role();
-        if (!role.equals(ROLE_ADMIN) && !RoleAction.match(role, permission)) {
+        if (!role.equals(ROLE_ADMIN) && !RolePerm.match(role, permission)) {
             throw new ForbiddenException("Permission denied");
         }
     }

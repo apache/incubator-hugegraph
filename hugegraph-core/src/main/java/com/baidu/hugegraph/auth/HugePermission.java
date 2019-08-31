@@ -24,6 +24,7 @@ import com.baidu.hugegraph.type.define.SerialEnum;
 public enum HugePermission implements SerialEnum {
 
     // general
+    ALL(0),
     READ(1),
     WRITE(2),
     DELETE(3),
@@ -83,9 +84,16 @@ public enum HugePermission implements SerialEnum {
 
     public String string() {
         String string = this.name().toLowerCase();
-        if (0 < this.code && this.code < 20) {
+        if (this.code == 0) {
+            assert this == ALL;
+            string = ".*";
+        } else if (0 < this.code && this.code < 20) {
             string = ".*" + string;
         }
         return string;
+    }
+
+    public static HugePermission fromCode(byte code) {
+        return SerialEnum.fromCode(HugePermission.class, code);
     }
 }

@@ -21,6 +21,7 @@ package com.baidu.hugegraph.auth;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -38,6 +39,7 @@ import com.baidu.hugegraph.config.OptionSpace;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
+import com.google.common.collect.ImmutableSet;
 
 public interface HugeAuthenticator extends Authenticator {
 
@@ -162,32 +164,103 @@ public interface HugeAuthenticator extends Authenticator {
         }
     }
 
-    public static class RoleAction {
+    public static class RolePerm {
 
         @JsonProperty("owners")
-        private Set<String> owners;
+        private Map<String, Set<String>> owners;
+
+        public RolePerm() {
+            this.owners = new HashMap<>();
+        }
+
+        public Set<String> owners() {
+            return Collections.unmodifiableSet(this.owners.keySet());
+        }
+
+        public RolePerm owner(String owner, HugePermission perm) {
+            this.owners.put(owner, ImmutableSet.of(perm.string()));
+            return this;
+        }
+
+        @Override
+        public String toString() {
+            return JsonUtil.toJson(this);
+        }
+
+        public boolean matchOwner(String owner) {
+            if (owner == null) {
+                return true;
+            }
+            return this.owners.containsKey(owner);
+        }
+
+        public boolean matchPermission(String owner, Set<String> actions) {
+            if (owner == null) {
+                return true;
+            }
+            Set<String> permissions = this.owners.get(owner);
+            if (permissions == null) {
+                return false;
+            }
+            if (permissions.containsAll(actions)) {
+                return true;
+            }
+            for (String action : actions) {
+                if (!this.matchAction(permissions, action)) {
+                    // Permission denied for `action`
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private boolean matchAction(Set<String> permissions, String required) {
+            if (required == null || permissions.contains(required)) {
+                return true;
+            }
+            for (String permission : permissions) {
+                if (required.matches(permission)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public static RolePerm fromJson(String json) {
+            return JsonUtil.fromJson(json, RolePerm.class);
+        }
+
+        public static RolePerm ownerFor(String owner, HugePermission perm) {
+            return new RolePerm().owner(owner, perm);
+        }
+
+        public static boolean match(String role, String required) {
+            RoleAction roleAction = RoleAction.fromPermission(required);
+            RolePerm rolePerm = RolePerm.fromJson(role);
+            return rolePerm.matchPermission(roleAction.owner(),
+                                            roleAction.actions());
+        }
+    }
+
+    public static class RoleAction {
+
+        @JsonProperty("owner")
+        private String owner;
         @JsonProperty("actions")
         private Set<String> actions;
 
         public RoleAction() {
-            this.owners = new HashSet<>();
+            this.owner = ROLE_NONE;
             this.actions = new HashSet<>();
         }
 
-        public RoleAction owner(String... owners) {
-            this.owners.addAll(Arrays.asList(owners));
+        public RoleAction owner(String owner) {
+            this.owner = owner;
             return this;
         }
 
-        public Set<String> owners() {
-            return Collections.unmodifiableSet(this.owners);
-        }
-
         public String owner() {
-            if (owners.size() == 1) {
-                return owners.iterator().next();
-            }
-            return null;
+            return this.owner;
         }
 
         public RoleAction action(String... actions) {
@@ -199,45 +272,9 @@ public interface HugeAuthenticator extends Authenticator {
             return Collections.unmodifiableSet(this.actions);
         }
 
-        public boolean matchOwner(String owner) {
-            if (owner == null) {
-                return true;
-            }
-            return this.owners.contains(owner);
-        }
-
-        public boolean matchAction(Set<String> actions) {
-            if (this.actions.containsAll(actions)) {
-                return true;
-            }
-            for (String action : actions) {
-                if (!this.matchAction(action)) {
-                    // Permission denied for `action`
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        public boolean matchAction(String action) {
-            if (action == null || this.actions.contains(action)) {
-                return true;
-            }
-            for (String role : this.actions) {
-                if (action.matches(role)) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        public String toRole() {
-            return JsonUtil.toJson(this);
-        }
-
         @Override
         public String toString() {
-            return this.toRole();
+            return JsonUtil.toJson(this);
         }
 
         public static String ownerFor(String owner) {
@@ -248,20 +285,20 @@ public interface HugeAuthenticator extends Authenticator {
             return ROLE_OWNER + "=" + owner + " " + ACTION + "=" + action;
         }
 
-        public static RoleAction fromRole(String role) {
-            return JsonUtil.fromJson(role, RoleAction.class);
+        public static RoleAction fromJson(String json) {
+            return JsonUtil.fromJson(json, RoleAction.class);
         }
 
         public static RoleAction fromPermission(String permission) {
-            RoleAction roleAction = new RoleAction();
+            RoleAction rolePermission = new RoleAction();
             String[] ownerAction = permission.split(" ");
             String[] ownerKV = ownerAction[0].split("=", 2);
             E.checkState(ownerKV.length == 2 && ownerKV[0].equals(ROLE_OWNER),
                          "Bad permission format: '%s'", permission);
-            roleAction.owners.add(ownerKV[1]);
+            rolePermission.owner(ownerKV[1]);
             if (ownerAction.length == 1) {
                 // no action
-                return roleAction;
+                return rolePermission;
             }
 
             E.checkState(ownerAction.length == 2,
@@ -271,19 +308,9 @@ public interface HugeAuthenticator extends Authenticator {
                          "Bad permission format: '%s'", permission);
             E.checkState(actionKV[0].equals(StandardAuthenticator.ACTION),
                          "Bad permission format: '%s'", permission);
-            roleAction.actions.add(actionKV[1]);
+            rolePermission.actions.add(actionKV[1]);
 
-            return roleAction;
-        }
-
-        public static boolean match(String role, String permission) {
-            RoleAction rolePermission = RoleAction.fromPermission(permission);
-            RoleAction roleAction = RoleAction.fromRole(role);
-
-            if (!roleAction.matchOwner(rolePermission.owner())) {
-                return false;
-            }
-            return roleAction.matchAction(rolePermission.actions());
+            return rolePermission;
         }
     }
 
