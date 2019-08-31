@@ -36,38 +36,29 @@ import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.util.E;
 
-public class HugeUser extends Entity {
-
-    /*
-     * TODO: add vertex label: group and action (or group and graph)
-     * add edge label belongto: user belongto group
-     * add edge label access: group is allowed action (to graph)
-     * action: write/read vertex|edge(limit label), write/read schema
-     */
+public class HugeTarget extends Entity {
 
     private final Id id;
     private String name;
-    private String password;
-    private String phone;
-    private String email;
-    private String avatar;
+    private String url;
 
-    public HugeUser(String name) {
-        this(null, name);
+    public HugeTarget(Id id) {
+        this(id, null, null);
     }
 
-    public HugeUser(Id id) {
-        this(id, null);
+    public HugeTarget(String name, String url) {
+        this(null,  name, url);
     }
 
-    public HugeUser(Id id, String name) {
+    public HugeTarget(Id id, String name, String url) {
         this.id = id;
         this.name = name;
+        this.url = url;
     }
 
     @Override
     public String label() {
-        return P.USER;
+        return P.TARGET;
     }
 
     @Override
@@ -79,41 +70,17 @@ public class HugeUser extends Entity {
         return this.name;
     }
 
-    public String password() {
-        return this.password;
+    public String url() {
+        return this.url;
     }
 
-    public void password(String password) {
-        this.password = password;
-    }
-
-    public String phone() {
-        return this.phone;
-    }
-
-    public void phone(String phone) {
-        this.phone = phone;
-    }
-
-    public String email() {
-        return this.email;
-    }
-
-    public void email(String email) {
-        this.email = email;
-    }
-
-    public String avatar() {
-        return this.avatar;
-    }
-
-    public void avatar(String avatar) {
-        this.avatar = avatar;
+    public void url(String url) {
+        this.url = url;
     }
 
     @Override
     public String toString() {
-        return String.format("HugeUser(%s)%s", this.id, this.asMap());
+        return String.format("HugeTarget(%s)%s", this.id, this.asMap());
     }
 
     @Override
@@ -123,17 +90,8 @@ public class HugeUser extends Entity {
             case P.NAME:
                 this.name = (String) value;
                 break;
-            case P.PASSWORD:
-                this.password = (String) value;
-                break;
-            case P.PHONE:
-                this.phone = (String) value;
-                break;
-            case P.EMAIL:
-                this.email = (String) value;
-                break;
-            case P.AVATAR:
-                this.avatar = (String) value;
+            case P.URL:
+                this.url = (String) value;
                 break;
             case P.CREATE:
                 this.create = (Date) value;
@@ -148,36 +106,21 @@ public class HugeUser extends Entity {
 
     @Override
     protected Object[] asArray() {
-        E.checkState(this.name != null, "User name can't be null");
-        E.checkState(this.password != null, "User password can't be null");
-        E.checkState(this.create != null, "User create can't be null");
-        E.checkState(this.update != null, "User update can't be null");
+        E.checkState(this.name != null, "Target name can't be null");
+        E.checkState(this.url != null, "Target url can't be null");
+        E.checkState(this.create != null, "Target create can't be null");
+        E.checkState(this.update != null, "Target update can't be null");
 
         List<Object> list = new ArrayList<>(16);
 
         list.add(T.label);
-        list.add(P.USER);
+        list.add(P.TARGET);
 
         list.add(P.NAME);
         list.add(this.name);
 
-        list.add(P.PASSWORD);
-        list.add(this.password);
-
-        if (this.phone != null) {
-            list.add(P.PHONE);
-            list.add(this.phone);
-        }
-
-        if (this.email != null) {
-            list.add(P.EMAIL);
-            list.add(this.email);
-        }
-
-        if (this.avatar != null) {
-            list.add(P.AVATAR);
-            list.add(this.avatar);
-        }
+        list.add(P.URL);
+        list.add(this.url);
 
         list.add(P.CREATE);
         list.add(this.create);
@@ -190,10 +133,10 @@ public class HugeUser extends Entity {
 
     @Override
     public Map<String, Object> asMap() {
-        E.checkState(this.name != null, "User name can't be null");
-        E.checkState(this.password != null, "User password can't be null");
-        E.checkState(this.create != null, "User create can't be null");
-        E.checkState(this.update != null, "User update can't be null");
+        E.checkState(this.name != null, "Target name can't be null");
+        E.checkState(this.url != null, "Target url can't be null");
+        E.checkState(this.create != null, "Target create can't be null");
+        E.checkState(this.update != null, "Target update can't be null");
 
         Map<String, Object> map = new HashMap<>();
 
@@ -203,19 +146,7 @@ public class HugeUser extends Entity {
         }
 
         map.put(Hidden.unHide(P.NAME), this.name);
-        map.put(Hidden.unHide(P.PASSWORD), this.password);
-
-        if (this.phone != null) {
-            map.put(Hidden.unHide(P.PHONE), this.phone);
-        }
-
-        if (this.email != null) {
-            map.put(Hidden.unHide(P.EMAIL), this.email);
-        }
-
-        if (this.avatar != null) {
-            map.put(Hidden.unHide(P.AVATAR), this.avatar);
-        }
+        map.put(Hidden.unHide(P.URL), this.url);
 
         map.put(Hidden.unHide(P.CREATE), this.create);
         map.put(Hidden.unHide(P.UPDATE), this.update);
@@ -223,8 +154,8 @@ public class HugeUser extends Entity {
         return map;
     }
 
-    public static HugeUser fromVertex(Vertex vertex) {
-        HugeUser entity = new HugeUser((Id) vertex.id());
+    public static HugeTarget fromVertex(Vertex vertex) {
+        HugeTarget entity = new HugeTarget((Id) vertex.id());
         return fromVertex(vertex, entity);
     }
 
@@ -234,21 +165,18 @@ public class HugeUser extends Entity {
 
     public static final class P {
 
-        public static final String USER = Hidden.hide("user");
+        public static final String TARGET = Hidden.hide("target");
 
         public static final String ID = T.id.getAccessor();
         public static final String LABEL = T.label.getAccessor();
 
-        public static final String NAME = "~user_name";
-        public static final String PASSWORD = "~user_password";
-        public static final String PHONE = "~user_phone";
-        public static final String EMAIL = "~user_email";
-        public static final String AVATAR = "~user_avatar";
-        public static final String CREATE = "~user_create";
-        public static final String UPDATE = "~user_update";
+        public static final String NAME = "~target_name";
+        public static final String URL = "~target_url";
+        public static final String CREATE = "~target_create";
+        public static final String UPDATE = "~target_update";
 
         public static String unhide(String key) {
-            final String prefix = Hidden.hide("user_");
+            final String prefix = Hidden.hide("target_");
             if (key.startsWith(prefix)) {
                 return key.substring(prefix.length());
             }
@@ -259,7 +187,7 @@ public class HugeUser extends Entity {
     public static final class Schema extends SchemaDefine {
 
         public Schema(HugeGraph graph) {
-            super(graph, P.USER);
+            super(graph, P.TARGET);
         }
 
         @Override
@@ -277,7 +205,6 @@ public class HugeUser extends Entity {
                               .properties(properties)
                               .usePrimaryKeyId()
                               .primaryKeys(P.NAME)
-                              .nullableKeys(P.PHONE, P.EMAIL, P.AVATAR)
                               .enableLabelIndex(true)
                               .build();
             this.graph.schemaTransaction().addVertexLabel(label);
@@ -290,10 +217,7 @@ public class HugeUser extends Entity {
             List<String> props = new ArrayList<>();
 
             props.add(createPropertyKey(P.NAME));
-            props.add(createPropertyKey(P.PASSWORD));
-            props.add(createPropertyKey(P.PHONE));
-            props.add(createPropertyKey(P.EMAIL));
-            props.add(createPropertyKey(P.AVATAR));
+            props.add(createPropertyKey(P.URL));
             props.add(createPropertyKey(P.CREATE, DataType.DATE));
             props.add(createPropertyKey(P.UPDATE, DataType.DATE));
 

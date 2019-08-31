@@ -27,25 +27,23 @@ import org.junit.runners.Suite;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
-import com.baidu.hugegraph.core.PropertyCoreTest.EdgePropertyCoreTest;
-import com.baidu.hugegraph.core.PropertyCoreTest.VertexPropertyCoreTest;
 import com.baidu.hugegraph.dist.RegisterUtil;
 import com.baidu.hugegraph.testutil.Utils;
 import com.baidu.hugegraph.util.Log;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-    PropertyKeyCoreTest.class,
-    VertexLabelCoreTest.class,
-    EdgeLabelCoreTest.class,
-    IndexLabelCoreTest.class,
-    VertexCoreTest.class,
-    EdgeCoreTest.class,
-    VertexPropertyCoreTest.class,
-    EdgePropertyCoreTest.class,
-    RestoreCoreTest.class,
+//    PropertyKeyCoreTest.class,
+//    VertexLabelCoreTest.class,
+//    EdgeLabelCoreTest.class,
+//    IndexLabelCoreTest.class,
+//    VertexCoreTest.class,
+//    EdgeCoreTest.class,
+//    VertexPropertyCoreTest.class,
+//    EdgePropertyCoreTest.class,
+//    RestoreCoreTest.class,
     UsersTest.class,
-    MultiGraphsTest.class
+//    MultiGraphsTest.class
 })
 public class CoreTestSuite {
 

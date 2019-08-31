@@ -20,38 +20,21 @@
 package com.baidu.hugegraph.auth;
 
 import java.util.ArrayList;
-import java.util.Iterator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
-
-import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.auth.HugeUser.P;
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.backend.query.Condition;
-import com.baidu.hugegraph.backend.query.ConditionQuery;
-import com.baidu.hugegraph.backend.tx.GraphTransaction;
+import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.event.EventListener;
-import com.baidu.hugegraph.exception.NotFoundException;
-import com.baidu.hugegraph.iterator.MapperIterator;
-import com.baidu.hugegraph.schema.IndexLabel;
-import com.baidu.hugegraph.schema.PropertyKey;
-import com.baidu.hugegraph.schema.SchemaManager;
-import com.baidu.hugegraph.schema.VertexLabel;
-import com.baidu.hugegraph.structure.HugeVertex;
-import com.baidu.hugegraph.type.HugeType;
-import com.baidu.hugegraph.type.define.Cardinality;
-import com.baidu.hugegraph.type.define.DataType;
-import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Events;
 import com.baidu.hugegraph.util.JsonUtil;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
@@ -60,21 +43,34 @@ public class UserManager {
     private final HugeGraph graph;
     private final EventListener eventListener;
 
-    private static final long NO_LIMIT = -1L;
+    private final EntityManager<HugeUser> users;
+    private final EntityManager<HugeGroup> groups;
+    private final EntityManager<HugeTarget> targets;
+
+    private final RelationshipManager<HugeBelong> belong;
+    private final RelationshipManager<HugeAccess> access;
 
     public UserManager(HugeGraph graph) {
         E.checkNotNull(graph, "graph");
 
         this.graph = graph;
         this.eventListener = this.listenChanges();
+
+        this.users = new EntityManager<>(this.graph, HugeUser.P.USER,
+                                         HugeUser::fromVertex);
+        this.groups = new EntityManager<>(this.graph, HugeGroup.P.GROUP,
+                                          HugeGroup::fromVertex);
+        this.targets = new EntityManager<>(this.graph, HugeTarget.P.TARGET,
+                                           HugeTarget::fromVertex);
+
+        this.belong = new RelationshipManager<>(this.graph, HugeBelong.P.BELONG,
+                                                HugeBelong::fromEdge);
+        this.access = new RelationshipManager<>(this.graph, HugeAccess.P.ACCESS,
+                                                HugeAccess::fromEdge);
     }
 
     public HugeGraph graph() {
         return this.graph;
-    }
-
-    private GraphTransaction tx() {
-        return this.graph.systemTransaction();
     }
 
     private EventListener listenChanges() {
@@ -106,31 +102,26 @@ public class UserManager {
     }
 
     public Id createUser(HugeUser user) {
-        E.checkArgumentNotNull(user, "User can't be null");
-        return this.save(user);
+        return this.users.add(user);
     }
 
     public void updateUser(HugeUser user) {
-        E.checkArgumentNotNull(user, "User can't be null");
-        this.save(user);
+        this.users.update(user);
     }
 
     public HugeUser deleteUser(Id id) {
-        HugeUser user = null;
-        Iterator<Vertex> vertices = this.tx().queryVertices(id);
-        if (vertices.hasNext()) {
-            HugeVertex vertex = (HugeVertex) vertices.next();
-            user = HugeUser.fromVertex(vertex);
-            this.tx().removeVertex(vertex);
-            assert !vertices.hasNext();
-        }
-        return user;
+        return this.users.delete(id);
     }
 
     public HugeUser matchUser(String name, String password) {
         E.checkArgumentNotNull(name, "User name can't be null");
         E.checkArgumentNotNull(password, "User password can't be null");
-        HugeUser user = this.queryUser(name);
+        HugeUser user = null;
+        List<HugeUser> users = this.users.query(P.NAME, name, 2L);
+        if (users.size() > 0) {
+            assert users.size() == 1;
+            user = users.get(0);
+        }
         if (user != null && user.password().equals(password)) {
             return user;
         }
@@ -138,156 +129,171 @@ public class UserManager {
     }
 
     public HugeUser getUser(Id id) {
-        HugeUser user = null;
-        Iterator<Vertex> vertices = this.tx().queryVertices(id);
-        if (vertices.hasNext()) {
-            user = HugeUser.fromVertex(vertices.next());
-            assert !vertices.hasNext();
-        }
-        if (user == null) {
-            throw new NotFoundException("Can't find user with id '%s'", id);
-        }
-        return user;
+        return this.users.get(id);
     }
 
     public List<HugeUser> listUsers(List<Id> ids) {
-        return this.queryUser(ids);
+        return this.users.list(ids);
     }
 
     public List<HugeUser> listAllUsers(long limit) {
-        return this.queryUser(ImmutableMap.of(), limit);
+        return this.users.list(limit);
     }
 
-    private HugeUser queryUser(String name) {
-        List<HugeUser> users = this.queryUser(P.NAME, name, 2L);
-        if (users.size() > 0) {
-            assert users.size() == 1;
-            return users.get(0);
-        }
-        return null;
+    public Id createGroup(HugeGroup group) {
+        return this.groups.add(group);
     }
 
-    private List<HugeUser> queryUser(String key, Object value, long limit) {
-        return this.queryUser(ImmutableMap.of(key, value), limit);
+    public void updateGroup(HugeGroup group) {
+        this.groups.update(group);
     }
 
-    private List<HugeUser> queryUser(Map<String, Object> conditions,
-                                     long limit) {
-        ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
-        VertexLabel vl = this.graph.vertexLabel(P.USER);
-        query.eq(HugeKeys.LABEL, vl.id());
-        for (Map.Entry<String, Object> entry : conditions.entrySet()) {
-            PropertyKey pk = this.graph.propertyKey(entry.getKey());
-            query.query(Condition.eq(pk.id(), entry.getValue()));
-        }
-        query.showHidden(true);
-        if (limit != NO_LIMIT) {
-            query.limit(limit);
-        }
-        Iterator<Vertex> vertices = this.tx().queryVertices(query);
-        // Convert iterator to list to avoid across thread tx accessed
-        return IteratorUtils.list(new MapperIterator<>(vertices,
-                                                       HugeUser::fromVertex));
+    public HugeGroup deleteGroup(Id id) {
+        return this.groups.delete(id);
     }
 
-    private List<HugeUser> queryUser(List<Id> ids) {
-        Object[] idArray = ids.toArray(new Id[ids.size()]);
-        Iterator<Vertex> vertices = this.tx().queryVertices(idArray);
-        // Convert iterator to list to avoid across thread tx accessed
-        return IteratorUtils.list(new MapperIterator<>(vertices,
-                                                       HugeUser::fromVertex));
+    public HugeGroup getGroup(Id id) {
+        return this.groups.get(id);
     }
 
-    private Id save(HugeUser user) {
-        // Construct vertex from task
-        HugeVertex vertex = this.constructVertex(user);
-        // Add or update user in backend store, stale index might exist
-        return this.tx().addVertex(vertex).id();
+    public List<HugeGroup> listGroups(List<Id> ids) {
+        return this.groups.list(ids);
     }
 
-    private HugeVertex constructVertex(HugeUser user) {
-        if (this.graph().schemaTransaction().getVertexLabel(P.USER) == null) {
-            throw new HugeException("Schema is missing for user(%s) '%s'",
-                                    user.id(), user.name());
-        }
-        return this.tx().constructVertex(false, user.asArray());
+    public List<HugeGroup> listAllGroups(long limit) {
+        return this.groups.list(limit);
+    }
+
+    public Id createTarget(HugeTarget target) {
+        return this.targets.add(target);
+    }
+
+    public void updateTarget(HugeTarget target) {
+        this.targets.update(target);
+    }
+
+    public HugeTarget deleteTarget(Id id) {
+        return this.targets.delete(id);
+    }
+
+    public HugeTarget getTarget(Id id) {
+        return this.targets.get(id);
+    }
+
+    public List<HugeTarget> listTargets(List<Id> ids) {
+        return this.targets.list(ids);
+    }
+
+    public List<HugeTarget> listAllTargets(long limit) {
+        return this.targets.list(limit);
+    }
+
+    public Id createBelong(Id user, Id group) {
+        return this.createBelong(new HugeBelong(user, group));
+    }
+
+    public Id createBelong(HugeBelong belong) {
+        return this.belong.add(belong);
+    }
+
+    public void updateBelong(HugeBelong belong) {
+        this.belong.update(belong);
+    }
+
+    public HugeBelong deleteBelong(Id id) {
+        return this.belong.delete(id);
+    }
+
+    public HugeBelong getBelong(Id id) {
+        return this.belong.get(id);
+    }
+
+    public List<HugeBelong> listBelongs(List<Id> ids) {
+        return this.belong.list(ids);
+    }
+
+    public List<HugeBelong> listAllBelongs(long limit) {
+        return this.belong.list(limit);
+    }
+
+    public List<HugeBelong> listBelongsByUser(Id user, long limit) {
+        return this.belong.list(user, Directions.OUT,
+                                HugeBelong.P.BELONG, limit);
+    }
+
+    public List<HugeBelong> listBelongsByGroup(Id group, long limit) {
+        return this.belong.list(group, Directions.IN,
+                                HugeBelong.P.BELONG, limit);
+    }
+
+    public Id createAccess(Id group, Id target, HugePermission permission) {
+        return this.createAccess(new HugeAccess(group, target, permission));
+    }
+
+    public Id createAccess(HugeAccess access) {
+        return this.access.add(access);
+    }
+
+    public void updateAccess(HugeAccess access) {
+        this.access.update(access);
+    }
+
+    public HugeAccess deleteAccess(Id id) {
+        return this.access.delete(id);
+    }
+
+    public HugeAccess getAccess(Id id) {
+        return this.access.get(id);
+    }
+
+    public List<HugeAccess> listAccesss(List<Id> ids) {
+        return this.access.list(ids);
+    }
+
+    public List<HugeAccess> listAllAccesss(long limit) {
+        return this.access.list(limit);
+    }
+
+    public List<HugeAccess> listAccesssByGroup(Id group, long limit) {
+        return this.access.list(group, Directions.OUT,
+                                HugeAccess.P.ACCESS, limit);
+    }
+
+    public List<HugeAccess> listAccesssByTarget(Id target, long limit) {
+        return this.access.list(target, Directions.IN,
+                                HugeAccess.P.ACCESS, limit);
     }
 
     public String roleAction(HugeUser user) {
-        // TODO: improve
-        Object role = ImmutableMap.of("owners",
-                                      ImmutableList.of("hugegraph", "hugegraph1"),
-                                      "actions",
-                                      ImmutableList.of(".*read", ".*write", "gremlin"));
-        return JsonUtil.toJson(role);
+        List<HugeAccess> accesses = new ArrayList<>();;
+        List<HugeBelong> belongs = this.listBelongsByUser(user.id(), -1);
+        for (HugeBelong belong : belongs) {
+            accesses.addAll(this.listAccesssByGroup(belong.target(), -1));
+        }
+
+        Map<String, Set<String>> role = new HashMap<>();
+        for (HugeAccess access : accesses) {
+            Id graph = access.target();
+            String[] parts = SplicingIdGenerator.parse(graph);
+            E.checkState(parts.length == 2,
+                         "Invalid primary key vertex id '%s'", graph);
+            String key = parts[1];
+            Set<String> value = role.get(key);
+            if (value == null) {
+                value = new HashSet<>();
+                role.put(key, value);
+            }
+            value.add(access.permission().string());
+        }
+        return JsonUtil.toJson(ImmutableMap.of("owners", role));
     }
 
     public void initSchemaIfNeeded() {
         HugeGraph graph = this.graph();
-        VertexLabel label = graph.schemaTransaction().getVertexLabel(P.USER);
-        if (label != null) {
-            return;
-        }
-
-        String[] properties = this.initProperties();
-
-        // Create vertex label '~user'
-        label = graph.schema().vertexLabel(P.USER)
-                     .properties(properties)
-                     .usePrimaryKeyId()
-                     .primaryKeys(P.NAME)
-                     .nullableKeys(P.PHONE, P.EMAIL, P.AVATAR)
-                     .enableLabelIndex(true)
-                     .build();
-        graph.schemaTransaction().addVertexLabel(label);
-
-        // Create index
-        this.createIndex(label, P.UPDATE);
-    }
-
-    private String[] initProperties() {
-        List<String> props = new ArrayList<>();
-
-        props.add(createPropertyKey(P.NAME));
-        props.add(createPropertyKey(P.PASSWORD));
-        props.add(createPropertyKey(P.PHONE));
-        props.add(createPropertyKey(P.EMAIL));
-        props.add(createPropertyKey(P.AVATAR));
-        props.add(createPropertyKey(P.CREATE, DataType.DATE));
-        props.add(createPropertyKey(P.UPDATE, DataType.DATE));
-
-        return props.toArray(new String[0]);
-    }
-
-    private String createPropertyKey(String name) {
-        return this.createPropertyKey(name, DataType.TEXT);
-    }
-
-    private String createPropertyKey(String name, DataType dataType) {
-        return this.createPropertyKey(name, dataType, Cardinality.SINGLE);
-    }
-
-    private String createPropertyKey(String name, DataType dataType,
-                                     Cardinality cardinality) {
-        HugeGraph graph = this.graph();
-        SchemaManager schema = graph.schema();
-        PropertyKey propertyKey = schema.propertyKey(name)
-                                        .dataType(dataType)
-                                        .cardinality(cardinality)
-                                        .build();
-        graph.schemaTransaction().addPropertyKey(propertyKey);
-        return name;
-    }
-
-    private IndexLabel createIndex(VertexLabel label, String field) {
-        HugeGraph graph = this.graph();
-        SchemaManager schema = graph.schema();
-        String name = Hidden.hide("task-index-by-" + field);
-        IndexLabel indexLabel = schema.indexLabel(name)
-                                      .on(HugeType.VERTEX_LABEL, P.USER)
-                                      .by(field)
-                                      .build();
-        graph.schemaTransaction().addIndexLabel(label, indexLabel);
-        return indexLabel;
+        HugeUser.schema(graph).initSchemaIfNeeded();
+        HugeGroup.schema(graph).initSchemaIfNeeded();
+        HugeTarget.schema(graph).initSchemaIfNeeded();
+        HugeBelong.schema(graph).initSchemaIfNeeded();
+        HugeAccess.schema(graph).initSchemaIfNeeded();
     }
 }

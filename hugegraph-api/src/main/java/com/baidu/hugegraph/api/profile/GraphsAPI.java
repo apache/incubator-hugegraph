@@ -44,7 +44,7 @@ import com.baidu.hugegraph.GremlinGraph;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.auth.HugeAuthenticator;
-import com.baidu.hugegraph.auth.HugeAuthenticator.RoleAction;
+import com.baidu.hugegraph.auth.HugeAuthenticator.RolePerm;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.type.define.GraphMode;
@@ -71,10 +71,10 @@ public class GraphsAPI extends API {
         String role = sc.getUserPrincipal().getName();
         if (!role.equals(HugeAuthenticator.ROLE_ADMIN)) {
             // Filter by user role
-            RoleAction roleAction = RoleAction.fromRole(role);
+            RolePerm rolePerm = RolePerm.fromJson(role);
             Set<String> newGraphs = new HashSet<>();
             for (String graph : graphs) {
-                if (roleAction.owners().contains(graph)) {
+                if (rolePerm.owners().contains(graph)) {
                     newGraphs.add(graph);
                 }
             }

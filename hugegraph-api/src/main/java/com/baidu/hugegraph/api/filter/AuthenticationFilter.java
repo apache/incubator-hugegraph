@@ -43,6 +43,7 @@ import org.slf4j.Logger;
 
 import com.baidu.hugegraph.auth.HugeAuthenticator;
 import com.baidu.hugegraph.auth.HugeAuthenticator.RoleAction;
+import com.baidu.hugegraph.auth.HugeAuthenticator.RolePerm;
 import com.baidu.hugegraph.auth.HugeAuthenticator.User;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.RestServer;
@@ -141,20 +142,20 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         }
 
         @Override
-        public boolean isUserInRole(String permission) {
+        public boolean isUserInRole(String required) {
             boolean valid;
-            if (permission.equals(HugeAuthenticator.ROLE_DYNAMIC)) {
+            if (required.equals(HugeAuthenticator.ROLE_DYNAMIC)) {
                 // Let the resource itself dynamically determine
                 valid = true;
-            } else if (permission.startsWith(HugeAuthenticator.ROLE_OWNER)) {
-                valid = this.matchPermission(permission);
+            } else if (required.startsWith(HugeAuthenticator.ROLE_OWNER)) {
+                valid = this.matchPermission(required);
             } else {
-                valid = permission.equals(this.user.role());
+                valid = required.equals(this.user.role());
             }
 
             if (!valid && LOG.isDebugEnabled()) {
                 LOG.debug("Permission denied to {}, expect permission '{}'",
-                          this.user, permission);
+                          this.user, required);
             }
             return valid;
         }
@@ -169,16 +170,16 @@ public class AuthenticationFilter implements ContainerRequestFilter {
             return SecurityContext.BASIC_AUTH;
         }
 
-        private boolean matchPermission(String permission) {
+        private boolean matchPermission(String required) {
             // Role format like: "$owner=name $action=vertex-write"
-            RoleAction rolePermission = RoleAction.fromPermission(permission);
-            RoleAction roleAction = RoleAction.fromRole(this.role());
+            RoleAction roleAction = RoleAction.fromPermission(required);
+            RolePerm rolePerm = RolePerm.fromJson(this.role());
 
-            String owner = this.getPathParameter(rolePermission.owner());
-            if (!roleAction.matchOwner(owner)) {
+            String owner = this.getPathParameter(roleAction.owner());
+            if (!rolePerm.matchOwner(owner)) {
                 return false;
             }
-            return roleAction.matchAction(rolePermission.actions());
+            return rolePerm.matchPermission(owner, roleAction.actions());
         }
 
         private String getPathParameter(String key) {
