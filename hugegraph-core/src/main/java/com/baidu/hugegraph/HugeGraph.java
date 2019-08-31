@@ -51,6 +51,7 @@ import com.baidu.hugegraph.backend.serializer.SerializerFactory;
 import com.baidu.hugegraph.backend.store.BackendProviderFactory;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
+import com.baidu.hugegraph.backend.store.Shard;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.config.CoreOptions;
@@ -68,6 +69,7 @@ import com.baidu.hugegraph.task.TaskManager;
 import com.baidu.hugegraph.task.TaskScheduler;
 import com.baidu.hugegraph.traversal.optimize.HugeGraphStepStrategy;
 import com.baidu.hugegraph.traversal.optimize.HugeVertexStepStrategy;
+import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.GraphMode;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.LockUtil;
@@ -163,6 +165,16 @@ public class HugeGraph implements GremlinGraph {
     }
 
     @Override
+    public HugeGraph hugegraph() {
+        return this;
+    }
+
+    @Override
+    public HugeGraph hugegraph(String permission) {
+        return this;
+    }
+
+    @Override
     public String backend() {
         return this.storeProvider.type();
     }
@@ -178,6 +190,7 @@ public class HugeGraph implements GremlinGraph {
         return this.closed;
     }
 
+    @Override
     public GraphMode mode() {
         return this.mode;
     }
@@ -377,6 +390,11 @@ public class HugeGraph implements GremlinGraph {
         E.checkState(scheduler != null,
                      "Can't find task scheduler for graph '%s'", this);
         return scheduler;
+    }
+
+    @Override
+    public List<Shard> metadata(HugeType type, String meta, Object... args) {
+        return this.graphTransaction().metadata(type, meta, args);
     }
 
     @Override

@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
+import javax.annotation.security.RolesAllowed;
 import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -46,6 +47,7 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.util.function.TriFunction;
 import org.slf4j.Logger;
 
+import com.baidu.hugegraph.GremlinGraph;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.CompressInterceptor.Compress;
@@ -84,17 +86,18 @@ public class EdgeAPI extends BatchAPI {
     @Status(Status.CREATED)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin", "$owner=graph $action=edge_write"})
     public String create(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          JsonEdge jsonEdge) {
         LOG.debug("Graph [{}] create edge: {}", graph, jsonEdge);
         checkCreatingBody(jsonEdge);
 
-        HugeGraph g = graph(manager, graph);
+        GremlinGraph g = graph(manager, graph);
 
         if (jsonEdge.sourceLabel != null && jsonEdge.targetLabel != null) {
             // NOTE: Not use SchemaManager because it will throw 404
-            SchemaTransaction schema = g.schemaTransaction();
+            SchemaTransaction schema = graph4schema(g).schemaTransaction();
             /*
              * NOTE: If the vertex id is correct but label not match with id,
              * we allow to create it here
@@ -125,6 +128,7 @@ public class EdgeAPI extends BatchAPI {
     @Status(Status.CREATED)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin", "$owner=graph $action=edge_write"})
     public List<String> create(@Context HugeConfig config,
                                @Context GraphManager manager,
                                @PathParam("graph") String graph,
@@ -135,9 +139,9 @@ public class EdgeAPI extends BatchAPI {
         checkCreatingBody(jsonEdges);
         checkBatchSize(config, jsonEdges);
 
-        HugeGraph g = graph(manager, graph);
+        GremlinGraph g = graph(manager, graph);
 
-        TriFunction<HugeGraph, Object, String, Vertex> getVertex =
+        TriFunction<GremlinGraph, Object, String, Vertex> getVertex =
                     checkVertex ? EdgeAPI::getVertex : EdgeAPI::newVertex;
 
         return this.commit(config, g, jsonEdges.size(), () -> {
@@ -169,6 +173,7 @@ public class EdgeAPI extends BatchAPI {
     @Path("batch")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin", "$owner=graph $action=edge_write"})
     public String update(@Context HugeConfig config,
                          @Context GraphManager manager,
                          @PathParam("graph") String graph,
@@ -178,9 +183,9 @@ public class EdgeAPI extends BatchAPI {
         checkUpdatingBody(req.jsonEdges);
         checkBatchSize(config, req.jsonEdges);
 
-        HugeGraph g = graph(manager, graph);
+        GremlinGraph g = graph(manager, graph);
         Map<Id, JsonEdge> map = new HashMap<>(req.jsonEdges.size());
-        TriFunction<HugeGraph, Object, String, Vertex> getVertex =
+        TriFunction<GremlinGraph, Object, String, Vertex> getVertex =
                     req.checkVertex ? EdgeAPI::getVertex : EdgeAPI::newVertex;
 
         return this.commit(config, g, map.size(), () -> {
@@ -223,6 +228,7 @@ public class EdgeAPI extends BatchAPI {
     @Path("{id}")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin", "$owner=graph $action=edge_write"})
     public String update(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          @PathParam("id") String id,
@@ -240,12 +246,12 @@ public class EdgeAPI extends BatchAPI {
         // Parse action param
         boolean append = checkAndParseAction(action);
 
-        HugeGraph g = graph(manager, graph);
+        GremlinGraph g = graph(manager, graph);
         HugeEdge edge = (HugeEdge) g.edges(id).next();
         EdgeLabel edgeLabel = edge.schemaLabel();
 
         for (String key : jsonEdge.properties.keySet()) {
-            PropertyKey pkey = g.propertyKey(key);
+            PropertyKey pkey = graph4schema(g).propertyKey(key);
             E.checkArgument(edgeLabel.properties().contains(pkey.id()),
                             "Can't update property for edge '%s' because " +
                             "there is no property key '%s' in its edge label",
@@ -261,6 +267,7 @@ public class EdgeAPI extends BatchAPI {
     @Timed
     @Compress
     @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin", "$owner=graph $action=edge_read"})
     public String list(@Context GraphManager manager,
                        @PathParam("graph") String graph,
                        @QueryParam("vertex_id") String vertexId,
@@ -288,7 +295,7 @@ public class EdgeAPI extends BatchAPI {
         Id vertex = VertexAPI.checkAndParseVertexId(vertexId);
         Direction dir = parseDirection(direction);
 
-        HugeGraph g = graph(manager, graph);
+        GremlinGraph g = graph(manager, graph);
 
         GraphTraversal<?, Edge> traversal;
         if (vertex != null) {
@@ -322,12 +329,13 @@ public class EdgeAPI extends BatchAPI {
     @Timed
     @Path("{id}")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin", "$owner=graph $action=edge_read"})
     public String get(@Context GraphManager manager,
                       @PathParam("graph") String graph,
                       @PathParam("id") String id) {
         LOG.debug("Graph [{}] get edge by id '{}'", graph, id);
 
-        HugeGraph g = graph(manager, graph);
+        GremlinGraph g = graph(manager, graph);
         Iterator<Edge> edges = g.edges(id);
         checkExist(edges, HugeType.EDGE, id);
         return manager.serializer(g).writeEdge(edges.next());
@@ -337,12 +345,13 @@ public class EdgeAPI extends BatchAPI {
     @Timed
     @Path("{id}")
     @Consumes(APPLICATION_JSON)
+    @RolesAllowed({"admin", "$owner=graph $action=edge_delete"})
     public void delete(@Context GraphManager manager,
                        @PathParam("graph") String graph,
                        @PathParam("id") String id) {
         LOG.debug("Graph [{}] remove vertex by id '{}'", graph, id);
 
-        HugeGraph g = graph(manager, graph);
+        GremlinGraph g = graph(manager, graph);
         // TODO: add removeEdge(id) to improve
         commit(g, () -> {
             Edge edge;
@@ -372,7 +381,8 @@ public class EdgeAPI extends BatchAPI {
         }
     }
 
-    private static Vertex getVertex(HugeGraph graph, Object id, String label) {
+    private static Vertex getVertex(GremlinGraph graph,
+                                    Object id, String label) {
         HugeVertex vertex;
         try {
             vertex = (HugeVertex) graph.vertices(id).next();
@@ -384,7 +394,8 @@ public class EdgeAPI extends BatchAPI {
         return vertex.copy().resetTx();
     }
 
-    private static Vertex newVertex(HugeGraph graph, Object id, String label) {
+    private static Vertex newVertex(GremlinGraph g, Object id, String label) {
+        HugeGraph graph = graph4schema(g);
         // NOTE: Not use SchemaManager because it will throw 404
         VertexLabel vl = graph.schemaTransaction().getVertexLabel(label);
         E.checkArgumentNotNull(vl, "Invalid vertex label '%s'", label);
@@ -405,18 +416,19 @@ public class EdgeAPI extends BatchAPI {
         }
     }
 
-    private Id getEdgeId(HugeGraph g, JsonEdge newEdge) {
+    private Id getEdgeId(GremlinGraph g, JsonEdge newEdge) {
         if (newEdge.id != null) {
             return EdgeId.parse(newEdge.id.toString());
         }
 
+        HugeGraph graph = graph4schema(g);
         String sortKeys = "";
-        Id labelId = g.edgeLabel(newEdge.label).id();
-        List<Id> sortKeyIds = g.edgeLabel(labelId).sortKeys();
+        Id labelId = graph.edgeLabel(newEdge.label).id();
+        List<Id> sortKeyIds = graph.edgeLabel(labelId).sortKeys();
         if (!sortKeyIds.isEmpty()) {
             List<Object> sortKeyValues = new ArrayList<>(sortKeyIds.size());
             sortKeyIds.forEach(skId -> {
-                String sortKey = g.propertyKey(skId).name();
+                String sortKey = graph.propertyKey(skId).name();
                 Object sortKeyValue = newEdge.properties.get(sortKey);
                 E.checkArgument(sortKeyValue != null,
                                 "The value of sort key '%s' can't be null",

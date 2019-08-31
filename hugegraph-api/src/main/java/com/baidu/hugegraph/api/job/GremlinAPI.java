@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.annotation.security.RolesAllowed;
 import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
@@ -77,6 +78,7 @@ public class GremlinAPI extends API {
     @Status(Status.CREATED)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin", "$owner=graph $action=job_gremlin"})
     public Map<String, Id> post(@Context GraphManager manager,
                                 @PathParam("graph") String graph,
                                 GremlinRequest request) {
@@ -84,7 +86,7 @@ public class GremlinAPI extends API {
         checkCreatingBody(request);
         gremlinJobInputHistogram.update(request.gremlin.length());
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph4gremlin(manager, graph);
         request.aliase(graph, "graph");
         JobBuilder<Object> builder = JobBuilder.of(g);
         builder.name(request.name())

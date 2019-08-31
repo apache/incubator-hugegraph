@@ -22,6 +22,7 @@ package com.baidu.hugegraph.api.schema;
 import java.util.List;
 import java.util.Map;
 
+import javax.annotation.security.RolesAllowed;
 import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -36,7 +37,7 @@ import javax.ws.rs.core.Context;
 
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.GremlinGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.core.GraphManager;
@@ -61,6 +62,7 @@ public class PropertyKeyAPI extends API {
     @Status(Status.CREATED)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin", "$owner=graph $action=schema_write"})
     public String create(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          JsonPropertyKey jsonPropertyKey) {
@@ -68,7 +70,7 @@ public class PropertyKeyAPI extends API {
                   graph, jsonPropertyKey);
         checkCreatingBody(jsonPropertyKey);
 
-        HugeGraph g = graph(manager, graph);
+        GremlinGraph g = graph(manager, graph);
         PropertyKey.Builder builder = jsonPropertyKey.convert2Builder(g);
         PropertyKey propertyKey = builder.create();
         return manager.serializer(g).writePropertyKey(propertyKey);
@@ -79,6 +81,7 @@ public class PropertyKeyAPI extends API {
     @Path("{name}")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin", "$owner=graph $action=schema_write"})
     public String update(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          @PathParam("name") String name,
@@ -93,7 +96,7 @@ public class PropertyKeyAPI extends API {
         // Parse action parameter
         boolean append = checkAndParseAction(action);
 
-        HugeGraph g = graph(manager, graph);
+        GremlinGraph g = graph(manager, graph);
         PropertyKey.Builder builder = jsonPropertyKey.convert2Builder(g);
         PropertyKey propertyKey = append ?
                                   builder.append() :
@@ -104,11 +107,12 @@ public class PropertyKeyAPI extends API {
     @GET
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin", "$owner=graph $action=schema_read"})
     public String list(@Context GraphManager manager,
                        @PathParam("graph") String graph) {
         LOG.debug("Graph [{}] get property keys", graph);
 
-        HugeGraph g = graph(manager, graph);
+        GremlinGraph g = graph(manager, graph);
         List<PropertyKey> propKeys = g.schema().getPropertyKeys();
         return manager.serializer(g).writePropertyKeys(propKeys);
     }
@@ -117,12 +121,13 @@ public class PropertyKeyAPI extends API {
     @Timed
     @Path("{name}")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin", "$owner=graph $action=schema_read"})
     public String get(@Context GraphManager manager,
                       @PathParam("graph") String graph,
                       @PathParam("name") String name) {
         LOG.debug("Graph [{}] get property key by name '{}'", graph, name);
 
-        HugeGraph g = graph(manager, graph);
+        GremlinGraph g = graph(manager, graph);
         PropertyKey propertyKey = g.schema().getPropertyKey(name);
         return manager.serializer(g).writePropertyKey(propertyKey);
     }
@@ -131,12 +136,13 @@ public class PropertyKeyAPI extends API {
     @Timed
     @Path("{name}")
     @Consumes(APPLICATION_JSON)
+    @RolesAllowed({"admin", "$owner=graph $action=schema_delete"})
     public void delete(@Context GraphManager manager,
                        @PathParam("graph") String graph,
                        @PathParam("name") String name) {
         LOG.debug("Graph [{}] remove property key by name '{}'", graph, name);
 
-        HugeGraph g = graph(manager, graph);
+        GremlinGraph g = graph(manager, graph);
         // Throw 404 if not exists
         g.schema().getPropertyKey(name);
         g.schema().propertyKey(name).remove();
@@ -173,7 +179,7 @@ public class PropertyKeyAPI extends API {
                             "support meta properties currently");
         }
 
-        private PropertyKey.Builder convert2Builder(HugeGraph g) {
+        private PropertyKey.Builder convert2Builder(GremlinGraph g) {
             PropertyKey.Builder builder = g.schema().propertyKey(this.name);
             if (this.id != 0) {
                 E.checkArgument(this.id > 0,

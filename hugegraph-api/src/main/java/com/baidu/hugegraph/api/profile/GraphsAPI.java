@@ -40,6 +40,7 @@ import javax.ws.rs.core.SecurityContext;
 
 import org.slf4j.Logger;
 
+import com.baidu.hugegraph.GremlinGraph;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.auth.HugeAuthenticator;
@@ -91,7 +92,7 @@ public class GraphsAPI extends API {
                       @PathParam("name") String name) {
         LOG.debug("Get graph by name '{}'", name);
 
-        HugeGraph g = graph(manager, name);
+        GremlinGraph g = graph(manager, name);
         return ImmutableMap.of("name", g.name(), "backend", g.backend());
     }
 
@@ -104,7 +105,7 @@ public class GraphsAPI extends API {
                         @PathParam("name") String name) {
         LOG.debug("Get graph configuration by name '{}'", name);
 
-        HugeGraph g = graph(manager, name);
+        HugeGraph g = graph4admin(manager, name);
 
         File file = g.configuration().getFile();
         if (file == null) {
@@ -124,7 +125,7 @@ public class GraphsAPI extends API {
                       @QueryParam("confirm_message") String message) {
         LOG.debug("Clear graph by name '{}'", name);
 
-        HugeGraph g = graph(manager, name);
+        GremlinGraph g = graph(manager, name);
 
         if (!CONFIRM_CLEAR.equals(message)) {
             throw new IllegalArgumentException(String.format(
@@ -145,7 +146,7 @@ public class GraphsAPI extends API {
         LOG.debug("Set mode to: '{}' of graph '{}'", mode, name);
 
         E.checkArgument(mode != null, "Graph mode can't be null");
-        HugeGraph g = graph(manager, name);
+        HugeGraph g = graph4admin(manager, name);
         g.mode(mode);
         return ImmutableMap.of("mode", mode);
     }
@@ -155,12 +156,12 @@ public class GraphsAPI extends API {
     @Path("{name}/mode")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed("admin")
+    @RolesAllowed({"admin", "$owner=name"})
     public Map<String, GraphMode> mode(@Context GraphManager manager,
                                        @PathParam("name") String name) {
         LOG.debug("Get mode of graph '{}'", name);
 
-        HugeGraph g = graph(manager, name);
+        GremlinGraph g = graph(manager, name);
         return ImmutableMap.of("mode", g.mode());
     }
 }

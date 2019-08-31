@@ -80,7 +80,8 @@ public class MetricsAPI extends API {
     public String backend(@Context GraphManager manager) {
         Map<String, Map<String, Object>> results = InsertionOrderUtil.newMap();
         for (String graph : manager.graphs()) {
-            GraphTransaction tx = manager.graph(graph).graphTransaction();
+            GraphTransaction tx = manager.graph(graph).hugegraph()
+                                         .graphTransaction();
             Map<String, Object> metrics = InsertionOrderUtil.newMap();
             metrics.put(BackendMetrics.BACKEND, tx.store().provider().type());
             try {
