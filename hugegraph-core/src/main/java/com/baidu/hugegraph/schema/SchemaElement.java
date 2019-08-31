@@ -99,8 +99,13 @@ public abstract class SchemaElement implements Namifiable, Typifiable,
         this.status = status;
     }
 
+    public boolean system() {
+        return this.longId() < 0L;
+    }
+
     public boolean primitive() {
-        return false;
+        long id = this.longId();
+        return -MAX_PRIMITIVE_SYS_ID <= id && id < 0L;
     }
 
     public boolean hidden() {

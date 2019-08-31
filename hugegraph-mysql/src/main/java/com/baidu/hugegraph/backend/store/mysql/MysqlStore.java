@@ -263,11 +263,6 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
         return FEATURES;
     }
 
-    @Override
-    public String toString() {
-        return this.store;
-    }
-
     protected void initTables() {
         Session session = this.sessions.session();
         for (MysqlTable table : this.tables()) {
