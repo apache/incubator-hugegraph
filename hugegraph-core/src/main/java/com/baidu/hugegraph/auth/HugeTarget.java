@@ -38,7 +38,6 @@ import com.baidu.hugegraph.util.E;
 
 public class HugeTarget extends Entity {
 
-    private final Id id;
     private String name;
     private String url;
 
@@ -47,7 +46,7 @@ public class HugeTarget extends Entity {
     }
 
     public HugeTarget(String name, String url) {
-        this(null,  name, url);
+        this(null, name, url);
     }
 
     public HugeTarget(Id id, String name, String url) {
@@ -59,11 +58,6 @@ public class HugeTarget extends Entity {
     @Override
     public String label() {
         return P.TARGET;
-    }
-
-    @Override
-    public Id id() {
-        return this.id;
     }
 
     public String name() {
@@ -111,7 +105,7 @@ public class HugeTarget extends Entity {
         E.checkState(this.create != null, "Target create can't be null");
         E.checkState(this.update != null, "Target update can't be null");
 
-        List<Object> list = new ArrayList<>(16);
+        List<Object> list = new ArrayList<>(10);
 
         list.add(T.label);
         list.add(P.TARGET);
@@ -141,7 +135,7 @@ public class HugeTarget extends Entity {
         Map<String, Object> map = new HashMap<>();
 
         if (this.id != null) {
-            // The id is null when creating user
+            // The id is null when creating target
             map.put(Hidden.unHide(P.ID), this.id);
         }
 
@@ -210,7 +204,7 @@ public class HugeTarget extends Entity {
             this.graph.schemaTransaction().addVertexLabel(label);
 
             // Create index
-            this.createIndex(label, P.UPDATE);
+            this.createRangeIndex(label, P.UPDATE);
         }
 
         private String[] initProperties() {

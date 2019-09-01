@@ -45,7 +45,6 @@ public class HugeUser extends Entity {
      * action: write/read vertex|edge(limit label), write/read schema
      */
 
-    private final Id id;
     private String name;
     private String password;
     private String phone;
@@ -68,11 +67,6 @@ public class HugeUser extends Entity {
     @Override
     public String label() {
         return P.USER;
-    }
-
-    @Override
-    public Id id() {
-        return this.id;
     }
 
     public String name() {
@@ -283,7 +277,7 @@ public class HugeUser extends Entity {
             this.graph.schemaTransaction().addVertexLabel(label);
 
             // Create index
-            this.createIndex(label, P.UPDATE);
+            this.createRangeIndex(label, P.UPDATE);
         }
 
         private String[] initProperties() {

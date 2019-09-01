@@ -196,8 +196,8 @@ public class UserManager {
         return this.belong.add(belong);
     }
 
-    public void updateBelong(HugeBelong belong) {
-        this.belong.update(belong);
+    public Id updateBelong(HugeBelong belong) {
+        return this.belong.update(belong);
     }
 
     public HugeBelong deleteBelong(Id id) {
@@ -208,20 +208,20 @@ public class UserManager {
         return this.belong.get(id);
     }
 
-    public List<HugeBelong> listBelongs(List<Id> ids) {
+    public List<HugeBelong> listBelong(List<Id> ids) {
         return this.belong.list(ids);
     }
 
-    public List<HugeBelong> listAllBelongs(long limit) {
+    public List<HugeBelong> listAllBelong(long limit) {
         return this.belong.list(limit);
     }
 
-    public List<HugeBelong> listBelongsByUser(Id user, long limit) {
+    public List<HugeBelong> listBelongByUser(Id user, long limit) {
         return this.belong.list(user, Directions.OUT,
                                 HugeBelong.P.BELONG, limit);
     }
 
-    public List<HugeBelong> listBelongsByGroup(Id group, long limit) {
+    public List<HugeBelong> listBelongByGroup(Id group, long limit) {
         return this.belong.list(group, Directions.IN,
                                 HugeBelong.P.BELONG, limit);
     }
@@ -234,8 +234,8 @@ public class UserManager {
         return this.access.add(access);
     }
 
-    public void updateAccess(HugeAccess access) {
-        this.access.update(access);
+    public Id updateAccess(HugeAccess access) {
+        return this.access.update(access);
     }
 
     public HugeAccess deleteAccess(Id id) {
@@ -246,29 +246,29 @@ public class UserManager {
         return this.access.get(id);
     }
 
-    public List<HugeAccess> listAccesss(List<Id> ids) {
+    public List<HugeAccess> listAccess(List<Id> ids) {
         return this.access.list(ids);
     }
 
-    public List<HugeAccess> listAllAccesss(long limit) {
+    public List<HugeAccess> listAllAccess(long limit) {
         return this.access.list(limit);
     }
 
-    public List<HugeAccess> listAccesssByGroup(Id group, long limit) {
+    public List<HugeAccess> listAccessByGroup(Id group, long limit) {
         return this.access.list(group, Directions.OUT,
                                 HugeAccess.P.ACCESS, limit);
     }
 
-    public List<HugeAccess> listAccesssByTarget(Id target, long limit) {
+    public List<HugeAccess> listAccessByTarget(Id target, long limit) {
         return this.access.list(target, Directions.IN,
                                 HugeAccess.P.ACCESS, limit);
     }
 
     public String roleAction(HugeUser user) {
         List<HugeAccess> accesses = new ArrayList<>();;
-        List<HugeBelong> belongs = this.listBelongsByUser(user.id(), -1);
+        List<HugeBelong> belongs = this.listBelongByUser(user.id(), -1);
         for (HugeBelong belong : belongs) {
-            accesses.addAll(this.listAccesssByGroup(belong.target(), -1));
+            accesses.addAll(this.listAccessByGroup(belong.target(), -1));
         }
 
         Map<String, Set<String>> role = new HashMap<>();

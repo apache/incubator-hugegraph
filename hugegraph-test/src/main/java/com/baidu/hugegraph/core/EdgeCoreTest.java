@@ -63,7 +63,6 @@ import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.exception.LimitExceedException;
 import com.baidu.hugegraph.exception.NoIndexException;
-import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeVertex;
@@ -1006,9 +1005,8 @@ public class EdgeCoreTest extends BaseCoreTest {
         init18Edges();
 
         String id = "invalid-id";
-        Assert.assertThrows(NotFoundException.class, () -> {
-            graph.traversal().E(id).toList();
-        });
+        List<Edge> edges = graph.traversal().E(id).toList();
+        Assert.assertEquals(0, edges.size());
     }
 
     @Test

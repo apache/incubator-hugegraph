@@ -70,7 +70,7 @@ public class EdgesAPI extends API {
 
         Object[] ids = new Id[stringIds.size()];
         for (int i = 0; i < ids.length; i++) {
-            ids[i] = HugeEdge.getIdValue(stringIds.get(i));
+            ids[i] = HugeEdge.getIdValue(stringIds.get(i), false);
         }
 
         GremlinGraph g = graph(manager, graph);

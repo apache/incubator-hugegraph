@@ -38,7 +38,6 @@ import com.baidu.hugegraph.util.E;
 
 public class HugeGroup extends Entity {
 
-    private final Id id;
     private String name;
     private String description;
 
@@ -59,11 +58,6 @@ public class HugeGroup extends Entity {
     @Override
     public String label() {
         return P.GROUP;
-    }
-
-    @Override
-    public Id id() {
-        return this.id;
     }
 
     public String name() {
@@ -110,7 +104,7 @@ public class HugeGroup extends Entity {
         E.checkState(this.create != null, "Group create can't be null");
         E.checkState(this.update != null, "Group update can't be null");
 
-        List<Object> list = new ArrayList<>(16);
+        List<Object> list = new ArrayList<>(10);
 
         list.add(T.label);
         list.add(P.GROUP);
@@ -141,7 +135,7 @@ public class HugeGroup extends Entity {
         Map<String, Object> map = new HashMap<>();
 
         if (this.id != null) {
-            // The id is null when creating user
+            // The id is null when creating group
             map.put(Hidden.unHide(P.ID), this.id);
         }
 
@@ -212,7 +206,7 @@ public class HugeGroup extends Entity {
             this.graph.schemaTransaction().addVertexLabel(label);
 
             // Create index
-            this.createIndex(label, P.UPDATE);
+            this.createRangeIndex(label, P.UPDATE);
         }
 
         private String[] initProperties() {
