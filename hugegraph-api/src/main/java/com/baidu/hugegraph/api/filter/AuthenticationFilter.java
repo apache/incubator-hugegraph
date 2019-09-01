@@ -145,12 +145,12 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         public boolean isUserInRole(String required) {
             boolean valid;
             if (required.equals(HugeAuthenticator.ROLE_DYNAMIC)) {
-                // Let the resource itself dynamically determine
+                // Let the resource itself determine dynamically
                 valid = true;
             } else if (required.startsWith(HugeAuthenticator.ROLE_OWNER)) {
                 valid = this.matchPermission(required);
             } else {
-                valid = required.equals(this.user.role());
+                valid = RolePerm.match(this.user.role(), required);
             }
 
             if (!valid && LOG.isDebugEnabled()) {
@@ -171,7 +171,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         }
 
         private boolean matchPermission(String required) {
-            // Role format like: "$owner=name $action=vertex-write"
+            // Permission format like: "$owner=name $action=vertex-write"
             RoleAction roleAction = RoleAction.fromPermission(required);
             RolePerm rolePerm = RolePerm.fromJson(this.role());
 
