@@ -40,7 +40,6 @@ public class HugeBelong extends Relationship {
 
     private final Id user;
     private final Id group;
-//    private HugePermission permission;
     private String description;
 
     public HugeBelong(Id user, Id group) {
@@ -111,7 +110,7 @@ public class HugeBelong extends Relationship {
         E.checkState(this.create != null, "Belong create can't be null");
         E.checkState(this.update != null, "Belong update can't be null");
 
-        List<Object> list = new ArrayList<>(16);
+        List<Object> list = new ArrayList<>(8);
 
         list.add(T.label);
         list.add(P.BELONG);

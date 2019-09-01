@@ -321,6 +321,9 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
         if (type.isVertex()) {
             return id;
         } else {
+            if (id == null || id instanceof EdgeId) {
+                return id;
+            }
             return EdgeId.parse(id.asString());
         }
     }
