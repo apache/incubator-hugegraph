@@ -62,6 +62,8 @@ public class StandardAuthenticator implements HugeAuthenticator {
         String role = this.matchUser(username, StringEncoding.sha256(password));
         if (role == null) {
             role = ROLE_NONE;
+        } else if (username.equals(User.USER_ADMIN)) {
+            role = ROLE_ADMIN;
         }
         return role;
     }

@@ -239,7 +239,7 @@ public class VertexAPI extends BatchAPI {
                             "and more than one property");
         }
 
-        GremlinGraph g = graph(manager, graph);
+        HugeGraph g = graph4vertex(manager, graph);
 
         GraphTraversal<Vertex, Vertex> traversal = g.traversal().V();
         if (label != null) {

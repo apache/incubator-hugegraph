@@ -226,7 +226,7 @@ public class HugeGraphAuthProxy implements GremlinGraph {
          * hugegraph.properties/store must be the same if enable auth.
          */
         String owner = this.hugegraph.name();
-        this.verifyPermission(RoleAction.ownerFor(owner));
+        this.verifyPermission(owner);
     }
 
     private void verifyPermissionAction(String action) {
@@ -240,7 +240,7 @@ public class HugeGraphAuthProxy implements GremlinGraph {
                      "Missing authentication context " +
                      "when accessing a Graph with permission control");
         String role = context.user().role();
-        if (!role.equals(ROLE_ADMIN) && !RolePerm.match(role, permission)) {
+        if (!RolePerm.match(role, permission)) {
             throw new ForbiddenException("Permission denied");
         }
     }
