@@ -190,8 +190,16 @@ public class EdgeId implements Id {
     }
 
     public static EdgeId parse(String id) throws NotFoundException {
+        return parse(id, false);
+    }
+
+    public static EdgeId parse(String id, boolean returnNullIfError)
+                               throws NotFoundException {
         String[] idParts = SplicingIdGenerator.split(id);
         if (!(idParts.length == 4 || idParts.length == 5)) {
+            if (returnNullIfError) {
+                return null;
+            }
             throw new NotFoundException("Edge id must be formatted as 4~5 parts"
                                         + ", but got '%s'", id);
         }
@@ -214,6 +222,9 @@ public class EdgeId implements Id {
                                   edgeLabelId, sortValues, otherVertexId);
             }
         } catch (Exception e) {
+            if (returnNullIfError) {
+                return null;
+            }
             throw new NotFoundException("Invalid format of edge id '%s'", id);
         }
     }

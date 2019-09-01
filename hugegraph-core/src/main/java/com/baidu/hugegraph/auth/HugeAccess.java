@@ -112,10 +112,12 @@ public class HugeAccess extends Relationship {
 
     @Override
     protected Object[] asArray() {
-        E.checkState(this.create != null, "Belong create can't be null");
-        E.checkState(this.update != null, "Belong update can't be null");
+        E.checkState(this.permission != null,
+                     "Access permission can't be null");
+        E.checkState(this.create != null, "Access create can't be null");
+        E.checkState(this.update != null, "Access update can't be null");
 
-        List<Object> list = new ArrayList<>(16);
+        List<Object> list = new ArrayList<>(8);
 
         list.add(T.label);
         list.add(P.ACCESS);
@@ -134,8 +136,10 @@ public class HugeAccess extends Relationship {
 
     @Override
     public Map<String, Object> asMap() {
-        E.checkState(this.create != null, "Belong create can't be null");
-        E.checkState(this.update != null, "Belong update can't be null");
+        E.checkState(this.permission != null,
+                     "Access permission can't be null");
+        E.checkState(this.create != null, "Access create can't be null");
+        E.checkState(this.update != null, "Access update can't be null");
 
         Map<String, Object> map = new HashMap<>();
 

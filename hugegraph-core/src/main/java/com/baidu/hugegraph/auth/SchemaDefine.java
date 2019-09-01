@@ -38,6 +38,7 @@ import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
+import com.baidu.hugegraph.util.E;
 
 public abstract class SchemaDefine {
 
@@ -70,10 +71,10 @@ public abstract class SchemaDefine {
         return name;
     }
 
-    protected IndexLabel createIndex(VertexLabel label, String field) {
+    protected IndexLabel createRangeIndex(VertexLabel label, String field) {
         SchemaManager schema = this.graph.schema();
         String name = Hidden.hide(label + "-index-by-" + field);
-        IndexLabel indexLabel = schema.indexLabel(name)
+        IndexLabel indexLabel = schema.indexLabel(name).range()
                                       .on(HugeType.VERTEX_LABEL, this.label)
                                       .by(field)
                                       .build();
@@ -81,14 +82,23 @@ public abstract class SchemaDefine {
         return indexLabel;
     }
 
-    public static abstract class Entity {
+    public static abstract class Element {
 
+        protected Id id;
         protected Date create;
         protected Date update;
 
-        public Entity() {
+        public Element() {
             this.create = new Date();
             this.update = this.create;
+        }
+
+        public Id id() {
+            return this.id;
+        }
+
+        public void id(Id id) {
+            this.id = id;
         }
 
         public Date create() {
@@ -107,14 +117,25 @@ public abstract class SchemaDefine {
             this.update = update;
         }
 
+        public void onUpdate() {
+            this.update = new Date();
+        }
+
         public abstract String label();
-        public abstract Id id();
+    }
+
+    public static abstract class Entity extends Element {
+
         public abstract Map<String, Object> asMap();
 
         protected abstract void property(String key, Object value);
         protected abstract Object[] asArray();
 
         public static <T extends Entity> T fromVertex(Vertex vertex, T entity) {
+            E.checkArgument(vertex.label().equals(entity.label()),
+                            "Illegal vertex label '%s' for entity '%s'",
+                            vertex.label(), entity.label());
+            entity.id((Id) vertex.id());
             for (Iterator<VertexProperty<Object>> iter = vertex.properties();
                  iter.hasNext();) {
                 VertexProperty<Object> prop = iter.next();
@@ -124,33 +145,8 @@ public abstract class SchemaDefine {
         }
     }
 
-    public static abstract class Relationship {
+    public static abstract class Relationship extends Element {
 
-        protected Date create;
-        protected Date update;
-
-        public Relationship() {
-            this.create = new Date();
-            this.update = this.create;
-        }
-
-        public Date create() {
-            return this.create;
-        }
-
-        public void create(Date create) {
-            this.create = create;
-        }
-
-        public Date update() {
-            return this.update;
-        }
-
-        public void update(Date update) {
-            this.update = update;
-        }
-
-        public abstract String label();
         public abstract String sourceLabel();
         public abstract String targetLabel();
 
@@ -164,6 +160,10 @@ public abstract class SchemaDefine {
 
         public static <T extends Relationship> T fromEdge(Edge edge,
                                                           T relationship) {
+            E.checkArgument(edge.label().equals(relationship.label()),
+                            "Illegal edge label '%s' for entity '%s'",
+                            edge.label(), relationship.label());
+            relationship.id((Id) edge.id());
             for (Iterator<Property<Object>> iter = edge.properties();
                  iter.hasNext();) {
                 Property<Object> prop = iter.next();

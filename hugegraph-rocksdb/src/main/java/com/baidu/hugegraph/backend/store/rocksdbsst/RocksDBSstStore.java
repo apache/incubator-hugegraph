@@ -91,6 +91,11 @@ public abstract class RocksDBSstStore extends RocksDBStore {
         }
 
         @Override
+        public boolean isSchemaStore() {
+            return false;
+        }
+
+        @Override
         public Id nextId(HugeType type) {
             throw new UnsupportedOperationException(
                       "RocksDBSstGraphStore.nextId()");

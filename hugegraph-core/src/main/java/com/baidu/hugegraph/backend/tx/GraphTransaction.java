@@ -574,7 +574,7 @@ public class GraphTransaction extends IndexableTransaction {
         IdQuery query = new IdQuery(HugeType.EDGE);
         for (Object edgeId : edgeIds) {
             HugeEdge edge;
-            Id id = HugeEdge.getIdValue(edgeId);
+            Id id = HugeEdge.getIdValue(edgeId, true);
             if (id == null || this.removedEdges.containsKey(id)) {
                 // The record has been deleted
                 continue;

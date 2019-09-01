@@ -65,8 +65,7 @@ import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.iterator.FilterIterator;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaLabel;
-import com.baidu.hugegraph.structure.HugeEdge;
-import com.baidu.hugegraph.structure.HugeVertex;
+import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
@@ -527,11 +526,7 @@ public final class TraversalUtil {
         if (key == HugeKeys.LABEL && !(value instanceof Id)) {
             value = SchemaLabel.getLabelId(graph, type, value);
         } else if (key == HugeKeys.ID && !(value instanceof Id)) {
-            if (type.isVertex()) {
-                value = HugeVertex.getIdValue(value);
-            } else {
-                value = HugeEdge.getIdValue(value);
-            }
+            value = HugeElement.getIdValue(type, value);
         }
         return value;
     }

@@ -80,6 +80,7 @@ public class RelationshipManager<T extends Relationship> {
 
     public Id update(T relationship) {
         E.checkArgumentNotNull(relationship, "Relationship can't be null");
+        relationship.onUpdate();
         return this.save(relationship);
     }
 
@@ -173,7 +174,17 @@ public class RelationshipManager<T extends Relationship> {
         if (limit != NO_LIMIT) {
             query.limit(limit);
         }
-        return this.tx().queryEdges(query);
+        Iterator<Edge> edges = this.tx().queryEdges(query);
+        if (limit == NO_LIMIT) {
+            return edges;
+        }
+        long[] size = new long[1];
+        return new MapperIterator<>(edges, edge -> {
+            if (++size[0] > limit) {
+                return null;
+            }
+            return edge;
+        });
     }
 
     private Id save(T relationship) {

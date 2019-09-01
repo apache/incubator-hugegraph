@@ -77,6 +77,7 @@ public class EntityManager<T extends Entity> {
 
     public Id update(T entity) {
         E.checkArgumentNotNull(entity, "Entity can't be null");
+        entity.onUpdate();
         return this.save(entity);
     }
 

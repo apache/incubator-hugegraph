@@ -340,8 +340,8 @@ public class HugeGraph implements GremlinGraph {
     public GraphTransaction systemTransaction() {
         this.checkGraphNotClosed();
         /*
-         * NOTE: graph operations must be committed manually,
-         * Maybe users need to auto open tinkerpop tx by readWrite().
+         * NOTE: each system operation will be auto committed,
+         * Don't need to open tinkerpop tx by readWrite() and commit manually.
          */
         this.tx.readWrite();
         return this.tx.systemTransaction();
