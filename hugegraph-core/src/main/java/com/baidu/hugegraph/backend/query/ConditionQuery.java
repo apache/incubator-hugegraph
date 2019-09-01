@@ -21,6 +21,7 @@ package com.baidu.hugegraph.backend.query;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -38,6 +39,8 @@ import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.LongEncoding;
+import com.baidu.hugegraph.util.NumericUtil;
 import com.google.common.base.Function;
 
 public final class ConditionQuery extends IdQuery {
@@ -320,7 +323,7 @@ public final class ConditionQuery extends IdQuery {
                           field, this);
             }
         }
-        return  SplicingIdGenerator.concatValues(values);
+        return concatValues(values);
     }
 
     public Set<Object> userpropValues(Id field) {
@@ -458,5 +461,21 @@ public final class ConditionQuery extends IdQuery {
         if (originQuery instanceof ConditionQuery) {
             ((ConditionQuery) originQuery).registerResultsFilter(filter);
         }
+    }
+
+    public static String concatValues(List<Object> values) {
+        List<Object> newValues = new ArrayList<>(values.size());
+        for (Object v : values) {
+            newValues.add(convertNumberIfNeeded(v));
+        }
+        return SplicingIdGenerator.concatValues(newValues);
+    }
+
+    private static Object convertNumberIfNeeded(Object value) {
+        if (NumericUtil.isNumber(value) || value instanceof Date) {
+            // Numeric or date values should be converted to string
+            return LongEncoding.encodeNumber(value);
+        }
+        return value;
     }
 }

@@ -23,7 +23,6 @@ import java.nio.CharBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -43,7 +42,6 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.analyzer.Analyzer;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.page.IdHolder;
 import com.baidu.hugegraph.backend.page.IdHolderList;
 import com.baidu.hugegraph.backend.page.PageIds;
@@ -214,7 +212,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 // Secondary index maybe include multi prefix index
                 for (int i = 0, n = propValues.size(); i < n; i++) {
                     List<Object> prefixValues = propValues.subList(0, i + 1);
-                    value = SplicingIdGenerator.concatValues(prefixValues);
+                    value = ConditionQuery.concatValues(prefixValues);
 
                     // Use `\u0000` as escape for empty String and treat it as
                     // illegal value for text property
@@ -229,11 +227,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 }
                 break;
             case SHARD:
-                List<Object> values = new ArrayList<>(propValues.size());
-                for (Object v : propValues) {
-                    values.add(convertNumberIfNeeded(v));
-                }
-                value = SplicingIdGenerator.concatValues(values);
+                value = ConditionQuery.concatValues(propValues);
                 // Use `\u0000` as escape for empty String and treat it as
                 // illegal value for text property
                 E.checkArgument(!value.equals(INDEX_EMPTY_SYM),
@@ -245,7 +239,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 this.updateIndex(indexLabel, value, element.id(), removed);
                 break;
             case UNIQUE:
-                value = SplicingIdGenerator.concatValues(allPropValues);
+                value = ConditionQuery.concatValues(allPropValues);
                 // Use `\u0000` as escape for empty String and treat it as
                 // illegal value for text property
                 E.checkArgument(!value.equals(INDEX_EMPTY_SYM),
@@ -1025,9 +1019,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
             if (!range.hasRange()) {
                 E.checkArgument(range.keyEq() != null,
                                 "Invalid query: %s", query);
-                Object value = range.keyEq();
-                // Prefix numeric values should be converted to sortable string
-                prefixes.add(convertNumberIfNeeded(value));
+                prefixes.add(range.keyEq());
                 continue;
             }
 
@@ -1079,7 +1071,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
         String joinedValues;
         // 2.1 All fields have equal-conditions
         if (prefixes.size() == fields.size()) {
-            joinedValues = SplicingIdGenerator.concatValues(prefixes);
+            // Prefix numeric values should be converted to sortable string
+            joinedValues = ConditionQuery.concatValues(prefixes);
             conditions.add(Condition.eq(key, joinedValues));
             return conditions;
         }
@@ -1089,7 +1082,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
          * with IdGenerator.NAME_SPLITOR
          */
         prefixes.add(Strings.EMPTY);
-        joinedValues = SplicingIdGenerator.concatValues(prefixes);
+        joinedValues = ConditionQuery.concatValues(prefixes);
         Condition min = Condition.gte(key, joinedValues);
         conditions.add(min);
 
@@ -1113,7 +1106,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
         }
         List<Object> values = new ArrayList<>(prefixes);
         values.add(num);
-        String value = SplicingIdGenerator.concatValues(values);
+        String value = ConditionQuery.concatValues(values);
         return new Condition.SyspropRelation(key, type, value);
     }
 
@@ -1125,13 +1118,6 @@ public class GraphIndexTransaction extends AbstractTransaction {
                         "Invalid character '%s' for String index", last);
         cbuf.put(length - 1,  (char) (last + 1));
         return cbuf.toString();
-    }
-
-    private static Object convertNumberIfNeeded(Object value) {
-        if (NumericUtil.isNumber(value) || value instanceof Date) {
-            return LongEncoding.encodeNumber(value);
-        }
-        return value;
     }
 
     private static boolean matchIndexFields(Set<Id> queryKeys,

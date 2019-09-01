@@ -209,7 +209,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
             E.checkState(property != null,
                          "The value of primary key '%s' can't be null",
                          this.graph().propertyKey(pk).name());
-            propValues.add(property.value());
+            propValues.add(property.serialValue());
         }
         return propValues;
     }

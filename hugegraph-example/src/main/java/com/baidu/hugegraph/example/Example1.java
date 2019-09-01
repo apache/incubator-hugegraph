@@ -277,7 +277,7 @@ public class Example1 {
                            vertexList);
 
         VertexLabel author = graph.schema().getVertexLabel("author");
-        String authorId = String.format("%s:%s", author.id().asString(), "1");
+        String authorId = String.format("%s:%s", author.id().asString(), "11");
 
         // query vertex by id and query out edges
         vertices = graph.traversal().V(authorId);
@@ -417,7 +417,7 @@ public class Example1 {
 
         // remove edge
         VertexLabel author = graph.schema().getVertexLabel("author");
-        String authorId = String.format("%s:%s", author.id().asString(), "1");
+        String authorId = String.format("%s:%s", author.id().asString(), "11");
         EdgeLabel authored = graph.edgeLabel("authored");
         VertexLabel book = graph.schema().getVertexLabel("book");
         String book2Id = String.format("%s:%s", book.id().asString(), "java-2");
@@ -426,6 +426,7 @@ public class Example1 {
                                       authorId, authored.id(), "", book2Id);
 
         List <Edge> edges = graph.traversal().E(edgeId).toList();
+        assert edges.size() == 1;
         Edge edge = edges.get(0);
         System.out.println(">>>> removing edge: " + edge);
         edge.remove();

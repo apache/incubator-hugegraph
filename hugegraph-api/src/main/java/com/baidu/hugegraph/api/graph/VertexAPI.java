@@ -51,6 +51,7 @@ import com.baidu.hugegraph.api.filter.DecompressInterceptor.Decompress;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
+import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.core.GraphManager;
@@ -335,7 +336,7 @@ public class VertexAPI extends BatchAPI {
                 pkValues.add(propertyValue);
             }
 
-            String value = SplicingIdGenerator.concatValues(pkValues);
+            String value = ConditionQuery.concatValues(pkValues);
             return SplicingIdGenerator.splicing(labelId, value);
         } else {
             assert idStrategy == IdStrategy.CUSTOMIZE_NUMBER ||
