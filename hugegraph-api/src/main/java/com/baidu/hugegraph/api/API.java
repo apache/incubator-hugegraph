@@ -88,6 +88,16 @@ public class API {
         return graph(manager, graph).hugegraph(permission);
     }
 
+    public static HugeGraph graph4vertex(GraphManager manager, String graph) {
+        String permission = HugePermission.VERTEX_READ.string();
+        return graph(manager, graph).hugegraph(permission);
+    }
+
+    public static HugeGraph graph4edge(GraphManager manager, String graph) {
+        String permission = HugePermission.EDGE_READ.string();
+        return graph(manager, graph).hugegraph(permission);
+    }
+
     public static HugeGraph graph4path(GraphManager manager, String graph) {
         String permission = HugePermission.PATH_READ.string();
         return graph(manager, graph).hugegraph(permission);

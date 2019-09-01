@@ -50,7 +50,6 @@ public interface HugeAuthenticator extends Authenticator {
 
     public static final String ROLE_NONE = "";
     public static final String ROLE_ADMIN = "admin";
-    public static final String ROLE_USER = "user";
     public static final String ROLE_OWNER = "$owner";
     public static final String ROLE_DYNAMIC = "$dynamic";
 
@@ -110,10 +109,31 @@ public interface HugeAuthenticator extends Authenticator {
         }
     }
 
+    public static HugeAuthenticator loadAuthenticator(HugeConfig conf) {
+        String authClass = conf.get(ServerOptions.AUTHENTICATOR);
+        if (authClass.isEmpty()) {
+            return null;
+        }
+
+        HugeAuthenticator authenticator;
+        ClassLoader cl = conf.getClass().getClassLoader();
+        try {
+            authenticator = (HugeAuthenticator) cl.loadClass(authClass)
+                                                  .newInstance();
+        } catch (Exception e) {
+            throw new HugeException("Failed to load authenticator: '%s'",
+                                    authClass, e);
+        }
+
+        authenticator.setup(conf);
+
+        return authenticator;
+    }
+
     public static class User extends AuthenticatedUser {
 
-        protected static final String USER_ADMIN = ROLE_ADMIN;
-        protected static final String USER_ANONY = ANONYMOUS_USERNAME;
+        public static final String USER_ADMIN = ROLE_ADMIN;
+        public static final String USER_ANONY = ANONYMOUS_USERNAME;
 
         public static final User ADMIN = new User(USER_ADMIN, ROLE_ADMIN);
         public static final User ANONYMOUS = new User(USER_ANONY, ROLE_ADMIN);
@@ -235,8 +255,15 @@ public interface HugeAuthenticator extends Authenticator {
         }
 
         public static boolean match(String role, String required) {
-            RoleAction roleAction = RoleAction.fromPermission(required);
+            if (role.equals(ROLE_ADMIN)) {
+                return true;
+            }
             RolePerm rolePerm = RolePerm.fromJson(role);
+            if (!required.startsWith(ROLE_OWNER)) {
+                // Any action is OK if the owner is matched
+                return rolePerm.matchOwner(required);
+            }
+            RoleAction roleAction = RoleAction.fromPermission(required);
             return rolePerm.matchPermission(roleAction.owner(),
                                             roleAction.actions());
         }
@@ -312,26 +339,5 @@ public interface HugeAuthenticator extends Authenticator {
 
             return rolePermission;
         }
-    }
-
-    public static HugeAuthenticator loadAuthenticator(HugeConfig conf) {
-        String authClass = conf.get(ServerOptions.AUTHENTICATOR);
-        if (authClass.isEmpty()) {
-            return null;
-        }
-
-        HugeAuthenticator authenticator;
-        ClassLoader cl = conf.getClass().getClassLoader();
-        try {
-            authenticator = (HugeAuthenticator) cl.loadClass(authClass)
-                                                  .newInstance();
-        } catch (Exception e) {
-            throw new HugeException("Failed to load authenticator: '%s'",
-                                    authClass, e);
-        }
-
-        authenticator.setup(conf);
-
-        return authenticator;
     }
 }

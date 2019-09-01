@@ -295,7 +295,7 @@ public class EdgeAPI extends BatchAPI {
         Id vertex = VertexAPI.checkAndParseVertexId(vertexId);
         Direction dir = parseDirection(direction);
 
-        GremlinGraph g = graph(manager, graph);
+        HugeGraph g = graph4edge(manager, graph);
 
         GraphTraversal<?, Edge> traversal;
         if (vertex != null) {
