@@ -99,14 +99,13 @@ public class GraphTransaction extends IndexableTransaction {
 
     private Map<Id, HugeEdge> addedEdges;
     private Map<Id, HugeEdge> removedEdges;
+    private Set<HugeProperty<?>> addedProps;
+    private Set<HugeProperty<?>> removedProps;
 
     // These are used to rollback state
     private Map<Id, HugeVertex> updatedVertices;
     private Map<Id, HugeEdge> updatedEdges;
     private Set<HugeProperty<?>> updatedOldestProps; // Oldest props
-
-    private Set<HugeProperty<?>> addedProps;
-    private Set<HugeProperty<?>> removedProps;
 
     private LockUtil.LocksTable locksTable;
 
@@ -302,6 +301,7 @@ public class GraphTransaction extends IndexableTransaction {
             if (p.element().type().isVertex()) {
                 HugeVertexProperty<?> prop = (HugeVertexProperty<?>) p;
                 if (this.store().features().supportsUpdateVertexProperty()) {
+                    // Update vertex index without removed property
                     this.indexTx.updateVertexIndex(prop.element(), false);
                     // Eliminate the property(OUT and IN owner edge)
                     this.doEliminate(this.serializer.writeVertexProperty(prop));
@@ -313,6 +313,7 @@ public class GraphTransaction extends IndexableTransaction {
                 assert p.element().type().isEdge();
                 HugeEdgeProperty<?> prop = (HugeEdgeProperty<?>) p;
                 if (this.store().features().supportsUpdateEdgeProperty()) {
+                    // Update edge index without removed property
                     this.indexTx.updateEdgeIndex(prop.element(), false);
                     // Eliminate the property(OUT and IN owner edge)
                     this.doEliminate(this.serializer.writeEdgeProperty(prop));
@@ -328,6 +329,7 @@ public class GraphTransaction extends IndexableTransaction {
             if (p.element().type().isVertex()) {
                 HugeVertexProperty<?> prop = (HugeVertexProperty<?>) p;
                 if (this.store().features().supportsUpdateVertexProperty()) {
+                    // Update vertex index with new added property
                     this.indexTx.updateVertexIndex(prop.element(), false);
                     // Append new property(OUT and IN owner edge)
                     this.doAppend(this.serializer.writeVertexProperty(prop));
@@ -339,6 +341,7 @@ public class GraphTransaction extends IndexableTransaction {
                 assert p.element().type().isEdge();
                 HugeEdgeProperty<?> prop = (HugeEdgeProperty<?>) p;
                 if (this.store().features().supportsUpdateEdgeProperty()) {
+                    // Update edge index with new added property
                     this.indexTx.updateEdgeIndex(prop.element(), false);
                     // Append new property(OUT and IN owner edge)
                     this.doAppend(this.serializer.writeEdgeProperty(prop));
@@ -773,8 +776,7 @@ public class GraphTransaction extends IndexableTransaction {
         this.lockForUpdateProperty(vertex.schemaLabel(), prop, () -> {
             // Update old vertex to remove index (without new property)
             this.indexTx.updateVertexIndex(vertex, true);
-
-            // Update index of current vertex (with new property)
+            // Update(add) vertex property
             this.propertyUpdated(vertex, prop, vertex.setProperty(prop));
         });
     }
@@ -814,8 +816,7 @@ public class GraphTransaction extends IndexableTransaction {
         this.lockForUpdateProperty(vertex.schemaLabel(), prop, () -> {
             // Update old vertex to remove index (with the property)
             this.indexTx.updateVertexIndex(vertex, true);
-
-            // Update index of current vertex (without the property)
+            // Update(remove) vertex property
             HugeProperty<?> removed = vertex.removeProperty(propKey.id());
             this.propertyUpdated(vertex, null, removed);
         });
@@ -853,8 +854,7 @@ public class GraphTransaction extends IndexableTransaction {
         this.lockForUpdateProperty(edge.schemaLabel(), prop, () -> {
             // Update old edge to remove index (without new property)
             this.indexTx.updateEdgeIndex(edge, true);
-
-            // Update index of current edge (with new property)
+            // Update(add) edge property
             this.propertyUpdated(edge, prop, edge.setProperty(prop));
         });
     }
@@ -893,8 +893,7 @@ public class GraphTransaction extends IndexableTransaction {
         this.lockForUpdateProperty(edge.schemaLabel(), prop, () -> {
             // Update old edge to remove index (with the property)
             this.indexTx.updateEdgeIndex(edge, true);
-
-            // Update index of current edge (without the property)
+            // Update(remove) edge property
             this.propertyUpdated(edge, null,
                                  edge.removeProperty(propKey.id()));
         });
