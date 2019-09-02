@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.backend.store.cassandra;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -28,13 +29,17 @@ import java.util.Set;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
+import com.baidu.hugegraph.backend.id.IdUtil;
+import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.baidu.hugegraph.backend.serializer.TableBackendEntry;
 import com.baidu.hugegraph.backend.serializer.TableSerializer;
 import com.baidu.hugegraph.backend.store.BackendEntry;
+import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.JsonUtil;
@@ -62,7 +67,7 @@ public class CassandraSerializer extends TableSerializer {
     }
 
     @Override
-    protected Set<String> parseIndexElemIds(TableBackendEntry entry) {
+    protected Set<Object> parseIndexElemIds(TableBackendEntry entry) {
         return ImmutableSet.of(entry.column(HugeKeys.ELEMENT_IDS));
     }
 
@@ -110,9 +115,7 @@ public class CassandraSerializer extends TableSerializer {
         } else {
             // Format properties
             for (HugeProperty<?> prop : element.getProperties().values()) {
-                row.column(HugeKeys.PROPERTIES,
-                           prop.propertyKey().id().asLong(),
-                           JsonUtil.toJson(prop.value()));
+                this.formatProperty(prop, row);
             }
         }
     }
@@ -120,11 +123,46 @@ public class CassandraSerializer extends TableSerializer {
     @Override
     protected void parseProperties(HugeElement element,
                                    TableBackendEntry.Row row) {
-        Map<Number, String> props = row.column(HugeKeys.PROPERTIES);
-        for (Map.Entry<Number, String> prop : props.entrySet()) {
-            Id pkeyId = toId(prop.getKey());
+        Map<Number, Object> props = row.column(HugeKeys.PROPERTIES);
+        for (Map.Entry<Number, Object> prop : props.entrySet()) {
+            Id pkeyId = this.toId(prop.getKey());
             this.parseProperty(pkeyId, prop.getValue(), element);
         }
+    }
+
+    @Override
+    protected Object writeProperty(HugeProperty<?> property) {
+        BytesBuffer buffer = BytesBuffer.allocate(BytesBuffer.BUF_PROPERTY);
+        buffer.writeProperty(property.propertyKey(), property.value());
+        buffer.flip();
+        return buffer.asByteBuffer();
+    }
+
+    @Override
+    protected Object writeProperty(Object value) {
+        PropertyKey pkey = new PropertyKey(null, IdGenerator.of(0L), "fake");
+        pkey.dataType(DataType.fromClass(value.getClass()));
+        BytesBuffer buffer = BytesBuffer.allocate(BytesBuffer.BUF_PROPERTY);
+        buffer.writeProperty(pkey, value);
+        buffer.flip();
+        return buffer.asByteBuffer();
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected <T> T readProperty(PropertyKey pkey, Object value) {
+        BytesBuffer buffer = BytesBuffer.wrap((ByteBuffer) value);
+        return (T) buffer.readProperty(pkey);
+    }
+
+    @Override
+    protected Object writeId(Id id) {
+        return IdUtil.writeBinString(id);
+    }
+
+    @Override
+    protected Id readId(Object id) {
+        return IdUtil.readBinString(id);
     }
 
     @Override

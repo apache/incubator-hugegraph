@@ -287,7 +287,9 @@ public class MysqlTables {
         @Override
         public List<Object> idColumnValue(Id id) {
             EdgeId edgeId;
-            if (!(id instanceof EdgeId)) {
+            if (id instanceof EdgeId) {
+                edgeId = (EdgeId) id;
+            } else {
                 String[] idParts = EdgeId.split(id);
                 if (idParts.length == 1) {
                     // Delete edge by label
@@ -295,8 +297,6 @@ public class MysqlTables {
                 }
                 id = IdUtil.readString(id.asString());
                 edgeId = EdgeId.parse(id.asString());
-            } else {
-                edgeId = (EdgeId) id;
             }
 
             E.checkState(edgeId.direction() == this.direction,

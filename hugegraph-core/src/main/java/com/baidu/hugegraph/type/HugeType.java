@@ -170,4 +170,8 @@ public enum HugeType implements SerialEnum {
     public static HugeType fromString(String type) {
         return ALL_NAME.get(type);
     }
+
+    public static HugeType fromCode(byte code) {
+        return SerialEnum.fromCode(HugeType.class, code);
+    }
 }

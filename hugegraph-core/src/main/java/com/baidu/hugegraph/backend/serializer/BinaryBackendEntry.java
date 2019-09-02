@@ -180,7 +180,7 @@ public class BinaryBackendEntry implements BackendEntry {
 
         @Override
         public Object asObject() {
-            return this.asBytes();
+            return ByteBuffer.wrap(this.bytes);
         }
 
         @Override

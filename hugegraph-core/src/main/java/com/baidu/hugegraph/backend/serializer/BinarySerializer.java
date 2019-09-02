@@ -162,7 +162,7 @@ public class BinarySerializer extends AbstractSerializer {
     }
 
     protected BackendColumn formatProperty(HugeProperty<?> prop) {
-        BytesBuffer buffer = BytesBuffer.allocate(64);
+        BytesBuffer buffer = BytesBuffer.allocate(BytesBuffer.BUF_PROPERTY);
         buffer.writeProperty(prop.propertyKey(), prop.value());
         return BackendColumn.of(this.formatPropertyName(prop), buffer.bytes());
     }
@@ -212,16 +212,8 @@ public class BinarySerializer extends AbstractSerializer {
 
     protected byte[] formatEdgeName(HugeEdge edge) {
         // owner-vertex + dir + edge-label + sort-values + other-vertex
-
-        BytesBuffer buffer = BytesBuffer.allocate(256);
-
-        buffer.writeId(edge.ownerVertex().id());
-        buffer.write(edge.type().code());
-        buffer.writeId(edge.schemaLabel().id());
-        buffer.writeStringWithEnding(edge.name());
-        buffer.writeId(edge.otherVertex().id());
-
-        return buffer.bytes();
+        return BytesBuffer.allocate(BytesBuffer.BUF_EDGE_ID)
+                          .writeEdgeId(edge.id()).bytes();
     }
 
     protected byte[] formatEdgeValue(HugeEdge edge) {
@@ -568,7 +560,7 @@ public class BinarySerializer extends AbstractSerializer {
 
     private Query writeQueryEdgePrefixCondition(ConditionQuery cq) {
         int count = 0;
-        BytesBuffer buffer = BytesBuffer.allocate(64);
+        BytesBuffer buffer = BytesBuffer.allocate(BytesBuffer.BUF_EDGE_ID);
         for (HugeKeys key : EdgeId.KEYS) {
             Object value = cq.condition(key);
 
@@ -737,13 +729,8 @@ public class BinarySerializer extends AbstractSerializer {
         } else {
             edgeId = EdgeId.parse(id.asString());
         }
-        BytesBuffer buffer = BytesBuffer.allocate(256);
-        buffer.writeId(edgeId.ownerVertexId());
-        buffer.write(edgeId.direction().type().code());
-        buffer.writeId(edgeId.edgeLabelId());
-        buffer.writeStringWithEnding(edgeId.sortValues());
-        buffer.writeId(edgeId.otherVertexId());
-
+        BytesBuffer buffer = BytesBuffer.allocate(BytesBuffer.BUF_EDGE_ID)
+                                        .writeEdgeId(edgeId);
         return new BinaryId(buffer.bytes(), id);
     }
 

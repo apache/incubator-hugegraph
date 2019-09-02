@@ -19,9 +19,12 @@
 
 package com.baidu.hugegraph.backend.id;
 
+import java.nio.ByteBuffer;
+
 import org.apache.commons.lang3.StringUtils;
 
 import com.baidu.hugegraph.backend.id.Id.IdType;
+import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 
 public final class IdUtil {
 
@@ -55,6 +58,18 @@ public final class IdUtil {
             default:
                 throw new AssertionError("Invalid id type " + type);
         }
+    }
+
+    public static Object writeBinString(Id id) {
+        int len = id.edge() ? BytesBuffer.BUF_EDGE_ID : id.length() + 1;
+        BytesBuffer buffer = BytesBuffer.allocate(len).writeId(id);
+        buffer.flip();
+        return buffer.asByteBuffer();
+    }
+
+    public static Id readBinString(Object id) {
+        BytesBuffer buffer = BytesBuffer.wrap((ByteBuffer) id);
+        return buffer.readId();
     }
 
     public static String writeString(Id id) {

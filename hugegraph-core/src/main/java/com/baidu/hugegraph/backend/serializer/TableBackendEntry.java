@@ -82,11 +82,15 @@ public class TableBackendEntry implements BackendEntry {
                     this.column(key, value);
                     break;
                 case SET:
-                    this.columns.putIfAbsent(key,  new LinkedHashSet<>());
+                    if (!this.columns.containsKey(key)) {
+                        this.columns.putIfAbsent(key, new LinkedHashSet<>());
+                    }
                     this.<Set<T>>column(key).add(value);
                     break;
                 case LIST:
-                    this.columns.putIfAbsent(key,  new LinkedList<>());
+                    if (!this.columns.containsKey(key)) {
+                        this.columns.putIfAbsent(key, new LinkedList<>());
+                    }
                     this.<List<T>>column(key).add(value);
                     break;
                 default:
@@ -95,7 +99,9 @@ public class TableBackendEntry implements BackendEntry {
         }
 
         public <T> void column(HugeKeys key, Object name, T value) {
-            this.columns.putIfAbsent(key, new ConcurrentHashMap<>());
+            if (!this.columns.containsKey(key)) {
+                this.columns.putIfAbsent(key, new ConcurrentHashMap<>());
+            }
             this.<Map<Object, T>>column(key).put(name, value);
         }
 

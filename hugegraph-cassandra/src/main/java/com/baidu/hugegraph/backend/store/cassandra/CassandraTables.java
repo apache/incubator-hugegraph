@@ -52,12 +52,15 @@ public class CassandraTables {
     public static final String LABEL_INDEX = "label_index";
     public static final String NAME_INDEX = "name_index";
 
-    private static final DataType DATATYPE_PK = DataType.cint();
-    private static final DataType DATATYPE_SL = DataType.cint(); // VL/EL
-    private static final DataType DATATYPE_IL = DataType.cint();
+    private static final DataType TYPE_PK = DataType.cint();
+    private static final DataType TYPE_SL = DataType.cint(); // VL/EL
+    private static final DataType TYPE_IL = DataType.cint();
 
-    private static final DataType DATATYPE_UD = DataType.map(DataType.text(),
-                                                             DataType.text());
+    private static final DataType TYPE_UD = DataType.map(DataType.text(),
+                                                         DataType.text());
+
+    private static final DataType TYPE_ID = DataType.blob();
+    private static final DataType TYPE_PROP = DataType.blob();
 
     private static final int COMMIT_DELETE_BATCH = 1000;
 
@@ -116,19 +119,19 @@ public class CassandraTables {
         @Override
         public void init(CassandraSessionPool.Session session) {
             ImmutableMap<HugeKeys, DataType> pkeys = ImmutableMap.of(
-                    HugeKeys.ID, DATATYPE_SL
+                    HugeKeys.ID, TYPE_SL
             );
             ImmutableMap<HugeKeys, DataType> ckeys = ImmutableMap.of();
             ImmutableMap<HugeKeys, DataType> columns = ImmutableMap
                     .<HugeKeys, DataType>builder()
                     .put(HugeKeys.NAME, DataType.text())
                     .put(HugeKeys.ID_STRATEGY, DataType.tinyint())
-                    .put(HugeKeys.PRIMARY_KEYS, DataType.list(DATATYPE_PK))
-                    .put(HugeKeys.NULLABLE_KEYS, DataType.set(DATATYPE_PK))
-                    .put(HugeKeys.INDEX_LABELS, DataType.set(DATATYPE_IL))
-                    .put(HugeKeys.PROPERTIES, DataType.set(DATATYPE_PK))
+                    .put(HugeKeys.PRIMARY_KEYS, DataType.list(TYPE_PK))
+                    .put(HugeKeys.NULLABLE_KEYS, DataType.set(TYPE_PK))
+                    .put(HugeKeys.INDEX_LABELS, DataType.set(TYPE_IL))
+                    .put(HugeKeys.PROPERTIES, DataType.set(TYPE_PK))
                     .put(HugeKeys.ENABLE_LABEL_INDEX, DataType.cboolean())
-                    .put(HugeKeys.USER_DATA, DATATYPE_UD)
+                    .put(HugeKeys.USER_DATA, TYPE_UD)
                     .put(HugeKeys.STATUS, DataType.tinyint())
                     .build();
 
@@ -148,21 +151,21 @@ public class CassandraTables {
         @Override
         public void init(CassandraSessionPool.Session session) {
             ImmutableMap<HugeKeys, DataType> pkeys = ImmutableMap.of(
-                    HugeKeys.ID, DATATYPE_SL
+                    HugeKeys.ID, TYPE_SL
             );
             ImmutableMap<HugeKeys, DataType> ckeys = ImmutableMap.of();
             ImmutableMap<HugeKeys, DataType> columns = ImmutableMap
                     .<HugeKeys, DataType>builder()
                     .put(HugeKeys.NAME, DataType.text())
                     .put(HugeKeys.FREQUENCY, DataType.tinyint())
-                    .put(HugeKeys.SOURCE_LABEL, DATATYPE_SL)
-                    .put(HugeKeys.TARGET_LABEL, DATATYPE_SL)
-                    .put(HugeKeys.SORT_KEYS, DataType.list(DATATYPE_PK))
-                    .put(HugeKeys.NULLABLE_KEYS, DataType.set(DATATYPE_PK))
-                    .put(HugeKeys.INDEX_LABELS, DataType.set(DATATYPE_IL))
-                    .put(HugeKeys.PROPERTIES, DataType.set(DATATYPE_PK))
+                    .put(HugeKeys.SOURCE_LABEL, TYPE_SL)
+                    .put(HugeKeys.TARGET_LABEL, TYPE_SL)
+                    .put(HugeKeys.SORT_KEYS, DataType.list(TYPE_PK))
+                    .put(HugeKeys.NULLABLE_KEYS, DataType.set(TYPE_PK))
+                    .put(HugeKeys.INDEX_LABELS, DataType.set(TYPE_IL))
+                    .put(HugeKeys.PROPERTIES, DataType.set(TYPE_PK))
                     .put(HugeKeys.ENABLE_LABEL_INDEX, DataType.cboolean())
-                    .put(HugeKeys.USER_DATA, DATATYPE_UD)
+                    .put(HugeKeys.USER_DATA, TYPE_UD)
                     .put(HugeKeys.STATUS, DataType.tinyint())
                     .build();
 
@@ -190,8 +193,8 @@ public class CassandraTables {
                     .put(HugeKeys.NAME, DataType.text())
                     .put(HugeKeys.DATA_TYPE, DataType.tinyint())
                     .put(HugeKeys.CARDINALITY, DataType.tinyint())
-                    .put(HugeKeys.PROPERTIES, DataType.set(DATATYPE_PK))
-                    .put(HugeKeys.USER_DATA, DATATYPE_UD)
+                    .put(HugeKeys.PROPERTIES, DataType.set(TYPE_PK))
+                    .put(HugeKeys.USER_DATA, TYPE_UD)
                     .put(HugeKeys.STATUS, DataType.tinyint())
                     .build();
 
@@ -211,16 +214,16 @@ public class CassandraTables {
         @Override
         public void init(CassandraSessionPool.Session session) {
             ImmutableMap<HugeKeys, DataType> pkeys = ImmutableMap.of(
-                    HugeKeys.ID, DATATYPE_IL
+                    HugeKeys.ID, TYPE_IL
             );
             ImmutableMap<HugeKeys, DataType> ckeys = ImmutableMap.of();
             ImmutableMap<HugeKeys, DataType> columns = ImmutableMap
                     .<HugeKeys, DataType>builder()
                     .put(HugeKeys.NAME, DataType.text())
                     .put(HugeKeys.BASE_TYPE, DataType.tinyint())
-                    .put(HugeKeys.BASE_VALUE, DATATYPE_SL)
+                    .put(HugeKeys.BASE_VALUE, TYPE_SL)
                     .put(HugeKeys.INDEX_TYPE, DataType.tinyint())
-                    .put(HugeKeys.FIELDS, DataType.list(DATATYPE_PK))
+                    .put(HugeKeys.FIELDS, DataType.list(TYPE_PK))
                     .put(HugeKeys.STATUS, DataType.tinyint())
                     .build();
 
@@ -240,13 +243,12 @@ public class CassandraTables {
         @Override
         public void init(CassandraSessionPool.Session session) {
             ImmutableMap<HugeKeys, DataType> pkeys = ImmutableMap.of(
-                    HugeKeys.ID, DataType.text()
+                    HugeKeys.ID, TYPE_ID
             );
             ImmutableMap<HugeKeys, DataType> ckeys = ImmutableMap.of();
             ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of(
-                    HugeKeys.LABEL, DATATYPE_SL,
-                    HugeKeys.PROPERTIES, DataType.map(DATATYPE_PK,
-                                                      DataType.text())
+                    HugeKeys.LABEL, TYPE_SL,
+                    HugeKeys.PROPERTIES, DataType.map(TYPE_PK, TYPE_PROP)
             );
 
             this.createTable(session, pkeys, ckeys, columns);
@@ -304,17 +306,16 @@ public class CassandraTables {
         @Override
         public void init(CassandraSessionPool.Session session) {
             ImmutableMap<HugeKeys, DataType> pkeys = ImmutableMap.of(
-                    HugeKeys.OWNER_VERTEX, DataType.text()
+                    HugeKeys.OWNER_VERTEX, TYPE_ID
             );
             ImmutableMap<HugeKeys, DataType> ckeys = ImmutableMap.of(
                     HugeKeys.DIRECTION, DataType.tinyint(),
-                    HugeKeys.LABEL, DATATYPE_SL,
+                    HugeKeys.LABEL, TYPE_SL,
                     HugeKeys.SORT_VALUES, DataType.text(),
-                    HugeKeys.OTHER_VERTEX, DataType.text()
+                    HugeKeys.OTHER_VERTEX, TYPE_ID
             );
             ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of(
-                    HugeKeys.PROPERTIES, DataType.map(DATATYPE_PK,
-                                                      DataType.text())
+                    HugeKeys.PROPERTIES, DataType.map(TYPE_PK, TYPE_PROP)
             );
 
             this.createTable(session, pkeys, ckeys, columns);
@@ -341,7 +342,9 @@ public class CassandraTables {
         @Override
         protected List<Object> idColumnValue(Id id) {
             EdgeId edgeId;
-            if (!(id instanceof EdgeId)) {
+            if (id instanceof EdgeId) {
+                edgeId = (EdgeId) id;
+            } else {
                 String[] idParts = EdgeId.split(id);
                 if (idParts.length == 1) {
                     // Delete edge by label
@@ -349,8 +352,6 @@ public class CassandraTables {
                 }
                 id = IdUtil.readString(id.asString());
                 edgeId = EdgeId.parse(id.asString());
-            } else {
-                edgeId = (EdgeId) id;
             }
 
             E.checkState(edgeId.direction() == this.direction,
@@ -361,12 +362,13 @@ public class CassandraTables {
         }
 
         protected final List<Object> idColumnValue(EdgeId edgeId) {
+            // TODO: move to Serializer
             List<Object> list = new ArrayList<>(5);
-            list.add(IdUtil.writeStoredString(edgeId.ownerVertexId()));
-            list.add(edgeId.direction().code());
+            list.add(IdUtil.writeBinString(edgeId.ownerVertexId()));
+            list.add(edgeId.directionCode());
             list.add(edgeId.edgeLabelId().asLong());
             list.add(edgeId.sortValues());
-            list.add(IdUtil.writeStoredString(edgeId.otherVertexId()));
+            list.add(IdUtil.writeBinString(edgeId.otherVertexId()));
             return list;
         }
 
@@ -417,11 +419,11 @@ public class CassandraTables {
             for (Iterator<Row> it = rs.iterator(); it.hasNext();) {
                 Row row = it.next();
                 // Delete OUT edges from edges_out table
-                String ownerVertex = row.get(OWNER_VERTEX, String.class);
+                Object ownerVertex = row.getObject(OWNER_VERTEX);
                 session.add(buildDelete(label, ownerVertex, Directions.OUT));
 
                 // Delete IN edges from edges_in table
-                String otherVertex = row.get(OTHER_VERTEX, String.class);
+                Object otherVertex = row.getObject(OTHER_VERTEX);
                 session.add(buildDelete(label, otherVertex, Directions.IN));
 
                 count += 2;
@@ -432,11 +434,12 @@ public class CassandraTables {
             }
         }
 
-        private Delete buildDelete(Id label, String ownerVertex,
+        private Delete buildDelete(Id label, Object ownerVertex,
                                    Directions direction) {
             Delete delete = QueryBuilder.delete().from(edgesTable(direction));
             delete.where(formatEQ(HugeKeys.OWNER_VERTEX, ownerVertex));
-            delete.where(formatEQ(HugeKeys.DIRECTION, direction.code()));
+            delete.where(formatEQ(HugeKeys.DIRECTION,
+                                  EdgeId.directionToCode(direction)));
             delete.where(formatEQ(HugeKeys.LABEL, label.asLong()));
             return delete;
         }
@@ -455,9 +458,8 @@ public class CassandraTables {
                          "The next entry must be EDGE");
 
             if (current != null) {
-                Id nextVertexId = IdGenerator.of(
-                                  next.<String>column(HugeKeys.OWNER_VERTEX));
-                if (current.id().equals(nextVertexId)) {
+                Object nextVertexId = next.column(HugeKeys.OWNER_VERTEX);
+                if (current.id().equals(IdGenerator.of(nextVertexId))) {
                     current.subRow(next.row());
                     return current;
                 }
@@ -468,7 +470,7 @@ public class CassandraTables {
 
         private CassandraBackendEntry wrapByVertex(CassandraBackendEntry edge) {
             assert edge.type().isEdge();
-            String ownerVertex = edge.column(HugeKeys.OWNER_VERTEX);
+            Object ownerVertex = edge.column(HugeKeys.OWNER_VERTEX);
             E.checkState(ownerVertex != null, "Invalid backend entry");
             Id vertexId = IdGenerator.of(ownerVertex);
             CassandraBackendEntry vertex = new CassandraBackendEntry(
@@ -513,8 +515,8 @@ public class CassandraTables {
                     HugeKeys.FIELD_VALUES, DataType.text()
             );
             ImmutableMap<HugeKeys, DataType> ckeys = ImmutableMap.of(
-                    HugeKeys.INDEX_LABEL_ID, DATATYPE_IL,
-                    HugeKeys.ELEMENT_IDS, DataType.text()
+                    HugeKeys.INDEX_LABEL_ID, TYPE_IL,
+                    HugeKeys.ELEMENT_IDS, TYPE_ID
             );
             ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of();
 
@@ -643,11 +645,11 @@ public class CassandraTables {
         @Override
         public void init(CassandraSessionPool.Session session) {
             ImmutableMap<HugeKeys, DataType> pkeys = ImmutableMap.of(
-                    HugeKeys.INDEX_LABEL_ID, DATATYPE_IL
+                    HugeKeys.INDEX_LABEL_ID, TYPE_IL
             );
             ImmutableMap<HugeKeys, DataType> ckeys = ImmutableMap.of(
                     HugeKeys.FIELD_VALUES, DataType.decimal(),
-                    HugeKeys.ELEMENT_IDS, DataType.text()
+                    HugeKeys.ELEMENT_IDS, TYPE_ID
             );
             ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of();
 
@@ -719,11 +721,11 @@ public class CassandraTables {
         @Override
         public void init(CassandraSessionPool.Session session) {
             ImmutableMap<HugeKeys, DataType> pkeys = ImmutableMap.of(
-                    HugeKeys.INDEX_LABEL_ID, DATATYPE_IL
+                    HugeKeys.INDEX_LABEL_ID, TYPE_IL
             );
             ImmutableMap<HugeKeys, DataType> ckeys = ImmutableMap.of(
                     HugeKeys.FIELD_VALUES, DataType.cint(),
-                    HugeKeys.ELEMENT_IDS, DataType.text()
+                    HugeKeys.ELEMENT_IDS, TYPE_ID
             );
             ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of();
 
@@ -742,11 +744,11 @@ public class CassandraTables {
         @Override
         public void init(CassandraSessionPool.Session session) {
             ImmutableMap<HugeKeys, DataType> pkeys = ImmutableMap.of(
-                    HugeKeys.INDEX_LABEL_ID, DATATYPE_IL
+                    HugeKeys.INDEX_LABEL_ID, TYPE_IL
             );
             ImmutableMap<HugeKeys, DataType> ckeys = ImmutableMap.of(
                     HugeKeys.FIELD_VALUES, DataType.cfloat(),
-                    HugeKeys.ELEMENT_IDS, DataType.text()
+                    HugeKeys.ELEMENT_IDS, TYPE_ID
             );
             ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of();
 
@@ -765,11 +767,11 @@ public class CassandraTables {
         @Override
         public void init(CassandraSessionPool.Session session) {
             ImmutableMap<HugeKeys, DataType> pkeys = ImmutableMap.of(
-                    HugeKeys.INDEX_LABEL_ID, DATATYPE_IL
+                    HugeKeys.INDEX_LABEL_ID, TYPE_IL
             );
             ImmutableMap<HugeKeys, DataType> ckeys = ImmutableMap.of(
                     HugeKeys.FIELD_VALUES, DataType.bigint(),
-                    HugeKeys.ELEMENT_IDS, DataType.text()
+                    HugeKeys.ELEMENT_IDS, TYPE_ID
             );
             ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of();
 
@@ -788,11 +790,11 @@ public class CassandraTables {
         @Override
         public void init(CassandraSessionPool.Session session) {
             ImmutableMap<HugeKeys, DataType> pkeys = ImmutableMap.of(
-                    HugeKeys.INDEX_LABEL_ID, DATATYPE_IL
+                    HugeKeys.INDEX_LABEL_ID, TYPE_IL
             );
             ImmutableMap<HugeKeys, DataType> ckeys = ImmutableMap.of(
                     HugeKeys.FIELD_VALUES, DataType.cdouble(),
-                    HugeKeys.ELEMENT_IDS, DataType.text()
+                    HugeKeys.ELEMENT_IDS, TYPE_ID
             );
             ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of();
 
@@ -811,11 +813,11 @@ public class CassandraTables {
         @Override
         public void init(CassandraSessionPool.Session session) {
             ImmutableMap<HugeKeys, DataType> pkeys = ImmutableMap.of(
-                    HugeKeys.INDEX_LABEL_ID, DATATYPE_IL
+                    HugeKeys.INDEX_LABEL_ID, TYPE_IL
             );
             ImmutableMap<HugeKeys, DataType> ckeys = ImmutableMap.of(
                     HugeKeys.FIELD_VALUES, DataType.text(),
-                    HugeKeys.ELEMENT_IDS, DataType.text()
+                    HugeKeys.ELEMENT_IDS, TYPE_ID
             );
             ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of();
 
