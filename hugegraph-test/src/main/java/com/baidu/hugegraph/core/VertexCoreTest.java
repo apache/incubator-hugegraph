@@ -626,7 +626,7 @@ public class VertexCoreTest extends BaseCoreTest {
         graph.tx().commit();
 
         String programmerId = graph.vertexLabel("programmer").id().asString();
-        String vid = String.format("%s:%s!%s", programmerId, "marko", "18");
+        String vid = String.format("%s:%s!%s", programmerId, "marko", "1I");
         List<Vertex> vertices = graph.traversal().V(vid).toList();
         Assert.assertEquals(1, vertices.size());
         Assert.assertEquals(vid, vertices.get(0).id().toString());
@@ -1062,7 +1062,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
         String authorId = graph.vertexLabel("author").id().asString();
         // Query vertex by id
-        Id id = SplicingIdGenerator.splicing(authorId, "1");
+        Id id = SplicingIdGenerator.splicing(authorId, "11");
         List<Vertex> vertices = graph.traversal().V(id).toList();
         Assert.assertEquals(1, vertices.size());
         assertContains(vertices,

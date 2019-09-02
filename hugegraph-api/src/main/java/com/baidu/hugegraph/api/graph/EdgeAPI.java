@@ -53,7 +53,7 @@ import com.baidu.hugegraph.api.filter.DecompressInterceptor.Decompress;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
+import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
@@ -423,7 +423,7 @@ public class EdgeAPI extends BatchAPI {
                                 sortKey);
                 sortKeyValues.add(sortKeyValue);
             });
-            sortKeys = SplicingIdGenerator.concatValues(sortKeyValues);
+            sortKeys = ConditionQuery.concatValues(sortKeyValues);
         }
 
         // TODO: How to get Direction from JsonEdge easily? or any better way?
