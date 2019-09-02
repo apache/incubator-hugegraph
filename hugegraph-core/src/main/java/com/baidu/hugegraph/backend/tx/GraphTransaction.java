@@ -99,6 +99,7 @@ public class GraphTransaction extends IndexableTransaction {
 
     private Map<Id, HugeEdge> addedEdges;
     private Map<Id, HugeEdge> removedEdges;
+
     private Set<HugeProperty<?>> addedProps;
     private Set<HugeProperty<?>> removedProps;
 
