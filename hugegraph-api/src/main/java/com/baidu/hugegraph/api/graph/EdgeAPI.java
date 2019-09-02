@@ -58,6 +58,7 @@ import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.core.GraphManager;
+import com.baidu.hugegraph.define.UpdateStrategy;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.PropertyKey;

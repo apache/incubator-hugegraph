@@ -26,7 +26,7 @@ import javax.ws.rs.container.ContainerResponseFilter;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.ext.Provider;
 
-import com.baidu.hugegraph.core.WorkLoad;
+import com.baidu.hugegraph.define.WorkLoad;
 
 @Provider
 @Singleton

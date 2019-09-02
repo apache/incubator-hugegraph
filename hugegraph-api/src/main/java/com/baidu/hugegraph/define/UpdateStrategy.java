@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.api.graph;
+package com.baidu.hugegraph.define;
 
 import java.math.BigDecimal;
 import java.util.Collection;

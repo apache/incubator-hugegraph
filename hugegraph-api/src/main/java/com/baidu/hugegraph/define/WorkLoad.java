@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.core;
+package com.baidu.hugegraph.define;
 
 import java.util.concurrent.atomic.AtomicInteger;
 

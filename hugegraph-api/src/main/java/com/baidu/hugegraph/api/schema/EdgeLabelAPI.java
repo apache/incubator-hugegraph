@@ -41,6 +41,7 @@ import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.core.GraphManager;
+import com.baidu.hugegraph.define.Checkable;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.type.define.Frequency;
 import com.baidu.hugegraph.type.define.GraphMode;
