@@ -3332,13 +3332,37 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testUpdatePropertyToValueOfRemovedVertexWithUniqueIndex() {
+        SchemaManager schema = graph().schema();
+        schema.vertexLabel("user")
+              .properties("name")
+              .create();
+        schema.indexLabel("userByName").onV("user").by("name").unique()
+              .create();
+        Vertex tom = graph().addVertex(T.label, "user", "name", "Tom");
+        Vertex jack = graph().addVertex(T.label, "user", "name", "Jack");
+        Vertex james = graph().addVertex(T.label, "user", "name", "James");
+        graph().tx().commit();
+
+        tom.remove();
+        graph().tx().commit();
+        jack.property("name", "Tom");
+        graph().tx().commit();
+
+        james.remove();
+        jack.property("name", "James");
+        graph().tx().commit();
+    }
+
+    @Test
     public void testAddVerticesWithUniqueIndexForNullableProperties() {
         SchemaManager schema = graph().schema();
         schema.vertexLabel("user")
               .properties("name", "city", "age")
               .nullableKeys("name", "city", "age")
               .create();
-        schema.indexLabel("userByName").onV("user").by("name", "city", "age")
+        schema.indexLabel("userByNameCityAge")
+              .onV("user").by("name", "city", "age")
               .unique().create();
         Vertex v = graph().addVertex(T.label, "user", "name", "Tom",
                                      "city", "Beijing", "age", 18);
@@ -3375,7 +3399,8 @@ public class VertexCoreTest extends BaseCoreTest {
             graph().tx().commit();
         }, e -> {
             String message = e.getMessage();
-            Assert.assertTrue(message.contains("Unique constraint userByName"));
+            Assert.assertTrue(message.contains("Unique constraint " +
+                                               "userByNameCityAge"));
             Assert.assertTrue(message.contains("conflict is found"));
         });
         graph().addVertex(T.label, "user", "city", "");

@@ -3390,6 +3390,51 @@ public class EdgeCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testUpdatePropertyToValueOfRemovedEdgeWithUniqueIndex() {
+        SchemaManager schema = graph().schema();
+        schema.propertyKey("weight").asDouble().ifNotExist().create();
+
+        schema.vertexLabel("user")
+              .properties("name")
+              .primaryKeys("name")
+              .ifNotExist()
+              .create();
+
+        schema.edgeLabel("like")
+              .sourceLabel("user")
+              .targetLabel("user")
+              .properties("weight")
+              .ifNotExist()
+              .create();
+
+        schema.indexLabel("likeByWeight")
+              .onE("like")
+              .by("weight")
+              .unique()
+              .ifNotExist()
+              .create();
+
+        Vertex marko = graph().addVertex(T.label, "user", "name", "marko");
+        Vertex vadas = graph().addVertex(T.label, "user", "name", "vadas");
+        Vertex josh = graph().addVertex(T.label, "user", "name", "josh");
+
+        Edge edge1 = marko.addEdge("like", vadas, "weight", 0.5);
+        Edge edge2 = marko.addEdge("like", josh, "weight", 0.8);
+        Edge edge3 = vadas.addEdge("like", josh, "weight", 1.0);
+
+        graph().tx().commit();
+
+        edge1.remove();
+        graph().tx().commit();
+        edge2.property("weight", 0.5);
+        graph().tx().commit();
+
+        edge3.remove();
+        edge2.property("weight", 1.0);
+        graph().tx().commit();
+    }
+
+    @Test
     public void testRemoveEdgeProperty() {
         HugeGraph graph = graph();
 
