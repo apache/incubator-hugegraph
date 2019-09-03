@@ -362,11 +362,11 @@ public class CassandraTables {
 
         protected final List<Object> idColumnValue(EdgeId edgeId) {
             List<Object> list = new ArrayList<>(5);
-            list.add(IdUtil.writeString(edgeId.ownerVertexId()));
+            list.add(IdUtil.writeStoredString(edgeId.ownerVertexId()));
             list.add(edgeId.direction().code());
             list.add(edgeId.edgeLabelId().asLong());
             list.add(edgeId.sortValues());
-            list.add(IdUtil.writeString(edgeId.otherVertexId()));
+            list.add(IdUtil.writeStoredString(edgeId.otherVertexId()));
             return list;
         }
 

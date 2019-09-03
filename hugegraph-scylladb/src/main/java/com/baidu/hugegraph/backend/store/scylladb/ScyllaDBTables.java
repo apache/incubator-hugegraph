@@ -85,7 +85,7 @@ public class ScyllaDBTables {
         Update update = QueryBuilder.update(table);
 
         update.with(QueryBuilder.append(ELEMENT_IDS,
-                                        IdUtil.writeString(entry.id())));
+                                        IdUtil.writeStoredString(entry.id())));
         update.where(CassandraTable.formatEQ(HugeKeys.LABEL,
                                              entry.column(HugeKeys.LABEL)));
         session.add(update);
@@ -106,7 +106,7 @@ public class ScyllaDBTables {
             return;
         }
         update.with(QueryBuilder.remove(ELEMENT_IDS,
-                                        IdUtil.writeString(entry.id())));
+                                        IdUtil.writeStoredString(entry.id())));
         update.where(CassandraTable.formatEQ(HugeKeys.LABEL, label));
         session.add(update);
     }
@@ -307,7 +307,7 @@ public class ScyllaDBTables {
             };
 
             for (String idValue : ids) {
-                Id rawId = IdUtil.readString(idValue);
+                Id rawId = IdUtil.readStoredString(idValue);
                 EdgeId id = EdgeId.parse(rawId.asString()).directed(true);
                 assert id.direction() == Directions.OUT;
                 deleteEdge.accept(id);
