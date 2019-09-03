@@ -58,8 +58,12 @@ public class RestServer {
         ResourceConfig rc = new ApplicationConfig(this.conf);
 
         this.httpServer = this.configHttpServer(uri, rc);
-        this.httpServer.start();
-
+        try {
+            this.httpServer.start();
+        } catch (Throwable e) {
+            this.httpServer.shutdownNow();
+            throw e;
+        }
         this.calcMaxWriteThreads();
     }
 

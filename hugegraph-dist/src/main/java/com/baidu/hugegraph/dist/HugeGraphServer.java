@@ -50,7 +50,11 @@ public class HugeGraphServer {
             this.restServer = HugeRestServer.start(restServerConf);
         } catch (Throwable e) {
             LOG.error("HugeRestServer start error: ", e);
-            this.gremlinServer.stop();
+            try {
+                this.gremlinServer.stop().get();
+            } catch (Throwable t) {
+                LOG.error("GremlinServer stop error: ", t);
+            }
             HugeGraph.shutdown(30L);
             throw e;
         }
@@ -87,8 +91,8 @@ public class HugeGraphServer {
         }
 
         HugeRestServer.register();
-        HugeGraphServer server = new HugeGraphServer(args[0], args[1]);
 
+        HugeGraphServer server = new HugeGraphServer(args[0], args[1]);
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             LOG.info("HugeGraphServer stopping");
             server.stop();

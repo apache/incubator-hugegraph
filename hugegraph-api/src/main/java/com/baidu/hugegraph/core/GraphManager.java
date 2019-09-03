@@ -38,12 +38,14 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.auth.HugeAuthenticator;
 import com.baidu.hugegraph.auth.HugeFactoryAuthProxy;
 import com.baidu.hugegraph.auth.HugeGraphAuthProxy;
+import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.cache.Cache;
 import com.baidu.hugegraph.backend.cache.CacheManager;
 import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.exception.NotSupportException;
+import com.baidu.hugegraph.license.LicenseVerifier;
 import com.baidu.hugegraph.metrics.MetricsUtil;
 import com.baidu.hugegraph.metrics.ServerReporter;
 import com.baidu.hugegraph.serializer.JsonSerializer;
@@ -70,6 +72,7 @@ public final class GraphManager {
         }
 
         this.loadGraphs(conf.getMap(ServerOptions.GRAPHS));
+        this.installLicense(conf);
         this.checkBackendVersionOrExit();
         this.restoreUncompletedTasks();
         this.addMetrics(conf);
@@ -135,6 +138,10 @@ public final class GraphManager {
         closeTx(graphSourceNamesToCloseTxOn, Transaction.Status.COMMIT);
     }
 
+    private void installLicense(HugeConfig config) {
+        LicenseVerifier.instance().install(config, this);
+    }
+
     private void closeTx(final Set<String> graphSourceNamesToCloseTxOn,
                          final Transaction.Status tx) {
         final Set<Graph> graphsToCloseTxOn = new HashSet<>();
@@ -192,13 +199,12 @@ public final class GraphManager {
             }
             BackendStoreSystemInfo info = new BackendStoreSystemInfo(hugegraph);
             if (!info.exist()) {
-                LOG.error("The backend store of '{}' has not been initialized",
+                throw new BackendException(
+                          "The backend store of '%s' has not been initialized",
                           hugegraph.name());
-                System.exit(-1);
             }
             if (!info.checkVersion()) {
-                // Exit if versions are inconsistent
-                System.exit(-1);
+                throw new BackendException("Check backend store version failed");
             }
         }
     }

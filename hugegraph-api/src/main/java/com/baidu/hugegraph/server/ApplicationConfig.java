@@ -37,7 +37,6 @@ import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.define.WorkLoad;
-import com.baidu.hugegraph.license.LicenseVerifier;
 import com.baidu.hugegraph.util.E;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.jersey2.InstrumentedResourceMethodApplicationListener;
@@ -66,10 +65,6 @@ public class ApplicationConfig extends ResourceConfig {
         // Let @Metric annotations work
         MetricRegistry registry = MetricManager.INSTANCE.getRegistry();
         register(new InstrumentedResourceMethodApplicationListener(registry));
-    }
-
-    private void installLicense(HugeConfig config, GraphManager manager) {
-        LicenseVerifier.instance().install(config, manager);
     }
 
     private class ConfFactory extends AbstractBinder
@@ -110,8 +105,7 @@ public class ApplicationConfig extends ResourceConfig {
                 @Override
                 public void onEvent(ApplicationEvent event) {
                     if (event.getType() == this.EVENT_INITED) {
-                        GraphManagerFactory.this.manager = new GraphManager(conf);
-                        ApplicationConfig.this.installLicense(conf, manager);
+                        manager = new GraphManager(conf);
                     }
                 }
 

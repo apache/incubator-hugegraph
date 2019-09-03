@@ -73,7 +73,9 @@ public class TaskManager {
         if (scheduler != null && scheduler.close()) {
             this.schedulers.remove(graph);
         }
-        this.closeTaskTx(graph);
+        if (!this.taskExecutor.isTerminated()) {
+            this.closeTaskTx(graph);
+        }
     }
 
     private void closeTaskTx(HugeGraph graph) {
