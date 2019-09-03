@@ -48,12 +48,8 @@ public class ContextGremlinServer extends GremlinServer {
     public ContextGremlinServer(final Settings settings) {
         /*
          * which can be obtained from https://github.com/apache/tinkerpop/pull/813
-         *
-         * NOTE: should call GremlinServer::configureMetrics() but it's private
-         * settings.optionalMetrics().ifPresent(GremlinServer::configureMetrics)
          */
         super(settings, newGremlinExecutorService(settings));
-        settings.optionalMetrics().ifPresent(this::configureMetrics);
     }
 
     public void injectAuthGraph() {

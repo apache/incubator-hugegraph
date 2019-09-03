@@ -51,7 +51,7 @@ public final class HugeVertexStep<E extends Element>
 
     private static final Logger LOG = Log.logger(HugeVertexStep.class);
 
-    private final List<HasContainer> hasContainers = new ArrayList<>();;
+    private final List<HasContainer> hasContainers = new ArrayList<>();
 
     // Store limit/order-by
     private final Query queryInfo = new Query(null);
