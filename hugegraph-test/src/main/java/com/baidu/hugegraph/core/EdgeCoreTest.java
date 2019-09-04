@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.core;
 
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -3869,6 +3870,32 @@ public class EdgeCoreTest extends BaseCoreTest {
                  .has("~page", "").range(2, 10)
                  .toList();
         });
+    }
+
+    @Test
+    public void testQueryByHasIdEmptyList() {
+        HugeGraph graph = graph();
+        GraphTraversalSource g = graph.traversal();
+
+        List<Edge> edges = g.E().hasId(Collections.EMPTY_LIST).toList();
+        Assert.assertEquals(0, edges.size());
+    }
+
+    @Test
+    public void testQueryByHasIdEmptyListInPage() {
+        Assume.assumeTrue("Not support paging",
+                          storeFeatures().supportsQueryByPage());
+
+        HugeGraph graph = graph();
+        GraphTraversalSource g = graph.traversal();
+
+        GraphTraversal<Edge, Edge> iter = g.E()
+                                           .hasId(Collections.EMPTY_LIST)
+                                           .has("~page", "").limit(1);
+        Assert.assertEquals(0, IteratorUtils.count(iter));
+
+        String page = TraversalUtil.page(iter);
+        Assert.assertNull(page);
     }
 
     private void init18Edges() {

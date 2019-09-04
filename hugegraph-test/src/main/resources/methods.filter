@@ -109,7 +109,7 @@ org.apache.tinkerpop.gremlin.process.traversal.step.filter.HasTest.Traversals.g_
 # Unsupport edge label 'created': 'software' -> 'person', has existed an edgelabel (created: person -> software) in this case
 org.apache.tinkerpop.gremlin.process.traversal.step.map.AddEdgeTest.Traversals.g_V_hasXname_markoX_asXaX_outEXcreatedX_asXbX_inV_addEXselectXbX_labelX_toXaX: Unsupport edge from inV to outV
 
-# Can't customize vertex id when id strategy is 'AUTOMATIC': Firstly add vertex without id(id strategy is 'AUTOMATIC'), then write it into file, at last read file , call add vertex with id
+# Can't customize vertex id when id strategy is 'AUTOMATIC': Firstly add vertex without id(id strategy is 'AUTOMATIC'), then write it into file, at last read file, call add vertex with id
 org.apache.tinkerpop.gremlin.process.traversal.step.map.ReadTest.Traversals.g_io_read_withXreader_graphmlX: Can't customize vertex id when id strategy is 'AUTOMATIC'
 org.apache.tinkerpop.gremlin.process.traversal.step.map.ReadTest.Traversals.g_io_readXxmlX: Can't customize vertex id when id strategy is 'AUTOMATIC'
 

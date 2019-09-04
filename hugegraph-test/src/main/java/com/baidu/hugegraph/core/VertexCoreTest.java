@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.core;
 
 import java.math.BigDecimal;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -5549,6 +5550,32 @@ public class VertexCoreTest extends BaseCoreTest {
         vertices = g.V().hasLabel("person", "computer")
                     .hasLabel("book", "language").toList();
         Assert.assertEquals(0, vertices.size());
+    }
+
+    @Test
+    public void testQueryByHasIdEmptyList() {
+        HugeGraph graph = graph();
+        GraphTraversalSource g = graph.traversal();
+
+        List<Vertex> vertices = g.V().hasId(Collections.EMPTY_LIST).toList();
+        Assert.assertEquals(0, vertices.size());
+    }
+
+    @Test
+    public void testQueryByHasIdEmptyListInPage() {
+        Assume.assumeTrue("Not support paging",
+                          storeFeatures().supportsQueryByPage());
+
+        HugeGraph graph = graph();
+        GraphTraversalSource g = graph.traversal();
+
+        GraphTraversal<Vertex, Vertex> iter = g.V()
+                                               .hasId(Collections.EMPTY_LIST)
+                                               .has("~page", "").limit(1);
+        Assert.assertEquals(0, IteratorUtils.count(iter));
+
+        String page = TraversalUtil.page(iter);
+        Assert.assertNull(page);
     }
 
     private void init10Vertices() {
