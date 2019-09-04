@@ -145,30 +145,6 @@
                             </includes>
                         </configuration>
                     </execution>
-                    <execution>
-                        <id>tinkerpop-structure-perf-test</id>
-                        <configuration>
-                            <testSourceDirectory>${basedir}/src/main/java/
-                            </testSourceDirectory>
-                            <testClassesDirectory>${basedir}/target/classes/
-                            </testClassesDirectory>
-                            <includes>
-                                <include>**/StructurePerformanceTest.java</include>
-                            </includes>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>tinkerpop-process-perf-test</id>
-                        <configuration>
-                            <testSourceDirectory>${basedir}/src/main/java/
-                            </testSourceDirectory>
-                            <testClassesDirectory>${basedir}/target/classes/
-                            </testClassesDirectory>
-                            <includes>
-                                <include>**/ProcessPerformanceTest.java</include>
-                            </includes>
-                        </configuration>
-                    </execution>
                 </executions>
             </plugin>
             <plugin>
