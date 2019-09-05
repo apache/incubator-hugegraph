@@ -178,7 +178,7 @@ public class BackendMutation {
      * Whether mutation contains entry and action
      * @param entry entry
      * @param action action
-     * @return true if have, otherwise false
+     * @return true if exist, otherwise false
      */
     public boolean contains(BackendEntry entry, Action action) {
         List<BackendAction> items = this.updates.get(entry.type(), entry.id());
@@ -187,6 +187,22 @@ public class BackendMutation {
         }
         for (BackendAction item : items) {
             if (item.action().equals(action)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Whether mutation contains type and action
+     * @param type type
+     * @param action action
+     * @return true if exist, otherwise false
+     */
+    public boolean contains(HugeType type, Action action) {
+        for (Iterator<BackendAction> i = this.updates.get(type); i.hasNext();) {
+            BackendAction entry = i.next();
+            if (entry.action() == action) {
                 return true;
             }
         }
@@ -256,8 +272,10 @@ public class BackendMutation {
         public Iterator<BackendAction> get(HugeType type) {
             ExtendableIterator<BackendAction> rs = new ExtendableIterator<>();
             Map<Id, List<BackendAction>> table = this.mutations.get(type);
-            for (List<BackendAction> items : table.values()) {
-                rs.extend(items.iterator());
+            if (table != null) {
+                for (List<BackendAction> items : table.values()) {
+                    rs.extend(items.iterator());
+                }
             }
             return rs;
         }

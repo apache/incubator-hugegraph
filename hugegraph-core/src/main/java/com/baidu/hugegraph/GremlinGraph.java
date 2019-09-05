@@ -19,13 +19,22 @@
 
 package com.baidu.hugegraph;
 
+import java.util.Iterator;
 import java.util.List;
 
+import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import com.baidu.hugegraph.auth.UserManager;
+import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.Shard;
+import com.baidu.hugegraph.schema.EdgeLabel;
+import com.baidu.hugegraph.schema.IndexLabel;
+import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaManager;
+import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.GraphMode;
 
@@ -37,20 +46,35 @@ public interface GremlinGraph extends Graph {
     public HugeGraph hugegraph();
     public HugeGraph hugegraph(String permission);
 
-    public String name();
-
     public SchemaManager schema();
+
+    public PropertyKey propertyKey(String key);
+    public PropertyKey propertyKey(Id key);
+
+    public VertexLabel vertexLabel(String label);
+    public VertexLabel vertexLabel(Id label);
+
+    public EdgeLabel edgeLabel(String label);
+    public EdgeLabel edgeLabel(Id label);
+
+    public IndexLabel indexLabel(String name);
+    public IndexLabel indexLabel(Id id);
+
+    public Iterator<Vertex> vertices(Query query);
+    public Iterator<Edge> edges(Query query);
+    public Iterator<Vertex> adjacentVertices(Iterator<Edge> edges) ;
+    public Iterator<Edge> adjacentEdges(Id vertexId);
 
     public String matchUser(String username, String password);
     public UserManager userManager();
 
+    public String name();
     public String backend();
+    public GraphMode mode();
+
+    public List<Shard> metadata(HugeType type, String meta, Object... args);
 
     public void initBackend();
     public void clearBackend();
     public void truncateBackend();
-
-    public GraphMode mode();
-
-    public List<Shard> metadata(HugeType type, String meta, Object... args);
 }

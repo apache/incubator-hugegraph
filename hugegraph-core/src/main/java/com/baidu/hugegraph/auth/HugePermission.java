@@ -24,10 +24,14 @@ import com.baidu.hugegraph.type.define.SerialEnum;
 public enum HugePermission implements SerialEnum {
 
     // general
-    ALL(0),
-    READ(1),
-    WRITE(2),
-    DELETE(3),
+    ANY(0),
+    SCHEMA_ANY(1),
+    VERTEX_ANY(2),
+    EDGE_ANY(3),
+
+    READ(15),
+    WRITE(16),
+    DELETE(17),
 
     // global
     GREMLIN(20),
@@ -84,10 +88,15 @@ public enum HugePermission implements SerialEnum {
 
     public String string() {
         String string = this.name().toLowerCase();
-        if (this.code == 0) {
-            assert this == ALL;
-            string = ".*";
-        } else if (0 < this.code && this.code < 20) {
+        if (0 <= this.code && this.code < 15) {
+            int offset = string.indexOf('_');
+            if (offset >= 0) {
+                string = string.substring(0, offset);
+            } else {
+                string = "";
+            }
+            string += ".*";
+        } else if (15 <= this.code && this.code < 20) {
             string = ".*" + string;
         }
         return string;

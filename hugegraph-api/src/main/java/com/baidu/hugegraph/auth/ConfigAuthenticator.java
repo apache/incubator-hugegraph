@@ -64,7 +64,7 @@ public class ConfigAuthenticator implements HugeAuthenticator {
         String role;
         if (password.equals(this.tokens.get(username))) {
             // Return user name as role
-            role = RolePerm.ownerFor(username, HugePermission.ALL).toString();
+            role = RolePerm.ownerFor(username, HugePermission.ANY).toString();
         } else {
             role = ROLE_NONE;
         }
