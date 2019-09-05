@@ -41,6 +41,7 @@ import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
+import com.baidu.hugegraph.GremlinGraph;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
@@ -84,6 +85,7 @@ import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.structure.HugeVertexProperty;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.Action;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IdStrategy;
@@ -160,8 +162,36 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     @Override
-    public boolean hasUpdates() {
-        return this.mutationSize() > 0 || super.hasUpdates();
+    public boolean hasUpdate() {
+        return this.mutationSize() > 0 || super.hasUpdate();
+    }
+
+    @Override
+    public boolean hasUpdate(HugeType type, Action action) {
+        if (type.isVertex()) {
+            if (action == Action.DELETE) {
+                if (this.removedVertices.size() > 0) {
+                    return true;
+                }
+            } else {
+                if (this.addedVertices.size() > 0 ||
+                    this.updatedVertices.size() > 0) {
+                    return true;
+                }
+            }
+        } else if (type.isEdge()) {
+            if (action == Action.DELETE) {
+                if (this.removedEdges.size() > 0) {
+                    return true;
+                }
+            } else {
+                if (this.addedEdges.size() > 0 ||
+                    this.updatedEdges.size() > 0) {
+                    return true;
+                }
+            }
+        }
+        return super.hasUpdate(type, action);
     }
 
     @Override
@@ -468,7 +498,7 @@ public class GraphTransaction extends IndexableTransaction {
 
     @Override
     public Number queryNumber(Query query) {
-        E.checkArgument(!this.hasUpdates(),
+        E.checkArgument(!this.hasUpdate(),
                         "It's not allowed to query number when " +
                         "there are uncommitted records.");
 
@@ -1089,7 +1119,7 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     public static boolean matchEdgeSortKeys(ConditionQuery query,
-                                            HugeGraph graph) {
+                                            GremlinGraph graph) {
         assert query.resultType().isEdge();
         Id label = query.condition(HugeKeys.LABEL);
         if (label == null) {
@@ -1654,7 +1684,7 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     public void removeVertices(VertexLabel vertexLabel) {
-        if (this.hasUpdates()) {
+        if (this.hasUpdate()) {
             throw new HugeException("There are still changes to commit");
         }
 
@@ -1677,7 +1707,7 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     public void removeEdges(EdgeLabel edgeLabel) {
-        if (this.hasUpdates()) {
+        if (this.hasUpdate()) {
             throw new HugeException("There are still changes to commit");
         }
 

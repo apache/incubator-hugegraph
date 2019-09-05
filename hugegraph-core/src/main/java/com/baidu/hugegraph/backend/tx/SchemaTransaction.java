@@ -88,7 +88,7 @@ public class SchemaTransaction extends IndexableTransaction {
          * NOTE: each schema operation will be auto committed,
          * we expect the tx is clean when query.
          */
-        if (this.hasUpdates()) {
+        if (this.hasUpdate()) {
             throw new BackendException("There are still dirty changes");
         }
     }
