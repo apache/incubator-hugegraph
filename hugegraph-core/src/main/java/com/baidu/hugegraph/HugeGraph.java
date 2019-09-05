@@ -51,7 +51,6 @@ import com.baidu.hugegraph.backend.serializer.SerializerFactory;
 import com.baidu.hugegraph.backend.store.BackendProviderFactory;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
-import com.baidu.hugegraph.backend.store.Shard;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.config.CoreOptions;
@@ -86,14 +85,7 @@ public class HugeGraph implements GremlinGraph {
     private static final Logger LOG = Log.logger(HugeGraph.class);
 
     static {
-        TraversalStrategies strategies = null;
-        strategies = TraversalStrategies.GlobalCache
-                                        .getStrategies(Graph.class)
-                                        .clone();
-        strategies.addStrategies(HugeVertexStepStrategy.instance(),
-                                 HugeGraphStepStrategy.instance());
-        TraversalStrategies.GlobalCache.registerStrategies(HugeGraph.class,
-                                                           strategies);
+        HugeGraph.registerTraversalStrategies(HugeGraph.class);
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             LOG.info("HugeGraph is shutting down");
@@ -393,7 +385,7 @@ public class HugeGraph implements GremlinGraph {
     }
 
     @Override
-    public List<Shard> metadata(HugeType type, String meta, Object... args) {
+    public <R> R metadata(HugeType type, String meta, Object... args) {
         return this.graphTransaction().metadata(type, meta, args);
     }
 
@@ -429,6 +421,7 @@ public class HugeGraph implements GremlinGraph {
         return this.graphTransaction().queryVertices(objects);
     }
 
+    @Override
     public Iterator<Vertex> vertices(Query query) {
         return this.graphTransaction().queryVertices(query);
     }
@@ -441,60 +434,71 @@ public class HugeGraph implements GremlinGraph {
         return this.graphTransaction().queryEdges(objects);
     }
 
+    @Override
     public Iterator<Edge> edges(Query query) {
         return this.graphTransaction().queryEdges(query);
     }
 
+    @Override
     public Iterator<Vertex> adjacentVertices(Iterator<Edge> edges) {
         return this.graphTransaction().queryAdjacentVertices(edges);
     }
 
+    @Override
     public Iterator<Edge> adjacentEdges(Id vertexId) {
         return this.graphTransaction().queryEdgesByVertex(vertexId);
     }
 
+    @Override
     public PropertyKey propertyKey(Id id) {
         PropertyKey pk = this.schemaTransaction().getPropertyKey(id);
         E.checkArgument(pk != null, "Undefined property key with id: '%s'", id);
         return pk;
     }
 
+    @Override
     public PropertyKey propertyKey(String name) {
         PropertyKey pk = this.schemaTransaction().getPropertyKey(name);
         E.checkArgument(pk != null, "Undefined property key: '%s'", name);
         return pk;
     }
 
+    @Override
     public VertexLabel vertexLabel(Id id) {
         VertexLabel vl = this.schemaTransaction().getVertexLabel(id);
         E.checkArgument(vl != null, "Undefined vertex label with id: '%s'", id);
         return vl;
     }
 
+    @Override
     public VertexLabel vertexLabel(String name) {
         VertexLabel vl = this.schemaTransaction().getVertexLabel(name);
         E.checkArgument(vl != null, "Undefined vertex label: '%s'", name);
         return vl;
     }
 
+    @Override
     public EdgeLabel edgeLabel(Id id) {
         EdgeLabel el = this.schemaTransaction().getEdgeLabel(id);
         E.checkArgument(el != null, "Undefined edge label with id: '%s'", id);
         return el;
     }
 
+    @Override
     public EdgeLabel edgeLabel(String name) {
         EdgeLabel el = this.schemaTransaction().getEdgeLabel(name);
         E.checkArgument(el != null, "Undefined edge label: '%s'", name);
         return el;
     }
 
+    @Override
     public IndexLabel indexLabel(Id id) {
         IndexLabel il = this.schemaTransaction().getIndexLabel(id);
         E.checkArgument(il != null, "Undefined index label with id: '%s'", id);
         return il;
     }
 
+    @Override
     public IndexLabel indexLabel(String name) {
         IndexLabel il = this.schemaTransaction().getIndexLabel(name);
         E.checkArgument(il != null, "Undefined index label: '%s'", name);
@@ -639,6 +643,14 @@ public class HugeGraph implements GremlinGraph {
             ids[i] = vertexLabel.id();
         }
         return ids;
+    }
+
+    public static void registerTraversalStrategies(Class<?> clazz) {
+        TraversalStrategies strategies = TraversalStrategies.GlobalCache
+                                         .getStrategies(Graph.class).clone();
+        strategies.addStrategies(HugeVertexStepStrategy.instance(),
+                                 HugeGraphStepStrategy.instance());
+        TraversalStrategies.GlobalCache.registerStrategies(clazz, strategies);
     }
 
     /**
@@ -827,9 +839,9 @@ public class HugeGraph implements GremlinGraph {
 
     private static final class Txs {
 
-        public final SchemaTransaction schemaTx;
-        public final SysTransaction systemTx;
-        public final GraphTransaction graphTx;
+        private final SchemaTransaction schemaTx;
+        private final SysTransaction systemTx;
+        private final GraphTransaction graphTx;
 
         public Txs(SchemaTransaction schemaTx, SysTransaction systemTx,
                    GraphTransaction graphTx) {
