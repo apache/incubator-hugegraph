@@ -53,7 +53,7 @@ import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
-import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.GremlinGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.page.PageInfo;
@@ -74,6 +74,10 @@ import com.baidu.hugegraph.util.E;
 import com.google.common.collect.ImmutableList;
 
 public final class TraversalUtil {
+
+    public static GremlinGraph getGraph(Step<?, ?> step) {
+        return (GremlinGraph) step.getTraversal().getGraph().get();
+    }
 
     public static void extractHasContainer(HugeGraphStep<?, ?> newStep,
                                            Traversal.Admin<?, ?> traversal) {
@@ -183,7 +187,7 @@ public final class TraversalUtil {
     public static ConditionQuery fillConditionQuery(
                                  List<HasContainer> hasContainers,
                                  ConditionQuery query,
-                                 HugeGraph graph) {
+                                 GremlinGraph graph) {
         HugeType resultType = query.resultType();
 
         for (HasContainer has : hasContainers) {
@@ -195,7 +199,7 @@ public final class TraversalUtil {
 
     public static Condition convHas2Condition(HasContainer has,
                                               HugeType type,
-                                              HugeGraph graph) {
+                                              GremlinGraph graph) {
         P<?> p = has.getPredicate();
         E.checkArgument(p != null, "The predicate of has(%s) is null", has);
         BiPredicate<?, ?> bp = p.getBiPredicate();
@@ -219,7 +223,7 @@ public final class TraversalUtil {
         return condition;
     }
 
-    public static Condition convAnd(HugeGraph graph,
+    public static Condition convAnd(GremlinGraph graph,
                                     HugeType type,
                                     HasContainer has) {
         P<?> p = has.getPredicate();
@@ -243,7 +247,7 @@ public final class TraversalUtil {
         return cond;
     }
 
-    public static Condition convOr(HugeGraph graph,
+    public static Condition convOr(GremlinGraph graph,
                                    HugeType type,
                                    HasContainer has) {
         P<?> p = has.getPredicate();
@@ -267,7 +271,7 @@ public final class TraversalUtil {
         return cond;
     }
 
-    private static Relation convCompare2Relation(HugeGraph graph,
+    private static Relation convCompare2Relation(GremlinGraph graph,
                                                  HugeType type,
                                                  HasContainer has) {
         assert type.isGraph();
@@ -287,7 +291,7 @@ public final class TraversalUtil {
     }
 
 
-    private static Relation convCompare2SyspropRelation(HugeGraph graph,
+    private static Relation convCompare2SyspropRelation(GremlinGraph graph,
                                                         HugeType type,
                                                         HasContainer has) {
         BiPredicate<?, ?> bp = has.getPredicate().getBiPredicate();
@@ -314,7 +318,7 @@ public final class TraversalUtil {
         throw newUnsupportedPredicate(has.getPredicate());
     }
 
-    private static Relation convCompare2UserpropRelation(HugeGraph graph,
+    private static Relation convCompare2UserpropRelation(GremlinGraph graph,
                                                          HugeType type,
                                                          HasContainer has) {
         BiPredicate<?, ?> bp = has.getPredicate().getBiPredicate();
@@ -343,7 +347,7 @@ public final class TraversalUtil {
         throw newUnsupportedPredicate(has.getPredicate());
     }
 
-    private static Condition convRelationType2Relation(HugeGraph graph,
+    private static Condition convRelationType2Relation(GremlinGraph graph,
                                                        HugeType type,
                                                        HasContainer has) {
         assert type.isGraph();
@@ -357,7 +361,7 @@ public final class TraversalUtil {
         return new Condition.UserpropRelation(pkeyId, (RelationType) bp, value);
     }
 
-    public static Condition convIn2Relation(HugeGraph graph,
+    public static Condition convIn2Relation(GremlinGraph graph,
                                             HugeType type,
                                             HasContainer has) {
         BiPredicate<?, ?> bp = has.getPredicate().getBiPredicate();
@@ -404,7 +408,7 @@ public final class TraversalUtil {
         throw newUnsupportedPredicate(has.getPredicate());
     }
 
-    public static Condition convContains2Relation(HugeGraph graph,
+    public static Condition convContains2Relation(GremlinGraph graph,
                                                   HasContainer has) {
         // Convert contains-key or contains-value
         BiPredicate<?, ?> bp = has.getPredicate().getBiPredicate();
@@ -466,23 +470,24 @@ public final class TraversalUtil {
     public static void convAllHasSteps(Traversal.Admin<?, ?> traversal) {
         // Extract all has steps in traversal
         @SuppressWarnings("rawtypes")
-        List<HasStep> steps = TraversalHelper
-                              .getStepsOfAssignableClassRecursively(
-                              HasStep.class, traversal);
-        HugeGraph graph = (HugeGraph) traversal.getGraph().get();
+        List<HasStep> steps =
+                      TraversalHelper.getStepsOfAssignableClassRecursively(
+                      HasStep.class, traversal);
+        GremlinGraph graph = (GremlinGraph) traversal.getGraph().get();
         for (HasStep<?> step : steps) {
             TraversalUtil.convHasStep(graph, step);
         }
     }
 
-    public static void convHasStep(HugeGraph graph, HasStep<?> step) {
+    public static void convHasStep(GremlinGraph graph, HasStep<?> step) {
         HasContainerHolder holder = step;
         for (HasContainer has : holder.getHasContainers()) {
             convPredicateValue(graph, has);
         }
     }
 
-    private static void convPredicateValue(HugeGraph graph, HasContainer has) {
+    private static void convPredicateValue(GremlinGraph graph,
+                                           HasContainer has) {
         // No need to convert if key is sysprop
         if (isSysProp(has.getKey())) {
             return;
@@ -523,8 +528,10 @@ public final class TraversalUtil {
         }
     }
 
-    private static Object convSysValueIfNeeded(HugeGraph graph,HugeType type,
-                                               HugeKeys key, Object value) {
+    private static Object convSysValueIfNeeded(GremlinGraph graph,
+                                               HugeType type,
+                                               HugeKeys key,
+                                               Object value) {
         if (key == HugeKeys.LABEL && !(value instanceof Id)) {
             value = SchemaLabel.getLabelId(graph, type, value);
         } else if (key == HugeKeys.ID && !(value instanceof Id)) {
@@ -533,7 +540,7 @@ public final class TraversalUtil {
         return value;
     }
 
-    private static List<?> convSysListValueIfNeeded(HugeGraph graph,
+    private static List<?> convSysListValueIfNeeded(GremlinGraph graph,
                                                     HugeType type,
                                                     HugeKeys key,
                                                     Collection<?> values) {

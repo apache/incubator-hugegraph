@@ -31,10 +31,10 @@ public abstract class IndexableTransaction extends AbstractTransaction {
     }
 
     @Override
-    public boolean hasUpdates() {
+    public boolean hasUpdate() {
         AbstractTransaction indexTx = this.indexTransaction();
-        boolean indexTxChanged = (indexTx != null && indexTx.hasUpdates());
-        return indexTxChanged || super.hasUpdates();
+        boolean indexTxChanged = (indexTx != null && indexTx.hasUpdate());
+        return indexTxChanged || super.hasUpdate();
     }
 
     @Override

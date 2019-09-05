@@ -31,7 +31,7 @@ import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.GremlinGraph;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.query.QueryResults;
@@ -73,7 +73,7 @@ public final class HugeGraphStep<S, E extends Element>
     private Iterator<E> vertices() {
         LOG.debug("HugeGraphStep.vertices(): {}", this);
 
-        HugeGraph graph = (HugeGraph) this.getTraversal().getGraph().get();
+        GremlinGraph graph = TraversalUtil.getGraph(this);
         // g.V().hasId(EMPTY_LIST) will set ids to null
         if (this.ids == null) {
             return QueryResults.emptyIterator();
@@ -103,7 +103,7 @@ public final class HugeGraphStep<S, E extends Element>
     private Iterator<E> edges() {
         LOG.debug("HugeGraphStep.edges(): {}", this);
 
-        HugeGraph graph = (HugeGraph) this.getTraversal().getGraph().get();
+        GremlinGraph graph = TraversalUtil.getGraph(this);
 
         if (this.ids != null && this.ids.length > 0) {
             return TraversalUtil.filterResult(this.hasContainers,

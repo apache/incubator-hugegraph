@@ -145,7 +145,7 @@ public abstract class AbstractTransaction implements Transaction {
             return;
         }
 
-        if (!this.hasUpdates()) {
+        if (!this.hasUpdate()) {
             LOG.debug("Transaction has no data to commit({})", store());
             return;
         }
@@ -193,7 +193,7 @@ public abstract class AbstractTransaction implements Transaction {
     @Watched(prefix = "tx")
     @Override
     public void close() {
-        if (this.hasUpdates()) {
+        if (this.hasUpdate()) {
             throw new BackendException("There are still changes to commit");
         }
         if (this.closed) {
@@ -209,8 +209,12 @@ public abstract class AbstractTransaction implements Transaction {
         return this.autoCommit;
     }
 
-    public boolean hasUpdates() {
+    public boolean hasUpdate() {
         return !this.mutation.isEmpty();
+    }
+
+    public boolean hasUpdate(HugeType type, Action action) {
+        return this.mutation.contains(type, action);
     }
 
     public int mutationSize() {
@@ -266,7 +270,7 @@ public abstract class AbstractTransaction implements Transaction {
     }
 
     protected void beforeRead() {
-        if (this.autoCommit() && this.hasUpdates()) {
+        if (this.autoCommit() && this.hasUpdate()) {
             this.commitOrRollback();
         }
     }
