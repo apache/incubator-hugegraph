@@ -87,7 +87,7 @@ public class LicenseVerifyManager extends CommonLicenseManager {
         try {
             super.validate(content);
         } catch (LicenseContentException e) {
-            throw new HugeException("License valiverifydate failed");
+            throw new HugeException("Failed to verify license", e);
         }
 
         // Verify the customized license parameters.

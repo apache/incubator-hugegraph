@@ -105,7 +105,7 @@ public class LicenseVerifier {
             LOG.info("The license verification passed, valid for {} - {}",
                      content.getNotBefore(), content.getNotAfter());
         } catch (Exception e) {
-            throw new HugeException("The license verification failed!", e);
+            throw new HugeException("Failed to verify license", e);
         }
     }
 
@@ -136,4 +136,3 @@ public class LicenseVerifier {
         }
     }
 }
-

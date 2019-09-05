@@ -204,7 +204,8 @@ public final class GraphManager {
                           hugegraph.name());
             }
             if (!info.checkVersion()) {
-                throw new BackendException("Check backend store version failed");
+                throw new BackendException(
+                          "The backend store version is inconsistent");
             }
         }
     }
