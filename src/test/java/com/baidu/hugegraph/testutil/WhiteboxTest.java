@@ -130,6 +130,8 @@ public class WhiteboxTest {
         Assert.assertEquals(2, Whitebox.invoke(test1, "test2",
                                                new Class[]{Object.class},
                                                "value", 2));
+        Assert.assertEquals(3, Whitebox.invoke(test1, "test4", "addValue", 2));
+        Assert.assertEquals(4, Whitebox.invoke(test1, "test4", "value"));
 
         Assert.assertThrows(RuntimeException.class, () -> {
             Whitebox.invoke(test1.getClass(), "value2", test1);
@@ -149,6 +151,7 @@ public class WhiteboxTest {
         Test1 test1 = new Test1();
         test1.test2 = new Test2();
         test1.test2.test3 = new Test3();
+        test1.test4 = new TestSubClass();
         return test1;
     }
 
@@ -158,6 +161,7 @@ public class WhiteboxTest {
         private static int staticValue = 1;
         private int ivalue = 1;
         private Test2 test2;
+        private TestSubClass test4;
 
         private int value() {
             return this.ivalue;
@@ -211,6 +215,14 @@ public class WhiteboxTest {
 
         private String value() {
             return this.str;
+        }
+    }
+
+    @SuppressWarnings("unused")
+    private static class TestSubClass extends Test1 {
+
+        private int value() {
+            return 4;
         }
     }
 }

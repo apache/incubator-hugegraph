@@ -139,16 +139,12 @@ public class Whitebox {
 
     public static <T> T invoke(Class<?> clazz, Class<?>[] classes,
                                String methodName, Object self, Object... args) {
+        Method method = method(clazz, methodName, classes);
         try {
-            Method method = clazz.getDeclaredMethod(methodName, classes);
             method.setAccessible(true);
             @SuppressWarnings("unchecked")
             T result = (T) method.invoke(self, args);
             return result;
-        } catch (NoSuchMethodException e) {
-            throw new RuntimeException(String.format(
-                      "Can't find method '%s' with args %s of class '%s'",
-                      methodName, Arrays.asList(classes), clazz), e);
         } catch (IllegalAccessException e) {
             throw new RuntimeException(String.format(
                       "Can't invoke method '%s' of class '%s': %s",
@@ -161,6 +157,23 @@ public class Whitebox {
             throw new RuntimeException(String.format(
                       "Can't invoke method '%s' of class '%s': %s",
                       methodName, clazz, target.getMessage()), target);
+        }
+    }
+
+    public static Method method(Class<?> clazz, String methodName,
+                                Class<?>[] argsClasses) {
+        try {
+            return clazz.getDeclaredMethod(methodName, argsClasses);
+        } catch (NoSuchMethodException e) {
+            Class<?> superclass = clazz.getSuperclass();
+            if (superclass != null) {
+                try {
+                    return method(superclass, methodName, argsClasses);
+                } catch (Exception ignored){}
+            }
+            throw new RuntimeException(String.format(
+                      "Can't find method '%s' with args %s of class '%s'",
+                      methodName, Arrays.asList(argsClasses), clazz), e);
         }
     }
 }
