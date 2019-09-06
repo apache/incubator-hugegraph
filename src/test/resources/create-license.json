@@ -1,0 +1,19 @@
+{
+  "subject": "hugegraph-evaluation",
+  "private_alias": "privatekey",
+  "key_password": "private_password123456",
+  "store_password": "public_password123456",
+  "privatekey_path": "src/test/resources/privateKeys.store",
+  "license_path": "src/test/resources/hugegraph-evaluation.license",
+  "issued_time": "2019-08-01 00:00:00",
+  "not_before": "2019-08-01 00:00:00",
+  "not_after": "2029-08-01 00:00:00",
+  "consumer_type": "user",
+  "consumer_amount": 1,
+  "extra_params": [
+    {
+      "id": "server-1",
+      "graphs": 3
+    }
+  ]
+}

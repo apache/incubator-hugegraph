@@ -17,15 +17,44 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.version;
+package com.baidu.hugegraph.license;
 
-import com.baidu.hugegraph.util.VersionUtil.Version;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-public class CommonVersion {
+public class LicenseVerifyParam {
 
-    public static final String NAME = "hugegraph-common";
+    @JsonProperty("subject")
+    private String subject;
 
-    // The second parameter of Version.of() is for all-in-one JAR
-    public static final Version VERSION = Version.of(CommonVersion.class,
-                                                     "1.6.14");
+    @JsonProperty("public_alias")
+    private String publicAlias;
+
+    @JsonProperty("store_password")
+    private String storePassword;
+
+    @JsonProperty("publickey_path")
+    private String publicKeyPath;
+
+    @JsonProperty("license_path")
+    private String licensePath;
+
+    public String subject() {
+        return this.subject;
+    }
+
+    public String publicAlias() {
+        return this.publicAlias;
+    }
+
+    public String storePassword() {
+        return this.storePassword;
+    }
+
+    public String licensePath() {
+        return this.licensePath;
+    }
+
+    public String publicKeyPath() {
+        return this.publicKeyPath;
+    }
 }
