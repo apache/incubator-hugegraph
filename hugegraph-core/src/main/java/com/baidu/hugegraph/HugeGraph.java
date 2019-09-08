@@ -263,6 +263,17 @@ public class HugeGraph implements GremlinGraph {
         }
     }
 
+    private GraphTransaction openSystemTransaction() throws HugeException {
+        this.checkGraphNotClosed();
+        try {
+            return new CachedGraphTransaction(this, this.loadSystemStore());
+        } catch (BackendException e) {
+            String message = "Failed to open system transaction";
+            LOG.error("{}", message, e);
+            throw new HugeException(message);
+        }
+    }
+
     private GraphTransaction openGraphTransaction() throws HugeException {
         this.checkGraphNotClosed();
         try {
@@ -307,6 +318,16 @@ public class HugeGraph implements GremlinGraph {
          * Don't need to open tinkerpop tx by readWrite() and commit manually.
          */
         return this.tx.schemaTransaction();
+    }
+
+    public GraphTransaction systemTransaction() {
+        this.checkGraphNotClosed();
+        /*
+         * NOTE: each system operation will be auto committed,
+         * Don't need to open tinkerpop tx by readWrite() and commit manually.
+         */
+        this.tx.readWrite();
+        return this.tx.systemTransaction();
     }
 
     public GraphTransaction graphTransaction() {
@@ -726,6 +747,10 @@ public class HugeGraph implements GremlinGraph {
             return this.getOrNewTransaction().schemaTx;
         }
 
+        public GraphTransaction systemTransaction() {
+            return this.getOrNewTransaction().systemTx;
+        }
+
         private GraphTransaction graphTransaction() {
             return this.getOrNewTransaction().graphTx;
         }
@@ -740,7 +765,8 @@ public class HugeGraph implements GremlinGraph {
             Txs txs = this.transactions.get();
             if (txs == null) {
                 // TODO: close SchemaTransaction if GraphTransaction is error
-                txs = new Txs(openSchemaTransaction(), openGraphTransaction());
+                txs = new Txs(openSchemaTransaction(), openSystemTransaction(),
+                              openGraphTransaction());
                 this.transactions.set(txs);
             }
             return txs;
@@ -763,26 +789,24 @@ public class HugeGraph implements GremlinGraph {
 
     private static final class Txs {
 
-        public final SchemaTransaction schemaTx;
-        public final GraphTransaction graphTx;
+        private final SchemaTransaction schemaTx;
+        private final GraphTransaction systemTx;
+        private final GraphTransaction graphTx;
 
-        public Txs(SchemaTransaction schemaTx, GraphTransaction graphTx) {
-            assert schemaTx != null && graphTx != null;
+        public Txs(SchemaTransaction schemaTx, GraphTransaction systemTx,
+                   GraphTransaction graphTx) {
+            assert schemaTx != null && systemTx != null && graphTx != null;
             this.schemaTx = schemaTx;
+            this.systemTx = systemTx;
             this.graphTx = graphTx;
         }
 
         public void commit() {
-            this.schemaTx.commit();
             this.graphTx.commit();
         }
 
         public void rollback() {
-            try {
-                this.schemaTx.rollback();
-            } finally {
-                this.graphTx.rollback();
-            }
+            this.graphTx.rollback();
         }
 
         public void close() {
@@ -790,6 +814,12 @@ public class HugeGraph implements GremlinGraph {
                 this.graphTx.close();
             } catch (Exception e) {
                 LOG.error("Failed to close GraphTransaction", e);
+            }
+
+            try {
+                this.systemTx.close();
+            } catch (Exception e) {
+                LOG.error("Failed to close SystemTransaction", e);
             }
 
             try {
@@ -801,8 +831,8 @@ public class HugeGraph implements GremlinGraph {
 
         @Override
         public String toString() {
-            return String.format("{schemaTx=%s,graphTx=%s}",
-                                 this.schemaTx, this.graphTx);
+            return String.format("{schemaTx=%s,systemTx=%s,graphTx=%s}",
+                                 this.schemaTx, this.systemTx, this.graphTx);
         }
     }
 }
