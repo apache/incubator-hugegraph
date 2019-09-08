@@ -45,7 +45,6 @@ import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.GremlinGraph;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.CompressInterceptor.Compress;
@@ -86,7 +85,7 @@ public class VertexAPI extends BatchAPI {
         LOG.debug("Graph [{}] create vertex: {}", graph, jsonVertex);
         checkCreatingBody(jsonVertex);
 
-        GremlinGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         Vertex vertex = commit(g, () -> g.addVertex(jsonVertex.properties()));
 
         return manager.serializer(g).writeVertex(vertex);
@@ -108,7 +107,7 @@ public class VertexAPI extends BatchAPI {
         checkCreatingBody(jsonVertices);
         checkBatchSize(config, jsonVertices);
 
-        GremlinGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
 
         return this.commit(config, g, jsonVertices.size(), () -> {
             List<String> ids = new ArrayList<>(jsonVertices.size());
@@ -141,7 +140,7 @@ public class VertexAPI extends BatchAPI {
         checkUpdatingBody(req.jsonVertices);
         checkBatchSize(config, req.jsonVertices);
 
-        GremlinGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         Map<Id, JsonVertex> map = new HashMap<>(req.jsonVertices.size());
 
         return this.commit(config, g, map.size(), () -> {
@@ -196,12 +195,12 @@ public class VertexAPI extends BatchAPI {
         // Parse action param
         boolean append = checkAndParseAction(action);
 
-        GremlinGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         HugeVertex vertex = (HugeVertex) g.vertices(id).next();
         VertexLabel vertexLabel = vertex.schemaLabel();
 
         for (String key : jsonVertex.properties.keySet()) {
-            PropertyKey pkey = graph4schema(g).propertyKey(key);
+            PropertyKey pkey = g.propertyKey(key);
             E.checkArgument(vertexLabel.properties().contains(pkey.id()),
                             "Can't update property for vertex '%s' because " +
                             "there is no property key '%s' in its vertex label",
@@ -270,7 +269,7 @@ public class VertexAPI extends BatchAPI {
         LOG.debug("Graph [{}] get vertex by id '{}'", graph, idValue);
 
         Id id = checkAndParseVertexId(idValue);
-        GremlinGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         Iterator<Vertex> vertices = g.vertices(id);
         checkExist(vertices, HugeType.VERTEX, idValue);
         return manager.serializer(g).writeVertex(vertices.next());
@@ -287,7 +286,7 @@ public class VertexAPI extends BatchAPI {
         LOG.debug("Graph [{}] remove vertex by id '{}'", graph, idValue);
 
         Id id = checkAndParseVertexId(idValue);
-        GremlinGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         // TODO: add removeVertex(id) to improve
         commit(g, () -> {
             Iterator<Vertex> iter = g.vertices(id);
@@ -325,9 +324,8 @@ public class VertexAPI extends BatchAPI {
         }
     }
 
-    private Id getVertexId(GremlinGraph g, JsonVertex vertex) {
-        HugeGraph graph = graph4schema(g);
-        VertexLabel vertexLabel = graph.vertexLabel(vertex.label);
+    private Id getVertexId(HugeGraph g, JsonVertex vertex) {
+        VertexLabel vertexLabel = g.vertexLabel(vertex.label);
         String labelId = vertexLabel.id().asString();
         IdStrategy idStrategy = vertexLabel.idStrategy();
         E.checkArgument(idStrategy != IdStrategy.AUTOMATIC,
@@ -337,7 +335,7 @@ public class VertexAPI extends BatchAPI {
             List<Id> pkIds = vertexLabel.primaryKeys();
             List<Object> pkValues = new ArrayList<>(pkIds.size());
             for (Id pkId : pkIds) {
-                String propertyKey = graph.propertyKey(pkId).name();
+                String propertyKey = g.propertyKey(pkId).name();
                 Object propertyValue = vertex.properties.get(propertyKey);
                 E.checkArgument(propertyValue != null,
                                 "The value of primary key '%s' can't be null",

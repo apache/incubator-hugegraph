@@ -47,7 +47,6 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.util.function.TriFunction;
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.GremlinGraph;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.CompressInterceptor.Compress;
@@ -56,7 +55,6 @@ import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
-import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.core.GraphManager;
@@ -92,21 +90,17 @@ public class EdgeAPI extends BatchAPI {
         LOG.debug("Graph [{}] create edge: {}", graph, jsonEdge);
         checkCreatingBody(jsonEdge);
 
-        GremlinGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
 
         if (jsonEdge.sourceLabel != null && jsonEdge.targetLabel != null) {
-            // NOTE: Not use SchemaManager because it will throw 404
-            SchemaTransaction schema = graph4schema(g).schemaTransaction();
             /*
              * NOTE: If the vertex id is correct but label not match with id,
              * we allow to create it here
              */
-            E.checkArgumentNotNull(schema.getVertexLabel(jsonEdge.sourceLabel),
-                                   "Invalid source vertex label '%s'",
-                                   jsonEdge.sourceLabel);
-            E.checkArgumentNotNull(schema.getVertexLabel(jsonEdge.targetLabel),
-                                   "Invalid target vertex label '%s'",
-                                   jsonEdge.targetLabel);
+            vertexLabel(g, jsonEdge.sourceLabel,
+                        "Invalid source vertex label '%s'");
+            vertexLabel(g, jsonEdge.targetLabel,
+                        "Invalid target vertex label '%s'");
         }
 
         Vertex srcVertex = getVertex(g, jsonEdge.source, null);
@@ -138,9 +132,9 @@ public class EdgeAPI extends BatchAPI {
         checkCreatingBody(jsonEdges);
         checkBatchSize(config, jsonEdges);
 
-        GremlinGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
 
-        TriFunction<GremlinGraph, Object, String, Vertex> getVertex =
+        TriFunction<HugeGraph, Object, String, Vertex> getVertex =
                     checkVertex ? EdgeAPI::getVertex : EdgeAPI::newVertex;
 
         return this.commit(config, g, jsonEdges.size(), () -> {
@@ -182,9 +176,9 @@ public class EdgeAPI extends BatchAPI {
         checkUpdatingBody(req.jsonEdges);
         checkBatchSize(config, req.jsonEdges);
 
-        GremlinGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         Map<Id, JsonEdge> map = new HashMap<>(req.jsonEdges.size());
-        TriFunction<GremlinGraph, Object, String, Vertex> getVertex =
+        TriFunction<HugeGraph, Object, String, Vertex> getVertex =
                     req.checkVertex ? EdgeAPI::getVertex : EdgeAPI::newVertex;
 
         return this.commit(config, g, map.size(), () -> {
@@ -245,12 +239,12 @@ public class EdgeAPI extends BatchAPI {
         // Parse action param
         boolean append = checkAndParseAction(action);
 
-        GremlinGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         HugeEdge edge = (HugeEdge) g.edges(id).next();
         EdgeLabel edgeLabel = edge.schemaLabel();
 
         for (String key : jsonEdge.properties.keySet()) {
-            PropertyKey pkey = graph4schema(g).propertyKey(key);
+            PropertyKey pkey = g.propertyKey(key);
             E.checkArgument(edgeLabel.properties().contains(pkey.id()),
                             "Can't update property for edge '%s' because " +
                             "there is no property key '%s' in its edge label",
@@ -334,7 +328,7 @@ public class EdgeAPI extends BatchAPI {
                       @PathParam("id") String id) {
         LOG.debug("Graph [{}] get edge by id '{}'", graph, id);
 
-        GremlinGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         Iterator<Edge> edges = g.edges(id);
         checkExist(edges, HugeType.EDGE, id);
         return manager.serializer(g).writeEdge(edges.next());
@@ -350,7 +344,7 @@ public class EdgeAPI extends BatchAPI {
                        @PathParam("id") String id) {
         LOG.debug("Graph [{}] remove vertex by id '{}'", graph, id);
 
-        GremlinGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         // TODO: add removeEdge(id) to improve
         commit(g, () -> {
             Edge edge;
@@ -380,7 +374,7 @@ public class EdgeAPI extends BatchAPI {
         }
     }
 
-    private static Vertex getVertex(GremlinGraph graph,
+    private static Vertex getVertex(HugeGraph graph,
                                     Object id, String label) {
         HugeVertex vertex;
         try {
@@ -390,16 +384,23 @@ public class EdgeAPI extends BatchAPI {
                       "Invalid vertex id '%s'", id));
         }
         // Clone a new vertex to support multi-thread access
-        return vertex.copy().resetTx();
+        return vertex.copy();
     }
 
-    private static Vertex newVertex(GremlinGraph g, Object id, String label) {
-        HugeGraph graph = graph4schema(g);
-        // NOTE: Not use SchemaManager because it will throw 404
-        VertexLabel vl = graph.schemaTransaction().getVertexLabel(label);
-        E.checkArgumentNotNull(vl, "Invalid vertex label '%s'", label);
+    private static Vertex newVertex(HugeGraph g, Object id, String label) {
+        VertexLabel vl = vertexLabel(g, label, "Invalid vertex label '%s'");
         Id idValue = HugeVertex.getIdValue(id);
-        return new HugeVertex(graph, idValue, vl);
+        return new HugeVertex(g, idValue, vl);
+    }
+
+    private static VertexLabel vertexLabel(HugeGraph graph, String label,
+                                           String message) {
+        try {
+            // NOTE: don't use SchemaManager because it will throw 404
+            return graph.vertexLabel(label);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException(String.format(message, label));
+        }
     }
 
     public static Direction parseDirection(String direction) {
@@ -415,19 +416,18 @@ public class EdgeAPI extends BatchAPI {
         }
     }
 
-    private Id getEdgeId(GremlinGraph g, JsonEdge newEdge) {
+    private Id getEdgeId(HugeGraph g, JsonEdge newEdge) {
         if (newEdge.id != null) {
             return EdgeId.parse(newEdge.id.toString());
         }
 
-        HugeGraph graph = graph4schema(g);
         String sortKeys = "";
-        Id labelId = graph.edgeLabel(newEdge.label).id();
-        List<Id> sortKeyIds = graph.edgeLabel(labelId).sortKeys();
+        Id labelId = g.edgeLabel(newEdge.label).id();
+        List<Id> sortKeyIds = g.edgeLabel(labelId).sortKeys();
         if (!sortKeyIds.isEmpty()) {
             List<Object> sortKeyValues = new ArrayList<>(sortKeyIds.size());
             sortKeyIds.forEach(skId -> {
-                String sortKey = graph.propertyKey(skId).name();
+                String sortKey = g.propertyKey(skId).name();
                 Object sortKeyValue = newEdge.properties.get(sortKey);
                 E.checkArgument(sortKeyValue != null,
                                 "The value of sort key '%s' can't be null",

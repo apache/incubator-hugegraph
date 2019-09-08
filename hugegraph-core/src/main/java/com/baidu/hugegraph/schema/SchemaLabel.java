@@ -24,7 +24,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
-import com.baidu.hugegraph.GremlinGraph;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
@@ -109,7 +108,7 @@ public abstract class SchemaLabel extends SchemaElement
         this.enableLabelIndex = enable;
     }
 
-    public static Id getLabelId(GremlinGraph graph, HugeType type, Object label) {
+    public static Id getLabelId(HugeGraph graph, HugeType type, Object label) {
         E.checkNotNull(graph, "graph");
         E.checkNotNull(type, "type");
         E.checkNotNull(label, "label");

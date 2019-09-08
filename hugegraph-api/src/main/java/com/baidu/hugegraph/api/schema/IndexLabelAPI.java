@@ -36,7 +36,7 @@ import javax.ws.rs.core.Context;
 
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.GremlinGraph;
+import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.backend.id.Id;
@@ -69,7 +69,7 @@ public class IndexLabelAPI extends API {
         LOG.debug("Graph [{}] create index label: {}", graph, jsonIndexLabel);
         checkCreatingBody(jsonIndexLabel);
 
-        GremlinGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         IndexLabel.Builder builder = jsonIndexLabel.convert2Builder(g);
         IndexLabel.CreatedIndexLabel il = builder.createWithTask();
         il.indexLabel(mapIndexLabel(il.indexLabel()));
@@ -84,7 +84,7 @@ public class IndexLabelAPI extends API {
                        @PathParam("graph") String graph) {
         LOG.debug("Graph [{}] get edge labels", graph);
 
-        GremlinGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         List<IndexLabel> labels = g.schema().getIndexLabels();
         return manager.serializer(g).writeIndexlabels(mapIndexLabels(labels));
     }
@@ -99,7 +99,7 @@ public class IndexLabelAPI extends API {
                       @PathParam("name") String name) {
         LOG.debug("Graph [{}] get edge label by name '{}'", graph, name);
 
-        GremlinGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         IndexLabel indexLabel = g.schema().getIndexLabel(name);
         return manager.serializer(g).writeIndexlabel(mapIndexLabel(indexLabel));
     }
@@ -116,7 +116,7 @@ public class IndexLabelAPI extends API {
                                   @PathParam("name") String name) {
         LOG.debug("Graph [{}] remove index label by name '{}'", graph, name);
 
-        GremlinGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         // Throw 404 if not exists
         g.schema().getIndexLabel(name);
         return ImmutableMap.of("task_id",
@@ -178,7 +178,7 @@ public class IndexLabelAPI extends API {
                                    "can't be null", this.name);
         }
 
-        private IndexLabel.Builder convert2Builder(GremlinGraph g) {
+        private IndexLabel.Builder convert2Builder(HugeGraph g) {
             IndexLabel.Builder builder = g.schema().indexLabel(this.name);
             if (this.id != 0) {
                 E.checkArgument(this.id > 0,

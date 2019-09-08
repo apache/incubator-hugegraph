@@ -38,6 +38,7 @@ import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
@@ -99,10 +100,12 @@ public class HugeVariables implements Graph.Variables {
             Hidden.hide(STRING_VALUE + SET)
     };
 
-    private HugeGraph graph;
+    private final HugeGraphParams params;
+    private final HugeGraph graph;
 
-    public HugeVariables(HugeGraph graph) {
-        this.graph = graph;
+    public HugeVariables(HugeGraphParams params) {
+        this.params = params;
+        this.graph = params.graph();
     }
 
     public void initSchemaIfNeeded() {
@@ -173,7 +176,7 @@ public class HugeVariables implements Graph.Variables {
                                       .primaryKeys(Hidden.hide(VARIABLE_KEY))
                                       .nullableKeys(TYPES)
                                       .build();
-        this.graph.schemaTransaction().addVertexLabel(variables);
+        this.params.schemaTransaction().addVertexLabel(variables);
 
         LOG.debug("Variables schema created");
     }
@@ -185,7 +188,7 @@ public class HugeVariables implements Graph.Variables {
                                         .dataType(dataType)
                                         .cardinality(cardinality)
                                         .build();
-        this.graph.schemaTransaction().addPropertyKey(propertyKey);
+        this.params.schemaTransaction().addPropertyKey(propertyKey);
     }
 
     @Override
@@ -322,7 +325,7 @@ public class HugeVariables implements Graph.Variables {
 
     private void createVariableVertex(String key, Object value) {
         VertexLabel vl = this.graph.vertexLabel(Hidden.hide(VARIABLES));
-        GraphTransaction tx = this.graph.graphTransaction();
+        GraphTransaction tx = this.params.graphTransaction();
 
         HugeVertex vertex = new HugeVertex(tx, null, vl);
         try {
@@ -338,7 +341,7 @@ public class HugeVariables implements Graph.Variables {
     }
 
     private void removeVariableVertex(HugeVertex vertex) {
-        this.graph.graphTransaction().removeVertex(vertex);
+        this.params.graphTransaction().removeVertex(vertex);
     }
 
     private HugeVertex queryVariableVertex(String key) {

@@ -39,6 +39,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.baidu.hugegraph.HugeException;
+import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.job.GremlinAPI;
 import com.baidu.hugegraph.config.HugeConfig;
@@ -63,10 +64,11 @@ public class SecurityManagerTest {
     }
 
     @AfterClass
-    public static void clear() {
+    public static void clear() throws Exception {
         System.setSecurityManager(null);
         graph.close();
-        HugeGraph.shutdown(30L);
+        // Stop daemon thread
+        HugeFactory.shutdown(30L);
     }
 
     @Test
@@ -302,7 +304,7 @@ public class SecurityManagerTest {
 
     private static HugeGraph loadGraph(boolean needClear) {
         HugeConfig config = FakeObjects.newConfig();
-        HugeGraph graph = new HugeGraph(config);
+        HugeGraph graph = HugeFactory.open(config);
 
         if (needClear) {
             graph.clearBackend();

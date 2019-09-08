@@ -101,6 +101,6 @@ public class BaseCoreTest {
     }
 
     protected BackendFeatures storeFeatures() {
-        return graph().graphTransaction().store().features();
+        return graph().storeFeatures();
     }
 }

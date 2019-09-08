@@ -40,6 +40,7 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.analyzer.Analyzer;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
@@ -93,7 +94,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
     private final Analyzer textAnalyzer;
 
-    public GraphIndexTransaction(HugeGraph graph, BackendStore store) {
+    public GraphIndexTransaction(HugeGraphParams graph, BackendStore store) {
         super(graph, store);
 
         this.textAnalyzer = graph.analyzer();
@@ -156,7 +157,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
      * @param removed   remove or add index
      */
     protected void updateIndex(Id ilId, HugeElement element, boolean removed) {
-        SchemaTransaction schema = graph().schemaTransaction();
+        SchemaTransaction schema = this.params().schemaTransaction();
         IndexLabel indexLabel = schema.getIndexLabel(ilId);
         E.checkArgument(indexLabel != null,
                         "Not exist index label with id '%s'", ilId);
@@ -593,7 +594,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
     @Watched(prefix = "index")
     private Set<MatchedIndex> collectMatchedIndexes(ConditionQuery query) {
-        SchemaTransaction schema = this.graph().schemaTransaction();
+        SchemaTransaction schema = this.params().schemaTransaction();
         Id label = query.condition(HugeKeys.LABEL);
 
         List<? extends SchemaLabel> schemaLabels;
@@ -643,7 +644,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
     @Watched(prefix = "index")
     private MatchedIndex collectMatchedIndex(SchemaLabel schemaLabel,
                                              ConditionQuery query) {
-        SchemaTransaction schema = this.graph().schemaTransaction();
+        SchemaTransaction schema = this.params().schemaTransaction();
         Set<IndexLabel> ils = InsertionOrderUtil.newSet();
         for(Id il : schemaLabel.indexLabels()) {
             ils.add(schema.getIndexLabel(il));
@@ -1196,8 +1197,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
         Set<Id> indexLabelIds = element.schemaLabel().indexLabels();
 
         for (Id id : indexLabelIds) {
-            SchemaTransaction schema = element.graph().schemaTransaction();
-            IndexLabel indexLabel = schema.getIndexLabel(id);
+            IndexLabel indexLabel = element.graph().indexLabel(id);
             indexLabels.add(indexLabel);
         }
         return indexLabels;
@@ -1314,7 +1314,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
         @Override
         public Object execute() {
-            this.tx = this.graph().graphTransaction().indexTransaction();
+            this.tx = this.params().graphTransaction().indexTransaction();
             return this.removeIndexLeft(this.query, this.element);
         }
 

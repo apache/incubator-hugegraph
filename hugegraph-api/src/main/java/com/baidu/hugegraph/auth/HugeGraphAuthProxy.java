@@ -20,7 +20,6 @@
 package com.baidu.hugegraph.auth;
 
 import java.util.Iterator;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -36,19 +35,20 @@ import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph;
+import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.Transaction;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.structure.io.Io;
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.GremlinGraph;
-import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.auth.HugeAuthenticator.RoleAction;
 import com.baidu.hugegraph.auth.HugeAuthenticator.RolePerm;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
-import com.baidu.hugegraph.backend.store.Shard;
+import com.baidu.hugegraph.backend.store.BackendFeatures;
+import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.schema.EdgeLabel;
@@ -57,6 +57,7 @@ import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.structure.HugeFeatures;
+import com.baidu.hugegraph.task.TaskScheduler;
 import com.baidu.hugegraph.testutil.Whitebox;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Action;
@@ -64,7 +65,7 @@ import com.baidu.hugegraph.type.define.GraphMode;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 
-public class HugeGraphAuthProxy implements GremlinGraph {
+public final class HugeGraphAuthProxy implements HugeGraph {
 
     static {
         HugeGraph.registerTraversalStrategies(HugeGraphAuthProxy.class);
@@ -128,9 +129,14 @@ public class HugeGraphAuthProxy implements GremlinGraph {
     }
 
     @Override
+    public Id getNextId(HugeType type) {
+        this.verifyPermissionAction(HugePermission.SCHEMA_READ);
+        return this.hugegraph.getNextId(type);
+    }
+
+    @Override
     public PropertyKey propertyKey(String key) {
         this.verifyPermissionAction(HugePermission.SCHEMA_READ);
-        // TODO: fix call PropertyKey.graph().remove()
         return this.hugegraph.propertyKey(key);
     }
 
@@ -183,6 +189,48 @@ public class HugeGraphAuthProxy implements GremlinGraph {
     }
 
     @Override
+    public void removeVertex(Vertex vertex) {
+        this.verifyPermissionAction(HugePermission.VERTEX_DELETE);
+        this.hugegraph.removeVertex(vertex);
+    }
+
+    @Override
+    public <V> void addVertexProperty(VertexProperty<V> property) {
+        this.verifyPermissionAction(HugePermission.VERTEX_WRITE);
+        this.hugegraph.addVertexProperty(property);
+    }
+
+    @Override
+    public <V> void removeVertexProperty(VertexProperty<V> property) {
+        this.verifyPermissionAction(HugePermission.VERTEX_WRITE);
+        this.hugegraph.removeVertexProperty(property);
+    }
+
+    @Override
+    public Edge addEdge(Edge edge) {
+        this.verifyPermissionAction(HugePermission.EDGE_WRITE);
+        return this.hugegraph.addEdge(edge);
+    }
+
+    @Override
+    public void removeEdge(Edge edge) {
+        this.verifyPermissionAction(HugePermission.EDGE_DELETE);
+        this.hugegraph.addEdge(edge);
+    }
+
+    @Override
+    public <V> void addEdgeProperty(Property<V> property) {
+        this.verifyPermissionAction(HugePermission.EDGE_WRITE);
+        this.hugegraph.addEdgeProperty(property);
+    }
+
+    @Override
+    public <V> void removeEdgeProperty(Property<V> property) {
+        this.verifyPermissionAction(HugePermission.EDGE_WRITE);
+        this.hugegraph.removeEdgeProperty(property);
+    }
+
+    @Override
     public Iterator<Vertex> vertices(Query query) {
         this.verifyPermissionAction(HugePermission.VERTEX_READ);
         return this.hugegraph.vertices(query);
@@ -225,7 +273,7 @@ public class HugeGraphAuthProxy implements GremlinGraph {
     }
 
     @Override
-    public void close() throws HugeException {
+    public void close() throws Exception {
         this.verifyPermission(HugeAuthenticator.ROLE_ADMIN);
         this.hugegraph.close();
     }
@@ -260,16 +308,59 @@ public class HugeGraphAuthProxy implements GremlinGraph {
     }
 
     @Override
+    public String backend() {
+        this.verifyPermission();
+        return this.hugegraph.backend();
+    }
+
+    @Override
+    public String backendVersion() {
+        this.verifyPermission();
+        return this.hugegraph.backendVersion();
+    }
+
+    @Override
+    public BackendStoreSystemInfo backendStoreSystemInfo() {
+        this.verifyPermission(HugeAuthenticator.ROLE_ADMIN);
+        return this.hugegraph.backendStoreSystemInfo();
+    }
+
+    @Override
+    public BackendFeatures backendStoreFeatures() {
+        this.verifyPermission();
+        return this.hugegraph.backendStoreFeatures();
+    }
+
+    @Override
     public GraphMode mode() {
         this.verifyPermission();
         return this.hugegraph.mode();
     }
 
     @Override
-    public List<Shard> metadata(HugeType type, String meta, Object... args) {
+    public void mode(GraphMode mode) {
+        this.verifyPermission(HugeAuthenticator.ROLE_ADMIN);
+        this.hugegraph.mode(mode);
+    }
+
+    @Override
+    public boolean closed() {
+        this.verifyPermission(HugeAuthenticator.ROLE_ADMIN);
+        return this.hugegraph.closed();
+    }
+
+    @Override
+    public <T> T metadata(HugeType type, String meta, Object... args) {
         // TODO: deal with META_WRITE
         this.verifyPermissionAction(HugePermission.META_READ);
         return this.hugegraph.metadata(type, meta, args);
+    }
+
+    @Override
+    public TaskScheduler taskScheduler() {
+        // TODO: add proxy
+        this.verifyPermission();
+        return this.hugegraph.taskScheduler();
     }
 
     @Override
@@ -280,14 +371,9 @@ public class HugeGraphAuthProxy implements GremlinGraph {
 
     @Override
     public UserManager userManager() {
+        // TODO: return proxy
         this.verifyPermission();
         return this.hugegraph.userManager();
-    }
-
-    @Override
-    public String backend() {
-        this.verifyPermission();
-        return this.hugegraph.backend();
     }
 
     @Override
@@ -480,7 +566,7 @@ public class HugeGraphAuthProxy implements GremlinGraph {
 
     private static final ThreadLocal<Context> contexts = new ThreadLocal<>();
 
-    public static void setContext(Context context) {
+    protected final static void setContext(Context context) {
         contexts.set(context);
     }
 

@@ -49,7 +49,7 @@ import com.baidu.hugegraph.api.schema.Checkable;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.core.GraphManager;
-import com.baidu.hugegraph.job.Job;
+import com.baidu.hugegraph.job.UserJob;
 import com.baidu.hugegraph.job.JobBuilder;
 import com.baidu.hugegraph.metrics.MetricsUtil;
 import com.baidu.hugegraph.server.RestServer;
@@ -95,7 +95,7 @@ public class GremlinAPI extends API {
         return ImmutableMap.of("task_id", builder.schedule().id());
     }
 
-    public static class GremlinJob extends Job<Object> {
+    public static class GremlinJob extends UserJob<Object> {
 
         public static final String TASK_TYPE = "gremlin";
         public static final String TASK_BIND_NAME = "gremlinJob";

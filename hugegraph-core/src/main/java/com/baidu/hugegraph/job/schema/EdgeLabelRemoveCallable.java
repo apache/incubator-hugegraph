@@ -21,7 +21,7 @@ package com.baidu.hugegraph.job.schema;
 
 import java.util.Set;
 
-import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
@@ -39,11 +39,11 @@ public class EdgeLabelRemoveCallable extends SchemaCallable {
 
     @Override
     public Object execute() {
-        removeEdgeLabel(this.graph(), this.schemaId());
+        removeEdgeLabel(this.params(), this.schemaId());
         return null;
     }
 
-    protected static void removeEdgeLabel(HugeGraph graph, Id id) {
+    protected static void removeEdgeLabel(HugeGraphParams graph, Id id) {
         GraphTransaction graphTx = graph.graphTransaction();
         SchemaTransaction schemaTx = graph.schemaTransaction();
         EdgeLabel edgeLabel = schemaTx.getEdgeLabel(id);
@@ -65,7 +65,7 @@ public class EdgeLabelRemoveCallable extends SchemaCallable {
             graphTx.removeEdges(edgeLabel);
             removeSchema(schemaTx, edgeLabel);
             // Should commit changes to backend store before release delete lock
-            graph.tx().commit();
+            graph.graph().tx().commit();
         } finally {
             locks.unlock();
         }

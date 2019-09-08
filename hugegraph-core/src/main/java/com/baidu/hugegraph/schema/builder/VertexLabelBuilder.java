@@ -38,7 +38,6 @@ import com.baidu.hugegraph.exception.ExistedException;
 import com.baidu.hugegraph.exception.NotAllowException;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.PropertyKey;
-import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.schema.VertexLabel.Builder;
 import com.baidu.hugegraph.type.HugeType;
@@ -110,7 +109,7 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
     public VertexLabel create() {
         HugeType type = HugeType.VERTEX_LABEL;
         SchemaTransaction tx = this.transaction;
-        SchemaElement.checkName(this.name, tx.graph().configuration());
+        tx.checkSchemaName(this.name);
         VertexLabel vertexLabel = tx.getVertexLabel(this.name);
         if (vertexLabel != null) {
             if (this.checkExist) {

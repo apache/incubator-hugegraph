@@ -69,7 +69,7 @@ public class HugeVertexProperty<V> extends HugeProperty<V>
         E.checkArgument(vertexLabel.nullableKeys().contains(
                         this.propertyKey().id()),
                         "Can't remove non-null vertex property '%s'", this);
-        this.owner.tx().removeVertexProperty(this);
+        this.owner.graph().removeVertexProperty(this);
     }
 
     @Override

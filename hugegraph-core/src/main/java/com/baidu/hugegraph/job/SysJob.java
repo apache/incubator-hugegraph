@@ -19,9 +19,23 @@
 
 package com.baidu.hugegraph.job;
 
-public interface Job<V> {
+import com.baidu.hugegraph.task.TaskCallable.SysTaskCallable;
 
-    public String type();
+public abstract class SysJob<V> extends SysTaskCallable<V> implements Job<V> {
 
-    public V execute() throws Exception;
+    @Override
+    public V call() throws Exception {
+        this.save();
+        return this.execute();
+    }
+
+    @Override
+    protected void done() {
+        this.save();
+    }
+
+    @Override
+    protected void cancelled() {
+        this.save();
+    }
 }

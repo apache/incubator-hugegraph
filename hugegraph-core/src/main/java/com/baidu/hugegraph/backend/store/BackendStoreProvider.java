@@ -19,7 +19,7 @@
 
 package com.baidu.hugegraph.backend.store;
 
-import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.event.EventListener;
 
 public interface BackendStoreProvider {
@@ -49,7 +49,7 @@ public interface BackendStoreProvider {
 
     public void truncate();
 
-    public void initSystemInfo(HugeGraph graph);
+    public void initSystemInfo(HugeGraphParams graph);
 
     public void listen(EventListener listener);
 

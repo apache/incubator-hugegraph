@@ -29,6 +29,7 @@ import org.apache.tinkerpop.gremlin.structure.Graph;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
@@ -65,7 +66,7 @@ public class SchemaTransaction extends IndexableTransaction {
 
     private SchemaIndexTransaction indexTx;
 
-    public SchemaTransaction(HugeGraph graph, BackendStore store) {
+    public SchemaTransaction(HugeGraphParams graph, BackendStore store) {
         super(graph, store);
         this.autoCommit(true);
 
@@ -180,7 +181,8 @@ public class SchemaTransaction extends IndexableTransaction {
     public Id removeVertexLabel(Id id) {
         LOG.debug("SchemaTransaction remove vertex label '{}'", id);
         SchemaCallable callable = new VertexLabelRemoveCallable();
-        return asyncRun(this.graph(), HugeType.VERTEX_LABEL, id, callable);
+        VertexLabel schema = this.getVertexLabel(id);
+        return asyncRun(this.graph(), schema, this.syncDelete(), callable);
     }
 
     @Watched(prefix = "schema")
@@ -205,7 +207,8 @@ public class SchemaTransaction extends IndexableTransaction {
     public Id removeEdgeLabel(Id id) {
         LOG.debug("SchemaTransaction remove edge label '{}'", id);
         SchemaCallable callable = new EdgeLabelRemoveCallable();
-        return asyncRun(this.graph(), HugeType.EDGE_LABEL, id, callable);
+        EdgeLabel schema = this.getEdgeLabel(id);
+        return asyncRun(this.graph(), schema, this.syncDelete(), callable);
     }
 
     @Watched(prefix = "schema")
@@ -237,7 +240,8 @@ public class SchemaTransaction extends IndexableTransaction {
     public Id removeIndexLabel(Id id) {
         LOG.debug("SchemaTransaction remove index label '{}'", id);
         SchemaCallable callable = new IndexLabelRemoveCallable();
-        return asyncRun(this.graph(), HugeType.INDEX_LABEL, id, callable);
+        IndexLabel schema = this.getIndexLabel(id);
+        return asyncRun(this.graph(), schema, this.syncDelete(), callable);
     }
 
     @Watched(prefix = "schema")
@@ -250,8 +254,8 @@ public class SchemaTransaction extends IndexableTransaction {
         LOG.debug("SchemaTransaction rebuild index for {} with id '{}'",
                   schema.type(), schema.id());
         SchemaCallable callable = new RebuildIndexCallable();
-        return asyncRun(this.graph(), schema.type(), schema.id(),
-                        callable, dependencies);
+        boolean sync = this.syncDelete();
+        return asyncRun(this.graph(), schema, sync, callable, dependencies);
     }
 
     @Watched(prefix = "schema")
@@ -379,6 +383,33 @@ public class SchemaTransaction extends IndexableTransaction {
         }
     }
 
+    public void checkSchemaName(String name) {
+        String illegalReg = this.params().configuration()
+                                .get(CoreOptions.SCHEMA_ILLEGAL_NAME_REGEX);
+
+        E.checkNotNull(name, "name");
+        E.checkArgument(!name.isEmpty(), "The name can't be empty.");
+        E.checkArgument(name.length() < 256,
+                        "The length of name must less than 256 bytes.");
+        E.checkArgument(!name.matches(illegalReg),
+                        String.format("Illegal schema name '%s'", name));
+
+        final char[] filters = {'#', '>', ':', '!'};
+        for (char c : filters) {
+            E.checkArgument(name.indexOf(c) == -1,
+                            "The name can't contain character '%s'.", c);
+        }
+    }
+
+    public long taskWaitTimeout() {
+        return this.params().configuration().get(CoreOptions.TASK_WAIT_TIMEOUT);
+    }
+
+    public boolean syncDelete() {
+        return this.params().configuration()
+                            .get( CoreOptions.SCHEMA_SYNC_DELETION);
+    }
+
     @Watched(prefix = "schema")
     public Id validOrGenerateId(HugeType type, Id id, String name) {
         boolean forSystem = Graph.Hidden.isHidden(name);
@@ -444,20 +475,19 @@ public class SchemaTransaction extends IndexableTransaction {
         }
     }
 
-    private static Id asyncRun(HugeGraph graph, HugeType schemaType,
-                               Id schemaId, SchemaCallable callable) {
-        return asyncRun(graph, schemaType, schemaId,
-                        callable, ImmutableSet.of());
+    private static Id asyncRun(HugeGraph graph, SchemaElement schema,
+                               boolean sync, SchemaCallable callable) {
+        return asyncRun(graph, schema, sync, callable, ImmutableSet.of());
     }
 
     @Watched(prefix = "schema")
-    private static Id asyncRun(HugeGraph graph, HugeType schemaType,
-                               Id schemaId, SchemaCallable callable,
+    private static Id asyncRun(HugeGraph graph, SchemaElement schema,
+                               boolean sync, SchemaCallable callable,
                                Set<Id> dependencies) {
-        String schemaName = graph.schemaTransaction()
-                                 .getSchema(schemaType, schemaId).name();
-        String name = SchemaCallable.formatTaskName(schemaType, schemaId,
-                                                    schemaName);
+        E.checkArgument(schema != null, "Schema can't be null");
+        String name = SchemaCallable.formatTaskName(schema.type(),
+                                                    schema.id(),
+                                                    schema.name());
 
         JobBuilder<Object> builder = JobBuilder.of(graph).name(name)
                                                .job(callable)
@@ -466,7 +496,7 @@ public class SchemaTransaction extends IndexableTransaction {
 
         // If SCHEMA_SYNC_DELETION is true, wait async thread done before
         // continue. This is used when running tests.
-        if (graph.configuration().get(CoreOptions.SCHEMA_SYNC_DELETION)) {
+        if (sync) {
             try {
                 task.get();
                 assert task.completed();

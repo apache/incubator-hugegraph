@@ -31,12 +31,10 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
-import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.exception.ExistedException;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
-import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.SchemaLabel;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.HugeType;
@@ -96,7 +94,7 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
     public IndexLabel.CreatedIndexLabel createWithTask() {
         HugeType type = HugeType.INDEX_LABEL;
         SchemaTransaction tx = this.transaction;
-        SchemaElement.checkName(this.name, tx.graph().configuration());
+        tx.checkSchemaName(this.name);
         IndexLabel indexLabel = tx.getIndexLabel(this.name);
         if (indexLabel != null) {
             if (this.checkExist) {
@@ -147,7 +145,7 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
 
         // Wait task completed (change to sync mode)
         HugeGraph graph = this.transaction.graph();
-        long timeout = graph.configuration().get(CoreOptions.TASK_WAIT_TIMEOUT);
+        long timeout = this.transaction.taskWaitTimeout();
         try {
             graph.taskScheduler().waitUntilTaskCompleted(task, timeout);
         } catch (TimeoutException e) {

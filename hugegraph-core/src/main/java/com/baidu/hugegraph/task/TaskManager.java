@@ -31,7 +31,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import com.baidu.hugegraph.HugeException;
-import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.ExecutorUtil;
 
@@ -43,7 +43,7 @@ public class TaskManager {
     private static final int THREADS = 4;
     private static final TaskManager MANAGER = new TaskManager(THREADS);
 
-    private final Map<HugeGraph, TaskScheduler> schedulers;
+    private final Map<HugeGraphParams, TaskScheduler> schedulers;
 
     private final ExecutorService taskExecutor;
     private final ExecutorService dbExecutor;
@@ -61,14 +61,14 @@ public class TaskManager {
         this.dbExecutor = ExecutorUtil.newFixedThreadPool(1, TASK_DB_WORKER);
     }
 
-    public void addScheduler(HugeGraph graph) {
+    public void addScheduler(HugeGraphParams graph) {
         E.checkArgumentNotNull(graph, "The graph can't be null");
         ExecutorService task = this.taskExecutor;
         ExecutorService db = this.dbExecutor;
         this.schedulers.put(graph, new TaskScheduler(graph, task, db));
     }
 
-    public void closeScheduler(HugeGraph graph) {
+    public void closeScheduler(HugeGraphParams graph) {
         TaskScheduler scheduler = this.schedulers.get(graph);
         if (scheduler != null && scheduler.close()) {
             this.schedulers.remove(graph);
@@ -76,7 +76,7 @@ public class TaskManager {
         this.closeTaskTx(graph);
     }
 
-    private void closeTaskTx(HugeGraph graph) {
+    private void closeTaskTx(HugeGraphParams graph) {
         final Map<Thread, Integer> threadsTimes = new ConcurrentHashMap<>();
         final List<Callable<Void>> tasks = new ArrayList<>();
 
@@ -112,7 +112,7 @@ public class TaskManager {
         }
     }
 
-    public TaskScheduler getScheduler(HugeGraph graph) {
+    public TaskScheduler getScheduler(HugeGraphParams graph) {
         return this.schedulers.get(graph);
     }
 

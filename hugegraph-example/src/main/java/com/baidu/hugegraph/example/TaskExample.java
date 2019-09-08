@@ -24,21 +24,21 @@ import java.util.Iterator;
 import org.apache.commons.collections.IteratorUtils;
 import org.slf4j.Logger;
 
+import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.task.HugeTask;
-import com.baidu.hugegraph.task.TaskStatus;
 import com.baidu.hugegraph.task.TaskCallable;
-import com.baidu.hugegraph.task.TaskManager;
 import com.baidu.hugegraph.task.TaskScheduler;
+import com.baidu.hugegraph.task.TaskStatus;
 import com.baidu.hugegraph.util.Log;
 
 public class TaskExample {
 
     private static final Logger LOG = Log.logger(TaskExample.class);
 
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) throws Exception {
         LOG.info("TaskExample start!");
 
         HugeGraph graph = ExampleUtil.loadGraph();
@@ -49,7 +49,7 @@ public class TaskExample {
         task.type("type-1");
         task.name("test-task");
 
-        TaskScheduler scheduler = TaskManager.instance().getScheduler(graph);
+        TaskScheduler scheduler = graph.taskScheduler();
         scheduler.schedule(task);
         scheduler.save(task);
         Iterator<HugeTask<Object>> iter;
@@ -79,7 +79,8 @@ public class TaskExample {
 
         graph.close();
 
-        HugeGraph.shutdown(30L);
+        // Stop daemon thread
+        HugeFactory.shutdown(30L);
     }
 
     public static class TestTask extends TaskCallable<Integer> {
@@ -95,7 +96,7 @@ public class TaskExample {
             for (int i = this.task().progress(); i <= 100 && this.run; i++) {
                 System.out.println(">>>> progress " + i);
                 this.task().progress(i);
-                this.scheduler().save(this.task());
+                this.task().save();
                 Thread.sleep(UNIT);
             }
             return 18;

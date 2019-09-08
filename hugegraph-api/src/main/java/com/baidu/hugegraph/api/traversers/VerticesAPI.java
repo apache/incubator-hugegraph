@@ -36,7 +36,7 @@ import javax.ws.rs.core.Context;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.GremlinGraph;
+import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.CompressInterceptor.Compress;
 import com.baidu.hugegraph.api.graph.VertexAPI;
@@ -73,7 +73,7 @@ public class VerticesAPI extends API {
             ids[i] = VertexAPI.checkAndParseVertexId(stringIds.get(i));
         }
 
-        GremlinGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
 
         Iterator<Vertex> vertices = g.vertices(ids);
         return manager.serializer(g).writeVertices(vertices, false);
@@ -90,7 +90,7 @@ public class VerticesAPI extends API {
         LOG.debug("Graph [{}] get vertex shards with split size '{}'",
                   graph, splitSize);
 
-        GremlinGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         List<Shard> shards = g.metadata(HugeType.VERTEX, "splits", splitSize);
         return manager.serializer(g).writeList("shards", shards);
     }
@@ -110,7 +110,7 @@ public class VerticesAPI extends API {
         LOG.debug("Graph [{}] query vertices by shard(start: {}, end: {}, " +
                   "page: {}) ", graph, start, end, page);
 
-        GremlinGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
 
         ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
         query.scan(start, end);

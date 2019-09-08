@@ -35,7 +35,7 @@ import javax.ws.rs.core.Context;
 
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.GremlinGraph;
+import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.RestServer;
@@ -63,7 +63,7 @@ public class VariablesAPI extends API {
                         "The variable value can't be empty");
         LOG.debug("Graph [{}] set variable for {}: {}", graph, key, value);
 
-        GremlinGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         commit(g, () -> g.variables().set(key, value.data));
         return ImmutableMap.of(key, value.data);
     }
@@ -75,7 +75,7 @@ public class VariablesAPI extends API {
                                     @PathParam("graph") String graph) {
         LOG.debug("Graph [{}] get variables", graph);
 
-        GremlinGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         return g.variables().asMap();
     }
 
@@ -88,7 +88,7 @@ public class VariablesAPI extends API {
                                    @PathParam("key") String key) {
         LOG.debug("Graph [{}] get variable by key '{}'", graph, key);
 
-        GremlinGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         Optional<?> object = g.variables().get(key);
         if (!object.isPresent()) {
             throw new NotFoundException(String.format(
@@ -106,7 +106,7 @@ public class VariablesAPI extends API {
                        @PathParam("key") String key) {
         LOG.debug("Graph [{}] remove variable by key '{}'", graph, key);
 
-        GremlinGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         commit(g, () -> g.variables().remove(key));
     }
 

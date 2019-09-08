@@ -29,7 +29,7 @@ import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 
-import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -42,15 +42,27 @@ import com.baidu.hugegraph.util.E;
 
 public abstract class SchemaDefine {
 
-    protected final HugeGraph graph;
+    protected final HugeGraphParams graph;
     protected final String label;
 
-    public SchemaDefine(HugeGraph graph, String label) {
+    public SchemaDefine(HugeGraphParams graph, String label) {
         this.graph = graph;
         this.label = label;
     }
 
     public abstract void initSchemaIfNeeded();
+
+    protected SchemaManager schema() {
+         return this.graph.graph().schema();
+    }
+
+    protected boolean existVertexLabel(String label) {
+        return this.graph.schemaTransaction().getVertexLabel(label) != null;
+    }
+
+    protected boolean existEdgeLabel(String label) {
+        return this.graph.schemaTransaction().getEdgeLabel(label) != null;
+    }
 
     protected String createPropertyKey(String name) {
         return this.createPropertyKey(name, DataType.TEXT);
@@ -62,7 +74,7 @@ public abstract class SchemaDefine {
 
     protected String createPropertyKey(String name, DataType dataType,
                                        Cardinality cardinality) {
-        SchemaManager schema = this.graph.schema();
+        SchemaManager schema = this.schema();
         PropertyKey propertyKey = schema.propertyKey(name)
                                         .dataType(dataType)
                                         .cardinality(cardinality)
@@ -72,7 +84,7 @@ public abstract class SchemaDefine {
     }
 
     protected IndexLabel createRangeIndex(VertexLabel label, String field) {
-        SchemaManager schema = this.graph.schema();
+        SchemaManager schema = this.schema();
         String name = Hidden.hide(label + "-index-by-" + field);
         IndexLabel indexLabel = schema.indexLabel(name).range()
                                       .on(HugeType.VERTEX_LABEL, this.label)

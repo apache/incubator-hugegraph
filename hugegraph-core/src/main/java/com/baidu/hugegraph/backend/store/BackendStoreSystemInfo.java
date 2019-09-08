@@ -40,33 +40,34 @@ public class BackendStoreSystemInfo {
 
     private static final String PK_BACKEND_INFO = Hidden.hide("backend_info");
 
-    private final HugeGraph graph;
+    private final SchemaTransaction schemaTx;
 
-    public BackendStoreSystemInfo(HugeGraph graph) {
-        this.graph = graph;
+    public BackendStoreSystemInfo(SchemaTransaction schemaTx) {
+        this.schemaTx = schemaTx;
     }
 
     public void init() {
-        SchemaTransaction schema = this.graph.schemaTransaction();
-
+        if (this.exist()) {
+            return;
+        }
         // Set schema counter to reserve primitive system id
-        schema.setNextIdLowest(HugeType.SYS_SCHEMA,
-                               SchemaElement.MAX_PRIMITIVE_SYS_ID);
+        this.schemaTx.setNextIdLowest(HugeType.SYS_SCHEMA,
+                                      SchemaElement.MAX_PRIMITIVE_SYS_ID);
 
         // Use property key to store backend version
-        String backendVersion = this.graph.backendVersion();
-        PropertyKey backendInfo = this.graph.schema()
-                                            .propertyKey(PK_BACKEND_INFO)
-                                            .userdata("version", backendVersion)
-                                            .build();
-        schema.addPropertyKey(backendInfo);
+        HugeGraph graph = this.schemaTx.graph();
+        String backendVersion = graph.backendVersion();
+        PropertyKey backendInfo = graph.schema()
+                                       .propertyKey(PK_BACKEND_INFO)
+                                       .userdata("version", backendVersion)
+                                       .build();
+        this.schemaTx.addPropertyKey(backendInfo);
     }
 
     private Map<String, Object> info() {
-        SchemaTransaction schema = this.graph.schemaTransaction();
         PropertyKey pkey = null;
         try {
-            pkey = schema.getPropertyKey(PK_BACKEND_INFO);
+            pkey = this.schemaTx.getPropertyKey(PK_BACKEND_INFO);
         } catch (BackendException | IllegalStateException |
                  UncheckedIOException ignored) {
             // pass
@@ -82,12 +83,13 @@ public class BackendStoreSystemInfo {
         Map<String, Object> info = this.info();
         E.checkState(info != null, "The backend version info doesn't exist");
         // Backend has been initialized
-        String driverVersion = this.graph.backendVersion();
+        HugeGraph graph = this.schemaTx.graph();
+        String driverVersion = graph.backendVersion();
         String backendVersion = (String) info.get("version");
         if (!driverVersion.equals(backendVersion)) {
             LOG.error("The backend driver version '{}' is inconsistent with " +
                       "the data version '{}' of backend store for graph '{}'",
-                      driverVersion, backendVersion, this.graph.name());
+                      driverVersion, backendVersion, graph.name());
             return false;
         }
         return true;

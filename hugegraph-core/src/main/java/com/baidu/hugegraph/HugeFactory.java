@@ -23,16 +23,32 @@ import java.io.File;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeoutException;
 
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
+import org.slf4j.Logger;
 
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
+import com.baidu.hugegraph.event.EventHub;
+import com.baidu.hugegraph.task.TaskManager;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.Log;
 
 public class HugeFactory {
+
+    private static final Logger LOG = Log.logger(HugeGraph.class);
+
+    static {
+        HugeGraph.registerTraversalStrategies(StandardHugeGraph.class);
+
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            LOG.info("HugeGraph is shutting down");
+            HugeFactory.shutdown(30L);
+        }));
+    }
 
     private static final String NAME_REGEX = "^[A-Za-z][A-Za-z0-9_]{0,47}$";
 
@@ -49,7 +65,7 @@ public class HugeFactory {
         name = name.toLowerCase();
         HugeGraph graph = graphs.get(name);
         if (graph == null || graph.closed()) {
-            graph = new HugeGraph(conf);
+            graph = new StandardHugeGraph(conf);
             graphs.put(name, graph);
         } else {
             String backend = conf.get(CoreOptions.BACKEND);
@@ -86,6 +102,22 @@ public class HugeFactory {
         } catch (ConfigurationException e) {
             throw new HugeException("Unable to load remote config file: %s",
                                     e, url);
+        }
+    }
+
+    /**
+     * Stop all the daemon threads
+     * @param timeout seconds
+     */
+    public static void shutdown(long timeout) {
+        try {
+            if (!EventHub.destroy(timeout)) {
+                throw new TimeoutException(timeout + "s");
+            }
+            TaskManager.instance().shutdown(timeout);
+        } catch (Throwable e) {
+            LOG.error("Error while shutdown", e);
+            throw new HugeException("Failed to shutdown", e);
         }
     }
 }

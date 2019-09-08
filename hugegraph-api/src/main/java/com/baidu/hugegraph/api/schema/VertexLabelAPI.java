@@ -37,7 +37,7 @@ import javax.ws.rs.core.Context;
 
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.GremlinGraph;
+import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.backend.id.Id;
@@ -70,7 +70,7 @@ public class VertexLabelAPI extends API {
                   graph, jsonVertexLabel);
         checkCreatingBody(jsonVertexLabel);
 
-        GremlinGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         VertexLabel.Builder builder = jsonVertexLabel.convert2Builder(g);
         VertexLabel vertexLabel = builder.create();
         return manager.serializer(g).writeVertexLabel(vertexLabel);
@@ -97,7 +97,7 @@ public class VertexLabelAPI extends API {
         // Parse action parameter
         boolean append = checkAndParseAction(action);
 
-        GremlinGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         VertexLabel.Builder builder = jsonVertexLabel.convert2Builder(g);
         VertexLabel vertexLabel = append ?
                                   builder.append() :
@@ -113,7 +113,7 @@ public class VertexLabelAPI extends API {
                        @PathParam("graph") String graph) {
         LOG.debug("Graph [{}] get vertex labels", graph);
 
-        GremlinGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         List<VertexLabel> labels = g.schema().getVertexLabels();
         return manager.serializer(g).writeVertexLabels(labels);
     }
@@ -128,7 +128,7 @@ public class VertexLabelAPI extends API {
                       @PathParam("name") String name) {
         LOG.debug("Graph [{}] get vertex label by name '{}'", graph, name);
 
-        GremlinGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         VertexLabel vertexLabel = g.schema().getVertexLabel(name);
         return manager.serializer(g).writeVertexLabel(vertexLabel);
     }
@@ -145,7 +145,7 @@ public class VertexLabelAPI extends API {
                                   @PathParam("name") String name) {
         LOG.debug("Graph [{}] remove vertex label by name '{}'", graph, name);
 
-        GremlinGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         // Throw 404 if not exists
         g.schema().getVertexLabel(name);
         return ImmutableMap.of("task_id",
@@ -182,7 +182,7 @@ public class VertexLabelAPI extends API {
                                    "The name of vertex label can't be null");
         }
 
-        private VertexLabel.Builder convert2Builder(GremlinGraph g) {
+        private VertexLabel.Builder convert2Builder(HugeGraph g) {
             VertexLabel.Builder builder = g.schema().vertexLabel(this.name);
             if (this.id != 0) {
                 E.checkArgument(this.id > 0,

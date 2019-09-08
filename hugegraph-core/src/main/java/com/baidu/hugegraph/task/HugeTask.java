@@ -48,6 +48,8 @@ public class HugeTask<V> extends FutureTask<V> {
 
     private static final Logger LOG = Log.logger(HugeTask.class);
 
+    private TaskScheduler scheduler = null;
+
     private final TaskCallable<V> callable;
 
     private String type;
@@ -221,6 +223,10 @@ public class HugeTask<V> extends FutureTask<V> {
         }
     }
 
+    public void save() {
+        this.scheduler().save(this);
+    }
+
     @Override
     protected void done() {
         try {
@@ -228,7 +234,7 @@ public class HugeTask<V> extends FutureTask<V> {
         } catch (Throwable e) {
             LOG.error("An exception occurred when calling done()", e);
         } finally {
-            this.callable.scheduler().remove(this.id);
+            this.scheduler().remove(this.id);
         }
     }
 
@@ -254,15 +260,25 @@ public class HugeTask<V> extends FutureTask<V> {
         super.setException(e);
     }
 
+    protected void scheduler(TaskScheduler scheduler) {
+        this.scheduler = scheduler;
+    }
+
+    protected TaskScheduler scheduler() {
+        E.checkState(this.scheduler != null,
+                     "Can't call scheduler() before scheduling task");
+        return this.scheduler;
+    }
+
     protected boolean checkDependenciesSuccess() {
         if (this.dependencies == null || this.dependencies.isEmpty()) {
             return true;
         }
         for (Id dependency : this.dependencies) {
-            HugeTask<?> task = this.callable.scheduler().task(dependency);
+            HugeTask<?> task = this.scheduler().task(dependency);
             if (!task.completed()) {
                 // Dependent task not completed, re-schedule self
-                this.callable.scheduler().schedule(this);
+                this.scheduler().schedule(this);
                 return false;
             } else if (task.status() == TaskStatus.CANCELLED) {
                 this.status(TaskStatus.CANCELLED);

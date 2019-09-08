@@ -23,6 +23,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.cache.CachedGraphTransaction;
 import com.baidu.hugegraph.backend.id.Id;
@@ -42,7 +43,7 @@ public class CachedGraphTransactionTest extends BaseUnitTest {
 
     @Before
     public void setup() {
-        HugeGraph graph = new HugeGraph(FakeObjects.newConfig());
+        HugeGraph graph = HugeFactory.open(FakeObjects.newConfig());
         this.cache = new CachedGraphTransaction(graph, graph.loadGraphStore());
     }
 

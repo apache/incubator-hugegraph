@@ -37,7 +37,7 @@ import javax.ws.rs.core.Context;
 
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.GremlinGraph;
+import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.backend.id.Id;
@@ -69,7 +69,7 @@ public class EdgeLabelAPI extends API {
         LOG.debug("Graph [{}] create edge label: {}", graph, jsonEdgeLabel);
         checkCreatingBody(jsonEdgeLabel);
 
-        GremlinGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         EdgeLabel.Builder builder = jsonEdgeLabel.convert2Builder(g);
         EdgeLabel edgeLabel = builder.create();
         return manager.serializer(g).writeEdgeLabel(edgeLabel);
@@ -96,7 +96,7 @@ public class EdgeLabelAPI extends API {
         // Parse action param
         boolean append = checkAndParseAction(action);
 
-        GremlinGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         EdgeLabel.Builder builder = jsonEdgeLabel.convert2Builder(g);
         EdgeLabel edgeLabel = append ? builder.append() : builder.eliminate();
         return manager.serializer(g).writeEdgeLabel(edgeLabel);
@@ -110,7 +110,7 @@ public class EdgeLabelAPI extends API {
                        @PathParam("graph") String graph) {
         LOG.debug("Graph [{}] get edge labels", graph);
 
-        GremlinGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         List<EdgeLabel> labels = g.schema().getEdgeLabels();
         return manager.serializer(g).writeEdgeLabels(labels);
     }
@@ -125,7 +125,7 @@ public class EdgeLabelAPI extends API {
                       @PathParam("name") String name) {
         LOG.debug("Graph [{}] get edge label by name '{}'", graph, name);
 
-        GremlinGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         EdgeLabel edgeLabel = g.schema().getEdgeLabel(name);
         return manager.serializer(g).writeEdgeLabel(edgeLabel);
     }
@@ -142,7 +142,7 @@ public class EdgeLabelAPI extends API {
                                   @PathParam("name") String name) {
         LOG.debug("Graph [{}] remove edge label by name '{}'", graph, name);
 
-        GremlinGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         // Throw 404 if not exists
         g.schema().getEdgeLabel(name);
         return ImmutableMap.of("task_id",
@@ -183,7 +183,7 @@ public class EdgeLabelAPI extends API {
                                    "The name of edge label can't be null");
         }
 
-        private EdgeLabel.Builder convert2Builder(GremlinGraph g) {
+        private EdgeLabel.Builder convert2Builder(HugeGraph g) {
             EdgeLabel.Builder builder = g.schema().edgeLabel(this.name);
             if (this.id != 0) {
                 E.checkArgument(this.id > 0,

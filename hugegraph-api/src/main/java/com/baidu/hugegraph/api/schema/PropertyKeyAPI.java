@@ -37,7 +37,7 @@ import javax.ws.rs.core.Context;
 
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.GremlinGraph;
+import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.core.GraphManager;
@@ -69,7 +69,7 @@ public class PropertyKeyAPI extends API {
                   graph, jsonPropertyKey);
         checkCreatingBody(jsonPropertyKey);
 
-        GremlinGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         PropertyKey.Builder builder = jsonPropertyKey.convert2Builder(g);
         PropertyKey propertyKey = builder.create();
         return manager.serializer(g).writePropertyKey(propertyKey);
@@ -95,7 +95,7 @@ public class PropertyKeyAPI extends API {
         // Parse action parameter
         boolean append = checkAndParseAction(action);
 
-        GremlinGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         PropertyKey.Builder builder = jsonPropertyKey.convert2Builder(g);
         PropertyKey propertyKey = append ?
                                   builder.append() :
@@ -111,7 +111,7 @@ public class PropertyKeyAPI extends API {
                        @PathParam("graph") String graph) {
         LOG.debug("Graph [{}] get property keys", graph);
 
-        GremlinGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         List<PropertyKey> propKeys = g.schema().getPropertyKeys();
         return manager.serializer(g).writePropertyKeys(propKeys);
     }
@@ -126,7 +126,7 @@ public class PropertyKeyAPI extends API {
                       @PathParam("name") String name) {
         LOG.debug("Graph [{}] get property key by name '{}'", graph, name);
 
-        GremlinGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         PropertyKey propertyKey = g.schema().getPropertyKey(name);
         return manager.serializer(g).writePropertyKey(propertyKey);
     }
@@ -141,7 +141,7 @@ public class PropertyKeyAPI extends API {
                        @PathParam("name") String name) {
         LOG.debug("Graph [{}] remove property key by name '{}'", graph, name);
 
-        GremlinGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         // Throw 404 if not exists
         g.schema().getPropertyKey(name);
         g.schema().propertyKey(name).remove();
@@ -178,7 +178,7 @@ public class PropertyKeyAPI extends API {
                             "support meta properties currently");
         }
 
-        private PropertyKey.Builder convert2Builder(GremlinGraph g) {
+        private PropertyKey.Builder convert2Builder(HugeGraph g) {
             PropertyKey.Builder builder = g.schema().propertyKey(this.name);
             if (this.id != 0) {
                 E.checkArgument(this.id > 0,

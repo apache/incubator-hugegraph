@@ -28,12 +28,10 @@ import java.util.function.Function;
 
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
-import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
-import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.iterator.FlatMapperIterator;
 import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.CollectionUtil;
@@ -42,16 +40,16 @@ import com.google.common.collect.ImmutableSet;
 
 public final class QueryList {
 
-    private final HugeGraph graph;
     private final Query parent;
+    private final long pageSize;
     // The size of each page fetched by the inner page
     private final Function<Query, Iterator<BackendEntry>> fetcher;
     private final List<QueryHolder> queries;
 
-    public QueryList(HugeGraph graph, Query parent,
+    public QueryList(Query parent, long pageSize,
                      Function<Query, Iterator<BackendEntry>> fetcher) {
-        this.graph = graph;
         this.parent = parent;
+        this.pageSize = pageSize;
         this.fetcher = fetcher;
         this.queries = new ArrayList<>();
     }
@@ -96,9 +94,7 @@ public final class QueryList {
     public Iterator<BackendEntry> fetch() {
         assert !this.queries.isEmpty();
         if (this.parent.paging()) {
-            int pageSize = this.graph.configuration()
-                                     .get(CoreOptions.QUERY_PAGE_SIZE);
-            return new PageEntryIterator(this, pageSize);
+            return new PageEntryIterator(this, this.pageSize);
         } else {
             return this.fetchAll();
         }

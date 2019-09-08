@@ -24,6 +24,7 @@ import java.util.Iterator;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.Transaction;
 import com.baidu.hugegraph.backend.id.Id;
@@ -31,6 +32,7 @@ import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.AbstractSerializer;
 import com.baidu.hugegraph.backend.store.BackendEntry;
+import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.exception.NotFoundException;
@@ -52,14 +54,14 @@ public abstract class AbstractTransaction implements Transaction {
     private boolean committing = false;
     private boolean committing2Backend = false;
 
-    private final HugeGraph graph;
+    private final HugeGraphParams graph;
     private final BackendStore store;
 
     private BackendMutation mutation;
 
     protected final AbstractSerializer serializer;
 
-    public AbstractTransaction(HugeGraph graph, BackendStore store) {
+    public AbstractTransaction(HugeGraphParams graph, BackendStore store) {
         E.checkNotNull(graph, "graph");
         E.checkNotNull(store, "store");
 
@@ -69,17 +71,26 @@ public abstract class AbstractTransaction implements Transaction {
         this.store = store;
         this.reset();
 
-        store.open(graph.configuration());
+        store.open(this.graph.configuration());
     }
 
     public HugeGraph graph() {
         E.checkNotNull(this.graph, "graph");
+        return this.graph.graph();
+    }
+
+    protected HugeGraphParams params() {
+        E.checkNotNull(this.graph, "graph");
         return this.graph;
     }
 
-    public BackendStore store() {
-        E.checkNotNull(this.graph, "store");
+    protected BackendStore store() {
+        E.checkNotNull(this.store, "store");
         return this.store;
+    }
+
+    public BackendFeatures storeFeatures() {
+        return this.store.features();
     }
 
     public <R> R metadata(HugeType type, String meta, Object... args) {
@@ -225,7 +236,9 @@ public abstract class AbstractTransaction implements Transaction {
     }
 
     protected void reset() {
-        this.mutation = new BackendMutation();
+        if (this.mutation == null || !this.mutation.isEmpty()) {
+            this.mutation = new BackendMutation();
+        }
     }
 
     protected BackendMutation mutation() {

@@ -39,9 +39,9 @@ import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 
-import com.baidu.hugegraph.GremlinGraph;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.backend.id.Id;
@@ -112,23 +112,26 @@ public class GraphTransaction extends IndexableTransaction {
 
     private LockUtil.LocksTable locksTable;
 
-    private final boolean checkVertexExist;
-
     private final int verticesCapacity;
     private final int edgesCapacity;
 
-    public GraphTransaction(HugeGraph graph, BackendStore store) {
+    private final boolean checkVertexExist;
+    private final long pageSize;
+
+    public GraphTransaction(HugeGraphParams graph, BackendStore store) {
         super(graph, store);
 
         this.indexTx = new GraphIndexTransaction(graph, store);
         assert !this.indexTx.autoCommit();
 
+        this.locksTable = new LockUtil.LocksTable(graph.graph().name());
+
         final HugeConfig conf = graph.configuration();
-        this.checkVertexExist = conf.get(
-                                CoreOptions.VERTEX_CHECK_CUSTOMIZED_ID_EXIST);
         this.verticesCapacity = conf.get(CoreOptions.VERTEX_TX_CAPACITY);
         this.edgesCapacity = conf.get(CoreOptions.EDGE_TX_CAPACITY);
-        this.locksTable = new LockUtil.LocksTable(graph.name());
+        this.checkVertexExist = conf.get(
+                                CoreOptions.VERTEX_CHECK_CUSTOMIZED_ID_EXIST);
+        this.pageSize = conf.get(CoreOptions.QUERY_PAGE_SIZE);
     }
 
     @Override
@@ -174,15 +177,29 @@ public class GraphTransaction extends IndexableTransaction {
         super.reset();
 
         // Clear mutation
-        this.addedVertices = InsertionOrderUtil.newMap();
-        this.removedVertices = InsertionOrderUtil.newMap();
-        this.updatedVertices = InsertionOrderUtil.newMap();
+        if (this.addedVertices == null || !this.addedVertices.isEmpty()) {
+            this.addedVertices = InsertionOrderUtil.newMap();
+        }
+        if (this.removedVertices == null || !this.removedVertices.isEmpty()) {
+            this.removedVertices = InsertionOrderUtil.newMap();
+        }
+        if (this.updatedVertices == null || !this.updatedVertices.isEmpty()) {
+            this.updatedVertices = InsertionOrderUtil.newMap();
+        }
 
-        this.addedEdges = InsertionOrderUtil.newMap();
-        this.removedEdges = InsertionOrderUtil.newMap();
-        this.updatedEdges = InsertionOrderUtil.newMap();
+        if (this.addedEdges == null || !this.addedEdges.isEmpty()) {
+            this.addedEdges = InsertionOrderUtil.newMap();
+        }
+        if (this.removedEdges == null || !this.removedEdges.isEmpty()) {
+            this.removedEdges = InsertionOrderUtil.newMap();
+        }
+        if (this.updatedEdges == null || !this.updatedEdges.isEmpty()) {
+            this.updatedEdges = InsertionOrderUtil.newMap();
+        }
 
-        this.updatedProps = InsertionOrderUtil.newSet();
+        if (this.updatedProps == null || !this.updatedProps.isEmpty()) {
+            this.updatedProps = InsertionOrderUtil.newSet();
+        }
     }
 
     @Override
@@ -346,7 +363,7 @@ public class GraphTransaction extends IndexableTransaction {
             return super.query(query);
         }
 
-        QueryList queries = new QueryList(this.graph(), query,
+        QueryList queries = new QueryList(query, this.pageSize,
                                           q -> super.query(q));
         for (ConditionQuery cq: ConditionQueryFlatten.flatten(
                                 (ConditionQuery) query)) {
@@ -948,7 +965,7 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     public static boolean matchEdgeSortKeys(ConditionQuery query,
-                                            GremlinGraph graph) {
+                                            HugeGraph graph) {
         assert query.resultType().isEdge();
         Id label = query.condition(HugeKeys.LABEL);
         if (label == null) {

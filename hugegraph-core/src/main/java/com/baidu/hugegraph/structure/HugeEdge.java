@@ -95,14 +95,6 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     }
 
     @Override
-    public GraphTransaction tx() {
-        if (this.ownerVertex() == null) {
-            return null;
-        }
-        return this.ownerVertex().tx();
-    }
-
-    @Override
     public String name() {
         if (this.name == null) {
             this.name = SplicingIdGenerator.concatValues(sortValues());
@@ -185,7 +177,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         this.removed = true;
         this.sourceVertex.removeEdge(this);
         this.targetVertex.removeEdge(this);
-        this.tx().removeEdge(this);
+        this.graph().removeEdge(this);
     }
 
     @Override
@@ -203,6 +195,14 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         return this.addProperty(propertyKey, value, true);
     }
 
+    @Override
+    protected GraphTransaction tx() {
+        if (this.ownerVertex() == null) {
+            return null;
+        }
+        return this.ownerVertex().tx();
+    }
+
     @Watched(prefix = "edge")
     @Override
     protected <V> HugeEdgeProperty<V> newProperty(PropertyKey pkey, V val) {
@@ -215,8 +215,11 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
                                         HugeProperty<V> prop) {
         if (prop != null) {
             assert prop instanceof HugeEdgeProperty;
-            // Use tx to update property (should update cache even if it's new)
-            this.tx().addEdgeProperty((HugeEdgeProperty<V>) prop);
+            if (this.tx() != null) {
+                this.ownerVertex.tx().addEdgeProperty((HugeEdgeProperty<V>) prop);
+            } else {
+                this.graph().addEdgeProperty((HugeEdgeProperty<V>) prop);
+            }
         }
     }
 
@@ -227,7 +230,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
             return true;
         }
 
-        Iterator<Edge> edges = tx().queryEdges(this.id());
+        Iterator<Edge> edges = this.graph().edges(this.id());
         boolean exist = edges.hasNext();
         if (!exist && !throwIfNotExist) {
             return false;
@@ -257,12 +260,13 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
             }
         } else {
             for (String key : keys) {
-                PropertyKey propertyKey = this.graph().schemaTransaction()
-                                              .getPropertyKey(key);
-                if (propertyKey == null) {
+                Id pkeyId;
+                try {
+                    pkeyId = this.graph().propertyKey(key).id();
+                } catch (IllegalArgumentException ignored) {
                     continue;
                 }
-                HugeProperty<?> prop = this.getProperty(propertyKey.id());
+                HugeProperty<?> prop = this.getProperty(pkeyId);
                 if (prop == null) {
                     // Not found
                     continue;

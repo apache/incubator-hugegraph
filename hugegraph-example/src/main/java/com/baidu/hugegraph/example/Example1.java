@@ -31,6 +31,7 @@ import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
 
+import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.IdGenerator;
@@ -40,6 +41,7 @@ import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.schema.VertexLabel;
+import com.baidu.hugegraph.testutil.Whitebox;
 import com.baidu.hugegraph.traversal.optimize.Text;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Directions;
@@ -50,7 +52,7 @@ public class Example1 {
 
     private static final Logger LOG = Log.logger(Example1.class);
 
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) throws Exception {
         LOG.info("Example1 start!");
 
         HugeGraph graph = ExampleUtil.loadGraph();
@@ -68,7 +70,7 @@ public class Example1 {
 
         graph.close();
 
-        HugeGraph.shutdown(30L);
+        HugeFactory.shutdown(30L);
     }
 
     private static void thread(HugeGraph graph) throws InterruptedException {
@@ -79,13 +81,17 @@ public class Example1 {
             graph.tx().commit();
 
             // New tx
-            GraphTransaction tx = graph.openTransaction();
+            GraphTransaction tx =  Whitebox.invoke(graph.getClass(),
+                                                   "openGraphTransaction",
+                                                   graph);
+
             tx.addVertex(T.label, "book", "name", "java-21");
             tx.addVertex(T.label, "book", "name", "java-22");
             tx.commit();
             tx.close();
 
-            graph.closeTx(); // this will close the schema tx
+            // This will close the schema tx
+            Whitebox.invoke(graph.getClass(), "closeTx", graph);
         });
 
         t.start();
@@ -208,7 +214,9 @@ public class Example1 {
         graph.tx().commit();
 
         // must commit manually with new backend tx (independent of tinkerpop)
-        GraphTransaction tx = graph.openTransaction();
+        GraphTransaction tx =  Whitebox.invoke(graph.getClass(),
+                                               "openGraphTransaction",
+                                               graph);
 
         LOG.info("===============  addVertex  ================");
         Vertex james = tx.addVertex(T.label, "author", "id", 1,
@@ -304,7 +312,7 @@ public class Example1 {
         q.query(IdGenerator.of(authorId));
         PropertyKey age = graph.propertyKey("age");
         q.key(HugeKeys.PROPERTIES, age.id());
-        if (graph.graphTransaction().store().features()
+        if (graph.backendStoreFeatures()
                  .supportsQueryWithContainsKey()) {
             Iterator<Vertex> iter = graph.vertices(q);
             assert iter.hasNext();

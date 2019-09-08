@@ -19,16 +19,21 @@
 
 package com.baidu.hugegraph.task;
 
+import java.util.Date;
 import java.util.concurrent.Callable;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.util.E;
 
 public abstract class TaskCallable<V> implements Callable<V> {
 
-    private TaskScheduler scheduler = null;
     private HugeTask<V> task = null;
+    private HugeGraph graph = null;
+
+    private volatile long lastSaveTime = System.currentTimeMillis();
+    private volatile long saveInterval = 1000 * 30;
 
     public TaskCallable() {
         // pass
@@ -42,18 +47,37 @@ public abstract class TaskCallable<V> implements Callable<V> {
         // Do nothing, subclasses may override this method
     }
 
+    public void setMinSaveInterval(long seconds) {
+        E.checkArgument(seconds > 0,
+                        "Must set interval > 0, bug got '%s'", seconds);
+        this.saveInterval = seconds * 1000L;
+    }
+
+    public void updateProgress(int progress) {
+        HugeTask<V> task = this.task();
+        task.progress(progress);
+
+        long elapse = System.currentTimeMillis() - this.lastSaveTime;
+        if (elapse > this.saveInterval) {
+            this.save();
+            this.lastSaveTime = System.currentTimeMillis();
+        }
+    }
+
+    protected void save() {
+        HugeTask<V> task = this.task();
+        task.updateTime(new Date());
+        task.save();
+    }
+
+    protected void graph(HugeGraph graph) {
+        this.graph = graph;
+    }
+
     public HugeGraph graph() {
-        return this.scheduler().graph();
-    }
-
-    protected void scheduler(TaskScheduler scheduler) {
-        this.scheduler = scheduler;
-    }
-
-    public TaskScheduler scheduler() {
-        E.checkState(this.scheduler != null,
-                     "Can't call scheduler() before scheduling task");
-        return this.scheduler;
+        E.checkState(this.graph != null,
+                     "Can't call graph() before scheduling task");
+        return this.graph;
     }
 
     protected void task(HugeTask<V> task) {
@@ -83,5 +107,20 @@ public abstract class TaskCallable<V> implements Callable<V> {
                 throw e;
             }
         };
+    }
+
+    public static abstract class SysTaskCallable<V> extends TaskCallable<V> {
+
+        private HugeGraphParams params = null;
+
+        protected void params(HugeGraphParams params) {
+            this.params = params;
+        }
+
+        protected HugeGraphParams params() {
+            E.checkState(this.params != null,
+                         "Can't call scheduler() before scheduling task");
+            return this.params;
+        }
     }
 }

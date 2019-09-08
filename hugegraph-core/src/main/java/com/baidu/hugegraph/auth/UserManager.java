@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.auth.HugeUser.P;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
@@ -40,7 +40,7 @@ import com.google.common.collect.ImmutableSet;
 
 public class UserManager {
 
-    private final HugeGraph graph;
+    private final HugeGraphParams graph;
     private final EventListener eventListener;
 
     private final EntityManager<HugeUser> users;
@@ -50,7 +50,7 @@ public class UserManager {
     private final RelationshipManager<HugeBelong> belong;
     private final RelationshipManager<HugeAccess> access;
 
-    public UserManager(HugeGraph graph) {
+    public UserManager(HugeGraphParams graph) {
         E.checkNotNull(graph, "graph");
 
         this.graph = graph;
@@ -69,10 +69,6 @@ public class UserManager {
                                                 HugeAccess::fromEdge);
     }
 
-    public HugeGraph graph() {
-        return this.graph;
-    }
-
     private EventListener listenChanges() {
         // Listen store event: "store.inited"
         Set<String> storeEvents = ImmutableSet.of(Events.STORE_INITED);
@@ -82,7 +78,7 @@ public class UserManager {
                 try {
                     this.initSchemaIfNeeded();
                 } finally {
-                    this.graph().closeTx();
+                    this.graph.closeTx();
                 }
                 return true;
             }
@@ -289,11 +285,10 @@ public class UserManager {
     }
 
     public void initSchemaIfNeeded() {
-        HugeGraph graph = this.graph();
-        HugeUser.schema(graph).initSchemaIfNeeded();
-        HugeGroup.schema(graph).initSchemaIfNeeded();
-        HugeTarget.schema(graph).initSchemaIfNeeded();
-        HugeBelong.schema(graph).initSchemaIfNeeded();
-        HugeAccess.schema(graph).initSchemaIfNeeded();
+        HugeUser.schema(this.graph).initSchemaIfNeeded();
+        HugeGroup.schema(this.graph).initSchemaIfNeeded();
+        HugeTarget.schema(this.graph).initSchemaIfNeeded();
+        HugeBelong.schema(this.graph).initSchemaIfNeeded();
+        HugeAccess.schema(this.graph).initSchemaIfNeeded();
     }
 }

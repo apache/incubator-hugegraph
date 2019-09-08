@@ -24,17 +24,18 @@ import java.util.Set;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.task.HugeTask;
+import com.baidu.hugegraph.task.TaskCallable;
 import com.baidu.hugegraph.task.TaskScheduler;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 
-public class JobBuilder<T> {
+public class JobBuilder<V> {
 
     private final HugeGraph graph;
 
     private String name;
     private String input;
-    private Job<T> job;
+    private Job<V> job;
     private Set<Id> dependencies;
 
     public static <T> JobBuilder<T> of(final HugeGraph graph) {
@@ -45,31 +46,35 @@ public class JobBuilder<T> {
         this.graph = graph;
     }
 
-    public JobBuilder<T> name(String name) {
+    public JobBuilder<V> name(String name) {
         this.name = name;
         return this;
     }
 
-    public JobBuilder<T> input(String input) {
+    public JobBuilder<V> input(String input) {
         this.input = input;
         return this;
     }
 
-    public JobBuilder<T> job(Job<T> job) {
+    public JobBuilder<V> job(Job<V> job) {
         this.job = job;
         return this;
     }
 
-    public JobBuilder<T> dependencies(Set<Id> dependencies) {
+    public JobBuilder<V> dependencies(Set<Id> dependencies) {
         this.dependencies = dependencies;
         return this;
     }
 
-    public HugeTask<T> schedule() {
+    public HugeTask<V> schedule() {
         E.checkArgumentNotNull(this.name, "Job name can't be null");
         E.checkArgumentNotNull(this.job, "Job can't be null");
+        E.checkArgument(this.job instanceof TaskCallable,
+                        "Job must be instance of TaskCallable");
+        @SuppressWarnings("unchecked")
+        TaskCallable<V> job = (TaskCallable<V>) this.job;
 
-        HugeTask<T> task = new HugeTask<>(this.genTaskId(), null, this.job);
+        HugeTask<V> task = new HugeTask<>(this.genTaskId(), null, job);
         task.type(this.job.type());
         task.name(this.name);
         if (this.input != null) {
@@ -89,6 +94,6 @@ public class JobBuilder<T> {
     }
 
     private Id genTaskId() {
-        return this.graph.schemaTransaction().store().nextId(HugeType.TASK);
+        return this.graph.getNextId(HugeType.TASK);
     }
 }

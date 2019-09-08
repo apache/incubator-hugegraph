@@ -25,7 +25,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.store.BackendStore;
@@ -49,7 +49,7 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
 
     private final Map<HugeType, Boolean> cachedTypes;
 
-    public CachedSchemaTransaction(HugeGraph graph, BackendStore store) {
+    public CachedSchemaTransaction(HugeGraphParams graph, BackendStore store) {
         super(graph, store);
 
         this.idCache = this.cache("schema-id");
@@ -70,7 +70,7 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
     }
 
     private Cache cache(String prefix) {
-        HugeConfig conf = super.graph().configuration();
+        HugeConfig conf = super.params().configuration();
 
         final String name = prefix + "-" + super.graph().name();
         final int capacity = conf.get(CoreOptions.SCHEMA_CACHE_CAPACITY);
@@ -124,7 +124,7 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
             }
             return false;
         };
-        EventHub schemaEventHub = this.graph().schemaEventHub();
+        EventHub schemaEventHub = this.params().schemaEventHub();
         if (!schemaEventHub.containsListener(Events.CACHE)) {
             schemaEventHub.listen(Events.CACHE, this.cacheEventListener);
         }
@@ -135,7 +135,7 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
         this.store().provider().unlisten(this.storeEventListener);
 
         // Unlisten cache event
-        EventHub schemaEventHub = this.graph().schemaEventHub();
+        EventHub schemaEventHub = this.params().schemaEventHub();
         schemaEventHub.unlisten(Events.CACHE, this.cacheEventListener);
     }
 

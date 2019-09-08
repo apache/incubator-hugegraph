@@ -25,7 +25,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.cache.CachedBackendStore.QueryId;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.IdQuery;
@@ -55,7 +55,7 @@ public class CachedGraphTransaction extends GraphTransaction {
     private EventListener storeEventListener;
     private EventListener cacheEventListener;
 
-    public CachedGraphTransaction(HugeGraph graph, BackendStore store) {
+    public CachedGraphTransaction(HugeGraphParams graph, BackendStore store) {
         super(graph, store);
 
         HugeConfig conf = graph.configuration();
@@ -127,7 +127,7 @@ public class CachedGraphTransaction extends GraphTransaction {
             }
             return false;
         };
-        EventHub schemaEventHub = this.graph().graphEventHub();
+        EventHub schemaEventHub = this.params().graphEventHub();
         if (!schemaEventHub.containsListener(Events.CACHE)) {
             schemaEventHub.listen(Events.CACHE, this.cacheEventListener);
         }
@@ -138,7 +138,7 @@ public class CachedGraphTransaction extends GraphTransaction {
         this.store().provider().unlisten(this.storeEventListener);
 
         // Unlisten cache event
-        EventHub graphEventHub = this.graph().graphEventHub();
+        EventHub graphEventHub = this.params().graphEventHub();
         graphEventHub.unlisten(Events.CACHE, this.cacheEventListener);
     }
 
@@ -209,7 +209,6 @@ public class CachedGraphTransaction extends GraphTransaction {
             super.commitMutation2Backend(mutations);
             // Update vertex cache
             for (HugeVertex vertex : changes) {
-                vertex = vertex.resetTx();
                 this.verticesCache.updateIfPresent(vertex.id(), vertex);
             }
         } finally {

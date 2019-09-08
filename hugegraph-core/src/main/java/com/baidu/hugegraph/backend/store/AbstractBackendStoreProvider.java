@@ -25,7 +25,7 @@ import java.util.concurrent.Future;
 
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.event.EventListener;
@@ -131,9 +131,10 @@ public abstract class AbstractBackendStoreProvider
     }
 
     @Override
-    public void initSystemInfo(HugeGraph graph) {
+    public void initSystemInfo(HugeGraphParams graph) {
         this.checkOpened();
-        BackendStoreSystemInfo info = new BackendStoreSystemInfo(graph);
+        BackendStoreSystemInfo info = new BackendStoreSystemInfo(
+                                      graph.schemaTransaction());
         info.init();
         this.notifyAndWaitEvent(Events.STORE_INITED);
 
