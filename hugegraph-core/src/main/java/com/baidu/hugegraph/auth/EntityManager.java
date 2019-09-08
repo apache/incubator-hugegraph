@@ -27,7 +27,7 @@ import java.util.function.Function;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import com.baidu.hugegraph.HugeException;
-import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.auth.SchemaDefine.Entity;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Condition;
@@ -47,23 +47,19 @@ import com.google.common.collect.ImmutableMap;
 
 public class EntityManager<T extends Entity> {
 
-    private final HugeGraph graph;
+    private final HugeGraphParams graph;
     private final String label;
     private final Function<Vertex, T> deser;
 
     private static final long NO_LIMIT = -1L;
 
-    public EntityManager(HugeGraph graph, String label,
+    public EntityManager(HugeGraphParams graph, String label,
                          Function<Vertex, T> dser) {
         E.checkNotNull(graph, "graph");
 
         this.graph = graph;
         this.label = label;
         this.deser = dser;
-    }
-
-    public HugeGraph graph() {
-        return this.graph;
     }
 
     private GraphTransaction tx() {
@@ -137,10 +133,10 @@ public class EntityManager<T extends Entity> {
                                          Map<String, Object> conditions,
                                          long limit) {
         ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
-        VertexLabel vl = this.graph.vertexLabel(label);
+        VertexLabel vl = this.graph.graph().vertexLabel(label);
         query.eq(HugeKeys.LABEL, vl.id());
         for (Map.Entry<String, Object> entry : conditions.entrySet()) {
-            PropertyKey pk = this.graph.propertyKey(entry.getKey());
+            PropertyKey pk = this.graph.graph().propertyKey(entry.getKey());
             query.query(Condition.eq(pk.id(), entry.getValue()));
         }
         query.showHidden(true);
@@ -160,7 +156,7 @@ public class EntityManager<T extends Entity> {
     }
 
     private HugeVertex constructVertex(Entity entity) {
-        SchemaTransaction schema = this.graph().schemaTransaction();
+        SchemaTransaction schema = this.graph.schemaTransaction();
         if (schema.getVertexLabel(entity.label()) == null) {
             throw new HugeException("Schema is missing for %s '%s'",
                                     entity.label(), entity.id());

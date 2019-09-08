@@ -32,7 +32,7 @@ import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.GremlinGraph;
+import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.query.QueryResults;
@@ -82,7 +82,7 @@ public final class HugeGraphStep<S, E extends Element>
 
     private long verticesCount() {
         if (!this.hasIds()) {
-            GremlinGraph graph = TraversalUtil.getGraph(this);
+            HugeGraph graph = TraversalUtil.getGraph(this);
             Query query = this.makeQuery(graph, HugeType.VERTEX);
             return graph.queryNumber(query).longValue();
         }
@@ -91,7 +91,7 @@ public final class HugeGraphStep<S, E extends Element>
 
     private long edgesCount() {
         if (!this.hasIds()) {
-            GremlinGraph graph = TraversalUtil.getGraph(this);
+            HugeGraph graph = TraversalUtil.getGraph(this);
             Query query = this.makeQuery(graph, HugeType.EDGE);
             return graph.queryNumber(query).longValue();
         }
@@ -101,7 +101,7 @@ public final class HugeGraphStep<S, E extends Element>
     private Iterator<E> vertices() {
         LOG.debug("HugeGraphStep.vertices(): {}", this);
 
-        GremlinGraph graph = TraversalUtil.getGraph(this);
+        HugeGraph graph = TraversalUtil.getGraph(this);
         // g.V().hasId(EMPTY_LIST) will set ids to null
         if (this.ids == null) {
             return QueryResults.emptyIterator();
@@ -121,7 +121,7 @@ public final class HugeGraphStep<S, E extends Element>
     private Iterator<E> edges() {
         LOG.debug("HugeGraphStep.edges(): {}", this);
 
-        GremlinGraph graph = TraversalUtil.getGraph(this);
+        HugeGraph graph = TraversalUtil.getGraph(this);
 
         // g.E().hasId(EMPTY_LIST) will set ids to null
         if (this.ids == null) {
@@ -143,7 +143,7 @@ public final class HugeGraphStep<S, E extends Element>
         return this.ids != null && this.ids.length > 0;
     }
 
-    private Query makeQuery(GremlinGraph graph, HugeType type) {
+    private Query makeQuery(HugeGraph graph, HugeType type) {
         Query query = null;
         if (this.hasContainers.isEmpty()) {
             // Query all

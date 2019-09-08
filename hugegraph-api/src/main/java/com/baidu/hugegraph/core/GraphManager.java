@@ -34,7 +34,6 @@ import org.apache.tinkerpop.gremlin.structure.Transaction;
 import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.GremlinGraph;
 import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.auth.HugeAuthenticator;
@@ -92,12 +91,12 @@ public final class GraphManager {
         return Collections.unmodifiableSet(this.graphs.keySet());
     }
 
-    public GremlinGraph graph(String name) {
+    public HugeGraph graph(String name) {
         Graph graph = this.graphs.get(name);
         if (graph == null) {
             return null;
-        } else if (graph instanceof GremlinGraph) {
-            return (GremlinGraph) graph;
+        } else if (graph instanceof HugeGraph) {
+            return (HugeGraph) graph;
         }
         throw new NotSupportException("graph instance of %s", graph.getClass());
     }
@@ -188,12 +187,10 @@ public final class GraphManager {
         for (String graph : this.graphs()) {
             // TODO: close tx from main thread
             HugeGraph hugegraph = this.graph(graph).hugegraph();
-            boolean persistence = hugegraph.graphTransaction().store()
-                                           .features().supportsPersistence();
-            if (!persistence) {
+            if (!hugegraph.backendStoreFeatures().supportsPersistence()) {
                 hugegraph.initBackend();
             }
-            BackendStoreSystemInfo info = new BackendStoreSystemInfo(hugegraph);
+            BackendStoreSystemInfo info = hugegraph.backendStoreSystemInfo();
             if (!info.exists()) {
                 throw new BackendException(
                           "The backend store of '%s' has not been initialized",

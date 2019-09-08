@@ -31,7 +31,6 @@ import org.junit.Test;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
-import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.exception.NoIndexException;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.EdgeLabel;
@@ -468,8 +467,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
         marko.addEdge("write", hadoop, "time", "2014-2-28", "weight", 0.5);
         graph.tx().commit();
 
-        BackendFeatures features = graph.graphTransaction().store().features();
-        if (!features.supportsQueryByLabel()) {
+        if (!storeFeatures().supportsQueryByLabel()) {
             Assert.assertThrows(NoIndexException.class, () -> {
                 graph.traversal().E().hasLabel("write").toList();
             });
@@ -1132,7 +1130,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
         Assert.assertTrue(edgeLabels.contains(write));
 
         // clear cache
-        graph().schemaEventHub().call(Events.CACHE, "clear", null);
+        params().schemaEventHub().call(Events.CACHE, "clear", null);
 
         Assert.assertEquals(look, schema.getEdgeLabel("look"));
 

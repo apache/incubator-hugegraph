@@ -36,6 +36,7 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.page.PageInfo;
 import com.baidu.hugegraph.backend.query.Condition;
@@ -43,6 +44,7 @@ import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
+import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.event.EventListener;
 import com.baidu.hugegraph.exception.ConnectionException;
 import com.baidu.hugegraph.exception.NotFoundException;
@@ -54,6 +56,7 @@ import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.task.HugeTask.P;
+import com.baidu.hugegraph.task.TaskCallable.SysTaskCallable;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
@@ -63,9 +66,9 @@ import com.baidu.hugegraph.util.Events;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
-public class TaskScheduler {
+public final class TaskScheduler {
 
-    private final HugeGraph graph;
+    private final HugeGraphParams graph;
     private final ExecutorService taskExecutor;
     private final ExecutorService dbExecutor;
 
@@ -79,7 +82,7 @@ public class TaskScheduler {
     private static final long QUERY_INTERVAL = 100L;
     private static final int MAX_PENDING_TASKS = 10000;
 
-    public TaskScheduler(HugeGraph graph,
+    public TaskScheduler(HugeGraphParams graph,
                          ExecutorService taskExecutor,
                          ExecutorService dbExecutor) {
         E.checkNotNull(graph, "graph");
@@ -98,11 +101,21 @@ public class TaskScheduler {
     }
 
     public HugeGraph graph() {
-        return this.graph;
+        return this.graph.graph();
     }
 
     public int pendingTasks() {
         return this.tasks.size();
+    }
+
+    public int taskInputSizeLimit() {
+        return this.graph.configuration()
+                        .get(CoreOptions.TASK_INPUT_SIZE_LIMIT).intValue();
+    }
+
+    public int taskResultSizeLimit() {
+        return this.graph.configuration()
+                         .get(CoreOptions.TASK_RESULT_SIZE_LIMIT).intValue();
     }
 
     private TaskTransaction tx() {
@@ -141,9 +154,8 @@ public class TaskScheduler {
     }
 
     public <V> void restoreTasks() {
-        boolean supportsPaging = this.call(() -> {
-            return this.tx().store().features().supportsQueryByPage();
-        });
+        boolean supportsPaging = this.graph().backendStoreFeatures()
+                                             .supportsQueryByPage();
         // Restore 'RESTORING', 'RUNNING' and 'QUEUED' tasks in order.
         for (TaskStatus status : TaskStatus.PENDING_STATUSES) {
             String page = supportsPaging ? PageInfo.PAGE_NONE : null;
@@ -194,9 +206,16 @@ public class TaskScheduler {
             // Assume initialized
             return;
         }
+
+        task.scheduler(this);
+
         TaskCallable<V> callable = task.callable();
-        callable.scheduler(this);
         callable.task(task);
+        callable.graph(this.graph());
+        if (callable instanceof SysTaskCallable) {
+            // Only authorized to the necessary tasks
+            ((SysTaskCallable<V>) callable).params(this.graph);
+        }
     }
 
     public <V> boolean cancel(HugeTask<V> task) {
@@ -225,8 +244,6 @@ public class TaskScheduler {
 
     public <V> void save(HugeTask<V> task) {
         E.checkArgumentNotNull(task, "Task can't be null");
-        // Check property size
-        task.checkProperties();
         // Do save
         this.call(() -> {
             // Construct vertex from task
@@ -410,10 +427,10 @@ public class TaskScheduler {
             if (page != null) {
                 query.page(page);
             }
-            VertexLabel vl = this.graph.vertexLabel(TaskTransaction.TASK);
+            VertexLabel vl = this.graph().vertexLabel(TaskTransaction.TASK);
             query.eq(HugeKeys.LABEL, vl.id());
             for (Map.Entry<String, Object> entry : conditions.entrySet()) {
-                PropertyKey pk = this.graph.propertyKey(entry.getKey());
+                PropertyKey pk = this.graph().propertyKey(entry.getKey());
                 query.query(Condition.eq(pk.id(), entry.getValue()));
             }
             query.showHidden(true);
@@ -457,13 +474,13 @@ public class TaskScheduler {
 
         public static final String TASK = P.TASK;
 
-        public TaskTransaction(HugeGraph graph, BackendStore store) {
+        public TaskTransaction(HugeGraphParams graph, BackendStore store) {
             super(graph, store);
             this.autoCommit(true);
         }
 
         public HugeVertex constructVertex(HugeTask<?> task) {
-            if (this.graph().schemaTransaction().getVertexLabel(TASK) == null) {
+            if (this.params().schemaTransaction().getVertexLabel(TASK) == null) {
                 throw new HugeException("Schema is missing for task(%s) '%s'",
                                         task.id(), task.name());
             }
@@ -491,26 +508,31 @@ public class TaskScheduler {
         }
 
         public void initSchema() {
-            HugeGraph graph = this.graph();
-            VertexLabel label = graph.schemaTransaction().getVertexLabel(TASK);
-            if (label != null) {
+            if (this.existVertexLabel(TASK)) {
                 return;
             }
 
+            HugeGraph graph = this.graph();
             String[] properties = this.initProperties();
 
             // Create vertex label '~task'
-            label = graph.schema().vertexLabel(TASK)
-                         .properties(properties)
-                         .useCustomizeNumberId()
-                         .nullableKeys(P.DESCRIPTION, P.UPDATE,
-                                       P.INPUT, P.RESULT, P.DEPENDENCIES)
-                         .enableLabelIndex(true)
-                         .build();
-            graph.schemaTransaction().addVertexLabel(label);
+            VertexLabel label = graph.schema().vertexLabel(TASK)
+                                     .properties(properties)
+                                     .useCustomizeNumberId()
+                                     .nullableKeys(P.DESCRIPTION, P.UPDATE,
+                                                   P.INPUT, P.RESULT,
+                                                   P.DEPENDENCIES)
+                                     .enableLabelIndex(true)
+                                     .build();
+            this.params().schemaTransaction().addVertexLabel(label);
 
             // Create index
             this.createIndex(label, P.STATUS);
+        }
+
+        private boolean existVertexLabel(String label) {
+            return this.params().schemaTransaction()
+                       .getVertexLabel(label) != null;
         }
 
         private String[] initProperties() {
@@ -549,7 +571,7 @@ public class TaskScheduler {
                                             .dataType(dataType)
                                             .cardinality(cardinality)
                                             .build();
-            graph.schemaTransaction().addPropertyKey(propertyKey);
+            this.params().schemaTransaction().addPropertyKey(propertyKey);
             return name;
         }
 
@@ -561,7 +583,7 @@ public class TaskScheduler {
                                           .on(HugeType.VERTEX_LABEL, TASK)
                                           .by(field)
                                           .build();
-            graph.schemaTransaction().addIndexLabel(label, indexLabel);
+            this.params().schemaTransaction().addIndexLabel(label, indexLabel);
             return indexLabel;
         }
     }

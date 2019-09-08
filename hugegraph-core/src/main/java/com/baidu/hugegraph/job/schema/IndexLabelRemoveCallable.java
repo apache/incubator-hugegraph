@@ -19,7 +19,7 @@
 
 package com.baidu.hugegraph.job.schema;
 
-import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
@@ -36,11 +36,11 @@ public class IndexLabelRemoveCallable extends SchemaCallable {
 
     @Override
     public Object execute() {
-        removeIndexLabel(this.graph(), this.schemaId());
+        removeIndexLabel(this.params(), this.schemaId());
         return null;
     }
 
-    protected static void removeIndexLabel(HugeGraph graph, Id id) {
+    protected static void removeIndexLabel(HugeGraphParams graph, Id id) {
         GraphTransaction graphTx = graph.graphTransaction();
         SchemaTransaction schemaTx = graph.schemaTransaction();
         IndexLabel indexLabel = schemaTx.getIndexLabel(id);
@@ -61,7 +61,7 @@ public class IndexLabelRemoveCallable extends SchemaCallable {
             removeIndexLabelFromBaseLabel(schemaTx, indexLabel);
             removeSchema(schemaTx, indexLabel);
             // Should commit changes to backend store before release delete lock
-            graph.tx().commit();
+            graph.graph().tx().commit();
         } finally {
             locks.unlock();
         }

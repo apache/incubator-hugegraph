@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.Set;
 
 import com.baidu.hugegraph.HugeException;
-import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
@@ -42,11 +42,11 @@ public class VertexLabelRemoveCallable extends SchemaCallable {
 
     @Override
     public Object execute() {
-        removeVertexLabel(this.graph(), this.schemaId());
+        removeVertexLabel(this.params(), this.schemaId());
         return null;
     }
 
-    protected static void removeVertexLabel(HugeGraph graph, Id id) {
+    protected static void removeVertexLabel(HugeGraphParams graph, Id id) {
         GraphTransaction graphTx = graph.graphTransaction();
         SchemaTransaction schemaTx = graph.schemaTransaction();
         VertexLabel vertexLabel = schemaTx.getVertexLabel(id);
@@ -83,7 +83,7 @@ public class VertexLabelRemoveCallable extends SchemaCallable {
             graphTx.removeVertices(vertexLabel);
             removeSchema(schemaTx, vertexLabel);
             // Should commit changes to backend store before release delete lock
-            graph.tx().commit();
+            graph.graph().tx().commit();
         } finally {
             locks.unlock();
         }

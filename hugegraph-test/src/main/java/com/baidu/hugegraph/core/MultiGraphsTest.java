@@ -80,15 +80,19 @@ public class MultiGraphsTest {
         HugeGraph g3 = graphs.get(2);
 
         g1.initBackend();
-        Assert.assertThrows(IllegalStateException.class, g2::initBackend);
-        Assert.assertThrows(IllegalStateException.class, g3::initBackend);
+        Assert.assertTrue(g1.backendStoreInitialized());
+        Assert.assertTrue(g2.backendStoreInitialized());
+        Assert.assertTrue(g3.backendStoreInitialized());
+
+        g2.initBackend(); // no error
+        g3.initBackend();
 
         Assert.assertThrows(IllegalArgumentException.class,
                             () -> g2.vertexLabel("node"));
         Assert.assertThrows(IllegalArgumentException.class,
                             () -> g3.vertexLabel("node"));
         g1.schema().vertexLabel("node").useCustomizeNumberId()
-          .ifNotExist().create();
+                   .ifNotExist().create();
         g2.vertexLabel("node");
         g3.vertexLabel("node");
 
@@ -114,7 +118,8 @@ public class MultiGraphsTest {
     }
 
     @Test
-    public void testCreateGraphWithSameNameDifferentBackends() {
+    public void testCreateGraphWithSameNameDifferentBackends()
+                throws Exception {
         HugeGraph g1 = openGraphWithBackend("graph", "memory", "text");
         g1.initBackend();
         Assert.assertThrows(RuntimeException.class,
@@ -179,7 +184,11 @@ public class MultiGraphsTest {
 
     public static void destoryGraphs(List<HugeGraph> graphs) {
         for (HugeGraph graph : graphs) {
-            graph.close();
+            try {
+                graph.close();
+            } catch (Exception e) {
+                Assert.fail(e.toString());
+            }
         }
     }
 

@@ -23,6 +23,7 @@ import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
 
+import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.util.Log;
@@ -31,7 +32,7 @@ public class Example3 {
 
     private static final Logger LOG = Log.logger(Example3.class);
 
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) throws Exception {
         LOG.info("Example3 start!");
 
         HugeGraph graph = ExampleUtil.loadGraph();
@@ -41,7 +42,7 @@ public class Example3 {
 
         graph.close();
 
-        HugeGraph.shutdown(30L);
+        HugeFactory.shutdown(30L);
     }
 
     public static void loadNeighborRankData(final HugeGraph graph) {

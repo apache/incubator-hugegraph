@@ -30,7 +30,7 @@ import com.baidu.hugegraph.traversal.optimize.HugeScriptTraversal;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
 
-public class GremlinJob extends Job<Object> {
+public class GremlinJob extends UserJob<Object> {
 
     public static final String TASK_TYPE = "gremlin";
     public static final String TASK_BIND_NAME = "gremlinJob";

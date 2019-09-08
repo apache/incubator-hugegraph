@@ -38,7 +38,6 @@ import com.baidu.hugegraph.exception.NotAllowException;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
-import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.Userdata;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Action;
@@ -113,13 +112,13 @@ public class EdgeLabelBuilder implements EdgeLabel.Builder {
     public EdgeLabel create() {
         HugeType type = HugeType.EDGE_LABEL;
         SchemaTransaction tx = this.transaction;
-        SchemaElement.checkName(this.name, tx.graph().configuration());
+        tx.checkSchemaName(this.name);
 
         return tx.lockCheckAndCreateSchema(type, this.name, name -> {
-            EdgeLabel edgeLabel = tx.getEdgeLabel(name);
+            EdgeLabel edgeLabel = tx.getEdgeLabel(this.name);
             if (edgeLabel != null) {
                 if (this.checkExist) {
-                    throw new ExistedException(type, name);
+                    throw new ExistedException(type, this.name);
                 }
                 return edgeLabel;
             }

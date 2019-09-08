@@ -85,8 +85,8 @@ public class RebuildIndexCallable extends SchemaCallable {
     }
 
     private void rebuildIndex(SchemaLabel label, Collection<Id> indexLabelIds) {
-        SchemaTransaction schemaTx = this.graph().schemaTransaction();
-        GraphTransaction graphTx = this.graph().graphTransaction();
+        SchemaTransaction schemaTx = this.params().schemaTransaction();
+        GraphTransaction graphTx = this.params().graphTransaction();
 
         Consumer<?> indexUpdater = (elem) -> {
             for (Id id : indexLabelIds) {
@@ -143,8 +143,8 @@ public class RebuildIndexCallable extends SchemaCallable {
     }
 
     private void removeIndex(Collection<Id> indexLabelIds) {
-        SchemaTransaction schemaTx = this.graph().schemaTransaction();
-        GraphTransaction graphTx = this.graph().graphTransaction();
+        SchemaTransaction schemaTx = this.params().schemaTransaction();
+        GraphTransaction graphTx = this.params().graphTransaction();
 
         for (Id id : indexLabelIds) {
             IndexLabel il = schemaTx.getIndexLabel(id);
@@ -162,14 +162,13 @@ public class RebuildIndexCallable extends SchemaCallable {
     private SchemaElement schemaElement() {
         HugeType type = this.schemaType();
         Id id = this.schemaId();
-        SchemaTransaction schemaTx = this.graph().schemaTransaction();
         switch (type) {
             case VERTEX_LABEL:
-                return schemaTx.getVertexLabel(id);
+                return this.graph().vertexLabel(id);
             case EDGE_LABEL:
-                return schemaTx.getEdgeLabel(id);
+                return this.graph().edgeLabel(id);
             case INDEX_LABEL:
-                return schemaTx.getIndexLabel(id);
+                return this.graph().indexLabel(id);
             default:
                 throw new AssertionError(String.format(
                           "Invalid HugeType '%s' for rebuild", type));

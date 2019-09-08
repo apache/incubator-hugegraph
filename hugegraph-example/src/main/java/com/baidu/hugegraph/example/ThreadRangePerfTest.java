@@ -21,7 +21,7 @@ package com.baidu.hugegraph.example;
 
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.util.Log;
 
 public class ThreadRangePerfTest {
@@ -57,6 +57,6 @@ public class ThreadRangePerfTest {
         }
 
         // Stop daemon thread
-        HugeGraph.shutdown(30L);
+        HugeFactory.shutdown(30L);
     }
 }

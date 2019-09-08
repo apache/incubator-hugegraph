@@ -41,9 +41,9 @@ import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
-import com.baidu.hugegraph.GremlinGraph;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.backend.id.Id;
@@ -128,7 +128,7 @@ public class GraphTransaction extends IndexableTransaction {
     private final int verticesCapacity;
     private final int edgesCapacity;
 
-    public GraphTransaction(HugeGraph graph, BackendStore store) {
+    public GraphTransaction(HugeGraphParams graph, BackendStore store) {
         super(graph, store);
 
         this.indexTx = new GraphIndexTransaction(graph, store);
@@ -204,17 +204,36 @@ public class GraphTransaction extends IndexableTransaction {
         super.reset();
 
         // Clear mutation
-        this.addedVertices = InsertionOrderUtil.newMap();
-        this.removedVertices = InsertionOrderUtil.newMap();
-        this.updatedVertices = InsertionOrderUtil.newMap();
+        if (this.addedVertices == null || !this.addedVertices.isEmpty()) {
+            this.addedVertices = InsertionOrderUtil.newMap();
+        }
+        if (this.removedVertices == null || !this.removedVertices.isEmpty()) {
+            this.removedVertices = InsertionOrderUtil.newMap();
+        }
+        if (this.updatedVertices == null || !this.updatedVertices.isEmpty()) {
+            this.updatedVertices = InsertionOrderUtil.newMap();
+        }
 
-        this.addedEdges = InsertionOrderUtil.newMap();
-        this.removedEdges = InsertionOrderUtil.newMap();
-        this.updatedEdges = InsertionOrderUtil.newMap();
+        if (this.addedEdges == null || !this.addedEdges.isEmpty()) {
+            this.addedEdges = InsertionOrderUtil.newMap();
+        }
+        if (this.removedEdges == null || !this.removedEdges.isEmpty()) {
+            this.removedEdges = InsertionOrderUtil.newMap();
+        }
+        if (this.updatedEdges == null || !this.updatedEdges.isEmpty()) {
+            this.updatedEdges = InsertionOrderUtil.newMap();
+        }
 
-        this.updatedOldestProps = InsertionOrderUtil.newSet();
-        this.addedProps = InsertionOrderUtil.newSet();
-        this.removedProps = InsertionOrderUtil.newSet();
+        if (this.addedProps == null || !this.addedProps.isEmpty()) {
+            this.addedProps = InsertionOrderUtil.newSet();
+        }
+        if (this.removedProps == null || !this.removedProps.isEmpty()) {
+            this.removedProps = InsertionOrderUtil.newSet();
+        }
+        if (this.updatedOldestProps == null ||
+            !this.updatedOldestProps.isEmpty()) {
+            this.updatedOldestProps = InsertionOrderUtil.newSet();
+        }
     }
 
     @Override
@@ -1119,7 +1138,7 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     public static boolean matchEdgeSortKeys(ConditionQuery query,
-                                            GremlinGraph graph) {
+                                            HugeGraph graph) {
         assert query.resultType().isEdge();
         Id label = query.condition(HugeKeys.LABEL);
         if (label == null) {
@@ -1659,10 +1678,8 @@ public class GraphTransaction extends IndexableTransaction {
         }
     }
 
-    public void checkAdjacentVertexExist(HugeVertex vertex) {
-        if (this.checkAdjacentVertexExist && vertex.schemaLabel().undefined()) {
-            throw new HugeException("Vertex '%s' does not exist", vertex.id());
-        }
+    public boolean checkAdjacentVertexExist() {
+        return this.checkAdjacentVertexExist;
     }
 
     public void removeIndex(IndexLabel indexLabel) {

@@ -38,12 +38,9 @@ import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
-import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
-import com.baidu.hugegraph.config.CoreOptions;
-import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.exception.LimitExceedException;
 import com.baidu.hugegraph.type.define.SerialEnum;
 import com.baidu.hugegraph.util.E;
@@ -56,7 +53,7 @@ public class HugeTask<V> extends FutureTask<V> {
 
     private static final Logger LOG = Log.logger(HugeTask.class);
 
-    private transient final HugeGraph graph;
+    private TaskScheduler scheduler = null;
     private final TaskCallable<V> callable;
 
     private String type;
@@ -73,22 +70,18 @@ public class HugeTask<V> extends FutureTask<V> {
     private volatile String input;
     private volatile String result;
 
-    public HugeTask(HugeGraph graph, Id id, Id parent,
-                    String callable, String input) {
-        this(graph, id, parent, TaskCallable.fromClass(callable));
-        this.input = input;
+    public HugeTask(Id id, Id parent, String callable, String input) {
+        this(id, parent, TaskCallable.fromClass(callable));
+        this.input(input);
     }
 
-    public HugeTask(HugeGraph graph, Id id, Id parent,
-                    TaskCallable<V> callable) {
+    public HugeTask(Id id, Id parent, TaskCallable<V> callable) {
         super(callable);
 
-        E.checkArgumentNotNull(graph, "HugeGraph can't be null");
         E.checkArgumentNotNull(id, "Task id can't be null");
         E.checkArgument(id.number(), "Invalid task id type, it must be number");
 
         assert callable != null;
-        this.graph = graph;
         this.callable = callable;
         this.type = null;
         this.name = null;
@@ -187,7 +180,7 @@ public class HugeTask<V> extends FutureTask<V> {
     }
 
     public void input(String input) {
-        checkPropertySize(this.graph, input, P.unhide(P.INPUT));
+        // checkPropertySize(input, P.INPUT);
         this.input = input;
     }
 
@@ -197,6 +190,11 @@ public class HugeTask<V> extends FutureTask<V> {
 
     public String result() {
         return this.result;
+    }
+
+    private void result(String result) {
+        checkPropertySize(result, P.RESULT);
+        this.result = result;
     }
 
     public boolean completed() {
@@ -261,7 +259,7 @@ public class HugeTask<V> extends FutureTask<V> {
                      this.id(), e);
             // Update status to FAILED if exception occurred(not interrupted)
             if (this.status(TaskStatus.FAILED)) {
-                this.result = e.toString();
+                this.result(e.toString());
                 return true;
             }
         }
@@ -271,8 +269,12 @@ public class HugeTask<V> extends FutureTask<V> {
     public void failSave(Throwable e) {
         if (!this.fail(e)) {
             // Can't update status, just set result to error message
-            this.result = e.toString();
+            this.result(e.toString());
         }
+    }
+
+    public void save() {
+        this.scheduler().save(this);
     }
 
     @Override
@@ -283,14 +285,14 @@ public class HugeTask<V> extends FutureTask<V> {
         } catch (Throwable e) {
             LOG.error("An exception occurred when calling done()", e);
         } finally {
-            this.callable.scheduler().remove(this.id);
+            this.scheduler().remove(this.id);
         }
     }
 
     @Override
     protected void set(V v) {
         String result = JsonUtil.toJson(v);
-        checkPropertySize(this.graph, result, P.unhide(P.RESULT));
+        checkPropertySize(result, P.RESULT);
         if (this.status(TaskStatus.SUCCESS) && v != null) {
             this.result = result;
         }
@@ -304,28 +306,38 @@ public class HugeTask<V> extends FutureTask<V> {
         super.setException(e);
     }
 
+    protected void scheduler(TaskScheduler scheduler) {
+        this.scheduler = scheduler;
+    }
+
+    protected TaskScheduler scheduler() {
+        E.checkState(this.scheduler != null,
+                     "Can't call scheduler() before scheduling task");
+        return this.scheduler;
+    }
+
     protected boolean checkDependenciesSuccess() {
         if (this.dependencies == null || this.dependencies.isEmpty()) {
             return true;
         }
         for (Id dependency : this.dependencies) {
-            HugeTask<?> task = this.callable.scheduler().task(dependency);
+            HugeTask<?> task = this.scheduler().task(dependency);
             if (!task.completed()) {
                 // Dependent task not completed, re-schedule self
-                this.callable.scheduler().schedule(this);
+                this.scheduler().schedule(this);
                 return false;
             } else if (task.status() == TaskStatus.CANCELLED) {
                 this.status(TaskStatus.CANCELLED);
-                this.result = String.format(
-                              "Cancelled due to dependent task '%s' cancelled",
-                              dependency);
+                this.result(String.format(
+                            "Cancelled due to dependent task '%s' cancelled",
+                            dependency));
                 this.done();
                 return false;
             } else if (task.status() == TaskStatus.FAILED) {
                 this.status(TaskStatus.FAILED);
-                this.result = String.format(
-                              "Failed due to dependent task '%s' failed",
-                              dependency);
+                this.result(String.format(
+                            "Failed due to dependent task '%s' failed",
+                            dependency));
                 this.done();
                 return false;
             }
@@ -349,11 +361,6 @@ public class HugeTask<V> extends FutureTask<V> {
             return true;
         }
         return false;
-    }
-
-    protected void checkProperties() {
-        checkPropertySize(this.graph, this.input, P.unhide(P.INPUT));
-        checkPropertySize(this.graph, this.result, P.unhide(P.RESULT));
     }
 
     protected void property(String key, Object value) {
@@ -454,13 +461,17 @@ public class HugeTask<V> extends FutureTask<V> {
         }
 
         if (this.input != null) {
+            byte[] bytes = StringEncoding.compress(this.input);
+            checkPropertySize(bytes.length, P.INPUT);
             list.add(P.INPUT);
-            list.add(StringEncoding.compress(this.input));
+            list.add(bytes);
         }
 
         if (this.result != null) {
+            byte[] bytes = StringEncoding.compress(this.result);
+            checkPropertySize(bytes.length, P.RESULT);
             list.add(P.RESULT);
-            list.add(StringEncoding.compress(this.result));
+            list.add(bytes);
         }
 
         return list.toArray();
@@ -520,9 +531,7 @@ public class HugeTask<V> extends FutureTask<V> {
             callable = TaskCallable.empty(e);
         }
 
-        HugeGraph graph = (HugeGraph) vertex.graph();
-        HugeTask<V> task = new HugeTask<>(graph, (Id) vertex.id(),
-                                          null, callable);
+        HugeTask<V> task = new HugeTask<>((Id) vertex.id(), null, callable);
         for (Iterator<VertexProperty<Object>> iter = vertex.properties();
              iter.hasNext();) {
             VertexProperty<Object> prop = iter.next();
@@ -535,27 +544,23 @@ public class HugeTask<V> extends FutureTask<V> {
         return Collectors.toCollection(InsertionOrderUtil::newSet);
     }
 
-    private static void checkPropertySize(HugeGraph graph, String property,
-                                          String name) {
-        if (property == null) {
-            return;
+    private void checkPropertySize(String property, String propertyName) {
+        byte[] bytes = StringEncoding.compress(property);
+        checkPropertySize(bytes.length, propertyName) ;
+    }
+
+    private void checkPropertySize(int propertyLength, String propertyName) {
+        int propertyLimit = BytesBuffer.STRING_LEN_MAX;
+        if (propertyName.equals(P.INPUT)) {
+            propertyLimit = this.scheduler().taskInputSizeLimit();
+        } else if (propertyName.equals(P.RESULT)) {
+            propertyLimit = this.scheduler().taskResultSizeLimit();
         }
 
-        int propertyLength = property.length();
-        HugeConfig config = graph.configuration();
-        long maxLength = BytesBuffer.STRING_LEN_MAX;
-        if (name.equals(P.unhide(P.INPUT))) {
-            propertyLength = StringEncoding.compress(property).length;
-            maxLength = config.get(CoreOptions.TASK_INPUT_SIZE_LIMIT);
-        } else if (name.equals(P.unhide(P.RESULT))) {
-            propertyLength = StringEncoding.compress(property).length;
-            maxLength = config.get(CoreOptions.TASK_RESULT_SIZE_LIMIT);
-        }
-
-        if (propertyLength > maxLength) {
+        if (propertyLength > propertyLimit) {
             throw new LimitExceedException(
                       "Task %s size %s exceeded limit %s bytes",
-                      name, property.length(), maxLength);
+                      P.unhide(propertyName), propertyLength, propertyLimit);
         }
     }
 

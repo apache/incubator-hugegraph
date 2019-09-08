@@ -23,7 +23,7 @@ import java.util.Iterator;
 
 import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 
-import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
@@ -40,7 +40,7 @@ import com.baidu.hugegraph.util.E;
 
 public class SchemaIndexTransaction extends AbstractTransaction {
 
-    public SchemaIndexTransaction(HugeGraph graph, BackendStore store) {
+    public SchemaIndexTransaction(HugeGraphParams graph, BackendStore store) {
         super(graph, store);
     }
 

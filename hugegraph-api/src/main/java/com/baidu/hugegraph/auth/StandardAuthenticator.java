@@ -24,14 +24,14 @@ import java.net.InetAddress;
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
 
-import com.baidu.hugegraph.GremlinGraph;
+import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.util.E;
 
 public class StandardAuthenticator implements HugeAuthenticator {
 
-    private GremlinGraph graph = null;
+    private HugeGraph graph = null;
 
     @Override
     public void setup(HugeConfig config) {
@@ -39,7 +39,7 @@ public class StandardAuthenticator implements HugeAuthenticator {
         String graphPath = config.getMap(ServerOptions.GRAPHS).get(graphName);
         E.checkArgument(graphPath != null,
                         "Invalid graph name '%s'", graphName);
-        this.graph = (GremlinGraph) GraphFactory.open(graphPath);
+        this.graph = (HugeGraph) GraphFactory.open(graphPath);
     }
 
     protected String matchUser(String username, String password) {

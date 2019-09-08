@@ -57,13 +57,11 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     protected HugeVertex targetVertex;
     protected boolean isOutEdge;
 
-    public HugeEdge(HugeVertex sourceVertex, Id id, EdgeLabel label,
-                    HugeVertex targetVertex) {
-        this(sourceVertex.graph(), id, label);
-        this.sourceVertex = sourceVertex;
-        this.targetVertex = targetVertex;
-        this.isOutEdge = true;
+    public HugeEdge(HugeVertex owner, Id id, EdgeLabel label,
+                    HugeVertex other) {
+        this(owner.graph(), id, label);
         this.fresh = true;
+        this.vertices(owner, other);
     }
 
     public HugeEdge(final HugeGraph graph, Id id, EdgeLabel label) {
@@ -92,14 +90,6 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     @Override
     public EdgeLabel schemaLabel() {
         return this.label;
-    }
-
-    @Override
-    public GraphTransaction tx() {
-        if (this.ownerVertex() == null) {
-            return null;
-        }
-        return this.ownerVertex().tx();
     }
 
     @Override
@@ -182,7 +172,14 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         this.removed = true;
         this.sourceVertex.removeEdge(this);
         this.targetVertex.removeEdge(this);
-        this.tx().removeEdge(this);
+
+        GraphTransaction tx = this.tx();
+        if (tx != null) {
+            assert this.fresh();
+            tx.removeEdge(this);
+        } else {
+            this.graph().removeEdge(this);
+        }
     }
 
     @Override
@@ -200,6 +197,14 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         return this.addProperty(propertyKey, value, true);
     }
 
+    @Override
+    protected GraphTransaction tx() {
+        if (this.ownerVertex() == null || !this.fresh()) {
+            return null;
+        }
+        return this.ownerVertex().tx();
+    }
+
     @Watched(prefix = "edge")
     @Override
     protected <V> HugeEdgeProperty<V> newProperty(PropertyKey pkey, V val) {
@@ -212,8 +217,14 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
                                         HugeProperty<V> prop) {
         if (prop != null) {
             assert prop instanceof HugeEdgeProperty;
-            // Use tx to update property (should update cache even if it's new)
-            this.tx().addEdgeProperty((HugeEdgeProperty<V>) prop);
+            HugeEdgeProperty<V> edgeProp = (HugeEdgeProperty<V>) prop;
+            GraphTransaction tx = this.tx();
+            if (tx != null) {
+                assert this.fresh();
+                tx.addEdgeProperty(edgeProp);
+            } else {
+                this.graph().addEdgeProperty(edgeProp);
+            }
         }
     }
 
@@ -231,7 +242,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         }
 
         // Seems there is no scene to be here
-        Iterator<Edge> edges = tx().queryEdges(this.id());
+        Iterator<Edge> edges = this.graph().edges(this.id());
         Edge edge = QueryResults.one(edges);
         if (edge == null && !throwIfNotExist) {
             return false;
@@ -260,12 +271,13 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
             }
         } else {
             for (String key : keys) {
-                PropertyKey propertyKey = this.graph().schemaTransaction()
-                                              .getPropertyKey(key);
-                if (propertyKey == null) {
+                Id pkeyId;
+                try {
+                    pkeyId = this.graph().propertyKey(key).id();
+                } catch (IllegalArgumentException ignored) {
                     continue;
                 }
-                HugeProperty<?> prop = this.getProperty(propertyKey.id());
+                HugeProperty<?> prop = this.getProperty(pkeyId);
                 if (prop == null) {
                     // Not found
                     continue;
@@ -332,11 +344,19 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         return this.targetVertex();
     }
 
-    public void vertices(boolean isOutEdge,
-                         HugeVertex owner,
-                         HugeVertex other) {
-        this.isOutEdge = isOutEdge;
-        if (isOutEdge) {
+    public void vertices(HugeVertex owner, HugeVertex other) {
+        Id ownerLabel = owner.schemaLabel().id();
+        if (ownerLabel.equals(this.label.sourceLabel())) {
+            this.vertices(true, owner, other);
+        } else {
+            ownerLabel.equals(this.label.targetLabel());
+            this.vertices(false, owner, other);
+        }
+    }
+
+    public void vertices(boolean outEdge, HugeVertex owner, HugeVertex other) {
+        this.isOutEdge = outEdge;
+        if (this.isOutEdge) {
             this.sourceVertex = owner;
             this.targetVertex = other;
         } else {
@@ -364,9 +384,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     }
 
     public HugeVertex sourceVertex() {
-        if (this.sourceVertex.schemaLabel().undefined()) {
-            this.sourceVertex.tx().checkAdjacentVertexExist(this.sourceVertex);
-        }
+        this.checkAdjacentVertexExist(this.sourceVertex);
         return this.sourceVertex;
     }
 
@@ -375,14 +393,19 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     }
 
     public HugeVertex targetVertex() {
-        if (this.targetVertex.schemaLabel().undefined()) {
-            this.targetVertex.tx().checkAdjacentVertexExist(this.targetVertex);
-        }
+        this.checkAdjacentVertexExist(this.targetVertex);
         return this.targetVertex;
     }
 
     public void targetVertex(HugeVertex targetVertex) {
         this.targetVertex = targetVertex;
+    }
+
+    private void checkAdjacentVertexExist(HugeVertex vertex) {
+        if (vertex.schemaLabel().undefined() &&
+            this.graph().checkAdjacentVertexExist()) {
+            throw new HugeException("Vertex '%s' does not exist", vertex.id());
+        }
     }
 
     public boolean belongToLabels(String... edgeLabels) {

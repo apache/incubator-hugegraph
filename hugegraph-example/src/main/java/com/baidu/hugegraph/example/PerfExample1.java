@@ -26,7 +26,7 @@ import java.util.Random;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
-import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.datastax.driver.core.exceptions.NoHostAvailableException;
@@ -41,7 +41,7 @@ public class PerfExample1 extends PerfExampleBase {
         tester.test(args);
 
         // Stop daemon thread
-        HugeGraph.shutdown(30L);
+        HugeFactory.shutdown(30L);
     }
 
     @Override

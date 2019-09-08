@@ -70,14 +70,7 @@ public class VertexLabel extends SchemaLabel {
     }
 
     public boolean existsLinkLabel() {
-        List<EdgeLabel> edgeLabels = this.graph().schemaTransaction()
-                                                 .getEdgeLabels();
-        for (EdgeLabel edgeLabel : edgeLabels) {
-            if (edgeLabel.linkWithLabel(this.id())) {
-                return true;
-            }
-        }
-        return false;
+        return this.graph().existsLinkLabel(this.id());
     }
 
     public static VertexLabel undefined(HugeGraph graph) {
