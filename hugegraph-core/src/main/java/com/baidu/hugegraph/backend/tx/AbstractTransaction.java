@@ -397,7 +397,7 @@ public abstract class AbstractTransaction implements Transaction {
         protected <T extends Idfiable> Iterator<T> keepInputOrderIfNeeded(
                                                    Iterator<T> origin) {
             if (!origin.hasNext()) {
-                // Empty result found
+                // None result found
                 return origin;
             }
             Set<Id> ids;

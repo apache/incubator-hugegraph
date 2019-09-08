@@ -518,22 +518,21 @@ public class GraphTransaction extends IndexableTransaction {
                 // Found from local tx
                 vertices.put(vertex.id(), vertex);
             } else {
-                // Prepare query from backend store
+                // Prepare to query from backend store
                 query.query(id);
             }
             ids.add(id);
         }
 
-        if (vertices.isEmpty() && !query.empty() &&
-            query.ids().size() == ids.size()) {
-            Iterator<HugeVertex> it = this.queryVerticesFromBackend(query);
-            @SuppressWarnings({ "unchecked", "rawtypes" })
-            Iterator<Vertex> r = (Iterator) it;
-            return r;
-        }
-
         if (!query.empty()) {
             // Query from backend store
+            if (vertices.isEmpty() && query.ids().size() == ids.size()) {
+                // Sort at the lower layer and return directly
+                Iterator<HugeVertex> it = this.queryVerticesFromBackend(query);
+                @SuppressWarnings({ "unchecked", "rawtypes" })
+                Iterator<Vertex> r = (Iterator) it;
+                return r;
+            }
             query.mustSortByInput(false);
             Iterator<HugeVertex> it = this.queryVerticesFromBackend(query);
             QueryResults.fillMap(it, vertices);
@@ -666,22 +665,21 @@ public class GraphTransaction extends IndexableTransaction {
                 // Found from local tx
                 edges.put(edge.id(), edge);
             } else {
-                // Prepare query from backend store
+                // Prepare to query from backend store
                 query.query(id);
             }
             ids.add(id);
         }
 
-        if (edges.isEmpty() && !query.empty() &&
-            query.ids().size() == ids.size()) {
-            Iterator<HugeEdge> it = this.queryEdgesFromBackend(query);
-            @SuppressWarnings({ "unchecked", "rawtypes" })
-            Iterator<Edge> r = (Iterator) it;
-            return r;
-        }
-
         if (!query.empty()) {
             // Query from backend store
+            if (edges.isEmpty() && query.ids().size() == ids.size()) {
+                // Sort at the lower layer and return directly
+                Iterator<HugeEdge> it = this.queryEdgesFromBackend(query);
+                @SuppressWarnings({ "unchecked", "rawtypes" })
+                Iterator<Edge> r = (Iterator) it;
+                return r;
+            }
             query.mustSortByInput(false);
             Iterator<HugeEdge> it = this.queryEdgesFromBackend(query);
             QueryResults.fillMap(it, edges);

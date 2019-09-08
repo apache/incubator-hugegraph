@@ -33,18 +33,20 @@ public class PageEntryIterator implements Iterator<BackendEntry>, Metadatable {
 
     private final QueryList queries;
     private final long pageSize;
-    private QueryList.PageIterator results;
-    private PageInfo pageInfo;
+    private final PageInfo pageInfo;
+    private final QueryResults queryResults; // for upper layer
+
+    private QueryList.PageIterator pageResults;
     private long remaining;
-    private QueryResults queryResults; // for upper layer
 
     public PageEntryIterator(QueryList queries, long pageSize) {
         this.queries = queries;
         this.pageSize = pageSize;
-        this.results = QueryList.PageIterator.EMPTY;
         this.pageInfo = this.parsePageState();
-        this.remaining = queries.parent().limit();
         this.queryResults = new QueryResults(this);
+
+        this.pageResults = QueryList.PageIterator.EMPTY;
+        this.remaining = queries.parent().limit();
     }
 
     private PageInfo parsePageState() {
@@ -58,7 +60,7 @@ public class PageEntryIterator implements Iterator<BackendEntry>, Metadatable {
 
     @Override
     public boolean hasNext() {
-        if (this.results.get().hasNext()) {
+        if (this.pageResults.get().hasNext()) {
             return true;
         }
         return this.fetch();
@@ -74,17 +76,17 @@ public class PageEntryIterator implements Iterator<BackendEntry>, Metadatable {
         if (this.remaining != Query.NO_LIMIT && this.remaining < pageSize) {
             pageSize = this.remaining;
         }
-        this.results = this.queries.fetchNext(this.pageInfo, pageSize);
-        assert this.results != null;
-        this.queryResults.setQuery(this.results.query());
+        this.pageResults = this.queries.fetchNext(this.pageInfo, pageSize);
+        assert this.pageResults != null;
+        this.queryResults.setQuery(this.pageResults.query());
 
-        if (this.results.get().hasNext()) {
-            if (!this.results.hasNextPage()) {
+        if (this.pageResults.get().hasNext()) {
+            if (!this.pageResults.hasNextPage()) {
                 this.pageInfo.increase();
             } else {
-                this.pageInfo.page(this.results.page());
+                this.pageInfo.page(this.pageResults.page());
             }
-            this.remaining -= this.results.total();
+            this.remaining -= this.pageResults.total();
             return true;
         } else {
             this.pageInfo.increase();
@@ -97,7 +99,7 @@ public class PageEntryIterator implements Iterator<BackendEntry>, Metadatable {
         if (!this.hasNext()) {
             throw new NoSuchElementException();
         }
-        return this.results.get().next();
+        return this.pageResults.get().next();
     }
 
     @Override

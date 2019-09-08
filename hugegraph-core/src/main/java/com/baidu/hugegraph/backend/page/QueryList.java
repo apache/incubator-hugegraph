@@ -293,7 +293,7 @@ public final class QueryList {
 
         public Query query() {
             E.checkState(this.queries.size() == 1,
-                         "Unexpected queries size: %s", this.queries);
+                         "Expect queries size 1, but got: %s", this.queries);
             return this.queries.get(0);
         }
 

@@ -45,7 +45,7 @@ public class PostgresqlSerializer extends MysqlSerializer {
                 value = Strings.EMPTY;
             }
             entry.column(HugeKeys.FIELD_VALUES, value);
-            entry.column(HugeKeys.INDEX_LABEL_ID, index.indexLabelId().asLong());
+            entry.column(HugeKeys.INDEX_LABEL_ID, index.indexLabel().longId());
             entry.column(HugeKeys.ELEMENT_IDS,
                          IdUtil.writeString(index.elementId()));
             entry.subId(index.elementId());
