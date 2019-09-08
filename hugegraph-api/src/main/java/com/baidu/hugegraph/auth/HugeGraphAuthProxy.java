@@ -20,32 +20,39 @@
 package com.baidu.hugegraph.auth;
 
 import java.util.Iterator;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 
 import javax.ws.rs.ForbiddenException;
 
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
+import org.apache.tinkerpop.gremlin.process.traversal.TraversalStrategies;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph;
+import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.Transaction;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.structure.io.Io;
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.GremlinGraph;
-import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.auth.HugeAuthenticator.RoleAction;
 import com.baidu.hugegraph.auth.HugeAuthenticator.RolePerm;
+import com.baidu.hugegraph.auth.HugeAuthenticator.User;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.backend.store.BackendFeatures;
+import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.schema.EdgeLabel;
@@ -54,6 +61,10 @@ import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.structure.HugeFeatures;
+import com.baidu.hugegraph.task.HugeTask;
+import com.baidu.hugegraph.task.TaskManager;
+import com.baidu.hugegraph.task.TaskScheduler;
+import com.baidu.hugegraph.task.TaskStatus;
 import com.baidu.hugegraph.testutil.Whitebox;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Action;
@@ -61,7 +72,7 @@ import com.baidu.hugegraph.type.define.GraphMode;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 
-public class HugeGraphAuthProxy implements GremlinGraph {
+public final class HugeGraphAuthProxy implements HugeGraph {
 
     static {
         HugeGraph.registerTraversalStrategies(HugeGraphAuthProxy.class);
@@ -71,11 +82,14 @@ public class HugeGraphAuthProxy implements GremlinGraph {
 
     private final HugeGraph hugegraph;
     private final Transaction tx;
+    private final TaskScheduler taskScheduler;
 
     public HugeGraphAuthProxy(HugeGraph hugegraph) {
         LOG.info("Wrap graph '{}' with HugeGraphAuthProxy", hugegraph.name());
         this.hugegraph = hugegraph;
         this.tx = new TransactionProxy(hugegraph.tx());
+        this.taskScheduler = new TaskSchedulerProxy(hugegraph.taskScheduler());
+        this.hugegraph.proxy(this);
     }
 
     @Override
@@ -86,7 +100,7 @@ public class HugeGraphAuthProxy implements GremlinGraph {
 
     @Override
     public HugeGraph hugegraph() {
-        this.verifyPermission(HugeAuthenticator.ROLE_ADMIN);
+        verifyPermission(HugeAuthenticator.ROLE_ADMIN);
         return this.hugegraph;
     }
 
@@ -106,10 +120,11 @@ public class HugeGraphAuthProxy implements GremlinGraph {
     @Override
     public GraphTraversalSource traversal() {
         verifyPermissionAction(HugePermission.GREMLIN);
+        // Just return proxy
         return new GraphTraversalSourceProxy(this);
     }
 
-    @SuppressWarnings("rawtypes")
+    @SuppressWarnings({ "rawtypes", "deprecation" })
     @Override
     public <I extends Io> I io(final Io.Builder<I> builder) {
         this.verifyPermission();
@@ -125,9 +140,14 @@ public class HugeGraphAuthProxy implements GremlinGraph {
     }
 
     @Override
+    public Id getNextId(HugeType type) {
+        this.verifyPermissionAction(HugePermission.SCHEMA_READ);
+        return this.hugegraph.getNextId(type);
+    }
+
+    @Override
     public PropertyKey propertyKey(String key) {
         this.verifyPermissionAction(HugePermission.SCHEMA_READ);
-        // TODO: fix call PropertyKey.graph().remove()
         return this.hugegraph.propertyKey(key);
     }
 
@@ -135,6 +155,12 @@ public class HugeGraphAuthProxy implements GremlinGraph {
     public PropertyKey propertyKey(Id key) {
         this.verifyPermissionAction(HugePermission.SCHEMA_READ);
         return this.hugegraph.propertyKey(key);
+    }
+
+    @Override
+    public boolean existsPropertyKey(String key) {
+        this.verifyPermissionAction(HugePermission.SCHEMA_READ);
+        return this.hugegraph.existsPropertyKey(key);
     }
 
     @Override
@@ -150,6 +176,24 @@ public class HugeGraphAuthProxy implements GremlinGraph {
     }
 
     @Override
+    public VertexLabel vertexLabelOrNone(Id label) {
+        this.verifyPermissionAction(HugePermission.SCHEMA_READ);
+        return this.hugegraph.vertexLabelOrNone(label);
+    }
+
+    @Override
+    public boolean existsVertexLabel(String label) {
+        this.verifyPermissionAction(HugePermission.SCHEMA_READ);
+        return this.hugegraph.existsVertexLabel(label);
+    }
+
+    @Override
+    public boolean existsLinkLabel(Id vertexLabel) {
+        this.verifyPermissionAction(HugePermission.SCHEMA_READ);
+        return this.hugegraph.existsLinkLabel(vertexLabel);
+    }
+
+    @Override
     public EdgeLabel edgeLabel(String label) {
         this.verifyPermissionAction(HugePermission.SCHEMA_READ);
         return this.hugegraph.edgeLabel(label);
@@ -159,6 +203,18 @@ public class HugeGraphAuthProxy implements GremlinGraph {
     public EdgeLabel edgeLabel(Id label) {
         this.verifyPermissionAction(HugePermission.SCHEMA_READ);
         return this.hugegraph.edgeLabel(label);
+    }
+
+    @Override
+    public EdgeLabel edgeLabelOrNone(Id label) {
+        this.verifyPermissionAction(HugePermission.SCHEMA_READ);
+        return this.hugegraph.edgeLabelOrNone(label);
+    }
+
+    @Override
+    public boolean existsEdgeLabel(String label) {
+        this.verifyPermissionAction(HugePermission.SCHEMA_READ);
+        return this.hugegraph.existsEdgeLabel(label);
     }
 
     @Override
@@ -174,9 +230,57 @@ public class HugeGraphAuthProxy implements GremlinGraph {
     }
 
     @Override
+    public boolean existsIndexLabel(String label) {
+        this.verifyPermissionAction(HugePermission.SCHEMA_READ);
+        return this.hugegraph.existsIndexLabel(label);
+    }
+
+    @Override
     public Vertex addVertex(Object... keyValues) {
         this.verifyPermissionAction(HugePermission.VERTEX_WRITE);
         return this.hugegraph.addVertex(keyValues);
+    }
+
+    @Override
+    public void removeVertex(Vertex vertex) {
+        this.verifyPermissionAction(HugePermission.VERTEX_DELETE);
+        this.hugegraph.removeVertex(vertex);
+    }
+
+    @Override
+    public <V> void addVertexProperty(VertexProperty<V> property) {
+        this.verifyPermissionAction(HugePermission.VERTEX_WRITE);
+        this.hugegraph.addVertexProperty(property);
+    }
+
+    @Override
+    public <V> void removeVertexProperty(VertexProperty<V> property) {
+        this.verifyPermissionAction(HugePermission.VERTEX_WRITE);
+        this.hugegraph.removeVertexProperty(property);
+    }
+
+    @Override
+    public Edge addEdge(Edge edge) {
+        this.verifyPermissionAction(HugePermission.EDGE_WRITE);
+        return this.hugegraph.addEdge(edge);
+    }
+
+    @Override
+    public void removeEdge(Edge edge) {
+        this.verifyPermissionAction(HugePermission.EDGE_DELETE);
+        this.hugegraph.addEdge(edge);
+    }
+
+    @Override
+    public <V> void addEdgeProperty(Property<V> property) {
+        this.verifyPermissionAction(HugePermission.EDGE_WRITE);
+        this.hugegraph.addEdgeProperty(property);
+    }
+
+    @Override
+    public <V> void removeEdgeProperty(Property<V> property) {
+        this.verifyPermissionAction(HugePermission.EDGE_WRITE);
+        this.hugegraph.removeEdgeProperty(property);
     }
 
     @Override
@@ -189,6 +293,18 @@ public class HugeGraphAuthProxy implements GremlinGraph {
     public Iterator<Vertex> vertices(Object... objects) {
         this.verifyPermissionAction(HugePermission.VERTEX_READ);
         return this.hugegraph.vertices(objects);
+    }
+
+    @Override
+    public Iterator<Vertex> adjacentVertex(Object id) {
+        this.verifyPermissionAction(HugePermission.VERTEX_READ);
+        return this.hugegraph.adjacentVertex(id);
+    }
+
+    @Override
+    public boolean checkAdjacentVertexExist() {
+        this.verifyPermissionAction(HugePermission.VERTEX_READ);
+        return this.hugegraph.checkAdjacentVertexExist();
     }
 
     @Override
@@ -229,13 +345,16 @@ public class HugeGraphAuthProxy implements GremlinGraph {
 
     @Override
     public Transaction tx() {
-        // Can't verifyPermission() here, will be called by rollbackAll()
+        /*
+         * Can't verifyPermission() here, will be called by rollbackAll().
+         * Just return proxy and verify permissions at commit time
+         */
         return this.tx;
     }
 
     @Override
-    public void close() throws HugeException {
-        this.verifyPermission(HugeAuthenticator.ROLE_ADMIN);
+    public void close() throws Exception {
+        verifyPermission(HugeAuthenticator.ROLE_ADMIN);
         this.hugegraph.close();
     }
 
@@ -248,6 +367,7 @@ public class HugeGraphAuthProxy implements GremlinGraph {
     @Override
     public Variables variables() {
         this.verifyPermission();
+        // Just return proxy
         return new VariablesProxy(this.hugegraph.variables());
     }
 
@@ -263,15 +383,62 @@ public class HugeGraphAuthProxy implements GremlinGraph {
     }
 
     @Override
+    public void proxy(HugeGraph graph) {
+        throw new NotSupportException("Graph.proxy()");
+    }
+
+    @Override
     public String name() {
         this.verifyPermission();
         return this.hugegraph.name();
     }
 
     @Override
+    public String backend() {
+        this.verifyPermission();
+        return this.hugegraph.backend();
+    }
+
+    @Override
+    public String backendVersion() {
+        this.verifyPermission();
+        return this.hugegraph.backendVersion();
+    }
+
+    @Override
+    public boolean backendStoreInitialized() {
+        verifyPermission();
+        return this.hugegraph.backendStoreInitialized();
+    }
+
+    @Override
+    public BackendStoreSystemInfo backendStoreSystemInfo() {
+        verifyPermission(HugeAuthenticator.ROLE_ADMIN);
+        return this.hugegraph.backendStoreSystemInfo();
+    }
+
+    @Override
+    public BackendFeatures backendStoreFeatures() {
+        this.verifyPermission();
+        return this.hugegraph.backendStoreFeatures();
+    }
+
+    @Override
     public GraphMode mode() {
         this.verifyPermission();
         return this.hugegraph.mode();
+    }
+
+    @Override
+    public void mode(GraphMode mode) {
+        verifyPermission(HugeAuthenticator.ROLE_ADMIN);
+        this.hugegraph.mode(mode);
+    }
+
+    @Override
+    public boolean closed() {
+        verifyPermission(HugeAuthenticator.ROLE_ADMIN);
+        return this.hugegraph.closed();
     }
 
     @Override
@@ -282,38 +449,44 @@ public class HugeGraphAuthProxy implements GremlinGraph {
     }
 
     @Override
+    public TaskScheduler taskScheduler() {
+        // Just return proxy
+        return this.taskScheduler;
+    }
+
+    @Override
     public String matchUser(String username, String password) {
         // Can't verifyPermission() here, login first
-        return this.hugegraph.matchUser(username, password);
+        Context context = setContext(Context.schema(this.hugegraph.name()));
+        try {
+            return this.hugegraph.matchUser(username, password);
+        } finally {
+            setContext(context);
+        }
     }
 
     @Override
     public UserManager userManager() {
-        this.verifyPermission();
+        // TODO: return proxy
+        verifyPermission(HugeAuthenticator.ROLE_ADMIN);
         return this.hugegraph.userManager();
     }
 
     @Override
-    public String backend() {
-        this.verifyPermission();
-        return this.hugegraph.backend();
-    }
-
-    @Override
     public void initBackend() {
-        this.verifyPermission(HugeAuthenticator.ROLE_ADMIN);
+        verifyPermission(HugeAuthenticator.ROLE_ADMIN);
         this.hugegraph.initBackend();
     }
 
     @Override
     public void clearBackend() {
-        this.verifyPermission(HugeAuthenticator.ROLE_ADMIN);
+        verifyPermission(HugeAuthenticator.ROLE_ADMIN);
         this.hugegraph.clearBackend();
     }
 
     @Override
     public void truncateBackend() {
-        this.verifyPermission(HugeAuthenticator.ROLE_ADMIN);
+        verifyPermission(HugeAuthenticator.ROLE_ADMIN);
         this.hugegraph.truncateBackend();
     }
 
@@ -324,7 +497,7 @@ public class HugeGraphAuthProxy implements GremlinGraph {
          * hugegraph.properties/store must be the same if enable auth.
          */
         String owner = this.hugegraph.name();
-        this.verifyPermission(owner);
+        verifyPermission(owner);
     }
 
     private void verifyPermissionAction(HugePermission permission) {
@@ -332,33 +505,39 @@ public class HugeGraphAuthProxy implements GremlinGraph {
     }
 
     private void verifyPermissionAction(String action) {
-        String owner = this.hugegraph.name();
-        this.verifyPermission(RoleAction.ownerFor(owner, action));
+        verifyPermissionAction(this.hugegraph.name(), action);
     }
 
-    private void verifyPermission(String permission) {
+    private static void verifyPermissionAction(String owner, String action) {
+        verifyPermission(RoleAction.ownerFor(owner, action));
+    }
+
+    private static void verifyPermission(String permission) {
         Context context = getContext();
         E.checkState(context != null,
                      "Missing authentication context " +
                      "when accessing a Graph with permission control");
         String role = context.user().role();
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Verify permission '{}' for role '{}'", permission, role);
+        }
         if (!RolePerm.match(role, permission)) {
-            throw new ForbiddenException("Permission denied");
+            throw new ForbiddenException("Permission denied: " + permission);
         }
     }
 
-    private class TransactionProxy implements Transaction {
+    class TransactionProxy implements Transaction {
 
-        private final Transaction origin;
+        private final Transaction transaction;
 
         public TransactionProxy(Transaction origin) {
             E.checkNotNull(origin, "origin");
-            this.origin = origin;
+            this.transaction = origin;
         }
 
         @Override
         public void open() {
-            this.origin.open();
+            this.transaction.open();
         }
 
         @Override
@@ -375,81 +554,171 @@ public class HugeGraphAuthProxy implements GremlinGraph {
             if (this.hasUpdate(HugeType.VERTEX, Action.DELETE)) {
                 verifyPermissionAction(HugePermission.VERTEX_DELETE);
             }
-            this.origin.commit();
+            this.transaction.commit();
         }
 
         private boolean hasUpdate(HugeType type, Action action) {
-            Object txs = Whitebox.invoke(this, "origin", "getOrNewTransaction");
+            Object txs = Whitebox.invoke(this.transaction.getClass(),
+                                         "getOrNewTransaction",
+                                         this.transaction);
             return (boolean) Whitebox.invoke(txs, "graphTx", "hasUpdate",
                                              type, action);
         }
 
         @Override
         public void rollback() {
-            this.origin.rollback();
+            this.transaction.rollback();
         }
 
         @Override
         public <G extends Graph> G createThreadedTx() {
-            return this.origin.createThreadedTx();
+            return this.transaction.createThreadedTx();
         }
 
         @Override
         public boolean isOpen() {
-            return this.origin.isOpen();
+            return this.transaction.isOpen();
         }
 
         @Override
         public void readWrite() {
-            this.origin.readWrite();
+            this.transaction.readWrite();
         }
 
         @Override
         public void close() {
-            this.origin.close();
+            this.transaction.close();
         }
 
         @Override
         public Transaction onReadWrite(Consumer<Transaction> consumer) {
-            return this.origin.onReadWrite(consumer);
+            return this.transaction.onReadWrite(consumer);
         }
 
         @Override
         public Transaction onClose(Consumer<Transaction> consumer) {
-            return this.origin.onClose(consumer);
+            return this.transaction.onClose(consumer);
         }
 
         @Override
         public void addTransactionListener(Consumer<Status> listener) {
-            this.origin.addTransactionListener(listener);
+            this.transaction.addTransactionListener(listener);
         }
 
         @Override
         public void removeTransactionListener(Consumer<Status> listener) {
-            this.origin.removeTransactionListener(listener);
+            this.transaction.removeTransactionListener(listener);
         }
 
         @Override
         public void clearTransactionListeners() {
-            this.origin.clearTransactionListeners();
+            this.transaction.clearTransactionListeners();
         }
     }
 
-    private class GraphTraversalSourceProxy extends GraphTraversalSource {
+    class TaskSchedulerProxy implements TaskScheduler {
 
-        public GraphTraversalSourceProxy(Graph graph) {
-            super(graph);
+        private final TaskScheduler taskScheduler;
+
+        public TaskSchedulerProxy(TaskScheduler origin) {
+            this.taskScheduler = origin;
         }
 
         @Override
-        public Graph getGraph() {
-            // Be called by GraphTraversalSource clone
-            verifyPermissionAction(HugePermission.GREMLIN);
-            return this.graph;
+        public HugeGraph graph() {
+            return this.taskScheduler.graph();
+        }
+
+        @Override
+        public int pendingTasks() {
+            verifyPermissionAction(HugePermission.TASK_READ);
+            return this.taskScheduler.pendingTasks();
+        }
+
+        @Override
+        public <V> void restoreTasks() {
+            verifyPermissionAction(HugePermission.TASK_WRITE);
+            this.taskScheduler.restoreTasks();
+        }
+
+        @Override
+        public <V> Future<?> schedule(HugeTask<V> task) {
+            verifyPermissionAction(HugePermission.TASK_WRITE);
+            task.context(getContextString());
+            return this.taskScheduler.schedule(task);
+        }
+
+        @Override
+        public <V> boolean cancel(HugeTask<V> task) {
+            verifyPermissionAction(HugePermission.TASK_WRITE);
+            return this.taskScheduler.cancel(task);
+        }
+
+        @Override
+        public <V> void save(HugeTask<V> task) {
+            verifyPermissionAction(HugePermission.TASK_WRITE);
+            this.taskScheduler.save(task);
+        }
+
+        @Override
+        public <V> HugeTask<V> task(Id id) {
+            verifyPermissionAction(HugePermission.TASK_READ);
+            return this.taskScheduler.task(id);
+        }
+
+        @Override
+        public <V> Iterator<HugeTask<V>> tasks(List<Id> ids) {
+            verifyPermissionAction(HugePermission.TASK_READ);
+            return this.taskScheduler.tasks(ids);
+        }
+
+        @Override
+        public <V> Iterator<HugeTask<V>> tasks(TaskStatus status,
+                                               long limit, String page) {
+            verifyPermissionAction(HugePermission.TASK_READ);
+            return this.taskScheduler.tasks(status, limit, page);
+        }
+
+        @Override
+        public <V> HugeTask<V> delete(Id id) {
+            verifyPermissionAction(HugePermission.TASK_DELETE);
+            return this.taskScheduler.delete(id);
+        }
+
+        @Override
+        public boolean close() {
+            verifyPermission(HugeAuthenticator.ROLE_ADMIN);
+            return this.taskScheduler.close();
+        }
+
+        @Override
+        public int taskInputSizeLimit() {
+            verifyPermission();
+            return this.taskScheduler.taskInputSizeLimit();
+        }
+
+        @Override
+        public int taskResultSizeLimit() {
+            verifyPermission();
+            return this.taskScheduler.taskResultSizeLimit();
+        }
+
+        @Override
+        public <V> HugeTask<V> waitUntilTaskCompleted(Id id, long seconds)
+                                                      throws TimeoutException {
+            verifyPermission();
+            return this.taskScheduler.waitUntilTaskCompleted(id, seconds);
+        }
+
+        @Override
+        public void waitUntilAllTasksCompleted(long seconds)
+                                               throws TimeoutException {
+            verifyPermission();
+            this.taskScheduler.waitUntilAllTasksCompleted(seconds);
         }
     }
 
-    private class VariablesProxy implements Variables {
+    class VariablesProxy implements Variables {
 
         private final Variables variables;
 
@@ -482,37 +751,108 @@ public class HugeGraphAuthProxy implements GremlinGraph {
         }
     }
 
-    private static final ThreadLocal<Context> contexts = new ThreadLocal<>();
+    class GraphTraversalSourceProxy extends GraphTraversalSource {
 
-    public static void setContext(Context context) {
+        public GraphTraversalSourceProxy(Graph graph) {
+            super(graph);
+        }
+
+        public GraphTraversalSourceProxy(Graph graph,
+                                         TraversalStrategies strategies) {
+            super(graph, strategies);
+        }
+
+        @Override
+        public Graph getGraph() {
+            // Be called by GraphTraversalSource clone
+            verifyPermissionAction(HugePermission.GREMLIN);
+            return this.graph;
+        }
+    }
+
+    private static final ThreadLocal<Context> contexts =
+                                              new InheritableThreadLocal<>();
+
+    protected static final Context setContext(Context context) {
+        Context old = contexts.get();
         contexts.set(context);
+        return old;
     }
 
-    public static Context getContext() {
-        return contexts.get();
-    }
-
-    public static void resetContext() {
+    protected static final void resetContext() {
         contexts.remove();
     }
 
-    public static class Context {
+    protected static final Context getContext() {
+        // Return task context first
+        String taskContext = TaskManager.getContext();
+        User user = User.fromJson(taskContext);
+        if (user != null) {
+            return new Context(user);
+        }
 
-        private static final Context ADMIN =
-                             new Context(HugeAuthenticator.User.ADMIN);
+        return contexts.get();
+    }
 
-        private final HugeAuthenticator.User user;
+    protected static final String getContextString() {
+        Context context = getContext();
+        if (context == null) {
+            return null;
+        }
+        return context.user().toJson();
+    }
 
-        public Context(HugeAuthenticator.User user) {
+    protected static final void logUser(User user, String path) {
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("User '{}' login from client [{}] for path '{}'",
+                      user.username(), user.client(), path);
+        }
+    }
+
+    static class Context {
+
+        private static final Context ADMIN = new Context(User.ADMIN);
+
+        private final User user;
+
+        public Context(User user) {
+            E.checkNotNull(user, "user");
             this.user = user;
         }
 
-        public HugeAuthenticator.User user() {
+        public User user() {
             return this.user;
         }
 
         public static Context admin() {
             return ADMIN;
+        }
+
+        public static Context schema(String graph) {
+            String role = RolePerm.ownerFor(graph, HugePermission.SCHEMA_READ)
+                                  .toString();
+            return new Context(new User(HugeAuthenticator.USER_SYSTEM, role));
+        }
+    }
+
+    static class ContextTask implements Runnable {
+
+        private final Runnable runner;
+        private final Context context;
+
+        public ContextTask(Runnable runner) {
+            this.context = getContext();
+            this.runner = runner;
+        }
+
+        @Override
+        public void run() {
+            setContext(this.context);
+            try {
+                this.runner.run();
+            } finally {
+                resetContext();
+            }
         }
     }
 
@@ -521,33 +861,12 @@ public class HugeGraphAuthProxy implements GremlinGraph {
         public ContextThreadPoolExecutor(int corePoolSize, int maxPoolSize,
                                          ThreadFactory threadFactory) {
             super(corePoolSize, maxPoolSize, 0L, TimeUnit.MILLISECONDS,
-                  new LinkedBlockingQueue<>(), threadFactory);
+                  new LinkedBlockingQueue<Runnable>(), threadFactory);
         }
 
         @Override
         public void execute(Runnable command) {
             super.execute(new ContextTask(command));
-        }
-    }
-
-    public static class ContextTask implements Runnable {
-
-        private final Runnable runner;
-        private final Context context;
-
-        public ContextTask(Runnable runner) {
-            this.context = HugeGraphAuthProxy.getContext();
-            this.runner = runner;
-        }
-
-        @Override
-        public void run() {
-            HugeGraphAuthProxy.setContext(this.context);
-            try {
-                this.runner.run();
-            } finally {
-                HugeGraphAuthProxy.resetContext();
-            }
         }
     }
 }

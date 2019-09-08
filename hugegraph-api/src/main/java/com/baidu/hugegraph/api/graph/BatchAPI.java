@@ -26,8 +26,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.tinkerpop.gremlin.structure.Element;
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.GremlinGraph;
 import com.baidu.hugegraph.HugeException;
+import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
@@ -61,7 +61,7 @@ public class BatchAPI extends API {
                                                     "batch-commit");
     }
 
-    public <R> R commit(HugeConfig config, GremlinGraph g, int size,
+    public <R> R commit(HugeConfig config, HugeGraph g, int size,
                         Callable<R> callable) {
         int maxWriteThreads = config.get(ServerOptions.MAX_WRITE_THREADS);
         int writingThreads = batchWriteThreads.incrementAndGet();
@@ -126,7 +126,7 @@ public class BatchAPI extends API {
         }
     }
 
-    protected void updateExistElement(GremlinGraph g,
+    protected void updateExistElement(HugeGraph g,
                                       Element oldElement,
                                       JsonElement newElement,
                                       Map<String, UpdateStrategy> strategies) {
@@ -143,8 +143,7 @@ public class BatchAPI extends API {
                 Object value = updateStrategy.checkAndUpdateProperty(
                                oldElement.property(key).value(),
                                newElement.properties.get(key));
-                value = graph4schema(g).propertyKey(key)
-                                       .convValue(value, false);
+                value = g.propertyKey(key).convValue(value, false);
                 newElement.properties.put(key, value);
             } else if (oldElement.property(key).isPresent() &&
                        newElement.properties.get(key) == null) {

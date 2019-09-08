@@ -30,7 +30,6 @@ import org.junit.Test;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
-import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.exception.NoIndexException;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.SchemaManager;
@@ -551,8 +550,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
 
         List<Vertex> persons;
 
-        BackendFeatures features = graph.graphTransaction().store().features();
-        if (!features.supportsQueryByLabel()) {
+        if (!storeFeatures().supportsQueryByLabel()) {
             Assert.assertThrows(NoIndexException.class, () -> {
                 graph.traversal().V().hasLabel("person").toList();
             });
@@ -1014,7 +1012,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
         Assert.assertTrue(vertexLabels.contains(book));
 
         // clear cache
-        graph().schemaEventHub().call(Events.CACHE, "clear", null);
+        params().schemaEventHub().call(Events.CACHE, "clear", null);
 
         Assert.assertEquals(person, schema.getVertexLabel("person"));
 

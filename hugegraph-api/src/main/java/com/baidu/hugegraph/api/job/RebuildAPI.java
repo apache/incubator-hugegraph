@@ -31,7 +31,7 @@ import javax.ws.rs.core.Context;
 
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.GremlinGraph;
+import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.backend.id.Id;
@@ -57,7 +57,7 @@ public class RebuildAPI extends API {
                                               @PathParam("name") String name) {
         LOG.debug("Graph [{}] rebuild vertex label: {}", graph, name);
 
-        GremlinGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         return ImmutableMap.of("task_id",
                                g.schema().vertexLabel(name).rebuildIndex());
     }
@@ -73,7 +73,7 @@ public class RebuildAPI extends API {
                                             @PathParam("name") String name) {
         LOG.debug("Graph [{}] rebuild edge label: {}", graph, name);
 
-        GremlinGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         return ImmutableMap.of("task_id",
                                g.schema().edgeLabel(name).rebuildIndex());
     }
@@ -89,7 +89,7 @@ public class RebuildAPI extends API {
                                              @PathParam("name") String name) {
         LOG.debug("Graph [{}] rebuild index label: {}", graph, name);
 
-        GremlinGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         return ImmutableMap.of("task_id",
                                g.schema().indexLabel(name).rebuild());
     }

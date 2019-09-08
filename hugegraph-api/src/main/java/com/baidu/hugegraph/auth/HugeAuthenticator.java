@@ -39,6 +39,7 @@ import com.baidu.hugegraph.config.OptionSpace;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 public interface HugeAuthenticator extends Authenticator {
@@ -47,9 +48,17 @@ public interface HugeAuthenticator extends Authenticator {
                                CredentialGraphTokens.PROPERTY_USERNAME;
     public static final String KEY_PASSWORD =
                                CredentialGraphTokens.PROPERTY_PASSWORD;
+    public static final String KEY_ROLE = "role";
+    public static final String KEY_CLIENT = "client";
+    public static final String KEY_PATH = "path";
+
+    public static final String USER_ADMIN = "admin";
+    public static final String USER_SYSTEM = "system";
+    public static final String USER_ANONY =
+                               AuthenticatedUser.ANONYMOUS_USERNAME;
 
     public static final String ROLE_NONE = "";
-    public static final String ROLE_ADMIN = "admin";
+    public static final String ROLE_ADMIN = USER_ADMIN;
     public static final String ROLE_OWNER = "$owner";
     public static final String ROLE_DYNAMIC = "$dynamic";
 
@@ -73,6 +82,8 @@ public interface HugeAuthenticator extends Authenticator {
     @Override
     public default User authenticate(final Map<String, String> credentials)
                                      throws AuthenticationException {
+        HugeGraphAuthProxy.resetContext();
+
         User user = User.ANONYMOUS;
         if (this.requireAuthentication()) {
             String username = credentials.get(KEY_USERNAME);
@@ -86,7 +97,10 @@ public interface HugeAuthenticator extends Authenticator {
                 throw new AuthenticationException(message);
             }
             user = new User(username, role);
+            user.client(credentials.get(KEY_CLIENT));
         }
+
+        HugeGraphAuthProxy.logUser(user, credentials.get(KEY_PATH));
         /*
          * Set authentication context
          * TODO: unset context after finishing a request
@@ -132,17 +146,18 @@ public interface HugeAuthenticator extends Authenticator {
 
     public static class User extends AuthenticatedUser {
 
-        public static final String USER_ADMIN = ROLE_ADMIN;
-        public static final String USER_ANONY = ANONYMOUS_USERNAME;
-
         public static final User ADMIN = new User(USER_ADMIN, ROLE_ADMIN);
         public static final User ANONYMOUS = new User(USER_ANONY, ROLE_ADMIN);
 
         private final String role;
+        private String client;
 
         public User(String username, String role) {
             super(username);
+            E.checkNotNull(username, "username");
+            E.checkNotNull(role, "role");
             this.role = role;
+            this.client = null;
         }
 
         public String username() {
@@ -151,6 +166,14 @@ public interface HugeAuthenticator extends Authenticator {
 
         public String role() {
             return this.role;
+        }
+
+        public void client(String client) {
+            this.client = client;
+        }
+
+        public String client() {
+            return client;
         }
 
         @Override
@@ -181,6 +204,26 @@ public interface HugeAuthenticator extends Authenticator {
         public String toString() {
             return String.format("User{username=%s,role=%s}",
                                  this.username(), this.role());
+        }
+
+        public String toJson() {
+            Map<?, ?> map = ImmutableMap.of(KEY_USERNAME, this.username(),
+                                            KEY_ROLE, this.role());
+            return JsonUtil.toJson(map);
+        }
+
+        public static User fromJson(String json) {
+            if (json == null) {
+                return null;
+            }
+            @SuppressWarnings("unchecked")
+            Map<String, String> map = JsonUtil.fromJson(json, Map.class);
+            String name = map.get(KEY_USERNAME);
+            String role = map.get(KEY_ROLE);
+            if (name != null && role != null) {
+                return new User(name, role);
+            }
+            return null;
         }
     }
 

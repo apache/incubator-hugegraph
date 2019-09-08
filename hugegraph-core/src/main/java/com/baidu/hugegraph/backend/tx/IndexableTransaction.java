@@ -19,14 +19,14 @@
 
 package com.baidu.hugegraph.backend.tx;
 
-import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
 
 public abstract class IndexableTransaction extends AbstractTransaction {
 
-    public IndexableTransaction(HugeGraph graph, BackendStore store) {
+    public IndexableTransaction(HugeGraphParams graph, BackendStore store) {
         super(graph, store);
     }
 

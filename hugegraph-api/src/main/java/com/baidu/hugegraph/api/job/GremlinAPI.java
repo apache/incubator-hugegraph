@@ -81,7 +81,7 @@ public class GremlinAPI extends API {
         checkCreatingBody(request);
         gremlinJobInputHistogram.update(request.gremlin.length());
 
-        HugeGraph g = graph4gremlin(manager, graph);
+        HugeGraph g = graph(manager, graph);
         request.aliase(graph, "graph");
         JobBuilder<Object> builder = JobBuilder.of(g);
         builder.name(request.name())

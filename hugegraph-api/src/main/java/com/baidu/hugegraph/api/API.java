@@ -32,7 +32,6 @@ import javax.ws.rs.core.MediaType;
 import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.GremlinGraph;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.auth.HugePermission;
@@ -71,22 +70,13 @@ public class API {
     private static final Meter unknownErrorMeter =
                          MetricsUtil.registerMeter(API.class, "unknown-error");
 
-    public static GremlinGraph graph(GraphManager manager, String graph) {
-        GremlinGraph g = manager.graph(graph);
+    public static HugeGraph graph(GraphManager manager, String graph) {
+        HugeGraph g = manager.graph(graph);
         if (g == null) {
             throw new NotFoundException(String.format(
                       "Graph '%s' does not exist",  graph));
         }
         return g;
-    }
-
-    public static HugeGraph graph4schema(GremlinGraph g) {
-        return g.hugegraph(HugePermission.SCHEMA_READ.string());
-    }
-
-    public static HugeGraph graph4gremlin(GraphManager manager, String graph) {
-        String permission = HugePermission.GREMLIN.string();
-        return graph(manager, graph).hugegraph(permission);
     }
 
     public static HugeGraph graph4vertex(GraphManager manager, String graph) {
@@ -104,26 +94,11 @@ public class API {
         return graph(manager, graph).hugegraph(permission);
     }
 
-    public static HugeGraph graph4taskr(GraphManager manager, String graph) {
-        String permission = HugePermission.TASK_READ.string();
-        return graph(manager, graph).hugegraph(permission);
-    }
-
-    public static HugeGraph graph4taskw(GraphManager manager, String graph) {
-        String permission = HugePermission.TASK_WRITE.string();
-        return graph(manager, graph).hugegraph(permission);
-    }
-
-    public static HugeGraph graph4taskd(GraphManager manager, String graph) {
-        String permission = HugePermission.TASK_DELETE.string();
-        return graph(manager, graph).hugegraph(permission);
-    }
-
     public static HugeGraph graph4admin(GraphManager manager, String graph) {
         return graph(manager, graph).hugegraph();
     }
 
-    public static <R> R commit(GremlinGraph g, Callable<R> callable) {
+    public static <R> R commit(HugeGraph g, Callable<R> callable) {
         Consumer<Throwable> rollback = (error) -> {
             if (error != null) {
                 LOG.error("Failed to commit", error);
@@ -156,7 +131,7 @@ public class API {
         }
     }
 
-    public static void commit(GremlinGraph g, Runnable runnable) {
+    public static void commit(HugeGraph g, Runnable runnable) {
         commit(g, () -> {
             runnable.run();
             return null;

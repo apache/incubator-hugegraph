@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.core;
 
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Random;
 import java.util.concurrent.TimeoutException;
@@ -26,11 +27,11 @@ import java.util.concurrent.TimeoutException;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.job.GremlinAPI.GremlinRequest;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
-import com.baidu.hugegraph.exception.LimitExceedException;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.job.EphemeralJob;
 import com.baidu.hugegraph.job.EphemeralJobBuilder;
@@ -57,9 +58,9 @@ public class TaskCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         TaskScheduler scheduler = graph.taskScheduler();
 
-        Iterator<HugeTask<Object>> iter = scheduler.findAllTask(-1, null);
+        Iterator<HugeTask<Object>> iter = scheduler.tasks(null, -1, null);
         while (iter.hasNext()) {
-            scheduler.deleteTask(iter.next().id());
+            scheduler.delete(iter.next().id());
         }
     }
 
@@ -82,7 +83,7 @@ public class TaskCoreTest extends BaseCoreTest {
         };
 
         Id id = IdGenerator.of(88888);
-        HugeTask<?> task = new HugeTask<>(graph, id, null, callable);
+        HugeTask<?> task = new HugeTask<>(id, null, callable);
         task.type("test");
         task.name("test-task");
 
@@ -91,7 +92,7 @@ public class TaskCoreTest extends BaseCoreTest {
         Assert.assertFalse(task.completed());
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
-            scheduler.deleteTask(id);
+            scheduler.delete(id);
         }, e -> {
             Assert.assertContains("Can't delete incomplete task '88888'",
                                   e.getMessage());
@@ -103,25 +104,26 @@ public class TaskCoreTest extends BaseCoreTest {
         Assert.assertEquals(TaskStatus.SUCCESS, task.status());
 
         Assert.assertEquals("test-task", scheduler.task(id).name());
-        Assert.assertEquals("test-task", scheduler.findTask(id).name());
+        Assert.assertEquals("test-task", scheduler.tasks(Arrays.asList(id))
+                                                  .next().name());
 
         Iterator<HugeTask<Object>> iter = scheduler.tasks(ImmutableList.of(id));
         Assert.assertTrue(iter.hasNext());
         Assert.assertEquals("test-task", iter.next().name());
         Assert.assertFalse(iter.hasNext());
 
-        iter = scheduler.findTask(TaskStatus.SUCCESS, 10, null);
+        iter = scheduler.tasks(TaskStatus.SUCCESS, 10, null);
         Assert.assertTrue(iter.hasNext());
         Assert.assertEquals("test-task", iter.next().name());
         Assert.assertFalse(iter.hasNext());
 
-        iter = scheduler.findAllTask(10, null);
+        iter = scheduler.tasks(null, 10, null);
         Assert.assertTrue(iter.hasNext());
         Assert.assertEquals("test-task", iter.next().name());
         Assert.assertFalse(iter.hasNext());
 
-        scheduler.deleteTask(id);
-        iter = scheduler.findAllTask(10, null);
+        scheduler.delete(id);
+        iter = scheduler.tasks(null, 10, null);
         Assert.assertFalse(iter.hasNext());
         Assert.assertThrows(NotFoundException.class, () -> {
             scheduler.task(id);
@@ -146,14 +148,14 @@ public class TaskCoreTest extends BaseCoreTest {
         };
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
-            new HugeTask<>(graph, null, null, callable);
+            new HugeTask<>(null, null, callable);
         }, e -> {
             Assert.assertContains("Task id can't be null", e.getMessage());
         });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             Id id = IdGenerator.of("88888");
-            new HugeTask<>(graph, id, null, callable);
+            new HugeTask<>(id, null, callable);
         }, e -> {
             Assert.assertContains("Invalid task id type, it must be number",
                                   e.getMessage());
@@ -161,12 +163,12 @@ public class TaskCoreTest extends BaseCoreTest {
 
         Assert.assertThrows(NullPointerException.class, () -> {
             Id id = IdGenerator.of(88888);
-            new HugeTask<>(graph, id, null, null);
+            new HugeTask<>(id, null, null);
         });
 
         Assert.assertThrows(IllegalStateException.class, () -> {
             Id id = IdGenerator.of(88888);
-            HugeTask<?> task2 = new HugeTask<>(graph, id, null, callable);
+            HugeTask<?> task2 = new HugeTask<>(id, null, callable);
             task2.name("test-task");
             scheduler.schedule(task2);
         }, e -> {
@@ -175,7 +177,7 @@ public class TaskCoreTest extends BaseCoreTest {
 
         Assert.assertThrows(IllegalStateException.class, () -> {
             Id id = IdGenerator.of(88888);
-            HugeTask<?> task2 = new HugeTask<>(graph, id, null, callable);
+            HugeTask<?> task2 = new HugeTask<>(id, null, callable);
             task2.type("test");
             scheduler.schedule(task2);
         }, e -> {
@@ -228,7 +230,7 @@ public class TaskCoreTest extends BaseCoreTest {
         TaskScheduler scheduler = graph.taskScheduler();
 
         GremlinRequest request = new GremlinRequest();
-        request.gremlin("3 + 5");
+        request.gremlin("sleep(100); 3 + 5");
 
         JobBuilder<Object> builder = JobBuilder.of(graph);
         builder.name("test-job-gremlin")
@@ -430,14 +432,14 @@ public class TaskCoreTest extends BaseCoreTest {
         });
 
         // Test failure task with big input
-        int length = 32 * 1024 * 1024;
+        int length = 16 * 1024 * 1024;
         Random random = new Random();
         StringBuilder sb = new StringBuilder(length);
         for (int i = 0; i < length; i++) {
             sb.append(random.nextInt(1000));
         }
         String bigInput = sb.toString();
-        Assert.assertThrows(LimitExceedException.class, () -> {
+        Assert.assertThrows(HugeException.class, () -> {
             runGremlinJob(bigInput);
         }, e -> {
             Assert.assertContains("Task input size", e.getMessage());
@@ -458,7 +460,7 @@ public class TaskCoreTest extends BaseCoreTest {
         Assert.assertTrue(task.result(), task.result() == null ||
                           task.result().endsWith("InterruptedException"));
 
-        task = scheduler.findTask(task.id());
+        task = scheduler.task(task.id());
         Assert.assertEquals(TaskStatus.CANCELLED, task.status());
         Assert.assertEquals("test-gremlin-job", task.name());
         Assert.assertTrue(task.result(), task.result() == null ||
@@ -475,7 +477,7 @@ public class TaskCoreTest extends BaseCoreTest {
         // Cancel failure task with big results (job size exceeded limit)
         String bigList = "def l=[]; for (i in 1..800001) l.add(i); l;";
         HugeTask<Object> task3 = runGremlinJob(bigList);
-        scheduler.waitUntilTaskCompleted(task3.id(), 10);
+        scheduler.waitUntilTaskCompleted(task3.id(), 12);
         Assert.assertEquals(TaskStatus.FAILED, task3.status());
         scheduler.cancel(task3);
         Assert.assertEquals(TaskStatus.FAILED, task3.status());
@@ -483,22 +485,25 @@ public class TaskCoreTest extends BaseCoreTest {
                               "has exceeded the max limit 800000",
                               task3.result());
 
-        // Cancel failure task with big results (task exceeded limit 64M)
-        String bigResults = "def random = new Random(); def ol=[]; def il=[];" +
-                            "for (i in 1..6000)" +
-                            "   for (j in 1..1000)" +
-                            "       il.add(random.nextInt(10000000));" +
-                            "   ol.add(il);" +
-                            "ol;";
+        // Cancel failure task with big results (task exceeded limit 16M)
+        String bigResults = "def random = new Random(); def rs=[];" +
+                            "for (i in 0..20) {" +
+                            "  def len = 1024 * 1024;" +
+                            "  def item = new StringBuilder(len);" +
+                            "  for (j in 0..len)" +
+                            "    item.append((char) random.nextInt(256));" +
+                            "  rs.add(item);" +
+                            "};" +
+                            "rs;";
         HugeTask<Object> task4 = runGremlinJob(bigResults);
         scheduler.waitUntilTaskCompleted(task4.id(), 10);
         Assert.assertEquals(TaskStatus.FAILED, task4.status());
         scheduler.cancel(task4);
         Assert.assertEquals(TaskStatus.FAILED, task4.status());
-        Assert.assertTrue(task4.result().contains(
-                          "LimitExceedException: Task result size"));
-        Assert.assertTrue(task4.result().endsWith(
-                          "exceeded limit 16777216 bytes"));
+        Assert.assertContains("LimitExceedException: Task result size",
+                              task4.result());
+        Assert.assertContains("exceeded limit 16777216 bytes",
+                              task4.result());
     }
 
     @Test
@@ -521,7 +526,7 @@ public class TaskCoreTest extends BaseCoreTest {
         Assert.assertEquals(null, task.result());
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
-            scheduler.restore(task);
+            Whitebox.invoke(scheduler.getClass(), "restore", scheduler, task);
         }, e -> {
             Assert.assertContains("No need to restore completed task",
                                   e.getMessage());
@@ -529,16 +534,16 @@ public class TaskCoreTest extends BaseCoreTest {
 
         HugeTask<Object> task2 = scheduler.task(task.id());
         Assert.assertThrows(IllegalArgumentException.class, () -> {
-            scheduler.restore(task2);
+            Whitebox.invoke(scheduler.getClass(), "restore", scheduler, task2);
         }, e -> {
             Assert.assertContains("No need to restore completed task",
                                   e.getMessage());
         });
         Whitebox.setInternalState(task2, "status", TaskStatus.RUNNING);
-        scheduler.restore(task2);
+        Whitebox.invoke(scheduler.getClass(), "restore", scheduler, task2);
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
-            scheduler.restore(task2);
+            Whitebox.invoke(scheduler.getClass(), "restore", scheduler, task2);
         }, e -> {
             Assert.assertContains("is already in the queue", e.getMessage());
         });

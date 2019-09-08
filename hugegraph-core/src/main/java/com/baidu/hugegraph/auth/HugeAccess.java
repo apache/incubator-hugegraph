@@ -29,7 +29,7 @@ import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
 import org.apache.tinkerpop.gremlin.structure.T;
 
-import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.auth.SchemaDefine.Relationship;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.schema.EdgeLabel;
@@ -159,7 +159,7 @@ public class HugeAccess extends Relationship {
         return fromEdge(edge, access);
     }
 
-    public static Schema schema(HugeGraph graph) {
+    public static Schema schema(HugeGraphParams graph) {
         return new Schema(graph);
     }
 
@@ -187,28 +187,26 @@ public class HugeAccess extends Relationship {
 
     public static final class Schema extends SchemaDefine {
 
-        public Schema(HugeGraph graph) {
+        public Schema(HugeGraphParams graph) {
             super(graph, P.ACCESS);
         }
 
         @Override
         public void initSchemaIfNeeded() {
-            EdgeLabel label = this.graph.schemaTransaction()
-                                        .getEdgeLabel(this.label);
-            if (label != null) {
+            if (this.existEdgeLabel(this.label)) {
                 return;
             }
 
             String[] properties = this.initProperties();
 
             // Create edge label
-            label = this.graph.schema().edgeLabel(this.label)
-                              .sourceLabel(P.GROUP)
-                              .targetLabel(P.TARGET)
-                              .properties(properties)
-                              .sortKeys(P.PERMISSION)
-                              .enableLabelIndex(true)
-                              .build();
+            EdgeLabel label = this.schema().edgeLabel(this.label)
+                                  .sourceLabel(P.GROUP)
+                                  .targetLabel(P.TARGET)
+                                  .properties(properties)
+                                  .sortKeys(P.PERMISSION)
+                                  .enableLabelIndex(true)
+                                  .build();
             this.graph.schemaTransaction().addEdgeLabel(label);
         }
 

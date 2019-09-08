@@ -28,6 +28,7 @@ public enum HugePermission implements SerialEnum {
     SCHEMA_ANY(1),
     VERTEX_ANY(2),
     EDGE_ANY(3),
+    JOB_ANY(4),
 
     READ(15),
     WRITE(16),
@@ -68,7 +69,7 @@ public enum HugePermission implements SerialEnum {
     VAR_DELETE(212),
 
     // index
-    INDEX_REBUILD(220);
+    JOB_INDEX_REBUILD(220);
 
     private final byte code;
 
