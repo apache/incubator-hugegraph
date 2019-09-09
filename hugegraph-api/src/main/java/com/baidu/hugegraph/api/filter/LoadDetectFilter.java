@@ -34,6 +34,7 @@ import javax.ws.rs.ext.Provider;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.define.WorkLoad;
+import com.baidu.hugegraph.license.LicenseVerifier;
 import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
 import com.google.common.collect.ImmutableSet;
@@ -62,6 +63,8 @@ public class LoadDetectFilter implements ContainerRequestFilter {
 
     @Override
     public void filter(ContainerRequestContext context) {
+        LicenseVerifier.instance().verifyIfNeeded();
+
         if (LoadDetectFilter.isWhiteAPI(context)) {
             return;
         }

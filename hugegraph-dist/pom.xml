@@ -5,7 +5,7 @@
     <parent>
         <artifactId>hugegraph</artifactId>
         <groupId>com.baidu.hugegraph</groupId>
-        <version>0.10.2</version>
+        <version>0.10.3</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <name>hugegraph-dist</name>
@@ -90,7 +90,7 @@
             </resource>
             <resource>
                 <directory>${basedir}/src/main/resources</directory>
-                <filtering>true</filtering>
+                <filtering>false</filtering>
             </resource>
         </resources>
 
