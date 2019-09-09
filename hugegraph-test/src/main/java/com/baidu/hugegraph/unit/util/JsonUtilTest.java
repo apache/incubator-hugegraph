@@ -20,8 +20,10 @@
 package com.baidu.hugegraph.unit.util;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
+import org.apache.tinkerpop.shaded.jackson.core.type.TypeReference;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -52,6 +54,7 @@ import com.baidu.hugegraph.type.define.IndexType;
 import com.baidu.hugegraph.unit.BaseUnitTest;
 import com.baidu.hugegraph.unit.FakeObjects;
 import com.baidu.hugegraph.util.JsonUtil;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 public class JsonUtilTest extends BaseUnitTest {
@@ -287,5 +290,13 @@ public class JsonUtilTest extends BaseUnitTest {
                             "\"inV\":987654,\"inVLabel\":\"person\"," +
                             "\"properties\":{\"date\":%s," +
                             "\"weight\":0.8}}", dateTime), json);
+    }
+
+    @Test
+    public void testDeserializeList() {
+        String json = "[\"1\", \"2\", \"3\"]";
+        TypeReference typeRef = new TypeReference<List<Integer>>() {};
+        Assert.assertEquals(ImmutableList.of(1, 2, 3),
+                            JsonUtil.fromJson(json, typeRef));
     }
 }
