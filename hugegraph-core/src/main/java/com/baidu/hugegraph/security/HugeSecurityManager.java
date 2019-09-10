@@ -35,6 +35,11 @@ public class HugeSecurityManager extends SecurityManager {
 
     private static final String USER_DIR = System.getProperty("user.dir");
 
+    private static final String USER_DIR_IDE =
+                                USER_DIR.endsWith("hugegraph-dist") ?
+                                USER_DIR.substring(0, USER_DIR.length() - 15) :
+                                null;
+
     private static final String GREMLIN_SERVER_WORKER = "gremlin-server-exec";
     private static final String TASK_WORKER = "task-worker";
     private static final Set<String> GREMLIN_EXECUTOR_CLASS = ImmutableSet.of(
@@ -43,6 +48,7 @@ public class HugeSecurityManager extends SecurityManager {
 
     private static final Set<String> DENIED_PERMISSIONS = ImmutableSet.of(
             "setSecurityManager"
+            //"suppressAccessChecks"
     );
 
     private static final Set<String> ACCEPT_CLASS_LOADERS = ImmutableSet.of(
@@ -373,8 +379,9 @@ public class HugeSecurityManager extends SecurityManager {
     }
 
     private static boolean readGroovyInCurrentDir(String file) {
-        if (USER_DIR != null && file != null && file.startsWith(USER_DIR)
-            && (file.endsWith(".class") || file.endsWith(".groovy"))) {
+        if (file != null && (USER_DIR != null && file.startsWith(USER_DIR) ||
+            USER_DIR_IDE != null && file.startsWith(USER_DIR_IDE)) &&
+            (file.endsWith(".class") || file.endsWith(".groovy"))) {
             return true;
         }
         return false;

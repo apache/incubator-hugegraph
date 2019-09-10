@@ -72,7 +72,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
     private static final Logger LOG = Log.logger(HugeGraph.class);
 
-    private final HugeGraph hugegraph;
+    private final HugeGraph hugegraph; // TODO: protect
     private final Transaction tx;
 
     public HugeGraphAuthProxy(HugeGraph hugegraph) {
@@ -281,6 +281,18 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     public Iterator<Vertex> vertices(Object... objects) {
         this.verifyPermissionAction(HugePermission.VERTEX_READ);
         return this.hugegraph.vertices(objects);
+    }
+
+    @Override
+    public Iterator<Vertex> adjacentVertex(Object id) {
+        this.verifyPermissionAction(HugePermission.VERTEX_READ);
+        return this.hugegraph.adjacentVertex(id);
+    }
+
+    @Override
+    public boolean checkAdjacentVertexExist() {
+        this.verifyPermissionAction(HugePermission.VERTEX_READ);
+        return this.hugegraph.checkAdjacentVertexExist();
     }
 
     @Override
