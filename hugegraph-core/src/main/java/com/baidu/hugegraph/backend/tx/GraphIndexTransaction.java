@@ -47,6 +47,7 @@ import com.baidu.hugegraph.backend.page.IdHolderList;
 import com.baidu.hugegraph.backend.page.PageIds;
 import com.baidu.hugegraph.backend.page.PageInfo;
 import com.baidu.hugegraph.backend.page.PageState;
+import com.baidu.hugegraph.backend.page.SortByCountIdHolderList;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.Condition.RangeConditions;
 import com.baidu.hugegraph.backend.query.Condition.Relation;
@@ -296,7 +297,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
         ConditionQuery query = new ConditionQuery(HugeType.UNIQUE_INDEX);
         query.eq(HugeKeys.INDEX_LABEL_ID, indexLabel.id());
         query.eq(HugeKeys.FIELD_VALUES, value);
-        Iterator<BackendEntry> iterator = this.query(query);
+        Iterator<BackendEntry> iterator = this.query(query).iterator();
         boolean exist = iterator.hasNext();
         if (exist) {
             HugeIndex index = this.serializer.readIndex(graph(), query,
@@ -409,8 +410,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
             return ImmutableList.of();
         }
 
-        boolean paging = query.paging();
         // Do index query
+        boolean paging = query.paging();
         IdHolderList holders = new IdHolderList(paging);
         long idsSize = 0;
         for (MatchedIndex index : indexes) {
@@ -425,7 +426,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 // Do secondary-index, range-index or shard-index query
                 IndexQueries queries = index.constructIndexQueries(query);
                 assert !paging || queries.size() <= 1;
-                IdHolder holder = this.doIndexQueries(queries);
+                IdHolder holder = this.doSingleOrJointIndex(queries);
                 holders.add(holder);
             }
 
@@ -437,14 +438,16 @@ public class GraphIndexTransaction extends AbstractTransaction {
         return holders;
     }
 
+    @Watched(prefix = "index")
     private List<IdHolder> doSearchIndex(ConditionQuery query,
                                          MatchedIndex index) {
         query = this.constructSearchQuery(query, index);
-        List<IdHolder> holders = new IdHolderList(query.paging());
+        List<IdHolder> holders = new SortByCountIdHolderList(query.paging());
+        // sorted by matched count
         for (ConditionQuery q : ConditionQueryFlatten.flatten(query)) {
             IndexQueries queries = index.constructIndexQueries(q);
             assert !query.paging() || queries.size() <= 1;
-            IdHolder holder = this.doIndexQueries(queries);
+            IdHolder holder = this.doSingleOrJointIndex(queries);
             // NOTE: ids will be merged into one IdHolder if not in paging
             holders.add(holder);
         }
@@ -452,7 +455,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
     }
 
     @Watched(prefix = "index")
-    private IdHolder doIndexQueries(IndexQueries queries) {
+    private IdHolder doSingleOrJointIndex(IndexQueries queries) {
         if (queries.size() == 1) {
             return this.doSingleOrCompositeIndex(queries);
         } else {
@@ -486,63 +489,6 @@ public class GraphIndexTransaction extends AbstractTransaction {
         return new IdHolder(intersectIds);
     }
 
-    private ConditionQuery constructSearchQuery(ConditionQuery query,
-                                                MatchedIndex index) {
-        ConditionQuery originQuery = query;
-        Set<Id> indexFields = new HashSet<>();
-        // Convert has(key, text) to has(key, textContainsAny(word1, word2))
-        for (IndexLabel il : index.indexLabels()) {
-            if (il.indexType() != IndexType.SEARCH) {
-                continue;
-            }
-            Id indexField = il.indexField();
-            String fieldValue = (String) query.userpropValue(indexField);
-            Set<String> words = this.segmentWords(fieldValue);
-            indexFields.add(indexField);
-
-            query = query.copy();
-            query.unsetCondition(indexField);
-            query.query(Condition.textContainsAny(indexField, words));
-        }
-
-        // Register results filter
-        query.registerResultsFilter(elem -> {
-            for (Condition cond : originQuery.conditions()) {
-                Object key = cond.isRelation() ? ((Relation) cond).key() : null;
-                if (key instanceof Id && indexFields.contains(key)) {
-                    // This is an index field of search index
-                    Id field = (Id) key;
-                    String propValue = elem.<String>getPropertyValue(field);
-                    String fvalue = (String) originQuery.userpropValue(field);
-                    if (this.matchSearchIndexWords(propValue, fvalue)) {
-                        continue;
-                    }
-                    return false;
-                }
-                if (!cond.test(elem)) {
-                    return false;
-                }
-            }
-            return true;
-        });
-
-        return query;
-    }
-
-    private boolean matchSearchIndexWords(String propValue, String fieldValue) {
-        Set<String> propValues = this.segmentWords(propValue);
-        Set<String> words = this.segmentWords(fieldValue);
-        return CollectionUtil.hasIntersection(propValues, words);
-    }
-
-    private Set<String> segmentWords(String text) {
-        return this.textAnalyzer.segment(text);
-    }
-
-    private boolean needIndexForLabel() {
-        return !this.store().features().supportsQueryByLabel();
-    }
-
     @Watched(prefix = "index")
     private IdHolder doIndexQuery(IndexLabel indexLabel, ConditionQuery query) {
         if (!query.paging()) {
@@ -564,7 +510,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
             locks.lockReads(LockUtil.INDEX_LABEL_REBUILD, indexLabel.id());
 
             Set<Id> ids = InsertionOrderUtil.newSet();
-            Iterator<BackendEntry> entries = super.query(query);
+            Iterator<BackendEntry> entries = super.query(query).iterator();
             while(entries.hasNext()) {
                 HugeIndex index = this.serializer.readIndex(graph(), query,
                                                             entries.next());
@@ -662,6 +608,64 @@ public class GraphIndexTransaction extends AbstractTransaction {
             return new MatchedIndex(schemaLabel, matchedILs);
         }
         return null;
+    }
+
+
+    private ConditionQuery constructSearchQuery(ConditionQuery query,
+                                                MatchedIndex index) {
+        ConditionQuery originQuery = query;
+        Set<Id> indexFields = new HashSet<>();
+        // Convert has(key, text) to has(key, textContainsAny(word1, word2))
+        for (IndexLabel il : index.indexLabels()) {
+            if (il.indexType() != IndexType.SEARCH) {
+                continue;
+            }
+            Id indexField = il.indexField();
+            String fieldValue = (String) query.userpropValue(indexField);
+            Set<String> words = this.segmentWords(fieldValue);
+            indexFields.add(indexField);
+
+            query = query.copy();
+            query.unsetCondition(indexField);
+            query.query(Condition.textContainsAny(indexField, words));
+        }
+
+        // Register results filter
+        query.registerResultsFilter(elem -> {
+            for (Condition cond : originQuery.conditions()) {
+                Object key = cond.isRelation() ? ((Relation) cond).key() : null;
+                if (key instanceof Id && indexFields.contains(key)) {
+                    // This is an index field of search index
+                    Id field = (Id) key;
+                    String propValue = elem.<String>getPropertyValue(field);
+                    String fvalue = (String) originQuery.userpropValue(field);
+                    if (this.matchSearchIndexWords(propValue, fvalue)) {
+                        continue;
+                    }
+                    return false;
+                }
+                if (!cond.test(elem)) {
+                    return false;
+                }
+            }
+            return true;
+        });
+
+        return query;
+    }
+
+    private boolean matchSearchIndexWords(String propValue, String fieldValue) {
+        Set<String> propValues = this.segmentWords(propValue);
+        Set<String> words = this.segmentWords(fieldValue);
+        return CollectionUtil.hasIntersection(propValues, words);
+    }
+
+    private Set<String> segmentWords(String text) {
+        return this.textAnalyzer.segment(text);
+    }
+
+    private boolean needIndexForLabel() {
+        return !this.store().features().supportsQueryByLabel();
     }
 
     private static Set<IndexLabel> matchSingleOrCompositeIndex(
@@ -1354,7 +1358,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
                     continue;
                 }
                 // Query and delete index equals element id
-                for (Iterator<BackendEntry> it = tx.query(q); it.hasNext();) {
+                Iterator<BackendEntry> it = tx.query(q).iterator();
+                while (it.hasNext()) {
                     BackendEntry entry = it.next();
                     HugeIndex index = serializer.readIndex(graph(), q, entry);
                     if (index.elementIds().contains(element.id())) {

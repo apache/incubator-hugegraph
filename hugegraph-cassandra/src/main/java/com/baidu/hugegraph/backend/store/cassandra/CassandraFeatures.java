@@ -76,6 +76,11 @@ public class CassandraFeatures implements BackendFeatures {
     }
 
     @Override
+    public boolean supportsQuerySortByInputIds() {
+        return false;
+    }
+
+    @Override
     public boolean supportsDeleteEdgeByLabel() {
         return true;
     }

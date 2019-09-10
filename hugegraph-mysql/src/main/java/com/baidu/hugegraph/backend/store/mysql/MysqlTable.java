@@ -43,6 +43,7 @@ import com.baidu.hugegraph.backend.store.TableDefine;
 import com.baidu.hugegraph.backend.store.mysql.MysqlEntryIterator.PagePosition;
 import com.baidu.hugegraph.backend.store.mysql.MysqlSessions.Session;
 import com.baidu.hugegraph.exception.NotFoundException;
+import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.Log;
@@ -480,7 +481,7 @@ public abstract class MysqlTable
             case CONTAINS_KEY:
             case SCAN:
             default:
-                throw new AssertionError("Unsupported relation: " + relation);
+                throw new NotSupportException("relation '%s'", relation);
         }
         return sql;
     }

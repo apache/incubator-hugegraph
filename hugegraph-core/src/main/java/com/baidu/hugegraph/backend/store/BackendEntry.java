@@ -26,10 +26,11 @@ import java.util.NoSuchElementException;
 
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.Idfiable;
 import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.StringEncoding;
 
-public interface BackendEntry {
+public interface BackendEntry extends Idfiable {
 
     public static class BackendColumn implements Comparable<BackendColumn> {
 

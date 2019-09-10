@@ -32,6 +32,7 @@ public class IdQuery extends Query {
 
     // The id(s) will be concated with `or`
     private Set<Id> ids = InsertionOrderUtil.newSet();
+    private boolean mustSortByInput = true;
 
     public IdQuery(HugeType resultType) {
         super(resultType);
@@ -59,6 +60,14 @@ public class IdQuery extends Query {
     public IdQuery(Query originQuery, Set<Id> ids) {
         this(originQuery.resultType(), originQuery);
         this.query(ids);
+    }
+
+    public boolean mustSortByInput() {
+        return this.mustSortByInput;
+    }
+
+    public void mustSortByInput(boolean mustSortedByInput) {
+        this.mustSortByInput = mustSortedByInput;
     }
 
     @Override

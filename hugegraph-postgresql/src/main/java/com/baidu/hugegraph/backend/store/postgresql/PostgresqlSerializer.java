@@ -38,14 +38,14 @@ public class PostgresqlSerializer extends MysqlSerializer {
          * meaningful for deletion of index data in secondary/range index.
          */
         if (index.fieldValues() == null && index.elementIds().size() == 0) {
-            entry.column(HugeKeys.INDEX_LABEL_ID, index.indexLabel().asLong());
+            entry.column(HugeKeys.INDEX_LABEL_ID, index.indexLabel().longId());
         } else {
             Object value = index.fieldValues();
             if (value != null && value.equals("\u0000")) {
                 value = Strings.EMPTY;
             }
             entry.column(HugeKeys.FIELD_VALUES, value);
-            entry.column(HugeKeys.INDEX_LABEL_ID, index.indexLabel().asLong());
+            entry.column(HugeKeys.INDEX_LABEL_ID, index.indexLabel().longId());
             entry.column(HugeKeys.ELEMENT_IDS,
                          IdUtil.writeString(index.elementId()));
             entry.subId(index.elementId());

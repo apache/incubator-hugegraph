@@ -19,7 +19,6 @@
 
 package com.baidu.hugegraph.backend.tx;
 
-import java.util.Collections;
 import java.util.Iterator;
 
 import com.baidu.hugegraph.HugeGraph;
@@ -67,7 +66,7 @@ public class SchemaIndexTransaction extends AbstractTransaction {
 
     @Watched(prefix = "index")
     @Override
-    public Iterator<BackendEntry> query(Query query) {
+    public QueryResults query(Query query) {
         if (query instanceof ConditionQuery) {
             ConditionQuery q = (ConditionQuery) query;
             if (q.allSysprop() && q.conditions().size() == 1 &&
@@ -79,7 +78,7 @@ public class SchemaIndexTransaction extends AbstractTransaction {
     }
 
     @Watched(prefix = "index")
-    private Iterator<BackendEntry> queryByName(ConditionQuery query) {
+    private QueryResults queryByName(ConditionQuery query) {
         if (!this.needIndexForName()) {
             return super.query(query);
         }
@@ -93,7 +92,7 @@ public class SchemaIndexTransaction extends AbstractTransaction {
         indexQuery.eq(HugeKeys.FIELD_VALUES, name);
         indexQuery.eq(HugeKeys.INDEX_LABEL_ID, il.id());
 
-        Iterator<BackendEntry> entries = super.query(indexQuery);
+        Iterator<BackendEntry> entries = super.query(indexQuery).iterator();
         IdQuery idQuery = new IdQuery(query.resultType(), query);
         while (entries.hasNext()) {
             HugeIndex index = this.serializer.readIndex(graph(), indexQuery,
@@ -101,7 +100,7 @@ public class SchemaIndexTransaction extends AbstractTransaction {
             idQuery.query(index.elementIds());
         }
         if (idQuery.ids().isEmpty()) {
-            return Collections.emptyIterator();
+            return QueryResults.empty();
         }
         assert idQuery.ids().size() == 1 : idQuery.ids();
         return super.query(idQuery);

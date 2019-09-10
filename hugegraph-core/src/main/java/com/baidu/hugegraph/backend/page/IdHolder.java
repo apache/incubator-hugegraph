@@ -28,7 +28,7 @@ import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.google.common.collect.ImmutableSet;
 
-public final class IdHolder {
+public class IdHolder {
 
     private final ConditionQuery query;
     private final Function<ConditionQuery, PageIds> idsFetcher;
@@ -67,6 +67,7 @@ public final class IdHolder {
     }
 
     public void merge(Set<Id> ids) {
+        E.checkNotNull(this.ids, "ids");
         this.ids.addAll(ids);
     }
 

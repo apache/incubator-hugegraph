@@ -40,6 +40,7 @@ import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendTable;
 import com.baidu.hugegraph.backend.store.Shard;
 import com.baidu.hugegraph.exception.NotFoundException;
+import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
@@ -303,7 +304,7 @@ public abstract class CassandraTable
             //    return QueryBuilder.like(key, value);
             case NEQ:
             default:
-                throw new AssertionError("Unsupported relation: " + relation);
+                throw new NotSupportException("relation '%s'", relation);
         }
     }
 

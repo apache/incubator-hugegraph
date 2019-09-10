@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -380,7 +381,7 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     @Override
-    public Iterator<BackendEntry> query(Query query) {
+    public QueryResults query(Query query) {
         if (!(query instanceof ConditionQuery)) {
             return super.query(query);
         }
@@ -402,7 +403,7 @@ public class GraphTransaction extends IndexableTransaction {
             }
         }
 
-        return !queries.empty() ? queries.fetch() : Collections.emptyIterator();
+        return !queries.empty() ? queries.fetch() : QueryResults.empty();
     }
 
     @Watched(prefix = "graph")
@@ -503,7 +504,7 @@ public class GraphTransaction extends IndexableTransaction {
     public Iterator<Vertex> queryVertices(Object... vertexIds) {
         // NOTE: allowed duplicated vertices if query by duplicated ids
         List<Id> ids = InsertionOrderUtil.newList();
-        Map<Id, Vertex> vertices = InsertionOrderUtil.newMap();
+        Map<Id, HugeVertex> vertices = new HashMap<>(vertexIds.length);
 
         IdQuery query = new IdQuery(HugeType.VERTEX);
         for (Object vertexId : vertexIds) {
@@ -517,7 +518,7 @@ public class GraphTransaction extends IndexableTransaction {
                 // Found from local tx
                 vertices.put(vertex.id(), vertex);
             } else {
-                // Prepare query from backend store
+                // Prepare to query from backend store
                 query.query(id);
             }
             ids.add(id);
@@ -525,11 +526,16 @@ public class GraphTransaction extends IndexableTransaction {
 
         if (!query.empty()) {
             // Query from backend store
-            Iterator<HugeVertex> it = this.queryVerticesFromBackend(query);
-            while (it.hasNext()) {
-                HugeVertex vertex = it.next();
-                vertices.put(vertex.id(), vertex);
+            if (vertices.isEmpty() && query.ids().size() == ids.size()) {
+                // Sort at the lower layer and return directly
+                Iterator<HugeVertex> it = this.queryVerticesFromBackend(query);
+                @SuppressWarnings({ "unchecked", "rawtypes" })
+                Iterator<Vertex> r = (Iterator) it;
+                return r;
             }
+            query.mustSortByInput(false);
+            Iterator<HugeVertex> it = this.queryVerticesFromBackend(query);
+            QueryResults.fillMap(it, vertices);
         }
 
         return new MapperIterator<>(ids.iterator(), id -> {
@@ -579,13 +585,20 @@ public class GraphTransaction extends IndexableTransaction {
     protected Iterator<HugeVertex> queryVerticesFromBackend(Query query) {
         assert query.resultType().isVertex();
 
-        Iterator<BackendEntry> entries = this.query(query);
+        QueryResults results = this.query(query);
+        Iterator<BackendEntry> entries = results.iterator();
 
-        return new MapperIterator<>(entries, entry -> {
+        Iterator<HugeVertex> vertices = new MapperIterator<>(entries, entry -> {
             HugeVertex vertex = this.serializer.readVertex(graph(), entry);
             assert vertex != null;
             return vertex;
         });
+
+        if (!this.store().features().supportsQuerySortByInputIds()) {
+            // There is no id in BackendEntry, so sort after deserialization
+            vertices = results.keepInputOrderIfNeeded(vertices);
+        }
+        return vertices;
     }
 
     @Watched(prefix = "graph")
@@ -638,7 +651,7 @@ public class GraphTransaction extends IndexableTransaction {
     public Iterator<Edge> queryEdges(Object... edgeIds) {
         // NOTE: allowed duplicated edges if query by duplicated ids
         List<Id> ids = InsertionOrderUtil.newList();
-        Map<Id, Edge> edges = InsertionOrderUtil.newMap();
+        Map<Id, HugeEdge> edges = new HashMap<>(edgeIds.length);
 
         IdQuery query = new IdQuery(HugeType.EDGE);
         for (Object edgeId : edgeIds) {
@@ -652,7 +665,7 @@ public class GraphTransaction extends IndexableTransaction {
                 // Found from local tx
                 edges.put(edge.id(), edge);
             } else {
-                // Prepare query from backend store
+                // Prepare to query from backend store
                 query.query(id);
             }
             ids.add(id);
@@ -660,11 +673,16 @@ public class GraphTransaction extends IndexableTransaction {
 
         if (!query.empty()) {
             // Query from backend store
-            Iterator<HugeEdge> it = this.queryEdgesFromBackend(query);
-            while (it.hasNext()) {
-                HugeEdge edge = it.next();
-                edges.put(edge.id(), edge);
+            if (edges.isEmpty() && query.ids().size() == ids.size()) {
+                // Sort at the lower layer and return directly
+                Iterator<HugeEdge> it = this.queryEdgesFromBackend(query);
+                @SuppressWarnings({ "unchecked", "rawtypes" })
+                Iterator<Edge> r = (Iterator) it;
+                return r;
             }
+            query.mustSortByInput(false);
+            Iterator<HugeEdge> it = this.queryEdgesFromBackend(query);
+            QueryResults.fillMap(it, edges);
         }
 
         return new MapperIterator<>(ids.iterator(), id -> {
@@ -731,9 +749,10 @@ public class GraphTransaction extends IndexableTransaction {
     protected Iterator<HugeEdge> queryEdgesFromBackend(Query query) {
         assert query.resultType().isEdge();
 
-        Iterator<BackendEntry> entries = this.query(query);
+        QueryResults results = this.query(query);
+        Iterator<BackendEntry> entries = results.iterator();
 
-        return new FlatMapperIterator<>(entries, entry -> {
+        Iterator<HugeEdge> edges = new FlatMapperIterator<>(entries, entry -> {
             // Edges are in a vertex
             HugeVertex vertex = this.serializer.readVertex(graph(), entry);
             assert vertex != null;
@@ -743,6 +762,12 @@ public class GraphTransaction extends IndexableTransaction {
             // Copy to avoid ConcurrentModificationException when removing edge
             return ImmutableList.copyOf(vertex.getEdges()).iterator();
         });
+
+        if (!this.store().features().supportsQuerySortByInputIds()) {
+            // There is no id in BackendEntry, so sort after deserialization
+            edges = results.keepInputOrderIfNeeded(edges);
+        }
+        return edges;
     }
 
     @Watched(prefix = "graph")

@@ -67,6 +67,10 @@ public abstract class SchemaElement implements Namifiable, Typifiable,
         return this.id;
     }
 
+    public long longId() {
+        return this.id.asLong();
+    }
+
     @Override
     public String name() {
         return this.name;

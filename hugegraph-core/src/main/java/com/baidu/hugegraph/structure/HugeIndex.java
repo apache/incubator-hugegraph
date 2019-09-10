@@ -69,11 +69,11 @@ public class HugeIndex implements GraphType {
     }
 
     public Id id() {
-        return formatIndexId(type(), this.indexLabel(), this.fieldValues());
+        return formatIndexId(type(), this.indexLabelId(), this.fieldValues());
     }
 
     public Id hashId() {
-        return formatIndexHashId(type(), this.indexLabel(), this.fieldValues());
+        return formatIndexHashId(type(), this.indexLabelId(), this.fieldValues());
     }
 
     public Object fieldValues() {
@@ -84,8 +84,12 @@ public class HugeIndex implements GraphType {
         this.fieldValues = fieldValues;
     }
 
-    public Id indexLabel() {
+    public Id indexLabelId() {
         return this.indexLabel.id();
+    }
+
+    public IndexLabel indexLabel() {
+        return this.indexLabel;
     }
 
     public Id elementId() {

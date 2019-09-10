@@ -78,6 +78,11 @@ public class RocksDBFeatures implements BackendFeatures {
     }
 
     @Override
+    public boolean supportsQuerySortByInputIds() {
+        return true;
+    }
+
+    @Override
     public boolean supportsDeleteEdgeByLabel() {
         // No index in RocksDB
         return false;

@@ -382,6 +382,11 @@ public abstract class InMemoryDBStore
         }
 
         @Override
+        public boolean supportsQuerySortByInputIds() {
+            return true;
+        }
+
+        @Override
         public boolean supportsDeleteEdgeByLabel() {
             return false;
         }

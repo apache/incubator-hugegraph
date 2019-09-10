@@ -43,6 +43,8 @@ public class IndexLabel extends SchemaElement {
 
     public IndexLabel(final HugeGraph graph, Id id, String name) {
         super(graph, id, name);
+        this.baseType = HugeType.SYS_SCHEMA;
+        this.baseValue = null;
         this.indexType = IndexType.SECONDARY;
         this.indexFields = new ArrayList<>();
     }
@@ -86,6 +88,8 @@ public class IndexLabel extends SchemaElement {
                 return HugeType.VERTEX;
             case EDGE_LABEL:
                 return HugeType.EDGE;
+            case SYS_SCHEMA:
+                return HugeType.SYS_SCHEMA;
             default:
                 throw new AssertionError(String.format(
                           "Query type of index label is either '%s' or '%s', " +

@@ -45,33 +45,33 @@ public class QueryTest {
         Query query = new Query(HugeType.VERTEX);
         Assert.assertEquals("Query for VERTEX", query.toString());
 
-        query.page("page1");
-        Assert.assertEquals("Query for VERTEX page page1", query.toString());
+        query.page("p1");
+        Assert.assertEquals("Query for VERTEX page 'p1'", query.toString());
 
         query = new Query(HugeType.VERTEX);
         query.limit(10L);
         Assert.assertEquals("Query for VERTEX limit 10", query.toString());
 
         query = new Query(HugeType.VERTEX);
-        query.page("page2");
+        query.page("p2");
         query.limit(10L);
-        Assert.assertEquals("Query for VERTEX page page2, limit 10",
+        Assert.assertEquals("Query for VERTEX page 'p2', limit 10",
                             query.toString());
 
         query = new Query(HugeType.VERTEX);
-        query.page("page3");
+        query.page("p3");
         query.offset(100L);
         query.limit(10L);
-        Assert.assertEquals("Query for VERTEX page page3, offset 100, limit 10",
+        Assert.assertEquals("Query for VERTEX page 'p3', offset 100, limit 10",
                             query.toString());
 
         query = new Query(HugeType.VERTEX);
-        query.page("page4");
+        query.page("");
         query.offset(100L);
         query.limit(10L);
         query.order(HugeKeys.NAME, Order.ASC);
         query.order(HugeKeys.FIELDS, Order.DESC);
-        Assert.assertEquals("Query for VERTEX page page4, offset 100, " +
+        Assert.assertEquals("Query for VERTEX page '', offset 100, " +
                             "limit 10, order by {NAME=ASC, FIELDS=DESC}",
                             query.toString());
     }
