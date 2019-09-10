@@ -35,7 +35,10 @@ public class HugeFactoryAuthProxy {
     }
 
     public static Graph open(Configuration config) {
-        // Inject authentication (replace HugeGraph with HugeGraphAuthProxy)
+        /*
+         * Inject authentication (replace HugeGraph with HugeGraphAuthProxy)
+         * TODO: Add verify to StandardHugeGraph() to prevent dynamic creation
+         */
         return new HugeGraphAuthProxy(HugeFactory.open(config));
     }
 }

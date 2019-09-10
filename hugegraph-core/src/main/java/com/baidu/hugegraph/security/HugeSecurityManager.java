@@ -28,6 +28,13 @@ import com.google.common.collect.ImmutableSet;
 
 public class HugeSecurityManager extends SecurityManager {
 
+    private static final String USER_DIR = System.getProperty("user.dir");
+
+    private static final String USER_DIR_IDE =
+                                USER_DIR.endsWith("hugegraph-dist") ?
+                                USER_DIR.substring(0, USER_DIR.length() - 15) :
+                                null;
+
     private static final String GREMLIN_SERVER_WORKER = "gremlin-server-exec";
     private static final String TASK_WORKER = "task-worker";
     private static final Set<String> GREMLIN_EXECUTOR_CLASS = ImmutableSet.of(
@@ -36,6 +43,7 @@ public class HugeSecurityManager extends SecurityManager {
 
     private static final Set<String> DENIED_PERMISSIONS = ImmutableSet.of(
             "setSecurityManager"
+            //"suppressAccessChecks"
     );
 
     private static final Set<String> ACCEPT_CLASS_LOADERS = ImmutableSet.of(
@@ -132,7 +140,7 @@ public class HugeSecurityManager extends SecurityManager {
 
     @Override
     public void checkRead(String file) {
-        if (callFromGremlin()) {
+        if (!fileInUserDir(file) && callFromGremlin()) {
             throw new SecurityException("Not allowed to read file via Gremlin");
         }
         super.checkRead(file);
@@ -342,6 +350,16 @@ public class HugeSecurityManager extends SecurityManager {
                 method.equals(element.getMethodName())) {
                 return true;
             }
+        }
+        return false;
+    }
+
+    private static boolean fileInUserDir(String file) {
+        if (file.startsWith(USER_DIR)) {
+            return true;
+        }
+        if (USER_DIR_IDE != null && file.startsWith(USER_DIR_IDE)) {
+            return true;
         }
         return false;
     }

@@ -73,7 +73,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
     private static final Logger LOG = Log.logger(HugeGraph.class);
 
-    private final HugeGraph hugegraph;
+    private final HugeGraph hugegraph; // TODO: protect
     private final Transaction tx;
 
     public HugeGraphAuthProxy(HugeGraph hugegraph) {
