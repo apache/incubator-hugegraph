@@ -101,10 +101,10 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
     protected Id asyncRemoveIndexLeft(ConditionQuery query,
                                       HugeElement element) {
-        RemoveLeftIndexJob callable = new RemoveLeftIndexJob(query, element);
+        RemoveLeftIndexJob job = new RemoveLeftIndexJob(query, element);
         HugeTask<?> task = EphemeralJobBuilder.of(this.graph())
                                               .name(element.id().asString())
-                                              .job(callable)
+                                              .job(job)
                                               .schedule();
         return task.id();
     }
@@ -1291,16 +1291,16 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
         private static final String REMOVE_LEFT_INDEX = "remove_left_index";
 
-        private ConditionQuery query;
-        private HugeElement element;
+        private final ConditionQuery query;
+        private final HugeElement element;
         private GraphIndexTransaction tx;
 
-        private RemoveLeftIndexJob(ConditionQuery query,
-                                   HugeElement element) {
+        private RemoveLeftIndexJob(ConditionQuery query, HugeElement element) {
             E.checkArgumentNotNull(query, "query");
             E.checkArgumentNotNull(element, "element");
             this.query = query;
             this.element = element;
+            this.tx = null;
         }
 
         @Override
@@ -1310,7 +1310,9 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
         @Override
         public Object execute() {
-            this.tx = this.graph().graphTransaction().indexTransaction();
+            this.tx = this.element.schemaLabel().system() ?
+                      this.graph().systemTransaction().indexTransaction() :
+                      this.graph().graphTransaction().indexTransaction();
             return this.removeIndexLeft(this.query, this.element);
         }
 

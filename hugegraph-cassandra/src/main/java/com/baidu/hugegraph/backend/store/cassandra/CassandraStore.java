@@ -366,11 +366,6 @@ public abstract class CassandraStore
         }
     }
 
-    @Override
-    public String toString() {
-        return this.store;
-    }
-
     protected Cluster cluster() {
         return this.sessions.cluster();
     }

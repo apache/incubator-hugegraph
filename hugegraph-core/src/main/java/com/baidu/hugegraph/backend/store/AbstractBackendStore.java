@@ -52,6 +52,11 @@ public abstract class AbstractBackendStore<Session extends BackendSession>
         return dispatcher.dispatchMetaHandler(session, meta, args);
     }
 
+    @Override
+    public String toString() {
+        return String.format("%s/%s", this.database(), this.store());
+    }
+
     protected abstract BackendTable<Session, ?> table(HugeType type);
 
     // NOTE: Need to support passing null

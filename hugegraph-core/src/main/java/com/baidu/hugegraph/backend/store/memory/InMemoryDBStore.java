@@ -215,11 +215,6 @@ public abstract class InMemoryDBStore
         return FEATURES;
     }
 
-    @Override
-    public String toString() {
-        return this.store;
-    }
-
     /***************************** Store defines *****************************/
 
     public static class InMemorySchemaStore extends InMemoryDBStore {
