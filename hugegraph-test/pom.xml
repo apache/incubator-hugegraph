@@ -81,9 +81,6 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>2.20</version>
-                <configuration>
-                    <argLine>-Dbuild.dir=${project.build.directory}</argLine>
-                </configuration>
                 <executions>
                     <execution>
                         <id>core-test</id>
@@ -136,6 +133,8 @@
                     <execution>
                         <id>tinkerpop-process-test</id>
                         <configuration>
+                            <!-- ReadTest.Traversals.class need it -->
+                            <argLine>-Dbuild.dir=${project.build.directory}</argLine>
                             <testSourceDirectory>${basedir}/src/main/java/
                             </testSourceDirectory>
                             <testClassesDirectory>${basedir}/target/classes/
@@ -171,7 +170,7 @@
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
-                <version>0.8.3</version>
+                <version>0.8.4</version>
                 <configuration>
                     <excludes>
                         <exclude>com/baidu/hugegraph/traversal/algorithm/*.class</exclude>
