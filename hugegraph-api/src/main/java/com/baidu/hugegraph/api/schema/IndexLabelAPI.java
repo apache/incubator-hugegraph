@@ -31,6 +31,7 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 
 import org.slf4j.Logger;
@@ -79,12 +80,21 @@ public class IndexLabelAPI extends API {
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String list(@Context GraphManager manager,
-                       @PathParam("graph") String graph) {
-        LOG.debug("Graph [{}] get edge labels", graph);
+                       @PathParam("graph") String graph,
+                       @QueryParam("names") List<String> names) {
+        LOG.debug("Graph [{}] get index labels by names {}", graph, names);
 
         HugeGraph g = graph(manager, graph);
-        List<IndexLabel> labels = g.schema().getIndexLabels();
-        return manager.serializer(g).writeIndexlabels(mapIndexLabels(labels));
+        List<IndexLabel> labels;
+        if (names == null || names.isEmpty()) {
+            labels = g.schema().getIndexLabels();
+        } else {
+            labels = new ArrayList<>(names.size());
+            for (String name : names) {
+                labels.add(g.schema().getIndexLabel(name));
+            }
+        }
+        return manager.serializer(g).writeIndexlabels(labels);
     }
 
     @GET
@@ -94,7 +104,7 @@ public class IndexLabelAPI extends API {
     public String get(@Context GraphManager manager,
                       @PathParam("graph") String graph,
                       @PathParam("name") String name) {
-        LOG.debug("Graph [{}] get edge label by name '{}'", graph, name);
+        LOG.debug("Graph [{}] get index label by name '{}'", graph, name);
 
         HugeGraph g = graph(manager, graph);
         IndexLabel indexLabel = g.schema().getIndexLabel(name);

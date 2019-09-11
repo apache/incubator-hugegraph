@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.api.schema;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -106,11 +107,20 @@ public class PropertyKeyAPI extends API {
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String list(@Context GraphManager manager,
-                       @PathParam("graph") String graph) {
-        LOG.debug("Graph [{}] get property keys", graph);
+                       @PathParam("graph") String graph,
+                       @QueryParam("names") List<String> names) {
+        LOG.debug("Graph [{}] get property keys by names {}", graph, names);
 
         HugeGraph g = graph(manager, graph);
-        List<PropertyKey> propKeys = g.schema().getPropertyKeys();
+        List<PropertyKey> propKeys;
+        if (names == null || names.isEmpty()) {
+            propKeys = g.schema().getPropertyKeys();
+        } else {
+            propKeys = new ArrayList<>(names.size());
+            for (String name : names) {
+                propKeys.add(g.schema().getPropertyKey(name));
+            }
+        }
         return manager.serializer(g).writePropertyKeys(propKeys);
     }
 

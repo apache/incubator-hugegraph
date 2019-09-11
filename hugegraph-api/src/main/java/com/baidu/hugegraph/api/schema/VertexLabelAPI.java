@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.api.schema;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -107,11 +108,20 @@ public class VertexLabelAPI extends API {
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String list(@Context GraphManager manager,
-                       @PathParam("graph") String graph) {
-        LOG.debug("Graph [{}] get vertex labels", graph);
+                       @PathParam("graph") String graph,
+                       @QueryParam("names") List<String> names) {
+        LOG.debug("Graph [{}] get vertex labels by names {}", graph, names);
 
         HugeGraph g = graph(manager, graph);
-        List<VertexLabel> labels = g.schema().getVertexLabels();
+        List<VertexLabel> labels;
+        if (names == null || names.isEmpty()) {
+            labels = g.schema().getVertexLabels();
+        } else {
+            labels = new ArrayList<>(names.size());
+            for (String name : names) {
+                labels.add(g.schema().getVertexLabel(name));
+            }
+        }
         return manager.serializer(g).writeVertexLabels(labels);
     }
 

@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.api.schema;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -104,11 +105,20 @@ public class EdgeLabelAPI extends API {
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String list(@Context GraphManager manager,
-                       @PathParam("graph") String graph) {
-        LOG.debug("Graph [{}] get edge labels", graph);
+                       @PathParam("graph") String graph,
+                       @QueryParam("names") List<String> names) {
+        LOG.debug("Graph [{}] get edge labels by names {}", graph, names);
 
         HugeGraph g = graph(manager, graph);
-        List<EdgeLabel> labels = g.schema().getEdgeLabels();
+        List<EdgeLabel> labels;
+        if (names == null || names.isEmpty()) {
+            labels = g.schema().getEdgeLabels();
+        } else {
+            labels = new ArrayList<>(names.size());
+            for (String name : names) {
+                labels.add(g.schema().getEdgeLabel(name));
+            }
+        }
         return manager.serializer(g).writeEdgeLabels(labels);
     }
 
