@@ -19,15 +19,8 @@
 
 package com.baidu.hugegraph.backend.tx;
 
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Function;
 
-import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
@@ -36,19 +29,16 @@ import com.baidu.hugegraph.backend.Transaction;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.serializer.AbstractSerializer;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.exception.NotFoundException;
-import com.baidu.hugegraph.iterator.FlatMapperIterator;
-import com.baidu.hugegraph.iterator.MapperIterator;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.type.HugeType;
-import com.baidu.hugegraph.type.Idfiable;
 import com.baidu.hugegraph.type.define.Action;
 import com.baidu.hugegraph.util.E;
-import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.Log;
 import com.google.common.util.concurrent.RateLimiter;
 
@@ -343,139 +333,5 @@ public abstract class AbstractTransaction implements Transaction {
         LOG.debug("Transaction {} entry {}", action, entry);
         E.checkNotNull(entry, "entry");
         this.mutation.add(entry, action);
-    }
-
-    public static class QueryResults {
-
-        private static final QueryResults EMPTY = new QueryResults(
-                                                  Collections.emptyIterator(),
-                                                  Query.NONE);
-
-        private final Iterator<BackendEntry> results;
-        private final List<Query> queries;
-
-        public QueryResults(Iterator<BackendEntry> results, Query query) {
-            this(results);
-            this.addQuery(query);
-        }
-
-        public QueryResults(Iterator<BackendEntry> results) {
-            this.results = results;
-            this.queries = InsertionOrderUtil.newList();
-        }
-
-        public void setQuery(Query query) {
-            if (this.queries.size() > 0) {
-                this.queries.clear();
-            }
-            this.addQuery(query);
-        }
-
-        private void addQuery(Query query) {
-            E.checkNotNull(query, "query");
-            this.queries.add(query);
-        }
-
-        private void addQueries(List<Query> queries) {
-            for (Query query : queries) {
-                this.addQuery(query);
-            }
-        }
-
-        public Iterator<BackendEntry> iterator() {
-            return this.results;
-        }
-
-        public List<BackendEntry> list() {
-            return IteratorUtils.list(this.results);
-        }
-
-        public List<Query> queries() {
-            return Collections.unmodifiableList(this.queries);
-        }
-
-        protected <T extends Idfiable> Iterator<T> keepInputOrderIfNeeded(
-                                                   Iterator<T> origin) {
-            if (!origin.hasNext()) {
-                // None result found
-                return origin;
-            }
-            Set<Id> ids;
-            if (this.paging() || !this.mustSortByInputIds() ||
-                (ids = this.queryIds()).size() <= 1) {
-                /*
-                 * Return the original iterator if it's paging query or if the
-                 * query input is less than one id, or don't have to do sort.
-                 */
-                return origin;
-            }
-
-            // Fill map with all elements
-            Map<Id, T> results = new HashMap<>();
-            fillMap(origin, results);
-
-            return new MapperIterator<>(ids.iterator(), id -> {
-                return results.get(id);
-            });
-        }
-
-        private boolean mustSortByInputIds() {
-            if (this.queries.size() == 1) {
-                Query query = this.queries.get(0);
-                if (query instanceof IdQuery) {
-                    return ((IdQuery) query).mustSortByInput();
-                }
-            }
-            return true;
-        }
-
-        private boolean paging() {
-            for (Query query : this.queries) {
-                Query origin = query.originQuery();
-                if (query.paging() || origin != null && origin.paging()) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        private Set<Id> queryIds() {
-            if (this.queries.size() == 1) {
-                return this.queries.get(0).ids();
-            }
-
-            Set<Id> ids = InsertionOrderUtil.newSet();
-            for (Query query : this.queries) {
-                ids.addAll(query.ids());
-            }
-            return ids;
-        }
-
-        public static <T extends Idfiable> void fillMap(Iterator<T> iterator,
-                                                        Map<Id, T> map) {
-            while (iterator.hasNext()) {
-                T result = iterator.next();
-                assert result.id() != null;
-                map.put(result.id(), result);
-            }
-        }
-
-        public static QueryResults empty() {
-            return EMPTY;
-        }
-
-        public static <T> QueryResults flatMap(Iterator<T> iterator,
-                                               Function<T, QueryResults> func) {
-            QueryResults[] qr = new QueryResults[1];
-            qr[0] = new QueryResults(new FlatMapperIterator<>(iterator, i -> {
-                QueryResults results = func.apply(i);
-                if (results == null) {
-                    return null;
-                }
-                qr[0].addQueries(results.queries());
-                return results.iterator();
-            }));
-            return qr[0];
-        }
     }
 }

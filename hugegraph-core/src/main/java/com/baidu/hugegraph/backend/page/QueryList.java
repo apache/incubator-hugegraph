@@ -20,7 +20,6 @@
 package com.baidu.hugegraph.backend.page;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -30,8 +29,8 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.store.BackendEntry;
-import com.baidu.hugegraph.backend.tx.AbstractTransaction.QueryResults;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.CollectionUtil;
@@ -267,7 +266,7 @@ public final class QueryList {
     public static class PageIterator {
 
         public static final PageIterator EMPTY = new PageIterator(
-                                                 Collections.emptyIterator(),
+                                                 QueryResults.emptyIterator(),
                                                  ImmutableList.of(Query.NONE),
                                                  PageState.EMPTY);
 

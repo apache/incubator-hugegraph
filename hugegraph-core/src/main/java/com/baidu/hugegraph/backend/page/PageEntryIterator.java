@@ -23,8 +23,8 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.store.BackendEntry;
-import com.baidu.hugegraph.backend.tx.AbstractTransaction.QueryResults;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.iterator.Metadatable;
 import com.baidu.hugegraph.util.E;

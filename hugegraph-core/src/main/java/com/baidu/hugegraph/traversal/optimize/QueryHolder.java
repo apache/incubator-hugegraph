@@ -31,24 +31,6 @@ public interface QueryHolder extends HasContainerHolder, Metadatable {
 
     public static final String SYSPROP_PAGE = "~page";
 
-    public static class PageElementIterator<E> implements Iterator<E>,
-                                                          Metadatable {
-        @Override
-        public Object metadata(String meta, Object... args) {
-            return null;
-        }
-
-        @Override
-        public boolean hasNext() {
-            return false;
-        }
-
-        @Override
-        public E next() {
-            return null;
-        }
-    }
-
     public Iterator<?> lastTimeResults();
 
     @Override

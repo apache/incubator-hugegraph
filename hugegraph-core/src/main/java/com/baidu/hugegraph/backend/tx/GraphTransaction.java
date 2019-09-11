@@ -22,7 +22,6 @@ package com.baidu.hugegraph.backend.tx;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -54,6 +53,7 @@ import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.ConditionQueryFlatten;
 import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
@@ -488,7 +488,7 @@ public class GraphTransaction extends IndexableTransaction {
 
     public Iterator<Vertex> queryAdjacentVertices(Iterator<Edge> edges) {
         if (!edges.hasNext()) {
-            return Collections.emptyIterator();
+            return QueryResults.emptyIterator();
         }
 
         List<Id> vertexIds = new ArrayList<>();
