@@ -133,7 +133,7 @@
                     <execution>
                         <id>tinkerpop-process-test</id>
                         <configuration>
-                            <!-- ReadTest.Traversals.class need it -->
+                            <!-- Tinkerpop process ReadTest.Traversals.class need write/read disk -->
                             <argLine>-Dbuild.dir=${project.build.directory}</argLine>
                             <testSourceDirectory>${basedir}/src/main/java/
                             </testSourceDirectory>
