@@ -133,12 +133,14 @@ public class EdgeId implements Id {
             this.cache = SplicingIdGenerator.concat(
                          IdUtil.writeString(this.ownerVertexId),
                          this.direction.type().string(),
-                         IdUtil.writeLong(this.edgeLabelId), this.sortValues,
+                         IdUtil.writeLong(this.edgeLabelId),
+                         this.sortValues,
                          IdUtil.writeString(this.otherVertexId));
         } else {
             this.cache = SplicingIdGenerator.concat(
                          IdUtil.writeString(this.sourceVertexId()),
-                         IdUtil.writeLong(this.edgeLabelId), this.sortValues,
+                         IdUtil.writeLong(this.edgeLabelId),
+                         this.sortValues,
                          IdUtil.writeString(this.targetVertexId()));
         }
         return this.cache;
@@ -191,8 +193,8 @@ public class EdgeId implements Id {
     public static EdgeId parse(String id) throws NotFoundException {
         String[] idParts = split(id);
         if (!(idParts.length == 4 || idParts.length == 5)) {
-            throw new NotFoundException("Edge id must be formatted as 4~5 parts"
-                                        + ", but got '%s'", id);
+            throw new NotFoundException("Edge id must be formatted as 4~5 " +
+                                        "parts, but got '%s'", id);
         }
         try {
             if (idParts.length == 4) {
@@ -233,7 +235,8 @@ public class EdgeId implements Id {
         EdgeId eid = (EdgeId) id;
         return SplicingIdGenerator.concat(
                IdUtil.writeStoredString(eid.sourceVertexId()),
-               IdGenerator.asStoredString(eid.edgeLabelId()), eid.sortValues(),
+               IdGenerator.asStoredString(eid.edgeLabelId()),
+               eid.sortValues(),
                IdUtil.writeStoredString(eid.targetVertexId()));
     }
 

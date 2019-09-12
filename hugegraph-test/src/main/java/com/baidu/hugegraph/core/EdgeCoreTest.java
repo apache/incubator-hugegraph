@@ -1129,7 +1129,7 @@ public class EdgeCoreTest extends BaseCoreTest {
               .create();
         schema.vertexLabel("language2")
               .properties("name", "dynamic")
-              .useCustomizeUuid()
+              .useCustomizeUUID()
               .nullableKeys("dynamic")
               .enableLabelIndex(false)
               .create();

@@ -26,20 +26,20 @@ import com.baidu.hugegraph.backend.id.Id.IdType;
 public final class IdUtil {
 
     public static String writeStoredString(Id id) {
-        String string;
+        String idString;
         switch (id.type()) {
             case LONG:
             case STRING:
             case UUID:
-                string = IdGenerator.asStoredString(id);
+                idString = IdGenerator.asStoredString(id);
                 break;
             case EDGE:
-                string = EdgeId.asStoredString(id);
+                idString = EdgeId.asStoredString(id);
                 break;
             default:
                 throw new AssertionError("Invalid id type " + id.type());
         }
-        return id.type().prefix() + string;
+        return id.type().prefix() + idString;
     }
 
     public static Id readStoredString(String id) {

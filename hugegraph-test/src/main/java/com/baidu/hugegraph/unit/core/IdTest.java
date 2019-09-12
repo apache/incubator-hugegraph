@@ -143,4 +143,19 @@ public class IdTest extends BaseUnitTest {
         Assert.assertEquals(id, IdGenerator.ofStoredString(
                                 "g14RU5KBSVeGkc95JY6Q6w==", IdType.UUID));
     }
+
+    @Test
+    public void testIdType() {
+        Assert.assertEquals(IdType.LONG, IdType.valueOfPrefix("L"));
+        Assert.assertEquals(IdType.UUID, IdType.valueOfPrefix("U"));
+        Assert.assertEquals(IdType.STRING, IdType.valueOfPrefix("S"));
+        Assert.assertEquals(IdType.EDGE, IdType.valueOfPrefix("E"));
+        Assert.assertEquals(IdType.UNKNOWN, IdType.valueOfPrefix("N"));
+
+        Assert.assertEquals('L', IdType.LONG.prefix());
+        Assert.assertEquals('U', IdType.UUID.prefix());
+        Assert.assertEquals('S', IdType.STRING.prefix());
+        Assert.assertEquals('E', IdType.EDGE.prefix());
+        Assert.assertEquals('N', IdType.UNKNOWN.prefix());
+    }
 }

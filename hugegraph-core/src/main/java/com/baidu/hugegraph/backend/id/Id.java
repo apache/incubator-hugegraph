@@ -58,6 +58,9 @@ public interface Id extends Comparable<Id> {
         EDGE;
 
         public char prefix() {
+            if (this == UNKNOWN) {
+                return 'N';
+            }
             return this.name().charAt(0);
         }
 
