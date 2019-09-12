@@ -98,8 +98,8 @@ public class IdTest extends BaseUnitTest {
         Assert.assertNotEquals(IdGenerator.of(1233), id);
         Assert.assertNotEquals(IdGenerator.of("123"), id);
 
-        Assert.assertEquals("1w", IdGenerator.asStoredString(id));
-        Assert.assertEquals(id, IdGenerator.ofStoredString("1w", IdType.LONG));
+        Assert.assertEquals("21w", IdGenerator.asStoredString(id));
+        Assert.assertEquals(id, IdGenerator.ofStoredString("21w", IdType.LONG));
     }
 
     @Test
