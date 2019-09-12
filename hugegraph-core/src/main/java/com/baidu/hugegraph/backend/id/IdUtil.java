@@ -21,31 +21,68 @@ package com.baidu.hugegraph.backend.id;
 
 import org.apache.commons.lang3.StringUtils;
 
-import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.backend.id.Id.IdType;
 
 public final class IdUtil {
 
-    private static final String NUMBER_PREFIX = "L";
-    private static final String STRING_PREFIX = "S";
+    public static String writeStoredString(Id id) {
+        String idString;
+        switch (id.type()) {
+            case LONG:
+            case STRING:
+            case UUID:
+                idString = IdGenerator.asStoredString(id);
+                break;
+            case EDGE:
+                idString = EdgeId.asStoredString(id);
+                break;
+            default:
+                throw new AssertionError("Invalid id type " + id.type());
+        }
+        return id.type().prefix() + idString;
+    }
+
+    public static Id readStoredString(String id) {
+        IdType type = IdType.valueOfPrefix(id);
+        id = id.substring(1);
+        switch (type) {
+            case LONG:
+            case STRING:
+            case UUID:
+                return IdGenerator.ofStoredString(id, type);
+            case EDGE:
+                return EdgeId.parseStoredString(id);
+            default:
+                throw new AssertionError("Invalid id type " + type);
+        }
+    }
 
     public static String writeString(Id id) {
-        return (id.number() ? NUMBER_PREFIX : STRING_PREFIX) + id.asObject();
+        return "" + id.type().prefix() + id.asObject();
     }
 
     public static Id readString(String id) {
-        E.checkNotNull(id, "id");
-        String signal = id.substring(0, 1);
-        E.checkState(signal.equals(NUMBER_PREFIX) ||
-                     signal.equals(STRING_PREFIX),
-                     "The serialized id value must start with '%s' or '%s', " +
-                     "but got '%s'", NUMBER_PREFIX, STRING_PREFIX, id);
+        IdType type = IdType.valueOfPrefix(id);
         id = id.substring(1);
-        boolean number = signal.equals(NUMBER_PREFIX);
-        if (number) {
-            return IdGenerator.of(Long.parseLong(id));
-        } else {
-            return IdGenerator.of(id);
+        switch (type) {
+            case LONG:
+                return IdGenerator.of(Long.parseLong(id));
+            case STRING:
+            case UUID:
+                return IdGenerator.of(id, type == IdType.UUID);
+            case EDGE:
+                return EdgeId.parse(id);
+            default:
+                throw new AssertionError("Invalid id type " + type);
         }
+    }
+
+    public static String writeLong(Id id) {
+        return String.valueOf(id.asLong());
+    }
+
+    public static Id readLong(String id) {
+        return IdGenerator.of(Long.parseLong(id));
     }
 
     public static String escape(char splitor, char escape, String... values) {

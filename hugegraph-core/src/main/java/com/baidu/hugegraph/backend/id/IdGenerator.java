@@ -39,6 +39,10 @@ public abstract class IdGenerator {
         return new StringId(id);
     }
 
+    public final static Id of(UUID id) {
+        return new UuidId(id);
+    }
+
     public final static Id of(String id, boolean uuid) {
         return uuid ? new UuidId(id) : new StringId(id);
     }
@@ -63,7 +67,7 @@ public abstract class IdGenerator {
     public final static Id ofStoredString(String id, IdType type) {
         switch (type) {
             case LONG:
-                return of(LongEncoding.decode(id));
+                return of(LongEncoding.decodeSortable(id));
             case UUID:
                 byte[] bytes = Base64.getDecoder().decode(id);
                 return of(bytes, IdType.UUID);
@@ -77,7 +81,7 @@ public abstract class IdGenerator {
     public final static String asStoredString(Id id) {
         switch (id.type()) {
             case LONG:
-                return LongEncoding.encode(id.asLong());
+                return LongEncoding.encodeSortable(id.asLong());
             case UUID:
                 return Base64.getEncoder().encodeToString(id.asBytes());
             case STRING:

@@ -28,6 +28,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.tinkerpop.gremlin.process.traversal.P;
@@ -753,16 +754,21 @@ public class VertexCoreTest extends BaseCoreTest {
         SchemaManager schema = graph.schema();
 
         schema.vertexLabel("programmer")
-              .useCustomizeUUid()
+              .useCustomizeUUID()
               .properties("name", "age", "city")
               .create();
         graph.addVertex(T.label, "programmer",
                         T.id, "835e1153-9281-4957-8691-cf79258e90eb",
                         "name", "marko", "age", 18, "city", "Beijing");
         graph.addVertex(T.label, "programmer",
+                        T.id, UUID.fromString(
+                              "835e1153-9281-4957-8691-cf79258e90eb"),
+                        "name", "marko", "age", 18, "city", "Beijing");
+        graph.addVertex(T.label, "programmer",
                         T.id, "835e1153928149578691cf79258e90ee",
                         "name", "marko", "age", 19, "city", "Beijing");
         graph.tx().commit();
+        Assert.assertEquals(2L, graph.traversal().V().count().next());
 
         Object uuid = Text.uuid("835e1153928149578691cf79258e90eb");
         List<Vertex> vertices = graph.traversal().V(uuid).toList();
@@ -793,7 +799,7 @@ public class VertexCoreTest extends BaseCoreTest {
         SchemaManager schema = graph.schema();
 
         schema.vertexLabel("programmer")
-              .useCustomizeUUid()
+              .useCustomizeUUID()
               .properties("name", "age", "city")
               .create();
 

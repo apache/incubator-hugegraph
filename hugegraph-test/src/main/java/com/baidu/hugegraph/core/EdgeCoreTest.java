@@ -28,6 +28,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.Function;
 
 import org.apache.tinkerpop.gremlin.process.traversal.Order;
@@ -1117,6 +1118,101 @@ public class EdgeCoreTest extends BaseCoreTest {
         Assert.assertEquals(6, edges2.size());
 
         Assert.assertEquals(edges2, edges);
+    }
+
+    @Test
+    public void testQueryEdgesOfVertexWithCustomizeId() {
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
+
+        schema.vertexLabel("author2")
+              .properties("name", "age", "lived")
+              .useCustomizeNumberId()
+              .enableLabelIndex(false)
+              .create();
+        schema.vertexLabel("language2")
+              .properties("name", "dynamic")
+              .useCustomizeUUID()
+              .nullableKeys("dynamic")
+              .enableLabelIndex(false)
+              .create();
+        schema.vertexLabel("book2")
+              .properties("name")
+              .useAutomaticId()
+              .enableLabelIndex(false)
+              .create();
+
+        schema.edgeLabel("created2").singleTime()
+              .link("author2", "language2")
+              .enableLabelIndex(true)
+              .create();
+        schema.edgeLabel("know2").singleTime()
+              .link("author2", "author2")
+              .enableLabelIndex(true)
+              .create();
+        schema.edgeLabel("authored2").singleTime()
+              .properties("contribution", "comment", "score")
+              .nullableKeys("score", "contribution", "comment")
+              .link("author2", "book2")
+              .enableLabelIndex(true)
+              .create();
+
+        Vertex james = graph.addVertex(T.label, "author2", T.id, 13579,
+                                       "name", "James Gosling", "age", 62,
+                                       "lived", "Canadian");
+        Vertex guido =  graph.addVertex(T.label, "author2", T.id, 24680,
+                                        "name", "Guido van Rossum", "age", 61,
+                                        "lived", "California");
+
+        Vertex java = graph.addVertex(T.label, "language2", "name", "java",
+                                      T.id, UUID.randomUUID());
+        Vertex python = graph.addVertex(T.label, "language2",
+                                        T.id, UUID.randomUUID(),
+                                        "name", "python", "dynamic", true);
+
+        Vertex java1 = graph.addVertex(T.label, "book2", "name", "java-1");
+        Vertex java2 = graph.addVertex(T.label, "book2", "name", "java-2");
+        Vertex java3 = graph.addVertex(T.label, "book2", "name", "java-3");
+
+        Edge e1 = james.addEdge("created2", java);
+        Edge e2 = guido.addEdge("created2", python);
+
+        Edge e3 = guido.addEdge("know2", james);
+
+        Edge e4 = james.addEdge("authored2", java1);
+        Edge e5 = james.addEdge("authored2", java2);
+        Edge e6 = james.addEdge("authored2", java3, "score", 3);
+
+        graph.tx().commit();
+
+        // Query OUT edges of a vertex
+        List<Edge> edges = graph.traversal().V(james.id()).outE().toList();
+        Assert.assertEquals(4, edges.size());
+
+        edges = ImmutableList.copyOf(james.edges(Direction.OUT));
+        Assert.assertEquals(4, edges.size());
+
+        // Query IN edges of a vertex
+        edges = graph.traversal().V(james.id()).inE().toList();
+        Assert.assertEquals(1, edges.size());
+
+        edges = ImmutableList.copyOf(james.edges(Direction.IN));
+        Assert.assertEquals(1, edges.size());
+
+        // Query BOTH edges of a vertex
+        edges = graph.traversal().V(james.id()).bothE().toList();
+        Assert.assertEquals(5, edges.size());
+
+        edges = ImmutableList.copyOf(james.edges(Direction.BOTH));
+        Assert.assertEquals(5, edges.size());
+
+        // Query by edge id
+        Assert.assertEquals(1L, graph.traversal().E(e1.id()).count().next());
+        Assert.assertEquals(1L, graph.traversal().E(e2.id()).count().next());
+        Assert.assertEquals(1L, graph.traversal().E(e3.id()).count().next());
+        Assert.assertEquals(1L, graph.traversal().E(e4.id()).count().next());
+        Assert.assertEquals(1L, graph.traversal().E(e5.id()).count().next());
+        Assert.assertEquals(1L, graph.traversal().E(e6.id()).count().next());
     }
 
     @Test

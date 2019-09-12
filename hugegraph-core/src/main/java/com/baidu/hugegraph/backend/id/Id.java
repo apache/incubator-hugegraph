@@ -19,6 +19,8 @@
 
 package com.baidu.hugegraph.backend.id;
 
+import com.baidu.hugegraph.util.E;
+
 public interface Id extends Comparable<Id> {
 
     public static final int UUID_LENGTH = 16;
@@ -48,9 +50,35 @@ public interface Id extends Comparable<Id> {
     }
 
     public enum IdType {
+
         UNKNOWN,
         LONG,
         UUID,
         STRING,
+        EDGE;
+
+        public char prefix() {
+            if (this == UNKNOWN) {
+                return 'N';
+            }
+            return this.name().charAt(0);
+        }
+
+        public static IdType valueOfPrefix(String id) {
+            E.checkArgument(id != null && id.length() > 0,
+                            "Invalid id '%s'", id);
+            switch (id.charAt(0)) {
+                case 'L':
+                    return IdType.LONG;
+                case 'U':
+                    return IdType.UUID;
+                case 'S':
+                    return IdType.STRING;
+                case 'E':
+                    return IdType.EDGE;
+                default:
+                    return IdType.UNKNOWN;
+            }
+        }
     }
 }

@@ -24,6 +24,7 @@ import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.StringEncoding;
 
 /**
@@ -132,13 +133,13 @@ public class EdgeId implements Id {
             this.cache = SplicingIdGenerator.concat(
                          IdUtil.writeString(this.ownerVertexId),
                          this.direction.type().string(),
-                         this.edgeLabelId.asString(),
+                         IdUtil.writeLong(this.edgeLabelId),
                          this.sortValues,
                          IdUtil.writeString(this.otherVertexId));
         } else {
             this.cache = SplicingIdGenerator.concat(
                          IdUtil.writeString(this.sourceVertexId()),
-                         this.edgeLabelId.asString(),
+                         IdUtil.writeLong(this.edgeLabelId),
                          this.sortValues,
                          IdUtil.writeString(this.targetVertexId()));
         }
@@ -162,7 +163,7 @@ public class EdgeId implements Id {
 
     @Override
     public IdType type() {
-        return IdType.STRING;
+        return IdType.EDGE;
     }
 
     @Override
@@ -190,15 +191,15 @@ public class EdgeId implements Id {
     }
 
     public static EdgeId parse(String id) throws NotFoundException {
-        String[] idParts = SplicingIdGenerator.split(id);
+        String[] idParts = split(id);
         if (!(idParts.length == 4 || idParts.length == 5)) {
-            throw new NotFoundException("Edge id must be formatted as 4~5 parts"
-                                        + ", but got '%s'", id);
+            throw new NotFoundException("Edge id must be formatted as 4~5 " +
+                                        "parts, but got '%s'", id);
         }
         try {
             if (idParts.length == 4) {
                 Id ownerVertexId = IdUtil.readString(idParts[0]);
-                Id edgeLabelId = IdGenerator.of(Long.parseLong(idParts[1]));
+                Id edgeLabelId = IdUtil.readLong(idParts[1]);
                 String sortValues = idParts[2];
                 Id otherVertexId = IdUtil.readString(idParts[3]);
                 return new EdgeId(ownerVertexId, Directions.OUT, edgeLabelId,
@@ -207,15 +208,36 @@ public class EdgeId implements Id {
                 assert idParts.length == 5;
                 Id ownerVertexId = IdUtil.readString(idParts[0]);
                 HugeType direction = HugeType.fromString(idParts[1]);
-                Id edgeLabelId = IdGenerator.of(Long.parseLong(idParts[2]));
+                Id edgeLabelId = IdUtil.readLong(idParts[2]);
                 String sortValues = idParts[3];
                 Id otherVertexId = IdUtil.readString(idParts[4]);
                 return new EdgeId(ownerVertexId, Directions.convert(direction),
                                   edgeLabelId, sortValues, otherVertexId);
             }
         } catch (Exception e) {
-            throw new NotFoundException("Invalid format of edge id '%s'", id);
+            throw new NotFoundException("Invalid format of edge id '%s'",
+                                        e, id);
         }
+    }
+
+    public static Id parseStoredString(String id) {
+        String[] idParts = split(id);
+        E.checkArgument(idParts.length == 4, "Invalid id format: %s", id);
+        Id ownerVertexId = IdUtil.readStoredString(idParts[0]);
+        Id edgeLabelId = IdGenerator.ofStoredString(idParts[1], IdType.LONG);
+        String sortValues = idParts[2];
+        Id otherVertexId = IdUtil.readStoredString(idParts[3]);
+        return new EdgeId(ownerVertexId, Directions.OUT, edgeLabelId,
+                          sortValues, otherVertexId);
+    }
+
+    public static String asStoredString(Id id) {
+        EdgeId eid = (EdgeId) id;
+        return SplicingIdGenerator.concat(
+               IdUtil.writeStoredString(eid.sourceVertexId()),
+               IdGenerator.asStoredString(eid.edgeLabelId()),
+               eid.sortValues(),
+               IdUtil.writeStoredString(eid.targetVertexId()));
     }
 
     public static String concat(String... ids) {
