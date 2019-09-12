@@ -38,7 +38,6 @@ public enum Directions implements SerialEnum {
 
     public HugeType type() {
         switch (this) {
-//            case BOTH:
             case OUT:
                 return HugeType.EDGE_OUT;
             case IN:
