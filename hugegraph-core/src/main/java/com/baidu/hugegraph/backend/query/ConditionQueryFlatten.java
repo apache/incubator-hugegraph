@@ -144,7 +144,7 @@ public final class ConditionQueryFlatten {
         assert relation.relation() == Condition.RelationType.NOT_IN;
         Object key = relation.key();
         @SuppressWarnings("unchecked")
-        List<Object>  values = (List<Object>) relation.value();
+        List<Object> values = (List<Object>) relation.value();
         Condition cond;
         Condition conds = null;
         for (Object value : values) {

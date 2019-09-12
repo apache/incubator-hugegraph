@@ -25,7 +25,6 @@ import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PATH
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.NO_LIMIT;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -47,6 +46,7 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.server.RestServer;
@@ -97,7 +97,7 @@ public class CustomizedCrosspointsAPI extends API {
         CustomizedCrosspointsTraverser.CrosspointsPaths paths;
         paths = traverser.crosspointsPaths(sources, patterns, request.capacity,
                                            request.limit);
-        Iterator<Vertex> iter = Collections.emptyIterator();
+        Iterator<Vertex> iter = QueryResults.emptyIterator();
         if (!request.withVertex) {
             return manager.serializer(g).writeCrosspoints(paths, iter,
                                                           request.withPath);

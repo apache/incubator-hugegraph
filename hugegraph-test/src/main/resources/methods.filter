@@ -91,6 +91,28 @@ org.apache.tinkerpop.gremlin.process.traversal.step.map.AddVertexTest.Traversals
 org.apache.tinkerpop.gremlin.process.traversal.step.map.AddVertexTest.Traversals.g_addVXanimalX_propertyXname_mateoX_propertyXname_gateoX_propertyXname_cateoX_propertyXage_5X: Expect multi properties after setting single property multi times
 org.apache.tinkerpop.gremlin.process.traversal.step.map.AddVertexTest.Traversals.g_V_addVXanimalX_propertyXname_valuesXnameXX_propertyXname_an_animalX_propertyXvaluesXnameX_labelX: Expect multi properties after setting single property multi times
 
+# unsupported predicate
+org.apache.tinkerpop.gremlin.process.traversal.step.filter.HasTest.Traversals.g_V_hasIdXwithoutXemptyXX_count: Unsupported query 'NOT IN []'
+org.apache.tinkerpop.gremlin.process.traversal.step.filter.HasTest.Traversals.g_V_hasIdXemptyX_count: Unsupported query 'hasId(EmptyList)'
+
+org.apache.tinkerpop.gremlin.process.traversal.step.filter.HasTest.Traversals.g_V_hasXname_containingXarkXX: Unsupported predicate 'containing(ark)'
+org.apache.tinkerpop.gremlin.process.traversal.step.filter.HasTest.Traversals.g_V_hasXname_endingWithXasXX: Unsupported predicate 'endingWith(as)'
+org.apache.tinkerpop.gremlin.process.traversal.step.filter.HasTest.Traversals.g_V_hasXname_startingWithXmarXX: Unsupported predicate 'startingWith(mar)'
+org.apache.tinkerpop.gremlin.process.traversal.step.filter.HasTest.Traversals.g_V_hasXage_withoutX27X_count: Unsupported relation 'NEQ'
+org.apache.tinkerpop.gremlin.process.traversal.step.filter.HasTest.Traversals.g_V_hasXperson_name_containingXoX_andXltXmXXX: Unsupported predicate 'containing(o)'
+org.apache.tinkerpop.gremlin.process.traversal.step.filter.HasTest.Traversals.g_V_hasXname_not_startingWithXmarXX: Unsupported predicate 'notStartingWith(mar)'
+org.apache.tinkerpop.gremlin.process.traversal.step.filter.HasTest.Traversals.g_V_hasXname_not_containingXarkXX: Unsupported predicate 'notContaining(ark)'
+org.apache.tinkerpop.gremlin.process.traversal.step.filter.HasTest.Traversals.g_V_hasXname_not_endingWithXasXX: Unsupported predicate 'notEndingWith(as)'
+org.apache.tinkerpop.gremlin.process.traversal.step.filter.HasTest.Traversals.g_V_hasXage_withoutX27_29X_count: Unsupported relation 'NEQ'
+org.apache.tinkerpop.gremlin.process.traversal.step.filter.HasTest.Traversals.g_V_hasXname_gtXmX_andXcontainingXoXXX: Unsupported predicate 'containing(o)'
+
+# Unsupport edge label 'created': 'software' -> 'person', has existed an edgelabel (created: person -> software) in this case
+org.apache.tinkerpop.gremlin.process.traversal.step.map.AddEdgeTest.Traversals.g_V_hasXname_markoX_asXaX_outEXcreatedX_asXbX_inV_addEXselectXbX_labelX_toXaX: Unsupport edge from inV to outV
+
+# Can't customize vertex id when id strategy is 'AUTOMATIC': Firstly add vertex without id(id strategy is 'AUTOMATIC'), then write it into file, at last read file, call add vertex with id
+org.apache.tinkerpop.gremlin.process.traversal.step.map.ReadTest.Traversals.g_io_read_withXreader_graphmlX: Can't customize vertex id when id strategy is 'AUTOMATIC'
+org.apache.tinkerpop.gremlin.process.traversal.step.map.ReadTest.Traversals.g_io_readXxmlX: Can't customize vertex id when id strategy is 'AUTOMATIC'
+
 ####################    structure performance suite    ####################
 
 org.apache.tinkerpop.gremlin.structure.GraphWritePerformanceTest.WriteToGraph.writeEmptyVertices: Vertices number exceeds 65536, can not delete by vertex label after tests

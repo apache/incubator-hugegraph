@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.core;
 
 import java.math.BigDecimal;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -996,21 +997,28 @@ public class VertexCoreTest extends BaseCoreTest {
                                      .range(1, 6)
                                      .range(4, 8)
                                      .toList();
-        // [4, 6)
-        Assert.assertEquals(2, vertices.size());
+        // [5, 6)
+        Assert.assertEquals(1, vertices.size());
 
         vertices = graph.traversal().V()
                                     .range(1, -1)
                                     .range(6, 8)
                                     .toList();
-        // [6, 8)
+        // [7, 9)
         Assert.assertEquals(2, vertices.size());
 
         vertices = graph.traversal().V()
                                     .range(1, 6)
                                     .range(6, 8)
                                     .toList();
-        // [6, 6)
+        // [7, 6) will be converted to NoneStep by EarlyLimitStrategy
+        Assert.assertEquals(0, vertices.size());
+
+        vertices = graph.traversal().V()
+                                    .range(1, 6)
+                                    .range(7, 8)
+                                    .toList();
+        // [8, 6) will be converted to NoneStep by EarlyLimitStrategy
         Assert.assertEquals(0, vertices.size());
     }
 
@@ -1033,11 +1041,6 @@ public class VertexCoreTest extends BaseCoreTest {
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph.traversal().V().range(-4, -2).toList();
-        });
-
-        Assert.assertThrows(IllegalArgumentException.class, () -> {
-            // [7, 6)
-            graph.traversal().V().range(1, 6).range(7, 8).toList();
         });
     }
 
@@ -5547,6 +5550,32 @@ public class VertexCoreTest extends BaseCoreTest {
         vertices = g.V().hasLabel("person", "computer")
                     .hasLabel("book", "language").toList();
         Assert.assertEquals(0, vertices.size());
+    }
+
+    @Test
+    public void testQueryByHasIdEmptyList() {
+        HugeGraph graph = graph();
+        GraphTraversalSource g = graph.traversal();
+
+        List<Vertex> vertices = g.V().hasId(Collections.EMPTY_LIST).toList();
+        Assert.assertEquals(0, vertices.size());
+    }
+
+    @Test
+    public void testQueryByHasIdEmptyListInPage() {
+        Assume.assumeTrue("Not support paging",
+                          storeFeatures().supportsQueryByPage());
+
+        HugeGraph graph = graph();
+        GraphTraversalSource g = graph.traversal();
+
+        GraphTraversal<Vertex, Vertex> iter = g.V()
+                                               .hasId(Collections.EMPTY_LIST)
+                                               .has("~page", "").limit(1);
+        Assert.assertEquals(0, IteratorUtils.count(iter));
+
+        String page = TraversalUtil.page(iter);
+        Assert.assertNull(page);
     }
 
     private void init10Vertices() {

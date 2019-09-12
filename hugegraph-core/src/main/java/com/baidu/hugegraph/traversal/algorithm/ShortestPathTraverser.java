@@ -30,6 +30,7 @@ import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
@@ -219,7 +220,7 @@ public class ShortestPathTraverser extends HugeTraverser {
                     edgeList.add(edges.next());
                 }
                 if (i >= this.skipDegree) {
-                    return Collections.emptyIterator();
+                    return QueryResults.emptyIterator();
                 }
             }
             return edgeList.iterator();

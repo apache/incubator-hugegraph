@@ -34,6 +34,7 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.Log;
 
@@ -73,7 +74,11 @@ public final class HugeGraphStep<S, E extends Element>
         LOG.debug("HugeGraphStep.vertices(): {}", this);
 
         HugeGraph graph = (HugeGraph) this.getTraversal().getGraph().get();
-        if (this.ids != null && this.ids.length > 0) {
+        // g.V().hasId(EMPTY_LIST) will set ids to null
+        if (this.ids == null) {
+            return QueryResults.emptyIterator();
+        }
+        if (this.ids.length > 0) {
             return TraversalUtil.filterResult(this.hasContainers,
                                               graph.vertices(this.ids));
         }

@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.traversal.optimize;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.function.BiPredicate;
@@ -362,7 +363,7 @@ public final class TraversalUtil {
                                             HasContainer has) {
         BiPredicate<?, ?> bp = has.getPredicate().getBiPredicate();
         assert bp instanceof Contains;
-        List<?> values = (List<?>) has.getValue();
+        Collection<?> values = (Collection<?>) has.getValue();
 
         String originKey = has.getKey();
         if (values.size() > 1) {
@@ -379,24 +380,25 @@ public final class TraversalUtil {
             // Ignore
         }
 
+        List<?> valueList;
         if (hugeKey != null) {
-            values = convSysListValueIfNeeded(graph, type, hugeKey, values);
-
+            valueList = convSysListValueIfNeeded(graph, type, hugeKey, values);
             switch ((Contains) bp) {
                 case within:
-                    return Condition.in(hugeKey, values);
+                    return Condition.in(hugeKey, valueList);
                 case without:
-                    return Condition.nin(hugeKey, values);
+                    return Condition.nin(hugeKey, valueList);
             }
         } else {
+            valueList = new ArrayList<>(values);
             String key = has.getKey();
             PropertyKey pkey = graph.propertyKey(key);
 
             switch ((Contains) bp) {
                 case within:
-                    return Condition.in(pkey.id(), values);
+                    return Condition.in(pkey.id(), valueList);
                 case without:
-                    return Condition.nin(pkey.id(), values);
+                    return Condition.nin(pkey.id(), valueList);
             }
         }
 
@@ -539,7 +541,7 @@ public final class TraversalUtil {
     private static List<?> convSysListValueIfNeeded(HugeGraph graph,
                                                     HugeType type,
                                                     HugeKeys key,
-                                                    List<?> values) {
+                                                    Collection<?> values) {
         List<Object> newValues = new ArrayList<>(values.size());
         for (Object value : values) {
             newValues.add(convSysValueIfNeeded(graph, type, key, value));

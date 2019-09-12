@@ -5,7 +5,7 @@
     <parent>
         <artifactId>hugegraph</artifactId>
         <groupId>com.baidu.hugegraph</groupId>
-        <version>0.10.3</version>
+        <version>0.10.4</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -66,7 +66,7 @@
         <dependency>
             <groupId>org.apache.tinkerpop</groupId>
             <artifactId>gremlin-groovy-test</artifactId>
-            <version>${tinkerpop.version}</version>
+            <version>3.2.11</version>
         </dependency>
 
         <dependency>
@@ -133,36 +133,14 @@
                     <execution>
                         <id>tinkerpop-process-test</id>
                         <configuration>
+                            <!-- Tinkerpop process ReadTest.Traversals.class need write/read disk -->
+                            <argLine>-Dbuild.dir=${project.build.directory}</argLine>
                             <testSourceDirectory>${basedir}/src/main/java/
                             </testSourceDirectory>
                             <testClassesDirectory>${basedir}/target/classes/
                             </testClassesDirectory>
                             <includes>
                                 <include>**/ProcessStandardTest.java</include>
-                            </includes>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>tinkerpop-structure-perf-test</id>
-                        <configuration>
-                            <testSourceDirectory>${basedir}/src/main/java/
-                            </testSourceDirectory>
-                            <testClassesDirectory>${basedir}/target/classes/
-                            </testClassesDirectory>
-                            <includes>
-                                <include>**/StructurePerformanceTest.java</include>
-                            </includes>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>tinkerpop-process-perf-test</id>
-                        <configuration>
-                            <testSourceDirectory>${basedir}/src/main/java/
-                            </testSourceDirectory>
-                            <testClassesDirectory>${basedir}/target/classes/
-                            </testClassesDirectory>
-                            <includes>
-                                <include>**/ProcessPerformanceTest.java</include>
                             </includes>
                         </configuration>
                     </execution>
@@ -192,7 +170,7 @@
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
-                <version>0.8.3</version>
+                <version>0.8.4</version>
                 <configuration>
                     <excludes>
                         <exclude>com/baidu/hugegraph/traversal/algorithm/*.class</exclude>

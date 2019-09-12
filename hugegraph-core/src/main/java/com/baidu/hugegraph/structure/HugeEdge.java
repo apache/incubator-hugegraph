@@ -52,15 +52,16 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     protected EdgeLabel label;
     protected String name;
 
-    // The Vertex who owned me
-    protected HugeVertex ownerVertex;
     protected HugeVertex sourceVertex;
     protected HugeVertex targetVertex;
+    protected boolean isOutEdge;
 
-    public HugeEdge(final HugeVertex owner, Id id, EdgeLabel label) {
-        this(owner.graph(), id, label);
-
-        this.ownerVertex = owner;
+    public HugeEdge(HugeVertex sourceVertex, Id id, EdgeLabel label,
+                    HugeVertex targetVertex) {
+        this(sourceVertex.graph(), id, label);
+        this.sourceVertex = sourceVertex;
+        this.targetVertex = targetVertex;
+        this.isOutEdge = true;
         this.fresh = true;
     }
 
@@ -71,17 +72,15 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         this.label = label;
 
         this.name = null;
-        this.ownerVertex = null;
         this.sourceVertex = null;
         this.targetVertex = null;
+        this.isOutEdge = true;
     }
 
     @Override
     public HugeType type() {
         // NOTE: we optimize the edge type that let it include direction
-        return this.ownerVertex == this.sourceVertex ?
-                                   HugeType.EDGE_OUT :
-                                   HugeType.EDGE_IN;
+        return this.isOutEdge ? HugeType.EDGE_OUT : HugeType.EDGE_IN;
     }
 
     @Override
@@ -119,30 +118,25 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         return this.label.name();
     }
 
+    public boolean selfLoop() {
+        return this.sourceVertex != null &&
+               this.sourceVertex == this.targetVertex;
+    }
+
     public Directions direction() {
-        if (this.ownerVertex == this.sourceVertex) {
-            return Directions.OUT;
-        } else {
-            assert this.ownerVertex == this.targetVertex;
-            return Directions.IN;
-        }
+        return this.isOutEdge ? Directions.OUT : Directions.IN;
     }
 
     public boolean matchDirection(Directions direction) {
-        if (direction == Directions.BOTH) {
+        if (direction == Directions.BOTH || this.selfLoop()) {
             return true;
         }
         return this.isDirection(direction);
     }
 
     public boolean isDirection(Directions direction) {
-        // NOTE: self-loop edge will match both OUT and IN
-        if (direction == Directions.OUT) {
-            return this.ownerVertex == this.sourceVertex;
-        } else if (direction == Directions.IN) {
-            return this.ownerVertex == this.targetVertex;
-        }
-        return false;
+        return this.isOutEdge && direction == Directions.OUT ||
+               !this.isOutEdge && direction == Directions.IN;
     }
 
     @Watched(prefix = "edge")
@@ -329,30 +323,22 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         return this.targetVertex;
     }
 
-    public void vertices(HugeVertex source, HugeVertex target) {
-        // The default owner is the source vertex
-        this.ownerVertex = source;
-
-        this.sourceVertex = source;
-        this.targetVertex = target;
-    }
-
-    public void vertices(HugeVertex owner,
-                         HugeVertex source,
-                         HugeVertex target) {
-        this.ownerVertex = owner;
-        this.sourceVertex = source;
-        this.targetVertex = target;
+    public void vertices(boolean isOutEdge,
+                         HugeVertex owner,
+                         HugeVertex other) {
+        this.isOutEdge = isOutEdge;
+        if (isOutEdge) {
+            this.sourceVertex = owner;
+            this.targetVertex = other;
+        } else {
+            this.sourceVertex = other;
+            this.targetVertex = owner;
+        }
     }
 
     public HugeEdge switchOwner() {
         HugeEdge edge = this.clone();
-        if (edge.ownerVertex == edge.sourceVertex) {
-            edge.ownerVertex = edge.targetVertex;
-        } else {
-            assert edge.ownerVertex == this.targetVertex;
-            edge.ownerVertex = edge.sourceVertex;
-        }
+        edge.isOutEdge = !edge.isOutEdge;
         edge.assignId();
         return edge;
     }
@@ -365,13 +351,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     }
 
     public HugeVertex ownerVertex() {
-        return this.ownerVertex;
-    }
-
-    public void ownerVertex(HugeVertex owner) {
-        E.checkState(owner == this.sourceVertex || owner == this.targetVertex,
-                     "The owner vertex must be sourceVertex or targetVertex");
-        this.ownerVertex = owner;
+        return this.isOutEdge ? this.sourceVertex : this.targetVertex;
     }
 
     public HugeVertex sourceVertex() {
@@ -421,7 +401,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     }
 
     public HugeVertex otherVertex() {
-        return this.otherVertex(this.ownerVertex);
+        return this.isOutEdge ? this.targetVertex : this.sourceVertex;
     }
 
     /**

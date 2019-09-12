@@ -283,8 +283,23 @@ public class TestGraphProvider extends AbstractGraphProvider {
             testGraph.initPropertyKey("aKey", aKeyType);
         }
 
+        if (testMethod.equals(
+            "shouldHaveTruncatedStringRepresentationForEdgeProperty")) {
+            testGraph.initPropertyKey("long", "String");
+        } else {
+            testGraph.initPropertyKey("long", "Long");
+        }
+
         // Basic schema is initiated by default once a graph is open
         testGraph.initBasicSchema(idStrategy(config), TestGraph.DEFAULT_VL);
+        if (testClass.getName().equals(
+            "org.apache.tinkerpop.gremlin.process.traversal.step.map.ReadTest$Traversals")) {
+            testGraph.initEdgeLabelPersonKnowsPerson();
+            testGraph.initEdgeLabelPersonCreatedSoftware();
+        } else {
+            testGraph.initEdgeLabelDefaultKnowsDefault(TestGraph.DEFAULT_VL);
+            testGraph.initEdgeLabelDefaultCreatedDefault(TestGraph.DEFAULT_VL);
+        }
         testGraph.tx().commit();
 
         testGraph.loadedGraph(getIoType(testClass, testMethod));
@@ -392,12 +407,16 @@ public class TestGraphProvider extends AbstractGraphProvider {
                 break;
             case CREW:
                 break;
+            case SINK:
+                testGraph.initSinkSchema();
+                break;
             default:
                 throw new AssertionError(String.format(
                           "Only support GRATEFUL, MODERN and CLASSIC " +
                           "for @LoadGraphWith(), but '%s' is used ",
                           loadGraphWith));
         }
+        LOG.debug("Load graph with {} schema", loadGraphWith);
         testGraph.tx().commit();
     }
 

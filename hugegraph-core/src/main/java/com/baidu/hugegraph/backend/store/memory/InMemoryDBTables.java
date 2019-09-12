@@ -40,6 +40,7 @@ import com.baidu.hugegraph.backend.query.Condition.RangeConditions;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.serializer.TextBackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumn;
@@ -289,7 +290,7 @@ public class InMemoryDBTables {
             if (count == offset) {
                 return iter;
             } else if (count < offset) {
-                return Collections.emptyIterator();
+                return QueryResults.emptyIterator();
             }
 
             // Collect edges that are over-skipped
@@ -496,7 +497,7 @@ public class InMemoryDBTables {
 
             max = keyMaxEq ? rs.floorKey(max) : rs.lowerKey(max);
             if (max == null) {
-                return Collections.emptyIterator();
+                return QueryResults.emptyIterator();
             }
 
             Map<Id, BackendEntry> results = InsertionOrderUtil.newMap();

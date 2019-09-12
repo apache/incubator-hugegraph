@@ -19,38 +19,51 @@
 
 package com.baidu.hugegraph.plugin;
 
+import java.io.IOException;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 
-import org.apache.tinkerpop.gremlin.groovy.plugin.GremlinPlugin;
-import org.apache.tinkerpop.gremlin.groovy.plugin.PluginAcceptor;
+import org.apache.tinkerpop.gremlin.jsr223.AbstractGremlinPlugin;
+import org.apache.tinkerpop.gremlin.jsr223.DefaultImportCustomizer;
+import org.apache.tinkerpop.gremlin.jsr223.ImportCustomizer;
+import org.apache.tinkerpop.gremlin.tinkergraph.jsr223.TinkerGraphGremlinPlugin;
 
-import com.baidu.hugegraph.io.HugeGraphIoRegistry;
-import com.baidu.hugegraph.traversal.optimize.Text;
-import com.google.common.collect.ImmutableSet;
+import com.baidu.hugegraph.HugeException;
+import com.baidu.hugegraph.util.ReflectionUtil;
+import com.google.common.reflect.ClassPath;
 
-@SuppressWarnings("deprecation") // TODO: use new Plugin API
-public class HugeGraphGremlinPlugin implements GremlinPlugin {
+public class HugeGraphGremlinPlugin extends AbstractGremlinPlugin {
 
-    private static final String IMPORT = "import ";
-    private static final String DOT_STAR = ".*";
+    private static final String PACKAGE = "com.baidu.hugegraph";
+    private static final String NAME = "com.baidu.hugegraph";
 
-    private static final Set<String> IMPORTS = ImmutableSet.of(
-            IMPORT + "com.baidu.hugegraph" + DOT_STAR,
-            IMPORT + HugeGraphIoRegistry.class.getName(),
-            IMPORT + Text.class.getName());
+    private static final HugeGraphGremlinPlugin instance;
+    private static final ImportCustomizer imports;
 
-    @Override
-    public String getName() {
-        return "com.baidu.hugegraph";
+    static {
+        instance = new HugeGraphGremlinPlugin();
+
+        Iterator<ClassPath.ClassInfo> classInfos;
+        try {
+            classInfos = ReflectionUtil.classes(PACKAGE);
+        } catch (IOException e) {
+            throw new HugeException("Failed to scan classes under package %s",
+                                    PACKAGE);
+        }
+
+        Set<Class> classes = new HashSet<>();
+        classInfos.forEachRemaining(classInfo -> classes.add(classInfo.load()));
+        imports = DefaultImportCustomizer.build()
+                                         .addClassImports(classes)
+                                         .create();
     }
 
-    @Override
-    public void pluginTo(final PluginAcceptor pluginAcceptor) {
-        pluginAcceptor.addImports(IMPORTS);
+    public HugeGraphGremlinPlugin() {
+        super(NAME, imports);
     }
 
-    @Override
-    public boolean requireRestart() {
-        return true;
+    public static HugeGraphGremlinPlugin instance() {
+        return instance;
     }
 }

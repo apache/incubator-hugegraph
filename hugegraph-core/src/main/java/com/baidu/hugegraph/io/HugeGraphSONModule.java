@@ -60,6 +60,8 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
 
     private static final long serialVersionUID = 6480426922914059122L;
 
+    public static boolean OPTIMIZE_SERIALIZE = true;
+
     private static final String TYPE_NAMESPACE = "hugegraph";
 
     @SuppressWarnings("rawtypes")
@@ -127,15 +129,15 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         addSerializer(EdgeLabel.class, new EdgeLabelSerializer());
         addSerializer(IndexLabel.class, new IndexLabelSerializer());
 
-        addSerializer(HugeVertex.class, new HugeVertexSerializer());
-        /*
-         * Use customized edge serializer need to be compatible with V1 and V2
-         * Graphson, and seems need to implement edge deserializer，it is
-         * a little complicated.
-         * Honestly, I don't know why there is no problem with vertex serializer
-         */
-        // addSerializer(HugeEdge.class, new HugeEdgeSerializer());
-
+        if (OPTIMIZE_SERIALIZE) {
+            /*
+             * Use customized serializer need to be compatible with V1 and V2
+             * Graphson, and seems need to implement edge deserializer，it is
+             * a little complicated.
+             */
+            addSerializer(HugeVertex.class, new HugeVertexSerializer());
+            addSerializer(HugeEdge.class, new HugeEdgeSerializer());
+        }
         addSerializer(Shard.class, new ShardSerializer());
     }
 

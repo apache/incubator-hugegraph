@@ -5,13 +5,19 @@ channelizer: org.apache.tinkerpop.gremlin.server.channel.HttpChannelizer
 graphs: {
   hugegraph: conf/hugegraph.properties
 }
-plugins:
-  - com.baidu.hugegraph
 scriptEngines: {
   gremlin-groovy: {
-    imports: [java.lang.Math],
-    staticImports: [java.lang.Math.PI],
-    scripts: [scripts/empty-sample.groovy]
+    plugins: {
+      com.baidu.hugegraph.plugin.HugeGraphGremlinPlugin: {},
+      org.apache.tinkerpop.gremlin.server.jsr223.GremlinServerGremlinPlugin: {},
+      org.apache.tinkerpop.gremlin.jsr223.ImportGremlinPlugin: {
+        classImports: [java.lang.Math, com.baidu.hugegraph.util.DateUtil],
+        methodImports: [java.lang.Math#*]
+      },
+      org.apache.tinkerpop.gremlin.jsr223.ScriptFileGremlinPlugin: {
+        files: [scripts/empty-sample.groovy]
+      }
+    }
   }
 }
 serializers:
@@ -20,31 +26,31 @@ serializers:
         serializeResultToString: false,
         ioRegistries: [com.baidu.hugegraph.io.HugeGraphIoRegistry]
       }
-    }
-  - { className: org.apache.tinkerpop.gremlin.driver.ser.GryoMessageSerializerV1d0,
-      config: {
-        serializeResultToString: true,
-        ioRegistries: [com.baidu.hugegraph.io.HugeGraphIoRegistry]
-      }
-    }
-  - { className: org.apache.tinkerpop.gremlin.driver.ser.GraphSONMessageSerializerGremlinV1d0,
+  }
+  - { className: org.apache.tinkerpop.gremlin.driver.ser.GraphBinaryMessageSerializerV1,
       config: {
         serializeResultToString: false,
         ioRegistries: [com.baidu.hugegraph.io.HugeGraphIoRegistry]
       }
-    }
-  - { className: org.apache.tinkerpop.gremlin.driver.ser.GraphSONMessageSerializerGremlinV2d0,
-      config: {
-        serializeResultToString: false,
-        ioRegistries: [com.baidu.hugegraph.io.HugeGraphIoRegistry]
-      }
-    }
+  }
   - { className: org.apache.tinkerpop.gremlin.driver.ser.GraphSONMessageSerializerV1d0,
       config: {
         serializeResultToString: false,
         ioRegistries: [com.baidu.hugegraph.io.HugeGraphIoRegistry]
       }
-    }
+  }
+  - { className: org.apache.tinkerpop.gremlin.driver.ser.GraphSONMessageSerializerV2d0,
+      config: {
+        serializeResultToString: false,
+        ioRegistries: [com.baidu.hugegraph.io.HugeGraphIoRegistry]
+      }
+  }
+  - { className: org.apache.tinkerpop.gremlin.driver.ser.GraphSONMessageSerializerV3d0,
+      config: {
+        serializeResultToString: false,
+        ioRegistries: [com.baidu.hugegraph.io.HugeGraphIoRegistry]
+      }
+  }
 metrics: {
   consoleReporter: {enabled: false, interval: 180000},
   csvReporter: {enabled: true, interval: 180000, fileName: /tmp/gremlin-server-metrics.csv},

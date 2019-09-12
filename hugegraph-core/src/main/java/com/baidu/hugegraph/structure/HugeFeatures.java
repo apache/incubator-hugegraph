@@ -170,11 +170,6 @@ public class HugeFeatures implements Graph.Features {
                                             implements VertexPropertyFeatures {
 
         @Override
-        public boolean supportsAddProperty() {
-            return true;
-        }
-
-        @Override
         public boolean supportsRemoveProperty() {
             return true;
         }

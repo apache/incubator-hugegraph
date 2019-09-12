@@ -27,7 +27,6 @@ import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_WEIG
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.NO_LIMIT;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -49,6 +48,7 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -114,7 +114,7 @@ public class CustomizedPathsAPI extends API {
         for (HugeTraverser.Path p : paths) {
             ids.addAll(p.vertices());
         }
-        Iterator<Vertex> iter = Collections.emptyIterator();
+        Iterator<Vertex> iter = QueryResults.emptyIterator();
         if (!ids.isEmpty()) {
             iter = g.vertices(ids.toArray());
         }

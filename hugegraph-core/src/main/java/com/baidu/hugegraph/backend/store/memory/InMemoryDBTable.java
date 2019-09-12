@@ -20,7 +20,6 @@
 package com.baidu.hugegraph.backend.store.memory;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -34,6 +33,7 @@ import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.IdPrefixQuery;
 import com.baidu.hugegraph.backend.query.IdRangeQuery;
 import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.serializer.TextBackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendSession;
@@ -143,7 +143,7 @@ public class InMemoryDBTable extends BackendTable<BackendSession,
         Iterator<BackendEntry> iterator = rs.values().iterator();
 
         if (query.offset() >= rs.size()) {
-            return Collections.emptyIterator();
+            return QueryResults.emptyIterator();
         }
         iterator = this.skipOffset(iterator, query.offset());
 

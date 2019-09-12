@@ -23,13 +23,11 @@ import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadFactory;
 
-import org.apache.commons.lang3.SystemUtils;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.server.GraphManager;
 import org.apache.tinkerpop.gremlin.server.GremlinServer;
 import org.apache.tinkerpop.gremlin.server.Settings;
 import org.apache.tinkerpop.gremlin.server.util.MetricManager;
-import org.apache.tinkerpop.gremlin.server.util.ServerGremlinExecutor;
 import org.apache.tinkerpop.gremlin.server.util.ThreadFactoryUtil;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.slf4j.Logger;
@@ -40,10 +38,6 @@ import com.baidu.hugegraph.auth.HugeGraphAuthProxy.Context;
 import com.baidu.hugegraph.auth.HugeGraphAuthProxy.ContextThreadPoolExecutor;
 import com.baidu.hugegraph.util.Log;
 
-import io.netty.channel.EventLoopGroup;
-import io.netty.channel.epoll.EpollEventLoopGroup;
-import io.netty.channel.nio.NioEventLoopGroup;
-
 /**
  * GremlinServer with custom ServerGremlinExecutor, which can pass Context
  */
@@ -51,17 +45,11 @@ public class ContextGremlinServer extends GremlinServer {
 
     private static final Logger LOG = Log.logger(ContextGremlinServer.class);
 
-    @SuppressWarnings("deprecation")
     public ContextGremlinServer(final Settings settings) {
         /*
-         * TODO: use GremlinServer(Settings, ExecutorService)
          * which can be obtained from https://github.com/apache/tinkerpop/pull/813
-         *
-         * NOTE: should call GremlinServer::configureMetrics() but it's private
-         * settings.optionalMetrics().ifPresent(GremlinServer::configureMetrics)
          */
-        super(create(settings));
-        settings.optionalMetrics().ifPresent(this::configureMetrics);
+        super(settings, newGremlinExecutorService(settings));
     }
 
     public void injectAuthGraph() {
@@ -92,28 +80,10 @@ public class ContextGremlinServer extends GremlinServer {
         }
     }
 
-    static ServerGremlinExecutor<EventLoopGroup> create(Settings settings) {
+    static ExecutorService newGremlinExecutorService(Settings settings) {
         if (settings.gremlinPool == 0) {
             settings.gremlinPool = Runtime.getRuntime().availableProcessors();
         }
-
-        ExecutorService service = newGremlinExecutorService(settings);
-
-        EventLoopGroup group;
-        boolean isEpollEnabled = settings.useEpollEventLoop &&
-                                 SystemUtils.IS_OS_LINUX;
-        ThreadFactory factory = ThreadFactoryUtil.create("worker-%d");
-        if (isEpollEnabled) {
-            group = new EpollEventLoopGroup(settings.threadPoolWorker, factory);
-        } else {
-            group = new NioEventLoopGroup(settings.threadPoolWorker, factory);
-        }
-
-        return new ServerGremlinExecutor<>(settings, service,
-                                           group, EventLoopGroup.class);
-    }
-
-    static ExecutorService newGremlinExecutorService(Settings settings) {
         int size = settings.gremlinPool;
         ThreadFactory factory = ThreadFactoryUtil.create("exec-%d");
         return new ContextThreadPoolExecutor(size, size, factory);
@@ -146,7 +116,7 @@ public class ContextGremlinServer extends GremlinServer {
             if (config.enabled) {
                 try {
                     metrics.addGangliaReporter(config.host, config.port,
-                                               config.optionalAddressingMode(),
+                                               config.addressingMode,
                                                config.ttl, config.protocol31,
                                                config.hostUUID, config.spoof,
                                                config.interval);
