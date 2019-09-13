@@ -608,8 +608,7 @@ public abstract class TableSerializer extends AbstractSerializer {
                                             TableBackendEntry.Row row);
 
     protected Object writeId(Id id) {
-        String string = IdUtil.writeStoredString(id);
-        return this.escapeString(string);
+        return IdUtil.writeStoredString(id);
     }
 
     protected Id readId(Object id) {
@@ -620,13 +619,6 @@ public abstract class TableSerializer extends AbstractSerializer {
         if (value instanceof Id) {
             value = ((Id) value).asObject();
         }
-        if (value instanceof String) {
-            value = this.escapeString((String) value);
-        }
-        return value;
-    }
-
-    protected String escapeString(String value) {
         return value;
     }
 

@@ -25,8 +25,9 @@ import java.util.List;
 import org.apache.logging.log4j.util.Strings;
 
 import com.baidu.hugegraph.backend.store.mysql.MysqlBackendEntry;
-import com.baidu.hugegraph.backend.store.mysql.MysqlTable;
 import com.baidu.hugegraph.backend.store.mysql.MysqlSessions.Session;
+import com.baidu.hugegraph.backend.store.mysql.MysqlTable;
+import com.baidu.hugegraph.backend.store.mysql.WhereBuilder;
 import com.baidu.hugegraph.type.define.HugeKeys;
 
 public abstract class PostgresqlTable extends MysqlTable {
@@ -38,10 +39,12 @@ public abstract class PostgresqlTable extends MysqlTable {
         super(table);
     }
 
+    @Override
     protected String buildDropTemplate() {
         return String.format("DROP TABLE IF EXISTS %s CASCADE;", this.table());
     }
 
+    @Override
     protected String buildTruncateTemplate() {
         return String.format("TRUNCATE TABLE %s CASCADE;", this.table());
     }
@@ -112,6 +115,7 @@ public abstract class PostgresqlTable extends MysqlTable {
     }
 
     // Set order-by to keep results order consistence for PostgreSQL result
+    @Override
     protected String orderByKeys() {
         if (this.orderByKeys != null) {
             return this.orderByKeys;
@@ -129,5 +133,25 @@ public abstract class PostgresqlTable extends MysqlTable {
         }
         this.orderByKeys = select.toString();
         return this.orderByKeys;
+    }
+
+    @Override
+    protected WhereBuilder newWhereBuilder(boolean startWithWhere) {
+        return new PgWhereBuilder(startWithWhere);
+    }
+
+    private static class PgWhereBuilder extends WhereBuilder {
+
+        public PgWhereBuilder(boolean startWithWhere) {
+            super(startWithWhere);
+        }
+
+        @Override
+        protected String escapeAndWrapString(String value) {
+            if (value.equals("\u0000")) {
+                return "\'\'";
+            }
+            return PostgresqlSessions.escapeAndWrapString(value);
+        }
     }
 }

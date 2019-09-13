@@ -47,16 +47,16 @@ public final class IdUtil {
 
     public static Id readStoredString(String id) {
         IdType type = IdType.valueOfPrefix(id);
-        id = id.substring(1);
+        String idContent = id.substring(1);
         switch (type) {
             case LONG:
             case STRING:
             case UUID:
-                return IdGenerator.ofStoredString(id, type);
+                return IdGenerator.ofStoredString(idContent, type);
             case EDGE:
-                return EdgeId.parseStoredString(id);
+                return EdgeId.parseStoredString(idContent);
             default:
-                throw new AssertionError("Invalid id type " + type);
+                throw new IllegalArgumentException("Invalid id: " + id);
         }
     }
 
@@ -78,17 +78,17 @@ public final class IdUtil {
 
     public static Id readString(String id) {
         IdType type = IdType.valueOfPrefix(id);
-        id = id.substring(1);
+        String idContent = id.substring(1);
         switch (type) {
             case LONG:
-                return IdGenerator.of(Long.parseLong(id));
+                return IdGenerator.of(Long.parseLong(idContent));
             case STRING:
             case UUID:
-                return IdGenerator.of(id, type == IdType.UUID);
+                return IdGenerator.of(idContent, type == IdType.UUID);
             case EDGE:
-                return EdgeId.parse(id);
+                return EdgeId.parse(idContent);
             default:
-                throw new AssertionError("Invalid id type " + type);
+                throw new IllegalArgumentException("Invalid id: " + id);
         }
     }
 

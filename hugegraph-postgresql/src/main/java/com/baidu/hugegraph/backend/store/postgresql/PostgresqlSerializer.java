@@ -52,12 +52,4 @@ public class PostgresqlSerializer extends MysqlSerializer {
         }
         return entry;
     }
-
-    @Override
-    protected String escapeString(String value) {
-        if (value.equals("\u0000")) {
-            return "\'\'";
-        }
-        return PostgresqlSessions.escapeString(value);
-    }
 }

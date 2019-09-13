@@ -731,7 +731,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
         graph().tx().commit();
 
         List<Edge> edges = graph().traversal().E().hasLabel("write")
-                           .has("weight", 0.5).toList();
+                                  .has("weight", 0.5).toList();
         Assert.assertNotNull(edges);
         Assert.assertEquals(1, edges.size());
 
@@ -786,7 +786,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
         graph().tx().commit();
 
         List<Edge> edges = graph().traversal().E().hasLabel("write")
-                           .has("time", "2016-12-12").toList();
+                                  .has("time", "2016-12-12").toList();
         Assert.assertNotNull(edges);
         Assert.assertEquals(1, edges.size());
 

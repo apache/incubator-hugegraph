@@ -305,7 +305,7 @@ public class MysqlTables {
 
             List<Object> list = new ArrayList<>(5);
             list.add(IdUtil.writeStoredString(edgeId.ownerVertexId()));
-            list.add(edgeId.direction().code());
+            list.add(edgeId.directionCode());
             list.add(edgeId.edgeLabelId().asLong());
             list.add(edgeId.sortValues());
             list.add(IdUtil.writeStoredString(edgeId.otherVertexId()));

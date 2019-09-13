@@ -21,6 +21,8 @@ package com.baidu.hugegraph.backend.store.mysql;
 
 import java.util.List;
 
+import com.baidu.hugegraph.backend.query.Condition.RelationType;
+import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.util.E;
 
 public class WhereBuilder {
@@ -36,6 +38,45 @@ public class WhereBuilder {
             this.builder = new StringBuilder(" WHERE ");
         } else {
             this.builder = new StringBuilder(" ");
+        }
+    }
+
+    public void relation(String key, RelationType type, Object value) {
+        String relation = null;
+        switch (type) {
+            case EQ:
+                relation = "=";
+                break;
+            case NEQ:
+                relation = "!=";
+                break;
+            case GT:
+                relation = ">";
+                break;
+            case GTE:
+                relation = ">=";
+                break;
+            case LT:
+                relation = "<";
+                break;
+            case LTE:
+                relation = "<=";
+                break;
+            case IN:
+                @SuppressWarnings("unchecked")
+                List<Object> values = (List<Object>) value;
+                this.in(key, values);
+                break;
+            case CONTAINS_VALUE:
+            case CONTAINS_KEY:
+            case SCAN:
+            default:
+                throw new NotSupportException("relation '%s'", relation);
+        }
+        if (relation != null) {
+            this.builder.append(key);
+            this.builder.append(relation);
+            this.builder.append(wrapStringIfNeeded(value));
         }
     }
 
@@ -94,11 +135,7 @@ public class WhereBuilder {
             this.builder.append(keys.get(i));
             this.builder.append(operator);
             Object value = values.get(i);
-            if (value instanceof String) {
-                this.builder.append(MysqlUtil.escapeString((String) value));
-            } else {
-                this.builder.append(value);
-            }
+            this.builder.append(wrapStringIfNeeded(value));
             if (i != n - 1) {
                 this.builder.append(" AND ");
             }
@@ -130,11 +167,7 @@ public class WhereBuilder {
             this.builder.append(keys.get(i));
             this.builder.append(operators.get(i));
             Object value = values.get(i);
-            if (value instanceof String) {
-                this.builder.append(MysqlUtil.escapeString((String) value));
-            } else {
-                this.builder.append(value);
-            }
+            this.builder.append(wrapStringIfNeeded(value));
             if (i != n - 1) {
                 this.builder.append(" AND ");
             }
@@ -168,11 +201,7 @@ public class WhereBuilder {
         this.builder.append(key).append(" IN (");
         for (int i = 0, n = values.size(); i < n; i++) {
             Object value = values.get(i);
-            if (value instanceof String) {
-                this.builder.append(MysqlUtil.escapeString((String) value));
-            } else {
-                this.builder.append(value);
-            }
+            this.builder.append(wrapStringIfNeeded(value));
             if (i != n - 1) {
                 this.builder.append(", ");
             }
@@ -200,11 +229,7 @@ public class WhereBuilder {
         this.builder.append(") >= (");
         for (int i = 0, n = values.size(); i < n; i++) {
             Object value = values.get(i);
-            if (value instanceof String) {
-                this.builder.append(MysqlUtil.escapeString((String) value));
-            } else {
-                this.builder.append(value);
-            }
+            this.builder.append(wrapStringIfNeeded(value));
             if (i != n - 1) {
                 this.builder.append(", ");
             }
@@ -212,12 +237,24 @@ public class WhereBuilder {
         this.builder.append(")");
     }
 
-    public String build() {
-        return this.builder.toString();
+    public StringBuilder build() {
+        return this.builder;
     }
 
     @Override
     public String toString() {
         return this.builder.toString();
+    }
+
+    protected String wrapStringIfNeeded(Object value) {
+        if (value instanceof String) {
+            return this.escapeAndWrapString((String) value);
+        } else {
+            return String.valueOf(value);
+        }
+    }
+
+    protected String escapeAndWrapString(String value) {
+        return MysqlUtil.escapeAndWrapString(value);
     }
 }
