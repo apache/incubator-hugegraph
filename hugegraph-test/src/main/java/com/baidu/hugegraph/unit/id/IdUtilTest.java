@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.unit.util;
+package com.baidu.hugegraph.unit.id;
 
 import java.nio.ByteBuffer;
 

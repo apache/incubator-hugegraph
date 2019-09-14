@@ -17,10 +17,11 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.unit.core;
+package com.baidu.hugegraph.unit.id;
 
-import org.junit.After;
-import org.junit.Before;
+import java.nio.ByteBuffer;
+import java.util.UUID;
+
 import org.junit.Test;
 
 import com.baidu.hugegraph.backend.id.Id;
@@ -33,16 +34,6 @@ import com.baidu.hugegraph.util.StringEncoding;
 import com.google.common.primitives.Bytes;
 
 public class IdTest extends BaseUnitTest {
-
-    @Before
-    public void setup() {
-        // pass
-    }
-
-    @After
-    public void teardown() {
-        // pass
-    }
 
     @Test
     public void testStringId() {
@@ -142,6 +133,75 @@ public class IdTest extends BaseUnitTest {
                             IdGenerator.asStoredString(id));
         Assert.assertEquals(id, IdGenerator.ofStoredString(
                                 "g14RU5KBSVeGkc95JY6Q6w==", IdType.UUID));
+    }
+
+    @Test
+    public void testObjectId() {
+        Object object = ByteBuffer.wrap(new byte[]{1, 2});
+        Object object2 = ByteBuffer.wrap(new byte[]{2, 2});
+        Id id = IdGenerator.of(object);
+        Assert.assertEquals(IdType.UNKNOWN, id.type());
+        Assert.assertEquals(object, id.asObject());
+        Assert.assertEquals(object.hashCode(), id.hashCode());
+        Assert.assertEquals(object.toString(), id.toString());
+        Assert.assertTrue(id.equals(IdGenerator.of(object)));
+        Assert.assertFalse(id.equals(IdGenerator.of(object2)));
+        Assert.assertFalse(id.equals(object));
+
+        Assert.assertThrows(UnsupportedOperationException.class, () -> {
+            id.asString();
+        });
+        Assert.assertThrows(UnsupportedOperationException.class, () -> {
+            id.asLong();
+        });
+        Assert.assertThrows(UnsupportedOperationException.class, () -> {
+            id.asBytes();
+        });
+        Assert.assertThrows(UnsupportedOperationException.class, () -> {
+            id.compareTo(id);
+        });
+        Assert.assertThrows(UnsupportedOperationException.class, () -> {
+            id.length();
+        });
+    }
+
+    @Test
+    public void testOfObjectId() {
+        Object any1 = 123;
+        Id id1 = IdGenerator.of(any1);
+        Assert.assertEquals(IdType.LONG, id1.type());
+        Assert.assertEquals(123L, id1.asObject());
+
+        Object any2 = 123L;
+        Id id2 = IdGenerator.of(any2);
+        Assert.assertEquals(id1, id2);
+
+        Object any3 = "123";
+        Id id3 = IdGenerator.of(any3);
+        Assert.assertEquals(IdType.STRING, id3.type());
+        Assert.assertEquals("123", id3.asObject());
+
+        Object any4 = "12" + "3";
+        Id id4 = IdGenerator.of(any4);
+        Assert.assertEquals(id3, id4);
+
+        Object any5 = UUID.randomUUID();
+        Id id5 = IdGenerator.of(any5);
+        Assert.assertEquals(IdType.UUID, id5.type());
+        Assert.assertEquals(any5, id5.asObject());
+
+        Object any6 = UUID.fromString(any5.toString());
+        Id id6 = IdGenerator.of(any6);
+        Assert.assertEquals(id5, id6);
+
+        Object any7 = ByteBuffer.wrap(new byte[]{1, 2});
+        Id id7 = IdGenerator.of(any7);
+        Assert.assertEquals(IdType.UNKNOWN, id7.type());
+        Assert.assertEquals(ByteBuffer.wrap(new byte[]{1, 2}), id7.asObject());
+
+        Object any8 = ByteBuffer.wrap(new byte[]{1, 2});
+        Id id8 = IdGenerator.of(any8);
+        Assert.assertEquals(id7, id8);
     }
 
     @Test

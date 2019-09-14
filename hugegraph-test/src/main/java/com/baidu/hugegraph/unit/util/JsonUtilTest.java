@@ -24,8 +24,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.tinkerpop.shaded.jackson.core.type.TypeReference;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -58,16 +56,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 public class JsonUtilTest extends BaseUnitTest {
-
-    @Before
-    public void setup() {
-        // pass
-    }
-
-    @After
-    public void teardown() {
-        // pass
-    }
 
     @Test
     public void testSerializeStringId() {
@@ -295,7 +283,7 @@ public class JsonUtilTest extends BaseUnitTest {
     @Test
     public void testDeserializeList() {
         String json = "[\"1\", \"2\", \"3\"]";
-        TypeReference typeRef = new TypeReference<List<Integer>>() {};
+        TypeReference<?> typeRef = new TypeReference<List<Integer>>() {};
         Assert.assertEquals(ImmutableList.of(1, 2, 3),
                             JsonUtil.fromJson(json, typeRef));
     }

@@ -41,26 +41,26 @@ public class WhereBuilder {
         }
     }
 
-    public void relation(String key, RelationType type, Object value) {
-        String relation = null;
+    public WhereBuilder relation(String key, RelationType type, Object value) {
+        String operator = null;
         switch (type) {
             case EQ:
-                relation = "=";
+                operator = "=";
                 break;
             case NEQ:
-                relation = "!=";
+                operator = "!=";
                 break;
             case GT:
-                relation = ">";
+                operator = ">";
                 break;
             case GTE:
-                relation = ">=";
+                operator = ">=";
                 break;
             case LT:
-                relation = "<";
+                operator = "<";
                 break;
             case LTE:
-                relation = "<=";
+                operator = "<=";
                 break;
             case IN:
                 @SuppressWarnings("unchecked")
@@ -71,39 +71,42 @@ public class WhereBuilder {
             case CONTAINS_KEY:
             case SCAN:
             default:
-                throw new NotSupportException("relation '%s'", relation);
+                throw new NotSupportException("relation '%s'", type);
         }
-        if (relation != null) {
+        if (operator != null) {
             this.builder.append(key);
-            this.builder.append(relation);
+            this.builder.append(operator);
             this.builder.append(wrapStringIfNeeded(value));
         }
+        return this;
     }
 
     /**
-     * Concat as: key1 = value and key2 = value...
-     * @param keys the keys to be concatted with value
-     * @param value the value to be concatted with every key
+     * Concat as: cond1 and cond2...
+     * @return WhereBuilder
      */
-    public void and(List<String> keys, String value) {
-        this.and(keys, " = ", value);
+    public WhereBuilder and() {
+        this.builder.append(" AND ");
+        return this;
     }
 
     /**
-     * Concat as: key1 op value and key2 op value...
+     * Concat as: key1 op ? and key2 op ?...
      * @param keys the keys to be concatted with value
      * @param operator the operator to link every key and value pair
      * @param value the value to be concatted with every key
+     * @return WhereBuilder
      */
-    public void and(List<String> keys, String operator, String value) {
+    public WhereBuilder and(List<String> keys, String operator) {
         for (int i = 0, n = keys.size(); i < n; i++) {
             this.builder.append(keys.get(i));
             this.builder.append(operator);
-            this.builder.append(value);
+            this.builder.append("?");
             if (i != n - 1) {
                 this.builder.append(" AND ");
             }
         }
+        return this;
     }
 
     /**
@@ -112,9 +115,10 @@ public class WhereBuilder {
      *             same index
      * @param values the values to be concatted with every keys according to
      *               the same index
+     * @return WhereBuilder
      */
-    public void and(List<String> keys, List<Object> values) {
-        this.and(keys, " = ", values);
+    public WhereBuilder and(List<String> keys, List<Object> values) {
+        return this.and(keys, "=", values);
     }
 
     /**
@@ -124,8 +128,11 @@ public class WhereBuilder {
      * @param operator the operator to link every key and value pair
      * @param values the values to be concatted with every keys according to
      *               the same index
+     * @return WhereBuilder
      */
-    public void and(List<String> keys, String operator, List<Object> values) {
+    public WhereBuilder and(List<String> keys,
+                            String operator,
+                            List<Object> values) {
         E.checkArgument(keys.size() == values.size(),
                         "The size of keys '%s' is not equal with " +
                         "values size '%s'",
@@ -134,12 +141,12 @@ public class WhereBuilder {
         for (int i = 0, n = keys.size(); i < n; i++) {
             this.builder.append(keys.get(i));
             this.builder.append(operator);
-            Object value = values.get(i);
-            this.builder.append(wrapStringIfNeeded(value));
+            this.builder.append(wrapStringIfNeeded(values.get(i)));
             if (i != n - 1) {
                 this.builder.append(" AND ");
             }
         }
+        return this;
     }
 
     /**
@@ -150,10 +157,11 @@ public class WhereBuilder {
      *                  according to the same index
      * @param values the values to be concatted with every keys according to
      *               the same index
+     * @return WhereBuilder
      */
-    public void and(List<String> keys,
-                    List<String> operators,
-                    List<Object> values) {
+    public WhereBuilder and(List<String> keys,
+                            List<String> operators,
+                            List<Object> values) {
         E.checkArgument(keys.size() == operators.size(),
                         "The size of keys '%s' is not equal with " +
                         "operators size '%s'",
@@ -166,19 +174,20 @@ public class WhereBuilder {
         for (int i = 0, n = keys.size(); i < n; i++) {
             this.builder.append(keys.get(i));
             this.builder.append(operators.get(i));
-            Object value = values.get(i);
-            this.builder.append(wrapStringIfNeeded(value));
+            this.builder.append(wrapStringIfNeeded(values.get(i)));
             if (i != n - 1) {
                 this.builder.append(" AND ");
             }
         }
+        return this;
     }
 
     /**
      * Concat as: clause1 and clause2...
      * @param clauses the clauses to be concatted with 'AND' operator
+     * @return WhereBuilder
      */
-    public void and(List<StringBuilder> clauses) {
+    public WhereBuilder and(List<StringBuilder> clauses) {
         E.checkArgument(clauses != null && !clauses.isEmpty(),
                         "The clauses can't be empty");
 
@@ -190,31 +199,34 @@ public class WhereBuilder {
                 this.builder.append(" AND ");
             }
         }
+        return this;
     }
 
     /**
      * Concat as: key in (value1, value2...)
      * @param key the key to be concatted with 'IN' operator
      * @param values the values to be concated with ',' and wappred by '()'
+     * @return WhereBuilder
      */
-    public void in(String key, List<Object> values) {
+    public WhereBuilder in(String key, List<Object> values) {
         this.builder.append(key).append(" IN (");
         for (int i = 0, n = values.size(); i < n; i++) {
-            Object value = values.get(i);
-            this.builder.append(wrapStringIfNeeded(value));
+            this.builder.append(wrapStringIfNeeded(values.get(i)));
             if (i != n - 1) {
                 this.builder.append(", ");
             }
         }
         this.builder.append(")");
+        return this;
     }
 
     /**
      * Concat as: (key1, key2...keyn) {@code >=} (val1, val2...valn)
      * @param keys the keys to be concatted with {@code >=} operator
      * @param values the values to be concatted with {@code >=} operator
+     * @return WhereBuilder
      */
-    public void gte(List<String> keys, List<Object> values) {
+    public WhereBuilder gte(List<String> keys, List<Object> values) {
         E.checkArgument(keys.size() == values.size(),
                         "The size of keys '%s' is not equal with " +
                         "values size '%s'",
@@ -228,13 +240,13 @@ public class WhereBuilder {
         }
         this.builder.append(") >= (");
         for (int i = 0, n = values.size(); i < n; i++) {
-            Object value = values.get(i);
-            this.builder.append(wrapStringIfNeeded(value));
+            this.builder.append(wrapStringIfNeeded(values.get(i)));
             if (i != n - 1) {
                 this.builder.append(", ");
             }
         }
         this.builder.append(")");
+        return this;
     }
 
     public StringBuilder build() {

@@ -648,12 +648,16 @@ public class CassandraTables {
                     HugeKeys.INDEX_LABEL_ID, TYPE_IL
             );
             ImmutableMap<HugeKeys, DataType> ckeys = ImmutableMap.of(
-                    HugeKeys.FIELD_VALUES, DataType.decimal(),
+                    HugeKeys.FIELD_VALUES, this.fieldValuesType(),
                     HugeKeys.ELEMENT_IDS, TYPE_ID
             );
             ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of();
 
             this.createTable(session, pkeys, ckeys, columns);
+        }
+
+        protected DataType fieldValuesType() {
+            return DataType.decimal();
         }
 
         @Override
@@ -719,17 +723,8 @@ public class CassandraTables {
         }
 
         @Override
-        public void init(CassandraSessionPool.Session session) {
-            ImmutableMap<HugeKeys, DataType> pkeys = ImmutableMap.of(
-                    HugeKeys.INDEX_LABEL_ID, TYPE_IL
-            );
-            ImmutableMap<HugeKeys, DataType> ckeys = ImmutableMap.of(
-                    HugeKeys.FIELD_VALUES, DataType.cint(),
-                    HugeKeys.ELEMENT_IDS, TYPE_ID
-            );
-            ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of();
-
-            this.createTable(session, pkeys, ckeys, columns);
+        protected DataType fieldValuesType() {
+            return DataType.cint();
         }
     }
 
@@ -742,17 +737,8 @@ public class CassandraTables {
         }
 
         @Override
-        public void init(CassandraSessionPool.Session session) {
-            ImmutableMap<HugeKeys, DataType> pkeys = ImmutableMap.of(
-                    HugeKeys.INDEX_LABEL_ID, TYPE_IL
-            );
-            ImmutableMap<HugeKeys, DataType> ckeys = ImmutableMap.of(
-                    HugeKeys.FIELD_VALUES, DataType.cfloat(),
-                    HugeKeys.ELEMENT_IDS, TYPE_ID
-            );
-            ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of();
-
-            this.createTable(session, pkeys, ckeys, columns);
+        protected DataType fieldValuesType() {
+            return DataType.cfloat();
         }
     }
 
@@ -765,17 +751,9 @@ public class CassandraTables {
         }
 
         @Override
-        public void init(CassandraSessionPool.Session session) {
-            ImmutableMap<HugeKeys, DataType> pkeys = ImmutableMap.of(
-                    HugeKeys.INDEX_LABEL_ID, TYPE_IL
-            );
-            ImmutableMap<HugeKeys, DataType> ckeys = ImmutableMap.of(
-                    HugeKeys.FIELD_VALUES, DataType.bigint(),
-                    HugeKeys.ELEMENT_IDS, TYPE_ID
-            );
-            ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of();
-
-            this.createTable(session, pkeys, ckeys, columns);
+        protected DataType fieldValuesType() {
+            // TODO: DataType.varint()
+            return DataType.bigint();
         }
     }
 
@@ -788,17 +766,8 @@ public class CassandraTables {
         }
 
         @Override
-        public void init(CassandraSessionPool.Session session) {
-            ImmutableMap<HugeKeys, DataType> pkeys = ImmutableMap.of(
-                    HugeKeys.INDEX_LABEL_ID, TYPE_IL
-            );
-            ImmutableMap<HugeKeys, DataType> ckeys = ImmutableMap.of(
-                    HugeKeys.FIELD_VALUES, DataType.cdouble(),
-                    HugeKeys.ELEMENT_IDS, TYPE_ID
-            );
-            ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of();
-
-            this.createTable(session, pkeys, ckeys, columns);
+        protected DataType fieldValuesType() {
+            return DataType.cdouble();
         }
     }
 
@@ -811,17 +780,8 @@ public class CassandraTables {
         }
 
         @Override
-        public void init(CassandraSessionPool.Session session) {
-            ImmutableMap<HugeKeys, DataType> pkeys = ImmutableMap.of(
-                    HugeKeys.INDEX_LABEL_ID, TYPE_IL
-            );
-            ImmutableMap<HugeKeys, DataType> ckeys = ImmutableMap.of(
-                    HugeKeys.FIELD_VALUES, DataType.text(),
-                    HugeKeys.ELEMENT_IDS, TYPE_ID
-            );
-            ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of();
-
-            this.createTable(session, pkeys, ckeys, columns);
+        protected DataType fieldValuesType() {
+            return DataType.text();
         }
 
         @Override

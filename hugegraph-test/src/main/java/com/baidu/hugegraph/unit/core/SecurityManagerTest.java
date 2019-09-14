@@ -293,9 +293,9 @@ public class SecurityManagerTest {
                .job(new GremlinAPI.GremlinJob());
         HugeTask<?> task = builder.schedule();
         try {
-            graph.taskScheduler().waitUntilTaskCompleted(task.id(), 5);
+            graph.taskScheduler().waitUntilTaskCompleted(task.id(), 10);
         } catch (TimeoutException e) {
-            throw new HugeException("Wait task %s timeout", e, task);
+            throw new HugeException("Wait task timeout: %s", e, task);
         }
         return task.result();
     }

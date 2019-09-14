@@ -195,7 +195,7 @@ public abstract class MysqlTable
         this.appendPartition(delete);
 
         WhereBuilder where = this.newWhereBuilder();
-        where.and(formatKeys(idNames), "?");
+        where.and(formatKeys(idNames), "=");
         delete.append(where.build());
 
         this.deleteTemplate = delete.toString();
