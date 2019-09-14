@@ -22,13 +22,13 @@ package com.baidu.hugegraph.backend.serializer;
 import org.apache.commons.lang.NotImplementedException;
 
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumn;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.structure.HugeVertexProperty;
-import com.baidu.hugegraph.util.Bytes;
 
 public class BinaryInlineSerializer extends BinarySerializer {
 
@@ -67,17 +67,18 @@ public class BinaryInlineSerializer extends BinarySerializer {
 
         // Parse id
         Id id = entry.id().origin();
-        HugeVertex vertex = new HugeVertex(graph, id, VertexLabel.NONE);
+        Id vid = id.edge() ? ((EdgeId) id).ownerVertexId() : id;
+        HugeVertex vertex = new HugeVertex(graph, vid, VertexLabel.NONE);
 
         // Parse all properties and edges of a Vertex
         for (BackendColumn col : entry.columns()) {
-            if (Bytes.equals(entry.id().asBytes(), col.name)) {
+            if (id.edge()) {
+                // Parse vertex edges
+                this.parseColumn(col, vertex);
+            } else {
                 // Parse vertex properties
                 assert entry.columnsSize() == 1 : entry.columnsSize();
                 this.parseVertex(col.value, vertex);
-            } else {
-                // Parse vertex edges
-                this.parseColumn(col, vertex);
             }
         }
 

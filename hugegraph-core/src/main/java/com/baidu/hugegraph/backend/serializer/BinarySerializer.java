@@ -428,7 +428,7 @@ public class BinarySerializer extends AbstractSerializer {
     }
 
     @Override
-    public HugeEdge readEdge(HugeGraph graph, BackendEntry entry) {
+    public HugeEdge readEdge(HugeGraph graph, BackendEntry bytesEntry) {
         throw new NotImplementedException("Unsupported readEdge()");
     }
 
