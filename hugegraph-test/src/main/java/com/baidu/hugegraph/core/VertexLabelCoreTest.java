@@ -933,7 +933,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
     }
 
     @Test
-    public void testListEdgeLabels() {
+    public void testListVertexLabels() {
         super.initPropertyKeys();
         SchemaManager schema = graph().schema();
         VertexLabel person = schema.vertexLabel("person")

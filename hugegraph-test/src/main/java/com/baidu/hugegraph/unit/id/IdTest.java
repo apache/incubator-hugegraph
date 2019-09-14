@@ -202,6 +202,10 @@ public class IdTest extends BaseUnitTest {
         Object any8 = ByteBuffer.wrap(new byte[]{1, 2});
         Id id8 = IdGenerator.of(any8);
         Assert.assertEquals(id7, id8);
+
+        Object any9 = id1;
+        Id id9 = IdGenerator.of(any9);
+        Assert.assertEquals(any9, id9);
     }
 
     @Test

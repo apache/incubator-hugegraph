@@ -68,7 +68,7 @@ public class SerializerFactory {
         // Check subclass
         if (!AbstractSerializer.class.isAssignableFrom(clazz)) {
             throw new BackendException("Class is not a subclass of class " +
-                                       "AbstractSerializer:  '%s'", classPath);
+                                       "AbstractSerializer: '%s'", classPath);
         }
 
         // Check exists

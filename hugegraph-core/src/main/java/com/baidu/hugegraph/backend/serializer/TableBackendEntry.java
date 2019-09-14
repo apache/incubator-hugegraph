@@ -84,12 +84,14 @@ public class TableBackendEntry implements BackendEntry {
                     this.column(key, value);
                     break;
                 case SET:
+                    // Avoid creating new Set when the key exists
                     if (!this.columns.containsKey(key)) {
                         this.columns.putIfAbsent(key, new LinkedHashSet<>());
                     }
                     this.<Set<T>>column(key).add(value);
                     break;
                 case LIST:
+                    // Avoid creating new List when the key exists
                     if (!this.columns.containsKey(key)) {
                         this.columns.putIfAbsent(key, new LinkedList<>());
                     }

@@ -295,7 +295,7 @@ public class SecurityManagerTest {
         try {
             graph.taskScheduler().waitUntilTaskCompleted(task.id(), 10);
         } catch (TimeoutException e) {
-            throw new HugeException("Wait task timeout: %s", e, task);
+            throw new HugeException("Wait for task timeout: %s", e, task);
         }
         return task.result();
     }

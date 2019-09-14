@@ -140,6 +140,10 @@ public class CassandraSerializer extends TableSerializer {
 
     @Override
     protected Object writeProperty(Object value) {
+        /*
+         * Since we can't know the type of the property value in some scenarios,
+         * so need to construct a fake property key to serialize to reuse code.
+         */
         PropertyKey pkey = new PropertyKey(null, IdGenerator.of(0L), "fake");
         pkey.dataType(DataType.fromClass(value.getClass()));
         BytesBuffer buffer = BytesBuffer.allocate(BytesBuffer.BUF_PROPERTY);
