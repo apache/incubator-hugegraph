@@ -35,6 +35,7 @@ import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.type.define.Frequency;
+import com.baidu.hugegraph.util.Events;
 
 public class EdgeLabelCoreTest extends SchemaCoreTest {
 
@@ -46,15 +47,13 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
               .properties("name", "age", "city")
               .primaryKeys("name")
               .create();
-        schema.vertexLabel("author").properties("id", "name")
-              .primaryKeys("id").create();
         schema.vertexLabel("book").properties("id", "name")
               .primaryKeys("id").create();
         EdgeLabel look = schema.edgeLabel("look").multiTimes()
-                         .properties("time")
-                         .link("person", "book")
-                         .sortKeys("time")
-                         .create();
+                               .properties("time")
+                               .link("person", "book")
+                               .sortKeys("time")
+                               .create();
 
         Assert.assertNotNull(look);
         Assert.assertEquals("look", look.name());
@@ -114,13 +113,11 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
               .properties("name", "age", "city")
               .primaryKeys("name")
               .create();
-        schema.vertexLabel("author").properties("id", "name")
-              .primaryKeys("id").create();
         schema.vertexLabel("book").properties("id", "name")
               .primaryKeys("id").create();
         EdgeLabel look = schema.edgeLabel("look").properties("time")
-                         .link("person", "book")
-                         .create();
+                               .link("person", "book")
+                               .create();
 
         Assert.assertNotNull(look);
         Assert.assertEquals("look", look.name());
@@ -140,13 +137,11 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
               .properties("name", "age", "city")
               .primaryKeys("name")
               .create();
-        schema.vertexLabel("author").properties("id", "name")
-              .primaryKeys("id").create();
         schema.vertexLabel("book").properties("id", "name")
               .primaryKeys("id").create();
         EdgeLabel look = schema.edgeLabel("look").singleTime()
-                         .link("person", "book")
-                         .create();
+                               .link("person", "book")
+                               .create();
 
         Assert.assertNotNull(look);
         Assert.assertEquals("look", look.name());
@@ -161,12 +156,6 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
     public void testAddEdgeLabelWithoutLink() {
         super.initPropertyKeys();
         SchemaManager schema = graph().schema();
-        schema.vertexLabel("person")
-              .properties("name", "age", "city")
-              .primaryKeys("name")
-              .create();
-        schema.vertexLabel("author").properties("id", "name")
-              .primaryKeys("id").create();
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.edgeLabel("look").multiTimes()
@@ -184,7 +173,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
               .properties("name", "age", "city")
               .primaryKeys("name")
               .create();
-        schema.vertexLabel("author").properties("id", "name")
+        schema.vertexLabel("book").properties("id", "name")
               .primaryKeys("id").create();
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
@@ -198,11 +187,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
     public void testAddEdgeLabelWithNotExistVertexLabel() {
         super.initPropertyKeys();
         SchemaManager schema = graph().schema();
-        schema.vertexLabel("person")
-              .properties("name", "age", "city")
-              .primaryKeys("name")
-              .create();
-        schema.vertexLabel("author").properties("id", "name")
+        schema.vertexLabel("book").properties("id", "name")
               .primaryKeys("id").create();
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
@@ -303,8 +288,6 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
               .properties("name", "age", "city")
               .primaryKeys("name")
               .create();
-        schema.vertexLabel("author").properties("id", "name")
-              .primaryKeys("id").create();
         schema.vertexLabel("book").properties("id", "name")
               .primaryKeys("id").create();
         EdgeLabel look = schema.edgeLabel("look")
@@ -407,6 +390,89 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
                   .link("person", "book")
                   .create();
         });
+    }
+
+    @Test
+    public void testAddEdgeLabelWithEnableLabelIndex() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+
+        schema.vertexLabel("person")
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .nullableKeys("city")
+              .create();
+
+        schema.vertexLabel("book")
+              .properties("name")
+              .primaryKeys("name")
+              .create();
+
+        EdgeLabel write = schema.edgeLabel("write").link("person", "book")
+                                .properties("time", "weight")
+                                .enableLabelIndex(true)
+                                .create();
+        Assert.assertEquals(true, write.enableLabelIndex());
+
+        Vertex marko = graph().addVertex(T.label, "person", "name", "marko",
+                                         "age", 22);
+        Vertex java = graph().addVertex(T.label, "book",
+                                        "name", "java in action");
+        Vertex hadoop = graph().addVertex(T.label, "book",
+                                          "name", "hadoop mapreduce");
+
+        marko.addEdge("write", java, "time", "2016-12-12", "weight", 0.3);
+        marko.addEdge("write", hadoop, "time", "2014-2-28", "weight", 0.5);
+        graph().tx().commit();
+
+        List<Edge> edges = graph().traversal().E().hasLabel("write").toList();
+        Assert.assertEquals(2, edges.size());
+    }
+
+    @Test
+    public void testAddEdgeLabelWithDisableeLabelIndex() {
+        super.initPropertyKeys();
+        HugeGraph graph =  graph();
+        SchemaManager schema = graph.schema();
+
+        schema.vertexLabel("person")
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .nullableKeys("city")
+              .create();
+
+        schema.vertexLabel("book")
+              .properties("name")
+              .primaryKeys("name")
+              .create();
+
+        EdgeLabel write = schema.edgeLabel("write").link("person", "book")
+                                .properties("time", "weight")
+                                .enableLabelIndex(false)
+                                .create();
+        Assert.assertEquals(false, write.enableLabelIndex());
+
+        Vertex marko = graph.addVertex(T.label, "person", "name", "marko",
+                                       "age", 22);
+        Vertex java = graph.addVertex(T.label, "book",
+                                      "name", "java in action");
+        Vertex hadoop = graph.addVertex(T.label, "book",
+                                        "name", "hadoop mapreduce");
+
+        marko.addEdge("write", java, "time", "2016-12-12", "weight", 0.3);
+        marko.addEdge("write", hadoop, "time", "2014-2-28", "weight", 0.5);
+        graph.tx().commit();
+
+        BackendFeatures features = graph.graphTransaction().store().features();
+        if (!features.supportsQueryByLabel()) {
+            Assert.assertThrows(NoIndexException.class, () -> {
+                graph.traversal().E().hasLabel("write").toList();
+            });
+        } else {
+            List<Edge> edges = graph.traversal().E().hasLabel("write")
+                                    .toList();
+            Assert.assertEquals(2, edges.size());
+        }
     }
 
     @Test
@@ -974,85 +1040,41 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
     }
 
     @Test
-    public void testAddEdgeLabelWithEnableLabelIndex() {
+    public void testListEdgeLabels() {
         super.initPropertyKeys();
         SchemaManager schema = graph().schema();
-
         schema.vertexLabel("person")
               .properties("name", "age", "city")
               .primaryKeys("name")
-              .nullableKeys("city")
               .create();
-
-        schema.vertexLabel("book")
-              .properties("name")
-              .primaryKeys("name")
-              .create();
-
-        EdgeLabel write = schema.edgeLabel("write").link("person", "book")
-                                .properties("time", "weight")
-                                .enableLabelIndex(true)
+        schema.vertexLabel("author").properties("id", "name")
+              .primaryKeys("id").create();
+        schema.vertexLabel("book").properties("id", "name")
+              .primaryKeys("id").create();
+        EdgeLabel look = schema.edgeLabel("look").multiTimes()
+                               .properties("time")
+                               .link("person", "book")
+                               .sortKeys("time")
+                               .create();
+        EdgeLabel write = schema.edgeLabel("write").multiTimes()
+                                .properties("time")
+                                .link("author", "book")
+                                .sortKeys("time")
                                 .create();
-        Assert.assertEquals(true, write.enableLabelIndex());
 
-        Vertex marko = graph().addVertex(T.label, "person", "name", "marko",
-                                         "age", 22);
-        Vertex java = graph().addVertex(T.label, "book",
-                                        "name", "java in action");
-        Vertex hadoop = graph().addVertex(T.label, "book",
-                                          "name", "hadoop mapreduce");
+        List<EdgeLabel> edgeLabels = schema.getEdgeLabels();
+        Assert.assertEquals(2, edgeLabels.size());
+        Assert.assertTrue(edgeLabels.contains(look));
+        Assert.assertTrue(edgeLabels.contains(write));
 
-        marko.addEdge("write", java, "time", "2016-12-12", "weight", 0.3);
-        marko.addEdge("write", hadoop, "time", "2014-2-28", "weight", 0.5);
-        graph().tx().commit();
+        // clear cache
+        graph().schemaEventHub().call(Events.CACHE, "clear", null);
 
-        List<Edge> edges = graph().traversal().E().hasLabel("write").toList();
-        Assert.assertEquals(2, edges.size());
-    }
+        Assert.assertEquals(look, schema.getEdgeLabel("look"));
 
-    @Test
-    public void testAddEdgeLabelWithDisableeLabelIndex() {
-        super.initPropertyKeys();
-        HugeGraph graph =  graph();
-        SchemaManager schema = graph.schema();
-
-        schema.vertexLabel("person")
-              .properties("name", "age", "city")
-              .primaryKeys("name")
-              .nullableKeys("city")
-              .create();
-
-        schema.vertexLabel("book")
-              .properties("name")
-              .primaryKeys("name")
-              .create();
-
-        EdgeLabel write = schema.edgeLabel("write").link("person", "book")
-                                .properties("time", "weight")
-                                .enableLabelIndex(false)
-                                .create();
-        Assert.assertEquals(false, write.enableLabelIndex());
-
-        Vertex marko = graph.addVertex(T.label, "person", "name", "marko",
-                                       "age", 22);
-        Vertex java = graph.addVertex(T.label, "book",
-                                      "name", "java in action");
-        Vertex hadoop = graph.addVertex(T.label, "book",
-                                        "name", "hadoop mapreduce");
-
-        marko.addEdge("write", java, "time", "2016-12-12", "weight", 0.3);
-        marko.addEdge("write", hadoop, "time", "2014-2-28", "weight", 0.5);
-        graph.tx().commit();
-
-        BackendFeatures features = graph.graphTransaction().store().features();
-        if (!features.supportsQueryByLabel()) {
-            Assert.assertThrows(NoIndexException.class, () -> {
-                graph.traversal().E().hasLabel("write").toList();
-            });
-        } else {
-            List<Edge> edges = graph.traversal().E().hasLabel("write")
-                                    .toList();
-            Assert.assertEquals(2, edges.size());
-        }
+        edgeLabels = schema.getEdgeLabels();
+        Assert.assertEquals(2, edgeLabels.size());
+        Assert.assertTrue(edgeLabels.contains(look));
+        Assert.assertTrue(edgeLabels.contains(write));
     }
 }

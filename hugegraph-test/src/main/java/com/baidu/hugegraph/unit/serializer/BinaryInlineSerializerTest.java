@@ -17,15 +17,16 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.unit.cassandra;
+package com.baidu.hugegraph.unit.serializer;
 
 import org.junit.Test;
 
 import com.baidu.hugegraph.unit.BaseUnitTest;
 
-public class TableBackendEntryTest extends BaseUnitTest {
+public class BinaryInlineSerializerTest extends BaseUnitTest {
 
     @Test
-    public void testStringId() {
+    public void testWriteVertex() {
+        // TODO: mock graph for BinaryInlineSerializer
     }
 }

@@ -44,7 +44,7 @@ public class SerializerFactory {
 
         Class<? extends AbstractSerializer> clazz = serializers.get(name);
         if (clazz == null) {
-            throw new BackendException("Not exists serializer: %s", name);
+            throw new BackendException("Not exists serializer: '%s'", name);
         }
 
         assert AbstractSerializer.class.isAssignableFrom(clazz);
@@ -62,13 +62,13 @@ public class SerializerFactory {
         try {
             clazz = classLoader.loadClass(classPath);
         } catch (Exception e) {
-            throw new BackendException(e);
+            throw new BackendException("Invalid class: '%s'", e, classPath);
         }
 
         // Check subclass
         if (!AbstractSerializer.class.isAssignableFrom(clazz)) {
-            throw new BackendException("Class '%s' is not a subclass of " +
-                                       "class AbstractSerializer", classPath);
+            throw new BackendException("Class is not a subclass of class " +
+                                       "AbstractSerializer:  '%s'", classPath);
         }
 
         // Check exists

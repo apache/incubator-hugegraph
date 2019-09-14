@@ -102,7 +102,7 @@ public class BinaryBackendEntry implements BackendEntry {
         if (this.columns.size() > 1) {
             Collections.sort(this.columns);
         }
-        return Collections.unmodifiableCollection(this.columns);
+        return Collections.unmodifiableList(this.columns);
     }
 
     @Override

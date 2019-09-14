@@ -36,6 +36,7 @@ import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.type.define.IdStrategy;
+import com.baidu.hugegraph.util.Events;
 
 public class VertexLabelCoreTest extends SchemaCoreTest {
 
@@ -45,9 +46,9 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
         SchemaManager schema = graph().schema();
 
         VertexLabel person = schema.vertexLabel("person")
-                             .properties("name", "age", "city")
-                             .primaryKeys("name")
-                             .create();
+                                   .properties("name", "age", "city")
+                                   .primaryKeys("name")
+                                   .create();
 
         Assert.assertNotNull(person);
         Assert.assertEquals("person", person.name());
@@ -506,6 +507,59 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
     }
 
     @Test
+    public void testAddVertexLabelWithEnableLabelIndex() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+
+        VertexLabel person = schema.vertexLabel("person")
+                                   .properties("name", "age", "city")
+                                   .primaryKeys("name")
+                                   .nullableKeys("city")
+                                   .enableLabelIndex(true)
+                                   .create();
+        Assert.assertEquals(true, person.enableLabelIndex());
+
+        graph().addVertex(T.label, "person", "name", "marko", "age", 18);
+        graph().addVertex(T.label, "person", "name", "josh", "age", 20);
+        graph().tx().commit();
+
+        List<Vertex> persons = graph().traversal().V()
+                                      .hasLabel("person").toList();
+        Assert.assertEquals(2, persons.size());
+    }
+
+    @Test
+    public void testAddVertexLabelWithDisableLabelIndex() {
+        super.initPropertyKeys();
+        HugeGraph graph =  graph();
+        SchemaManager schema = graph.schema();
+
+        VertexLabel person = schema.vertexLabel("person")
+                                   .properties("name", "age", "city")
+                                   .primaryKeys("name")
+                                   .nullableKeys("city")
+                                   .enableLabelIndex(false)
+                                   .create();
+        Assert.assertEquals(false, person.enableLabelIndex());
+
+        graph.addVertex(T.label, "person", "name", "marko", "age", 18);
+        graph.addVertex(T.label, "person", "name", "josh", "age", 20);
+        graph().tx().commit();
+
+        List<Vertex> persons;
+
+        BackendFeatures features = graph.graphTransaction().store().features();
+        if (!features.supportsQueryByLabel()) {
+            Assert.assertThrows(NoIndexException.class, () -> {
+                graph.traversal().V().hasLabel("person").toList();
+            });
+        } else {
+            persons = graph.traversal().V().hasLabel("person").toList();
+            Assert.assertEquals(2, persons.size());
+        }
+    }
+
+    @Test
     public void testAppendVertexLabelWithUndefinedNullableKeys() {
         super.initPropertyKeys();
         SchemaManager schema = graph().schema();
@@ -879,55 +933,35 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
     }
 
     @Test
-    public void testAddVertexLabelWithEnableLabelIndex() {
+    public void testListEdgeLabels() {
         super.initPropertyKeys();
         SchemaManager schema = graph().schema();
-
         VertexLabel person = schema.vertexLabel("person")
                                    .properties("name", "age", "city")
                                    .primaryKeys("name")
-                                   .nullableKeys("city")
-                                   .enableLabelIndex(true)
                                    .create();
-        Assert.assertEquals(true, person.enableLabelIndex());
+        VertexLabel author = schema.vertexLabel("author")
+                                   .properties("id", "name")
+                                   .primaryKeys("id").create();
+        VertexLabel book = schema.vertexLabel("book")
+                                 .properties("id", "name")
+                                 .primaryKeys("id").create();
 
-        graph().addVertex(T.label, "person", "name", "marko", "age", 18);
-        graph().addVertex(T.label, "person", "name", "josh", "age", 20);
-        graph().tx().commit();
+        List<VertexLabel> vertexLabels = schema.getVertexLabels();
+        Assert.assertEquals(3, vertexLabels.size());
+        Assert.assertTrue(vertexLabels.contains(person));
+        Assert.assertTrue(vertexLabels.contains(author));
+        Assert.assertTrue(vertexLabels.contains(book));
 
-        List<Vertex> persons = graph().traversal().V()
-                                      .hasLabel("person").toList();
-        Assert.assertEquals(2, persons.size());
-    }
+        // clear cache
+        graph().schemaEventHub().call(Events.CACHE, "clear", null);
 
-    @Test
-    public void testAddVertexLabelWithDisableLabelIndex() {
-        super.initPropertyKeys();
-        HugeGraph graph =  graph();
-        SchemaManager schema = graph.schema();
+        Assert.assertEquals(person, schema.getVertexLabel("person"));
 
-        VertexLabel person = schema.vertexLabel("person")
-                                   .properties("name", "age", "city")
-                                   .primaryKeys("name")
-                                   .nullableKeys("city")
-                                   .enableLabelIndex(false)
-                                   .create();
-        Assert.assertEquals(false, person.enableLabelIndex());
-
-        graph.addVertex(T.label, "person", "name", "marko", "age", 18);
-        graph.addVertex(T.label, "person", "name", "josh", "age", 20);
-        graph().tx().commit();
-
-        List<Vertex> persons;
-
-        BackendFeatures features = graph.graphTransaction().store().features();
-        if (!features.supportsQueryByLabel()) {
-            Assert.assertThrows(NoIndexException.class, () -> {
-                graph.traversal().V().hasLabel("person").toList();
-            });
-        } else {
-            persons = graph.traversal().V().hasLabel("person").toList();
-            Assert.assertEquals(2, persons.size());
-        }
+        vertexLabels = schema.getVertexLabels();
+        Assert.assertEquals(3, vertexLabels.size());
+        Assert.assertTrue(vertexLabels.contains(person));
+        Assert.assertTrue(vertexLabels.contains(author));
+        Assert.assertTrue(vertexLabels.contains(book));
     }
 }

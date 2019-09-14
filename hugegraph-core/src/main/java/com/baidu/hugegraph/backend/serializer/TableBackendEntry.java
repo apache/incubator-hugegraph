@@ -28,6 +28,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.commons.lang3.NotImplementedException;
+
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.type.HugeType;
@@ -212,31 +214,31 @@ public class TableBackendEntry implements BackendEntry {
 
     @Override
     public int columnsSize() {
-        throw new RuntimeException("Not supported by table backend");
+        throw new NotImplementedException("Not supported by table backend");
     }
 
     @Override
     public Collection<BackendEntry.BackendColumn> columns() {
-        throw new RuntimeException("Not supported by table backend");
+        throw new NotImplementedException("Not supported by table backend");
     }
 
     @Override
     public void columns(Collection<BackendEntry.BackendColumn> bytesColumns) {
-        throw new RuntimeException("Not supported by table backend");
+        throw new NotImplementedException("Not supported by table backend");
     }
 
     @Override
     public void columns(BackendEntry.BackendColumn... bytesColumns) {
-        throw new RuntimeException("Not supported by table backend");
+        throw new NotImplementedException("Not supported by table backend");
     }
 
     @Override
     public void merge(BackendEntry other) {
-        throw new RuntimeException("Not supported by table backend");
+        throw new NotImplementedException("Not supported by table backend");
     }
 
     @Override
     public void clear() {
-        throw new RuntimeException("Not supported by table backend");
+        throw new NotImplementedException("Not supported by table backend");
     }
 }
