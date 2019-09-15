@@ -72,6 +72,7 @@ public interface BackendEntry extends Idfiable {
 
     public HugeType type();
 
+    @Override
     public Id id();
 
     public Id subId();
