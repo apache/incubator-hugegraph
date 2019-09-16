@@ -149,7 +149,7 @@ public class HugeFeatures implements Graph.Features {
 
         @Override
         public boolean willAllowId(Object id) {
-            if(!this.supportsUserSuppliedIds()) {
+            if (!this.supportsUserSuppliedIds()) {
                 return false;
             } else {
                 return this.supportsAnyIds() ||

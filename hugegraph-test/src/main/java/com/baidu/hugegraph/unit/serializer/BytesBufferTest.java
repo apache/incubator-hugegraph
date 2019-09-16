@@ -786,7 +786,7 @@ public class BytesBufferTest extends BaseUnitTest {
         Assert.assertEquals(value, BytesBuffer.wrap(bytes).readProperty(pkey));
 
         pkey = genListPkey(DataType.INT);
-        value = ImmutableList.of(127, 128);;
+        value = ImmutableList.of(127, 128);
         bytes = genBytes("027f8100");
         buf.flip();
         Assert.assertArrayEquals(bytes, buf.writeProperty(pkey, value).bytes());
@@ -890,7 +890,7 @@ public class BytesBufferTest extends BaseUnitTest {
         Assert.assertEquals(value, BytesBuffer.wrap(bytes).readProperty(pkey));
 
         pkey = genSetPkey(DataType.INT);
-        value = ImmutableSet.of(127, 128);;
+        value = ImmutableSet.of(127, 128);
         bytes = genBytes("027f8100");
         buf.flip();
         Assert.assertArrayEquals(bytes, buf.writeProperty(pkey, value).bytes());

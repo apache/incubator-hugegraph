@@ -70,19 +70,19 @@ public class ServerOptions extends OptionHolder {
                     "The minmium free memory(MB) of rest server, requests " +
                     "will be rejected when the available memory of system " +
                     "is lower than this value.",
-                    positiveInt(),
-                    256
+                    nonNegativeInt(),
+                    64
             );
 
 
     public static final ConfigOption<Integer> REQUEST_TIMEOUT =
-        new ConfigOption<>(
-                "restserver.request_timeout",
-                "The time in seconds within which a request must complete, " +
-                "-1 means no timeout.",
-                rangeInt(-1, Integer.MAX_VALUE),
-                30
-        );
+            new ConfigOption<>(
+                    "restserver.request_timeout",
+                    "The time in seconds within which a request must complete, " +
+                    "-1 means no timeout.",
+                    rangeInt(-1, Integer.MAX_VALUE),
+                    30
+            );
 
     public static final ConfigOption<Integer> CONN_IDLE_TIMEOUT =
             new ConfigOption<>(

@@ -591,7 +591,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                                              ConditionQuery query) {
         SchemaTransaction schema = this.graph().schemaTransaction();
         Set<IndexLabel> ils = InsertionOrderUtil.newSet();
-        for(Id il : schemaLabel.indexLabels()) {
+        for (Id il : schemaLabel.indexLabels()) {
             ils.add(schema.getIndexLabel(il));
         }
         if (ils.isEmpty()) {
@@ -753,7 +753,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
             }
         }
         // Must match all fields
-        if(indexFields.equals(queryPropKeys)) {
+        if (indexFields.equals(queryPropKeys)) {
             return matchedIndexLabels;
         } else {
             return ImmutableSet.of();
