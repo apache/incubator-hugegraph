@@ -57,7 +57,8 @@ public class HbaseStoreProvider extends AbstractBackendStoreProvider {
          *                    also split range table to rangeInt, rangeFloat,
          *                    rangeLong and rangeDouble
          * [1.5] #633: support unique index
+         * [1.6] #680: update index element-id to bin format
          */
-        return "1.5";
+        return "1.6";
     }
 }

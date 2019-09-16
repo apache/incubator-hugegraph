@@ -91,7 +91,7 @@ public abstract class TableSerializer extends AbstractSerializer {
     }
 
     protected void parseProperty(Id key, Object colValue, HugeElement owner) {
-        // Get PropertyKey by PropertyKey name
+        // Get PropertyKey by PropertyKey id
         PropertyKey pkey = owner.graph().propertyKey(key);
 
         // Parse value

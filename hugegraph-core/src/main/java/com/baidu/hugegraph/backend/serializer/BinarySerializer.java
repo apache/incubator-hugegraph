@@ -30,7 +30,6 @@ import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
-import com.baidu.hugegraph.backend.id.IdUtil;
 import com.baidu.hugegraph.backend.page.PageState;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.Condition.RangeConditions;
@@ -332,13 +331,13 @@ public class BinarySerializer extends AbstractSerializer {
             if (!type.isNumericIndex() && indexIdLengthExceedLimit(indexId)) {
                 indexId = index.hashId();
             }
-            String elemId = IdUtil.writeStoredString(index.elementId());
+            Id elemId = index.elementId();
             int idLen = 1 + elemId.length() + 1 + indexId.length();
             buffer = BytesBuffer.allocate(idLen);
             // Write index-id
             buffer.writeIndexId(indexId, type);
             // Write element-id
-            buffer.writeString(elemId);
+            buffer.writeId(elemId);
         }
 
         return buffer.bytes();
@@ -355,8 +354,7 @@ public class BinarySerializer extends AbstractSerializer {
             if (this.indexWithIdPrefix) {
                 buffer.readIndexId(index.type());
             }
-            String elemId = buffer.readString();
-            index.elementIds(IdUtil.readStoredString(elemId));
+            index.elementIds(buffer.readId());
         }
     }
 
