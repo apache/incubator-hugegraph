@@ -35,6 +35,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
@@ -110,11 +111,15 @@ public class VertexLabelAPI extends API {
     public String list(@Context GraphManager manager,
                        @PathParam("graph") String graph,
                        @QueryParam("names") List<String> names) {
-        LOG.debug("Graph [{}] get vertex labels by names {}", graph, names);
+        if (CollectionUtils.isEmpty(names)) {
+            LOG.debug("Graph [{}] list vertex labels", graph);
+        } else {
+            LOG.debug("Graph [{}] get vertex labels by names {}", graph, names);
+        }
 
         HugeGraph g = graph(manager, graph);
         List<VertexLabel> labels;
-        if (names == null || names.isEmpty()) {
+        if (CollectionUtils.isEmpty(names)) {
             labels = g.schema().getVertexLabels();
         } else {
             labels = new ArrayList<>(names.size());

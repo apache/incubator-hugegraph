@@ -34,6 +34,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
@@ -82,11 +83,15 @@ public class IndexLabelAPI extends API {
     public String list(@Context GraphManager manager,
                        @PathParam("graph") String graph,
                        @QueryParam("names") List<String> names) {
-        LOG.debug("Graph [{}] get index labels by names {}", graph, names);
+        if (CollectionUtils.isEmpty(names)) {
+            LOG.debug("Graph [{}] list index labels", graph);
+        } else {
+            LOG.debug("Graph [{}] get index labels by names {}", graph, names);
+        }
 
         HugeGraph g = graph(manager, graph);
         List<IndexLabel> labels;
-        if (names == null || names.isEmpty()) {
+        if (CollectionUtils.isEmpty(names)) {
             labels = g.schema().getIndexLabels();
         } else {
             labels = new ArrayList<>(names.size());
@@ -94,7 +99,7 @@ public class IndexLabelAPI extends API {
                 labels.add(g.schema().getIndexLabel(name));
             }
         }
-        return manager.serializer(g).writeIndexlabels(labels);
+        return manager.serializer(g).writeIndexlabels(mapIndexLabels(labels));
     }
 
     @GET
