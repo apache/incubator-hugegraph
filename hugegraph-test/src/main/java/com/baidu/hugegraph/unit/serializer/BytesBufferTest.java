@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.unit.core;
+package com.baidu.hugegraph.unit.serializer;
 
 import java.awt.Point;
 import java.util.Arrays;

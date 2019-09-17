@@ -59,8 +59,8 @@ public class MysqlSerializer extends TableSerializer {
     }
 
     @Override
-    protected Set<String> parseIndexElemIds(TableBackendEntry entry) {
-        Set<String> elemIds = InsertionOrderUtil.newSet();
+    protected Set<Object> parseIndexElemIds(TableBackendEntry entry) {
+        Set<Object> elemIds = InsertionOrderUtil.newSet();
         elemIds.add(entry.column(HugeKeys.ELEMENT_IDS));
         for (TableBackendEntry.Row row : entry.subRows()) {
             elemIds.add(row.column(HugeKeys.ELEMENT_IDS));
@@ -161,10 +161,5 @@ public class MysqlSerializer extends TableSerializer {
         for (Map.Entry<String, Object> e : userdata.entrySet()) {
             schema.userdata(e.getKey(), e.getValue());
         }
-    }
-
-    @Override
-    protected String escapeString(String value) {
-        return MysqlUtil.escapeString(value);
     }
 }

@@ -19,9 +19,12 @@
 
 package com.baidu.hugegraph.backend.id;
 
+import java.nio.ByteBuffer;
+
 import org.apache.commons.lang3.StringUtils;
 
 import com.baidu.hugegraph.backend.id.Id.IdType;
+import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 
 public final class IdUtil {
 
@@ -44,17 +47,29 @@ public final class IdUtil {
 
     public static Id readStoredString(String id) {
         IdType type = IdType.valueOfPrefix(id);
-        id = id.substring(1);
+        String idContent = id.substring(1);
         switch (type) {
             case LONG:
             case STRING:
             case UUID:
-                return IdGenerator.ofStoredString(id, type);
+                return IdGenerator.ofStoredString(idContent, type);
             case EDGE:
-                return EdgeId.parseStoredString(id);
+                return EdgeId.parseStoredString(idContent);
             default:
-                throw new AssertionError("Invalid id type " + type);
+                throw new IllegalArgumentException("Invalid id: " + id);
         }
+    }
+
+    public static Object writeBinString(Id id) {
+        int len = id.edge() ? BytesBuffer.BUF_EDGE_ID : id.length() + 1;
+        BytesBuffer buffer = BytesBuffer.allocate(len).writeId(id);
+        buffer.flip();
+        return buffer.asByteBuffer();
+    }
+
+    public static Id readBinString(Object id) {
+        BytesBuffer buffer = BytesBuffer.wrap((ByteBuffer) id);
+        return buffer.readId();
     }
 
     public static String writeString(Id id) {
@@ -63,17 +78,17 @@ public final class IdUtil {
 
     public static Id readString(String id) {
         IdType type = IdType.valueOfPrefix(id);
-        id = id.substring(1);
+        String idContent = id.substring(1);
         switch (type) {
             case LONG:
-                return IdGenerator.of(Long.parseLong(id));
+                return IdGenerator.of(Long.parseLong(idContent));
             case STRING:
             case UUID:
-                return IdGenerator.of(id, type == IdType.UUID);
+                return IdGenerator.of(idContent, type == IdType.UUID);
             case EDGE:
-                return EdgeId.parse(id);
+                return EdgeId.parse(idContent);
             default:
-                throw new AssertionError("Invalid id type " + type);
+                throw new IllegalArgumentException("Invalid id: " + id);
         }
     }
 

@@ -49,6 +49,10 @@ public interface Id extends Comparable<Id> {
         return this.type() == IdType.STRING;
     }
 
+    public default boolean edge() {
+        return this.type() == IdType.EDGE;
+    }
+
     public enum IdType {
 
         UNKNOWN,

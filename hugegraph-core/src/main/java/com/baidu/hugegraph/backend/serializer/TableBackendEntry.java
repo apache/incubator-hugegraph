@@ -28,6 +28,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.commons.lang3.NotImplementedException;
+
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.type.HugeType;
@@ -82,11 +84,17 @@ public class TableBackendEntry implements BackendEntry {
                     this.column(key, value);
                     break;
                 case SET:
-                    this.columns.putIfAbsent(key,  new LinkedHashSet<>());
+                    // Avoid creating new Set when the key exists
+                    if (!this.columns.containsKey(key)) {
+                        this.columns.putIfAbsent(key, new LinkedHashSet<>());
+                    }
                     this.<Set<T>>column(key).add(value);
                     break;
                 case LIST:
-                    this.columns.putIfAbsent(key,  new LinkedList<>());
+                    // Avoid creating new List when the key exists
+                    if (!this.columns.containsKey(key)) {
+                        this.columns.putIfAbsent(key, new LinkedList<>());
+                    }
                     this.<List<T>>column(key).add(value);
                     break;
                 default:
@@ -95,7 +103,9 @@ public class TableBackendEntry implements BackendEntry {
         }
 
         public <T> void column(HugeKeys key, Object name, T value) {
-            this.columns.putIfAbsent(key, new ConcurrentHashMap<>());
+            if (!this.columns.containsKey(key)) {
+                this.columns.putIfAbsent(key, new ConcurrentHashMap<>());
+            }
             this.<Map<Object, T>>column(key).put(name, value);
         }
 
@@ -206,31 +216,31 @@ public class TableBackendEntry implements BackendEntry {
 
     @Override
     public int columnsSize() {
-        throw new RuntimeException("Not supported by table backend");
+        throw new NotImplementedException("Not supported by table backend");
     }
 
     @Override
     public Collection<BackendEntry.BackendColumn> columns() {
-        throw new RuntimeException("Not supported by table backend");
+        throw new NotImplementedException("Not supported by table backend");
     }
 
     @Override
     public void columns(Collection<BackendEntry.BackendColumn> bytesColumns) {
-        throw new RuntimeException("Not supported by table backend");
+        throw new NotImplementedException("Not supported by table backend");
     }
 
     @Override
     public void columns(BackendEntry.BackendColumn... bytesColumns) {
-        throw new RuntimeException("Not supported by table backend");
+        throw new NotImplementedException("Not supported by table backend");
     }
 
     @Override
     public void merge(BackendEntry other) {
-        throw new RuntimeException("Not supported by table backend");
+        throw new NotImplementedException("Not supported by table backend");
     }
 
     @Override
     public void clear() {
-        throw new RuntimeException("Not supported by table backend");
+        throw new NotImplementedException("Not supported by table backend");
     }
 }

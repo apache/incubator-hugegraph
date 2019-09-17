@@ -58,8 +58,9 @@ public class PostgresqlStoreProvider extends MysqlStoreProvider {
          *                    also split range table to rangeInt, rangeFloat,
          *                    rangeLong and rangeDouble
          * [1.2] #633: support unique index
+         * [1.3] #661: reduce the storage of vertex/edge id
          */
-        return "1.2";
+        return "1.3";
     }
 
     public static class PostgresqlSchemaStore extends PostgresqlStore {

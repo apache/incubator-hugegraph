@@ -17,7 +17,9 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.unit.util;
+package com.baidu.hugegraph.unit.id;
+
+import java.nio.ByteBuffer;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -51,6 +53,35 @@ public class IdUtilTest {
         id = EdgeId.parse("S1111>2222>3>L4444");
         Assert.assertEquals("ES1111>2222>3>L4444", IdUtil.writeString(id));
         Assert.assertEquals(id, IdUtil.readString("ES1111>2222>3>L4444"));
+    }
+
+    @Test
+    public void testWriteReadBinString() {
+        Id id = IdGenerator.of(123);
+        ByteBuffer bytes = ByteBuffer.wrap(genBytes("087b"));
+        Assert.assertEquals(bytes, IdUtil.writeBinString(id));
+        Assert.assertEquals(id, IdUtil.readBinString(bytes));
+
+        id = IdGenerator.of("123");
+        bytes = ByteBuffer.wrap(genBytes("82313233"));
+        Assert.assertEquals(bytes, IdUtil.writeBinString(id));
+        Assert.assertEquals(id, IdUtil.readBinString(bytes));
+
+        String uuid = "835e1153-9281-4957-8691-cf79258e90eb";
+        id = IdGenerator.of(uuid, true);
+        bytes = ByteBuffer.wrap(genBytes("7f835e1153928149578691cf79258e90eb"));
+        Assert.assertEquals(bytes, IdUtil.writeBinString(id));
+        Assert.assertEquals(id, IdUtil.readBinString(bytes));
+
+        id = EdgeId.parse("S1>2>3>L4");
+        bytes = ByteBuffer.wrap(genBytes("7e803182080233ff0804"));
+        Assert.assertEquals(bytes, IdUtil.writeBinString(id));
+        Assert.assertEquals(id, IdUtil.readBinString(bytes));
+
+        id = EdgeId.parse("S1111>2222>3>L4444");
+        bytes = ByteBuffer.wrap(genBytes("7e8331313131821808ae33ff18115c"));
+        Assert.assertEquals(bytes, IdUtil.writeBinString(id));
+        Assert.assertEquals(id, IdUtil.readBinString(bytes));
     }
 
     @Test
@@ -105,5 +136,15 @@ public class IdUtilTest {
                                  IdUtil.unescape("a>b/>c>d", ">", "/"));
         Assert.assertEquals(1, IdUtil.unescape("", "", "").length);
         Assert.assertEquals(1, IdUtil.unescape("foo", "bar", "baz").length);
+    }
+
+    private byte[] genBytes(String string) {
+        int size = string.length() / 2;
+        byte[] bytes = new byte[size];
+        for (int i = 0; i < size; i++) {
+            String b = string.substring(i * 2, i * 2 + 2);
+            bytes[i] = Integer.valueOf(b, 16).byteValue();
+        }
+        return bytes;
     }
 }

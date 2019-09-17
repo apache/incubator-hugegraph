@@ -52,7 +52,7 @@ public class PostgresqlSessions extends MysqlSessions {
     public boolean existsDatabase() {
         String statement = String.format(
                            "SELECT datname FROM pg_catalog.pg_database " +
-                           "WHERE datname = %s;", this.escapedDatabase());
+                           "WHERE datname = '%s';", this.escapedDatabase());
         try (Connection conn = this.openWithoutDB(0)) {
             ResultSet result = conn.createStatement().executeQuery(statement);
             return result.next();
@@ -101,7 +101,7 @@ public class PostgresqlSessions extends MysqlSessions {
                "  FROM pg_stat_activity " +
                "  WHERE pg_stat_activity.datname = %s;" +
                "DROP DATABASE IF EXISTS %s;",
-               database, escapeString(database), database);
+               database, escapeAndWrapString(database), database);
     }
 
     @Override
@@ -110,7 +110,7 @@ public class PostgresqlSessions extends MysqlSessions {
         return new URIBuilder().addParameter("loggerLevel", "OFF");
     }
 
-    public static String escapeString(String value) {
+    public static String escapeAndWrapString(String value) {
         StringBuilder builder = new StringBuilder(8 + value.length());
         builder.append('\'');
         try {

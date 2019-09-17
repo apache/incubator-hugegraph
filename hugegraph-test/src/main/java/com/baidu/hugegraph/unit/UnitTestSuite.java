@@ -26,24 +26,31 @@ import com.baidu.hugegraph.unit.cache.CacheManagerTest;
 import com.baidu.hugegraph.unit.cache.CachedGraphTransactionTest;
 import com.baidu.hugegraph.unit.cache.CachedSchemaTransactionTest;
 import com.baidu.hugegraph.unit.cache.RamCacheTest;
+import com.baidu.hugegraph.unit.cassandra.CassandraTest;
 import com.baidu.hugegraph.unit.core.AnalyzerTest;
 import com.baidu.hugegraph.unit.core.BackendMutationTest;
-import com.baidu.hugegraph.unit.core.BytesBufferTest;
-import com.baidu.hugegraph.unit.core.CassandraTest;
 import com.baidu.hugegraph.unit.core.ConditionQueryFlattenTest;
 import com.baidu.hugegraph.unit.core.ConditionTest;
 import com.baidu.hugegraph.unit.core.DataTypeTest;
 import com.baidu.hugegraph.unit.core.DirectionsTest;
 import com.baidu.hugegraph.unit.core.EdgeIdTest;
 import com.baidu.hugegraph.unit.core.ExceptionTest;
-import com.baidu.hugegraph.unit.core.IdTest;
 import com.baidu.hugegraph.unit.core.LocksTableTest;
 import com.baidu.hugegraph.unit.core.QueryTest;
 import com.baidu.hugegraph.unit.core.SecurityManagerTest;
 import com.baidu.hugegraph.unit.core.SerialEnumTest;
+import com.baidu.hugegraph.unit.id.IdTest;
+import com.baidu.hugegraph.unit.id.IdUtilTest;
+import com.baidu.hugegraph.unit.mysql.MysqlUtilTest;
+import com.baidu.hugegraph.unit.mysql.WhereBuilderTest;
 import com.baidu.hugegraph.unit.rocksdb.RocksDBCountersTest;
 import com.baidu.hugegraph.unit.rocksdb.RocksDBSessionsTest;
-import com.baidu.hugegraph.unit.util.IdUtilTest;
+import com.baidu.hugegraph.unit.serializer.BinaryBackendEntryTest;
+import com.baidu.hugegraph.unit.serializer.BinaryInlineSerializerTest;
+import com.baidu.hugegraph.unit.serializer.BytesBufferTest;
+import com.baidu.hugegraph.unit.serializer.SerializerFactoryTest;
+import com.baidu.hugegraph.unit.serializer.TableBackendEntryTest;
+import com.baidu.hugegraph.unit.serializer.TextBackendEntryTest;
 import com.baidu.hugegraph.unit.util.JsonUtilTest;
 import com.baidu.hugegraph.unit.util.StringEncodingTest;
 import com.baidu.hugegraph.unit.util.VersionTest;
@@ -61,10 +68,13 @@ import com.baidu.hugegraph.unit.util.VersionTest;
     DirectionsTest.class,
     SerialEnumTest.class,
 
+    /* id */
+    IdTest.class,
+    IdUtilTest.class,
+
     /* core */
     LocksTableTest.class,
     AnalyzerTest.class,
-    IdTest.class,
     EdgeIdTest.class,
     BackendMutationTest.class,
     ConditionTest.class,
@@ -72,10 +82,21 @@ import com.baidu.hugegraph.unit.util.VersionTest;
     QueryTest.class,
     SecurityManagerTest.class,
     ExceptionTest.class,
+
+    /* serializer */
     BytesBufferTest.class,
+    SerializerFactoryTest.class,
+    TextBackendEntryTest.class,
+    TableBackendEntryTest.class,
+    BinaryBackendEntryTest.class,
+    BinaryInlineSerializerTest.class,
 
     /* cassandra */
     CassandraTest.class,
+
+    /* mysql */
+    MysqlUtilTest.class,
+    WhereBuilderTest.class,
 
     /* rocksdb */
     RocksDBSessionsTest.class,
@@ -84,7 +105,6 @@ import com.baidu.hugegraph.unit.util.VersionTest;
     /* utils */
     VersionTest.class,
     JsonUtilTest.class,
-    IdUtilTest.class,
     StringEncodingTest.class
 })
 public class UnitTestSuite {

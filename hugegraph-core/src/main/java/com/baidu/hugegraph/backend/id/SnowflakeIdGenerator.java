@@ -67,7 +67,7 @@ public class SnowflakeIdGenerator extends IdGenerator {
         if (this.idWorker == null) {
             throw new HugeException("Please initialize before using");
         }
-        Id id = this.generate(this.idWorker.nextId());
+        Id id = of(this.idWorker.nextId());
         if (!this.forceString) {
             return id;
         } else {

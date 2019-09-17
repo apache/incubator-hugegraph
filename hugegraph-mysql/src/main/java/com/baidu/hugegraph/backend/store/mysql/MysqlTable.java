@@ -43,7 +43,6 @@ import com.baidu.hugegraph.backend.store.TableDefine;
 import com.baidu.hugegraph.backend.store.mysql.MysqlEntryIterator.PagePosition;
 import com.baidu.hugegraph.backend.store.mysql.MysqlSessions.Session;
 import com.baidu.hugegraph.exception.NotFoundException;
-import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.Log;
@@ -195,8 +194,8 @@ public abstract class MysqlTable
         delete.append("DELETE FROM ").append(this.table());
         this.appendPartition(delete);
 
-        WhereBuilder where = new WhereBuilder();
-        where.and(formatKeys(idNames), "?");
+        WhereBuilder where = this.newWhereBuilder();
+        where.and(formatKeys(idNames), "=");
         delete.append(where.build());
 
         this.deleteTemplate = delete.toString();
@@ -381,7 +380,7 @@ public abstract class MysqlTable
                 values.add(objects.get(0));
             }
 
-            WhereBuilder where = new WhereBuilder();
+            WhereBuilder where = this.newWhereBuilder();
             where.in(formatKey(nameParts.get(0)), values);
             select.append(where.build());
             return ImmutableList.of(select);
@@ -402,7 +401,7 @@ public abstract class MysqlTable
              * NOTE: concat with AND relation, like:
              * "pk = id and ck1 = v1 and ck2 = v2"
              */
-            WhereBuilder where = new WhereBuilder();
+            WhereBuilder where = this.newWhereBuilder();
             where.and(formatKeys(nameParts), objects);
 
             idSelection.append(where.build());
@@ -419,7 +418,7 @@ public abstract class MysqlTable
         for (Condition condition : conditions) {
             clauses.add(this.condition2Sql(condition));
         }
-        WhereBuilder where = new WhereBuilder();
+        WhereBuilder where = this.newWhereBuilder();
         where.and(clauses);
         select.append(where.build());
         return ImmutableList.of(select);
@@ -450,40 +449,17 @@ public abstract class MysqlTable
         String key = relation.serialKey().toString();
         Object value = relation.serialValue();
 
-        StringBuilder sql = new StringBuilder(32);
-        sql.append(key);
-        switch (relation.relation()) {
-            case EQ:
-                sql.append(" = ").append(value);
-                break;
-            case NEQ:
-                sql.append(" != ").append(value);
-                break;
-            case GT:
-                sql.append(" > ").append(value);
-                break;
-            case GTE:
-                sql.append(" >= ").append(value);
-                break;
-            case LT:
-                sql.append(" < ").append(value);
-                break;
-            case LTE:
-                sql.append(" <= ").append(value);
-                break;
-            case IN:
-                sql.append(" IN (");
-                String values = Strings.join((List<?>) value, ',');
-                sql.append(values);
-                sql.append(")");
-                break;
-            case CONTAINS_VALUE:
-            case CONTAINS_KEY:
-            case SCAN:
-            default:
-                throw new NotSupportException("relation '%s'", relation);
-        }
-        return sql;
+        WhereBuilder sql = this.newWhereBuilder(false);
+        sql.relation(key, relation.relation(), value);
+        return sql.build();
+    }
+
+    protected WhereBuilder newWhereBuilder() {
+        return this.newWhereBuilder(true);
+    }
+
+    protected WhereBuilder newWhereBuilder(boolean startWithWhere) {
+        return new WhereBuilder(startWithWhere);
     }
 
     protected void wrapOrderBy(StringBuilder select, Query query) {
@@ -526,7 +502,7 @@ public abstract class MysqlTable
 
             // Need add `where` to `select` when query is IdQuery
             boolean startWithWhere = query.conditions().isEmpty();
-            WhereBuilder where = new WhereBuilder(startWithWhere);
+            WhereBuilder where = this.newWhereBuilder(startWithWhere);
             where.gte(formatKeys(idColumnNames), values);
             if (!startWithWhere) {
                 select.append(" AND");
