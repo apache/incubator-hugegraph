@@ -76,7 +76,7 @@ public class TaskAPI extends API {
         LOG.debug("Graph [{}] list tasks with status {}, limit {}",
                   graph, status, limit);
 
-        TaskScheduler scheduler = graph4taskr(manager, graph).taskScheduler();
+        TaskScheduler scheduler = graph(manager, graph).taskScheduler();
 
         Iterator<HugeTask<Object>> iter;
 
@@ -95,9 +95,9 @@ public class TaskAPI extends API {
             LOG.debug("Graph [{}] list tasks with status {}, limit {}",
                       graph, status, limit);
             if (status == null) {
-                iter = scheduler.findAllTask(limit);
+                iter = scheduler.tasks(null, limit);
             } else {
-                iter = scheduler.findTask(parseStatus(status), limit);
+                iter = scheduler.tasks(parseStatus(status), limit);
             }
         }
 
@@ -120,7 +120,7 @@ public class TaskAPI extends API {
                                    @PathParam("id") long id) {
         LOG.debug("Graph [{}] get task: {}", graph, id);
 
-        TaskScheduler scheduler = graph4taskr(manager, graph).taskScheduler();
+        TaskScheduler scheduler = graph(manager, graph).taskScheduler();
         return scheduler.task(IdGenerator.of(id)).asMap();
     }
 
@@ -132,8 +132,8 @@ public class TaskAPI extends API {
                        @PathParam("id") long id) {
         LOG.debug("Graph [{}] delete task: {}", graph, id);
 
-        TaskScheduler scheduler = graph4taskw(manager, graph).taskScheduler();
-        HugeTask<?> task = scheduler.deleteTask(IdGenerator.of(id));
+        TaskScheduler scheduler = graph(manager, graph).taskScheduler();
+        HugeTask<?> task = scheduler.delete(IdGenerator.of(id));
         E.checkArgument(task != null, "There is no task with id '%s'", id);
     }
 
@@ -153,7 +153,7 @@ public class TaskAPI extends API {
                       "Not support action '%s'", action));
         }
 
-        TaskScheduler scheduler = graph4taskd(manager, graph).taskScheduler();
+        TaskScheduler scheduler = graph(manager, graph).taskScheduler();
         HugeTask<?> task = scheduler.task(IdGenerator.of(id));
         if (!task.completed()) {
             scheduler.cancel(task);

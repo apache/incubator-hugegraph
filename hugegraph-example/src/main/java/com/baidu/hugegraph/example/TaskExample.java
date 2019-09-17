@@ -53,7 +53,7 @@ public class TaskExample {
         scheduler.schedule(task);
         scheduler.save(task);
         Iterator<HugeTask<Object>> iter;
-        iter = scheduler.findTask(TaskStatus.RUNNING, -1);
+        iter = scheduler.tasks(TaskStatus.RUNNING, -1);
         System.out.println(">>>> running task: " + IteratorUtils.toList(iter));
 
         Thread.sleep(TestTask.UNIT * 33);
@@ -62,7 +62,7 @@ public class TaskExample {
         scheduler.save(task);
 
         // Find task not finished(actually it should be RUNNING)
-        iter = scheduler.findTask(TaskStatus.CANCELLED, -1);
+        iter = scheduler.tasks(TaskStatus.CANCELLED, -1);
         assert iter.hasNext();
         task = iter.next();
 
@@ -70,11 +70,11 @@ public class TaskExample {
 
         Thread.sleep(TestTask.UNIT * 10);
         System.out.println(">>>> restore task...");
-        scheduler.restore(task);
+        scheduler.restoreTasks();
         Thread.sleep(TestTask.UNIT * 80);
         scheduler.save(task);
 
-        iter = scheduler.findTask(TaskStatus.SUCCESS, -1);
+        iter = scheduler.tasks(TaskStatus.SUCCESS, -1);
         assert iter.hasNext();
 
         graph.close();
@@ -96,7 +96,7 @@ public class TaskExample {
             for (int i = this.task().progress(); i <= 100 && this.run; i++) {
                 System.out.println(">>>> progress " + i);
                 this.task().progress(i);
-                this.task().save();
+                this.graph().taskScheduler().save(this.task());
                 Thread.sleep(UNIT);
             }
             return 18;

@@ -88,14 +88,18 @@ public class StandardHugeGraph implements HugeGraph {
 
     private volatile boolean closed;
     private volatile GraphMode mode;
+    private volatile HugeVariables variables;
 
     private final String name;
+
+    private final StandardHugeGraphParams params;
 
     private final HugeConfig configuration;
 
     private final EventHub schemaEventHub;
     private final EventHub graphEventHub;
     private final EventHub indexEventHub;
+
     private final RateLimiter rateLimiter;
     private final TaskManager taskManager;
     private final UserManager userManager;
@@ -105,9 +109,8 @@ public class StandardHugeGraph implements HugeGraph {
     private final BackendStoreProvider storeProvider;
     private final TinkerpopTransaction tx;
 
-    private HugeVariables variables;
-
     public StandardHugeGraph(HugeConfig configuration) {
+        this.params = new StandardHugeGraphParams();
         this.configuration = configuration;
 
         this.schemaEventHub = new EventHub("schema");
@@ -611,7 +614,12 @@ public class StandardHugeGraph implements HugeGraph {
         return StringFactory.graphString(this, this.name());
     }
 
-    private final HugeGraphParams params = new HugeGraphParams() {
+    @Override
+    public final void proxy(HugeGraph graph) {
+        this.params.graph(graph);
+    }
+
+    private class StandardHugeGraphParams implements HugeGraphParams {
 
         private HugeGraph graph = StandardHugeGraph.this;
 

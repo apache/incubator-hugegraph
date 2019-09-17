@@ -35,7 +35,7 @@ import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.ExecutorUtil;
 
-public class TaskManager {
+public final class TaskManager {
 
     public static final String TASK_WORKER = "task-worker-%d";
     public static final String TASK_DB_WORKER = "task-db-worker-%d";
@@ -65,7 +65,7 @@ public class TaskManager {
         E.checkArgumentNotNull(graph, "The graph can't be null");
         ExecutorService task = this.taskExecutor;
         ExecutorService db = this.dbExecutor;
-        this.schedulers.put(graph, new TaskScheduler(graph, task, db));
+        this.schedulers.put(graph, new StandardTaskScheduler(graph, task, db));
     }
 
     public void closeScheduler(HugeGraphParams graph) {
@@ -159,5 +159,41 @@ public class TaskManager {
             size += scheduler.pendingTasks();
         }
         return size;
+    }
+
+    private static final ThreadLocal<String> contexts = new ThreadLocal<>();
+
+    protected static final void setContext(String context) {
+        contexts.set(context);
+    }
+
+    protected static final void resetContext() {
+        contexts.remove();
+    }
+
+    public static final String getContext() {
+        return contexts.get();
+    }
+
+    protected static class ContextCallable<V> implements Callable<V> {
+
+        private final Callable<V> callable;
+        private final String context;
+
+        public ContextCallable(Callable<V> callable) {
+            E.checkNotNull(callable, "callable");
+            this.context = getContext();
+            this.callable = callable;
+        }
+
+        @Override
+        public V call() throws Exception {
+            setContext(this.context);
+            try {
+                return this.callable.call();
+            } finally {
+                resetContext();
+            }
+        }
     }
 }

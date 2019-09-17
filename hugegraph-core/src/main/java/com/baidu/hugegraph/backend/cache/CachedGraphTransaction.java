@@ -81,7 +81,7 @@ public class CachedGraphTransaction extends GraphTransaction {
     }
 
     private Cache cache(String prefix, int capacity, long expire) {
-        String name = prefix + "-" + super.graph().name();
+        String name = prefix + "-" + super.params().name();
         Cache cache = CacheManager.instance().cache(name, capacity);
         cache.expire(expire);
         return cache;

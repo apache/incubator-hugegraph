@@ -34,7 +34,6 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
-import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.iterator.MapperIterator;
 import com.baidu.hugegraph.schema.EdgeLabel;
@@ -184,8 +183,7 @@ public class RelationshipManager<T extends Relationship> {
     }
 
     private Id save(T relationship) {
-        SchemaTransaction schema = this.graph.schemaTransaction();
-        if (schema.getEdgeLabel(relationship.label()) == null) {
+        if (!SchemaDefine.existEdgeLabel(this.graph, relationship.label())) {
             throw new HugeException("Schema is missing for %s '%s'",
                                     relationship.label(),
                                     relationship.source());
@@ -201,7 +199,7 @@ public class RelationshipManager<T extends Relationship> {
     }
 
     private HugeVertex newVertex(Object id, String label) {
-        VertexLabel vl = this.graph.graph().vertexLabel(label);
+        VertexLabel vl = SchemaDefine.vertexLabel(this.graph, label);
         Id idValue = HugeVertex.getIdValue(id);
         return new HugeVertex(this.tx(), idValue, vl);
     }

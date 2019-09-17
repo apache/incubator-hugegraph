@@ -67,7 +67,7 @@ public abstract class TaskCallable<V> implements Callable<V> {
     protected void save() {
         HugeTask<V> task = this.task();
         task.updateTime(new Date());
-        task.save();
+        this.graph().taskScheduler().save(task);
     }
 
     protected void graph(HugeGraph graph) {

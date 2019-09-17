@@ -78,11 +78,6 @@ public class API {
         return g;
     }
 
-    public static HugeGraph graph4gremlin(GraphManager manager, String graph) {
-        String permission = HugePermission.GREMLIN.string();
-        return graph(manager, graph).hugegraph(permission);
-    }
-
     public static HugeGraph graph4vertex(GraphManager manager, String graph) {
         String permission = HugePermission.VERTEX_READ.string();
         return graph(manager, graph).hugegraph(permission);
@@ -95,21 +90,6 @@ public class API {
 
     public static HugeGraph graph4path(GraphManager manager, String graph) {
         String permission = HugePermission.PATH_READ.string();
-        return graph(manager, graph).hugegraph(permission);
-    }
-
-    public static HugeGraph graph4taskr(GraphManager manager, String graph) {
-        String permission = HugePermission.TASK_READ.string();
-        return graph(manager, graph).hugegraph(permission);
-    }
-
-    public static HugeGraph graph4taskw(GraphManager manager, String graph) {
-        String permission = HugePermission.TASK_WRITE.string();
-        return graph(manager, graph).hugegraph(permission);
-    }
-
-    public static HugeGraph graph4taskd(GraphManager manager, String graph) {
-        String permission = HugePermission.TASK_DELETE.string();
         return graph(manager, graph).hugegraph(permission);
     }
 

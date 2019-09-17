@@ -175,7 +175,7 @@ public final class GraphManager {
 
     private void checkBackendVersionOrExit() {
         for (String graph : this.graphs()) {
-            HugeGraph hugegraph = this.graph(graph).hugegraph();
+            HugeGraph hugegraph = this.graph(graph);
             if (!hugegraph.backendStoreFeatures().supportsPersistence()) {
                 hugegraph.initBackend();
             }
@@ -194,7 +194,7 @@ public final class GraphManager {
 
     private void restoreUncompletedTasks() {
         for (String graph : this.graphs()) {
-            HugeGraph hugegraph = this.graph(graph).hugegraph();
+            HugeGraph hugegraph = this.graph(graph);
             assert hugegraph != null;
             LOG.info("Restoring incomplete tasks for graph '{}'...", graph);
             hugegraph.taskScheduler().restoreTasks();

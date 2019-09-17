@@ -124,7 +124,7 @@ public class GraphTransaction extends IndexableTransaction {
         this.indexTx = new GraphIndexTransaction(graph, store);
         assert !this.indexTx.autoCommit();
 
-        this.locksTable = new LockUtil.LocksTable(graph.graph().name());
+        this.locksTable = new LockUtil.LocksTable(graph.name());
 
         final HugeConfig conf = graph.configuration();
         this.verticesCapacity = conf.get(CoreOptions.VERTEX_TX_CAPACITY);
