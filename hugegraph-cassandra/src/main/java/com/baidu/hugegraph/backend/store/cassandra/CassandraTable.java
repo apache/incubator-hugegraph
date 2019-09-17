@@ -108,6 +108,8 @@ public abstract class CassandraTable
                 rs.extend(this.results2Entries(query, results));
             }
         } catch (DriverException e) {
+            LOG.debug("Failed to query [{}], detail statement: {}",
+                      query, selections, e);
             throw new BackendException("Failed to query [%s]", e, query);
         }
 

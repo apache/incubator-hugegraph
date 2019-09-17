@@ -111,6 +111,10 @@ public class EdgeId implements Id {
         return this.direction;
     }
 
+    public byte directionCode() {
+        return directionToCode(this.direction);
+    }
+
     public String sortValues() {
         return this.sortValues;
     }
@@ -188,6 +192,14 @@ public class EdgeId implements Id {
     @Override
     public String toString() {
         return this.asString();
+    }
+
+    public static byte directionToCode(Directions direction) {
+        return direction.type().code();
+    }
+
+    public static Directions directionFromCode(byte code) {
+        return Directions.convert(HugeType.fromCode(code));
     }
 
     public static EdgeId parse(String id) throws NotFoundException {

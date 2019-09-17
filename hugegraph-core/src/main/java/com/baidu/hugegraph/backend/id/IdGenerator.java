@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.backend.id;
 
 import java.util.Base64;
+import java.util.Objects;
 import java.util.UUID;
 
 import com.baidu.hugegraph.backend.id.Id.IdType;
@@ -49,6 +50,19 @@ public abstract class IdGenerator {
 
     public final static Id of(long id) {
         return new LongId(id);
+    }
+
+    public static Id of(Object id) {
+        if (id instanceof Id) {
+            return (Id) id;
+        } else if (id instanceof String) {
+            return of((String) id);
+        } else if (id instanceof Number) {
+            return of(((Number) id).longValue());
+        } else if (id instanceof UUID) {
+            return of((UUID) id);
+        }
+        return new ObjectId(id);
     }
 
     public final static Id of(byte[] bytes, IdType type) {
@@ -89,24 +103,6 @@ public abstract class IdGenerator {
             default:
                 throw new AssertionError("Invalid id type " + id.type());
         }
-    }
-
-    /**
-     * Generate a string id
-     * @param id original string id value
-     * @return   wrapped id object
-     */
-    public final Id generate(String id) {
-        return of(id);
-    }
-
-    /**
-     * Generate a long id
-     * @param id original long id value
-     * @return   wrapped id object
-     */
-    public final Id generate(long id) {
-        return of(id);
     }
 
     /****************************** id defines ******************************/
@@ -362,6 +358,72 @@ public abstract class IdGenerator {
         @Override
         public String toString() {
             return this.uuid.toString();
+        }
+    }
+
+    /**
+     * This class is just used by backend store for wrapper object as Id
+     */
+    private static final class ObjectId implements Id {
+
+        private final Object object;
+
+        public ObjectId(Object object) {
+            E.checkNotNull(object, "object");
+            this.object = object;
+        }
+
+        @Override
+        public IdType type() {
+            return IdType.UNKNOWN;
+        }
+
+        @Override
+        public Object asObject() {
+            return this.object;
+        }
+
+        @Override
+        public String asString() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public long asLong() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public byte[] asBytes() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public int length() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public int compareTo(Id o) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public int hashCode() {
+            return this.object.hashCode();
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (!(other instanceof ObjectId)) {
+                return false;
+            }
+            return Objects.equals(this.object, ((ObjectId) other).object);
+        }
+
+        @Override
+        public String toString() {
+            return this.object.toString();
         }
     }
 }

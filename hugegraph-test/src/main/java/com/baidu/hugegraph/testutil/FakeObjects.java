@@ -62,7 +62,7 @@ public class FakeObjects {
         private Map<String, Object> values;
 
         public FakeEdge(String label, Vertex outVertex, Vertex inVertex,
-                Object... keyValues) {
+                        Object... keyValues) {
             this.label = label;
             this.outVertex = outVertex;
             this.inVertex = inVertex;

@@ -25,6 +25,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.UUID;
 
+import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.Id.IdType;
 import com.baidu.hugegraph.backend.id.IdGenerator;
@@ -68,6 +69,9 @@ public final class BytesBuffer {
     public static final int DEFAULT_CAPACITY = 64;
     public static final int MAX_BUFFER_CAPACITY = 128 * 1024 * 1024; // 128M
 
+    public static final int BUF_EDGE_ID = 128;
+    public static final int BUF_PROPERTY = 64;
+
     private ByteBuffer buffer;
 
     public BytesBuffer() {
@@ -88,6 +92,10 @@ public final class BytesBuffer {
 
     public static BytesBuffer allocate(int capacity) {
         return new BytesBuffer(capacity);
+    }
+
+    public static BytesBuffer wrap(ByteBuffer buffer) {
+        return new BytesBuffer(buffer);
     }
 
     public static BytesBuffer wrap(byte[] array) {
@@ -500,38 +508,47 @@ public final class BytesBuffer {
     }
 
     public BytesBuffer writeId(Id id, boolean big) {
-        if (id.number()) {
-            // Number Id
-            long value = id.asLong();
-            this.writeNumber(value);
-        } else if (id.uuid()) {
-            // UUID Id
-            byte[] bytes = id.asBytes();
-            assert bytes.length == Id.UUID_LENGTH;
-            this.writeUInt8(0x7f); // 0b01111111 means UUID
-            this.write(bytes);
-        } else {
-            // String Id
-            byte[] bytes = id.asBytes();
-            int len = bytes.length;
-            E.checkArgument(len > 0, "Can't write empty id");
-            if (!big) {
-                E.checkArgument(len <= ID_LEN_MAX,
-                                "Id max length is %s, but got %s {%s}",
-                                ID_LEN_MAX, len, id);
-                len -= 1; // mapping [1, 128] to [0, 127]
-                this.writeUInt8(len | 0x80);
-            } else {
-                E.checkArgument(len <= BIG_ID_LEN_MAX,
-                                "Big id max length is %s, but got %s {%s}",
-                                BIG_ID_LEN_MAX, len, id);
-                len -= 1;
-                int high = len >> 8;
-                int low = len & 0xff;
-                this.writeUInt8(high | 0x80);
-                this.writeUInt8(low);
-            }
-            this.write(bytes);
+        switch (id.type()) {
+            case LONG:
+                // Number Id
+                long value = id.asLong();
+                this.writeNumber(value);
+                break;
+            case UUID:
+                // UUID Id
+                byte[] bytes = id.asBytes();
+                assert bytes.length == Id.UUID_LENGTH;
+                this.writeUInt8(0x7f); // 0b01111111 means UUID
+                this.write(bytes);
+                break;
+            case EDGE:
+                // Edge Id
+                this.writeUInt8(0x7e); // 0b01111110 means EdgeId
+                this.writeEdgeId(id);
+                break;
+            default:
+                // String Id
+                bytes = id.asBytes();
+                int len = bytes.length;
+                E.checkArgument(len > 0, "Can't write empty id");
+                if (!big) {
+                    E.checkArgument(len <= ID_LEN_MAX,
+                                    "Id max length is %s, but got %s {%s}",
+                                    ID_LEN_MAX, len, id);
+                    len -= 1; // mapping [1, 128] to [0, 127]
+                    this.writeUInt8(len | 0x80);
+                } else {
+                    E.checkArgument(len <= BIG_ID_LEN_MAX,
+                                    "Big id max length is %s, but got %s {%s}",
+                                    BIG_ID_LEN_MAX, len, id);
+                    len -= 1;
+                    int high = len >> 8;
+                    int low = len & 0xff;
+                    this.writeUInt8(high | 0x80);
+                    this.writeUInt8(low);
+                }
+                this.write(bytes);
+                break;
         }
         return this;
     }
@@ -544,12 +561,16 @@ public final class BytesBuffer {
         byte b = this.read();
         boolean number = (b & 0x80) == 0;
         if (number) {
-            // UUID Id
             if (b == 0x7f) {
+                // UUID Id
                 return IdGenerator.of(this.read(Id.UUID_LENGTH), IdType.UUID);
+            } else if (b == 0x7e) {
+                // Edge Id
+                return this.readEdgeId();
+            } else {
+                // Number Id
+                return IdGenerator.of(this.readNumber(b));
             }
-            // Number Id
-            return IdGenerator.of(this.readNumber(b));
         } else {
             // String Id
             int len = b & ID_LEN_MASK;
@@ -562,6 +583,22 @@ public final class BytesBuffer {
             byte[] id = this.read(len);
             return IdGenerator.of(id, IdType.STRING);
         }
+    }
+
+    public BytesBuffer writeEdgeId(Id id) {
+        EdgeId edge = (EdgeId) id;
+        this.writeId(edge.ownerVertexId());
+        this.write(edge.directionCode());
+        this.writeId(edge.edgeLabelId());
+        this.writeStringWithEnding(edge.sortValues());
+        this.writeId(edge.otherVertexId());
+        return this;
+    }
+
+    public Id readEdgeId() {
+        return new EdgeId(this.readId(), EdgeId.directionFromCode(this.read()),
+                          this.readId(), this.readStringWithEnding(),
+                          this.readId());
     }
 
     public BytesBuffer writeIndexId(Id id, HugeType type) {
@@ -642,6 +679,7 @@ public final class BytesBuffer {
          *          0b 0111 0000 X X X X X X X X            [-2^64, -1]
          *
          * NOTE:    0b 0111 1111 is used by 128 bits UUID
+         *          0b 0111 1110 is used by EdgeId
          */
         int positive = val >= 0 ? 0x08 : 0x00;
         if (~0x7ffL <= val && val <= 0x7ffL) {

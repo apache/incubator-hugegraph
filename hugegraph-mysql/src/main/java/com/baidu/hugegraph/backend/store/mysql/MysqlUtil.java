@@ -21,94 +21,111 @@ package com.baidu.hugegraph.backend.store.mysql;
 
 public class MysqlUtil {
 
+    public static String escapeAndWrapString(String value) {
+        return escapeString(value, true);
+    }
+
     public static String escapeString(String value) {
+        return escapeString(value, false);
+    }
+
+    private static String escapeString(String value, boolean wrap) {
         int length = value.length();
         if (!isEscapeNeededForString(value, length)) {
+            if (!wrap) {
+                return value;
+            }
             StringBuilder buf = new StringBuilder(length + 2);
             buf.append('\'').append(value).append('\'');
             return buf.toString();
         }
 
-        StringBuilder buf = new StringBuilder((int) (length * 1.1D));
-        buf.append('\'');
+        StringBuilder buffer = new StringBuilder((int) (length * 1.1d));
+
+        if (wrap) {
+            buffer.append('\'');
+        }
 
         for (int i = 0; i < length; ++i) {
             char c = value.charAt(i);
             switch (c) {
                 case '\u0000':
-                    buf.append('\\');
-                    buf.append('0');
+                    buffer.append('\\');
+                    buffer.append('0');
                     break;
                 case '\n':
-                    buf.append('\\');
-                    buf.append('n');
+                    buffer.append('\\');
+                    buffer.append('n');
                     break;
                 case '\r':
-                    buf.append('\\');
-                    buf.append('r');
+                    buffer.append('\\');
+                    buffer.append('r');
                     break;
                 case '\u001a':
-                    buf.append('\\');
-                    buf.append('Z');
+                    buffer.append('\\');
+                    buffer.append('Z');
                     break;
                 case '"':
                     /*
                      * Doesn't need to add '\', because we wrap string with "'"
                      * Assume that we don't use Ansi Mode
                      */
-                    buf.append('"');
+                    buffer.append('"');
                     break;
                 case '\'':
-                    buf.append('\\');
-                    buf.append('\'');
+                    buffer.append('\\');
+                    buffer.append('\'');
                     break;
                 case '\\':
-                    buf.append('\\');
-                    buf.append('\\');
+                    buffer.append('\\');
+                    buffer.append('\\');
                     break;
                 default:
-                    buf.append(c);
+                    buffer.append(c);
                     break;
             }
         }
 
-        buf.append('\'');
-        return buf.toString();
+        if (wrap) {
+            buffer.append('\'');
+        }
+
+        return buffer.toString();
     }
 
     public static boolean isEscapeNeededForString(String sql, int length) {
-        boolean needsHesqlEscape = false;
+        boolean needsEscape = false;
 
         for (int i = 0; i < length; ++i) {
             char c = sql.charAt(i);
             switch (c) {
                 case '\u0000':
-                    needsHesqlEscape = true;
+                    needsEscape = true;
                     break;
                 case '\n':
-                    needsHesqlEscape = true;
+                    needsEscape = true;
                     break;
                 case '\r':
-                    needsHesqlEscape = true;
+                    needsEscape = true;
                     break;
                 case '\u001a':
-                    needsHesqlEscape = true;
+                    needsEscape = true;
                     break;
                 case '\'':
-                    needsHesqlEscape = true;
+                    needsEscape = true;
                     break;
                 case '\\':
-                    needsHesqlEscape = true;
+                    needsEscape = true;
                     break;
                 default:
                     break;
             }
 
-            if (needsHesqlEscape) {
+            if (needsEscape) {
                 break;
             }
         }
 
-        return needsHesqlEscape;
+        return needsEscape;
     }
 }

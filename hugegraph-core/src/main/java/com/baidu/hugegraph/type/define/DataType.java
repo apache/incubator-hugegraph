@@ -22,6 +22,7 @@ package com.baidu.hugegraph.type.define;
 import java.util.Date;
 import java.util.UUID;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.util.DateUtil;
 
 public enum DataType implements SerialEnum {
@@ -160,5 +161,14 @@ public enum DataType implements SerialEnum {
             return java.util.UUID.fromString((String) value);
         }
         return null;
+    }
+
+    public static DataType fromClass(Class<?> clazz) {
+        for (DataType type : DataType.values()) {
+            if (type.clazz() == clazz) {
+                return type;
+            }
+        }
+        throw new HugeException("Unknow clazz '%s' for DataType", clazz);
     }
 }

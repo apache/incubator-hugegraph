@@ -74,7 +74,8 @@ public class MysqlStoreProvider extends AbstractBackendStoreProvider {
          *                    also split range table to rangeInt, rangeFloat,
          *                    rangeLong and rangeDouble
          * [1.4] #633: support unique index
+         * [1.5] #661: reduce the storage of vertex/edge id
          */
-        return "1.4";
+        return "1.5";
     }
 }
