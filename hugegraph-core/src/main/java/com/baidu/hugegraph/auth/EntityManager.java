@@ -34,7 +34,6 @@ import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
-import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.iterator.MapperIterator;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -133,11 +132,12 @@ public class EntityManager<T extends Entity> {
                                          Map<String, Object> conditions,
                                          long limit) {
         ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
-        VertexLabel vl = this.graph.graph().vertexLabel(label);
+        VertexLabel vl = SchemaDefine.vertexLabel(this.graph, label);
         query.eq(HugeKeys.LABEL, vl.id());
         for (Map.Entry<String, Object> entry : conditions.entrySet()) {
-            PropertyKey pk = this.graph.graph().propertyKey(entry.getKey());
-            query.query(Condition.eq(pk.id(), entry.getValue()));
+            PropertyKey pkey = SchemaDefine.propertyKey(this.graph,
+                                                        entry.getKey());
+            query.query(Condition.eq(pkey.id(), entry.getValue()));
         }
         query.showHidden(true);
         if (limit != NO_LIMIT) {
@@ -156,8 +156,7 @@ public class EntityManager<T extends Entity> {
     }
 
     private HugeVertex constructVertex(Entity entity) {
-        SchemaTransaction schema = this.graph.schemaTransaction();
-        if (schema.getVertexLabel(entity.label()) == null) {
+        if (!SchemaDefine.existVertexLabel(this.graph, entity.label())) {
             throw new HugeException("Schema is missing for %s '%s'",
                                     entity.label(), entity.id());
         }

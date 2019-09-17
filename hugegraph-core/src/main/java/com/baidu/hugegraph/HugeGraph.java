@@ -128,10 +128,7 @@ public interface HugeGraph extends Graph {
     public UserManager userManager();
     public TaskScheduler taskScheduler();
 
-    // TODO remove
-//    public SchemaTransaction schemaTransaction();
-//    public GraphTransaction systemTransaction();
-//    public GraphTransaction graphTransaction();
+    public void proxy(HugeGraph graph);
 
     public default List<String> mapPkId2Name(Collection<Id> ids) {
         List<String> names = new ArrayList<>(ids.size());

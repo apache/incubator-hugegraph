@@ -53,7 +53,8 @@ public class HugeTask<V> extends FutureTask<V> {
 
     private static final Logger LOG = Log.logger(HugeTask.class);
 
-    private TaskScheduler scheduler = null;
+    private transient TaskScheduler scheduler = null;
+
     private final TaskCallable<V> callable;
 
     private String type;
@@ -62,6 +63,7 @@ public class HugeTask<V> extends FutureTask<V> {
     private final Id parent;
     private Set<Id> dependencies;
     private String description;
+    private String context;
     private Date create;
     private volatile TaskStatus status;
     private volatile int progress;
@@ -89,6 +91,7 @@ public class HugeTask<V> extends FutureTask<V> {
         this.parent = parent;
         this.dependencies = null;
         this.description = null;
+        this.context = null;
         this.status = TaskStatus.NEW;
         this.progress = 0;
         this.create = new Date();
@@ -145,6 +148,20 @@ public class HugeTask<V> extends FutureTask<V> {
 
     public String description() {
         return this.description;
+    }
+
+    public final void context(String context) {
+        E.checkArgument(this.context == null,
+                        "Task context must be set once, but already set '%s'",
+                        this.context);
+        E.checkArgument(this.status == TaskStatus.NEW,
+                        "Task context must be set in state NEW instead of %s",
+                        this.status);
+        this.context = context;
+    }
+
+    public final String context() {
+        return this.context;
     }
 
     public void progress(int progress) {
@@ -216,6 +233,8 @@ public class HugeTask<V> extends FutureTask<V> {
             // Scheduled task is running after cancelled
             return;
         }
+
+        TaskManager.setContext(this.context());
         try {
             assert this.status.code() < TaskStatus.RUNNING.code() : this.status;
             if (this.checkDependenciesSuccess()) {
@@ -226,6 +245,7 @@ public class HugeTask<V> extends FutureTask<V> {
             this.setException(e);
         } finally {
             LOG.debug("Task is finished {}", this);
+            TaskManager.resetContext();
         }
     }
 
@@ -273,10 +293,6 @@ public class HugeTask<V> extends FutureTask<V> {
         }
     }
 
-    public void save() {
-        this.scheduler().save(this);
-    }
-
     @Override
     protected void done() {
         try {
@@ -285,7 +301,7 @@ public class HugeTask<V> extends FutureTask<V> {
         } catch (Throwable e) {
             LOG.error("An exception occurred when calling done()", e);
         } finally {
-            this.scheduler().remove(this.id);
+            ((StandardTaskScheduler) this.scheduler()).remove(this.id);
         }
     }
 
@@ -391,6 +407,9 @@ public class HugeTask<V> extends FutureTask<V> {
             case P.DESCRIPTION:
                 this.description = (String) value;
                 break;
+            case P.CONTEXT:
+                this.context = (String) value;
+                break;
             case P.UPDATE:
                 this.update = (Date) value;
                 break;
@@ -447,6 +466,11 @@ public class HugeTask<V> extends FutureTask<V> {
         if (this.description != null) {
             list.add(P.DESCRIPTION);
             list.add(this.description);
+        }
+
+        if (this.context != null) {
+            list.add(P.CONTEXT);
+            list.add(this.context);
         }
 
         if (this.update != null) {
@@ -575,6 +599,7 @@ public class HugeTask<V> extends FutureTask<V> {
         public static final String NAME = "~task_name";
         public static final String CALLABLE = "~task_callable";
         public static final String DESCRIPTION = "~task_description";
+        public static final String CONTEXT = "~task_context";
         public static final String STATUS = "~task_status";
         public static final String PROGRESS = "~task_progress";
         public static final String CREATE = "~task_create";

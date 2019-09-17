@@ -187,7 +187,7 @@ public class EdgeAPI extends BatchAPI {
         return this.commit(config, g, map.size(), () -> {
             // 1.Put all newEdges' properties into map (combine first)
             req.jsonEdges.forEach(newEdge -> {
-                Id newEdgeId = getEdgeId(graph4gremlin(manager, graph), newEdge);
+                Id newEdgeId = getEdgeId(graph(manager, graph), newEdge);
                 JsonEdge oldEdge = map.get(newEdgeId);
                 this.updateExistElement(oldEdge, newEdge,
                                         req.updateStrategies);

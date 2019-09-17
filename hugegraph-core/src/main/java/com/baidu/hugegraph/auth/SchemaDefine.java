@@ -29,8 +29,10 @@ import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaManager;
@@ -57,11 +59,11 @@ public abstract class SchemaDefine {
     }
 
     protected boolean existVertexLabel(String label) {
-        return this.graph.schemaTransaction().getVertexLabel(label) != null;
+        return existVertexLabel(this.graph, label);
     }
 
     protected boolean existEdgeLabel(String label) {
-        return this.graph.schemaTransaction().getEdgeLabel(label) != null;
+        return existEdgeLabel(this.graph, label);
     }
 
     protected String createPropertyKey(String name) {
@@ -92,6 +94,40 @@ public abstract class SchemaDefine {
                                       .build();
         this.graph.schemaTransaction().addIndexLabel(label, indexLabel);
         return indexLabel;
+    }
+
+    public static boolean existVertexLabel(HugeGraphParams graph,
+                                           String label) {
+        return graph.schemaTransaction().getVertexLabel(label) != null;
+    }
+
+    public static boolean existEdgeLabel(HugeGraphParams graph,
+                                         String label) {
+        return graph.schemaTransaction().getEdgeLabel(label) != null;
+    }
+
+    public static PropertyKey propertyKey(HugeGraphParams graph, String key) {
+        PropertyKey pkey = graph.schemaTransaction().getPropertyKey(key);
+        if (pkey == null) {
+            throw new HugeException("Property key is missing: '%s'", key);
+        }
+        return pkey;
+    }
+
+    public static VertexLabel vertexLabel(HugeGraphParams graph, String label) {
+        VertexLabel vl = graph.schemaTransaction().getVertexLabel(label);
+        if (vl == null) {
+            throw new HugeException("Vertex label is missing: '%s'", label);
+        }
+        return vl;
+    }
+
+    public static EdgeLabel edgeLabel(HugeGraphParams graph, String label) {
+        EdgeLabel el = graph.schemaTransaction().getEdgeLabel(label);
+        if (el == null) {
+            throw new HugeException("Edge label is missing: '%s'", label);
+        }
+        return el;
     }
 
     public static abstract class Element {

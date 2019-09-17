@@ -81,7 +81,7 @@ public abstract class TaskCallable<V> implements Callable<V> {
         HugeTask<V> task = this.task();
         task.updateTime(new Date());
         try {
-            task.save();
+            this.graph().taskScheduler().save(task);
         } catch (Throwable e) {
             if (task.completed()) {
                 /*
@@ -92,7 +92,7 @@ public abstract class TaskCallable<V> implements Callable<V> {
                           e, task.asMap(false));
                 if (e.getMessage().contains(ERROR_MAX_LEN)) {
                     task.failSave(e);
-                    task.save();
+                    this.graph().taskScheduler().save(task);
                     return;
                 }
             }
