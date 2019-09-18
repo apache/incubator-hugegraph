@@ -49,6 +49,8 @@ public interface HugeAuthenticator extends Authenticator {
     public static final String KEY_PASSWORD =
                                CredentialGraphTokens.PROPERTY_PASSWORD;
     public static final String KEY_ROLE = "role";
+    public static final String KEY_CLIENT = "client";
+    public static final String KEY_PATH = "path";
 
     public static final String USER_ADMIN = "admin";
     public static final String USER_SYSTEM = "system";
@@ -95,8 +97,10 @@ public interface HugeAuthenticator extends Authenticator {
                 throw new AuthenticationException(message);
             }
             user = new User(username, role);
+            user.client(credentials.get(KEY_CLIENT));
         }
 
+        HugeGraphAuthProxy.logUser(user, credentials.get(KEY_PATH));
         /*
          * Set authentication context
          * TODO: unset context after finishing a request
@@ -146,12 +150,14 @@ public interface HugeAuthenticator extends Authenticator {
         public static final User ANONYMOUS = new User(USER_ANONY, ROLE_ADMIN);
 
         private final String role;
+        private String client;
 
         public User(String username, String role) {
             super(username);
             E.checkNotNull(username, "username");
             E.checkNotNull(role, "role");
             this.role = role;
+            this.client = null;
         }
 
         public String username() {
@@ -160,6 +166,14 @@ public interface HugeAuthenticator extends Authenticator {
 
         public String role() {
             return this.role;
+        }
+
+        public void client(String client) {
+            this.client = client;
+        }
+
+        public String client() {
+            return client;
         }
 
         @Override
