@@ -93,7 +93,7 @@ public final class ApiVersion {
      * [0.43] Issue-270 & 398: support shard-index and vertex + sortkey prefix,
      *        and split range to rangeInt, rangeFloat, rangeLong and rangeDouble
      * [0.44] Issue-633: Support unique index
-     * [0.45] Issue-673: Add a new update strategy
+     * [0.45] Issue-673: Add 'OVERRIDE' update strategy
      */
 
     // The second parameter of Version.of() is for IDE running without JAR
