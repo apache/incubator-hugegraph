@@ -38,6 +38,7 @@ import javax.ws.rs.ext.Provider;
 import javax.xml.bind.DatatypeConverter;
 
 import org.apache.tinkerpop.gremlin.server.auth.AuthenticationException;
+import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.utils.Charsets;
 import org.slf4j.Logger;
 
@@ -61,6 +62,9 @@ public class AuthenticationFilter implements ContainerRequestFilter {
     @Context
     private javax.inject.Provider<GraphManager> managerProvider;
 
+    @Context
+    private javax.inject.Provider<Request> requestProvider;
+
     @Override
     public void filter(ContainerRequestContext context) throws IOException {
         User user = this.authenticate(context);
@@ -75,6 +79,15 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         if (!manager.requireAuthentication()) {
             // Return anonymous user with admin role if disable authentication
             return User.ANONYMOUS;
+        }
+
+        // Get peer info
+        Request request = this.requestProvider.get();
+        String peer = null;
+        String path = null;
+        if (request != null) {
+            peer = request.getRemoteAddr() + ":" + request.getRemotePort();
+            path = request.getRequestURI();
         }
 
         // Extract authentication credentials
@@ -106,7 +119,9 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         try {
             return manager.authenticate(ImmutableMap.of(
                            HugeAuthenticator.KEY_USERNAME, username,
-                           HugeAuthenticator.KEY_PASSWORD, password));
+                           HugeAuthenticator.KEY_PASSWORD, password,
+                           HugeAuthenticator.KEY_CLIENT, peer,
+                           HugeAuthenticator.KEY_PATH, path));
         } catch (AuthenticationException e) {
             String msg = String.format("Authentication failed for user '%s'",
                                        username);
@@ -153,7 +168,8 @@ public class AuthenticationFilter implements ContainerRequestFilter {
                 valid = RolePerm.match(this.user.role(), required);
             }
 
-            if (!valid && LOG.isDebugEnabled()) {
+            if (!valid && LOG.isDebugEnabled() &&
+                !required.equals(HugeAuthenticator.ROLE_ADMIN)) {
                 LOG.debug("Permission denied to {}, expect permission '{}'",
                           this.user, required);
             }

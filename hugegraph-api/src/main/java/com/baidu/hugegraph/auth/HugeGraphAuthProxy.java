@@ -447,6 +447,9 @@ public final class HugeGraphAuthProxy implements HugeGraph {
                      "Missing authentication context " +
                      "when accessing a Graph with permission control");
         String role = context.user().role();
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Verify permission '{}' for role '{}'", permission, role);
+        }
         if (!RolePerm.match(role, permission)) {
             throw new ForbiddenException("Permission denied: " + permission);
         }
@@ -718,6 +721,13 @@ public final class HugeGraphAuthProxy implements HugeGraph {
             return null;
         }
         return context.user().toJson();
+    }
+
+    protected static final void logUser(User user, String path) {
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("User '{}' login from client [{}] for path '{}'",
+                      user.username(), user.client(), path);
+        }
     }
 
     static class Context {
