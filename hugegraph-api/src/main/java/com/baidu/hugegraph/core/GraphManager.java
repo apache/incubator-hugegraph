@@ -72,7 +72,7 @@ public final class GraphManager {
         }
 
         this.loadGraphs(conf.getMap(ServerOptions.GRAPHS));
-        this.installLicense(conf);
+        // this.installLicense(conf);
         this.checkBackendVersionOrExit();
         this.restoreUncompletedTasks();
         this.addMetrics(conf);
