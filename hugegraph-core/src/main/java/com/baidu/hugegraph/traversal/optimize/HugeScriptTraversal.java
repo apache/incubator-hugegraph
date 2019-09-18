@@ -83,7 +83,7 @@ public final class HugeScriptTraversal<S, E> extends DefaultTraversal<S, E> {
                                       .withStrategies(strategies));
         bindings.put("graph", this.graph);
 
-        for(Map.Entry<String, String> entry : this.aliases.entrySet()) {
+        for (Map.Entry<String, String> entry : this.aliases.entrySet()) {
             Object value = bindings.get(entry.getValue());
             if (value == null) {
                 throw new IllegalArgumentException(String.format(

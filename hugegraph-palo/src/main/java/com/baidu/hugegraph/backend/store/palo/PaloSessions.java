@@ -306,7 +306,7 @@ public class PaloSessions extends MysqlSessions {
             Lock lock = PaloSessions.this.locks.get(sessionId).writeLock();
             lock.lock();
             try {
-                String table = file.table();;
+                String table = file.table();
                 String data = file.readAsString();
                 String label = this.formatLabel(table);
                 this.client.bulkLoadAsync(table, data, label);
