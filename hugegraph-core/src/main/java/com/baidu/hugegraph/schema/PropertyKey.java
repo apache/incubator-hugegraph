@@ -278,7 +278,7 @@ public class PropertyKey extends SchemaElement implements Propfiable {
 
         Builder asDate();
 
-        Builder asUuid();
+        Builder asUUID();
 
         Builder asBoolean();
 

@@ -626,7 +626,7 @@ public class TestGraph implements Graph {
         schema.propertyKey("xxx").ifNotExist().create();
         schema.propertyKey("yyy").ifNotExist().create();
         schema.propertyKey("favoriteColor").ifNotExist().create();
-        schema.propertyKey("uuid").asUuid().ifNotExist().create();
+        schema.propertyKey("uuid").asUUID().ifNotExist().create();
         schema.propertyKey("myId").asInt().ifNotExist().create();
         schema.propertyKey("myEdgeId").asInt().ifNotExist().create();
         schema.propertyKey("state").ifNotExist().create();
