@@ -48,7 +48,8 @@ public class HugeVertexProperty<V> extends HugeProperty<V>
 
     @Override
     public HugeType type() {
-        return HugeType.PROPERTY;
+        return this.pkey.aggregateType().isNone() ?
+               HugeType.PROPERTY : HugeType.AGGR_PROPERTY_V;
     }
 
     @Override

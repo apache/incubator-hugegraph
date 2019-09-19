@@ -78,6 +78,10 @@ public abstract class HugeProperty<V> implements Property<V>, GraphType {
         return null != this.value;
     }
 
+    public boolean isAggregateType() {
+        return !this.pkey.aggregateType().isNone();
+    }
+
     @Override
     public HugeElement element() {
         return this.owner;

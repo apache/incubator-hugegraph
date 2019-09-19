@@ -410,5 +410,10 @@ public abstract class InMemoryDBStore
         public boolean supportsNumberType() {
             return false;
         }
+
+        @Override
+        public boolean supportsAggregateProperty() {
+            return false;
+        }
     };
 }

@@ -114,4 +114,9 @@ public class RocksDBFeatures implements BackendFeatures {
     public boolean supportsNumberType() {
         return false;
     }
+
+    @Override
+    public boolean supportsAggregateProperty() {
+        return false;
+    }
 }

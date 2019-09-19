@@ -134,6 +134,16 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
         return props;
     }
 
+    public Map<Id, HugeProperty<?>> getAggregateProperties() {
+        Map<Id, HugeProperty<?>> funcProps = new HashMap<>();
+        for (Map.Entry<Id, HugeProperty<?>> e : this.properties.entrySet()) {
+            if (e.getValue().type().isAggregateProperty()) {
+                funcProps.put(e.getKey(), e.getValue());
+            }
+        }
+        return funcProps;
+    }
+
     @SuppressWarnings("unchecked")
     public <V> HugeProperty<V> getProperty(Id key) {
         return (HugeProperty<V>) this.properties.get(key);

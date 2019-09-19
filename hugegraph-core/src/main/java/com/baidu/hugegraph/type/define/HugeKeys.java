@@ -50,6 +50,7 @@ public enum HugeKeys {
     /* Column names of schema type (PropertyKey) */
     DATA_TYPE(120, "data_type"),
     CARDINALITY(121, "cardinality"),
+    AGGREGATE_TYPE(122, "aggregate_type"),
 
     /* Column names of schema type (IndexLabel) */
     BASE_TYPE(150, "base_type"),

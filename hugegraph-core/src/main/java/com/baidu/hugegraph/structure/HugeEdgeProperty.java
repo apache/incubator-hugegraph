@@ -22,6 +22,7 @@ package com.baidu.hugegraph.structure;
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 
+import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.type.HugeType;
@@ -35,7 +36,13 @@ public class HugeEdgeProperty<V> extends HugeProperty<V> {
 
     @Override
     public HugeType type() {
-        return HugeType.PROPERTY;
+        return this.pkey.aggregateType().isNone() ?
+               HugeType.PROPERTY : HugeType.AGGR_PROPERTY_E;
+    }
+
+    public Object id() {
+        return SplicingIdGenerator.concat(this.owner.id().asString(),
+                                          this.key());
     }
 
     @Override

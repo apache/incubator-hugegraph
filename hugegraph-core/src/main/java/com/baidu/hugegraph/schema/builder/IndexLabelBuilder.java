@@ -319,6 +319,9 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
                             "Can't build index on undefined property key " +
                             "'%s' for '%s': '%s'", field,
                             this.baseType.readableName(), this.baseValue);
+            E.checkArgument(pkey.aggregateType().isIndexable(),
+                            "The aggregate type %s in not indexable",
+                            pkey.aggregateType());
             E.checkArgument(pkey.cardinality() == Cardinality.SINGLE,
                             "Not allowed to build index on property key " +
                             "'%s' whose cardinality is list or set",

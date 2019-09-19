@@ -53,6 +53,7 @@ import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.structure.HugeVertexProperty;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.AggregateType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.type.define.Directions;
@@ -950,6 +951,7 @@ public class BinarySerializer extends AbstractSerializer {
             writeString(HugeKeys.NAME, schema.name());
             writeEnum(HugeKeys.DATA_TYPE, schema.dataType());
             writeEnum(HugeKeys.CARDINALITY, schema.cardinality());
+            writeEnum(HugeKeys.AGGREGATE_TYPE, schema.aggregateType());
             writeIds(HugeKeys.PROPERTIES, schema.properties());
             writeEnum(HugeKeys.STATUS, schema.status());
             writeUserdata(schema);
@@ -967,6 +969,8 @@ public class BinarySerializer extends AbstractSerializer {
             propertyKey.dataType(readEnum(HugeKeys.DATA_TYPE, DataType.class));
             propertyKey.cardinality(readEnum(HugeKeys.CARDINALITY,
                                              Cardinality.class));
+            propertyKey.aggregateType(readEnum(HugeKeys.AGGREGATE_TYPE,
+                                               AggregateType.class));
             propertyKey.properties(readIds(HugeKeys.PROPERTIES));
             propertyKey.status(readEnum(HugeKeys.STATUS, SchemaStatus.class));
             readUserdata(propertyKey);

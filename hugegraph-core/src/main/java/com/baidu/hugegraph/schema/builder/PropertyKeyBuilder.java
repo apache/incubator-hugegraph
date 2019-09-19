@@ -33,16 +33,20 @@ import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Action;
+import com.baidu.hugegraph.type.define.AggregateType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.util.E;
 
 public class PropertyKeyBuilder implements PropertyKey.Builder {
 
+    public static final String TOP_N = "~topN";
+
     private Id id;
     private String name;
     private DataType dataType;
     private Cardinality cardinality;
+    private AggregateType aggregateType;
     private Map<String, Object> userdata;
     private boolean checkExist;
 
@@ -55,6 +59,7 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
         this.name = name;
         this.dataType = DataType.TEXT;
         this.cardinality = Cardinality.SINGLE;
+        this.aggregateType = AggregateType.NONE;
         this.userdata = new HashMap<>();
         this.checkExist = true;
         this.transaction = transaction;
@@ -68,6 +73,7 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
         PropertyKey propertyKey = new PropertyKey(graph, id, this.name);
         propertyKey.dataType(this.dataType);
         propertyKey.cardinality(this.cardinality);
+        propertyKey.aggregateType(this.aggregateType);
         for (Map.Entry<String, Object> entry : this.userdata.entrySet()) {
             propertyKey.userdata(entry.getKey(), entry.getValue());
         }
@@ -89,6 +95,7 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
         tx.checkIdIfRestoringMode(type, this.id);
 
         this.checkUserdata(Action.INSERT);
+        this.checkAggregateType();
 
         propertyKey = this.build();
         tx.addPropertyKey(propertyKey);
@@ -226,6 +233,38 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
     }
 
     @Override
+    public PropertyKeyBuilder calcMax() {
+        this.aggregateType = AggregateType.MAX;
+        return this;
+    }
+
+    @Override
+    public PropertyKeyBuilder calcMin() {
+        this.aggregateType = AggregateType.MIN;
+        return this;
+    }
+
+    @Override
+    public PropertyKeyBuilder calcSum() {
+        this.aggregateType = AggregateType.SUM;
+        return this;
+    }
+
+    @Override
+    public PropertyKeyBuilder calcOld() {
+        this.aggregateType = AggregateType.OLD;
+        return this;
+    }
+
+    @Override
+    public PropertyKeyBuilder calcTopN(int n) {
+        E.checkArgument(n > 0, "The top n must > 0, but got: %s", n);
+        this.aggregateType = AggregateType.TOP_N;
+        this.userdata.put(TOP_N, n);
+        return this;
+    }
+
+    @Override
     public PropertyKeyBuilder userdata(String key, Object value) {
         this.userdata.put(key, value);
         return this;
@@ -240,6 +279,12 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
     @Override
     public PropertyKeyBuilder dataType(DataType dataType) {
         this.dataType = dataType;
+        return this;
+    }
+
+    @Override
+    public PropertyKey.Builder aggregateType(AggregateType aggregateType) {
+        this.aggregateType = aggregateType;
         return this;
     }
 
@@ -291,6 +336,32 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
             default:
                 throw new AssertionError(String.format(
                           "Unknown schema action '%s'", action));
+        }
+    }
+
+    private void checkAggregateType() {
+        if (this.aggregateType.isNone()) {
+            return;
+        }
+        if (this.aggregateType.isTopN()) {
+            Object n = this.userdata.get(TOP_N);
+            E.checkArgument(n instanceof Integer && (int) n > 0,
+                            "The top n must > 0, but got: %s", n);
+        }
+        if (this.cardinality != Cardinality.SINGLE) {
+            throw new NotAllowException("Not allowed to set aggregate type " +
+                                        "'%s'for property key '%s' with " +
+                                        "cardinality '%s'",
+                                        this.aggregateType, this.name,
+                                        this.cardinality);
+        }
+
+        if (this.aggregateType.isNumber() &&
+            !this.dataType.isNumber() && !this.dataType.isDate()) {
+            throw new NotAllowException(
+                      "Not allowed to set aggregate type '%s'for " +
+                      "property key '%s' with data type '%s'",
+                      this.aggregateType, this.name, this.dataType);
         }
     }
 }

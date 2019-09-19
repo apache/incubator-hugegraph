@@ -364,6 +364,73 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
     }
 
     @Test
+    public void testAddIndexLabelWithInvalidFieldsForAggregateProperty() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+        schema.propertyKey("sumProp").asLong().valueSingle().calcSum()
+              .ifNotExist().create();
+        schema.propertyKey("topN").asLong().valueSingle().calcTopN(10)
+              .ifNotExist().create();
+        schema.vertexLabel("author")
+              .properties("id", "name", "age", "sumProp", "topN")
+              .primaryKeys("id").create();
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("authorBySumProp")
+                  .onV("author").by("sumProp").secondary()
+                  .ifNotExist().create();
+        }, e -> {
+            Assert.assertTrue(e.getMessage(), e.getMessage().contains(
+                              "The aggregate type SUM in not indexable"));
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("authorBySumProp")
+                  .onV("author").by("sumProp").range()
+                  .ifNotExist().create();
+        }, e -> {
+            Assert.assertTrue(e.getMessage(), e.getMessage().contains(
+                              "The aggregate type SUM in not indexable"));
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("authorBySumProp")
+                  .onV("author").by("sumProp").shard()
+                  .ifNotExist().create();
+        }, e -> {
+            Assert.assertTrue(e.getMessage(), e.getMessage().contains(
+                              "The aggregate type SUM in not indexable"));
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("authorByTopN")
+                  .onV("author").by("topN").secondary()
+                  .ifNotExist().create();
+        }, e -> {
+            Assert.assertTrue(e.getMessage(), e.getMessage().contains(
+                              "The aggregate type TOP_N in not indexable"));
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("authorByTopN")
+                  .onV("author").by("topN").range()
+                  .ifNotExist().create();
+        }, e -> {
+            Assert.assertTrue(e.getMessage(), e.getMessage().contains(
+                              "The aggregate type TOP_N in not indexable"));
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("authorByTopN")
+                  .onV("author").by("topN").shard()
+                  .ifNotExist().create();
+        }, e -> {
+            Assert.assertTrue(e.getMessage(), e.getMessage().contains(
+                              "The aggregate type TOP_N in not indexable"));
+        });
+    }
+
+    @Test
     public void testAddIndexLabelWithFieldsAssignedMultiTimes() {
         super.initPropertyKeys();
         SchemaManager schema = graph().schema();

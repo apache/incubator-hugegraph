@@ -32,9 +32,11 @@ import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.exception.NotSupportException;
+import com.baidu.hugegraph.schema.builder.PropertyKeyBuilder;
 import com.baidu.hugegraph.schema.builder.SchemaBuilder;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.Propfiable;
+import com.baidu.hugegraph.type.define.AggregateType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.util.E;
@@ -44,11 +46,13 @@ public class PropertyKey extends SchemaElement implements Propfiable {
 
     private DataType dataType;
     private Cardinality cardinality;
+    private AggregateType aggregateType;
 
     public PropertyKey(final HugeGraph graph, Id id, String name) {
         super(graph, id, name);
         this.dataType = DataType.TEXT;
         this.cardinality = Cardinality.SINGLE;
+        this.aggregateType = AggregateType.NONE;
     }
 
     @Override
@@ -70,6 +74,21 @@ public class PropertyKey extends SchemaElement implements Propfiable {
 
     public void cardinality(Cardinality cardinality) {
         this.cardinality = cardinality;
+    }
+
+    public AggregateType aggregateType() {
+        return this.aggregateType;
+    }
+
+    public void aggregateType(AggregateType aggregateType) {
+        this.aggregateType = aggregateType;
+    }
+
+    public int topN() {
+        E.checkArgument(this.aggregateType.isTopN(),
+                        "Invalid aggregate type %s",
+                        this.aggregateType);
+        return (int) this.userdata().get(PropertyKeyBuilder.TOP_N);
     }
 
     @Override
@@ -298,9 +317,21 @@ public class PropertyKey extends SchemaElement implements Propfiable {
 
         Builder valueSet();
 
+        Builder calcMax();
+
+        Builder calcMin();
+
+        Builder calcSum();
+
+        Builder calcOld();
+
+        Builder calcTopN(int n);
+
         Builder cardinality(Cardinality cardinality);
 
         Builder dataType(DataType dataType);
+
+        Builder aggregateType(AggregateType aggregateType);
 
         Builder userdata(String key, Object value);
 
