@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
@@ -50,6 +51,7 @@ import com.baidu.hugegraph.api.filter.CompressInterceptor.Compress;
 import com.baidu.hugegraph.api.filter.DecompressInterceptor.Decompress;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.config.HugeConfig;
@@ -295,7 +297,9 @@ public class VertexAPI extends BatchAPI {
             return null;
         }
         try {
-            Object id = JsonUtil.fromJson(idValue, Object.class);
+            Object id = idValue.startsWith("U\"") ?
+                        JsonUtil.fromJson(idValue.substring(1), UUID.class) :
+                        JsonUtil.fromJson(idValue, Object.class);
             return HugeVertex.getIdValue(id);
         } catch (Exception e) {
             throw new IllegalArgumentException(String.format(
@@ -318,7 +322,7 @@ public class VertexAPI extends BatchAPI {
         }
     }
 
-    private Id getVertexId(HugeGraph g, JsonVertex vertex) {
+    private static Id getVertexId(HugeGraph g, JsonVertex vertex) {
         VertexLabel vertexLabel = g.vertexLabel(vertex.label);
         String labelId = vertexLabel.id().asString();
         IdStrategy idStrategy = vertexLabel.idStrategy();
@@ -339,6 +343,8 @@ public class VertexAPI extends BatchAPI {
 
             String value = ConditionQuery.concatValues(pkValues);
             return SplicingIdGenerator.splicing(labelId, value);
+        } else if (idStrategy == IdStrategy.CUSTOMIZE_UUID) {
+            return IdGenerator.of(String.valueOf(vertex.id), true);
         } else {
             assert idStrategy == IdStrategy.CUSTOMIZE_NUMBER ||
                    idStrategy == IdStrategy.CUSTOMIZE_STRING;

@@ -21,6 +21,7 @@ package com.baidu.hugegraph.util;
 
 import java.io.IOException;
 import java.util.Date;
+import java.util.UUID;
 
 import org.apache.tinkerpop.shaded.jackson.core.JsonGenerator;
 import org.apache.tinkerpop.shaded.jackson.core.JsonParser;
@@ -32,8 +33,10 @@ import org.apache.tinkerpop.shaded.jackson.databind.ObjectMapper;
 import org.apache.tinkerpop.shaded.jackson.databind.ObjectReader;
 import org.apache.tinkerpop.shaded.jackson.databind.SerializerProvider;
 import org.apache.tinkerpop.shaded.jackson.databind.deser.std.StdDeserializer;
+import org.apache.tinkerpop.shaded.jackson.databind.deser.std.UUIDDeserializer;
 import org.apache.tinkerpop.shaded.jackson.databind.module.SimpleModule;
 import org.apache.tinkerpop.shaded.jackson.databind.ser.std.StdSerializer;
+import org.apache.tinkerpop.shaded.jackson.databind.ser.std.UUIDSerializer;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.EdgeId;
@@ -60,13 +63,19 @@ public final class JsonUtil {
 
     static {
         SimpleModule module = new SimpleModule();
+
         module.addSerializer(Date.class, new DateSerializer());
         module.addDeserializer(Date.class, new DateDeserializer());
+
+        module.addSerializer(UUID.class, new UUIDSerializer());
+        module.addDeserializer(UUID.class, new UUIDDeserializer());
 
         module.addSerializer(IdGenerator.StringId.class,
                              new IdSerializer<>(IdGenerator.StringId.class));
         module.addSerializer(IdGenerator.LongId.class,
                              new IdSerializer<>(IdGenerator.LongId.class));
+        module.addSerializer(IdGenerator.UuidId.class,
+                             new IdSerializer<>(IdGenerator.UuidId.class));
         module.addSerializer(EdgeId.class, new IdSerializer<>(EdgeId.class));
 
         module.addSerializer(PropertyKey.class, new PropertyKeySerializer());

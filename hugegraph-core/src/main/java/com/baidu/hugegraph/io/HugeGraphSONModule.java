@@ -221,6 +221,9 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
             } else if (clazz.equals(IdGenerator.StringId.class)) {
                 String idValue = ctxt.readValue(jsonParser, String.class);
                 return (T) IdGenerator.of(idValue);
+            } else if (clazz.equals(IdGenerator.UuidId.class)) {
+                UUID idValue = ctxt.readValue(jsonParser, UUID.class);
+                return (T) IdGenerator.of(idValue);
             } else {
                 assert clazz.equals(EdgeId.class);
                 String idValue = ctxt.readValue(jsonParser, String.class);
