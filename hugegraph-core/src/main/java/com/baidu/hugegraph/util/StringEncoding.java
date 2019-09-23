@@ -18,6 +18,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.util.UUID;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -120,5 +121,23 @@ public final class StringEncoding {
         return String.format("%s[0x%s]",
                              StringEncoding.decode(bytes),
                              Bytes.toHex(bytes));
+    }
+
+    public static UUID uuid(String value) {
+        E.checkArgument(value != null, "The UUID can't be null");
+        try {
+            if (value.contains("-") && value.length() == 36) {
+                return UUID.fromString(value);
+            }
+            // UUID represented by hex string
+            E.checkArgument(value.length() == 32,
+                            "Invalid UUID string: %s", value);
+            String high = value.substring(0, 16);
+            String low = value.substring(16);
+            return new UUID(Long.parseUnsignedLong(high, 16),
+                            Long.parseUnsignedLong(low, 16));
+        } catch (NumberFormatException ignored) {
+            throw new IllegalArgumentException("Invalid UUID string: " + value);
+        }
     }
 }

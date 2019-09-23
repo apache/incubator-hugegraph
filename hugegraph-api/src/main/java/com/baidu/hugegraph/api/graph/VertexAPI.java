@@ -25,7 +25,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
@@ -51,7 +50,6 @@ import com.baidu.hugegraph.api.filter.CompressInterceptor.Compress;
 import com.baidu.hugegraph.api.filter.DecompressInterceptor.Decompress;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.config.HugeConfig;
@@ -62,6 +60,7 @@ import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.structure.HugeVertex;
+import com.baidu.hugegraph.traversal.optimize.Text;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.util.E;
@@ -296,15 +295,17 @@ public class VertexAPI extends BatchAPI {
         if (idValue == null) {
             return null;
         }
+        boolean uuid = idValue.startsWith("U\"");
+        if (uuid) {
+            idValue = idValue.substring(1);
+        }
         try {
-            Object id = idValue.startsWith("U\"") ?
-                        JsonUtil.fromJson(idValue.substring(1), UUID.class) :
-                        JsonUtil.fromJson(idValue, Object.class);
-            return HugeVertex.getIdValue(id);
+            Object id = JsonUtil.fromJson(idValue, Object.class);
+            return uuid ? Text.uuid((String) id) : HugeVertex.getIdValue(id);
         } catch (Exception e) {
             throw new IllegalArgumentException(String.format(
-                      "The vertex id must be formatted as String or " +
-                      "Number, but got '%s'", idValue));
+                      "The vertex id must be formatted as Number/String/UUID" +
+                      ", but got '%s'", idValue));
         }
     }
 
@@ -344,7 +345,7 @@ public class VertexAPI extends BatchAPI {
             String value = ConditionQuery.concatValues(pkValues);
             return SplicingIdGenerator.splicing(labelId, value);
         } else if (idStrategy == IdStrategy.CUSTOMIZE_UUID) {
-            return IdGenerator.of(String.valueOf(vertex.id), true);
+            return Text.uuid(String.valueOf(vertex.id));
         } else {
             assert idStrategy == IdStrategy.CUSTOMIZE_NUMBER ||
                    idStrategy == IdStrategy.CUSTOMIZE_STRING;

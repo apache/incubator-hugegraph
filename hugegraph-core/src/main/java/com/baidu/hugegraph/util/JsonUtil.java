@@ -38,7 +38,7 @@ import org.apache.tinkerpop.shaded.jackson.databind.module.SimpleModule;
 import org.apache.tinkerpop.shaded.jackson.databind.ser.std.StdSerializer;
 import org.apache.tinkerpop.shaded.jackson.databind.ser.std.UUIDSerializer;
 
-import com.baidu.hugegraph.backend.BackendException;
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.store.Shard;
@@ -98,7 +98,7 @@ public final class JsonUtil {
         try {
             return mapper.writeValueAsString(object);
         } catch (JsonProcessingException e) {
-            throw new BackendException(e);
+            throw new HugeException("Can't write json: %s", e, e.getMessage());
         }
     }
 
@@ -109,7 +109,7 @@ public final class JsonUtil {
         try {
             return mapper.readValue(json, clazz);
         } catch (IOException e) {
-            throw new BackendException(e);
+            throw new HugeException("Can't read json: %s", e, e.getMessage());
         }
     }
 
@@ -121,7 +121,7 @@ public final class JsonUtil {
             ObjectReader reader = mapper.readerFor(typeRef);
             return reader.readValue(json);
         } catch (IOException e) {
-            throw new BackendException(e);
+            throw new HugeException("Can't read json: %s", e, e.getMessage());
         }
     }
 
