@@ -32,7 +32,6 @@ import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.core.GraphManager;
-import com.baidu.hugegraph.util.JsonUtil;
 import com.baidu.hugegraph.util.Log;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -125,10 +124,10 @@ public class LicenseVerifier {
     }
 
     private static LicenseVerifyParam buildVerifyParam(String path) {
-        InputStream stream = LicenseVerifier.class.getResourceAsStream(path);
         // NOTE: can't use JsonUtil due to it bind tinkerpop jackson
         ObjectMapper mapper = new ObjectMapper();
-        try {
+        try (InputStream stream =
+             LicenseVerifier.class.getResourceAsStream(path)) {
             return mapper.readValue(stream, LicenseVerifyParam.class);
         } catch (IOException e) {
             throw new HugeException("Failed to read json stream to %s",

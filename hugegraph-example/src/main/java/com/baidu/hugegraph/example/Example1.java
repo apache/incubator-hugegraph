@@ -122,7 +122,7 @@ public class Example1 {
         schema.propertyKey("lived").asText().create();
         schema.propertyKey("country").asText().valueSet().create();
         schema.propertyKey("city").asText().create();
-        schema.propertyKey("sensor_id").asUuid().create();
+        schema.propertyKey("sensor_id").asUUID().create();
         schema.propertyKey("versions").asInt().valueList().create();
 
         LOG.info("===============  vertexLabel  ================");

@@ -166,7 +166,7 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
     }
 
     @Override
-    public PropertyKeyBuilder asUuid() {
+    public PropertyKeyBuilder asUUID() {
         this.dataType = DataType.UUID;
         return this;
     }

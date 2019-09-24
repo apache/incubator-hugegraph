@@ -77,7 +77,7 @@ public final class HugeScriptTraversal<S, E> extends DefaultTraversal<S, E> {
         bindings.putAll(this.bindings);
 
         @SuppressWarnings("rawtypes")
-        TraversalStrategy strategies[] = this.getStrategies().toList()
+        TraversalStrategy[] strategies = this.getStrategies().toList()
                                              .toArray(new TraversalStrategy[0]);
         bindings.put("g", this.factory.createTraversalSource(this.graph)
                                       .withStrategies(strategies));

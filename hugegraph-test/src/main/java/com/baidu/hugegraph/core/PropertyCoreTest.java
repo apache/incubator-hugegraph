@@ -43,7 +43,7 @@ public abstract class PropertyCoreTest extends BaseCoreTest {
         SchemaManager schema = graph().schema();
 
         schema.propertyKey("id").asInt().create();
-        schema.propertyKey("uid").asUuid().create();
+        schema.propertyKey("uid").asUUID().create();
         schema.propertyKey("name").asText().create();
         schema.propertyKey("gender").asBoolean().create();
         schema.propertyKey("time").asDate().create();
@@ -171,7 +171,7 @@ public abstract class PropertyCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testTypeUuid() {
+    public void testTypeUUID() {
         UUID uid = UUID.randomUUID();
         Assert.assertEquals(uid, property("uid", uid));
     }

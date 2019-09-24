@@ -98,6 +98,6 @@ public class TaskApiTest extends BaseApiTest {
             Response r = client().get(path, String.valueOf(task));
             String content = assertResponseStatus(200, r);
             status = assertJsonContains(content, "task_status");
-        } while (!status.equals("success"));
+        } while (!"success".equals(status));
     }
 }

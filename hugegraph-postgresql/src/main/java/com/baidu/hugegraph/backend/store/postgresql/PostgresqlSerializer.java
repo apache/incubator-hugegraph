@@ -41,7 +41,7 @@ public class PostgresqlSerializer extends MysqlSerializer {
             entry.column(HugeKeys.INDEX_LABEL_ID, index.indexLabel().longId());
         } else {
             Object value = index.fieldValues();
-            if (value != null && value.equals("\u0000")) {
+            if (value != null && "\u0000".equals(value)) {
                 value = Strings.EMPTY;
             }
             entry.column(HugeKeys.FIELD_VALUES, value);

@@ -112,11 +112,16 @@ public class BatchAPI extends API {
         for (Map.Entry<String, UpdateStrategy> kv : strategies.entrySet()) {
             String key = kv.getKey();
             UpdateStrategy updateStrategy = kv.getValue();
-            if (oldElement.properties.get(key) != null) {
+            if (oldElement.properties.get(key) != null &&
+                newElement.properties.get(key) != null) {
                 Object value = updateStrategy.checkAndUpdateProperty(
                                oldElement.properties.get(key),
                                newElement.properties.get(key));
                 newElement.properties.put(key, value);
+            } else if (oldElement.properties.get(key) != null &&
+                       newElement.properties.get(key) == null) {
+                // If new property is null & old is present, use old property
+                newElement.properties.put(key, oldElement.properties.get(key));
             }
         }
     }
@@ -134,12 +139,16 @@ public class BatchAPI extends API {
             String key = kv.getKey();
             UpdateStrategy updateStrategy = kv.getValue();
             if (oldElement.property(key).isPresent() &&
-                newElement.properties.containsKey(key)) {
+                newElement.properties.get(key) != null) {
                 Object value = updateStrategy.checkAndUpdateProperty(
                                oldElement.property(key).value(),
                                newElement.properties.get(key));
                 value = g.propertyKey(key).convValue(value, false);
                 newElement.properties.put(key, value);
+            } else if (oldElement.property(key).isPresent() &&
+                       newElement.properties.get(key) == null) {
+                // If new property is null & old is present, use old property
+                newElement.properties.put(key, oldElement.property(key).value());
             }
         }
     }

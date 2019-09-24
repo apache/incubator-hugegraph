@@ -66,7 +66,7 @@ public class GraphsAPI extends API {
                        @Context SecurityContext sc) {
         Set<String> graphs = manager.graphs();
         String role = sc.getUserPrincipal().getName();
-        if (role.equals("admin")) {
+        if ("admin".equals(role)) {
             return ImmutableMap.of("graphs", graphs);
         } else {
             // Filter by user role
