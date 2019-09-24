@@ -32,7 +32,6 @@ import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.exception.NotSupportException;
-import com.baidu.hugegraph.schema.builder.PropertyKeyBuilder;
 import com.baidu.hugegraph.schema.builder.SchemaBuilder;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.Propfiable;
@@ -82,13 +81,6 @@ public class PropertyKey extends SchemaElement implements Propfiable {
 
     public void aggregateType(AggregateType aggregateType) {
         this.aggregateType = aggregateType;
-    }
-
-    public int topN() {
-        E.checkArgument(this.aggregateType.isTopN(),
-                        "Invalid aggregate type %s",
-                        this.aggregateType);
-        return (int) this.userdata().get(PropertyKeyBuilder.KEY_TOP_N);
     }
 
     @Override
@@ -324,8 +316,6 @@ public class PropertyKey extends SchemaElement implements Propfiable {
         Builder calcSum();
 
         Builder calcOld();
-
-        Builder calcTopN(int n);
 
         Builder cardinality(Cardinality cardinality);
 

@@ -40,8 +40,6 @@ import com.baidu.hugegraph.util.E;
 
 public class PropertyKeyBuilder implements PropertyKey.Builder {
 
-    public static final String KEY_TOP_N = "~topN";
-
     private Id id;
     private String name;
     private DataType dataType;
@@ -257,14 +255,6 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
     }
 
     @Override
-    public PropertyKeyBuilder calcTopN(int n) {
-        E.checkArgument(n > 0, "The top n must > 0, but got: %s", n);
-        this.aggregateType = AggregateType.TOP_N;
-        this.userdata.put(KEY_TOP_N, n);
-        return this;
-    }
-
-    @Override
     public PropertyKeyBuilder userdata(String key, Object value) {
         this.userdata.put(key, value);
         return this;
@@ -343,11 +333,7 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
         if (this.aggregateType.isNone()) {
             return;
         }
-        if (this.aggregateType.isTopN()) {
-            Object n = this.userdata.get(KEY_TOP_N);
-            E.checkArgument(n instanceof Integer && (int) n > 0,
-                            "The top n must be positive int, but got: %s", n);
-        }
+
         if (this.cardinality != Cardinality.SINGLE) {
             throw new NotAllowException("Not allowed to set aggregate type " +
                                         "'%s' for property key '%s' with " +

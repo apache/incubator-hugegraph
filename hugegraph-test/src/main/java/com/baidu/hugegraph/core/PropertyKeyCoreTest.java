@@ -185,39 +185,6 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
         Assert.assertEquals(Cardinality.SINGLE, oldProp.cardinality());
         Assert.assertEquals(AggregateType.OLD, oldProp.aggregateType());
 
-        PropertyKey topN = schema.propertyKey("topN")
-                                 .asLong().valueSingle().calcTopN(10)
-                                 .ifNotExist().create();
-        Assert.assertEquals(DataType.LONG, topN.dataType());
-        Assert.assertEquals(Cardinality.SINGLE, topN.cardinality());
-        Assert.assertEquals(AggregateType.TOP_N, topN.aggregateType());
-        topN = schema.getPropertyKey("topN");
-        Assert.assertEquals(DataType.LONG, topN.dataType());
-        Assert.assertEquals(Cardinality.SINGLE, topN.cardinality());
-        Assert.assertEquals(AggregateType.TOP_N, topN.aggregateType());
-        Assert.assertEquals(10, topN.topN());
-
-        Assert.assertThrows(IllegalArgumentException.class, () -> {
-            schema.propertyKey("topN1")
-                  .asLong().valueSingle()
-                  .calcTopN(0)
-                  .ifNotExist().create();
-        });
-
-        Assert.assertThrows(IllegalArgumentException.class, () -> {
-            schema.propertyKey("topN1")
-                  .asLong().valueSingle()
-                  .calcTopN(-10)
-                  .ifNotExist().create();
-        });
-
-        Assert.assertThrows(IllegalArgumentException.class, () -> {
-            schema.propertyKey("topN1")
-                  .asLong().valueSingle()
-                  .aggregateType(AggregateType.TOP_N)
-                  .ifNotExist().create();
-        });
-
         PropertyKey regular = schema.propertyKey("regular").create();
         Assert.assertEquals(DataType.TEXT, regular.dataType());
         Assert.assertEquals(Cardinality.SINGLE, regular.cardinality());
@@ -271,16 +238,6 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
         Assert.assertThrows(NotAllowException.class, () -> {
             schema.propertyKey("aggregateProperty")
                   .asDate().valueSet().calcOld().create();
-        });
-
-        Assert.assertThrows(NotAllowException.class, () -> {
-            schema.propertyKey("aggregateProperty")
-                  .asDate().valueList().calcTopN(10).create();
-        });
-
-        Assert.assertThrows(NotAllowException.class, () -> {
-            schema.propertyKey("aggregateProperty")
-                  .asDate().valueSet().calcTopN(10).create();
         });
 
         // Invalid data type
@@ -342,26 +299,6 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
         Assert.assertThrows(NotAllowException.class, () -> {
             schema.propertyKey("aggregateProperty")
                   .asUuid().valueSingle().calcSum().create();
-        });
-
-        Assert.assertThrows(NotAllowException.class, () -> {
-            schema.propertyKey("aggregateProperty")
-                  .asText().valueSingle().calcTopN(10).create();
-        });
-
-        Assert.assertThrows(NotAllowException.class, () -> {
-            schema.propertyKey("aggregateProperty")
-                  .asBlob().valueSingle().calcTopN(10).create();
-        });
-
-        Assert.assertThrows(NotAllowException.class, () -> {
-            schema.propertyKey("aggregateProperty")
-                  .asBoolean().valueSingle().calcTopN(10).create();
-        });
-
-        Assert.assertThrows(NotAllowException.class, () -> {
-            schema.propertyKey("aggregateProperty")
-                  .asUuid().valueSingle().calcTopN(10).create();
         });
     }
 

@@ -111,10 +111,10 @@ public abstract class TableSerializer extends AbstractSerializer {
     }
 
     protected Object writeProperty(HugeProperty<?> property) {
-        return this.writeProperty(property.value());
+        return this.writeProperty(property.propertyKey(), property.value());
     }
 
-    protected Object writeProperty(Object value) {
+    protected Object writeProperty(PropertyKey propertyKey, Object value) {
         return JsonUtil.toJson(value);
     }
 
@@ -390,7 +390,7 @@ public abstract class TableSerializer extends AbstractSerializer {
 
             if (query.resultType().isGraph() &&
                 r.relation() == Condition.RelationType.CONTAINS_VALUE) {
-                r.serialValue(this.writeProperty(r.serialValue()));
+                r.serialValue(this.writeProperty(null, r.serialValue()));
             }
         }
 

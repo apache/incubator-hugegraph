@@ -369,10 +369,8 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
         SchemaManager schema = graph().schema();
         schema.propertyKey("sumProp").asLong().valueSingle().calcSum()
               .ifNotExist().create();
-        schema.propertyKey("topN").asLong().valueSingle().calcTopN(10)
-              .ifNotExist().create();
         schema.vertexLabel("author")
-              .properties("id", "name", "age", "sumProp", "topN")
+              .properties("id", "name", "age", "sumProp")
               .primaryKeys("id").create();
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
@@ -400,33 +398,6 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
         }, e -> {
             Assert.assertTrue(e.getMessage(), e.getMessage().contains(
                               "The aggregate type SUM is not indexable"));
-        });
-
-        Assert.assertThrows(IllegalArgumentException.class, () -> {
-            schema.indexLabel("authorByTopN")
-                  .onV("author").by("topN").secondary()
-                  .ifNotExist().create();
-        }, e -> {
-            Assert.assertTrue(e.getMessage(), e.getMessage().contains(
-                              "The aggregate type TOP_N is not indexable"));
-        });
-
-        Assert.assertThrows(IllegalArgumentException.class, () -> {
-            schema.indexLabel("authorByTopN")
-                  .onV("author").by("topN").range()
-                  .ifNotExist().create();
-        }, e -> {
-            Assert.assertTrue(e.getMessage(), e.getMessage().contains(
-                              "The aggregate type TOP_N is not indexable"));
-        });
-
-        Assert.assertThrows(IllegalArgumentException.class, () -> {
-            schema.indexLabel("authorByTopN")
-                  .onV("author").by("topN").shard()
-                  .ifNotExist().create();
-        }, e -> {
-            Assert.assertTrue(e.getMessage(), e.getMessage().contains(
-                              "The aggregate type TOP_N is not indexable"));
         });
     }
 

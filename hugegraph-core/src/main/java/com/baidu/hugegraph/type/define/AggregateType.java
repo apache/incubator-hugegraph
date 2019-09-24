@@ -25,8 +25,7 @@ public enum AggregateType implements SerialEnum {
     MAX(1, "max"),
     MIN(2, "min"),
     SUM(3, "sum"),
-    OLD(4, "old"),
-    TOP_N(5, "top_n");
+    OLD(4, "old");
 
     private byte code = 0;
     private String name = null;
@@ -66,12 +65,8 @@ public enum AggregateType implements SerialEnum {
         return this == SUM;
     }
 
-    public boolean isTopN() {
-        return this == TOP_N;
-    }
-
     public boolean isNumber() {
-        return this.isMax() || this.isMin() || this.isSum() || this.isTopN();
+        return this.isMax() || this.isMin() || this.isSum();
     }
 
     public boolean isOld() {
