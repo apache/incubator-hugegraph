@@ -4227,7 +4227,7 @@ public class VertexCoreTest extends BaseCoreTest {
                   .onV("student").by("testNum").range().ifNotExist().create();
         }, e -> {
             Assert.assertTrue(e.getMessage(), e.getMessage().contains(
-                              "The aggregate type SUM in not indexable"));
+                              "The aggregate type SUM is not indexable"));
         });
         schema.indexLabel("studentByNo")
               .onV("student").by("no").secondary().ifNotExist().create();

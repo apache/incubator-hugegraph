@@ -25,6 +25,7 @@ import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 
+import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
@@ -47,6 +48,11 @@ public abstract class HugeProperty<V> implements Property<V>, GraphType {
 
     public PropertyKey propertyKey() {
         return this.pkey;
+    }
+
+    public Object id() {
+        return SplicingIdGenerator.concat(this.owner.id().asString(),
+                                          this.key());
     }
 
     @Override

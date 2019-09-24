@@ -88,7 +88,7 @@ public class PropertyKey extends SchemaElement implements Propfiable {
         E.checkArgument(this.aggregateType.isTopN(),
                         "Invalid aggregate type %s",
                         this.aggregateType);
-        return (int) this.userdata().get(PropertyKeyBuilder.TOP_N);
+        return (int) this.userdata().get(PropertyKeyBuilder.KEY_TOP_N);
     }
 
     @Override

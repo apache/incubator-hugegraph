@@ -26,7 +26,6 @@ import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 
-import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.VertexLabel;
@@ -38,12 +37,6 @@ public class HugeVertexProperty<V> extends HugeProperty<V>
 
     public HugeVertexProperty(HugeElement owner, PropertyKey key, V value) {
         super(owner, key, value);
-    }
-
-    @Override
-    public Object id() {
-        return SplicingIdGenerator.concat(this.owner.id().asString(),
-                                          this.key());
     }
 
     @Override

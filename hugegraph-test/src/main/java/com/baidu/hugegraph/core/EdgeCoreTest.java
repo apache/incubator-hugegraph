@@ -3724,7 +3724,7 @@ public class EdgeCoreTest extends BaseCoreTest {
                   .onE("attack").by("times").range().ifNotExist().create();
         }, e -> {
             Assert.assertTrue(e.getMessage(), e.getMessage().contains(
-                              "The aggregate type SUM in not indexable"));
+                              "The aggregate type SUM is not indexable"));
         });
         schema.indexLabel("attackByFirstTime")
               .onE("attack").by("firstTime").range().ifNotExist().create();

@@ -320,7 +320,7 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
                             "'%s' for '%s': '%s'", field,
                             this.baseType.readableName(), this.baseValue);
             E.checkArgument(pkey.aggregateType().isIndexable(),
-                            "The aggregate type %s in not indexable",
+                            "The aggregate type %s is not indexable",
                             pkey.aggregateType());
             E.checkArgument(pkey.cardinality() == Cardinality.SINGLE,
                             "Not allowed to build index on property key " +

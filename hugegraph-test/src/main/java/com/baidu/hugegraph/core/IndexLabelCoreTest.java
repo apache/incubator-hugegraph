@@ -381,7 +381,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
                   .ifNotExist().create();
         }, e -> {
             Assert.assertTrue(e.getMessage(), e.getMessage().contains(
-                              "The aggregate type SUM in not indexable"));
+                              "The aggregate type SUM is not indexable"));
         });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
@@ -390,7 +390,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
                   .ifNotExist().create();
         }, e -> {
             Assert.assertTrue(e.getMessage(), e.getMessage().contains(
-                              "The aggregate type SUM in not indexable"));
+                              "The aggregate type SUM is not indexable"));
         });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
@@ -399,7 +399,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
                   .ifNotExist().create();
         }, e -> {
             Assert.assertTrue(e.getMessage(), e.getMessage().contains(
-                              "The aggregate type SUM in not indexable"));
+                              "The aggregate type SUM is not indexable"));
         });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
@@ -408,7 +408,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
                   .ifNotExist().create();
         }, e -> {
             Assert.assertTrue(e.getMessage(), e.getMessage().contains(
-                              "The aggregate type TOP_N in not indexable"));
+                              "The aggregate type TOP_N is not indexable"));
         });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
@@ -417,7 +417,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
                   .ifNotExist().create();
         }, e -> {
             Assert.assertTrue(e.getMessage(), e.getMessage().contains(
-                              "The aggregate type TOP_N in not indexable"));
+                              "The aggregate type TOP_N is not indexable"));
         });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
@@ -426,7 +426,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
                   .ifNotExist().create();
         }, e -> {
             Assert.assertTrue(e.getMessage(), e.getMessage().contains(
-                              "The aggregate type TOP_N in not indexable"));
+                              "The aggregate type TOP_N is not indexable"));
         });
     }
 
