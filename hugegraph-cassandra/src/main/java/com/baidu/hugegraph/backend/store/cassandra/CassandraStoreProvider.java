@@ -60,6 +60,6 @@ public class CassandraStoreProvider extends AbstractBackendStoreProvider {
          * [1.6] #661 & #680: support bin serialization for cassandra
          * [1.7] #691: support aggregate property
          */
-        return "1.6";
+        return "1.7";
     }
 }

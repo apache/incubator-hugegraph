@@ -61,7 +61,7 @@ public class PostgresqlStoreProvider extends MysqlStoreProvider {
          * [1.3] #661: reduce the storage of vertex/edge id
          * [1.4] #691: support aggregate property
          */
-        return "1.3";
+        return "1.4";
     }
 
     public static class PostgresqlSchemaStore extends PostgresqlStore {

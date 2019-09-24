@@ -234,11 +234,12 @@ public class GraphTransaction extends IndexableTransaction {
             assert !v.removed();
             v.committed();
             this.checkAggregateProperty(v);
+            // Add vertex entry
+            this.doInsert(this.serializer.writeVertex(v));
             // Update index of vertex(only include props)
             this.indexTx.updateVertexIndex(v, false);
             this.indexTx.updateLabelIndex(v, false);
-            // Add vertex entry
-            this.doInsert(this.serializer.writeVertex(v));
+
         }
 
         // Do edge update
@@ -250,12 +251,12 @@ public class GraphTransaction extends IndexableTransaction {
                 continue;
             }
             this.checkAggregateProperty(e);
-            // Update index of edge
-            this.indexTx.updateEdgeIndex(e, false);
-            this.indexTx.updateLabelIndex(e, false);
             // Add edge entry of OUT and IN
             this.doInsert(this.serializer.writeEdge(e));
             this.doInsert(this.serializer.writeEdge(e.switchOwner()));
+            // Update index of edge
+            this.indexTx.updateEdgeIndex(e, false);
+            this.indexTx.updateLabelIndex(e, false);
         }
     }
 
