@@ -1024,15 +1024,15 @@ public class GraphTransaction extends IndexableTransaction {
     private void checkAggregateProperty(HugeElement element) {
         E.checkArgument(element.getAggregateProperties().isEmpty() ||
                         this.store().features().supportsAggregateProperty(),
-                        "The store of '%s' not support aggregate " +
-                        "property", this.store().provider().type());
+                        "The %s store does not support aggregate property",
+                        this.store().provider().type());
     }
 
     private void checkAggregateProperty(HugeProperty property) {
         E.checkArgument(!property.isAggregateType() ||
                         this.store().features().supportsAggregateProperty(),
-                        "The store of '%s' not support aggregate " +
-                        "property", this.store().provider().type());
+                        "The %s store does not support aggregate property",
+                        this.store().provider().type());
     }
 
     private Query optimizeQuery(ConditionQuery query) {
