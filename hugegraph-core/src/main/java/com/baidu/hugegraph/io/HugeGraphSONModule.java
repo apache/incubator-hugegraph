@@ -35,6 +35,7 @@ import org.apache.tinkerpop.shaded.jackson.databind.JsonSerializer;
 import org.apache.tinkerpop.shaded.jackson.databind.SerializerProvider;
 import org.apache.tinkerpop.shaded.jackson.databind.deser.std.StdDeserializer;
 import org.apache.tinkerpop.shaded.jackson.databind.jsontype.TypeSerializer;
+import org.apache.tinkerpop.shaded.jackson.databind.module.SimpleModule;
 import org.apache.tinkerpop.shaded.jackson.databind.ser.std.DateSerializer;
 import org.apache.tinkerpop.shaded.jackson.databind.ser.std.StdSerializer;
 import org.apache.tinkerpop.shaded.jackson.databind.ser.std.UUIDSerializer;
@@ -43,6 +44,9 @@ import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
+import com.baidu.hugegraph.backend.id.IdGenerator.LongId;
+import com.baidu.hugegraph.backend.id.IdGenerator.StringId;
+import com.baidu.hugegraph.backend.id.IdGenerator.UuidId;
 import com.baidu.hugegraph.backend.store.Shard;
 import com.baidu.hugegraph.date.SafeDateFormat;
 import com.baidu.hugegraph.schema.EdgeLabel;
@@ -112,37 +116,19 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         addSerializer(UUID.class, new UUIDSerializer());
 
         // HugeGraph id serializer
-        addSerializer(IdGenerator.StringId.class,
-                      new IdSerializer<>(IdGenerator.StringId.class));
-        addDeserializer(IdGenerator.StringId.class,
-                        new IdDeserializer<>(IdGenerator.StringId.class));
-        addSerializer(IdGenerator.LongId.class,
-                      new IdSerializer<>(IdGenerator.LongId.class));
-        addDeserializer(IdGenerator.LongId.class,
-                        new IdDeserializer<>(IdGenerator.LongId.class));
-        addSerializer(EdgeId.class, new IdSerializer<>(EdgeId.class));
-        addDeserializer(EdgeId.class, new IdDeserializer<>(EdgeId.class));
+        registerIdSerializers(this);
 
         // HugeGraph schema serializer
-        addSerializer(PropertyKey.class, new PropertyKeySerializer());
-        addSerializer(VertexLabel.class, new VertexLabelSerializer());
-        addSerializer(EdgeLabel.class, new EdgeLabelSerializer());
-        addSerializer(IndexLabel.class, new IndexLabelSerializer());
+        registerSchemaSerializers(this);
 
+        // HugeGraph vertex/edge serializer
         if (OPTIMIZE_SERIALIZE) {
-            /*
-             * Use customized serializer need to be compatible with V1 and V2
-             * Graphson, and seems need to implement edge deserializer，it is
-             * a little complicated.
-             */
-            addSerializer(HugeVertex.class, new HugeVertexSerializer());
-            addSerializer(HugeEdge.class, new HugeEdgeSerializer());
+            registerGraphSerializers(this);
         }
-        addSerializer(Shard.class, new ShardSerializer());
     }
 
-    @Override
     @SuppressWarnings("rawtypes")
+    @Override
     public Map<Class, String> getTypeDefinitions() {
         return TYPE_DEFINITIONS;
     }
@@ -150,6 +136,47 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
     @Override
     public String getTypeNamespace() {
         return TYPE_NAMESPACE;
+    }
+
+    public static void registerIdSerializers(SimpleModule module) {
+        module.addSerializer(StringId.class,
+                             new IdSerializer<>(StringId.class));
+        module.addDeserializer(StringId.class,
+                               new IdDeserializer<>(StringId.class));
+
+        module.addSerializer(LongId.class,
+                             new IdSerializer<>(LongId.class));
+        module.addDeserializer(LongId.class,
+                               new IdDeserializer<>(LongId.class));
+
+        module.addSerializer(UuidId.class,
+                             new IdSerializer<>(UuidId.class));
+        module.addDeserializer(UuidId.class,
+                               new IdDeserializer<>(UuidId.class));
+
+        module.addSerializer(EdgeId.class,
+                             new IdSerializer<>(EdgeId.class));
+        module.addDeserializer(EdgeId.class,
+                               new IdDeserializer<>(EdgeId.class));
+    }
+
+    public static void registerSchemaSerializers(SimpleModule module) {
+        module.addSerializer(PropertyKey.class, new PropertyKeySerializer());
+        module.addSerializer(VertexLabel.class, new VertexLabelSerializer());
+        module.addSerializer(EdgeLabel.class, new EdgeLabelSerializer());
+        module.addSerializer(IndexLabel.class, new IndexLabelSerializer());
+
+        module.addSerializer(Shard.class, new ShardSerializer());
+    }
+
+    public static void registerGraphSerializers(SimpleModule module) {
+        /*
+         * Use customized serializer need to be compatible with V1 and V2
+         * Graphson, and seems need to implement edge deserializer，it is
+         * a little complicated.
+         */
+        module.addSerializer(HugeVertex.class, new HugeVertexSerializer());
+        module.addSerializer(HugeEdge.class, new HugeEdgeSerializer());
     }
 
     @SuppressWarnings("rawtypes")
@@ -172,7 +199,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         }
     }
 
-    public static class IdSerializer<T extends Id> extends StdSerializer<T> {
+    private static class IdSerializer<T extends Id> extends StdSerializer<T> {
 
         public IdSerializer(Class<T> clazz) {
             super(clazz);
@@ -203,14 +230,14 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         }
     }
 
-    @SuppressWarnings("unchecked")
-    public static class IdDeserializer<T extends Id>
-                  extends StdDeserializer<T> {
+    private static class IdDeserializer<T extends Id>
+                   extends StdDeserializer<T> {
 
         public IdDeserializer(Class<T> clazz) {
             super(clazz);
         }
 
+        @SuppressWarnings("unchecked")
         @Override
         public T deserialize(JsonParser jsonParser,
                              DeserializationContext ctxt)
@@ -233,19 +260,8 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         }
     }
 
-    private static void writeEntry(JsonGenerator jsonGenerator,
-                                   Map<HugeKeys, Object> schema)
-                                   throws IOException {
-        jsonGenerator.writeStartObject();
-        for (Map.Entry<HugeKeys, Object> entry : schema.entrySet()) {
-            jsonGenerator.writeFieldName(entry.getKey().string());
-            jsonGenerator.writeObject(entry.getValue());
-        }
-        jsonGenerator.writeEndObject();
-    }
-
-    public static class PropertyKeySerializer
-                  extends StdSerializer<PropertyKey> {
+    private static class PropertyKeySerializer
+                   extends StdSerializer<PropertyKey> {
 
         public PropertyKeySerializer() {
             super(PropertyKey.class);
@@ -260,8 +276,8 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         }
     }
 
-    public static class VertexLabelSerializer
-                  extends StdSerializer<VertexLabel> {
+    private static class VertexLabelSerializer
+                   extends StdSerializer<VertexLabel> {
 
         public VertexLabelSerializer() {
             super(VertexLabel.class);
@@ -276,7 +292,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         }
     }
 
-    public static class EdgeLabelSerializer extends StdSerializer<EdgeLabel> {
+    private static class EdgeLabelSerializer extends StdSerializer<EdgeLabel> {
 
         public EdgeLabelSerializer() {
             super(EdgeLabel.class);
@@ -291,8 +307,8 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         }
     }
 
-    public static class IndexLabelSerializer
-                  extends StdSerializer<IndexLabel> {
+    private static class IndexLabelSerializer
+                   extends StdSerializer<IndexLabel> {
 
         public IndexLabelSerializer() {
             super(IndexLabel.class);
@@ -305,6 +321,17 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
                               throws IOException {
             writeEntry(jsonGenerator, schemaSerializer.writeIndexLabel(il));
         }
+    }
+
+    private static void writeEntry(JsonGenerator jsonGenerator,
+                                   Map<HugeKeys, Object> schema)
+                                   throws IOException {
+        jsonGenerator.writeStartObject();
+        for (Map.Entry<HugeKeys, Object> entry : schema.entrySet()) {
+            jsonGenerator.writeFieldName(entry.getKey().string());
+            jsonGenerator.writeObject(entry.getValue());
+        }
+        jsonGenerator.writeEndObject();
     }
 
     protected static abstract class HugeElementSerializer<T extends HugeElement>
@@ -356,8 +383,8 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         }
     }
 
-    public static class HugeVertexSerializer
-                  extends HugeElementSerializer<HugeVertex> {
+    private static class HugeVertexSerializer
+                   extends HugeElementSerializer<HugeVertex> {
 
         public HugeVertexSerializer() {
             super(HugeVertex.class);
@@ -380,8 +407,8 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         }
     }
 
-    public static class HugeEdgeSerializer
-                  extends HugeElementSerializer<HugeEdge> {
+    private static class HugeEdgeSerializer
+                   extends HugeElementSerializer<HugeEdge> {
 
         public HugeEdgeSerializer() {
             super(HugeEdge.class);
@@ -412,7 +439,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         }
     }
 
-    public static class ShardSerializer extends StdSerializer<Shard> {
+    private static class ShardSerializer extends StdSerializer<Shard> {
 
         public ShardSerializer() {
             super(Shard.class);

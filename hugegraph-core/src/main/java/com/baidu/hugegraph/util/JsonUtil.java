@@ -39,23 +39,7 @@ import org.apache.tinkerpop.shaded.jackson.databind.ser.std.StdSerializer;
 import org.apache.tinkerpop.shaded.jackson.databind.ser.std.UUIDSerializer;
 
 import com.baidu.hugegraph.HugeException;
-import com.baidu.hugegraph.backend.id.EdgeId;
-import com.baidu.hugegraph.backend.id.IdGenerator;
-import com.baidu.hugegraph.backend.store.Shard;
-import com.baidu.hugegraph.io.HugeGraphSONModule.EdgeLabelSerializer;
-import com.baidu.hugegraph.io.HugeGraphSONModule.HugeEdgeSerializer;
-import com.baidu.hugegraph.io.HugeGraphSONModule.HugeVertexSerializer;
-import com.baidu.hugegraph.io.HugeGraphSONModule.IdSerializer;
-import com.baidu.hugegraph.io.HugeGraphSONModule.IndexLabelSerializer;
-import com.baidu.hugegraph.io.HugeGraphSONModule.PropertyKeySerializer;
-import com.baidu.hugegraph.io.HugeGraphSONModule.ShardSerializer;
-import com.baidu.hugegraph.io.HugeGraphSONModule.VertexLabelSerializer;
-import com.baidu.hugegraph.schema.EdgeLabel;
-import com.baidu.hugegraph.schema.IndexLabel;
-import com.baidu.hugegraph.schema.PropertyKey;
-import com.baidu.hugegraph.schema.VertexLabel;
-import com.baidu.hugegraph.structure.HugeEdge;
-import com.baidu.hugegraph.structure.HugeVertex;
+import com.baidu.hugegraph.io.HugeGraphSONModule;
 
 public final class JsonUtil {
 
@@ -70,23 +54,10 @@ public final class JsonUtil {
         module.addSerializer(UUID.class, new UUIDSerializer());
         module.addDeserializer(UUID.class, new UUIDDeserializer());
 
-        module.addSerializer(IdGenerator.StringId.class,
-                             new IdSerializer<>(IdGenerator.StringId.class));
-        module.addSerializer(IdGenerator.LongId.class,
-                             new IdSerializer<>(IdGenerator.LongId.class));
-        module.addSerializer(IdGenerator.UuidId.class,
-                             new IdSerializer<>(IdGenerator.UuidId.class));
-        module.addSerializer(EdgeId.class, new IdSerializer<>(EdgeId.class));
+        HugeGraphSONModule.registerIdSerializers(module);
+        HugeGraphSONModule.registerSchemaSerializers(module);
+        HugeGraphSONModule.registerGraphSerializers(module);
 
-        module.addSerializer(PropertyKey.class, new PropertyKeySerializer());
-        module.addSerializer(VertexLabel.class, new VertexLabelSerializer());
-        module.addSerializer(EdgeLabel.class, new EdgeLabelSerializer());
-        module.addSerializer(IndexLabel.class, new IndexLabelSerializer());
-
-        module.addSerializer(HugeVertex.class, new HugeVertexSerializer());
-        module.addSerializer(HugeEdge.class, new HugeEdgeSerializer());
-
-        module.addSerializer(Shard.class, new ShardSerializer());
         mapper.registerModule(module);
     }
 

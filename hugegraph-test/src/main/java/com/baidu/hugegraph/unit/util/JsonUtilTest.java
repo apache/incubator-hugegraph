@@ -22,6 +22,7 @@ package com.baidu.hugegraph.unit.util;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.tinkerpop.shaded.jackson.core.type.TypeReference;
 import org.junit.Test;
@@ -69,6 +70,23 @@ public class JsonUtilTest extends BaseUnitTest {
         Id id = IdGenerator.of(123456L);
         String json = JsonUtil.toJson(id);
         Assert.assertEquals("123456", json);
+    }
+
+    @Test
+    public void testSerializeUuidId() {
+        UUID uuid = UUID.randomUUID();
+        Id id = IdGenerator.of(uuid);
+        String json = JsonUtil.toJson(id);
+        Assert.assertEquals("\"" + uuid + "\"", json);
+    }
+
+    @Test
+    public void testSerializeEdgeId() {
+        Id id = new EdgeId(IdGenerator.of("1:marko"), Directions.OUT,
+                           IdGenerator.of(1), "",
+                           IdGenerator.of("1:josh"));
+        String json = JsonUtil.toJson(id);
+        Assert.assertEquals("\"S1:marko>1>>S1:josh\"", json);
     }
 
     @Test
@@ -187,15 +205,6 @@ public class JsonUtilTest extends BaseUnitTest {
                             "\"base_value\":\"person\"," +
                             "\"index_type\":\"SECONDARY\"," +
                             "\"fields\":[\"age\",\"city\"]}", json);
-    }
-
-    @Test
-    public void testSerializeEdgeId() {
-        Id id = new EdgeId(IdGenerator.of("1:marko"), Directions.OUT,
-                           IdGenerator.of(1), "",
-                           IdGenerator.of("1:josh"));
-        String json = JsonUtil.toJson(id);
-        Assert.assertEquals("\"S1:marko>1>>S1:josh\"", json);
     }
 
     @Test
