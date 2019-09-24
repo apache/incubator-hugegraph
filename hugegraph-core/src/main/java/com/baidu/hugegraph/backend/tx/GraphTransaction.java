@@ -239,7 +239,6 @@ public class GraphTransaction extends IndexableTransaction {
             // Update index of vertex(only include props)
             this.indexTx.updateVertexIndex(v, false);
             this.indexTx.updateLabelIndex(v, false);
-
         }
 
         // Do edge update
