@@ -35,6 +35,7 @@ import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.concurrent.KeyLock;
 import com.baidu.hugegraph.concurrent.LockManager;
 import com.baidu.hugegraph.type.HugeType;
 
@@ -53,6 +54,7 @@ public final class LockUtil {
     public static final String EDGE_LABEL_ADD_UPDATE = "el_add_update";
     public static final String VERTEX_LABEL_ADD_UPDATE = "vl_add_update";
     public static final String PROPERTY_KEY_ADD_UPDATE = "pk_add_update";
+    public static final String KEY_LOCK = "key_lock";
 
     public static final long WRITE_WAIT_TIMEOUT = 30L;
 
@@ -65,6 +67,7 @@ public final class LockUtil {
         LockManager.instance().create(join(graph, EDGE_LABEL_ADD_UPDATE));
         LockManager.instance().create(join(graph, VERTEX_LABEL_ADD_UPDATE));
         LockManager.instance().create(join(graph, PROPERTY_KEY_ADD_UPDATE));
+        LockManager.instance().create(join(graph, KEY_LOCK));
     }
 
     public static void destroy(String graph) {
@@ -76,6 +79,7 @@ public final class LockUtil {
         LockManager.instance().destroy(join(graph, EDGE_LABEL_ADD_UPDATE));
         LockManager.instance().destroy(join(graph, VERTEX_LABEL_ADD_UPDATE));
         LockManager.instance().destroy(join(graph, PROPERTY_KEY_ADD_UPDATE));
+        LockManager.instance().destroy(join(graph, KEY_LOCK));
     }
 
     private static String join(String graph, String group) {
@@ -115,6 +119,12 @@ public final class LockUtil {
         }
         LOG.debug("Got the write lock '{}' of LockGroup '{}'", lock, group);
         return writeLock;
+    }
+
+    private static Lock lockKey(String graph, String group, String lock) {
+        KeyLock keyLock = LockManager.instance().get(join(graph, KEY_LOCK))
+                                     .keyLock(group);
+        return keyLock.lock(lock);
     }
 
     public static List<Lock> lock(String... locks) {
@@ -208,6 +218,11 @@ public final class LockUtil {
                                       WRITE_WAIT_TIMEOUT);
         }
 
+        public void lockKey(String group, Id lock) {
+            this.lockList.add(LockUtil.lockKey(this.graph, group,
+                                               lock.asString()));
+        }
+
         // NOTE: when used in multi-threads, should add `synchronized`
         public void unlock() {
             Collections.reverse(this.lockList);
@@ -248,6 +263,15 @@ public final class LockUtil {
             }
             this.locks.lockReads(group, newLocks);
             locked.addAll(newLocks);
+        }
+
+        public void lockKey(String group, Id lock) {
+            Set<Id> locked = locksOfGroup(group);
+            if (locked.contains(lock)) {
+                return;
+            }
+            this.locks.lockKey(group, lock);
+            locked.add(lock);
         }
 
         // NOTE: when used in multi-threads, should add `synchronized`

@@ -258,7 +258,7 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
 
         Assert.assertThrows(NotAllowException.class, () -> {
             schema.propertyKey("aggregateProperty")
-                  .asUuid().valueSingle().calcMin().create();
+                  .asUUID().valueSingle().calcMin().create();
         });
 
         Assert.assertThrows(NotAllowException.class, () -> {
@@ -278,7 +278,7 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
 
         Assert.assertThrows(NotAllowException.class, () -> {
             schema.propertyKey("aggregateProperty")
-                  .asUuid().valueSingle().calcMax().create();
+                  .asUUID().valueSingle().calcMax().create();
         });
 
         Assert.assertThrows(NotAllowException.class, () -> {
@@ -298,7 +298,7 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
 
         Assert.assertThrows(NotAllowException.class, () -> {
             schema.propertyKey("aggregateProperty")
-                  .asUuid().valueSingle().calcSum().create();
+                  .asUUID().valueSingle().calcSum().create();
         });
     }
 
