@@ -6,7 +6,7 @@
 
     <groupId>com.baidu.hugegraph</groupId>
     <artifactId>hugegraph-common</artifactId>
-    <version>1.6.14</version>
+    <version>1.6.15</version>
 
     <name>hugegraph-common</name>
     <url>https://github.com/hugegraph/hugegraph-common</url>
@@ -218,7 +218,7 @@
                         <manifestEntries>
                             <!-- Must be on one line, otherwise the automatic
                                  upgrade script cannot replace the version number -->
-                            <Implementation-Version>1.6.14.0</Implementation-Version>
+                            <Implementation-Version>1.6.15.0</Implementation-Version>
                         </manifestEntries>
                     </archive>
                 </configuration>

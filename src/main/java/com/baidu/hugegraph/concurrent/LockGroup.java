@@ -57,6 +57,13 @@ public class LockGroup {
         return (ReadWriteLock) this.locksMap.get(lockName);
     }
 
+    public KeyLock keyLock(String lockName) {
+        if (!this.locksMap.containsKey(lockName)) {
+            this.locksMap.putIfAbsent(lockName, new KeyLock());
+        }
+        return (KeyLock) this.locksMap.get(lockName);
+    }
+
     public String name() {
         return this.name;
     }

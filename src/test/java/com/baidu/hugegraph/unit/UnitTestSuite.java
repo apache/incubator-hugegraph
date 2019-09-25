@@ -24,6 +24,7 @@ import org.junit.runners.Suite;
 
 import com.baidu.hugegraph.testutil.AssertTest;
 import com.baidu.hugegraph.testutil.WhiteboxTest;
+import com.baidu.hugegraph.unit.concurrent.LockGroupTest;
 import com.baidu.hugegraph.unit.config.HugeConfigTest;
 import com.baidu.hugegraph.unit.date.SafeDateFormatTest;
 import com.baidu.hugegraph.unit.event.EventHubTest;
@@ -55,6 +56,7 @@ import com.baidu.hugegraph.unit.version.VersionTest;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
+    LockGroupTest.class,
     HugeConfigTest.class,
     SafeDateFormatTest.class,
     EventHubTest.class,
