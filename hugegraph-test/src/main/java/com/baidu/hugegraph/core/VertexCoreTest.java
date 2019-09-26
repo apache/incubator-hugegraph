@@ -754,7 +754,7 @@ public class VertexCoreTest extends BaseCoreTest {
         SchemaManager schema = graph.schema();
 
         schema.vertexLabel("programmer")
-              .useCustomizeUUID()
+              .useCustomizeUuidId()
               .properties("name", "age", "city")
               .create();
         graph.addVertex(T.label, "programmer",
@@ -799,7 +799,7 @@ public class VertexCoreTest extends BaseCoreTest {
         SchemaManager schema = graph.schema();
 
         schema.vertexLabel("programmer")
-              .useCustomizeUUID()
+              .useCustomizeUuidId()
               .properties("name", "age", "city")
               .create();
 

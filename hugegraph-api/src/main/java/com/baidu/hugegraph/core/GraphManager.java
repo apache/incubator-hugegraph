@@ -138,6 +138,7 @@ public final class GraphManager {
         closeTx(graphSourceNamesToCloseTxOn, Transaction.Status.COMMIT);
     }
 
+    @SuppressWarnings("unused")
     private void installLicense(HugeConfig config) {
         LicenseVerifier.instance().install(config, this);
     }
