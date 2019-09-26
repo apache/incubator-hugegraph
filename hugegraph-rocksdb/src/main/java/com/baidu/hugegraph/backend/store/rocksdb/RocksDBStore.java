@@ -321,7 +321,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
     }
 
     @Override
-    public void init() {
+    public synchronized void init() {
         this.checkOpened();
 
         for (String table : this.tableNames()) {
@@ -347,7 +347,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
     }
 
     @Override
-    public void clear() {
+    public synchronized void clear() {
         this.checkOpened();
 
         for (String table : this.tableNames()) {
@@ -378,7 +378,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
     }
 
     @Override
-    public void truncate() {
+    public synchronized void truncate() {
         this.checkOpened();
 
         this.clear();
