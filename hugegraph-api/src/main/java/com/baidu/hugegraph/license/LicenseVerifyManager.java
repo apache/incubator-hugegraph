@@ -93,7 +93,7 @@ public class LicenseVerifyManager extends CommonLicenseManager {
         // Verify the customized license parameters.
         List<ExtraParam> extraParams;
         try {
-            TypeReference type = new TypeReference<List<ExtraParam>>() {};
+            TypeReference<?> type = new TypeReference<List<ExtraParam>>() {};
             extraParams = MAPPER.readValue((String) content.getExtra(), type);
         } catch (IOException e) {
             throw new RuntimeException("Failed to read extra params", e);

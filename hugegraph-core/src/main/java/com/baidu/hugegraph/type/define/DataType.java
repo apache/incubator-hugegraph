@@ -24,6 +24,7 @@ import java.util.UUID;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.util.DateUtil;
+import com.baidu.hugegraph.util.StringEncoding;
 
 public enum DataType implements SerialEnum {
 
@@ -158,7 +159,7 @@ public enum DataType implements SerialEnum {
         if (value instanceof UUID) {
             return (UUID) value;
         } else if (value instanceof String) {
-            return java.util.UUID.fromString((String) value);
+            return StringEncoding.uuid((String) value);
         }
         return null;
     }

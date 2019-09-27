@@ -21,6 +21,7 @@ package com.baidu.hugegraph.util;
 
 import java.io.IOException;
 import java.util.Date;
+import java.util.UUID;
 
 import org.apache.tinkerpop.shaded.jackson.core.JsonGenerator;
 import org.apache.tinkerpop.shaded.jackson.core.JsonParser;
@@ -32,27 +33,13 @@ import org.apache.tinkerpop.shaded.jackson.databind.ObjectMapper;
 import org.apache.tinkerpop.shaded.jackson.databind.ObjectReader;
 import org.apache.tinkerpop.shaded.jackson.databind.SerializerProvider;
 import org.apache.tinkerpop.shaded.jackson.databind.deser.std.StdDeserializer;
+import org.apache.tinkerpop.shaded.jackson.databind.deser.std.UUIDDeserializer;
 import org.apache.tinkerpop.shaded.jackson.databind.module.SimpleModule;
 import org.apache.tinkerpop.shaded.jackson.databind.ser.std.StdSerializer;
+import org.apache.tinkerpop.shaded.jackson.databind.ser.std.UUIDSerializer;
 
-import com.baidu.hugegraph.backend.BackendException;
-import com.baidu.hugegraph.backend.id.EdgeId;
-import com.baidu.hugegraph.backend.id.IdGenerator;
-import com.baidu.hugegraph.backend.store.Shard;
-import com.baidu.hugegraph.io.HugeGraphSONModule.EdgeLabelSerializer;
-import com.baidu.hugegraph.io.HugeGraphSONModule.HugeEdgeSerializer;
-import com.baidu.hugegraph.io.HugeGraphSONModule.HugeVertexSerializer;
-import com.baidu.hugegraph.io.HugeGraphSONModule.IdSerializer;
-import com.baidu.hugegraph.io.HugeGraphSONModule.IndexLabelSerializer;
-import com.baidu.hugegraph.io.HugeGraphSONModule.PropertyKeySerializer;
-import com.baidu.hugegraph.io.HugeGraphSONModule.ShardSerializer;
-import com.baidu.hugegraph.io.HugeGraphSONModule.VertexLabelSerializer;
-import com.baidu.hugegraph.schema.EdgeLabel;
-import com.baidu.hugegraph.schema.IndexLabel;
-import com.baidu.hugegraph.schema.PropertyKey;
-import com.baidu.hugegraph.schema.VertexLabel;
-import com.baidu.hugegraph.structure.HugeEdge;
-import com.baidu.hugegraph.structure.HugeVertex;
+import com.baidu.hugegraph.HugeException;
+import com.baidu.hugegraph.io.HugeGraphSONModule;
 
 public final class JsonUtil {
 
@@ -60,24 +47,17 @@ public final class JsonUtil {
 
     static {
         SimpleModule module = new SimpleModule();
+
         module.addSerializer(Date.class, new DateSerializer());
         module.addDeserializer(Date.class, new DateDeserializer());
 
-        module.addSerializer(IdGenerator.StringId.class,
-                             new IdSerializer<>(IdGenerator.StringId.class));
-        module.addSerializer(IdGenerator.LongId.class,
-                             new IdSerializer<>(IdGenerator.LongId.class));
-        module.addSerializer(EdgeId.class, new IdSerializer<>(EdgeId.class));
+        module.addSerializer(UUID.class, new UUIDSerializer());
+        module.addDeserializer(UUID.class, new UUIDDeserializer());
 
-        module.addSerializer(PropertyKey.class, new PropertyKeySerializer());
-        module.addSerializer(VertexLabel.class, new VertexLabelSerializer());
-        module.addSerializer(EdgeLabel.class, new EdgeLabelSerializer());
-        module.addSerializer(IndexLabel.class, new IndexLabelSerializer());
+        HugeGraphSONModule.registerIdSerializers(module);
+        HugeGraphSONModule.registerSchemaSerializers(module);
+        HugeGraphSONModule.registerGraphSerializers(module);
 
-        module.addSerializer(HugeVertex.class, new HugeVertexSerializer());
-        module.addSerializer(HugeEdge.class, new HugeEdgeSerializer());
-
-        module.addSerializer(Shard.class, new ShardSerializer());
         mapper.registerModule(module);
     }
 
@@ -89,7 +69,7 @@ public final class JsonUtil {
         try {
             return mapper.writeValueAsString(object);
         } catch (JsonProcessingException e) {
-            throw new BackendException(e);
+            throw new HugeException("Can't write json: %s", e, e.getMessage());
         }
     }
 
@@ -100,7 +80,7 @@ public final class JsonUtil {
         try {
             return mapper.readValue(json, clazz);
         } catch (IOException e) {
-            throw new BackendException(e);
+            throw new HugeException("Can't read json: %s", e, e.getMessage());
         }
     }
 
@@ -112,7 +92,7 @@ public final class JsonUtil {
             ObjectReader reader = mapper.readerFor(typeRef);
             return reader.readValue(json);
         } catch (IOException e) {
-            throw new BackendException(e);
+            throw new HugeException("Can't read json: %s", e, e.getMessage());
         }
     }
 

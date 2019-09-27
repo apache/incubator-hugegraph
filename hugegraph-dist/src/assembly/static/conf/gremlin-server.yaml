@@ -1,4 +1,10 @@
+# host and port of gremlin server
+#host: 127.0.0.1
+#port: 8182
+
+# timeout in ms of gremlin query
 scriptEvaluationTimeout: 30000
+
 # If you want to start gremlin-server for gremlin-console(web-socket),
 # please change `HttpChannelizer` to `WebSocketChannelizer` or comment this line.
 channelizer: org.apache.tinkerpop.gremlin.server.channel.HttpChannelizer
@@ -11,7 +17,11 @@ scriptEngines: {
       com.baidu.hugegraph.plugin.HugeGraphGremlinPlugin: {},
       org.apache.tinkerpop.gremlin.server.jsr223.GremlinServerGremlinPlugin: {},
       org.apache.tinkerpop.gremlin.jsr223.ImportGremlinPlugin: {
-        classImports: [java.lang.Math, com.baidu.hugegraph.util.DateUtil],
+        classImports: [
+          java.lang.Math,
+          com.baidu.hugegraph.util.DateUtil,
+          com.baidu.hugegraph.traversal.optimize.Text
+        ],
         methodImports: [java.lang.Math#*]
       },
       org.apache.tinkerpop.gremlin.jsr223.ScriptFileGremlinPlugin: {

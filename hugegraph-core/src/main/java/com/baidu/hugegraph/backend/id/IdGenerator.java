@@ -268,7 +268,7 @@ public abstract class IdGenerator {
         private final UUID uuid;
 
         public UuidId(String string) {
-            this(fromString(string));
+            this(StringEncoding.uuid(string));
         }
 
         public UuidId(byte[] bytes) {
@@ -309,23 +309,11 @@ public abstract class IdGenerator {
         }
 
         private static UUID fromBytes(byte[] bytes) {
+            E.checkArgument(bytes != null, "The UUID can't be null");
             BytesBuffer buffer = BytesBuffer.wrap(bytes);
             long high = buffer.readLong();
             long low = buffer.readLong();
             return new UUID(high, low);
-        }
-
-        private static UUID fromString(String string) {
-            if (string.contains("-")) {
-                return UUID.fromString(string);
-            }
-            // UUID represented by hex string
-            E.checkArgument(string.length() == 32,
-                            "Invalid UUID string: %s", string);
-            String high = string.substring(0, 16);
-            String low = string.substring(16);
-            return new UUID(Long.parseUnsignedLong(high, 16),
-                            Long.parseUnsignedLong(low, 16));
         }
 
         @Override

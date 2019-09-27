@@ -85,7 +85,7 @@ public class VertexLabel extends SchemaLabel {
 
         Builder useCustomizeNumberId();
 
-        Builder useCustomizeUUID();
+        Builder useCustomizeUuidId();
 
         Builder properties(String... properties);
 

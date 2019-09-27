@@ -94,10 +94,11 @@ public final class ApiVersion {
      *        and split range to rangeInt, rangeFloat, rangeLong and rangeDouble
      * [0.44] Issue-633: Support unique index
      * [0.45] Issue-673: Add 'OVERRIDE' update strategy
+     * [0.46] Issue-618 & 694: Support UUID id type
      */
 
     // The second parameter of Version.of() is for IDE running without JAR
-    public static final Version VERSION = Version.of(ApiVersion.class, "0.45");
+    public static final Version VERSION = Version.of(ApiVersion.class, "0.46");
 
     public static final void check() {
         // Check version of hugegraph-core. Firstly do check from version 0.3

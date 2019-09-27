@@ -40,7 +40,6 @@ import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.VertexLabel;
-import com.baidu.hugegraph.schema.VertexLabel.Builder;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Action;
 import com.baidu.hugegraph.type.define.IdStrategy;
@@ -256,7 +255,7 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
     }
 
     @Override
-    public Builder useCustomizeUUID() {
+    public VertexLabelBuilder useCustomizeUuidId() {
         E.checkArgument(this.idStrategy == IdStrategy.DEFAULT ||
                         this.idStrategy == IdStrategy.CUSTOMIZE_UUID,
                         "Not allowed to change id strategy for " +

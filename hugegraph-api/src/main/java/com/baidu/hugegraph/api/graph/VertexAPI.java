@@ -60,6 +60,7 @@ import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.structure.HugeVertex;
+import com.baidu.hugegraph.traversal.optimize.Text;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.util.E;
@@ -294,13 +295,17 @@ public class VertexAPI extends BatchAPI {
         if (idValue == null) {
             return null;
         }
+        boolean uuid = idValue.startsWith("U\"");
+        if (uuid) {
+            idValue = idValue.substring(1);
+        }
         try {
             Object id = JsonUtil.fromJson(idValue, Object.class);
-            return HugeVertex.getIdValue(id);
+            return uuid ? Text.uuid((String) id) : HugeVertex.getIdValue(id);
         } catch (Exception e) {
             throw new IllegalArgumentException(String.format(
-                      "The vertex id must be formatted as String or " +
-                      "Number, but got '%s'", idValue));
+                      "The vertex id must be formatted as Number/String/UUID" +
+                      ", but got '%s'", idValue));
         }
     }
 
@@ -318,7 +323,7 @@ public class VertexAPI extends BatchAPI {
         }
     }
 
-    private Id getVertexId(HugeGraph g, JsonVertex vertex) {
+    private static Id getVertexId(HugeGraph g, JsonVertex vertex) {
         VertexLabel vertexLabel = g.vertexLabel(vertex.label);
         String labelId = vertexLabel.id().asString();
         IdStrategy idStrategy = vertexLabel.idStrategy();
@@ -339,6 +344,8 @@ public class VertexAPI extends BatchAPI {
 
             String value = ConditionQuery.concatValues(pkValues);
             return SplicingIdGenerator.splicing(labelId, value);
+        } else if (idStrategy == IdStrategy.CUSTOMIZE_UUID) {
+            return Text.uuid(String.valueOf(vertex.id));
         } else {
             assert idStrategy == IdStrategy.CUSTOMIZE_NUMBER ||
                    idStrategy == IdStrategy.CUSTOMIZE_STRING;
