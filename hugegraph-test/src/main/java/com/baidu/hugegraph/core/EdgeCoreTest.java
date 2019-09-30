@@ -3602,7 +3602,8 @@ public class EdgeCoreTest extends BaseCoreTest {
         edge.property("times", 100);
         graph.tx().commit();
         edge = graph.traversal().V("10.0.0.1").outE().next();
-        Assert.assertEquals(Utils.date("2019-1-1 00:00:00"), edge.value("startTime"));
+        Assert.assertEquals(Utils.date("2019-1-1 00:00:00"),
+                            edge.value("startTime"));
         Assert.assertEquals(Utils.date("2019-2-1 00:20:00"),
                             edge.value("endTime"));
         Assert.assertEquals(120L, edge.value("times"));
