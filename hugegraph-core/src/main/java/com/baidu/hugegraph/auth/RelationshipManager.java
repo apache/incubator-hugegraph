@@ -91,6 +91,7 @@ public class RelationshipManager<T extends Relationship> {
             HugeEdge edge = (HugeEdge) edges.next();
             relationship = this.deser.apply(edge);
             this.tx().removeEdge(edge);
+            this.commitOrRollback();
             assert !edges.hasNext();
         }
         return relationship;
@@ -200,6 +201,7 @@ public class RelationshipManager<T extends Relationship> {
                                            relationship.targetLabel());
         HugeEdge edge = source.addEdge(relationship.label(), target,
                                        relationship.asArray());
+        this.commitOrRollback();
         return edge.id();
     }
 
@@ -207,5 +209,9 @@ public class RelationshipManager<T extends Relationship> {
         VertexLabel vl = this.graph().vertexLabel(label);
         Id idValue = HugeVertex.getIdValue(id);
         return new HugeVertex(this.tx(), idValue, vl);
+    }
+
+    private void commitOrRollback() {
+        this.tx().commitOrRollback();
     }
 }

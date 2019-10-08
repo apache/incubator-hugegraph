@@ -734,6 +734,7 @@ public class UsersTest extends BaseCoreTest {
         HugeBelong belong = userManager.deleteBelong(id1);
         Assert.assertEquals(group1, belong.target());
         Assert.assertEquals(1, userManager.listAllBelong(-1).size());
+        Assert.assertEquals(1, userManager.listAllBelong(2).size());
 
         belong = userManager.deleteBelong(id2);
         Assert.assertEquals(group2, belong.target());
@@ -996,6 +997,7 @@ public class UsersTest extends BaseCoreTest {
         HugeAccess access = userManager.deleteAccess(id1);
         Assert.assertEquals(target1, access.target());
         Assert.assertEquals(1, userManager.listAllAccess(-1).size());
+        Assert.assertEquals(1, userManager.listAllAccess(2).size());
 
         access = userManager.deleteAccess(id2);
         Assert.assertEquals(target2, access.target());
