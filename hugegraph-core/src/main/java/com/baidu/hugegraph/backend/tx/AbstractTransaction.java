@@ -287,8 +287,14 @@ public abstract class AbstractTransaction implements Transaction {
         // pass
     }
 
+    protected void checkOwnerThread() {
+        if (Thread.currentThread() != this.ownerThread) {
+            throw new BackendException("Can't operate a tx in other threads");
+        }
+    }
+
     @Watched(prefix = "tx")
-    protected void commitOrRollback() {
+    public void commitOrRollback() {
         LOG.debug("Transaction commitOrRollback()");
         this.checkOwnerThread();
 
@@ -316,12 +322,6 @@ public abstract class AbstractTransaction implements Transaction {
              */
             throw new BackendException(
                       "Failed to commit changes: %s", e1.getCause());
-        }
-    }
-
-    protected void checkOwnerThread() {
-        if (Thread.currentThread() != this.ownerThread) {
-            throw new BackendException("Can't operate a tx in other threads");
         }
     }
 

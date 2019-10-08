@@ -88,6 +88,7 @@ public class EntityManager<T extends Entity> {
             HugeVertex vertex = (HugeVertex) vertices.next();
             entity = this.deser.apply(vertex);
             this.tx().removeVertex(vertex);
+            this.commitOrRollback();
             assert !vertices.hasNext();
         }
         return entity;
@@ -154,7 +155,9 @@ public class EntityManager<T extends Entity> {
         // Construct vertex from task
         HugeVertex vertex = this.constructVertex(entity);
         // Add or update user in backend store, stale index might exist
-        return this.tx().addVertex(vertex).id();
+        vertex = this.tx().addVertex(vertex);
+        this.commitOrRollback();
+        return vertex.id();
     }
 
     private HugeVertex constructVertex(Entity entity) {
@@ -164,5 +167,9 @@ public class EntityManager<T extends Entity> {
                                     entity.label(), entity.id());
         }
         return this.tx().constructVertex(false, entity.asArray());
+    }
+
+    private void commitOrRollback() {
+        this.tx().commitOrRollback();
     }
 }
