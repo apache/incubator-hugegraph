@@ -27,8 +27,8 @@ public enum AggregateType implements SerialEnum {
     SUM(3, "sum"),
     OLD(4, "old");
 
-    private byte code = 0;
-    private String name = null;
+    private final byte code;
+    private final String name;
 
     static {
         SerialEnum.register(AggregateType.class);

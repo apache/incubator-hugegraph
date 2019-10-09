@@ -459,7 +459,6 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
               .by("city").create();
     }
 
-
     @Test
     public void testAddIndexLabelWithSameFieldsAndSameIndexType() {
         super.initPropertyKeys();
