@@ -223,6 +223,7 @@ public interface HugeAuthenticator extends Authenticator {
                 return false;
             }
             if (permissions.containsAll(actions)) {
+                // All actions are matched (string equal)
                 return true;
             }
             for (String action : actions) {
@@ -239,6 +240,7 @@ public interface HugeAuthenticator extends Authenticator {
                 return true;
             }
             for (String permission : permissions) {
+                // Regular match
                 if (required.matches(permission)) {
                     return true;
                 }
@@ -260,7 +262,10 @@ public interface HugeAuthenticator extends Authenticator {
             }
             RolePerm rolePerm = RolePerm.fromJson(role);
             if (!required.startsWith(ROLE_OWNER)) {
-                // Any action is OK if the owner is matched
+                /*
+                 * The required permission means the owner if not start with
+                 * ROLE_OWNER, any action is OK if the owner is matched.
+                 */
                 return rolePerm.matchOwner(required);
             }
             RoleAction roleAction = RoleAction.fromPermission(required);
@@ -317,27 +322,28 @@ public interface HugeAuthenticator extends Authenticator {
         }
 
         public static RoleAction fromPermission(String permission) {
-            RoleAction rolePermission = new RoleAction();
-            String[] ownerAction = permission.split(" ");
-            String[] ownerKV = ownerAction[0].split("=", 2);
+            // Permission format like: "$owner=graph1 $action=vertex-write"
+            RoleAction roleAction = new RoleAction();
+            String[] ownerAndAction = permission.split(" ");
+            String[] ownerKV = ownerAndAction[0].split("=", 2);
             E.checkState(ownerKV.length == 2 && ownerKV[0].equals(ROLE_OWNER),
                          "Bad permission format: '%s'", permission);
-            rolePermission.owner(ownerKV[1]);
-            if (ownerAction.length == 1) {
-                // no action
-                return rolePermission;
+            roleAction.owner(ownerKV[1]);
+            if (ownerAndAction.length == 1) {
+                // Return owner if no action
+                return roleAction;
             }
 
-            E.checkState(ownerAction.length == 2,
+            E.checkState(ownerAndAction.length == 2,
                          "Bad permission format: '%s'", permission);
-            String[] actionKV = ownerAction[1].split("=", 2);
+            String[] actionKV = ownerAndAction[1].split("=", 2);
             E.checkState(actionKV.length == 2,
                          "Bad permission format: '%s'", permission);
             E.checkState(actionKV[0].equals(StandardAuthenticator.ACTION),
                          "Bad permission format: '%s'", permission);
-            rolePermission.actions.add(actionKV[1]);
+            roleAction.actions.add(actionKV[1]);
 
-            return rolePermission;
+            return roleAction;
         }
     }
 }
