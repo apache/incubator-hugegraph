@@ -19,16 +19,18 @@
 
 package com.baidu.hugegraph.backend.store.rocksdb;
 
+import java.io.Closeable;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.rocksdb.BlockBasedTableConfig;
@@ -67,7 +69,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
     private final RocksDB rocksdb;
     private final SstFileManager sstFileManager;
 
-    private final Map<String, ColumnFamilyHandle> cfs;
+    private final Map<String, CFHandle> cfs;
     private final AtomicInteger refCount;
 
     public RocksDBStdSessions(HugeConfig config, String database, String store,
@@ -89,7 +91,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
          */
         this.rocksdb = RocksDB.open(options, dataPath);
 
-        this.cfs = new HashMap<>();
+        this.cfs = new ConcurrentHashMap<>();
         this.refCount = new AtomicInteger(1);
     }
 
@@ -126,9 +128,9 @@ public class RocksDBStdSessions extends RocksDBSessions {
                      "Expect same size of cf-handles and cf-names");
 
         // Collect CF Handles
-        this.cfs = new HashMap<>();
+        this.cfs = new ConcurrentHashMap<>();
         for (int i = 0; i < cfs.size(); i++) {
-            this.cfs.put(cfs.get(i), cfhs.get(i));
+            this.cfs.put(cfs.get(i), new CFHandle(cfhs.get(i)));
         }
 
         this.refCount = new AtomicInteger(1);
@@ -164,7 +166,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
     }
 
     @Override
-    public void createTable(String table) throws RocksDBException {
+    public synchronized void createTable(String table) throws RocksDBException {
         if (this.cfs.containsKey(table)) {
             return;
         }
@@ -175,19 +177,24 @@ public class RocksDBStdSessions extends RocksDBSessions {
         ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(encode(table));
         ColumnFamilyOptions options = cfd.getOptions();
         initOptions(this.config(), null, options, options);
-        this.cfs.put(table, this.rocksdb.createColumnFamily(cfd));
+        this.cfs.put(table, new CFHandle(this.rocksdb.createColumnFamily(cfd)));
 
         ingestExternalFile();
     }
 
     @Override
-    public void dropTable(String table) throws RocksDBException {
+    public synchronized void dropTable(String table) throws RocksDBException {
         this.checkValid();
 
-        ColumnFamilyHandle cfh = cf(table);
-        this.rocksdb.dropColumnFamily(cfh);
-        cfh.close();
-        this.cfs.remove(table);
+        /*
+         * May cause bug to drop CF when someone is reading and writing this CF
+         * https://github.com/hugegraph/hugegraph/issues/697
+         */
+        CFHandle cfh = this.cfs.get(table);
+        if (cfh != null) {
+            cfh.drop();
+            this.cfs.remove(table);
+        }
     }
 
     @Override
@@ -229,7 +236,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
         }
         assert this.refCount.get() == 0;
 
-        for (ColumnFamilyHandle cf : this.cfs.values()) {
+        for (CFHandle cf : this.cfs.values()) {
             cf.close();
         }
         this.cfs.clear();
@@ -247,11 +254,12 @@ public class RocksDBStdSessions extends RocksDBSessions {
         return this.rocksdb;
     }
 
-    private ColumnFamilyHandle cf(String cf) {
-        ColumnFamilyHandle cfh = this.cfs.get(cf);
+    private CFHandle cf(String cf) {
+        CFHandle cfh = this.cfs.get(cf);
         if (cfh == null) {
             throw new BackendException("Table '%s' is not opened", cf);
         }
+        cfh.open();
         return cfh;
     }
 
@@ -272,7 +280,9 @@ public class RocksDBStdSessions extends RocksDBSessions {
         for (String cf : this.cfs.keySet()) {
             Path path = Paths.get(directory, cf);
             if (path.toFile().isDirectory()) {
-                ingester.ingest(path, this.cf(cf));
+                try (CFHandle cfh = cf(cf)) {
+                    ingester.ingest(path, cfh.get());
+                }
             }
         }
     }
@@ -445,6 +455,55 @@ public class RocksDBStdSessions extends RocksDBSessions {
         return StringEncoding.decode(bytes);
     }
 
+    private class CFHandle implements Closeable {
+
+        private final ColumnFamilyHandle handle;
+        private final AtomicInteger refs;
+
+        public CFHandle(ColumnFamilyHandle handle) {
+            E.checkNotNull(handle, "handle");
+            this.handle = handle;
+            this.refs = new AtomicInteger(1);
+        }
+
+        public synchronized ColumnFamilyHandle get() {
+            E.checkState(this.handle.isOwningHandle(),
+                         "It seems CF has been closed");
+            return this.handle;
+        }
+
+        public synchronized void open() {
+            this.refs.incrementAndGet();
+        }
+
+        @Override
+        public void close() {
+            if (this.refs.decrementAndGet() <= 0) {
+                this.handle.close();
+            }
+        }
+
+        public synchronized void drop() throws RocksDBException {
+            // When entering this method, the refs won't increase any more
+            final long timeout = TimeUnit.MINUTES.toMillis(30L);
+            final long unit = 100;
+            for (long i = 1; this.refs.get() > 1; i++) {
+                try {
+                    Thread.sleep(unit);
+                } catch (InterruptedException ignored) {
+                    // 30s rest api timeout may cause InterruptedException
+                }
+                if (i * unit > timeout) {
+                    throw new BackendException("Timeout after %sms to drop CF",
+                                               timeout);
+                }
+            }
+            rocksdb().dropColumnFamily(this.handle);
+            this.close();
+            assert this.refs.get() == 0 && !this.handle.isOwningHandle();
+        }
+    }
+
     /**
      * StdSession implement for RocksDB
      */
@@ -489,8 +548,8 @@ public class RocksDBStdSessions extends RocksDBSessions {
          */
         @Override
         public String property(String table, String property) {
-            try {
-                return rocksdb().getProperty(cf(table), property);
+            try (CFHandle cf = cf(table)) {
+                return rocksdb().getProperty(cf.get(), property);
             } catch (RocksDBException e) {
                 throw new BackendException(e);
             }
@@ -532,8 +591,8 @@ public class RocksDBStdSessions extends RocksDBSessions {
          */
         @Override
         public void put(String table, byte[] key, byte[] value) {
-            try {
-                this.batch.put(cf(table), key, value);
+            try (CFHandle cf = cf(table)) {
+                this.batch.put(cf.get(), key, value);
             } catch (RocksDBException e) {
                 throw new BackendException(e);
             }
@@ -546,8 +605,8 @@ public class RocksDBStdSessions extends RocksDBSessions {
          */
         @Override
         public void merge(String table, byte[] key, byte[] value) {
-            try {
-                this.batch.merge(cf(table), key, value);
+            try (CFHandle cf = cf(table)) {
+                this.batch.merge(cf.get(), key, value);
             } catch (RocksDBException e) {
                 throw new BackendException(e);
             }
@@ -558,8 +617,8 @@ public class RocksDBStdSessions extends RocksDBSessions {
          */
         @Override
         public void increase(String table, byte[] key, byte[] value) {
-            try {
-                rocksdb().merge(cf(table), key, value);
+            try (CFHandle cf = cf(table)) {
+                rocksdb().merge(cf.get(), key, value);
             } catch (RocksDBException e) {
                 throw new BackendException(e);
             }
@@ -570,8 +629,8 @@ public class RocksDBStdSessions extends RocksDBSessions {
          */
         @Override
         public void remove(String table, byte[] key) {
-            try {
-                this.batch.singleDelete(cf(table), key);
+            try (CFHandle cf = cf(table)) {
+                this.batch.singleDelete(cf.get(), key);
             } catch (RocksDBException e) {
                 throw new BackendException(e);
             }
@@ -585,8 +644,8 @@ public class RocksDBStdSessions extends RocksDBSessions {
             byte[] keyFrom = key;
             byte[] keyTo = Arrays.copyOf(key, key.length);
             keyTo = BinarySerializer.increaseOne(keyTo);
-            try {
-                this.batch.deleteRange(cf(table), keyFrom, keyTo);
+            try (CFHandle cf = cf(table)) {
+                this.batch.deleteRange(cf.get(), keyFrom, keyTo);
             } catch (RocksDBException e) {
                 throw new BackendException(e);
             }
@@ -597,8 +656,8 @@ public class RocksDBStdSessions extends RocksDBSessions {
          */
         @Override
         public void delete(String table, byte[] keyFrom, byte[] keyTo) {
-            try {
-                this.batch.deleteRange(cf(table), keyFrom, keyTo);
+            try (CFHandle cf = cf(table)) {
+                this.batch.deleteRange(cf.get(), keyFrom, keyTo);
             } catch (RocksDBException e) {
                 throw new BackendException(e);
             }
@@ -611,8 +670,8 @@ public class RocksDBStdSessions extends RocksDBSessions {
         public byte[] get(String table, byte[] key) {
             assert !this.hasChanges();
 
-            try {
-                return rocksdb().get(cf(table), key);
+            try (CFHandle cf = cf(table)) {
+                return rocksdb().get(cf.get(), key);
             } catch (RocksDBException e) {
                 throw new BackendException(e);
             }
@@ -624,8 +683,10 @@ public class RocksDBStdSessions extends RocksDBSessions {
         @Override
         public BackendColumnIterator scan(String table) {
             assert !this.hasChanges();
-            RocksIterator iter = rocksdb().newIterator(cf(table));
-            return new ColumnIterator(table, iter, null, null, SCAN_ANY);
+            try (CFHandle cf = cf(table)) {
+                RocksIterator iter = rocksdb().newIterator(cf.get());
+                return new ColumnIterator(table, iter, null, null, SCAN_ANY);
+            }
         }
 
         /**
@@ -637,9 +698,11 @@ public class RocksDBStdSessions extends RocksDBSessions {
             ReadOptions options = new ReadOptions();
             // NOTE: Options.prefix_extractor is a prerequisite
             options.setPrefixSameAsStart(true);
-            RocksIterator iter = rocksdb().newIterator(cf(table), options);
-            return new ColumnIterator(table, iter, prefix, null,
-                                      SCAN_PREFIX_BEGIN);
+            try (CFHandle cf = cf(table)) {
+                RocksIterator iter = rocksdb().newIterator(cf.get(), options);
+                return new ColumnIterator(table, iter, prefix, null,
+                                          SCAN_PREFIX_BEGIN);
+            }
         }
 
         /**
@@ -651,8 +714,11 @@ public class RocksDBStdSessions extends RocksDBSessions {
             assert !this.hasChanges();
             ReadOptions options = new ReadOptions();
             options.setTotalOrderSeek(true); // Not sure if it must be set
-            RocksIterator iter = rocksdb().newIterator(cf(table), options);
-            return new ColumnIterator(table, iter, keyFrom, keyTo, scanType);
+            try (CFHandle cf = cf(table)) {
+                RocksIterator iter = rocksdb().newIterator(cf.get(), options);
+                return new ColumnIterator(table, iter, keyFrom,
+                                          keyTo, scanType);
+            }
         }
     }
 
