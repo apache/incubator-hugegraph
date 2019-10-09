@@ -126,7 +126,7 @@ public final class LockUtil {
                                        Collection<?> locks) {
         KeyLock keyLock = LockManager.instance().get(join(graph, KEY_LOCK))
                                      .keyLock(group);
-        return keyLock.lockAll(locks);
+        return keyLock.lockAll(locks.toArray());
     }
 
     public static List<Lock> lock(String... locks) {
