@@ -36,7 +36,6 @@ import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.testutil.Whitebox;
 import com.baidu.hugegraph.unit.BaseUnitTest;
 import com.baidu.hugegraph.util.LockUtil;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 public class LocksTableTest extends BaseUnitTest {
@@ -57,8 +56,8 @@ public class LocksTableTest extends BaseUnitTest {
 
     @AfterClass
     public static void teardown() {
-        destoryLockGroup(GRAPH, "group");
-        destoryLockGroup(GRAPH, "group1");
+        destroyLockGroup(GRAPH, "group");
+        destroyLockGroup(GRAPH, "group1");
     }
 
     @Test
@@ -137,7 +136,7 @@ public class LocksTableTest extends BaseUnitTest {
 
         Assert.assertEquals(0, table.size());
         Assert.assertEquals(0, lockList.size());
-        destoryLockGroup(GRAPH, LockUtil.KEY_LOCK);
+        destroyLockGroup(GRAPH, LockUtil.KEY_LOCK);
     }
 
     @Test
@@ -300,7 +299,7 @@ public class LocksTableTest extends BaseUnitTest {
         LockManager.instance().create(groupName(graph, group));
     }
 
-    private static void destoryLockGroup(String graph, String group) {
+    private static void destroyLockGroup(String graph, String group) {
         LockManager.instance().destroy(groupName(graph, group));
     }
 
