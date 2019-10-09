@@ -138,7 +138,7 @@ public class HugeGraph implements GremlinGraph {
             this.storeProvider = this.loadStoreProvider();
         } catch (BackendException e) {
             LockUtil.destroy(this.name);
-            String message = "Failed to init backend store";
+            String message = "Failed to load backend store provider";
             LOG.error("{}: {}", message, e.getMessage());
             throw new HugeException(message);
         }
