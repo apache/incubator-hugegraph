@@ -4430,6 +4430,78 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertEquals(vertices, results);
     }
 
+    @Test
+    public void testUpdateVertexWithAggregatePropertyMultiTimes() {
+        Assume.assumeTrue("Not support aggregate property",
+                          storeFeatures().supportsAggregateProperty());
+
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
+
+        schema.propertyKey("worstScore")
+              .asInt().valueSingle().calcMin()
+              .ifNotExist().create();
+        schema.propertyKey("bestScore")
+              .asInt().valueSingle().calcMax()
+              .ifNotExist().create();
+        schema.propertyKey("testNum")
+              .asInt().valueSingle().calcSum()
+              .ifNotExist().create();
+        schema.propertyKey("no")
+              .asText().valueSingle().calcOld()
+              .ifNotExist().create();
+
+        schema.vertexLabel("student")
+              .properties("name", "worstScore", "bestScore", "testNum", "no")
+              .primaryKeys("name")
+              .nullableKeys("worstScore", "bestScore", "testNum", "no")
+              .ifNotExist()
+              .create();
+
+        schema.indexLabel("studentByWorstScore")
+              .onV("student").by("worstScore").range().ifNotExist().create();
+        schema.indexLabel("studentByBestScore")
+              .onV("student").by("bestScore").range().ifNotExist().create();
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("studentByTestNum")
+                  .onV("student").by("testNum").range().ifNotExist().create();
+        }, e -> {
+            Assert.assertTrue(e.getMessage(), e.getMessage().contains(
+                              "The aggregate type SUM is not indexable"));
+        });
+        schema.indexLabel("studentByNo")
+              .onV("student").by("no").secondary().ifNotExist().create();
+
+        graph.addVertex(T.label, "student", "name", "Tom", "worstScore", 55,
+                        "bestScore", 96, "testNum", 1, "no", "001");
+        graph.tx().commit();
+
+        List<Vertex> vertices = graph.traversal().V().hasLabel("student")
+                                     .has("name", "Tom").toList();
+        Assert.assertEquals(1, vertices.size());
+        Vertex tom = vertices.get(0);
+        Assert.assertEquals(55, tom.value("worstScore"));
+        Assert.assertEquals(96, tom.value("bestScore"));
+        Assert.assertEquals(1, tom.value("testNum"));
+        Assert.assertEquals("001", tom.value("no"));
+
+        for (int i = 0; i < 100; i++) {
+            tom.property("worstScore", 65);
+            tom.property("bestScore", 94);
+            tom.property("testNum", 1);
+            tom.property("no", "002");
+            graph.tx().commit();
+
+            tom = graph.traversal().V().hasLabel("student")
+                       .has("name", "Tom").next();
+
+            Assert.assertEquals(55, tom.value("worstScore"));
+            Assert.assertEquals(96, tom.value("bestScore"));
+            Assert.assertEquals(i + 2, tom.value("testNum"));
+            Assert.assertEquals("001", tom.value("no"));
+        }
+    }
+
     // Insert -> {Insert, Delete, Append, Eliminate}
     @Test
     public void testInsertAndInsertVertex() {
