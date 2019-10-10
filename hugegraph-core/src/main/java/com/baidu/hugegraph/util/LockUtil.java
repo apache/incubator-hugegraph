@@ -130,11 +130,19 @@ public final class LockUtil {
         return keyLock.lockAll(locks.toArray());
     }
 
+    public static void lockKey2(String graph, String group, Object key) {
+        lockKeys2(graph, group, ImmutableList.of(key));
+    }
+
     public static void lockKeys2(String graph, String group,
-                                 Collection<?> locks) {
+                                 Collection<?> keys) {
         KeyLock2 keyLock = LockManager.instance().get(join(graph, KEY_LOCK))
                                       .keyLock2(group);
-        keyLock.lockAll(locks.toArray());
+        keyLock.lockAll(keys.toArray());
+    }
+
+    public static void unlockKey2(String graph, String group, Object key) {
+        unlockKeys2(graph, group, ImmutableList.of(key));
     }
 
     public static void unlockKeys2(String graph, String group,
@@ -281,20 +289,20 @@ public final class LockUtil {
             locked.addAll(newLocks);
         }
 
-        public void lockKeys(String group, Collection<Id> locks) {
-            List<Id> newLocks = new ArrayList<>(locks.size());
+        public void lockKey(String group, Id key) {
+            this.lockKeys(group, ImmutableList.of(key));
+        }
+
+        public void lockKeys(String group, Collection<Id> keys) {
+            List<Id> newLocks = new ArrayList<>(keys.size());
             Set<Id> locked = locksOfGroup(group);
-            for (Id lock : locks) {
+            for (Id lock : keys) {
                 if (!locked.contains(lock)) {
                     newLocks.add(lock);
                 }
             }
             this.locks.lockKeys(group, newLocks);
             locked.addAll(newLocks);
-        }
-
-        public void lockKey(String group, Id lock) {
-            this.lockKeys(group, ImmutableList.of(lock));
         }
 
         // NOTE: when used in multi-threads, should add `synchronized`

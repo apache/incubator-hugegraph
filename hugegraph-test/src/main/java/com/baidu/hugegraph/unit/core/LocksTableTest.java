@@ -295,15 +295,15 @@ public class LocksTableTest extends BaseUnitTest {
         });
     }
 
-    private static void genLockGroup(String graph, String group) {
+    protected static void genLockGroup(String graph, String group) {
         LockManager.instance().create(groupName(graph, group));
     }
 
-    private static void destroyLockGroup(String graph, String group) {
+    protected static void destroyLockGroup(String graph, String group) {
         LockManager.instance().destroy(groupName(graph, group));
     }
 
-    private static String groupName(String graph, String group) {
+    protected static String groupName(String graph, String group) {
         return String.join("_", graph, group);
     }
 }
