@@ -36,6 +36,7 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.concurrent.KeyLock;
+import com.baidu.hugegraph.concurrent.KeyLock2;
 import com.baidu.hugegraph.concurrent.LockManager;
 import com.baidu.hugegraph.type.HugeType;
 import com.google.common.collect.ImmutableList;
@@ -127,6 +128,20 @@ public final class LockUtil {
         KeyLock keyLock = LockManager.instance().get(join(graph, KEY_LOCK))
                                      .keyLock(group);
         return keyLock.lockAll(locks.toArray());
+    }
+
+    public static void lockKeys2(String graph, String group,
+                                 Collection<?> locks) {
+        KeyLock2 keyLock = LockManager.instance().get(join(graph, KEY_LOCK))
+                                      .keyLock2(group);
+        keyLock.lockAll(locks.toArray());
+    }
+
+    public static void unlockKeys2(String graph, String group,
+                                   Collection<?> locks) {
+        KeyLock2 keyLock = LockManager.instance().get(join(graph, KEY_LOCK))
+                                      .keyLock2(group);
+        keyLock.unlockAll(locks.toArray());
     }
 
     public static List<Lock> lock(String... locks) {
