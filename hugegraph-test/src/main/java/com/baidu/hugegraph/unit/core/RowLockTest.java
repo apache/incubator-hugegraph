@@ -30,17 +30,16 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.baidu.hugegraph.concurrent.KeyLock2;
 import com.baidu.hugegraph.unit.BaseUnitTest;
 import com.baidu.hugegraph.util.LockUtil;
 
 import static com.baidu.hugegraph.unit.core.LocksTableTest.destroyLockGroup;
 import static com.baidu.hugegraph.unit.core.LocksTableTest.genLockGroup;
 
-public class KeyLock2Test extends BaseUnitTest {
+public class RowLockTest extends BaseUnitTest {
 
     private static String GRAPH = "graph";
-    private static String GROUP = "key_lock";
+    private static String GROUP = "row_lock";
 
     private static final int THREADS_NUM = 8;
 
@@ -55,47 +54,46 @@ public class KeyLock2Test extends BaseUnitTest {
     }
 
     @Test
-    public void testKeyLock2() {
-        LockUtil.lockKey2(GRAPH, GROUP, 1);
-        LockUtil.unlockKey2(GRAPH, GROUP, 1);
+    public void testRowLock() {
+        LockUtil.lockRow(GRAPH, GROUP, 1);
+        LockUtil.unlockRow(GRAPH, GROUP, 1);
     }
 
     @Test
-    public void testKeyLock2WithMultiThreads() {
+    public void testRowLockWithMultiThreads() {
         Set<String> names = new HashSet<>(THREADS_NUM);
-        List<Integer> keys = new ArrayList<>(5);
+        List<Integer> rows = new ArrayList<>(5);
         Random random = new Random();
         for (int i = 0; i < 5; i++) {
-            keys.add(random.nextInt(THREADS_NUM));
+            rows.add(random.nextInt(THREADS_NUM));
         }
 
         Assert.assertEquals(0, names.size());
 
         runWithThreads(THREADS_NUM, () -> {
-            LockUtil.lockKeys2(GRAPH, GROUP, keys);
+            LockUtil.lockRows(GRAPH, GROUP, new HashSet<>(rows));
             names.add(Thread.currentThread().getName());
-            LockUtil.unlockKeys2(GRAPH, GROUP, keys);
+            LockUtil.unlockRows(GRAPH, GROUP, new HashSet<>(rows));
         });
 
         Assert.assertEquals(THREADS_NUM, names.size());
     }
 
     @Test
-    public void testKeyLock2WithMultiThreadsWithRandomKey() {
-        KeyLock2 lock = new KeyLock2();
+    public void testRowLockWithMultiThreadsWithRandomKey() {
         Set<String> names = new HashSet<>(THREADS_NUM);
 
         Assert.assertEquals(0, names.size());
 
         runWithThreads(THREADS_NUM, () -> {
-            List<Integer> keys = new ArrayList<>(5);
+            List<Integer> rows = new ArrayList<>(5);
             Random random = new Random();
             for (int i = 0; i < 5; i++) {
-                keys.add(random.nextInt(THREADS_NUM));
+                rows.add(random.nextInt(THREADS_NUM));
             }
-            LockUtil.lockKeys2(GRAPH, GROUP, keys);
+            LockUtil.lockRows(GRAPH, GROUP, new HashSet<>(rows));
             names.add(Thread.currentThread().getName());
-            LockUtil.unlockKeys2(GRAPH, GROUP, keys);
+            LockUtil.unlockRows(GRAPH, GROUP, new HashSet<>(rows));
         });
 
         Assert.assertEquals(THREADS_NUM, names.size());

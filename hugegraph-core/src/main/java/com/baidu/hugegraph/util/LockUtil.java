@@ -36,10 +36,11 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.concurrent.KeyLock;
-import com.baidu.hugegraph.concurrent.KeyLock2;
 import com.baidu.hugegraph.concurrent.LockManager;
+import com.baidu.hugegraph.concurrent.RowLock;
 import com.baidu.hugegraph.type.HugeType;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 public final class LockUtil {
 
@@ -57,6 +58,7 @@ public final class LockUtil {
     public static final String VERTEX_LABEL_ADD_UPDATE = "vl_add_update";
     public static final String PROPERTY_KEY_ADD_UPDATE = "pk_add_update";
     public static final String KEY_LOCK = "key_lock";
+    public static final String ROW_LOCK = "row_lock";
 
     public static final long WRITE_WAIT_TIMEOUT = 30L;
 
@@ -70,6 +72,7 @@ public final class LockUtil {
         LockManager.instance().create(join(graph, VERTEX_LABEL_ADD_UPDATE));
         LockManager.instance().create(join(graph, PROPERTY_KEY_ADD_UPDATE));
         LockManager.instance().create(join(graph, KEY_LOCK));
+        LockManager.instance().create(join(graph, ROW_LOCK));
     }
 
     public static void destroy(String graph) {
@@ -82,6 +85,7 @@ public final class LockUtil {
         LockManager.instance().destroy(join(graph, VERTEX_LABEL_ADD_UPDATE));
         LockManager.instance().destroy(join(graph, PROPERTY_KEY_ADD_UPDATE));
         LockManager.instance().destroy(join(graph, KEY_LOCK));
+        LockManager.instance().destroy(join(graph, ROW_LOCK));
     }
 
     private static String join(String graph, String group) {
@@ -130,26 +134,32 @@ public final class LockUtil {
         return keyLock.lockAll(locks.toArray());
     }
 
-    public static void lockKey2(String graph, String group, Object key) {
-        lockKeys2(graph, group, ImmutableList.of(key));
+    public static <K extends Comparable<K>> void lockRow(String graph,
+                                                         String group,
+                                                         K row) {
+        lockRows(graph, group, ImmutableSet.of(row));
     }
 
-    public static void lockKeys2(String graph, String group,
-                                 Collection<?> keys) {
-        KeyLock2 keyLock = LockManager.instance().get(join(graph, KEY_LOCK))
-                                      .keyLock2(group);
-        keyLock.lockAll(keys.toArray());
+    public static <K extends Comparable<K>> void lockRows(String graph,
+                                                          String group,
+                                                          Set<K> rows) {
+        RowLock rowLock = LockManager.instance().get(join(graph, ROW_LOCK))
+                                     .rowLock(group);
+        rowLock.lockAll(rows);
     }
 
-    public static void unlockKey2(String graph, String group, Object key) {
-        unlockKeys2(graph, group, ImmutableList.of(key));
+    public static <K extends Comparable<K>> void unlockRow(String graph,
+                                                           String group,
+                                                           K row) {
+        unlockRows(graph, group, ImmutableSet.of(row));
     }
 
-    public static void unlockKeys2(String graph, String group,
-                                   Collection<?> locks) {
-        KeyLock2 keyLock = LockManager.instance().get(join(graph, KEY_LOCK))
-                                      .keyLock2(group);
-        keyLock.unlockAll(locks.toArray());
+    public static <K extends Comparable<K>> void unlockRows(String graph,
+                                                            String group,
+                                                            Set<K> rows) {
+        RowLock rowLock = LockManager.instance().get(join(graph, ROW_LOCK))
+                                     .rowLock(group);
+        rowLock.unlockAll(rows);
     }
 
     public static List<Lock> lock(String... locks) {
