@@ -28,6 +28,7 @@ import org.junit.Test;
 
 import com.baidu.hugegraph.concurrent.AtomicLock;
 import com.baidu.hugegraph.concurrent.KeyLock;
+import com.baidu.hugegraph.concurrent.RowLock;
 import com.baidu.hugegraph.concurrent.LockGroup;
 import com.baidu.hugegraph.testutil.Assert;
 
@@ -66,6 +67,22 @@ public class LockGroupTest {
         KeyLock lock = this.group.keyLock("lock");
         Assert.assertNotNull(lock);
         KeyLock lock1 = this.group.keyLock("lock");
+        Assert.assertSame(lock, lock1);
+    }
+
+    @Test
+    public void testKeyLockWithSize() {
+        KeyLock lock = this.group.keyLock("lock", 10);
+        Assert.assertNotNull(lock);
+        KeyLock lock1 = this.group.keyLock("lock");
+        Assert.assertSame(lock, lock1);
+    }
+
+    @Test
+    public void testRowLock() {
+        RowLock lock = this.group.rowLock("lock");
+        Assert.assertNotNull(lock);
+        RowLock lock1 = this.group.rowLock("lock");
         Assert.assertSame(lock, lock1);
     }
 
