@@ -54,6 +54,7 @@ import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.structure.HugeVertexProperty;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.AggregateType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.type.define.Directions;
@@ -618,6 +619,8 @@ public class TextSerializer extends AbstractSerializer {
                      JsonUtil.toJson(propertyKey.dataType()));
         entry.column(HugeKeys.CARDINALITY,
                      JsonUtil.toJson(propertyKey.cardinality()));
+        entry.column(HugeKeys.AGGREGATE_TYPE,
+                     JsonUtil.toJson(propertyKey.aggregateType()));
         entry.column(HugeKeys.PROPERTIES, writeIds(propertyKey.properties()));
         writeUserdata(propertyKey, entry);
         entry.column(HugeKeys.STATUS,
@@ -638,6 +641,7 @@ public class TextSerializer extends AbstractSerializer {
                                         String.class);
         String dataType = entry.column(HugeKeys.DATA_TYPE);
         String cardinality = entry.column(HugeKeys.CARDINALITY);
+        String aggregateType = entry.column(HugeKeys.AGGREGATE_TYPE);
         String properties = entry.column(HugeKeys.PROPERTIES);
         String status = entry.column(HugeKeys.STATUS);
 
@@ -645,6 +649,8 @@ public class TextSerializer extends AbstractSerializer {
         propertyKey.dataType(JsonUtil.fromJson(dataType, DataType.class));
         propertyKey.cardinality(JsonUtil.fromJson(cardinality,
                                                   Cardinality.class));
+        propertyKey.aggregateType(JsonUtil.fromJson(aggregateType,
+                                                    AggregateType.class));
         propertyKey.properties(readIds(properties));
         readUserdata(propertyKey, entry);
         propertyKey.status(JsonUtil.fromJson(status, SchemaStatus.class));

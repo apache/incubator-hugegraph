@@ -233,6 +233,7 @@ public class GraphTransaction extends IndexableTransaction {
         for (HugeVertex v : addedVertices.values()) {
             assert !v.removed();
             v.committed();
+            this.checkAggregateProperty(v);
             // Add vertex entry
             this.doInsert(this.serializer.writeVertex(v));
             // Update index of vertex(only include props)
@@ -248,6 +249,7 @@ public class GraphTransaction extends IndexableTransaction {
             if (this.removingEdgeOwner(e)) {
                 continue;
             }
+            this.checkAggregateProperty(e);
             // Add edge entry of OUT and IN
             this.doInsert(this.serializer.writeEdge(e));
             this.doInsert(this.serializer.writeEdge(e.switchOwner()));
@@ -274,6 +276,7 @@ public class GraphTransaction extends IndexableTransaction {
 
         // Remove vertices
         for (HugeVertex v : removedVertices.values()) {
+            this.checkAggregateProperty(v);
             /*
              * If the backend stores vertex together with edges, it's edges
              * would be removed after removing vertex. Otherwise, if the
@@ -287,6 +290,7 @@ public class GraphTransaction extends IndexableTransaction {
 
         // Remove edges
         for (HugeEdge e : removedEdges.values()) {
+            this.checkAggregateProperty(e);
             // Update edge index
             this.indexTx.updateEdgeIndex(e, true);
             this.indexTx.updateLabelIndex(e, true);
@@ -300,6 +304,7 @@ public class GraphTransaction extends IndexableTransaction {
     protected void prepareUpdates(Set<HugeProperty<?>> addedProps,
                                   Set<HugeProperty<?>> removedProps) {
         for (HugeProperty<?> p : removedProps) {
+            this.checkAggregateProperty(p);
             if (p.element().type().isVertex()) {
                 HugeVertexProperty<?> prop = (HugeVertexProperty<?>) p;
                 if (this.store().features().supportsUpdateVertexProperty()) {
@@ -328,6 +333,7 @@ public class GraphTransaction extends IndexableTransaction {
             }
         }
         for (HugeProperty<?> p : addedProps) {
+            this.checkAggregateProperty(p);
             if (p.element().type().isVertex()) {
                 HugeVertexProperty<?> prop = (HugeVertexProperty<?>) p;
                 if (this.store().features().supportsUpdateVertexProperty()) {
@@ -355,7 +361,6 @@ public class GraphTransaction extends IndexableTransaction {
                 }
             }
         }
-
     }
 
     @Override
@@ -1014,6 +1019,20 @@ public class GraphTransaction extends IndexableTransaction {
                       "Not supported querying edges by %s, expect %s",
                       query.conditions(), EdgeId.KEYS[matched]);
         }
+    }
+
+    private void checkAggregateProperty(HugeElement element) {
+        E.checkArgument(element.getAggregateProperties().isEmpty() ||
+                        this.store().features().supportsAggregateProperty(),
+                        "The %s store does not support aggregate property",
+                        this.store().provider().type());
+    }
+
+    private void checkAggregateProperty(HugeProperty property) {
+        E.checkArgument(!property.isAggregateType() ||
+                        this.store().features().supportsAggregateProperty(),
+                        "The %s store does not support aggregate property",
+                        this.store().provider().type());
     }
 
     private Query optimizeQuery(ConditionQuery query) {

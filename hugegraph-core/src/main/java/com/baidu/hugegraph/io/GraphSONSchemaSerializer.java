@@ -87,6 +87,7 @@ public class GraphSONSchemaSerializer {
         map.put(HugeKeys.NAME, propertyKey.name());
         map.put(HugeKeys.DATA_TYPE, propertyKey.dataType());
         map.put(HugeKeys.CARDINALITY, propertyKey.cardinality());
+        map.put(HugeKeys.AGGREGATE_TYPE, propertyKey.aggregateType());
         map.put(HugeKeys.PROPERTIES,
                 graph.mapPkId2Name(propertyKey.properties()));
         map.put(HugeKeys.USER_DATA, propertyKey.userdata());

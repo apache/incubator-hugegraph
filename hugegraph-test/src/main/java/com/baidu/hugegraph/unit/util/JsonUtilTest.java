@@ -97,6 +97,7 @@ public class JsonUtilTest extends BaseUnitTest {
         Assert.assertEquals("{\"id\":1,\"name\":\"name\"," +
                             "\"data_type\":\"TEXT\"," +
                             "\"cardinality\":\"SINGLE\"," +
+                            "\"aggregate_type\":\"NONE\"," +
                             "\"properties\":[],\"user_data\":{}}", json);
 
         PropertyKey rate = fakeObject.newPropertyKey(IdGenerator.of(2), "rate",
@@ -105,6 +106,7 @@ public class JsonUtilTest extends BaseUnitTest {
         json = JsonUtil.toJson(rate);
         Assert.assertEquals("{\"id\":2,\"name\":\"rate\"," +
                             "\"data_type\":\"INT\",\"cardinality\":\"LIST\"," +
+                            "\"aggregate_type\":\"NONE\"," +
                             "\"properties\":[],\"user_data\":{}}", json);
     }
 

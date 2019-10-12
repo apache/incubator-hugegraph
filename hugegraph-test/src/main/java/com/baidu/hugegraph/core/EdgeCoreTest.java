@@ -3534,6 +3534,484 @@ public class EdgeCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testUpdateEdgePropertyOfAggregateType() {
+        Assume.assumeTrue("Not support aggregate property",
+                          storeFeatures().supportsAggregateProperty());
+
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
+
+        schema.propertyKey("startTime")
+              .asDate().valueSingle().calcMin()
+              .ifNotExist().create();
+        schema.propertyKey("endTime")
+              .asDate().valueSingle().calcMax()
+              .ifNotExist().create();
+        schema.propertyKey("times")
+              .asLong().valueSingle().calcSum()
+              .ifNotExist().create();
+
+        schema.vertexLabel("ip").useCustomizeStringId().ifNotExist().create();
+
+        schema.edgeLabel("attack").sourceLabel("ip").targetLabel("ip")
+              .properties("startTime", "endTime", "times")
+              .ifNotExist().create();
+
+        Vertex ip1 = graph.addVertex(T.label, "ip", T.id, "10.0.0.1");
+        Vertex ip2 = graph.addVertex(T.label, "ip", T.id, "10.0.0.2");
+
+        ip1.addEdge("attack", ip2,
+                    "startTime", "2019-1-1 00:00:30",
+                    "endTime", "2019-1-1 00:01:00",
+                    "times", 3);
+        graph.tx().commit();
+
+        Edge edge = graph.traversal().V("10.0.0.1").outE().next();
+        Assert.assertEquals(Utils.date("2019-1-1 00:00:30"),
+                            edge.value("startTime"));
+        Assert.assertEquals(Utils.date("2019-1-1 00:01:00"),
+                            edge.value("endTime"));
+        Assert.assertEquals(3L, edge.value("times"));
+
+        edge.property("startTime", "2019-1-1 00:04:00");
+        edge.property("endTime", "2019-1-1 00:08:00");
+        edge.property("times", 10);
+        graph.tx().commit();
+
+        edge = graph.traversal().V("10.0.0.1").outE().next();
+        Assert.assertEquals(Utils.date("2019-1-1 00:00:30"),
+                            edge.value("startTime"));
+        Assert.assertEquals(Utils.date("2019-1-1 00:08:00"),
+                            edge.value("endTime"));
+        Assert.assertEquals(13L, edge.value("times"));
+
+        edge.property("startTime", "2019-1-2 00:04:00");
+        edge.property("endTime", "2019-1-2 00:08:00");
+        edge.property("times", 7);
+        graph.tx().commit();
+
+        edge = graph.traversal().V("10.0.0.1").outE().next();
+        Assert.assertEquals(Utils.date("2019-1-1 00:00:30"),
+                            edge.value("startTime"));
+        Assert.assertEquals(Utils.date("2019-1-2 00:08:00"),
+                            edge.value("endTime"));
+        Assert.assertEquals(20L, edge.value("times"));
+
+        edge.property("startTime", "2019-1-1 00:00:00");
+        edge.property("endTime", "2019-2-1 00:20:00");
+        edge.property("times", 100);
+        graph.tx().commit();
+        edge = graph.traversal().V("10.0.0.1").outE().next();
+        Assert.assertEquals(Utils.date("2019-1-1 00:00:00"),
+                            edge.value("startTime"));
+        Assert.assertEquals(Utils.date("2019-2-1 00:20:00"),
+                            edge.value("endTime"));
+        Assert.assertEquals(120L, edge.value("times"));
+    }
+
+    @Test
+    public void testAddAndUpdateEdgePropertyOfAggregateType() {
+        Assume.assumeTrue("Not support aggregate property",
+                          storeFeatures().supportsAggregateProperty());
+
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
+
+        schema.propertyKey("startTime")
+              .asDate().valueSingle().calcMin()
+              .ifNotExist().create();
+        schema.propertyKey("endTime")
+              .asDate().valueSingle().calcMax()
+              .ifNotExist().create();
+        schema.propertyKey("times")
+              .asLong().valueSingle().calcSum()
+              .ifNotExist().create();
+
+        schema.vertexLabel("ip").useCustomizeStringId().ifNotExist().create();
+
+        schema.edgeLabel("attack").sourceLabel("ip").targetLabel("ip")
+              .properties("startTime", "endTime", "times")
+              .ifNotExist().create();
+
+        Vertex ip1 = graph.addVertex(T.label, "ip", T.id, "10.0.0.1");
+        Vertex ip2 = graph.addVertex(T.label, "ip", T.id, "10.0.0.2");
+
+        Edge edge = ip1.addEdge("attack", ip2,
+                                "startTime", "2019-1-1 00:00:30",
+                                "endTime", "2019-1-1 00:01:00",
+                                "times", 3);
+        edge.property("startTime", "2019-1-1 00:04:00");
+        edge.property("endTime", "2019-1-1 00:08:00");
+        edge.property("times", 10);
+
+        Edge result = graph.traversal().V("10.0.0.1").outE().next();
+        Assert.assertEquals(Utils.date("2019-1-1 00:04:00"),
+                            result.value("startTime"));
+        Assert.assertEquals(Utils.date("2019-1-1 00:08:00"),
+                            result.value("endTime"));
+        Assert.assertEquals(10L, result.value("times"));
+
+        graph.tx().commit();
+
+        result = graph.traversal().V("10.0.0.1").outE().next();
+        Assert.assertEquals(Utils.date("2019-1-1 00:04:00"),
+                            result.value("startTime"));
+        Assert.assertEquals(Utils.date("2019-1-1 00:08:00"),
+                            result.value("endTime"));
+        Assert.assertEquals(10L, result.value("times"));
+
+        edge = ip1.addEdge("attack", ip2,
+                           "startTime", "2019-1-1 00:00:30",
+                           "endTime", "2019-1-1 00:01:00",
+                           "times", 3);
+
+        edge.property("startTime", "2019-1-2 00:00:30");
+        edge.property("endTime", "2019-1-2 00:01:00");
+        edge.property("times", 2);
+
+        Assert.assertEquals(Utils.date("2019-1-1 00:04:00"),
+                            edge.value("startTime"));
+        Assert.assertEquals(Utils.date("2019-1-2 00:01:00"),
+                            edge.value("endTime"));
+        Assert.assertEquals(12L, edge.value("times"));
+
+        Assert.assertEquals(Utils.date("2019-1-1 00:04:00"),
+                            edge.property("startTime").value());
+        Assert.assertEquals(Utils.date("2019-1-2 00:01:00"),
+                            edge.property("endTime").value());
+        Assert.assertEquals(12L, edge.property("times").value());
+
+        result = graph.traversal().V("10.0.0.1").outE().next();
+        Assert.assertEquals(Utils.date("2019-1-1 00:04:00"),
+                            result.property("startTime").value());
+        Assert.assertEquals(Utils.date("2019-1-2 00:01:00"),
+                            result.property("endTime").value());
+        Assert.assertEquals(12L, result.property("times").value());
+    }
+
+    @Test
+    public void testQueryEdgeByAggregateProperty() {
+        Assume.assumeTrue("Not support aggregate property",
+                          storeFeatures().supportsAggregateProperty());
+
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
+
+        schema.propertyKey("startTime")
+              .asDate().valueSingle().calcMin()
+              .ifNotExist().create();
+        schema.propertyKey("endTime")
+              .asDate().valueSingle().calcMax()
+              .ifNotExist().create();
+        schema.propertyKey("times")
+              .asLong().valueSingle().calcSum()
+              .ifNotExist().create();
+        schema.propertyKey("firstTime")
+              .asDate().valueSingle().calcOld()
+              .ifNotExist().create();
+
+        schema.vertexLabel("ip").useCustomizeStringId().ifNotExist().create();
+
+        schema.edgeLabel("attack").sourceLabel("ip").targetLabel("ip")
+              .properties("startTime", "endTime", "times", "firstTime")
+              .ifNotExist().create();
+
+        schema.indexLabel("attackByStartTime")
+              .onE("attack").by("startTime").range().ifNotExist().create();
+        schema.indexLabel("attackByendTime")
+              .onE("attack").by("endTime").range().ifNotExist().create();
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("attackByTimes")
+                  .onE("attack").by("times").range().ifNotExist().create();
+        }, e -> {
+            Assert.assertTrue(e.getMessage(), e.getMessage().contains(
+                              "The aggregate type SUM is not indexable"));
+        });
+        schema.indexLabel("attackByFirstTime")
+              .onE("attack").by("firstTime").range().ifNotExist().create();
+
+        Vertex ip1 = graph.addVertex(T.label, "ip", T.id, "10.0.0.1");
+        Vertex ip2 = graph.addVertex(T.label, "ip", T.id, "10.0.0.2");
+
+        ip1.addEdge("attack", ip2,
+                    "startTime", "2019-1-1 00:00:30",
+                    "endTime", "2019-1-1 00:01:00",
+                    "firstTime", "2019-5-5 12:00:00",
+                    "times", 3);
+        graph.tx().commit();
+
+        List<Edge> edges = graph.traversal().V("10.0.0.1").outE().toList();
+        Assert.assertEquals(1, edges.size());
+        Edge edge = edges.get(0);
+        Assert.assertEquals(Utils.date("2019-1-1 00:00:30"),
+                            edge.value("startTime"));
+        Assert.assertEquals(Utils.date("2019-1-1 00:01:00"),
+                            edge.value("endTime"));
+        Assert.assertEquals(Utils.date("2019-5-5 12:00:00"),
+                            edge.value("firstTime"));
+        Assert.assertEquals(3L, edge.value("times"));
+
+        List<Edge> results = graph.traversal().E()
+                                  .has("startTime", P.gt("2019-1-1 00:00:00"))
+                                  .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("startTime", P.lt("2019-12-12 23:59:59"))
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("startTime", "2019-1-1 00:00:30")
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("endTime", P.gt("2019-1-1 00:00:00"))
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("endTime", P.lt("2019-12-12 23:59:59"))
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("endTime", "2019-1-1 00:01:00")
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("firstTime", "2019-5-5 12:00:00")
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        edge.property("startTime", "2019-1-1 00:04:00");
+        edge.property("endTime", "2019-1-1 00:08:00");
+        edge.property("times", 10);
+        graph.tx().commit();
+
+        edges = graph.traversal().V("10.0.0.1").outE().toList();
+        Assert.assertEquals(1, edges.size());
+        edge = edges.get(0);
+        Assert.assertEquals(Utils.date("2019-1-1 00:00:30"),
+                            edge.value("startTime"));
+        Assert.assertEquals(Utils.date("2019-1-1 00:08:00"),
+                            edge.value("endTime"));
+        Assert.assertEquals(Utils.date("2019-5-5 12:00:00"),
+                            edge.value("firstTime"));
+        Assert.assertEquals(13L, edge.value("times"));
+
+        results = graph.traversal().E()
+                       .has("startTime", P.gt("2019-1-1 00:00:00"))
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("startTime", P.lt("2019-12-12 23:59:59"))
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("startTime", "2019-1-1 00:00:30")
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("endTime", P.gt("2019-1-1 00:00:00"))
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("endTime", P.lt("2019-12-12 23:59:59"))
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("endTime", "2019-1-1 00:08:00")
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("firstTime", "2019-5-5 12:00:00")
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        edge.property("startTime", "2019-1-2 00:04:00");
+        edge.property("endTime", "2019-1-2 00:08:00");
+        edge.property("times", 7);
+        graph.tx().commit();
+
+        edges = graph.traversal().V("10.0.0.1").outE().toList();
+        Assert.assertEquals(1, edges.size());
+        edge = edges.get(0);
+        Assert.assertEquals(Utils.date("2019-1-1 00:00:30"),
+                            edge.value("startTime"));
+        Assert.assertEquals(Utils.date("2019-1-2 00:08:00"),
+                            edge.value("endTime"));
+        Assert.assertEquals(Utils.date("2019-5-5 12:00:00"),
+                            edge.value("firstTime"));
+        Assert.assertEquals(20L, edge.value("times"));
+
+        results = graph.traversal().E()
+                       .has("startTime", P.gt("2019-1-1 00:00:00"))
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("startTime", P.lt("2019-12-12 23:59:59"))
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("startTime", "2019-1-1 00:00:30")
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("endTime", P.gt("2019-1-1 00:00:00"))
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("endTime", P.lt("2019-12-12 23:59:59"))
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("endTime", "2019-1-2 00:08:00")
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("firstTime", "2019-5-5 12:00:00")
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        edge.property("startTime", "2019-1-1 00:00:02");
+        edge.property("endTime", "2019-2-1 00:20:00");
+        edge.property("times", 100);
+        graph.tx().commit();
+
+        edges = graph.traversal().V("10.0.0.1").outE().toList();
+        Assert.assertEquals(1, edges.size());
+        edge = edges.get(0);
+        Assert.assertEquals(Utils.date("2019-1-1 00:00:02"),
+                            edge.value("startTime"));
+        Assert.assertEquals(Utils.date("2019-2-1 00:20:00"),
+                            edge.value("endTime"));
+        Assert.assertEquals(Utils.date("2019-5-5 12:00:00"),
+                            edge.value("firstTime"));
+        Assert.assertEquals(120L, edge.value("times"));
+
+        results = graph.traversal().E()
+                       .has("startTime", P.gt("2019-1-1 00:00:00"))
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("startTime", P.lt("2019-12-12 23:59:59"))
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("startTime", "2019-1-1 00:00:02")
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("endTime", P.gt("2019-1-1 00:00:00"))
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("endTime", P.lt("2019-12-12 23:59:59"))
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("endTime", "2019-2-1 00:20:00")
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("firstTime", "2019-5-5 12:00:00")
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        edge.property("startTime", "2019-1-1 00:00:01");
+        edge.property("endTime", "2019-2-1 00:20:00");
+        edge.property("times", 20);
+        graph.tx().commit();
+
+        edge.property("startTime", "2019-3-1 00:00:00");
+        edge.property("endTime", "2019-5-1 00:20:00");
+        edge.property("times", 25);
+        graph.tx().commit();
+
+        edge.property("startTime", "2019-1-1 00:30:00");
+        edge.property("endTime", "2019-8-1 00:20:00");
+        edge.property("times", 35);
+        graph.tx().commit();
+
+        edges = graph.traversal().V("10.0.0.1").outE().toList();
+        Assert.assertEquals(1, edges.size());
+        edge = edges.get(0);
+        Assert.assertEquals(Utils.date("2019-1-1 00:00:01"),
+                            edge.value("startTime"));
+        Assert.assertEquals(Utils.date("2019-8-1 00:20:00"),
+                            edge.value("endTime"));
+        Assert.assertEquals(Utils.date("2019-5-5 12:00:00"),
+                            edge.value("firstTime"));
+        Assert.assertEquals(200L, edge.value("times"));
+
+        results = graph.traversal().E()
+                       .has("startTime", P.gt("2019-1-1 00:00:00"))
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("startTime", P.lt("2019-12-12 23:59:59"))
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("startTime", "2019-1-1 00:00:01")
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("endTime", P.gt("2019-1-1 00:00:00"))
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("endTime", P.lt("2019-12-12 23:59:59"))
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("endTime", "2019-8-1 00:20:00")
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("firstTime", P.gt("2019-5-1 12:00:00"))
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("firstTime", P.lt("2019-6-1 12:00:00"))
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("firstTime", "2019-5-5 12:00:00")
+                       .toList();
+        Assert.assertEquals(edges, results);
+    }
+
+    @Test
     public void testRemoveEdgeProperty() {
         HugeGraph graph = graph();
 

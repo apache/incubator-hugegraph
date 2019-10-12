@@ -42,6 +42,7 @@ import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.define.Checkable;
 import com.baidu.hugegraph.schema.PropertyKey;
+import com.baidu.hugegraph.type.define.AggregateType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.type.define.GraphMode;
@@ -155,6 +156,8 @@ public class PropertyKeyAPI extends API {
         public Cardinality cardinality;
         @JsonProperty("data_type")
         public DataType dataType;
+        @JsonProperty("aggregate_type")
+        public AggregateType aggregateType;
         @JsonProperty("properties")
         public String[] properties;
         @JsonProperty("user_data")
@@ -191,6 +194,9 @@ public class PropertyKeyAPI extends API {
             if (this.dataType != null) {
                 builder.dataType(this.dataType);
             }
+            if (this.aggregateType != null) {
+                builder.aggregateType(this.aggregateType);
+            }
             if (this.userdata != null) {
                 builder.userdata(this.userdata);
             }
@@ -203,9 +209,11 @@ public class PropertyKeyAPI extends API {
         @Override
         public String toString() {
             return String.format("JsonPropertyKey{name=%s, cardinality=%s, " +
-                                 "dataType=%s, properties=%s}",
+                                 "dataType=%s, aggregateType=%s, " +
+                                 "properties=%s}",
                                  this.name, this.cardinality,
-                                 this.dataType, this.properties);
+                                 this.dataType, this.aggregateType,
+                                 this.properties);
         }
     }
 }

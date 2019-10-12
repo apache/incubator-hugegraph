@@ -4053,6 +4053,455 @@ public class VertexCoreTest extends BaseCoreTest {
         });
     }
 
+    @Test
+    public void testUpdateVertexPropertyOfAggregateType() {
+        Assume.assumeTrue("Not support aggregate property",
+                          storeFeatures().supportsAggregateProperty());
+
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
+
+        schema.propertyKey("worstScore")
+              .asInt().valueSingle().calcMin()
+              .ifNotExist().create();
+        schema.propertyKey("bestScore")
+              .asInt().valueSingle().calcMax()
+              .ifNotExist().create();
+        schema.propertyKey("testNum")
+              .asInt().valueSingle().calcSum()
+              .ifNotExist().create();
+
+        schema.vertexLabel("student")
+              .properties("name", "worstScore", "bestScore", "testNum")
+              .primaryKeys("name")
+              .nullableKeys("worstScore", "bestScore", "testNum")
+              .ifNotExist()
+              .create();
+
+        graph.addVertex(T.label, "student", "name", "Tom", "worstScore", 55,
+                        "bestScore", 96, "testNum", 1);
+        graph.tx().commit();
+
+        Vertex tom = graph.traversal().V().hasLabel("student")
+                          .has("name", "Tom").next();
+        Assert.assertEquals(55, tom.value("worstScore"));
+        Assert.assertEquals(96, tom.value("bestScore"));
+        Assert.assertEquals(1, tom.value("testNum"));
+
+        tom.property("worstScore", 45);
+        tom.property("bestScore", 98);
+        tom.property("testNum", 1);
+        graph.tx().commit();
+
+        tom = graph.traversal().V().hasLabel("student")
+                   .has("name", "Tom").next();
+        Assert.assertEquals(45, tom.value("worstScore"));
+        Assert.assertEquals(98, tom.value("bestScore"));
+        Assert.assertEquals(2, tom.value("testNum"));
+
+        tom.property("worstScore", 65);
+        tom.property("bestScore", 99);
+        tom.property("testNum", 1);
+        graph.tx().commit();
+
+        tom = graph.traversal().V().hasLabel("student")
+                   .has("name", "Tom").next();
+        Assert.assertEquals(45, tom.value("worstScore"));
+        Assert.assertEquals(99, tom.value("bestScore"));
+        Assert.assertEquals(3, tom.value("testNum"));
+
+        tom.property("worstScore", 75);
+        tom.property("bestScore", 100);
+        tom.property("testNum", 1);
+        graph.tx().commit();
+
+        tom = graph.traversal().V().hasLabel("student")
+                   .has("name", "Tom").next();
+        Assert.assertEquals(45, tom.value("worstScore"));
+        Assert.assertEquals(100, tom.value("bestScore"));
+        Assert.assertEquals(4, tom.value("testNum"));
+    }
+
+    @Test
+    public void testAddAndUpdateVertexPropertyOfAggregateType() {
+        Assume.assumeTrue("Not support aggregate property",
+                          storeFeatures().supportsAggregateProperty());
+
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
+
+        schema.propertyKey("worstScore")
+              .asInt().valueSingle().calcMin()
+              .ifNotExist().create();
+        schema.propertyKey("bestScore")
+              .asInt().valueSingle().calcMax()
+              .ifNotExist().create();
+        schema.propertyKey("testNum")
+              .asInt().valueSingle().calcSum()
+              .ifNotExist().create();
+
+        schema.vertexLabel("student")
+              .properties("name", "worstScore", "bestScore", "testNum")
+              .primaryKeys("name")
+              .nullableKeys("worstScore", "bestScore", "testNum")
+              .ifNotExist()
+              .create();
+
+        Vertex tom = graph.addVertex(T.label, "student", "name", "Tom",
+                                     "worstScore", 55, "bestScore", 96,
+                                     "testNum", 1);
+        tom.property("worstScore", 65);
+        tom.property("bestScore", 94);
+        tom.property("testNum", 2);
+
+        Vertex result = graph.traversal().V().hasLabel("student")
+                             .has("name", "Tom").next();
+        Assert.assertEquals(65, result.value("worstScore"));
+        Assert.assertEquals(94, result.value("bestScore"));
+        Assert.assertEquals(2, result.value("testNum"));
+
+        graph.tx().commit();
+
+        result = graph.traversal().V().hasLabel("student")
+                      .has("name", "Tom").next();
+        Assert.assertEquals(65, result.value("worstScore"));
+        Assert.assertEquals(94, result.value("bestScore"));
+        Assert.assertEquals(2, result.value("testNum"));
+
+        tom = graph.addVertex(T.label, "student", "name", "Tom",
+                              "worstScore", 55, "bestScore", 96,
+                              "testNum", 1);
+        tom.property("worstScore", 75);
+        tom.property("bestScore", 92);
+        tom.property("testNum", 2);
+
+        Assert.assertEquals(65, tom.value("worstScore"));
+        Assert.assertEquals(94, tom.value("bestScore"));
+        Assert.assertEquals(4, tom.value("testNum"));
+
+        Assert.assertEquals(65, tom.property("worstScore").value());
+        Assert.assertEquals(94, tom.property("bestScore").value());
+        Assert.assertEquals(4, tom.property("testNum").value());
+
+        result = graph.traversal().V().hasLabel("student")
+                      .has("name", "Tom").next();
+        Assert.assertEquals(65, result.value("worstScore"));
+        Assert.assertEquals(94, result.value("bestScore"));
+        Assert.assertEquals(4, result.value("testNum"));
+    }
+
+    @Test
+    public void testQueryVertexByAggregateProperty() {
+        Assume.assumeTrue("Not support aggregate property",
+                          storeFeatures().supportsAggregateProperty());
+
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
+
+        schema.propertyKey("worstScore")
+              .asInt().valueSingle().calcMin()
+              .ifNotExist().create();
+        schema.propertyKey("bestScore")
+              .asInt().valueSingle().calcMax()
+              .ifNotExist().create();
+        schema.propertyKey("testNum")
+              .asInt().valueSingle().calcSum()
+              .ifNotExist().create();
+        schema.propertyKey("no")
+              .asText().valueSingle().calcOld()
+              .ifNotExist().create();
+
+        schema.vertexLabel("student")
+              .properties("name", "worstScore", "bestScore", "testNum", "no")
+              .primaryKeys("name")
+              .nullableKeys("worstScore", "bestScore", "testNum", "no")
+              .ifNotExist()
+              .create();
+
+        schema.indexLabel("studentByWorstScore")
+              .onV("student").by("worstScore").range().ifNotExist().create();
+        schema.indexLabel("studentByBestScore")
+              .onV("student").by("bestScore").range().ifNotExist().create();
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("studentByTestNum")
+                  .onV("student").by("testNum").range().ifNotExist().create();
+        }, e -> {
+            Assert.assertTrue(e.getMessage(), e.getMessage().contains(
+                              "The aggregate type SUM is not indexable"));
+        });
+        schema.indexLabel("studentByNo")
+              .onV("student").by("no").secondary().ifNotExist().create();
+
+        graph.addVertex(T.label, "student", "name", "Tom", "worstScore", 55,
+                        "bestScore", 96, "testNum", 1, "no", "001");
+        graph.tx().commit();
+
+        List<Vertex> vertices = graph.traversal().V().hasLabel("student")
+                                     .has("name", "Tom").toList();
+        Assert.assertEquals(1, vertices.size());
+        Vertex tom = vertices.get(0);
+        Assert.assertEquals(55, tom.value("worstScore"));
+        Assert.assertEquals(96, tom.value("bestScore"));
+        Assert.assertEquals(1, tom.value("testNum"));
+        Assert.assertEquals("001", tom.value("no"));
+
+        List<Vertex> results = graph.traversal().V()
+                                    .has("worstScore", P.gt(50)).toList();
+        Assert.assertEquals(vertices, results);
+
+        results = graph.traversal().V().has("worstScore", P.lt(60)).toList();
+        Assert.assertEquals(vertices, results);
+
+        results = graph.traversal().V().has("worstScore", 55).toList();
+        Assert.assertEquals(vertices, results);
+
+        results = graph.traversal().V().has("bestScore", P.gt(50)).toList();
+        Assert.assertEquals(vertices, results);
+
+        results = graph.traversal().V().has("bestScore", P.lt(100)).toList();
+        Assert.assertEquals(vertices, results);
+
+        results = graph.traversal().V().has("bestScore", 96).toList();
+        Assert.assertEquals(vertices, results);
+
+        results = graph.traversal().V().has("no", "001").toList();
+        Assert.assertEquals(vertices, results);
+
+        tom.property("worstScore", 45);
+        tom.property("bestScore", 98);
+        tom.property("testNum", 1);
+        tom.property("no", "002");
+        graph.tx().commit();
+
+        vertices = graph.traversal().V().hasLabel("student")
+                        .has("name", "Tom").toList();
+        Assert.assertEquals(1, vertices.size());
+        tom = vertices.get(0);
+        Assert.assertEquals(45, tom.value("worstScore"));
+        Assert.assertEquals(98, tom.value("bestScore"));
+        Assert.assertEquals(2, tom.value("testNum"));
+        Assert.assertEquals("001", tom.value("no"));
+
+        results = graph.traversal().V().has("worstScore", P.gt(30)).toList();
+        Assert.assertEquals(vertices, results);
+
+        results = graph.traversal().V().has("worstScore", P.lt(60)).toList();
+        Assert.assertEquals(vertices, results);
+
+        results = graph.traversal().V().has("worstScore", 45).toList();
+        Assert.assertEquals(vertices, results);
+
+        results = graph.traversal().V().has("bestScore", P.gt(50)).toList();
+        Assert.assertEquals(vertices, results);
+
+        results = graph.traversal().V().has("bestScore", P.lt(100)).toList();
+        Assert.assertEquals(vertices, results);
+
+        results = graph.traversal().V().has("bestScore", 98).toList();
+        Assert.assertEquals(vertices, results);
+
+        results = graph.traversal().V().has("no", "001").toList();
+        Assert.assertEquals(vertices, results);
+
+        tom = graph.traversal().V().hasLabel("student")
+                   .has("name", "Tom").next();
+        tom.property("worstScore", 65);
+        tom.property("bestScore", 99);
+        tom.property("testNum", 1);
+        tom.property("no", "003");
+        graph.tx().commit();
+
+        vertices = graph.traversal().V().hasLabel("student")
+                        .has("name", "Tom").toList();
+        Assert.assertEquals(1, vertices.size());
+        tom = vertices.get(0);
+        Assert.assertEquals(45, tom.value("worstScore"));
+        Assert.assertEquals(99, tom.value("bestScore"));
+        Assert.assertEquals(3, tom.value("testNum"));
+        Assert.assertEquals("001", tom.value("no"));
+
+        results = graph.traversal().V().has("worstScore", P.gt(30)).toList();
+        Assert.assertEquals(vertices, results);
+
+        results = graph.traversal().V().has("worstScore", P.lt(60)).toList();
+        Assert.assertEquals(vertices, results);
+
+        results = graph.traversal().V().has("worstScore", 45).toList();
+        Assert.assertEquals(vertices, results);
+
+        results = graph.traversal().V().has("bestScore", P.gt(50)).toList();
+        Assert.assertEquals(vertices, results);
+
+        results = graph.traversal().V().has("bestScore", P.lt(100)).toList();
+        Assert.assertEquals(vertices, results);
+
+        results = graph.traversal().V().has("bestScore", 99).toList();
+        Assert.assertEquals(vertices, results);
+
+        results = graph.traversal().V().has("no", "001").toList();
+        Assert.assertEquals(vertices, results);
+
+        tom = graph.traversal().V().hasLabel("student")
+                   .has("name", "Tom").next();
+        tom.property("worstScore", 75);
+        tom.property("bestScore", 100);
+        tom.property("testNum", 1);
+        tom.property("no", "004");
+        graph.tx().commit();
+
+        vertices = graph.traversal().V().hasLabel("student")
+                        .has("name", "Tom").toList();
+        Assert.assertEquals(1, vertices.size());
+        tom = vertices.get(0);
+        Assert.assertEquals(45, tom.value("worstScore"));
+        Assert.assertEquals(100, tom.value("bestScore"));
+        Assert.assertEquals(4, tom.value("testNum"));
+        Assert.assertEquals("001", tom.value("no"));
+
+        results = graph.traversal().V().has("worstScore", P.gt(30)).toList();
+        Assert.assertEquals(vertices, results);
+
+        results = graph.traversal().V().has("worstScore", P.lt(60)).toList();
+        Assert.assertEquals(vertices, results);
+
+        results = graph.traversal().V().has("worstScore", 45).toList();
+        Assert.assertEquals(vertices, results);
+
+        results = graph.traversal().V().has("bestScore", P.gt(50)).toList();
+        Assert.assertEquals(vertices, results);
+
+        results = graph.traversal().V().has("bestScore", P.lt(101)).toList();
+        Assert.assertEquals(vertices, results);
+
+        results = graph.traversal().V().has("bestScore", 100).toList();
+        Assert.assertEquals(vertices, results);
+
+        results = graph.traversal().V().has("no", "001").toList();
+        Assert.assertEquals(vertices, results);
+
+        tom = graph.traversal().V().hasLabel("student")
+                   .has("name", "Tom").next();
+        tom.property("worstScore", 35);
+        tom.property("bestScore", 99);
+        tom.property("testNum", 1);
+        tom.property("no", "005");
+        graph.tx().commit();
+
+        tom.property("worstScore", 65);
+        tom.property("bestScore", 93);
+        tom.property("testNum", 1);
+        tom.property("no", "006");
+        graph.tx().commit();
+
+        tom.property("worstScore", 58);
+        tom.property("bestScore", 63);
+        tom.property("testNum", 1);
+        tom.property("no", "007");
+        graph.tx().commit();
+
+        vertices = graph.traversal().V().hasLabel("student")
+                        .has("name", "Tom").toList();
+        Assert.assertEquals(1, vertices.size());
+        tom = vertices.get(0);
+        Assert.assertEquals(35, tom.value("worstScore"));
+        Assert.assertEquals(100, tom.value("bestScore"));
+        Assert.assertEquals(7, tom.value("testNum"));
+        Assert.assertEquals("001", tom.value("no"));
+
+        results = graph.traversal().V().has("worstScore", P.gt(30)).toList();
+        Assert.assertEquals(vertices, results);
+
+        results = graph.traversal().V().has("worstScore", P.lt(60)).toList();
+        Assert.assertEquals(vertices, results);
+
+        results = graph.traversal().V().has("worstScore", 35).toList();
+        Assert.assertEquals(vertices, results);
+
+        results = graph.traversal().V().has("bestScore", P.gt(50)).toList();
+        Assert.assertEquals(vertices, results);
+
+        results = graph.traversal().V().has("bestScore", P.lt(101)).toList();
+        Assert.assertEquals(vertices, results);
+
+        results = graph.traversal().V().has("bestScore", 100).toList();
+        Assert.assertEquals(vertices, results);
+
+        results = graph.traversal().V().has("no", "001").toList();
+        Assert.assertEquals(vertices, results);
+    }
+
+    @Test
+    public void testUpdateVertexWithAggregatePropertyMultiTimes() {
+        Assume.assumeTrue("Not support aggregate property",
+                          storeFeatures().supportsAggregateProperty());
+
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
+
+        schema.propertyKey("worstScore")
+              .asInt().valueSingle().calcMin()
+              .ifNotExist().create();
+        schema.propertyKey("bestScore")
+              .asInt().valueSingle().calcMax()
+              .ifNotExist().create();
+        schema.propertyKey("testNum")
+              .asInt().valueSingle().calcSum()
+              .ifNotExist().create();
+        schema.propertyKey("no")
+              .asText().valueSingle().calcOld()
+              .ifNotExist().create();
+
+        schema.vertexLabel("student")
+              .properties("name", "worstScore", "bestScore", "testNum", "no")
+              .primaryKeys("name")
+              .nullableKeys("worstScore", "bestScore", "testNum", "no")
+              .ifNotExist()
+              .create();
+
+        schema.indexLabel("studentByWorstScore")
+              .onV("student").by("worstScore").range().ifNotExist().create();
+        schema.indexLabel("studentByBestScore")
+              .onV("student").by("bestScore").range().ifNotExist().create();
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("studentByTestNum")
+                  .onV("student").by("testNum").range().ifNotExist().create();
+        }, e -> {
+            Assert.assertTrue(e.getMessage(), e.getMessage().contains(
+                              "The aggregate type SUM is not indexable"));
+        });
+        schema.indexLabel("studentByNo")
+              .onV("student").by("no").secondary().ifNotExist().create();
+
+        graph.addVertex(T.label, "student", "name", "Tom", "worstScore", 55,
+                        "bestScore", 96, "testNum", 1, "no", "001");
+        graph.tx().commit();
+
+        List<Vertex> vertices = graph.traversal().V().hasLabel("student")
+                                     .has("name", "Tom").toList();
+        Assert.assertEquals(1, vertices.size());
+        Vertex tom = vertices.get(0);
+        Assert.assertEquals(55, tom.value("worstScore"));
+        Assert.assertEquals(96, tom.value("bestScore"));
+        Assert.assertEquals(1, tom.value("testNum"));
+        Assert.assertEquals("001", tom.value("no"));
+
+        for (int i = 0; i < 100; i++) {
+            tom.property("worstScore", 65);
+            tom.property("bestScore", 94);
+            tom.property("testNum", 1);
+            tom.property("no", "002");
+            graph.tx().commit();
+
+            tom = graph.traversal().V().hasLabel("student")
+                       .has("name", "Tom").next();
+
+            Assert.assertEquals(55, tom.value("worstScore"));
+            Assert.assertEquals(96, tom.value("bestScore"));
+            Assert.assertEquals(i + 2, tom.value("testNum"));
+            Assert.assertEquals("001", tom.value("no"));
+        }
+    }
+
     // Insert -> {Insert, Delete, Append, Eliminate}
     @Test
     public void testInsertAndInsertVertex() {

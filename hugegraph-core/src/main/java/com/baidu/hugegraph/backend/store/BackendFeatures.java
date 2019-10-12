@@ -58,4 +58,6 @@ public interface BackendFeatures {
     public boolean supportsTransaction();
 
     public boolean supportsNumberType();
+
+    public boolean supportsAggregateProperty();
 }

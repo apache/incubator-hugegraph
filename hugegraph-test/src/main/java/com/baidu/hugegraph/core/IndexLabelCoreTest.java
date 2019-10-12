@@ -364,6 +364,44 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
     }
 
     @Test
+    public void testAddIndexLabelWithInvalidFieldsForAggregateProperty() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+        schema.propertyKey("sumProp").asLong().valueSingle().calcSum()
+              .ifNotExist().create();
+        schema.vertexLabel("author")
+              .properties("id", "name", "age", "sumProp")
+              .primaryKeys("id").create();
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("authorBySumProp")
+                  .onV("author").by("sumProp").secondary()
+                  .ifNotExist().create();
+        }, e -> {
+            Assert.assertTrue(e.getMessage(), e.getMessage().contains(
+                              "The aggregate type SUM is not indexable"));
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("authorBySumProp")
+                  .onV("author").by("sumProp").range()
+                  .ifNotExist().create();
+        }, e -> {
+            Assert.assertTrue(e.getMessage(), e.getMessage().contains(
+                              "The aggregate type SUM is not indexable"));
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("authorBySumProp")
+                  .onV("author").by("sumProp").shard()
+                  .ifNotExist().create();
+        }, e -> {
+            Assert.assertTrue(e.getMessage(), e.getMessage().contains(
+                              "The aggregate type SUM is not indexable"));
+        });
+    }
+
+    @Test
     public void testAddIndexLabelWithFieldsAssignedMultiTimes() {
         super.initPropertyKeys();
         SchemaManager schema = graph().schema();
@@ -420,7 +458,6 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
         schema.indexLabel("personByCity2").onV("person").secondary()
               .by("city").create();
     }
-
 
     @Test
     public void testAddIndexLabelWithSameFieldsAndSameIndexType() {

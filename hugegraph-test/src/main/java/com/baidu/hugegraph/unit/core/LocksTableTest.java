@@ -56,8 +56,8 @@ public class LocksTableTest extends BaseUnitTest {
 
     @AfterClass
     public static void teardown() {
-        destoryLockGroup(GRAPH, "group");
-        destoryLockGroup(GRAPH, "group1");
+        destroyLockGroup(GRAPH, "group");
+        destroyLockGroup(GRAPH, "group1");
     }
 
     @Test
@@ -81,6 +81,62 @@ public class LocksTableTest extends BaseUnitTest {
 
         Assert.assertEquals(0, table.size());
         Assert.assertEquals(0, lockList.size());
+    }
+
+    @Test
+    public void testLocksTableWithLockKey() {
+        genLockGroup(GRAPH, LockUtil.KEY_LOCK);
+        this.locksTable.lockKey("group", IdGenerator.of(1));
+        LockUtil.Locks locks = Whitebox.getInternalState(this.locksTable,
+                                                         "locks");
+        Map<String, Set<Id>> table = Whitebox.getInternalState(this.locksTable,
+                                                               "table");
+
+        Assert.assertEquals(1, table.size());
+        Assert.assertTrue(table.containsKey("group"));
+        Set<Id> ids = table.get("group");
+        Assert.assertEquals(1, ids.size());
+        Assert.assertTrue(ids.contains(IdGenerator.of(1)));
+
+        List<Lock> lockList = Whitebox.getInternalState(locks, "lockList");
+        Assert.assertEquals(1, lockList.size());
+
+        this.locksTable.unlock();
+
+        Assert.assertEquals(0, table.size());
+        Assert.assertEquals(0, lockList.size());
+
+        Id id1 = IdGenerator.of(1);
+        Id id2 = IdGenerator.of(2);
+        Id id3 = IdGenerator.of(3);
+        Id id4 = IdGenerator.of(4);
+        this.locksTable.lockKeys("group",
+                                 ImmutableSet.of(id1, id2, id3, id4));
+        this.locksTable.lockKeys("group1",
+                                 ImmutableSet.of(id1, id2));
+        locks = Whitebox.getInternalState(this.locksTable, "locks");
+        table = Whitebox.getInternalState(this.locksTable, "table");
+
+        Assert.assertEquals(2, table.size());
+        Assert.assertTrue(table.containsKey("group"));
+        Assert.assertTrue(table.containsKey("group1"));
+        ids = table.get("group");
+        Assert.assertEquals(4, ids.size());
+        Set<Id> expect = ImmutableSet.of(id1, id2, id3, id4);
+        Assert.assertEquals(expect, ids);
+        ids = table.get("group1");
+        Assert.assertEquals(2, ids.size());
+        expect = ImmutableSet.of(id1, id2);
+        Assert.assertEquals(expect, ids);
+
+        lockList = Whitebox.getInternalState(locks, "lockList");
+        Assert.assertEquals(6, lockList.size());
+
+        this.locksTable.unlock();
+
+        Assert.assertEquals(0, table.size());
+        Assert.assertEquals(0, lockList.size());
+        destroyLockGroup(GRAPH, LockUtil.KEY_LOCK);
     }
 
     @Test
@@ -239,15 +295,15 @@ public class LocksTableTest extends BaseUnitTest {
         });
     }
 
-    private static void genLockGroup(String graph, String group) {
+    protected static void genLockGroup(String graph, String group) {
         LockManager.instance().create(groupName(graph, group));
     }
 
-    private static void destoryLockGroup(String graph, String group) {
+    protected static void destroyLockGroup(String graph, String group) {
         LockManager.instance().destroy(groupName(graph, group));
     }
 
-    private static String groupName(String graph, String group) {
+    protected static String groupName(String graph, String group) {
         return String.join("_", graph, group);
     }
 }

@@ -22,10 +22,12 @@ package com.baidu.hugegraph.core;
 import org.junit.Test;
 
 import com.baidu.hugegraph.HugeException;
+import com.baidu.hugegraph.exception.NotAllowException;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.testutil.Assert;
+import com.baidu.hugegraph.type.define.AggregateType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
 import com.google.common.collect.ImmutableList;
@@ -134,6 +136,170 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
         PropertyKey id = schema.propertyKey("id").create();
         Assert.assertEquals(DataType.TEXT, id.dataType());
         Assert.assertEquals(Cardinality.SINGLE, id.cardinality());
+    }
+
+    @Test
+    public void testAddPropertyKeyWithAggregateType() {
+        SchemaManager schema = graph().schema();
+        PropertyKey startTime = schema.propertyKey("startTime")
+                                      .asDate().valueSingle().calcMin()
+                                      .ifNotExist().create();
+        Assert.assertEquals(DataType.DATE, startTime.dataType());
+        Assert.assertEquals(Cardinality.SINGLE, startTime.cardinality());
+        Assert.assertEquals(AggregateType.MIN, startTime.aggregateType());
+        startTime = schema.getPropertyKey("startTime");
+        Assert.assertEquals(DataType.DATE, startTime.dataType());
+        Assert.assertEquals(Cardinality.SINGLE, startTime.cardinality());
+        Assert.assertEquals(AggregateType.MIN, startTime.aggregateType());
+
+        PropertyKey endTime = schema.propertyKey("endTime")
+                                    .asDate().valueSingle().calcMax()
+                                    .ifNotExist().create();
+        Assert.assertEquals(DataType.DATE, endTime.dataType());
+        Assert.assertEquals(Cardinality.SINGLE, endTime.cardinality());
+        Assert.assertEquals(AggregateType.MAX, endTime.aggregateType());
+        endTime = schema.getPropertyKey("endTime");
+        Assert.assertEquals(DataType.DATE, endTime.dataType());
+        Assert.assertEquals(Cardinality.SINGLE, endTime.cardinality());
+        Assert.assertEquals(AggregateType.MAX, endTime.aggregateType());
+
+        PropertyKey times = schema.propertyKey("times")
+                                  .asLong().valueSingle().calcSum()
+                                  .ifNotExist().create();
+        Assert.assertEquals(DataType.LONG, times.dataType());
+        Assert.assertEquals(Cardinality.SINGLE, times.cardinality());
+        Assert.assertEquals(AggregateType.SUM, times.aggregateType());
+        times = schema.getPropertyKey("times");
+        Assert.assertEquals(DataType.LONG, times.dataType());
+        Assert.assertEquals(Cardinality.SINGLE, times.cardinality());
+        Assert.assertEquals(AggregateType.SUM, times.aggregateType());
+
+        PropertyKey oldProp = schema.propertyKey("oldProp")
+                                    .asLong().valueSingle().calcOld()
+                                    .ifNotExist().create();
+        Assert.assertEquals(DataType.LONG, oldProp.dataType());
+        Assert.assertEquals(Cardinality.SINGLE, oldProp.cardinality());
+        Assert.assertEquals(AggregateType.OLD, oldProp.aggregateType());
+        oldProp = schema.getPropertyKey("oldProp");
+        Assert.assertEquals(DataType.LONG, oldProp.dataType());
+        Assert.assertEquals(Cardinality.SINGLE, oldProp.cardinality());
+        Assert.assertEquals(AggregateType.OLD, oldProp.aggregateType());
+
+        PropertyKey regular = schema.propertyKey("regular").create();
+        Assert.assertEquals(DataType.TEXT, regular.dataType());
+        Assert.assertEquals(Cardinality.SINGLE, regular.cardinality());
+        Assert.assertEquals(AggregateType.NONE, regular.aggregateType());
+        regular = schema.getPropertyKey("regular");
+        Assert.assertEquals(DataType.TEXT, regular.dataType());
+        Assert.assertEquals(Cardinality.SINGLE, regular.cardinality());
+        Assert.assertEquals(AggregateType.NONE, regular.aggregateType());
+    }
+
+    @Test
+    public void testAddPropertyKeyWithAggregateTypeInvalid() {
+        SchemaManager schema = graph().schema();
+
+        // Invalid cardinality
+        Assert.assertThrows(NotAllowException.class, () -> {
+            schema.propertyKey("aggregateProperty")
+                  .asDate().valueList().calcMin().create();
+        });
+
+        Assert.assertThrows(NotAllowException.class, () -> {
+            schema.propertyKey("aggregateProperty")
+                  .asDate().valueSet().calcMin().create();
+        });
+
+        Assert.assertThrows(NotAllowException.class, () -> {
+            schema.propertyKey("aggregateProperty")
+                  .asDate().valueList().calcMax().create();
+        });
+
+        Assert.assertThrows(NotAllowException.class, () -> {
+            schema.propertyKey("aggregateProperty")
+                  .asDate().valueSet().calcMax().create();
+        });
+
+        Assert.assertThrows(NotAllowException.class, () -> {
+            schema.propertyKey("aggregateProperty")
+                  .asDate().valueList().calcSum().create();
+        });
+
+        Assert.assertThrows(NotAllowException.class, () -> {
+            schema.propertyKey("aggregateProperty")
+                  .asDate().valueSet().calcSum().create();
+        });
+
+        Assert.assertThrows(NotAllowException.class, () -> {
+            schema.propertyKey("aggregateProperty")
+                  .asDate().valueList().calcOld().create();
+        });
+
+        Assert.assertThrows(NotAllowException.class, () -> {
+            schema.propertyKey("aggregateProperty")
+                  .asDate().valueSet().calcOld().create();
+        });
+
+        // Invalid data type
+        Assert.assertThrows(NotAllowException.class, () -> {
+            schema.propertyKey("aggregateProperty")
+                  .asText().valueSingle().calcMin().create();
+        });
+
+        Assert.assertThrows(NotAllowException.class, () -> {
+            schema.propertyKey("aggregateProperty")
+                  .asBlob().valueSingle().calcMin().create();
+        });
+
+        Assert.assertThrows(NotAllowException.class, () -> {
+            schema.propertyKey("aggregateProperty")
+                  .asBoolean().valueSingle().calcMin().create();
+        });
+
+        Assert.assertThrows(NotAllowException.class, () -> {
+            schema.propertyKey("aggregateProperty")
+                  .asUUID().valueSingle().calcMin().create();
+        });
+
+        Assert.assertThrows(NotAllowException.class, () -> {
+            schema.propertyKey("aggregateProperty")
+                  .asText().valueSingle().calcMax().create();
+        });
+
+        Assert.assertThrows(NotAllowException.class, () -> {
+            schema.propertyKey("aggregateProperty")
+                  .asBlob().valueSingle().calcMax().create();
+        });
+
+        Assert.assertThrows(NotAllowException.class, () -> {
+            schema.propertyKey("aggregateProperty")
+                  .asBoolean().valueSingle().calcMax().create();
+        });
+
+        Assert.assertThrows(NotAllowException.class, () -> {
+            schema.propertyKey("aggregateProperty")
+                  .asUUID().valueSingle().calcMax().create();
+        });
+
+        Assert.assertThrows(NotAllowException.class, () -> {
+            schema.propertyKey("aggregateProperty")
+                  .asText().valueSingle().calcSum().create();
+        });
+
+        Assert.assertThrows(NotAllowException.class, () -> {
+            schema.propertyKey("aggregateProperty")
+                  .asBlob().valueSingle().calcSum().create();
+        });
+
+        Assert.assertThrows(NotAllowException.class, () -> {
+            schema.propertyKey("aggregateProperty")
+                  .asBoolean().valueSingle().calcSum().create();
+        });
+
+        Assert.assertThrows(NotAllowException.class, () -> {
+            schema.propertyKey("aggregateProperty")
+                  .asUUID().valueSingle().calcSum().create();
+        });
     }
 
     @Test

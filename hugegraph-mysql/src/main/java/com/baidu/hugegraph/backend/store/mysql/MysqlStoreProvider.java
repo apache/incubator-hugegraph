@@ -75,7 +75,8 @@ public class MysqlStoreProvider extends AbstractBackendStoreProvider {
          *                    rangeLong and rangeDouble
          * [1.4] #633: support unique index
          * [1.5] #661: reduce the storage of vertex/edge id
+         * [1.6] #691: support aggregate property
          */
-        return "1.5";
+        return "1.6";
     }
 }

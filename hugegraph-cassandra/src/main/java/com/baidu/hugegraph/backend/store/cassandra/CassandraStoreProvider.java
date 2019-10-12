@@ -58,7 +58,8 @@ public class CassandraStoreProvider extends AbstractBackendStoreProvider {
          *                    rangeLong and rangeDouble
          * [1.5] #633: support unique index
          * [1.6] #661 & #680: support bin serialization for cassandra
+         * [1.7] #691: support aggregate property
          */
-        return "1.6";
+        return "1.7";
     }
 }

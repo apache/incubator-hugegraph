@@ -281,7 +281,6 @@ public final class ConditionQuery extends IdQuery {
     }
 
     public void resetUserpropConditions() {
-        this.checkFlattened();
         this.conditions.removeIf(condition -> !condition.isSysprop());
     }
 

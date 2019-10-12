@@ -111,4 +111,9 @@ public class CassandraFeatures implements BackendFeatures {
     public boolean supportsNumberType() {
         return true;
     }
+
+    @Override
+    public boolean supportsAggregateProperty() {
+        return false;
+    }
 }

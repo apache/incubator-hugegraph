@@ -48,6 +48,7 @@ import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.structure.HugeVertexProperty;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.AggregateType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.type.define.Directions;
@@ -110,10 +111,10 @@ public abstract class TableSerializer extends AbstractSerializer {
     }
 
     protected Object writeProperty(HugeProperty<?> property) {
-        return this.writeProperty(property.value());
+        return this.writeProperty(property.propertyKey(), property.value());
     }
 
-    protected Object writeProperty(Object value) {
+    protected Object writeProperty(PropertyKey propertyKey, Object value) {
         return JsonUtil.toJson(value);
     }
 
@@ -389,7 +390,7 @@ public abstract class TableSerializer extends AbstractSerializer {
 
             if (query.resultType().isGraph() &&
                 r.relation() == Condition.RelationType.CONTAINS_VALUE) {
-                r.serialValue(this.writeProperty(r.serialValue()));
+                r.serialValue(this.writeProperty(null, r.serialValue()));
             }
         }
 
@@ -445,6 +446,8 @@ public abstract class TableSerializer extends AbstractSerializer {
         entry.column(HugeKeys.NAME, propertyKey.name());
         entry.column(HugeKeys.DATA_TYPE, propertyKey.dataType().code());
         entry.column(HugeKeys.CARDINALITY, propertyKey.cardinality().code());
+        entry.column(HugeKeys.AGGREGATE_TYPE,
+                     propertyKey.aggregateType().code());
         entry.column(HugeKeys.PROPERTIES,
                      this.toLongSet(propertyKey.properties()));
         this.writeUserdata(propertyKey, entry);
@@ -532,6 +535,7 @@ public abstract class TableSerializer extends AbstractSerializer {
         String name = entry.column(HugeKeys.NAME);
         Number dataType = entry.column(HugeKeys.DATA_TYPE);
         Number cardinality = entry.column(HugeKeys.CARDINALITY);
+        Number aggregateType = entry.column(HugeKeys.AGGREGATE_TYPE);
         Object properties = entry.column(HugeKeys.PROPERTIES);
         Number status = entry.column(HugeKeys.STATUS);
 
@@ -540,6 +544,9 @@ public abstract class TableSerializer extends AbstractSerializer {
                                                  dataType.byteValue()));
         propertyKey.cardinality(SerialEnum.fromCode(Cardinality.class,
                                                     cardinality.byteValue()));
+        propertyKey.aggregateType(SerialEnum.fromCode(
+                                  AggregateType.class,
+                                  aggregateType.byteValue()));
         propertyKey.properties(this.toIdArray(properties));
 
         this.readUserdata(propertyKey, entry);

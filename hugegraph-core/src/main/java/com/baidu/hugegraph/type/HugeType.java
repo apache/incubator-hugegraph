@@ -42,6 +42,10 @@ public enum HugeType implements SerialEnum {
     SYS_PROPERTY(102, "S"),
     // Property
     PROPERTY(103, "U"),
+    // Vertex aggregate property
+    AGGR_PROPERTY_V(104, "VP"),
+    // Edge aggregate property
+    AGGR_PROPERTY_E(105, "EP"),
     // Edge
     EDGE(120, "E"),
     // Edge's direction is OUT for the specified vertex
@@ -165,6 +169,19 @@ public enum HugeType implements SerialEnum {
 
     public boolean isUniqueIndex() {
         return this == UNIQUE_INDEX;
+    }
+
+    public boolean isVertexAggregateProperty() {
+        return this == AGGR_PROPERTY_V;
+    }
+
+    public boolean isEdgeAggregateProperty() {
+        return this == AGGR_PROPERTY_E;
+    }
+
+    public boolean isAggregateProperty() {
+        return this.isVertexAggregateProperty() ||
+               this.isEdgeAggregateProperty();
     }
 
     public static HugeType fromString(String type) {
