@@ -102,6 +102,10 @@ public class HbaseSessions extends BackendSessionPool {
         hConfig.set(HConstants.ZOOKEEPER_QUORUM, hosts);
         hConfig.set(HConstants.ZOOKEEPER_CLIENT_PORT, String.valueOf(port));
         hConfig.set(HConstants.ZOOKEEPER_ZNODE_PARENT, znodeParent);
+
+        hConfig.setInt("zookeeper.recovery.retry",
+                       config.get(HbaseOptions.HBASE_ZK_RETRY));
+
         // Set hbase.hconnection.threads.max 64 to avoid OOM(default value: 256)
         hConfig.setInt("hbase.hconnection.threads.max",
                        config.get(HbaseOptions.HBASE_THREADS_MAX));

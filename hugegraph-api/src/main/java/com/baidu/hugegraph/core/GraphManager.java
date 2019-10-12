@@ -192,6 +192,7 @@ public final class GraphManager {
 
     private void checkBackendVersionOrExit() {
         for (String graph : this.graphs()) {
+            // TODO: close tx from main thread
             HugeGraph hugegraph = this.graph(graph);
             boolean persistence = hugegraph.graphTransaction().store()
                                            .features().supportsPersistence();

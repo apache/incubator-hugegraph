@@ -42,6 +42,7 @@ import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import com.baidu.hugegraph.backend.store.hbase.HbaseSessions.Session;
 import com.baidu.hugegraph.config.HugeConfig;
+import com.baidu.hugegraph.exception.ConnectionException;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
@@ -58,7 +59,7 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
     private final BackendStoreProvider provider;
     private final Map<HugeType, HbaseTable> tables;
 
-    private HbaseSessions sessions;
+    private volatile HbaseSessions sessions;
 
     public HbaseStore(final BackendStoreProvider provider,
                       final String namespace, final String store) {
@@ -127,6 +128,7 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
             this.sessions = new HbaseSessions(config, this.namespace, this.store);
         }
 
+        // NOTE: seems to always return true even if not connected
         if (this.sessions.opened()) {
             LOG.debug("Store {} has been opened before", this.store);
             this.sessions.useSession();
@@ -134,12 +136,12 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
         }
 
         try {
+            // NOTE: won't throw error even if connection refused
             this.sessions.open();
-        } catch (IOException e) {
+        } catch (Exception e) {
             if (!e.getMessage().contains("Column family not found")) {
                 LOG.error("Failed to open HBase '{}'", this.store, e);
-                throw new BackendException("Failed to open HBase '%s'",
-                                           e, this.store);
+                throw new ConnectionException("Failed to connect to HBase", e);
             }
             LOG.info("Failed to open HBase '{}' with database '{}', " +
                      "try to init CF later", this.store, this.namespace);
@@ -313,7 +315,7 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
     }
 
     private void checkOpened() {
-        E.checkState(this.sessions != null,
+        E.checkState(this.sessions != null && this.sessions.opened(),
                      "HBase store has not been initialized");
     }
 

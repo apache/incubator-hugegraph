@@ -40,6 +40,7 @@ import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import com.baidu.hugegraph.config.HugeConfig;
+import com.baidu.hugegraph.exception.ConnectionException;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
@@ -152,7 +153,7 @@ public abstract class CassandraStore
             } catch (Throwable e2) {
                 LOG.warn("Failed to close cluster after an error", e2);
             }
-            throw e;
+            throw new ConnectionException("Failed to connect to Cassandra", e);
         }
 
         LOG.debug("Store opened: {}", this.store);

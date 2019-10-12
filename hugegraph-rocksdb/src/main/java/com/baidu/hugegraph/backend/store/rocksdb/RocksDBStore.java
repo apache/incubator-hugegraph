@@ -48,6 +48,7 @@ import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import com.baidu.hugegraph.backend.store.rocksdb.RocksDBSessions.Session;
 import com.baidu.hugegraph.config.HugeConfig;
+import com.baidu.hugegraph.exception.ConnectionException;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
@@ -218,8 +219,8 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
             if (sessions == null) {
                 // Error after trying other ways
                 LOG.error("Failed to open RocksDB '{}'", dataPath, e);
-                throw new BackendException("Failed to open RocksDB '%s'",
-                                           e, dataPath);
+                throw new ConnectionException("Failed to open RocksDB '%s'",
+                                              e, dataPath);
             }
         }
 

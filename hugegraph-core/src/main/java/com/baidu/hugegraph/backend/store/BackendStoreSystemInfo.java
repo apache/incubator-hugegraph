@@ -19,14 +19,12 @@
 
 package com.baidu.hugegraph.backend.store;
 
-import java.io.UncheckedIOException;
 import java.util.Map;
 
 import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
-import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaElement;
@@ -64,13 +62,7 @@ public class BackendStoreSystemInfo {
 
     private Map<String, Object> info() {
         SchemaTransaction schema = this.graph.schemaTransaction();
-        PropertyKey pkey = null;
-        try {
-            pkey = schema.getPropertyKey(PK_BACKEND_INFO);
-        } catch (BackendException | IllegalStateException |
-                 UncheckedIOException ignored) {
-            // pass
-        }
+        PropertyKey pkey = schema.getPropertyKey(PK_BACKEND_INFO);
         return pkey != null ? pkey.userdata() : null;
     }
 

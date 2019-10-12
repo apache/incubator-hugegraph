@@ -43,6 +43,7 @@ import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.event.EventListener;
+import com.baidu.hugegraph.exception.ConnectionException;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.iterator.MapperIterator;
@@ -203,7 +204,11 @@ public class TaskScheduler {
         this.unlistenChanges();
         if (!this.dbExecutor.isShutdown()) {
             this.call(() -> {
-                this.tx().close();
+                try {
+                    this.tx().close();
+                } catch (ConnectionException ignored) {
+                    // ConnectionException means no connection established
+                }
                 this.graph.closeTx();
             });
         }

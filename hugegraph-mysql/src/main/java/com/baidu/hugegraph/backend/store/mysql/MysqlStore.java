@@ -40,6 +40,7 @@ import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import com.baidu.hugegraph.backend.store.mysql.MysqlSessions.Session;
 import com.baidu.hugegraph.config.HugeConfig;
+import com.baidu.hugegraph.exception.ConnectionException;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
@@ -116,8 +117,7 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
         } catch (Exception e) {
             if (!e.getMessage().startsWith("Unknown database") &&
                 !e.getMessage().endsWith("does not exist")) {
-                throw new BackendException("Failed connect with mysql, " +
-                                           "please ensure it's ok", e);
+                throw new ConnectionException("Failed to connect to MySQL", e);
             }
             LOG.info("Failed to open database '{}', " +
                      "try to init database later", this.database);
