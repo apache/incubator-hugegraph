@@ -59,7 +59,7 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
     private final BackendStoreProvider provider;
     private final Map<HugeType, HbaseTable> tables;
 
-    private volatile HbaseSessions sessions;
+    private HbaseSessions sessions;
 
     public HbaseStore(final BackendStoreProvider provider,
                       final String namespace, final String store) {
@@ -159,6 +159,12 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
     }
 
     @Override
+    public boolean opened() {
+        this.checkConnectionOpened();
+        return !this.sessions.session().closed();
+    }
+
+    @Override
     public void mutate(BackendMutation mutation) {
         if (LOG.isDebugEnabled()) {
             LOG.debug("Store {} mutation: {}", this.store, mutation);
@@ -198,6 +204,7 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
     @Override
     public Iterator<BackendEntry> query(Query query) {
         this.checkOpened();
+
         Session session = this.sessions.session();
         HbaseTable table = this.table(HbaseTable.tableType(query));
         return table.query(session, query);
@@ -205,7 +212,7 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
 
     @Override
     public void init() {
-        this.checkOpened();
+        this.checkConnectionOpened();
 
         // Create namespace
         try {
@@ -236,7 +243,7 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
 
     @Override
     public void clear() {
-        this.checkOpened();
+        this.checkConnectionOpened();
 
         // Return if not exists namespace
         try {
@@ -279,6 +286,25 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
     }
 
     @Override
+    public boolean initialized() {
+        this.checkConnectionOpened();
+
+        try {
+            if (!this.sessions.existsNamespace()) {
+                return false;
+            }
+            for (String table : this.tableNames()) {
+                if (!this.sessions.existsTable(table)) {
+                    return false;
+                }
+            }
+        } catch (IOException e) {
+            throw new BackendException("Failed to obtain table info", e);
+        }
+        return true;
+    }
+
+    @Override
     public void truncate() {
         this.checkOpened();
 
@@ -314,7 +340,7 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
         // pass
     }
 
-    private void checkOpened() {
+    private final void checkConnectionOpened() {
         E.checkState(this.sessions != null && this.sessions.opened(),
                      "HBase store has not been initialized");
     }

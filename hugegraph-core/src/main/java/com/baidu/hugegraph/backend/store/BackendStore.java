@@ -42,10 +42,12 @@ public interface BackendStore {
     // Open/close database
     public void open(HugeConfig config);
     public void close();
+    public boolean opened();
 
     // Initialize/clear database
     public void init();
     public void clear();
+    public boolean initialized();
 
     // Delete all data of database (keep table structure)
     public void truncate();

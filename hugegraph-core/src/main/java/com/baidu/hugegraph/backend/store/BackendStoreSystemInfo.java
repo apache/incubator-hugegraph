@@ -67,6 +67,9 @@ public class BackendStoreSystemInfo {
     }
 
     public boolean exist() {
+        if (!this.graph.schemaTransaction().store().initialized()) {
+            return false;
+        }
         return this.info() != null;
     }
 

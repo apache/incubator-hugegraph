@@ -29,6 +29,10 @@ public class ConnectionException extends HugeException {
         super(message, cause);
     }
 
+    public ConnectionException(String message, Object... args) {
+        super(message, args);
+    }
+
     public ConnectionException(String message, Throwable cause,
                                Object... args) {
         super(message, cause, args);

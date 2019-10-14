@@ -502,7 +502,7 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
     }
 
     private void checkRepeatIndex(SchemaLabel schemaLabel,
-                                  BiPredicate<List, List> predicate,
+                                  BiPredicate<List<String>, List<String>> check,
                                   IndexType... checkedTypes) {
         for (Id id : schemaLabel.indexLabels()) {
             IndexLabel old = this.transaction.getIndexLabel(id);
@@ -512,7 +512,7 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
             List<String> newFields = this.indexFields;
             List<String> oldFields = this.transaction.graph()
                                          .mapPkId2Name(old.indexFields());
-            E.checkArgument(!predicate.test(newFields, oldFields),
+            E.checkArgument(!check.test(newFields, oldFields),
                             "Repeated new index label %s(%s) with fields %s " +
                             "due to existed index label %s(%s) with fields %s",
                             this.name, this.indexType, newFields,

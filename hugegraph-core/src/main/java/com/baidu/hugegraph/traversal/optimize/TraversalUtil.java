@@ -564,7 +564,7 @@ public final class TraversalUtil {
     }
 
     public static Query.Order convOrder(Order order) {
-        return order == Order.decr ? Query.Order.DESC : Query.Order.ASC;
+        return order == Order.desc ? Query.Order.DESC : Query.Order.ASC;
     }
 
     private static <V> V validPredicateValue(V value, PropertyKey pkey) {

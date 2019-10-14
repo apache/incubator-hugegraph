@@ -277,7 +277,15 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
     }
 
     @Override
+    public boolean opened() {
+        this.checkDbOpened();
+        return !this.sessions.session().closed();
+    }
+
+    @Override
     public void mutate(BackendMutation mutation) {
+        this.checkOpened();
+
         if (LOG.isDebugEnabled()) {
             LOG.debug("Store {} mutation: {}", this.store, mutation);
         }
@@ -316,6 +324,8 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
 
     @Override
     public Iterator<BackendEntry> query(Query query) {
+        this.checkOpened();
+
         HugeType tableType = RocksDBTable.tableType(query);
         RocksDBTable table = this.table(tableType);
         return table.query(this.session(tableType), query);
@@ -323,7 +333,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
 
     @Override
     public synchronized void init() {
-        this.checkOpened();
+        this.checkDbOpened();
 
         for (String table : this.tableNames()) {
             this.createTable(this.sessions, table);
@@ -349,7 +359,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
 
     @Override
     public synchronized void clear() {
-        this.checkOpened();
+        this.checkDbOpened();
 
         for (String table : this.tableNames()) {
             this.dropTable(this.sessions, table);
@@ -376,6 +386,21 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
             throw new BackendException("Failed to drop '%s' for '%s'",
                                        e, table, this.store);
         }
+    }
+
+    @Override
+    public boolean initialized() {
+        this.checkDbOpened();
+
+        if (!this.opened()) {
+            return false;
+        }
+        for (String table : this.tableNames()) {
+            if (!this.sessions.existsTable(table)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @Override
@@ -427,7 +452,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         return this.sessions.session();
     }
 
-    private List<Session> session() {
+    private final List<Session> session() {
         this.checkOpened();
 
         if (this.tableDiskMapping.isEmpty()) {
@@ -443,14 +468,8 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         return list;
     }
 
-    private void checkOpened() {
-        E.checkState(this.sessions != null && !this.sessions.closed(),
-                     "The '%s' store of %s has not been opened",
-                     this.database, this.provider.type());
-    }
-
-    private void parseTableDiskMapping(Map<String, String> disks,
-                                       String dataPath) {
+    private final void parseTableDiskMapping(Map<String, String> disks,
+                                             String dataPath) {
         this.tableDiskMapping.clear();
         for (Map.Entry<String, String> disk : disks.entrySet()) {
             // The format of `disk` like: `graph/vertex: /path/to/disk1`
@@ -472,6 +491,11 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
                 this.tableDiskMapping.put(table, path);
             }
         }
+    }
+
+    private final void checkDbOpened() {
+        E.checkState(this.sessions != null && !this.sessions.closed(),
+                     "RocksDB has not been opened");
     }
 
     private static RocksDBSessions db(String disk) {

@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.backend.store;
 
+import com.baidu.hugegraph.exception.ConnectionException;
 import com.baidu.hugegraph.type.HugeType;
 
 public abstract class AbstractBackendStore<Session extends BackendSession>
@@ -50,6 +51,14 @@ public abstract class AbstractBackendStore<Session extends BackendSession>
             dispatcher = table.metaDispatcher();
         }
         return dispatcher.dispatchMetaHandler(session, meta, args);
+    }
+
+    protected void checkOpened() throws ConnectionException {
+        if (!this.opened()) {
+            throw new ConnectionException(
+                      "The '%s' store of %s has not been opened",
+                      this.database(), this.provider().type());
+        }
     }
 
     @Override
