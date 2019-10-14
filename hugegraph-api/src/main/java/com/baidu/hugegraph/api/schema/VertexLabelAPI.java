@@ -111,7 +111,8 @@ public class VertexLabelAPI extends API {
     public String list(@Context GraphManager manager,
                        @PathParam("graph") String graph,
                        @QueryParam("names") List<String> names) {
-        if (CollectionUtils.isEmpty(names)) {
+        boolean listAll = CollectionUtils.isEmpty(names);
+        if (listAll) {
             LOG.debug("Graph [{}] list vertex labels", graph);
         } else {
             LOG.debug("Graph [{}] get vertex labels by names {}", graph, names);
@@ -119,7 +120,7 @@ public class VertexLabelAPI extends API {
 
         HugeGraph g = graph(manager, graph);
         List<VertexLabel> labels;
-        if (CollectionUtils.isEmpty(names)) {
+        if (listAll) {
             labels = g.schema().getVertexLabels();
         } else {
             labels = new ArrayList<>(names.size());

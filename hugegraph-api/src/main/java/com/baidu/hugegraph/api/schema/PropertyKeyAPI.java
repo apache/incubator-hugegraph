@@ -110,7 +110,8 @@ public class PropertyKeyAPI extends API {
     public String list(@Context GraphManager manager,
                        @PathParam("graph") String graph,
                        @QueryParam("names") List<String> names) {
-        if (CollectionUtils.isEmpty(names)) {
+        boolean listAll = CollectionUtils.isEmpty(names);
+        if (listAll) {
             LOG.debug("Graph [{}] list property keys", graph);
         } else {
             LOG.debug("Graph [{}] get property keys by names {}", graph, names);
@@ -118,7 +119,7 @@ public class PropertyKeyAPI extends API {
 
         HugeGraph g = graph(manager, graph);
         List<PropertyKey> propKeys;
-        if (CollectionUtils.isEmpty(names)) {
+        if (listAll) {
             propKeys = g.schema().getPropertyKeys();
         } else {
             propKeys = new ArrayList<>(names.size());

@@ -83,7 +83,8 @@ public class IndexLabelAPI extends API {
     public String list(@Context GraphManager manager,
                        @PathParam("graph") String graph,
                        @QueryParam("names") List<String> names) {
-        if (CollectionUtils.isEmpty(names)) {
+        boolean listAll = CollectionUtils.isEmpty(names);
+        if (listAll) {
             LOG.debug("Graph [{}] list index labels", graph);
         } else {
             LOG.debug("Graph [{}] get index labels by names {}", graph, names);
@@ -91,7 +92,7 @@ public class IndexLabelAPI extends API {
 
         HugeGraph g = graph(manager, graph);
         List<IndexLabel> labels;
-        if (CollectionUtils.isEmpty(names)) {
+        if (listAll) {
             labels = g.schema().getIndexLabels();
         } else {
             labels = new ArrayList<>(names.size());

@@ -108,7 +108,8 @@ public class EdgeLabelAPI extends API {
     public String list(@Context GraphManager manager,
                        @PathParam("graph") String graph,
                        @QueryParam("names") List<String> names) {
-        if (CollectionUtils.isEmpty(names)) {
+        boolean listAll = CollectionUtils.isEmpty(names);
+        if (listAll) {
             LOG.debug("Graph [{}] list edge labels", graph);
         } else {
             LOG.debug("Graph [{}] get edge labels by names {}", graph, names);
@@ -116,7 +117,7 @@ public class EdgeLabelAPI extends API {
 
         HugeGraph g = graph(manager, graph);
         List<EdgeLabel> labels;
-        if (CollectionUtils.isEmpty(names)) {
+        if (listAll) {
             labels = g.schema().getEdgeLabels();
         } else {
             labels = new ArrayList<>(names.size());
