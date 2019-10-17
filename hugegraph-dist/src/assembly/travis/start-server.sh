@@ -33,4 +33,7 @@ fi
 # Append schema.sync_deletion=true to config file
 echo "schema.sync_deletion=true" >> $CONF
 
+cp ${TRAVIS_DIR}/jacocoagent.jar ${BASE_DIR}/lib
+cp ${TRAVIS_DIR}/hugegraph-server.sh ${BASE_DIR}/bin
+
 $BIN/init-store.sh && $BIN/start-hugegraph.sh

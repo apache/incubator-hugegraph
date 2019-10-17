@@ -17,12 +17,12 @@ while getopts "g:m:s:v" arg; do
 done
 
 if [[ "$OPEN_MONITOR" != "true" && "$OPEN_MONITOR" != "false" ]]; then
-    echo "USAGE: $0 [-m true|false] [-s true|false] [-v]"
+    echo "USAGE: $0 [-g g1] [-m true|false] [-s true|false] [-v]"
     exit 1
 fi
 
 if [[ "$OPEN_SECURITY_CHECK" != "true" && "$OPEN_SECURITY_CHECK" != "false" ]]; then
-    echo "USAGE: $0 [-m true|false] [-s true|false] [-v]"
+    echo "USAGE: $0 [-g g1] [-m true|false] [-s true|false] [-v]"
     exit 1
 fi
 

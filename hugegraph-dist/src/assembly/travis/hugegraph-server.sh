@@ -85,7 +85,7 @@ if [ "$JAVA_OPTIONS" = "" ]; then
              >> ${OUTPUT}
         exit 1
     fi
-    JAVA_OPTIONS="-Xms${MIN_MEM}m -Xmx${XMX}m -javaagent:$LIB/jamm-0.3.0.jar"
+    JAVA_OPTIONS="-Xms${MIN_MEM}m -Xmx${XMX}m -javaagent:${LIB}/jacocoagent.jar=includes=*,port=36320,destfile=jacoco-it.exec,output=tcpserver"
 
     # Rolling out detailed GC logs
     #JAVA_OPTIONS="${JAVA_OPTIONS} -XX:+UseGCLogFileRotation -XX:GCLogFileSize=10M -XX:NumberOfGCLogFiles=3 \
