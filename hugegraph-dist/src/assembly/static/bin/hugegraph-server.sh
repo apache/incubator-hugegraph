@@ -16,11 +16,6 @@ if [[ $# -lt 3 ]]; then
     exit 1;
 fi
 
-GREMLIN_SERVER_CONF="$1"
-REST_SERVER_CONF="$2"
-OPEN_SECURITY_CHECK="$3"
-GC_OPTION="$4"
-
 BIN=$(abs_path)
 TOP="$(cd $BIN/../ && pwd)"
 CONF="$TOP/conf"
@@ -32,6 +27,21 @@ OUTPUT=${LOG}/hugegraph-server.log
 
 export HUGEGRAPH_HOME="$TOP"
 . ${BIN}/util.sh
+
+GREMLIN_SERVER_CONF="$1"
+REST_SERVER_CONF="$2"
+OPEN_SECURITY_CHECK="$3"
+
+if [[ $# -eq 3 ]]; then
+    USER_OPTION="-javaagent:$LIB/jamm-0.3.0.jar"
+    GC_OPTION=""
+elif [[ $# -eq 4 ]]; then
+    USER_OPTION="$4"
+    GC_OPTION=""
+elif [[ $# -eq 5 ]]; then
+    USER_OPTION="$4"
+    GC_OPTION="$5"
+fi
 
 ensure_path_writable $LOG
 ensure_path_writable $PLUGINS
@@ -85,7 +95,7 @@ if [ "$JAVA_OPTIONS" = "" ]; then
              >> ${OUTPUT}
         exit 1
     fi
-    JAVA_OPTIONS="-Xms${MIN_MEM}m -Xmx${XMX}m -javaagent:$LIB/jamm-0.3.0.jar"
+    JAVA_OPTIONS="-Xms${MIN_MEM}m -Xmx${XMX}m ${USER_OPTION}"
 
     # Rolling out detailed GC logs
     #JAVA_OPTIONS="${JAVA_OPTIONS} -XX:+UseGCLogFileRotation -XX:GCLogFileSize=10M -XX:NumberOfGCLogFiles=3 \

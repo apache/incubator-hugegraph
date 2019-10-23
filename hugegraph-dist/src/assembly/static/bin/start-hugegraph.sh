@@ -4,25 +4,27 @@ OPEN_MONITOR="false"
 OPEN_SECURITY_CHECK="true"
 VERBOSE=""
 GC_OPTION=""
+USER_OPTION=""
 SERVER_STARTUP_TIMEOUT_S=30
 
-while getopts "g:m:s:v" arg; do
+while getopts "g:m:s:u:v" arg; do
     case ${arg} in
         g) GC_OPTION="$OPTARG" ;;
         m) OPEN_MONITOR="$OPTARG" ;;
         s) OPEN_SECURITY_CHECK="$OPTARG" ;;
+        u) USER_OPTION="$OPTARG" ;;
         v) VERBOSE="verbose" ;;
-        ?) echo "USAGE: $0 [-g g1] [-m true|false] [-s true|false] [-v]" && exit 1 ;;
+        ?) echo "USAGE: $0 [-g g1] [-m true|false] [-s true|false] [-u xxx] [-v]" && exit 1 ;;
     esac
 done
 
 if [[ "$OPEN_MONITOR" != "true" && "$OPEN_MONITOR" != "false" ]]; then
-    echo "USAGE: $0 [-g g1] [-m true|false] [-s true|false] [-v]"
+    echo "USAGE: $0 [-g g1] [-m true|false] [-s true|false] [-u xxx] [-v]"
     exit 1
 fi
 
 if [[ "$OPEN_SECURITY_CHECK" != "true" && "$OPEN_SECURITY_CHECK" != "false" ]]; then
-    echo "USAGE: $0 [-g g1] [-m true|false] [-s true|false] [-v]"
+    echo "USAGE: $0 [-g g1] [-m true|false] [-s true|false] [-u xxx] [-v]"
     exit 1
 fi
 
@@ -55,10 +57,10 @@ check_port "$REST_SERVER_URL"
 echo "Starting HugeGraphServer..."
 if [ -n "$VERBOSE" ]; then
     "$BIN"/hugegraph-server.sh "$TOP"/conf/gremlin-server.yaml \
-    "$TOP"/conf/rest-server.properties "$OPEN_SECURITY_CHECK" $GC_OPTION &
+    "$TOP"/conf/rest-server.properties "$OPEN_SECURITY_CHECK" $USER_OPTION $GC_OPTION &
 else
     "$BIN"/hugegraph-server.sh "$TOP"/conf/gremlin-server.yaml \
-    "$TOP"/conf/rest-server.properties "$OPEN_SECURITY_CHECK" $GC_OPTION >/dev/null 2>&1 &
+    "$TOP"/conf/rest-server.properties "$OPEN_SECURITY_CHECK" $USER_OPTION $GC_OPTION >/dev/null 2>&1 &
 fi
 
 PID="$!"

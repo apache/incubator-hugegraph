@@ -2,6 +2,8 @@
 
 set -ev
 
+HOME_DIR=`pwd`
+TRAVIS_DIR=`dirname $0`
 VERSION=`mvn help:evaluate -Dexpression=project.version -q -DforceStdout`
 BASE_DIR=hugegraph-$VERSION
 BIN=$BASE_DIR/bin
@@ -33,7 +35,5 @@ fi
 # Append schema.sync_deletion=true to config file
 echo "schema.sync_deletion=true" >> $CONF
 
-cp ${TRAVIS_DIR}/jacocoagent.jar ${BASE_DIR}/lib
-cp ${TRAVIS_DIR}/hugegraph-server.sh ${BASE_DIR}/bin
-
-$BIN/init-store.sh && $BIN/start-hugegraph.sh
+AGENT_JAR=${HOME_DIR}/${TRAVIS_DIR}/jacocoagent.jar
+$BIN/init-store.sh && $BIN/start-hugegraph.sh -u "-javaagent:${AGENT_JAR}=includes=*,port=36320,destfile=jacoco-it.exec,output=tcpserver" -v
