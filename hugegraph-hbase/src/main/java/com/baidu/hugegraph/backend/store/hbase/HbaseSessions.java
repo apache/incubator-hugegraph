@@ -40,6 +40,7 @@ import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.NamespaceDescriptor;
 import org.apache.hadoop.hbase.RegionMetrics;
 import org.apache.hadoop.hbase.ServerName;
+import org.apache.hadoop.hbase.Size;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.TableNotEnabledException;
 import org.apache.hadoop.hbase.client.Admin;
@@ -214,8 +215,8 @@ public class HbaseSessions extends BackendSessionPool {
                 //total += load.getMemStoreSizeMB() * Bytes.MB;
                 TableName tableName = TableName.valueOf(this.namespace, table);
                 for (RegionMetrics m : admin.getRegionMetrics(rs, tableName)) {
-                    total += m.getStoreFileSize().getLongValue();
-                    total += m.getMemStoreSize().getLongValue();
+                    total += m.getStoreFileSize().get(Size.Unit.BYTE);
+                    total += m.getMemStoreSize().get(Size.Unit.BYTE);
                 }
             }
         }
