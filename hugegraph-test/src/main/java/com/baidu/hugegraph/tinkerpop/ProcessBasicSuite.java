@@ -163,7 +163,7 @@ public class ProcessBasicSuite extends AbstractGremlinSuite {
             VertexTest.Traversals.class,
             UnfoldTest.Traversals.class,
             ValueMapTest.Traversals.class,
-            // Override WriteTest.Traversals.class,
+            // Override WriteTest.Traversals.class
             HugeGraphWriteTest.class,
 
             // sideEffect
