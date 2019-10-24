@@ -7,24 +7,24 @@ GC_OPTION=""
 USER_OPTION=""
 SERVER_STARTUP_TIMEOUT_S=30
 
-while getopts "g:m:s:u:v" arg; do
+while getopts "g:m:s:j:v" arg; do
     case ${arg} in
         g) GC_OPTION="$OPTARG" ;;
         m) OPEN_MONITOR="$OPTARG" ;;
         s) OPEN_SECURITY_CHECK="$OPTARG" ;;
-        u) USER_OPTION="$OPTARG" ;;
+        j) USER_OPTION="$OPTARG" ;;
         v) VERBOSE="verbose" ;;
-        ?) echo "USAGE: $0 [-g g1] [-m true|false] [-s true|false] [-u xxx] [-v]" && exit 1 ;;
+        ?) echo "USAGE: $0 [-g g1] [-m true|false] [-s true|false] [-j xxx] [-v]" && exit 1 ;;
     esac
 done
 
 if [[ "$OPEN_MONITOR" != "true" && "$OPEN_MONITOR" != "false" ]]; then
-    echo "USAGE: $0 [-g g1] [-m true|false] [-s true|false] [-u xxx] [-v]"
+    echo "USAGE: $0 [-g g1] [-m true|false] [-s true|false] [-j xxx] [-v]"
     exit 1
 fi
 
 if [[ "$OPEN_SECURITY_CHECK" != "true" && "$OPEN_SECURITY_CHECK" != "false" ]]; then
-    echo "USAGE: $0 [-g g1] [-m true|false] [-s true|false] [-u xxx] [-v]"
+    echo "USAGE: $0 [-g g1] [-m true|false] [-s true|false] [-j xxx] [-v]"
     exit 1
 fi
 
