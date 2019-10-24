@@ -53,6 +53,9 @@ org.apache.tinkerpop.gremlin.algorithm.generator.DistributionGeneratorTest.Diffe
 org.apache.tinkerpop.gremlin.structure.FeatureSupportTest.VertexFunctionalityTest.shouldSupportUserSuppliedIdsOfTypeNumericLong: Not open the feature 'support user supplied id of numeric long' although numeric long id is allowed
 org.apache.tinkerpop.gremlin.structure.FeatureSupportTest.VertexFunctionalityTest.shouldSupportUserSuppliedIdsOfTypeNumericInt: Not open the feature 'support user supplied id of numeric long' although numeric long id is allowed
 
+## user supplied uuid id
+org.apache.tinkerpop.gremlin.structure.FeatureSupportTest.VertexFunctionalityTest.shouldSupportUserSuppliedIdsOfTypeUuid: Not open the feature 'support user supplied id of uuid' although uuid id is allowed
+
 ## edge id format validate firstly and throw NotFoundException if invalid
 org.apache.tinkerpop.gremlin.structure.GraphTest.shouldHaveExceptionConsistencyWhenFindEdgeByIdThatIsNonExistentViaIterator: Invalid format of edge id will introduce throwing NotFoundException before try to query in backend store
 

@@ -22,8 +22,8 @@ sudo mount -t tmpfs -o size=1024m tmpfs /mnt/ramdisk
 sudo ln -s /mnt/ramdisk $CASSA_PACKAGE/data
 
 # config cassandra
-sed -i "s/batch_size_warn_threshold_in_kb:.*/batch_size_warn_threshold_in_kb: 512/g" ${CASSA_PACKAGE}/conf/cassandra.yaml
-sed -i "s/batch_size_fail_threshold_in_kb:.*/batch_size_fail_threshold_in_kb: 512/g" ${CASSA_PACKAGE}/conf/cassandra.yaml
+sed -i "s/batch_size_warn_threshold_in_kb:.*/batch_size_warn_threshold_in_kb: 1024/g" ${CASSA_PACKAGE}/conf/cassandra.yaml
+sed -i "s/batch_size_fail_threshold_in_kb:.*/batch_size_fail_threshold_in_kb: 1024/g" ${CASSA_PACKAGE}/conf/cassandra.yaml
 
 # start cassandra service
 sh ${CASSA_PACKAGE}/bin/cassandra
