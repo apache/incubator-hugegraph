@@ -32,9 +32,6 @@ import com.baidu.hugegraph.util.Log;
 
 public class ScyllaDBStoreProvider extends CassandraStoreProvider {
 
-    // TODO: read ScyllaDB version from conf
-    public static int VERSION = 20;
-
     private static final Logger LOG = Log.logger(CassandraStore.class);
 
     private static final BackendFeatures FEATURES = new ScyllaDBFeatures();
@@ -83,25 +80,14 @@ public class ScyllaDBStoreProvider extends CassandraStoreProvider {
                                    String keyspace, String store) {
             super(provider, keyspace, store);
 
-            if (VERSION >= 20) {
-                registerTableManager(HugeType.VERTEX_LABEL,
-                                     new ScyllaDBTablesWithMV.VertexLabel());
-                registerTableManager(HugeType.EDGE_LABEL,
-                                     new ScyllaDBTablesWithMV.EdgeLabel());
-                registerTableManager(HugeType.PROPERTY_KEY,
-                                     new ScyllaDBTablesWithMV.PropertyKey());
-                registerTableManager(HugeType.INDEX_LABEL,
-                                     new ScyllaDBTablesWithMV.IndexLabel());
-            } else {
-                registerTableManager(HugeType.VERTEX_LABEL,
-                                     new ScyllaDBTables.VertexLabel());
-                registerTableManager(HugeType.EDGE_LABEL,
-                                     new ScyllaDBTables.EdgeLabel());
-                registerTableManager(HugeType.PROPERTY_KEY,
-                                     new ScyllaDBTables.PropertyKey());
-                registerTableManager(HugeType.INDEX_LABEL,
-                                     new ScyllaDBTables.IndexLabel());
-            }
+            registerTableManager(HugeType.VERTEX_LABEL,
+                                 new ScyllaDBTablesWithMV.VertexLabel());
+            registerTableManager(HugeType.EDGE_LABEL,
+                                 new ScyllaDBTablesWithMV.EdgeLabel());
+            registerTableManager(HugeType.PROPERTY_KEY,
+                                 new ScyllaDBTablesWithMV.PropertyKey());
+            registerTableManager(HugeType.INDEX_LABEL,
+                                 new ScyllaDBTablesWithMV.IndexLabel());
         }
 
         @Override
@@ -117,21 +103,12 @@ public class ScyllaDBStoreProvider extends CassandraStoreProvider {
                                   String keyspace, String store) {
             super(provider, keyspace, store);
 
-            if (VERSION >= 20) {
-                registerTableManager(HugeType.VERTEX,
-                                     new ScyllaDBTablesWithMV.Vertex(store));
-                registerTableManager(HugeType.EDGE_OUT,
-                                     ScyllaDBTablesWithMV.Edge.out(store));
-                registerTableManager(HugeType.EDGE_IN,
-                                     ScyllaDBTablesWithMV.Edge.in(store));
-            } else {
-                registerTableManager(HugeType.VERTEX,
-                                     new ScyllaDBTables.Vertex(store));
-                registerTableManager(HugeType.EDGE_OUT,
-                                     ScyllaDBTables.Edge.out(store));
-                registerTableManager(HugeType.EDGE_IN,
-                                     ScyllaDBTables.Edge.in(store));
-            }
+            registerTableManager(HugeType.VERTEX,
+                                 new ScyllaDBTablesWithMV.Vertex(store));
+            registerTableManager(HugeType.EDGE_OUT,
+                                 ScyllaDBTablesWithMV.Edge.out(store));
+            registerTableManager(HugeType.EDGE_IN,
+                                 ScyllaDBTablesWithMV.Edge.in(store));
         }
 
         @Override

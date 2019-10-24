@@ -179,7 +179,7 @@ public abstract class BackendEntryIterator
 
         @Override
         protected PageState pageState() {
-            return null;
+            return PageState.EMPTY;
         }
 
         @Override

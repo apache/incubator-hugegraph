@@ -525,7 +525,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
             }
             // NOTE: Memory backend's iterator is not Metadatable
             if (!query.paging()) {
-                return new PageIds(ids, (PageState) null);
+                return new PageIds(ids, PageState.EMPTY);
             }
             E.checkState(entries instanceof Metadatable,
                          "The entries must be Metadatable when query " +

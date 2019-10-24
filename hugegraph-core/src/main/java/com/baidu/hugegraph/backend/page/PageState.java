@@ -62,7 +62,8 @@ public class PageState {
         return toString(this.toBytes());
     }
 
-    public byte[] toBytes() {
+    private byte[] toBytes() {
+        assert this.position.length > 0;
         int length = 2 + this.position.length + 2 * BytesBuffer.INT_LEN;
         BytesBuffer buffer = BytesBuffer.allocate(length);
         buffer.writeBytes(this.position);
@@ -78,7 +79,7 @@ public class PageState {
     public static PageState fromBytes(byte[] bytes) {
         if (bytes.length == 0) {
             // The first page
-            return new PageState(new byte[0], 0, 0);
+            return EMPTY;
         }
         try {
             BytesBuffer buffer = BytesBuffer.wrap(bytes);
