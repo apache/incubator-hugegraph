@@ -141,9 +141,12 @@ public class TaskScheduler {
     }
 
     public <V> void restoreTasks() {
+        boolean supportsPaging = this.call(() -> {
+            return this.tx().store().features().supportsQueryByPage();
+        });
         // Restore 'RESTORING', 'RUNNING' and 'QUEUED' tasks in order.
         for (TaskStatus status : TaskStatus.PENDING_STATUSES) {
-            String page = PageInfo.PAGE_NONE;
+            String page = supportsPaging ? PageInfo.PAGE_NONE : null;
             do {
                 Iterator<HugeTask<V>> iter;
                 for (iter = this.findTask(status, PAGE_SIZE, page);
@@ -151,7 +154,9 @@ public class TaskScheduler {
                     HugeTask<V> task = iter.next();
                     this.restore(task);
                 }
-                page = PageInfo.pageInfo(iter);
+                if (page != null) {
+                    page = PageInfo.pageInfo(iter);
+                }
             } while (page != null);
         }
     }
@@ -365,7 +370,7 @@ public class TaskScheduler {
                                                 long limit, String page) {
         return this.call(() -> {
             ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
-            if (this.tx().store().features().supportsQueryByPage()) {
+            if (page != null) {
                 query.page(page);
             }
             VertexLabel vl = this.graph.vertexLabel(TaskTransaction.TASK);
