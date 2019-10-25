@@ -192,8 +192,8 @@ public class TaskScheduler {
         this.call(() -> {
             // Construct vertex from task
             HugeVertex vertex = this.tx().constructVertex(task);
-            // TODO: delete index of old vertex
-            // this.tx().deleteIndex(vertex);
+            // Delete index of old vertex
+            this.tx().deleteIndex(vertex);
             // Add or update task info in backend store, stale index might exist
             return this.tx().addVertex(vertex);
         });
@@ -422,7 +422,6 @@ public class TaskScheduler {
             return false;
         }
 
-        @SuppressWarnings("unused")
         private void deleteIndex(HugeVertex vertex) {
             // Delete the old record if exist
             Iterator<Vertex> old = this.queryVertices(vertex.id());
@@ -430,9 +429,8 @@ public class TaskScheduler {
                 HugeVertex oldV = (HugeVertex) old.next();
                 assert !old.hasNext();
                 if (this.indexValueChanged(oldV, vertex)) {
-                    // Only delete vertex if index value changed else override
-                    // TODO: just delete index instead of removing old vertex
-                    this.removeVertex(oldV);
+                    // Only delete vertex index if index value changed
+                    this.indexTransaction().updateVertexIndex(oldV, true);
                 }
             }
         }
