@@ -23,10 +23,7 @@ before_script:
   - $TRAVIS_DIR/install-backend.sh
 
 script:
-  - mvn test -P core-test,$BACKEND &&
-    mvn package -DskipTests && $TRAVIS_DIR/start-server.sh &&
-    mvn test -P api-test,$BACKEND && $TRAVIS_DIR/build-report.sh &&
-    $TRAVIS_DIR/stop-server.sh
+  - mvn test -P core-test,$BACKEND && $TRAVIS_DIR/run-api-test.sh
   - |
     if [ "$BACKEND" == "memory" ]; then
       mvn test -P unit-test
