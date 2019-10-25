@@ -42,6 +42,9 @@ public final class PageIds {
     }
 
     public String page() {
+        if (this.pageState == null) {
+            return null;
+        }
         return this.pageState.toString();
     }
 
