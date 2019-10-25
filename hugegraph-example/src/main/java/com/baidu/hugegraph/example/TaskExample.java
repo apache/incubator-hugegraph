@@ -28,10 +28,10 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.task.HugeTask;
-import com.baidu.hugegraph.task.TaskStatus;
 import com.baidu.hugegraph.task.TaskCallable;
 import com.baidu.hugegraph.task.TaskManager;
 import com.baidu.hugegraph.task.TaskScheduler;
+import com.baidu.hugegraph.task.TaskStatus;
 import com.baidu.hugegraph.util.Log;
 
 public class TaskExample {
@@ -53,7 +53,7 @@ public class TaskExample {
         scheduler.schedule(task);
         scheduler.save(task);
         Iterator<HugeTask<Object>> iter;
-        iter = scheduler.findTask(TaskStatus.RUNNING, -1);
+        iter = scheduler.findTask(TaskStatus.RUNNING, -1, null);
         System.out.println(">>>> running task: " + IteratorUtils.toList(iter));
 
         Thread.sleep(TestTask.UNIT * 33);
@@ -62,7 +62,7 @@ public class TaskExample {
         scheduler.save(task);
 
         // Find task not finished(actually it should be RUNNING)
-        iter = scheduler.findTask(TaskStatus.CANCELLED, -1);
+        iter = scheduler.findTask(TaskStatus.CANCELLED, -1, null);
         assert iter.hasNext();
         task = iter.next();
 
@@ -74,7 +74,7 @@ public class TaskExample {
         Thread.sleep(TestTask.UNIT * 80);
         scheduler.save(task);
 
-        iter = scheduler.findTask(TaskStatus.SUCCESS, -1);
+        iter = scheduler.findTask(TaskStatus.SUCCESS, -1, null);
         assert iter.hasNext();
 
         graph.close();

@@ -42,14 +42,14 @@ public class PageEntryIterator implements Iterator<BackendEntry>, Metadatable {
     public PageEntryIterator(QueryList queries, long pageSize) {
         this.queries = queries;
         this.pageSize = pageSize;
-        this.pageInfo = this.parsePageState();
+        this.pageInfo = this.parsePageInfo();
         this.queryResults = new QueryResults(this);
 
         this.pageResults = QueryList.PageIterator.EMPTY;
         this.remaining = queries.parent().limit();
     }
 
-    private PageInfo parsePageState() {
+    private PageInfo parsePageInfo() {
         String page = this.queries.parent().pageWithoutCheck();
         PageInfo pageInfo = PageInfo.fromString(page);
         E.checkState(pageInfo.offset() < this.queries.total(),
