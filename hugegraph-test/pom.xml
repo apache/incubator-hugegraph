@@ -19,9 +19,11 @@
             <artifactId>hugegraph-core</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <!-- The hugegraph-api module was not added because the module's test needs to
-             embed the bytecode before starting the service, but did not find a suitable
-             way to write the script to start the service -->
+        <dependency>
+            <groupId>com.baidu.hugegraph</groupId>
+            <artifactId>hugegraph-api</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <dependency>
             <groupId>com.baidu.hugegraph</groupId>
             <artifactId>hugegraph-cassandra</artifactId>
@@ -182,6 +184,20 @@
                         <goals>
                             <goal>prepare-agent</goal>
                         </goals>
+                    </execution>
+                    <execution>
+                        <id>pull-test-data</id>
+                        <phase>post-integration-test</phase>
+                        <goals>
+                            <goal>dump</goal>
+                        </goals>
+                        <configuration>
+                            <destFile>${project.build.directory}/jacoco-it.exec</destFile>
+                            <address>${app.host}</address>
+                            <port>${app.port}</port>
+                            <reset>false</reset>
+                            <skip>${skip.dump}</skip>
+                        </configuration>
                     </execution>
                     <execution>
                         <id>post-test</id>
