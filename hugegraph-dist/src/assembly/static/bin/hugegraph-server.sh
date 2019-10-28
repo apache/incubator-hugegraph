@@ -33,7 +33,7 @@ REST_SERVER_CONF="$2"
 OPEN_SECURITY_CHECK="$3"
 
 if [[ $# -eq 3 ]]; then
-    USER_OPTION="-javaagent:$LIB/jamm-0.3.0.jar"
+    USER_OPTION=""
     GC_OPTION=""
 elif [[ $# -eq 4 ]]; then
     USER_OPTION="$4"
