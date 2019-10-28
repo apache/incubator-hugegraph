@@ -359,4 +359,20 @@ public class RocksDBOptions extends OptionHolder {
                     disallowEmpty(),
                     false
             );
+
+    public static final ConfigOption<Boolean> SKIP_STATS_UPDATE_ON_DB_OPEN =
+            new ConfigOption<>(
+                    "rocksdb.skip_stats_update_on_db_open",
+                    "This flag allows us to not update statistics.",
+                    disallowEmpty(),
+                    false
+            );
+
+    public static final ConfigOption<Integer> MAX_FILE_OPENING_THREADS =
+            new ConfigOption<>(
+                    "rocksdb.max_file_opening_threads",
+                    "The max number of threads used to open files.",
+                    rangeInt(1, Integer.MAX_VALUE),
+                    16
+            );
 }

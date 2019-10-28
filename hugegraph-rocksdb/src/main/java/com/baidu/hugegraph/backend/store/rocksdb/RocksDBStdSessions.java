@@ -347,6 +347,12 @@ public class RocksDBStdSessions extends RocksDBSessions {
                     conf.get(RocksDBOptions.USE_DIRECT_READS_WRITES_FC));
 
             db.setMaxOpenFiles(conf.get(RocksDBOptions.MAX_OPEN_FILES));
+
+            db.setSkipStatsUpdateOnDbOpen(
+                    conf.get(RocksDBOptions.SKIP_STATS_UPDATE_ON_DB_OPEN));
+
+            db.setMaxFileOpeningThreads(
+                    conf.get(RocksDBOptions.MAX_FILE_OPENING_THREADS));
         }
 
         if (cf != null) {
