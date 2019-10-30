@@ -24,6 +24,7 @@ import java.util.Map;
 import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
 import org.slf4j.Logger;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -44,13 +45,16 @@ public class BackendStoreSystemInfo {
         this.graph = graph;
     }
 
-    public void init() {
+    public synchronized void init() {
         SchemaTransaction schema = this.graph.schemaTransaction();
 
         // Set schema counter to reserve primitive system id
         schema.setNextIdLowest(HugeType.SYS_SCHEMA,
                                SchemaElement.MAX_PRIMITIVE_SYS_ID);
 
+        E.checkState(this.info() == null,
+                     "Already exists backend info of graph '%s' in backend " +
+                     "'%s'", this.graph.name(), this.graph.backend());
         // Use property key to store backend version
         String backendVersion = this.graph.backendVersion();
         PropertyKey backendInfo = this.graph.schema()
@@ -62,7 +66,21 @@ public class BackendStoreSystemInfo {
 
     private Map<String, Object> info() {
         SchemaTransaction schema = this.graph.schemaTransaction();
-        PropertyKey pkey = schema.getPropertyKey(PK_BACKEND_INFO);
+        PropertyKey pkey = null;
+        try {
+            pkey = schema.getPropertyKey(PK_BACKEND_INFO);
+        } catch (IllegalStateException e) {
+            String message = String.format(
+                             "Should not exist schema with same name '%s'",
+                             PK_BACKEND_INFO);
+            if (message.equals(e.getMessage())) {
+                throw new HugeException("There exists multiple backend info " +
+                                        "of graph '%s' in backend '%s'",
+                                        this.graph.name(),
+                                        this.graph.backend());
+            }
+            // ignore
+        }
         return pkey != null ? pkey.userdata() : null;
     }
 
