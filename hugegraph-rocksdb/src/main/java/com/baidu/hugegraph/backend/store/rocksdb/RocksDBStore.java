@@ -301,7 +301,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         this.checkOpened();
         this.sessions.close();
 
-        boolean terminated;
+        boolean terminated = false;
         if (!OPEN_POOL.isShutdown()) {
             OPEN_POOL.shutdown();
             try {
