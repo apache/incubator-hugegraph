@@ -348,6 +348,9 @@ public class RocksDBStdSessions extends RocksDBSessions {
 
             db.setMaxOpenFiles(conf.get(RocksDBOptions.MAX_OPEN_FILES));
 
+            db.setMaxManifestFileSize(
+                    conf.get(RocksDBOptions.MAX_MANIFEST_FILE_SIZE));
+
             db.setSkipStatsUpdateOnDbOpen(
                     conf.get(RocksDBOptions.SKIP_STATS_UPDATE_ON_DB_OPEN));
 
