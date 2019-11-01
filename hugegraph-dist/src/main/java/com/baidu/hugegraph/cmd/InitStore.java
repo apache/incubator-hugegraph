@@ -96,7 +96,7 @@ public class InitStore {
 
         BackendStoreSystemInfo sysInfo = new BackendStoreSystemInfo(graph);
         try {
-            if (sysInfo.exist()) {
+            if (sysInfo.exists()) {
                 LOG.info("Skip init-store due to the backend store of '{}' " +
                          "had been initialized", graph.name());
                 sysInfo.checkVersion();

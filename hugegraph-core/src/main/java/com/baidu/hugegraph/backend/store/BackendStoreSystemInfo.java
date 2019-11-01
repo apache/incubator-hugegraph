@@ -66,7 +66,7 @@ public class BackendStoreSystemInfo {
         return pkey != null ? pkey.userdata() : null;
     }
 
-    public boolean exist() {
+    public boolean exists() {
         if (!this.graph.schemaTransaction().store().initialized()) {
             return false;
         }

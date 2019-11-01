@@ -200,7 +200,7 @@ public final class GraphManager {
                 hugegraph.initBackend();
             }
             BackendStoreSystemInfo info = new BackendStoreSystemInfo(hugegraph);
-            if (!info.exist()) {
+            if (!info.exists()) {
                 throw new BackendException(
                           "The backend store of '%s' has not been initialized",
                           hugegraph.name());
