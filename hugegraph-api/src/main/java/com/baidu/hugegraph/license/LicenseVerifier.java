@@ -26,6 +26,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.prefs.Preferences;
 
+import org.apache.commons.codec.digest.DigestUtils;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
@@ -84,12 +85,14 @@ public class LicenseVerifier {
     }
 
     public synchronized void install(HugeConfig config,
-                                     GraphManager graphManager) {
+                                     GraphManager graphManager,
+                                     String md5) {
         this.manager.config(config);
         this.manager.graphManager(graphManager);
         try {
             this.manager.uninstall();
             File licenseFile = new File(this.verifyParam.licensePath());
+            this.verifyPublicCert(md5);
             LicenseContent content = this.manager.install(licenseFile);
             LOG.info("The license is successfully installed, valid for {} - {}",
                      content.getNotBefore(), content.getNotAfter());
@@ -105,6 +108,18 @@ public class LicenseVerifier {
                      content.getNotBefore(), content.getNotAfter());
         } catch (Exception e) {
             throw new HugeException("Failed to verify license", e);
+        }
+    }
+
+    private void verifyPublicCert(String expectMD5) {
+        String path = this.verifyParam.publicKeyPath();
+        try (InputStream is = LicenseVerifier.class.getResourceAsStream(path)) {
+            String actualMD5 = DigestUtils.md5Hex(is);
+            if (!actualMD5.equals(expectMD5)) {
+                throw new HugeException("Invalid public cert");
+            }
+        } catch (IOException e) {
+            throw new HugeException("Failed to read public cert", e);
         }
     }
 
