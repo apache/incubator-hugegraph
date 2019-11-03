@@ -72,7 +72,7 @@ public final class GraphManager {
         }
 
         this.loadGraphs(conf.getMap(ServerOptions.GRAPHS));
-        // this.installLicense(conf);
+        // this.installLicense(conf, "");
         this.checkBackendVersionOrExit();
         this.restoreUncompletedTasks();
         this.addMetrics(conf);
@@ -139,8 +139,8 @@ public final class GraphManager {
     }
 
     @SuppressWarnings("unused")
-    private void installLicense(HugeConfig config) {
-        LicenseVerifier.instance().install(config, this);
+    private void installLicense(HugeConfig config, String md5) {
+        LicenseVerifier.instance().install(config, this, md5);
     }
 
     private void closeTx(final Set<String> graphSourceNamesToCloseTxOn,
