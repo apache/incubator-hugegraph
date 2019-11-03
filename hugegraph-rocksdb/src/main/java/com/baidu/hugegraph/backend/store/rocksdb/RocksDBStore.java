@@ -317,7 +317,6 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
 
         this.checkOpened();
         this.sessions.close();
-        this.checkClosed();
     }
 
     @Override
@@ -490,12 +489,6 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
     private void checkOpened() {
         E.checkState(this.sessions != null && !this.sessions.closed(),
                      "The '%s' store of %s has not been opened",
-                     this.database, this.provider.type());
-    }
-
-    private void checkClosed() {
-        E.checkState(this.sessions != null && this.sessions.closed(),
-                     "The '%s' store of %s has not been closed",
                      this.database, this.provider.type());
     }
 
