@@ -11,6 +11,10 @@
 
     <artifactId>hugegraph-test</artifactId>
 
+    <properties>
+        <skip.dump>true</skip.dump>
+    </properties>
+
     <dependencies>
         <!-- Jacoco report-aggregate just statistics its directly dependent module,
              so must explicitly import each submodule -->
