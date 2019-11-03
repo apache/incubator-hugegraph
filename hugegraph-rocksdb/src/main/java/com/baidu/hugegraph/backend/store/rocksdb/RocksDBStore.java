@@ -74,7 +74,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
     private RocksDBSessions sessions;
     private final Map<HugeType, String> tableDiskMapping;
 
-    private static final String DB_OPEN = "db-open-";
+    private static final String DB_OPEN = "db-open-%s";
     private static final long OPEN_TIMEOUT = 600L;
     private final ExecutorService OPEN_POOL =
             ExecutorUtil.newFixedThreadPool(8, DB_OPEN);
@@ -162,8 +162,8 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         }
 
         List<Future<?>> futures = new ArrayList<>();
+        // Open base disk
         futures.add(OPEN_POOL.submit(() -> {
-            // Open base disk
             this.sessions = this.open(config, this.tableNames());
         }));
 
@@ -185,13 +185,30 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
                 }));
             }
         }
-        for (Future<?> f : futures) {
+        for (Future<?> future : futures) {
             try {
-                f.get();
+                future.get();
             } catch (Throwable e) {
                 throw new BackendException("Failed to open RocksDB store", e);
             }
         }
+        this.shutdownOpenPool();
+    }
+
+    private void shutdownOpenPool() {
+        boolean terminated = false;
+        OPEN_POOL.shutdown();
+        try {
+            terminated = OPEN_POOL.awaitTermination(OPEN_TIMEOUT,
+                                                    TimeUnit.SECONDS);
+        } catch (Throwable e) {
+            throw new BackendException(
+                      "Failed to wait db-open thread pool shutdown", e);
+        }
+        if (!terminated) {
+            LOG.warn("Timeout when waiting db-open thread pool shutdown");
+        }
+        OPEN_POOL.shutdownNow();
     }
 
     protected RocksDBSessions open(HugeConfig config, List<String> tableNames) {
@@ -300,22 +317,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
 
         this.checkOpened();
         this.sessions.close();
-
-        boolean terminated = false;
-        if (!OPEN_POOL.isShutdown()) {
-            OPEN_POOL.shutdown();
-            try {
-                terminated = OPEN_POOL.awaitTermination(OPEN_TIMEOUT,
-                                                        TimeUnit.SECONDS);
-            } catch (Throwable e) {
-                throw new BackendException(
-                          "Failed to wait db-open thread pool shutdown", e);
-            }
-            if (!terminated) {
-                LOG.warn("Timeout when waiting db-open thread pool shutdown");
-            }
-            OPEN_POOL.shutdownNow();
-        }
+        this.checkClosed();
     }
 
     @Override
@@ -488,6 +490,12 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
     private void checkOpened() {
         E.checkState(this.sessions != null && !this.sessions.closed(),
                      "The '%s' store of %s has not been opened",
+                     this.database, this.provider.type());
+    }
+
+    private void checkClosed() {
+        E.checkState(this.sessions != null && this.sessions.closed(),
+                     "The '%s' store of %s has not been closed",
                      this.database, this.provider.type());
     }
 
