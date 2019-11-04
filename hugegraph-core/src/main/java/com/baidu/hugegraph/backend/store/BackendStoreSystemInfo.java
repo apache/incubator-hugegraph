@@ -66,7 +66,7 @@ public class BackendStoreSystemInfo {
 
     private Map<String, Object> info() {
         SchemaTransaction schema = this.graph.schemaTransaction();
-        PropertyKey pkey = null;
+        PropertyKey pkey;
         try {
             pkey = schema.getPropertyKey(PK_BACKEND_INFO);
         } catch (IllegalStateException e) {
@@ -79,7 +79,7 @@ public class BackendStoreSystemInfo {
                                         this.graph.name(),
                                         this.graph.backend());
             }
-            // ignore
+            throw e;
         }
         return pkey != null ? pkey.userdata() : null;
     }
