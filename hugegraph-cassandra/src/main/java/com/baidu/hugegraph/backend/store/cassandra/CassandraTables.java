@@ -401,6 +401,7 @@ public class CassandraTables {
             }
 
             final String OWNER_VERTEX = formatKey(HugeKeys.OWNER_VERTEX);
+            final String SORT_VALUES = formatKey(HugeKeys.SORT_VALUES);
             final String OTHER_VERTEX = formatKey(HugeKeys.OTHER_VERTEX);
 
             // Query edges by label index
@@ -419,29 +420,38 @@ public class CassandraTables {
             int count = 0;
             for (Iterator<Row> it = rs.iterator(); it.hasNext();) {
                 Row row = it.next();
-                // Delete OUT edges from edges_out table
                 Object ownerVertex = row.getObject(OWNER_VERTEX);
-                session.add(buildDelete(label, ownerVertex, Directions.OUT));
-
-                // Delete IN edges from edges_in table
+                Object sortValues = row.getObject(SORT_VALUES);
                 Object otherVertex = row.getObject(OTHER_VERTEX);
-                session.add(buildDelete(label, otherVertex, Directions.IN));
+
+                // Delete OUT edges from edges_out table
+                session.add(buildDelete(label, ownerVertex, Directions.OUT,
+                                        sortValues, otherVertex));
+                // Delete IN edges from edges_in table
+                session.add(buildDelete(label, otherVertex, Directions.IN,
+                                        sortValues, ownerVertex));
 
                 count += 2;
-                if (count >= COMMIT_DELETE_BATCH - 2) {
+                if (count >= COMMIT_DELETE_BATCH) {
                     session.commit();
                     count = 0;
                 }
             }
+            if (count > 0) {
+                session.commit();
+            }
         }
 
         private Delete buildDelete(Id label, Object ownerVertex,
-                                   Directions direction) {
+                                   Directions direction, Object sortValues,
+                                   Object otherVertex) {
             Delete delete = QueryBuilder.delete().from(edgesTable(direction));
             delete.where(formatEQ(HugeKeys.OWNER_VERTEX, ownerVertex));
             delete.where(formatEQ(HugeKeys.DIRECTION,
                                   EdgeId.directionToCode(direction)));
             delete.where(formatEQ(HugeKeys.LABEL, label.asLong()));
+            delete.where(formatEQ(HugeKeys.SORT_VALUES, sortValues));
+            delete.where(formatEQ(HugeKeys.OTHER_VERTEX, otherVertex));
             return delete;
         }
 
