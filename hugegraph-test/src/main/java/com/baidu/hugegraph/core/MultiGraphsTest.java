@@ -79,8 +79,8 @@ public class MultiGraphsTest {
         HugeGraph g3 = graphs.get(2);
 
         g1.initBackend();
-        g2.initBackend();
-        g3.initBackend();
+        Assert.assertThrows(IllegalStateException.class, g2::initBackend);
+        Assert.assertThrows(IllegalStateException.class, g3::initBackend);
 
         Assert.assertThrows(IllegalArgumentException.class,
                             () -> g2.vertexLabel("node"));
