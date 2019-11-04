@@ -234,10 +234,10 @@ public class HugeTask<V> extends FutureTask<V> {
 
     @Override
     protected void set(V v) {
-        this.status(TaskStatus.SUCCESS);
         if (v != null) {
             this.result = v.toString();
         }
+        this.status(TaskStatus.SUCCESS);
         super.set(v);
     }
 
@@ -247,9 +247,9 @@ public class HugeTask<V> extends FutureTask<V> {
               e instanceof InterruptedException)) {
             LOG.warn("An exception occurred when running task: {}",
                      this.id(), e);
+            this.result = e.toString();
             // Update status to FAILED if exception occurred(not interrupted)
             this.status(TaskStatus.FAILED);
-            this.result = e.toString();
         }
         super.setException(e);
     }
