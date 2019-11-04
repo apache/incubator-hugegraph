@@ -114,6 +114,11 @@ public class RocksDBSstSessions extends RocksDBSessions {
     }
 
     @Override
+    public boolean existsTable(String table) {
+        return this.tables.containsKey(table);
+    }
+
+    @Override
     public String property(String property) {
         throw new NotSupportException("RocksDBSstStore property()");
     }

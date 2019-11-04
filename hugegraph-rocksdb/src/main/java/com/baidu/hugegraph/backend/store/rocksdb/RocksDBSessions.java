@@ -38,6 +38,7 @@ public abstract class RocksDBSessions extends BackendSessionPool {
 
     public abstract void createTable(String table) throws RocksDBException;
     public abstract void dropTable(String table) throws RocksDBException;
+    public abstract boolean existsTable(String table);
 
     public abstract String property(String property);
 

@@ -215,6 +215,16 @@ public abstract class InMemoryDBStore
         return FEATURES;
     }
 
+    @Override
+    public boolean opened() {
+        return true;
+    }
+
+    @Override
+    public boolean initialized() {
+        return true;
+    }
+
     /***************************** Store defines *****************************/
 
     public static class InMemorySchemaStore extends InMemoryDBStore {

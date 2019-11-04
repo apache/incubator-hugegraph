@@ -124,20 +124,10 @@ public class CassandraSessionPool extends BackendSessionPool {
         }
     }
 
-    public final void checkClusterConnected() {
+    public final boolean clusterConnected() {
         E.checkState(this.cluster != null,
                      "Cassandra cluster has not been initialized");
-        E.checkState(!this.cluster.isClosed(),
-                     "Cassandra cluster has been closed");
-    }
-
-    public final void checkSessionConnected() {
-        this.checkClusterConnected();
-
-        E.checkState(this.session() != null,
-                     "Cassandra session has not been initialized");
-        E.checkState(!this.session().closed(),
-                     "Cassandra session has been closed");
+        return !this.cluster.isClosed();
     }
 
     /**

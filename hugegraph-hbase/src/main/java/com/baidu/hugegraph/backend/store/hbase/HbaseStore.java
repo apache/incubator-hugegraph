@@ -42,6 +42,7 @@ import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import com.baidu.hugegraph.backend.store.hbase.HbaseSessions.Session;
 import com.baidu.hugegraph.config.HugeConfig;
+import com.baidu.hugegraph.exception.ConnectionException;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
@@ -127,6 +128,7 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
             this.sessions = new HbaseSessions(config, this.namespace, this.store);
         }
 
+        // NOTE: seems to always return true even if not connected
         if (this.sessions.opened()) {
             LOG.debug("Store {} has been opened before", this.store);
             this.sessions.useSession();
@@ -134,12 +136,12 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
         }
 
         try {
+            // NOTE: won't throw error even if connection refused
             this.sessions.open();
-        } catch (IOException e) {
+        } catch (Exception e) {
             if (!e.getMessage().contains("Column family not found")) {
                 LOG.error("Failed to open HBase '{}'", this.store, e);
-                throw new BackendException("Failed to open HBase '%s'",
-                                           e, this.store);
+                throw new ConnectionException("Failed to connect to HBase", e);
             }
             LOG.info("Failed to open HBase '{}' with database '{}', " +
                      "try to init CF later", this.store, this.namespace);
@@ -154,6 +156,12 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
         this.sessions.close();
 
         LOG.debug("Store closed: {}", this.store);
+    }
+
+    @Override
+    public boolean opened() {
+        this.checkConnectionOpened();
+        return !this.sessions.session().closed();
     }
 
     @Override
@@ -196,6 +204,7 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
     @Override
     public Iterator<BackendEntry> query(Query query) {
         this.checkOpened();
+
         Session session = this.sessions.session();
         HbaseTable table = this.table(HbaseTable.tableType(query));
         return table.query(session, query);
@@ -203,7 +212,7 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
 
     @Override
     public void init() {
-        this.checkOpened();
+        this.checkConnectionOpened();
 
         // Create namespace
         try {
@@ -234,7 +243,7 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
 
     @Override
     public void clear() {
-        this.checkOpened();
+        this.checkConnectionOpened();
 
         // Return if not exists namespace
         try {
@@ -277,6 +286,25 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
     }
 
     @Override
+    public boolean initialized() {
+        this.checkConnectionOpened();
+
+        try {
+            if (!this.sessions.existsNamespace()) {
+                return false;
+            }
+            for (String table : this.tableNames()) {
+                if (!this.sessions.existsTable(table)) {
+                    return false;
+                }
+            }
+        } catch (IOException e) {
+            throw new BackendException("Failed to obtain table info", e);
+        }
+        return true;
+    }
+
+    @Override
     public void truncate() {
         this.checkOpened();
 
@@ -312,8 +340,8 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
         // pass
     }
 
-    private void checkOpened() {
-        E.checkState(this.sessions != null,
+    private final void checkConnectionOpened() {
+        E.checkState(this.sessions != null && this.sessions.opened(),
                      "HBase store has not been initialized");
     }
 

@@ -32,6 +32,7 @@ import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.store.mysql.MysqlSessions;
 import com.baidu.hugegraph.backend.store.mysql.MysqlStore;
+import com.baidu.hugegraph.backend.store.mysql.MysqlUtil;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.util.Log;
 
@@ -57,8 +58,7 @@ public class PostgresqlSessions extends MysqlSessions {
             ResultSet result = conn.createStatement().executeQuery(statement);
             return result.next();
         } catch (Exception e) {
-            throw new BackendException("Failed to obtain PostgreSQL metadata," +
-                                       " please ensure it is ok", e);
+            throw new BackendException("Failed to obtain database info", e);
         }
     }
 
@@ -102,6 +102,14 @@ public class PostgresqlSessions extends MysqlSessions {
                "  WHERE pg_stat_activity.datname = %s;" +
                "DROP DATABASE IF EXISTS %s;",
                database, escapeAndWrapString(database), database);
+    }
+
+    @Override
+    protected String buildExistsTable(String table) {
+        return String.format(
+               "SELECT * FROM information_schema.tables " +
+               "WHERE table_schema = 'public' AND table_name = '%s' LIMIT 1;",
+               MysqlUtil.escapeString(table));
     }
 
     @Override

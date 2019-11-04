@@ -36,7 +36,6 @@ import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.store.BackendSession;
 import com.baidu.hugegraph.backend.store.BackendSessionPool;
 import com.baidu.hugegraph.config.HugeConfig;
-import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 
 public class MysqlSessions extends BackendSessionPool {
@@ -85,6 +84,133 @@ public class MysqlSessions extends BackendSessionPool {
         return this.opened;
     }
 
+    @Override
+    protected void doClose() {
+        // pass
+    }
+
+    @Override
+    public Session session() {
+        return (Session) super.getOrNewSession();
+    }
+
+    @Override
+    protected Session newSession() {
+        return new Session();
+    }
+
+    public void createDatabase() {
+        // Create database with non-database-session
+        LOG.debug("Create database: {}", this.database());
+
+        String sql = this.buildCreateDatabase(this.database());
+        try (Connection conn = this.openWithoutDB(0)) {
+            conn.createStatement().execute(sql);
+        } catch (SQLException e) {
+            if (!e.getMessage().endsWith("already exists")) {
+                throw new BackendException("Failed to create database '%s'", e,
+                                           this.database());
+            }
+            // Ignore exception if database already exists
+        }
+    }
+
+    public void dropDatabase() {
+        LOG.debug("Drop database: {}", this.database());
+
+        String sql = this.buildDropDatabase(this.database());
+        try (Connection conn = this.openWithoutDB(DROP_DB_TIMEOUT)) {
+            conn.createStatement().execute(sql);
+        } catch (SQLException e) {
+            if (e.getCause() instanceof SocketTimeoutException) {
+                LOG.warn("Drop database '{}' timeout", this.database());
+            } else {
+                throw new BackendException("Failed to drop database '%s'",
+                                           this.database());
+            }
+        }
+    }
+
+    public boolean existsDatabase() {
+        try (Connection conn = this.openWithoutDB(0);
+             ResultSet result = conn.getMetaData().getCatalogs()) {
+            while (result.next()) {
+                String dbName = result.getString(1);
+                if (dbName.equals(this.database())) {
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            throw new BackendException("Failed to obtain database info", e);
+        }
+        return false;
+    }
+
+    public boolean existsTable(String table) {
+        String sql = this.buildExistsTable(table);
+        try (Connection conn = this.openWithDB(0);
+             ResultSet result = conn.createStatement().executeQuery(sql)) {
+            return result.next();
+        } catch (Exception e) {
+            throw new BackendException("Failed to obtain table info", e);
+        }
+    }
+
+    protected String buildCreateDatabase(String database) {
+        return String.format("CREATE DATABASE IF NOT EXISTS %s " +
+                             "DEFAULT CHARSET utf8 COLLATE utf8_bin;",
+                             database);
+    }
+
+    protected String buildDropDatabase(String database) {
+        return String.format("DROP DATABASE IF EXISTS %s;", database);
+    }
+
+    protected String buildExistsTable(String table) {
+        return String.format("SELECT * FROM information_schema.tables " +
+                             "WHERE table_schema = '%s' " +
+                             "AND table_name = '%s' LIMIT 1;",
+                             this.escapedDatabase(),
+                             MysqlUtil.escapeString(table));
+    }
+
+    /**
+     * Connect DB without specified database
+     */
+    protected Connection openWithoutDB(int timeout) {
+        String jdbcUrl = this.config.get(MysqlOptions.JDBC_URL);
+        String url = new URIBuilder().setPath(jdbcUrl)
+                                     .setParameter("socketTimeout",
+                                                   String.valueOf(timeout))
+                                     .toString();
+        try {
+            return this.connect(url);
+        } catch (SQLException e) {
+            throw new BackendException("Failed to access %s", jdbcUrl);
+        }
+    }
+
+    /**
+     * Connect DB with specified database, but won't auto reconnect
+     */
+    protected Connection openWithDB(int timeout) {
+        String jdbcUrl = this.config.get(MysqlOptions.JDBC_URL);
+        if (jdbcUrl.endsWith("/")) {
+            jdbcUrl = String.format("%s%s", jdbcUrl, this.database());
+        } else {
+            jdbcUrl = String.format("%s/%s", jdbcUrl, this.database());
+        }
+        String url = new URIBuilder().setPath(jdbcUrl)
+                                     .setParameter("socketTimeout",
+                                                   String.valueOf(timeout))
+                                     .toString();
+        try {
+            return this.connect(url);
+        } catch (SQLException e) {
+            throw new BackendException("Failed to access %s", jdbcUrl);
+        }
+    }
+
     /**
      * Connect DB with specified database
      */
@@ -112,6 +238,10 @@ public class MysqlSessions extends BackendSessionPool {
         return this.connect(uriBuilder.toString());
     }
 
+    protected URIBuilder newConnectionURIBuilder() {
+        return new URIBuilder();
+    }
+
     private Connection connect(String url) throws SQLException {
         String driverName = this.config.get(MysqlOptions.JDBC_DRIVER);
         String username = this.config.get(MysqlOptions.JDBC_USERNAME);
@@ -124,106 +254,6 @@ public class MysqlSessions extends BackendSessionPool {
                                        driverName);
         }
         return DriverManager.getConnection(url, username, password);
-    }
-
-    protected URIBuilder newConnectionURIBuilder() {
-        return new URIBuilder();
-    }
-
-    @Override
-    protected void doClose() {
-        // pass
-    }
-
-    @Override
-    public Session session() {
-        return (Session) super.getOrNewSession();
-    }
-
-    @Override
-    protected Session newSession() {
-        return new Session();
-    }
-
-    public void checkSessionConnected() {
-        Session session = this.session();
-        E.checkState(session != null, "MySQL session has not been initialized");
-        E.checkState(!session.closed(), "MySQL session has been closed");
-    }
-
-    public void createDatabase() {
-        // Create database with non-database-session
-        LOG.debug("Create database: {}", this.database());
-
-        String sql = this.buildCreateDatabase(this.database());
-        try (Connection conn = this.openWithoutDB(0)) {
-            conn.createStatement().execute(sql);
-        } catch (SQLException e) {
-            if (!e.getMessage().endsWith("already exists")) {
-                throw new BackendException("Failed to create database '%s'", e,
-                                           this.database());
-            }
-            // Ignore exception if database already exists
-        }
-    }
-
-    protected String buildCreateDatabase(String database) {
-        return String.format("CREATE DATABASE IF NOT EXISTS %s " +
-                             "DEFAULT CHARSET utf8 COLLATE utf8_bin;",
-                             database);
-    }
-
-    public void dropDatabase() {
-        LOG.debug("Drop database: {}", this.database());
-
-        String sql = this.buildDropDatabase(this.database());
-        try (Connection conn = this.openWithoutDB(DROP_DB_TIMEOUT)) {
-            conn.createStatement().execute(sql);
-        } catch (SQLException e) {
-            if (e.getCause() instanceof SocketTimeoutException) {
-                LOG.warn("Drop database '{}' timeout", this.database());
-            } else {
-                throw new BackendException("Failed to drop database '%s'",
-                                           this.database());
-            }
-        }
-    }
-
-    protected String buildDropDatabase(String database) {
-        return String.format("DROP DATABASE IF EXISTS %s;", database);
-    }
-
-    public boolean existsDatabase() {
-        try (Connection conn = this.openWithoutDB(0);
-             ResultSet result = conn.getMetaData().getCatalogs()) {
-            while (result.next()) {
-                String dbName = result.getString(1);
-                if (dbName.equals(this.database())) {
-                    return true;
-                }
-            }
-        } catch (Exception e) {
-            throw new BackendException("Failed to obtain MySQL metadata, " +
-                                       "please ensure it is ok", e);
-        }
-        return false;
-    }
-
-    /**
-     * Connect DB without specified database
-     */
-    protected Connection openWithoutDB(int timeout) {
-        String jdbcUrl = this.config.get(MysqlOptions.JDBC_URL);
-        String url = new URIBuilder().setPath(jdbcUrl)
-                                     .setParameter("socketTimeout",
-                                                   String.valueOf(timeout))
-                                     .toString();
-        try {
-            return connect(url);
-        } catch (SQLException e) {
-            throw new BackendException("Failed to access %s, " +
-                                       "please ensure it is ok", jdbcUrl);
-        }
     }
 
     public class Session extends BackendSession {

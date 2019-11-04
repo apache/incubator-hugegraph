@@ -40,6 +40,7 @@ import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import com.baidu.hugegraph.backend.store.mysql.MysqlSessions.Session;
 import com.baidu.hugegraph.config.HugeConfig;
+import com.baidu.hugegraph.exception.ConnectionException;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
@@ -116,8 +117,7 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
         } catch (Exception e) {
             if (!e.getMessage().startsWith("Unknown database") &&
                 !e.getMessage().endsWith("does not exist")) {
-                throw new BackendException("Failed connect with mysql, " +
-                                           "please ensure it's ok", e);
+                throw new ConnectionException("Failed to connect to MySQL", e);
             }
             LOG.info("Failed to open database '{}', " +
                      "try to init database later", this.database);
@@ -145,6 +145,12 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
     }
 
     @Override
+    public boolean opened() {
+        this.checkClusterConnected();
+        return !this.sessions.session().closed();
+    }
+
+    @Override
     public void init() {
         this.checkClusterConnected();
         this.sessions.createDatabase();
@@ -155,7 +161,7 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
             throw new BackendException("Failed to connect database '%s'",
                                        this.database);
         }
-        this.checkSessionConnected();
+        this.checkOpened();
         this.initTables();
 
         LOG.debug("Store initialized: {}", this.store);
@@ -167,7 +173,7 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
         this.checkClusterConnected();
 
         if (this.sessions.existsDatabase()) {
-            this.checkSessionConnected();
+            this.checkOpened();
             this.clearTables();
             this.sessions.dropDatabase();
         }
@@ -176,8 +182,23 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
     }
 
     @Override
+    public boolean initialized() {
+        this.checkClusterConnected();
+
+        if (!this.sessions.existsDatabase()) {
+            return false;
+        }
+        for (MysqlTable table : this.tables()) {
+            if (!this.sessions.existsTable(table.table())) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    @Override
     public void truncate() {
-        this.checkSessionConnected();
+        this.checkOpened();
 
         this.truncateTables();
         LOG.debug("Store truncated: {}", this.store);
@@ -189,7 +210,7 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
             LOG.debug("Store {} mutation: {}", this.store, mutation);
         }
 
-        this.checkSessionConnected();
+        this.checkOpened();
         Session session = this.sessions.session();
 
         for (Iterator<BackendAction> it = mutation.mutation(); it.hasNext();) {
@@ -222,7 +243,7 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
 
     @Override
     public Iterator<BackendEntry> query(Query query) {
-        this.checkSessionConnected();
+        this.checkOpened();
 
         MysqlTable table = this.table(MysqlTable.tableType(query));
         return table.query(this.sessions.session(), query);
@@ -230,7 +251,7 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
 
     @Override
     public void beginTx() {
-        this.checkSessionConnected();
+        this.checkOpened();
 
         Session session = this.sessions.session();
         try {
@@ -242,7 +263,7 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
 
     @Override
     public void commitTx() {
-        this.checkSessionConnected();
+        this.checkOpened();
 
         Session session = this.sessions.session();
         int count = session.commit();
@@ -253,7 +274,7 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
 
     @Override
     public void rollbackTx() {
-        this.checkSessionConnected();
+        this.checkOpened();
         Session session = this.sessions.session();
         session.rollback();
     }
@@ -300,18 +321,13 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
 
     @Override
     protected Session session(HugeType type) {
-        this.checkSessionConnected();
+        this.checkOpened();
         return this.sessions.session();
     }
 
     protected final void checkClusterConnected() {
         E.checkState(this.sessions != null,
                      "MySQL store has not been initialized");
-    }
-
-    protected final void checkSessionConnected() {
-        this.checkClusterConnected();
-        this.sessions.checkSessionConnected();
     }
 
     protected static MysqlBackendEntry castBackendEntry(BackendEntry entry) {
@@ -351,14 +367,14 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
 
         @Override
         public void increaseCounter(HugeType type, long increment) {
-            this.checkSessionConnected();
+            this.checkOpened();
             Session session = super.sessions.session();
             this.counters.increaseCounter(session, type, increment);
         }
 
         @Override
         public long getCounter(HugeType type) {
-            this.checkSessionConnected();
+            this.checkOpened();
             Session session = super.sessions.session();
             return this.counters.getCounter(session, type);
         }

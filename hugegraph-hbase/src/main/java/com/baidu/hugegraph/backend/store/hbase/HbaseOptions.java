@@ -65,6 +65,14 @@ public class HbaseOptions extends OptionHolder {
                     "/hbase"
             );
 
+    public static final ConfigOption<Integer> HBASE_ZK_RETRY =
+            new ConfigOption<>(
+                    "hbase.zk_retry",
+                    "The recovery retry times of HBase zookeeper.",
+                    rangeInt(0, 1000),
+                    3
+            );
+
     public static final ConfigOption<Integer> HBASE_THREADS_MAX =
             new ConfigOption<>(
                     "hbase.threads_max",

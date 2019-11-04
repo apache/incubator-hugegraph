@@ -72,6 +72,11 @@ public class CachedBackendStore implements BackendStore {
     }
 
     @Override
+    public boolean opened() {
+        return this.store.opened();
+    }
+
+    @Override
     public void init() {
         this.store.init();
     }
@@ -79,6 +84,11 @@ public class CachedBackendStore implements BackendStore {
     @Override
     public void clear() {
         this.store.clear();
+    }
+
+    @Override
+    public boolean initialized() {
+        return this.store.initialized();
     }
 
     @Override

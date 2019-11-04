@@ -27,7 +27,6 @@ import java.util.Set;
 import org.apache.tinkerpop.gremlin.jsr223.AbstractGremlinPlugin;
 import org.apache.tinkerpop.gremlin.jsr223.DefaultImportCustomizer;
 import org.apache.tinkerpop.gremlin.jsr223.ImportCustomizer;
-import org.apache.tinkerpop.gremlin.tinkergraph.jsr223.TinkerGraphGremlinPlugin;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.util.ReflectionUtil;
@@ -52,6 +51,7 @@ public class HugeGraphGremlinPlugin extends AbstractGremlinPlugin {
                                     PACKAGE);
         }
 
+        @SuppressWarnings("rawtypes")
         Set<Class> classes = new HashSet<>();
         classInfos.forEachRemaining(classInfo -> classes.add(classInfo.load()));
         imports = DefaultImportCustomizer.build()

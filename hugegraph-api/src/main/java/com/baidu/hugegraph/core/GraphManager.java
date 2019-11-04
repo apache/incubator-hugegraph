@@ -192,6 +192,7 @@ public final class GraphManager {
 
     private void checkBackendVersionOrExit() {
         for (String graph : this.graphs()) {
+            // TODO: close tx from main thread
             HugeGraph hugegraph = this.graph(graph);
             boolean persistence = hugegraph.graphTransaction().store()
                                            .features().supportsPersistence();
@@ -199,7 +200,7 @@ public final class GraphManager {
                 hugegraph.initBackend();
             }
             BackendStoreSystemInfo info = new BackendStoreSystemInfo(hugegraph);
-            if (!info.exist()) {
+            if (!info.exists()) {
                 throw new BackendException(
                           "The backend store of '%s' has not been initialized",
                           hugegraph.name());

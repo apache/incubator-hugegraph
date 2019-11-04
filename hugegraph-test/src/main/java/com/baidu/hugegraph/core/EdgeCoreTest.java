@@ -872,7 +872,7 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         edges = graph.traversal().V()
                      .hasLabel("person").has("name", "Louise")
-                     .outE("look").order().by("time", Order.decr)
+                     .outE("look").order().by("time", Order.desc)
                      .limit(2).toList();
         Assert.assertEquals(2, edges.size());
         Assert.assertEquals("2017-5-27", edges.get(0).value("time"));
@@ -881,7 +881,7 @@ public class EdgeCoreTest extends BaseCoreTest {
         edges = graph.traversal().V()
                      .hasLabel("person").has("name", "Louise")
                      .outE("look").limit(2)
-                     .order().by("time", Order.decr)
+                     .order().by("time", Order.desc)
                      .toList();
         Assert.assertEquals(2, edges.size());
         Assert.assertEquals("2017-5-1", edges.get(0).value("time"));
@@ -2953,8 +2953,8 @@ public class EdgeCoreTest extends BaseCoreTest {
         int count = 0;
         String page = PageInfo.PAGE_NONE;
         while (page != null) {
-            GraphTraversal iterator = graph.traversal().V(james).bothE()
-                                           .has("~page", page).limit(1);
+            GraphTraversal<?, ?> iterator = graph.traversal().V(james).bothE()
+                                                 .has("~page", page).limit(1);
             Assert.assertEquals(1, IteratorUtils.count(iterator));
             page = TraversalUtil.page(iterator);
             count++;
@@ -2973,8 +2973,8 @@ public class EdgeCoreTest extends BaseCoreTest {
         int count = 0;
         String page = PageInfo.PAGE_NONE;
         while (page != null) {
-            GraphTraversal iterator = graph.traversal().V(james).outE()
-                                           .has("~page", page).limit(1);
+            GraphTraversal<?, ?> iterator = graph.traversal().V(james).outE()
+                                                 .has("~page", page).limit(1);
             Assert.assertEquals(1, IteratorUtils.count(iterator));
             page = TraversalUtil.page(iterator);
             count++;
@@ -2993,8 +2993,8 @@ public class EdgeCoreTest extends BaseCoreTest {
         int count = 0;
         String page = PageInfo.PAGE_NONE;
         while (page != null) {
-            GraphTraversal iterator = graph.traversal().V(james).inE()
-                                           .has("~page", page).limit(1);
+            GraphTraversal<?, ?> iterator = graph.traversal().V(james).inE()
+                                                 .has("~page", page).limit(1);
             Assert.assertEquals(1, IteratorUtils.count(iterator));
             page = TraversalUtil.page(iterator);
             count++;
@@ -4587,11 +4587,11 @@ public class EdgeCoreTest extends BaseCoreTest {
                           new FakeEdge(label, outVertex, inVertex, kvs)));
     }
 
-    private int traverseInPage(Function<String, GraphTraversal> function) {
+    private int traverseInPage(Function<String, GraphTraversal<?, ?>> fetcher) {
         String page = PageInfo.PAGE_NONE;
         int count = 0;
         while (page != null) {
-            GraphTraversal iterator = function.apply(page);
+            GraphTraversal<?, ?> iterator = fetcher.apply(page);
             Assert.assertEquals(1, IteratorUtils.count(iterator));
             page = TraversalUtil.page(iterator);
             count++;

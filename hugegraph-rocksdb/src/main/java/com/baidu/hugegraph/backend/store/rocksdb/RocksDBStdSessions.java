@@ -198,6 +198,11 @@ public class RocksDBStdSessions extends RocksDBSessions {
     }
 
     @Override
+    public boolean existsTable(String table) {
+        return this.cfs.containsKey(table);
+    }
+
+    @Override
     public String property(String property) {
         try {
             if (property.equals(RocksDBMetrics.DISK_USAGE)) {

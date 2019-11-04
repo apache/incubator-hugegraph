@@ -178,7 +178,7 @@ public class QueryResults {
         return (Iterator<T>) EMPTY_ITERATOR;
     }
 
-    private static class EmptyIterator<E> implements Iterator<E>,
+    private static class EmptyIterator<T> implements Iterator<T>,
                                                      Metadatable {
         @Override
         public Object metadata(String meta, Object... args) {
@@ -191,7 +191,7 @@ public class QueryResults {
         }
 
         @Override
-        public E next() {
+        public T next() {
             throw new NoSuchElementException();
         }
     }
