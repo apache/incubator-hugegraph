@@ -76,8 +76,6 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
 
     private static final String DB_OPEN = "db-open-%s";
     private static final long OPEN_TIMEOUT = 600L;
-    private final ExecutorService OPEN_POOL =
-            ExecutorUtil.newFixedThreadPool(8, DB_OPEN);
 
     // DataPath:RocksDB mapping
     protected static final ConcurrentMap<String, RocksDBSessions> dbs;
@@ -162,8 +160,9 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         }
 
         List<Future<?>> futures = new ArrayList<>();
+        ExecutorService openPool = ExecutorUtil.newFixedThreadPool(8, DB_OPEN);
         // Open base disk
-        futures.add(OPEN_POOL.submit(() -> {
+        futures.add(openPool.submit(() -> {
             this.sessions = this.open(config, this.tableNames());
         }));
 
@@ -180,11 +179,16 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
                     continue;
                 }
                 openedDisks.add(disk);
-                futures.add(OPEN_POOL.submit(() -> {
+                futures.add(openPool.submit(() -> {
                     this.open(config, disk, disk, Arrays.asList(table));
                 }));
             }
         }
+        waitOpenFinish(futures, openPool);
+    }
+
+    private static void waitOpenFinish(List<Future<?>> futures,
+                                       ExecutorService openPool) {
         for (Future<?> future : futures) {
             try {
                 future.get();
@@ -192,15 +196,14 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
                 throw new BackendException("Failed to open RocksDB store", e);
             }
         }
-        this.shutdownOpenPool();
-    }
-
-    private void shutdownOpenPool() {
+        if (openPool.isShutdown()) {
+            return;
+        }
         boolean terminated = false;
-        OPEN_POOL.shutdown();
+        openPool.shutdown();
         try {
-            terminated = OPEN_POOL.awaitTermination(OPEN_TIMEOUT,
-                                                    TimeUnit.SECONDS);
+            terminated = openPool.awaitTermination(OPEN_TIMEOUT,
+                                                   TimeUnit.SECONDS);
         } catch (Throwable e) {
             throw new BackendException(
                       "Failed to wait db-open thread pool shutdown", e);
@@ -208,7 +211,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         if (!terminated) {
             LOG.warn("Timeout when waiting db-open thread pool shutdown");
         }
-        OPEN_POOL.shutdownNow();
+        openPool.shutdownNow();
     }
 
     protected RocksDBSessions open(HugeConfig config, List<String> tableNames) {
