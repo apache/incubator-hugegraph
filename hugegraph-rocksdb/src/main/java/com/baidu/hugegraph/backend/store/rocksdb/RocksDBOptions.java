@@ -359,4 +359,30 @@ public class RocksDBOptions extends OptionHolder {
                     disallowEmpty(),
                     false
             );
+
+    public static final ConfigOption<Long> MAX_MANIFEST_FILE_SIZE =
+            new ConfigOption<>(
+                    "rocksdb.max_manifest_file_size",
+                    "The max size of manifest file in bytes.",
+                    rangeInt(1L, Long.MAX_VALUE),
+                    104857600L
+            );
+
+    public static final ConfigOption<Boolean> SKIP_STATS_UPDATE_ON_DB_OPEN =
+            new ConfigOption<>(
+                    "rocksdb.skip_stats_update_on_db_open",
+                    "Whether to skip statistics update when opening the " +
+                    "database, setting this flag true allows us to not " +
+                    "update statistics.",
+                    disallowEmpty(),
+                    false
+            );
+
+    public static final ConfigOption<Integer> MAX_FILE_OPENING_THREADS =
+            new ConfigOption<>(
+                    "rocksdb.max_file_opening_threads",
+                    "The max number of threads used to open files.",
+                    rangeInt(1, Integer.MAX_VALUE),
+                    16
+            );
 }

@@ -32,6 +32,7 @@ import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
 import org.junit.Test;
 
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.testutil.Assert;
@@ -139,6 +140,27 @@ public class MultiGraphsTest {
         destoryGraphs(ImmutableList.of(g1, g2, graph));
     }
 
+    @Test
+    public void testCreateGraphsWithMultiDisksForRocksDB() {
+        HugeGraph g1 = openGraphWithBackend(
+                       "g1", "rocksdb", "binary",
+                       "rocksdb.data_disks",
+                       "[g/secondary_index:rocksdb-index," +
+                       "g/range_int_index:rocksdb-index]");
+        g1.initBackend();
+        g1.clearBackend();
+        destoryGraphs(ImmutableList.of(g1));
+
+        Assert.assertThrows(BackendException.class, () -> {
+            HugeGraph g2 = openGraphWithBackend(
+                           "g2", "rocksdb", "binary",
+                           "rocksdb.data_disks",
+                           "[g/secondary_index:/," +
+                           "g/range_int_index:rocksdb-index]");
+            g2.initBackend();
+        });
+    }
+
     public static List<HugeGraph> openGraphs(String... graphNames) {
         List<HugeGraph> graphs = new ArrayList<>(graphNames.length);
         PropertiesConfiguration conf = Utils.getConf();
@@ -162,7 +184,8 @@ public class MultiGraphsTest {
     }
 
     public static HugeGraph openGraphWithBackend(String graph, String backend,
-                                                 String serializer) {
+                                                 String serializer,
+                                                 String... configs) {
         PropertiesConfiguration conf = Utils.getConf();
         Configuration config = new BaseConfiguration();
         for (Iterator<String> keys = conf.getKeys(); keys.hasNext();) {
@@ -173,6 +196,9 @@ public class MultiGraphsTest {
         config.setProperty(CoreOptions.STORE.name(), graph);
         config.setProperty(CoreOptions.BACKEND.name(), backend);
         config.setProperty(CoreOptions.SERIALIZER.name(), serializer);
+        for (int i = 0; i < configs.length;) {
+            config.setProperty(configs[i++], configs[i++]);
+        }
         return ((HugeGraph) GraphFactory.open(config));
     }
 }

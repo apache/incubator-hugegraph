@@ -24,6 +24,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +32,9 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
@@ -51,6 +55,7 @@ import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.exception.ConnectionException;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.ExecutorUtil;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.Log;
 import com.google.common.collect.ImmutableList;
@@ -69,6 +74,15 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
 
     private RocksDBSessions sessions;
     private final Map<HugeType, String> tableDiskMapping;
+
+    private static final String DB_OPEN = "db-open-%s";
+    private static final long OPEN_TIMEOUT = 600L;
+    /*
+     * This is threads number used to concurrently opening RocksDB dbs,
+     * 8 is supposed enough due to configurable data disks and
+     * disk number of one machine
+     */
+    private static final int OPEN_POOL_THREADS = 8;
 
     // DataPath:RocksDB mapping
     protected static final ConcurrentMap<String, RocksDBSessions> dbs;
@@ -152,20 +166,60 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
             return;
         }
 
+        List<Future<?>> futures = new ArrayList<>();
+        ExecutorService openPool = ExecutorUtil.newFixedThreadPool(
+                                   OPEN_POOL_THREADS, DB_OPEN);
         // Open base disk
-        this.sessions = this.open(config, this.tableNames());
+        futures.add(openPool.submit(() -> {
+            this.sessions = this.open(config, this.tableNames());
+        }));
 
         // Open tables with optimized disk
         Map<String, String> disks = config.getMap(RocksDBOptions.DATA_DISKS);
+        Set<String> openedDisks = new HashSet<>();
         if (!disks.isEmpty()) {
             String dataPath = config.get(RocksDBOptions.DATA_PATH);
             this.parseTableDiskMapping(disks, dataPath);
             for (Entry<HugeType, String> e : this.tableDiskMapping.entrySet()) {
                 String table = this.table(e.getKey()).table();
                 String disk = e.getValue();
-                this.open(config, disk, disk, Arrays.asList(table));
+                if (openedDisks.contains(disk)) {
+                    continue;
+                }
+                openedDisks.add(disk);
+                futures.add(openPool.submit(() -> {
+                    this.open(config, disk, disk, Arrays.asList(table));
+                }));
             }
         }
+        waitOpenFinish(futures, openPool);
+    }
+
+    private static void waitOpenFinish(List<Future<?>> futures,
+                                       ExecutorService openPool) {
+        for (Future<?> future : futures) {
+            try {
+                future.get();
+            } catch (Throwable e) {
+                throw new BackendException("Failed to open RocksDB store", e);
+            }
+        }
+        if (openPool.isShutdown()) {
+            return;
+        }
+        boolean terminated = false;
+        openPool.shutdown();
+        try {
+            terminated = openPool.awaitTermination(OPEN_TIMEOUT,
+                                                   TimeUnit.SECONDS);
+        } catch (Throwable e) {
+            throw new BackendException(
+                      "Failed to wait db-open thread pool shutdown", e);
+        }
+        if (!terminated) {
+            LOG.warn("Timeout when waiting db-open thread pool shutdown");
+        }
+        openPool.shutdownNow();
     }
 
     protected RocksDBSessions open(HugeConfig config, List<String> tableNames) {
