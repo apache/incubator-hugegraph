@@ -371,7 +371,9 @@ public class RocksDBOptions extends OptionHolder {
     public static final ConfigOption<Boolean> SKIP_STATS_UPDATE_ON_DB_OPEN =
             new ConfigOption<>(
                     "rocksdb.skip_stats_update_on_db_open",
-                    "This flag allows us to not update statistics.",
+                    "Whether to skip statistics update when opening the " +
+                    "database, setting this flag true allows us to not " +
+                    "update statistics.",
                     disallowEmpty(),
                     false
             );

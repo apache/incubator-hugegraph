@@ -76,6 +76,12 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
 
     private static final String DB_OPEN = "db-open-%s";
     private static final long OPEN_TIMEOUT = 600L;
+    /*
+     * This is threads number used to concurrently opening RocksDB dbs,
+     * 8 is supposed enough due to configurable data disks and
+     * disk number of one machine
+     */
+    private static final int OPEN_POOL_THREADS = 8;
 
     // DataPath:RocksDB mapping
     protected static final ConcurrentMap<String, RocksDBSessions> dbs;
@@ -160,7 +166,8 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         }
 
         List<Future<?>> futures = new ArrayList<>();
-        ExecutorService openPool = ExecutorUtil.newFixedThreadPool(8, DB_OPEN);
+        ExecutorService openPool = ExecutorUtil.newFixedThreadPool(
+                                   OPEN_POOL_THREADS, DB_OPEN);
         // Open base disk
         futures.add(openPool.submit(() -> {
             this.sessions = this.open(config, this.tableNames());
