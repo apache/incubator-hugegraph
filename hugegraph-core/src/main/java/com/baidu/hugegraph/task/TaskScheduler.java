@@ -31,13 +31,14 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
 
+import org.apache.commons.collections.IteratorUtils;
 import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.page.PageInfo;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.store.BackendStore;
@@ -46,6 +47,7 @@ import com.baidu.hugegraph.event.EventListener;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.iterator.MapperIterator;
+import com.baidu.hugegraph.iterator.WrappedIterator;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaManager;
@@ -73,6 +75,7 @@ public class TaskScheduler {
     private volatile TaskTransaction taskTx;
 
     private static final long NO_LIMIT = -1L;
+    private static final long PAGE_SIZE = 500L;
     private static final long QUERY_INTERVAL = 100L;
     private static final int MAX_PENDING_TASKS = 10000;
 
@@ -138,13 +141,23 @@ public class TaskScheduler {
     }
 
     public <V> void restoreTasks() {
+        boolean supportsPaging = this.call(() -> {
+            return this.tx().store().features().supportsQueryByPage();
+        });
         // Restore 'RESTORING', 'RUNNING' and 'QUEUED' tasks in order.
         for (TaskStatus status : TaskStatus.PENDING_STATUSES) {
-            Iterator<HugeTask<V>> iter = this.findTask(status, NO_LIMIT);
-            while (iter.hasNext()) {
-                HugeTask<V> task = iter.next();
-                this.restore(task);
-            }
+            String page = supportsPaging ? PageInfo.PAGE_NONE : null;
+            do {
+                Iterator<HugeTask<V>> iter;
+                for (iter = this.findTask(status, PAGE_SIZE, page);
+                     iter.hasNext();) {
+                    HugeTask<V> task = iter.next();
+                    this.restore(task);
+                }
+                if (page != null) {
+                    page = PageInfo.pageInfo(iter);
+                }
+            } while (page != null);
         }
     }
 
@@ -262,12 +275,13 @@ public class TaskScheduler {
         return this.queryTask(ids);
     }
 
-    public <V> Iterator<HugeTask<V>> findAllTask(long limit) {
-        return this.queryTask(ImmutableMap.of(), limit);
+    public <V> Iterator<HugeTask<V>> findAllTask(long limit, String page) {
+        return this.queryTask(ImmutableMap.of(), limit, page);
     }
 
-    public <V> Iterator<HugeTask<V>> findTask(TaskStatus status, long limit) {
-        return this.queryTask(P.STATUS, status.code(), limit);
+    public <V> Iterator<HugeTask<V>> findTask(TaskStatus status,
+                                              long limit, String page) {
+        return this.queryTask(P.STATUS, status.code(), limit, page);
     }
 
     public <V> HugeTask<V> deleteTask(Id id) {
@@ -348,14 +362,17 @@ public class TaskScheduler {
     }
 
     private <V> Iterator<HugeTask<V>> queryTask(String key, Object value,
-                                                long limit) {
-        return this.queryTask(ImmutableMap.of(key, value), limit);
+                                                long limit, String page) {
+        return this.queryTask(ImmutableMap.of(key, value), limit, page);
     }
 
     private <V> Iterator<HugeTask<V>> queryTask(Map<String, Object> conditions,
-                                                long limit) {
+                                                long limit, String page) {
         return this.call(() -> {
             ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
+            if (page != null) {
+                query.page(page);
+            }
             VertexLabel vl = this.graph.vertexLabel(TaskTransaction.TASK);
             query.eq(HugeKeys.LABEL, vl.id());
             for (Map.Entry<String, Object> entry : conditions.entrySet()) {
@@ -370,8 +387,8 @@ public class TaskScheduler {
             Iterator<HugeTask<V>> tasks =
                     new MapperIterator<>(vertices, HugeTask::fromVertex);
             // Convert iterator to list to avoid across thread tx accessed
-            return IteratorUtils.list(tasks);
-        }).iterator();
+            return new ListIterator<>(tasks);
+        });
     }
 
     private <V> Iterator<HugeTask<V>> queryTask(List<Id> ids) {
@@ -381,8 +398,8 @@ public class TaskScheduler {
             Iterator<HugeTask<V>> tasks =
                     new MapperIterator<>(vertices, HugeTask::fromVertex);
             // Convert iterator to list to avoid across thread tx accessed
-            return IteratorUtils.list(tasks);
-        }).iterator();
+            return new ListIterator<>(tasks);
+        });
     }
 
     private <V> V call(Runnable runnable) {
@@ -508,6 +525,35 @@ public class TaskScheduler {
                                           .build();
             graph.schemaTransaction().addIndexLabel(label, indexLabel);
             return indexLabel;
+        }
+    }
+
+    // TODO: move to common module
+    private static class ListIterator<V> extends WrappedIterator<V> {
+
+        private final Iterator<V> origin;
+        private final Iterator<V> iterator;
+
+        public ListIterator(Iterator<V> origin) {
+            this.origin = origin;
+            @SuppressWarnings("unchecked")
+            List<V> results = IteratorUtils.toList(origin);
+            this.iterator = results.iterator();
+        }
+
+        @Override
+        protected boolean fetch() {
+            assert this.current == none();
+            if (!this.iterator.hasNext()) {
+                return false;
+            }
+            this.current = this.iterator.next();
+            return true;
+        }
+
+        @Override
+        protected Iterator<?> originIterator() {
+            return this.origin;
         }
     }
 }

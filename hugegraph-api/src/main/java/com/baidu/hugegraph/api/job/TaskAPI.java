@@ -39,12 +39,14 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 
+import org.apache.groovy.util.Maps;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
+import com.baidu.hugegraph.backend.page.PageInfo;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.task.HugeTask;
@@ -53,7 +55,6 @@ import com.baidu.hugegraph.task.TaskStatus;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
-import com.google.common.collect.ImmutableMap;
 
 @Path("graphs/{graph}/tasks")
 @Singleton
@@ -67,37 +68,37 @@ public class TaskAPI extends API {
     @GET
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    public Map<String, List<Object>> list(@Context GraphManager manager,
-                                          @PathParam("graph") String graph,
-                                          @QueryParam("status") String status,
-                                          @QueryParam("ids") List<Long> ids,
-                                          @QueryParam("limit")
-                                          @DefaultValue("100") long limit) {
-        LOG.debug("Graph [{}] list tasks with status {}, limit {}",
-                  graph, status, limit);
+    public Map<String, Object> list(@Context GraphManager manager,
+                                    @PathParam("graph") String graph,
+                                    @QueryParam("status") String status,
+                                    @QueryParam("ids") List<Long> ids,
+                                    @QueryParam("limit")
+                                    @DefaultValue("100") long limit,
+                                    @QueryParam("page") String page) {
+        LOG.debug("Graph [{}] list tasks with status {}, ids {}, " +
+                  "limit {}, page {}", graph, status, ids, limit, page);
 
         TaskScheduler scheduler = graph(manager, graph).taskScheduler();
 
         Iterator<HugeTask<Object>> iter;
 
         if (!ids.isEmpty()) {
-            LOG.debug("Graph [{}] list tasks with ids {}, limit {}",
-                      graph, ids, limit);
             E.checkArgument(status == null,
                             "Not support status when query task by ids, " +
                             "but got status='%s'", status);
+            E.checkArgument(page == null,
+                            "Not support page when query task by ids, " +
+                            "but got page='%s'", page);
             // Set limit to NO_LIMIT to ignore limit when query task by ids
             limit = NO_LIMIT;
             List<Id> idList = ids.stream().map(IdGenerator::of)
                                           .collect(Collectors.toList());
             iter = scheduler.tasks(idList);
         } else {
-            LOG.debug("Graph [{}] list tasks with status {}, limit {}",
-                      graph, status, limit);
             if (status == null) {
-                iter = scheduler.findAllTask(limit);
+                iter = scheduler.findAllTask(limit, page);
             } else {
-                iter = scheduler.findTask(parseStatus(status), limit);
+                iter = scheduler.findTask(parseStatus(status), limit, page);
             }
         }
 
@@ -108,7 +109,12 @@ public class TaskAPI extends API {
         if (limit != NO_LIMIT && tasks.size() > limit) {
             tasks = tasks.subList(0, (int) limit);
         }
-        return ImmutableMap.of("tasks", tasks);
+
+        if (page == null) {
+            return Maps.of("tasks", tasks);
+        } else {
+            return Maps.of("tasks", tasks, "page", PageInfo.pageInfo(iter));
+        }
     }
 
     @GET
@@ -161,7 +167,7 @@ public class TaskAPI extends API {
             throw new BadRequestException(String.format(
                       "Can't cancel task '%s' which is completed", id));
         }
-        return ImmutableMap.of("cancelled", task.isCancelled());
+        return task.asMap();
     }
 
     private static TaskStatus parseStatus(String status) {

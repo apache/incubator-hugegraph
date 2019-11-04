@@ -110,17 +110,10 @@ public final class PageInfo {
         return (PageState) page;
     }
 
-    /**
-     * Only used for vertex/edge scan
-     * @param iterator iterator of scan query
-     * @return PageInfo string
-     */
     public static String pageInfo(Iterator<?> iterator) {
         E.checkState(iterator instanceof Metadatable,
                      "Invalid paging iterator: %s", iterator.getClass());
         Object page = ((Metadatable) iterator).metadata(PAGE);
-        E.checkState(page == null || page instanceof PageInfo,
-                     "Invalid PageInfo '%s'", page);
         return page == null ? null : page.toString();
     }
 }
