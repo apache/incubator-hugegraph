@@ -28,6 +28,7 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.testutil.Assert;
+import com.baidu.hugegraph.testutil.Whitebox;
 import com.baidu.hugegraph.unit.FakeObjects;
 
 public class BackendStoreSystemInfoTest {
@@ -51,7 +52,7 @@ public class BackendStoreSystemInfoTest {
 
         BackendStoreSystemInfo info = new BackendStoreSystemInfo(graph);
         Assert.assertThrows(HugeException.class, () -> {
-            info.exists();
+            Whitebox.invoke(BackendStoreSystemInfo.class, "info", info);
         }, e -> {
             Assert.assertTrue(e.getMessage().contains(
                               "There exists multiple backend info"));
