@@ -48,4 +48,5 @@
             <appender-ref ref="file"/>
         </logger>
     </loggers>
+
 </configuration>
