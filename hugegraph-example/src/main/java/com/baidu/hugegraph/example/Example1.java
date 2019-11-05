@@ -241,7 +241,6 @@ public class Example1 {
             try {
                 tx.rollback();
             } catch (BackendException e2) {
-                // TODO Auto-generated catch block
                 e2.printStackTrace();
             }
         } finally {
