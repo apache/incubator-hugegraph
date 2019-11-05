@@ -134,6 +134,6 @@ public class InitStore {
                 throw e;
             }
             break;
-        } while(retries-- > 0);
+        } while (retries-- > 0);
     }
 }

@@ -511,7 +511,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
             Set<Id> ids = InsertionOrderUtil.newSet();
             Iterator<BackendEntry> entries = super.query(query).iterator();
-            while(entries.hasNext()) {
+            while (entries.hasNext()) {
                 HugeIndex index = this.serializer.readIndex(graph(), query,
                                                             entries.next());
                 ids.addAll(index.elementIds());
