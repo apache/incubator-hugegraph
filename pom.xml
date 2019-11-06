@@ -104,7 +104,7 @@
         <httpclient.version>4.5.2</httpclient.version>
         <datastax.cassandra.version>3.2.0</datastax.cassandra.version>
         <apache.cassandra.version>3.10</apache.cassandra.version>
-        <rocksdb.version>5.17.2</rocksdb.version>
+        <rocksdb.version>6.3.6</rocksdb.version>
         <hbase.client.version>2.0.0</hbase.client.version>
         <mysql.driver.version>5.1.45</mysql.driver.version>
         <jersey.version>2.25.1</jersey.version>

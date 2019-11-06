@@ -98,7 +98,7 @@ public class RocksDBSstSessions extends RocksDBSessions {
     public void createTable(String table) throws RocksDBException {
         EnvOptions env = new EnvOptions();
         Options options = new Options();
-        RocksDBStdSessions.initOptions(this.config(), options,
+        RocksDBStdSessions.initOptions(this.config(), options, options,
                                        options, options);
         // NOTE: unset merge op due to SIGSEGV when cf.setMergeOperatorName()
         options.setMergeOperatorName("not-exist-merge-op");

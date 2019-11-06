@@ -44,7 +44,9 @@ import org.rocksdb.DBOptions;
 import org.rocksdb.DBOptionsInterface;
 import org.rocksdb.Env;
 import org.rocksdb.InfoLogLevel;
+import org.rocksdb.LRUCache;
 import org.rocksdb.MutableColumnFamilyOptionsInterface;
+import org.rocksdb.MutableDBOptionsInterface;
 import org.rocksdb.Options;
 import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
@@ -79,7 +81,8 @@ public class RocksDBStdSessions extends RocksDBSessions {
 
         // Init options
         Options options = new Options();
-        RocksDBStdSessions.initOptions(config, options, options, options);
+        RocksDBStdSessions.initOptions(config, options, options,
+                                       options, options);
         options.setWalDir(walPath);
 
         this.sstFileManager = new SstFileManager(Env.getDefault());
@@ -109,13 +112,14 @@ public class RocksDBStdSessions extends RocksDBSessions {
         for (String cf : cfs) {
             ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(encode(cf));
             ColumnFamilyOptions options = cfd.getOptions();
-            RocksDBStdSessions.initOptions(config, null, options, options);
+            RocksDBStdSessions.initOptions(config, null, null,
+                                           options, options);
             cfds.add(cfd);
         }
 
         // Init DB options
         DBOptions options = new DBOptions();
-        RocksDBStdSessions.initOptions(config, options, null, null);
+        RocksDBStdSessions.initOptions(config, options, options, null, null);
         options.setWalDir(walPath);
 
         this.sstFileManager = new SstFileManager(Env.getDefault());
@@ -176,7 +180,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
         // Should we use options.setCreateMissingColumnFamilies() to create CF
         ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(encode(table));
         ColumnFamilyOptions options = cfd.getOptions();
-        initOptions(this.config(), null, options, options);
+        initOptions(this.config(), null, null, options, options);
         this.cfs.put(table, new CFHandle(this.rocksdb.createColumnFamily(cfd)));
 
         ingestExternalFile();
@@ -306,9 +310,9 @@ public class RocksDBStdSessions extends RocksDBSessions {
         return cfs;
     }
 
-    @SuppressWarnings("deprecation") // setMaxBackgroundFlushes
     public static void initOptions(HugeConfig conf,
                                    DBOptionsInterface<?> db,
+                                   MutableDBOptionsInterface<?> mdb,
                                    ColumnFamilyOptionsInterface<?> cf,
                                    MutableColumnFamilyOptionsInterface<?> mcf) {
         final boolean optimize = conf.get(RocksDBOptions.OPTIMIZE_MODE);
@@ -324,22 +328,11 @@ public class RocksDBStdSessions extends RocksDBSessions {
                 db.setAllowConcurrentMemtableWrite(true);
                 db.setEnableWriteThreadAdaptiveYield(true);
             }
-
             db.setInfoLogLevel(InfoLogLevel.valueOf(
                     conf.get(RocksDBOptions.LOG_LEVEL) + "_LEVEL"));
 
-            /*
-             * TODO: migrate to max_background_jobs option
-             * https://github.com/facebook/rocksdb/pull/2205/files
-             */
-            db.setMaxBackgroundCompactions(
-                    conf.get(RocksDBOptions.MAX_BG_COMPACTIONS));
             db.setMaxSubcompactions(
                     conf.get(RocksDBOptions.MAX_SUB_COMPACTIONS));
-            db.setMaxBackgroundFlushes(
-                    conf.get(RocksDBOptions.MAX_BG_FLUSHES));
-
-            db.setDelayedWriteRate(conf.get(RocksDBOptions.DELAYED_WRITE_RATE));
 
             db.setAllowMmapWrites(
                     conf.get(RocksDBOptions.ALLOW_MMAP_WRITES));
@@ -351,8 +344,6 @@ public class RocksDBStdSessions extends RocksDBSessions {
             db.setUseDirectIoForFlushAndCompaction(
                     conf.get(RocksDBOptions.USE_DIRECT_READS_WRITES_FC));
 
-            db.setMaxOpenFiles(conf.get(RocksDBOptions.MAX_OPEN_FILES));
-
             db.setMaxManifestFileSize(
                     conf.get(RocksDBOptions.MAX_MANIFEST_FILE_SIZE));
 
@@ -361,11 +352,32 @@ public class RocksDBStdSessions extends RocksDBSessions {
 
             db.setMaxFileOpeningThreads(
                     conf.get(RocksDBOptions.MAX_FILE_OPENING_THREADS));
+
+            db.setDbWriteBufferSize(conf.get(RocksDBOptions.DB_MEMTABLE_SIZE));
+        }
+
+        if (mdb != null) {
+            /*
+             * Migrate to max_background_jobs option
+             * https://github.com/facebook/rocksdb/wiki/Thread-Pool
+             * https://github.com/facebook/rocksdb/pull/2205/files
+             */
+            mdb.setMaxBackgroundJobs(conf.get(RocksDBOptions.MAX_BG_JOBS));
+
+            mdb.setDelayedWriteRate(
+                    conf.get(RocksDBOptions.DELAYED_WRITE_RATE));
+
+            mdb.setMaxOpenFiles(conf.get(RocksDBOptions.MAX_OPEN_FILES));
+
+            mdb.setMaxTotalWalSize(conf.get(RocksDBOptions.MAX_TOTAL_WAL_SIZE));
+
+            mdb.setDeleteObsoleteFilesPeriodMicros(1000000 *
+                    conf.get(RocksDBOptions.DELETE_OBSOLETE_FILE_PERIOD));
         }
 
         if (cf != null) {
-            // Optimize RocksDB
             if (optimize) {
+                // Optimize RocksDB
                 cf.optimizeLevelStyleCompaction();
                 cf.optimizeUniversalStyleCompaction();
             }
@@ -402,7 +414,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
                 // Bypassing bug https://github.com/facebook/rocksdb/pull/5465
                 tableConfig.setNoBlockCache(true);
             } else {
-                tableConfig.setBlockCacheSize(cacheCapacity);
+                tableConfig.setBlockCache(new LRUCache(cacheCapacity));
             }
             tableConfig.setPinL0FilterAndIndexBlocksInCache(
                     conf.get(RocksDBOptions.PIN_L0_FILTER_AND_INDEX_IN_CACHE));
@@ -413,7 +425,8 @@ public class RocksDBStdSessions extends RocksDBSessions {
             int bitsPerKey = conf.get(RocksDBOptions.BLOOM_FILTER_BITS_PER_KEY);
             if (bitsPerKey >= 0) {
                 boolean blockBased = conf.get(RocksDBOptions.BLOOM_FILTER_MODE);
-                tableConfig.setFilter(new BloomFilter(bitsPerKey, blockBased));
+                tableConfig.setFilterPolicy(new BloomFilter(bitsPerKey,
+                                                            blockBased));
             }
             tableConfig.setWholeKeyFiltering(
                     conf.get(RocksDBOptions.BLOOM_FILTER_WHOLE_KEY));
