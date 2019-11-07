@@ -59,6 +59,7 @@ import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.RateLimiter;
 
 public class TestGraphProvider extends AbstractGraphProvider {
 
@@ -104,6 +105,9 @@ public class TestGraphProvider extends AbstractGraphProvider {
             VertexPropertyFeatures.FEATURE_USER_SUPPLIED_IDS,
             VertexPropertyFeatures.FEATURE_NUMERIC_IDS,
             VertexPropertyFeatures.FEATURE_STRING_IDS);
+
+    private static final RateLimiter LOG_RATE_LIMITER =
+                         RateLimiter.create(1.0 / 300);
 
     private Map<String, String> blackMethods = new HashMap<>();
     private Map<String, TestGraph> graphs = new HashMap<>();
@@ -311,7 +315,10 @@ public class TestGraphProvider extends AbstractGraphProvider {
             this.loadGraphData(testGraph, (LoadGraphWith.GraphData) loadGraph);
         }
 
-        LOG.debug("Open graph '{}' for test '{}'", graphName, testMethod);
+        // Used for travis ci output log
+        if (LOG_RATE_LIMITER.tryAcquire(1)) {
+            LOG.info("Open graph '{}' for test '{}'", graphName, testMethod);
+        }
         return testGraph;
     }
 
