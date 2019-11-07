@@ -81,8 +81,7 @@ public class StructureBasicSuite extends AbstractGremlinSuite {
             FeatureSupportTest.class,
             IoCustomTest.class,
             IoEdgeTest.class,
-            // TODO: Open it when rocksdb bug fixed
-            // IoGraphTest.class,
+            IoGraphTest.class,
             IoVertexTest.class,
             IoPropertyTest.class,
             GraphTest.class,

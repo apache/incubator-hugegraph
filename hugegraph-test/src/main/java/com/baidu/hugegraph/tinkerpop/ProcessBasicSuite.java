@@ -189,7 +189,7 @@ public class ProcessBasicSuite extends AbstractGremlinSuite {
 
             // decorations
             ElementIdStrategyProcessTest.class,
-            // EventStrategyProcessTest.class,
+            EventStrategyProcessTest.class,
             ReadOnlyStrategyProcessTest.class,
             PartitionStrategyProcessTest.class,
             SubgraphStrategyProcessTest.class,
