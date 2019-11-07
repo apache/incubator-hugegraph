@@ -80,7 +80,6 @@ public class EdgeLabelBuilder implements EdgeLabel.Builder {
         this.transaction = transaction;
     }
 
-
     @Override
     public EdgeLabel build() {
         Id id = this.transaction.validOrGenerateId(HugeType.EDGE_LABEL,
