@@ -127,9 +127,9 @@ public final class CachedGraphTransaction extends GraphTransaction {
             }
             return false;
         };
-        EventHub schemaEventHub = this.graph().graphEventHub();
-        if (!schemaEventHub.containsListener(Events.CACHE)) {
-            schemaEventHub.listen(Events.CACHE, this.cacheEventListener);
+        EventHub graphEventHub = this.graph().graphEventHub();
+        if (!graphEventHub.containsListener(Events.CACHE)) {
+            graphEventHub.listen(Events.CACHE, this.cacheEventListener);
         }
     }
 

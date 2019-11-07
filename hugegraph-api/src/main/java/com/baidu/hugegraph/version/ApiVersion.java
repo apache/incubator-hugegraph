@@ -24,8 +24,6 @@ import com.baidu.hugegraph.util.VersionUtil.Version;
 
 public final class ApiVersion {
 
-    public static final String NAME = "hugegraph-api";
-
     /**
      * API Version change log
      *
