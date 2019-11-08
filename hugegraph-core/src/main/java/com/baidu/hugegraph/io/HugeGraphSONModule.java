@@ -30,6 +30,8 @@ import org.apache.tinkerpop.gremlin.structure.io.graphson.GraphSONIo;
 import org.apache.tinkerpop.gremlin.structure.io.graphson.TinkerPopJacksonModule;
 import org.apache.tinkerpop.shaded.jackson.core.JsonGenerator;
 import org.apache.tinkerpop.shaded.jackson.core.JsonParser;
+import org.apache.tinkerpop.shaded.jackson.core.JsonToken;
+import org.apache.tinkerpop.shaded.jackson.core.type.WritableTypeId;
 import org.apache.tinkerpop.shaded.jackson.databind.DeserializationContext;
 import org.apache.tinkerpop.shaded.jackson.databind.JsonSerializer;
 import org.apache.tinkerpop.shaded.jackson.databind.SerializerProvider;
@@ -224,9 +226,11 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
                                       SerializerProvider provider,
                                       TypeSerializer typeSer)
                                       throws IOException {
-            typeSer.writeTypePrefixForScalar(value, jsonGenerator);
+            // https://github.com/FasterXML/jackson-databind/issues/2320
+            WritableTypeId typeId = typeSer.typeId(value, JsonToken.VALUE_STRING);
+            typeSer.writeTypePrefix(jsonGenerator, typeId);
             this.serialize(value, jsonGenerator, provider);
-            typeSer.writeTypeSuffixForScalar(value, jsonGenerator);
+            typeSer.writeTypeSuffix(jsonGenerator, typeId);
         }
     }
 

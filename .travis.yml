@@ -30,11 +30,15 @@ script:
     fi
   - |
     if [[ "$TRAVIS_BRANCH" =~ $RELEASE_BRANCH ]]; then
-      mvn test -P tinkerpop-structure-test,$BACKEND
+      if [[ "$BACKEND" != "rocksdb" && "$BACKEND" != "hbase" ]]; then
+        mvn test -P tinkerpop-structure-test,$BACKEND
+      fi
     fi
   - |
     if [[ "$TRAVIS_BRANCH" =~ $RELEASE_BRANCH ]]; then
-      mvn test -P tinkerpop-process-test,$BACKEND
+      if [[ "$BACKEND" != "rocksdb" && "$BACKEND" != "hbase" ]]; then
+        mvn test -P tinkerpop-process-test,$BACKEND
+      fi
     fi
 
 after_success:

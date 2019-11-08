@@ -147,6 +147,7 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
                      "try to init CF later", this.store, this.namespace);
         }
 
+        this.sessions.session();
         LOG.debug("Store opened: {}", this.store);
     }
 
