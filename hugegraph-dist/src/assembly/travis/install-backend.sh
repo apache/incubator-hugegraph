@@ -6,10 +6,10 @@ TRAVIS_DIR=`dirname $0`
 
 if [[ "$BACKEND" == "cassandra" || "$BACKEND" == "scylladb" ]]; then
     $TRAVIS_DIR/install-cassandra.sh
-elif [ "$BACKEND" == "hbase" ]; then
+elif [[ "$BACKEND" == "hbase" ]]; then
     $TRAVIS_DIR/install-hbase.sh
-elif [ "$BACKEND" == "mysql" ]; then
+elif [[ "$BACKEND" == "mysql" ]]; then
     $TRAVIS_DIR/install-mysql.sh
-elif [ "$BACKEND" == "postgresql" ]; then
+elif [[ "$BACKEND" == "postgresql" ]]; then
     $TRAVIS_DIR/install-postgresql.sh
 fi
