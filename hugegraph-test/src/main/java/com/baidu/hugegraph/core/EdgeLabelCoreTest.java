@@ -36,7 +36,6 @@ import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.type.define.Frequency;
-import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.Events;
 
@@ -696,8 +695,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
                                .sortKeys("time")
                                .create();
 
-        Date createTime = (Date) look.userdata()
-                                     .get(HugeKeys.CREATE_TIME.string());
+        Date createTime = (Date) look.userdata().get("create_time");
         Date now = DateUtil.now();
         Assert.assertFalse(createTime.after(now));
     }

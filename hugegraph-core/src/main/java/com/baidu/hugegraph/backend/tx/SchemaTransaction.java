@@ -448,11 +448,12 @@ public class SchemaTransaction extends IndexableTransaction {
     }
 
     private static void setCreateTime(SchemaElement schema) {
+        final String createTime = "create_time";
         if (schema instanceof IndexLabel) {
             return;
         }
-        if (!schema.userdata().containsKey(HugeKeys.CREATE_TIME.string())) {
-            schema.userdata(HugeKeys.CREATE_TIME.string(), DateUtil.now());
+        if (!schema.userdata().containsKey(createTime)) {
+            schema.userdata(createTime, DateUtil.now());
         }
     }
 

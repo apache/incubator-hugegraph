@@ -32,7 +32,6 @@ import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.type.define.AggregateType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
-import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.DateUtil;
 import com.google.common.collect.ImmutableList;
 
@@ -314,8 +313,7 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
                                .valueSingle()
                                .create();
 
-        Date createTime = (Date) id.userdata()
-                                   .get(HugeKeys.CREATE_TIME.string());
+        Date createTime = (Date) id.userdata().get("create_time");
         Date now = DateUtil.now();
         Assert.assertFalse(createTime.after(now));
     }

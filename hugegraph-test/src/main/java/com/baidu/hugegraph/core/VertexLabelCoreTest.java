@@ -36,7 +36,6 @@ import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.testutil.Assert;
-import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.Events;
@@ -673,8 +672,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
                                    .primaryKeys("name")
                                    .create();
 
-        Date createTime = (Date) person.userdata()
-                                       .get(HugeKeys.CREATE_TIME.string());
+        Date createTime = (Date) person.userdata().get("create_time");
         Date now = DateUtil.now();
         Assert.assertFalse(createTime.after(now));
     }
