@@ -72,7 +72,9 @@ public enum HugeKeys {
     PROPERTY_VALUE(204, "property_value"),
     DIRECTION(205, "direction"),
     SORT_VALUES(206, "sort_values"),
-    PRIMARY_VALUES(207, "primary_values");
+    PRIMARY_VALUES(207, "primary_values"),
+
+    CREATE_TIME(240, "create_time");
 
     /* HugeKeys define */
     private byte code = 0;

@@ -19,6 +19,8 @@
 
 package com.baidu.hugegraph.core;
 
+import java.util.Date;
+
 import org.junit.Test;
 
 import com.baidu.hugegraph.HugeException;
@@ -30,6 +32,8 @@ import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.type.define.AggregateType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
+import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.util.DateUtil;
 import com.google.common.collect.ImmutableList;
 
 public class PropertyKeyCoreTest extends SchemaCoreTest {
@@ -303,6 +307,20 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
     }
 
     @Test
+    public void testCreateTime() {
+        SchemaManager schema = graph().schema();
+        PropertyKey id = schema.propertyKey("id")
+                               .asText()
+                               .valueSingle()
+                               .create();
+
+        Date createTime = (Date) id.userdata()
+                                   .get(HugeKeys.CREATE_TIME.string());
+        Date now = DateUtil.now();
+        Assert.assertFalse(createTime.after(now));
+    }
+
+    @Test
     public void testRemovePropertyKey() {
         SchemaManager schema = graph().schema();
         schema.propertyKey("id").valueSingle().create();
@@ -367,7 +385,7 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
                                 .userdata("min", 0)
                                 .userdata("max", 100)
                                 .create();
-        Assert.assertEquals(2, age.userdata().size());
+        Assert.assertEquals(3, age.userdata().size());
         Assert.assertEquals(0, age.userdata().get("min"));
         Assert.assertEquals(100, age.userdata().get("max"));
 
@@ -376,14 +394,14 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
                                .userdata("length", 18)
                                .create();
         // The same key user data will be overwritten
-        Assert.assertEquals(1, id.userdata().size());
+        Assert.assertEquals(2, id.userdata().size());
         Assert.assertEquals(18, id.userdata().get("length"));
 
         PropertyKey sex = schema.propertyKey("sex")
                                 .userdata("range",
                                           ImmutableList.of("male", "female"))
                                 .create();
-        Assert.assertEquals(1, sex.userdata().size());
+        Assert.assertEquals(2, sex.userdata().size());
         Assert.assertEquals(ImmutableList.of("male", "female"),
                             sex.userdata().get("range"));
     }
@@ -395,14 +413,14 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
         PropertyKey age = schema.propertyKey("age")
                                 .userdata("min", 0)
                                 .create();
-        Assert.assertEquals(1, age.userdata().size());
+        Assert.assertEquals(2, age.userdata().size());
         Assert.assertEquals(0, age.userdata().get("min"));
 
         age = schema.propertyKey("age")
                     .userdata("min", 1)
                     .userdata("max", 100)
                     .append();
-        Assert.assertEquals(2, age.userdata().size());
+        Assert.assertEquals(3, age.userdata().size());
         Assert.assertEquals(1, age.userdata().get("min"));
         Assert.assertEquals(100, age.userdata().get("max"));
     }
@@ -415,14 +433,14 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
                                 .userdata("min", 0)
                                 .userdata("max", 100)
                                 .create();
-        Assert.assertEquals(2, age.userdata().size());
+        Assert.assertEquals(3, age.userdata().size());
         Assert.assertEquals(0, age.userdata().get("min"));
         Assert.assertEquals(100, age.userdata().get("max"));
 
         age = schema.propertyKey("age")
                     .userdata("max", "")
                     .eliminate();
-        Assert.assertEquals(1, age.userdata().size());
+        Assert.assertEquals(2, age.userdata().size());
         Assert.assertEquals(0, age.userdata().get("min"));
     }
 

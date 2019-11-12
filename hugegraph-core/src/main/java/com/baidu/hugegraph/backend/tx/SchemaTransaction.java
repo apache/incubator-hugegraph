@@ -57,6 +57,7 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.GraphMode;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.SchemaStatus;
+import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.LockUtil;
 import com.google.common.collect.ImmutableSet;
@@ -267,6 +268,8 @@ public class SchemaTransaction extends IndexableTransaction {
     protected void addSchema(SchemaElement schema) {
         LOG.debug("SchemaTransaction add {} with id '{}'",
                   schema.type(), schema.id());
+        this.setCreateTime(schema);
+
         LockUtil.Locks locks = new LockUtil.Locks(this.graph().name());
         try {
             locks.lockWrites(LockUtil.hugeType2Group(schema.type()),
@@ -441,6 +444,15 @@ public class SchemaTransaction extends IndexableTransaction {
             if (element != null) {
                 throw new ExistedException(type.readableName() + " id", id);
             }
+        }
+    }
+
+    private static void setCreateTime(SchemaElement schema) {
+        if (schema instanceof IndexLabel) {
+            return;
+        }
+        if (!schema.userdata().containsKey(HugeKeys.CREATE_TIME.string())) {
+            schema.userdata(HugeKeys.CREATE_TIME.string(), DateUtil.now());
         }
     }
 
