@@ -107,9 +107,10 @@ function crontab_remove() {
 
 # wait_for_startup friendly_name host port timeout_s
 function wait_for_startup() {
-    local server_name="$1"
-    local server_url="$2"
-    local timeout_s="$3"
+    local pid="$1"
+    local server_name="$2"
+    local server_url="$3"
+    local timeout_s="$4"
 
     local now_s=`date '+%s'`
     local stop_s=$(( $now_s + $timeout_s ))
@@ -119,6 +120,11 @@ function wait_for_startup() {
     echo -n "Connecting to $server_name ($server_url)"
     while [ $now_s -le $stop_s ]; do
         echo -n .
+        process_status "$server_name" "$pid" >/dev/null
+        if [ $? -eq 1 ]; then
+            echo "Starting $server_name failed"
+            return 1
+        fi
         status=`curl -o /dev/null -s -w %{http_code} $server_url`
         if [ $status -eq 200 ]; then
             echo "OK"
