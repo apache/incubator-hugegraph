@@ -985,6 +985,7 @@ public class BinarySerializer extends AbstractSerializer {
             writeEnum(HugeKeys.INDEX_TYPE, schema.indexType());
             writeIds(HugeKeys.FIELDS, schema.indexFields());
             writeEnum(HugeKeys.STATUS, schema.status());
+            writeUserdata(schema);
             return this.entry;
         }
 
@@ -1002,6 +1003,7 @@ public class BinarySerializer extends AbstractSerializer {
                                           IndexType.class));
             indexLabel.indexFields(readIds(HugeKeys.FIELDS));
             indexLabel.status(readEnum(HugeKeys.STATUS, SchemaStatus.class));
+            readUserdata(indexLabel);
             return indexLabel;
         }
 

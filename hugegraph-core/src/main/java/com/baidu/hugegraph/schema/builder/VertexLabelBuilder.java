@@ -148,9 +148,7 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
             PropertyKey propertyKey = this.transaction.getPropertyKey(key);
             vertexLabel.nullableKey(propertyKey.id());
         }
-        for (Map.Entry<String, Object> entry : this.userdata.entrySet()) {
-            vertexLabel.userdata(entry.getKey(), entry.getValue());
-        }
+        vertexLabel.userdata(this.userdata);
         this.transaction.addVertexLabel(vertexLabel);
         return vertexLabel;
     }
@@ -168,9 +166,7 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
         this.checkNullableKeys(Action.ELIMINATE);
         this.checkUserdata(Action.ELIMINATE);
 
-        for (String key : this.userdata.keySet()) {
-            vertexLabel.removeUserdata(key);
-        }
+        vertexLabel.removeUserdata(this.userdata);
         this.transaction.addVertexLabel(vertexLabel);
         return vertexLabel;
     }

@@ -28,6 +28,7 @@ import com.baidu.hugegraph.exception.NotAllowException;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaManager;
+import com.baidu.hugegraph.schema.Userdata;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.type.define.AggregateType;
 import com.baidu.hugegraph.type.define.Cardinality;
@@ -306,19 +307,6 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
     }
 
     @Test
-    public void testCreateTime() {
-        SchemaManager schema = graph().schema();
-        PropertyKey id = schema.propertyKey("id")
-                               .asText()
-                               .valueSingle()
-                               .create();
-
-        Date createTime = (Date) id.userdata().get("create_time");
-        Date now = DateUtil.now();
-        Assert.assertFalse(createTime.after(now));
-    }
-
-    @Test
     public void testRemovePropertyKey() {
         SchemaManager schema = graph().schema();
         schema.propertyKey("id").valueSingle().create();
@@ -467,5 +455,22 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
         Assert.assertThrows(HugeException.class, () -> {
             schema.propertyKey("age").valueList().eliminate();
         });
+    }
+
+    @Test
+    public void testCreateTime() {
+        SchemaManager schema = graph().schema();
+        PropertyKey id = schema.propertyKey("id")
+                               .asText()
+                               .valueSingle()
+                               .create();
+
+        Date createTime = (Date) id.userdata().get(Userdata.CREATE_TIME);
+        Date now = DateUtil.now();
+        Assert.assertFalse(createTime.after(now));
+
+        id = schema.getPropertyKey("id");
+        createTime = (Date) id.userdata().get(Userdata.CREATE_TIME);
+        Assert.assertFalse(createTime.after(now));
     }
 }

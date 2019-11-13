@@ -107,9 +107,7 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
         this.checkStableVars();
         this.checkUserdata(Action.APPEND);
 
-        for (Map.Entry<String, Object> entry : this.userdata.entrySet()) {
-            propertyKey.userdata(entry.getKey(), entry.getValue());
-        }
+        propertyKey.userdata(this.userdata);
         this.transaction.addPropertyKey(propertyKey);
         return propertyKey;
     }
@@ -124,9 +122,7 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
         this.checkStableVars();
         this.checkUserdata(Action.ELIMINATE);
 
-        for (String key : this.userdata.keySet()) {
-            propertyKey.removeUserdata(key);
-        }
+        propertyKey.removeUserdata(this.userdata);
         this.transaction.addPropertyKey(propertyKey);
         return propertyKey;
     }

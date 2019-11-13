@@ -229,6 +229,7 @@ public class MysqlTables {
             this.define.column(HugeKeys.BASE_VALUE, DATATYPE_SL);
             this.define.column(HugeKeys.INDEX_TYPE, TINYINT);
             this.define.column(HugeKeys.FIELDS, SMALL_JSON);
+            this.define.column(HugeKeys.USER_DATA, LARGE_JSON);
             this.define.column(HugeKeys.STATUS, TINYINT);
             this.define.keys(HugeKeys.ID);
         }

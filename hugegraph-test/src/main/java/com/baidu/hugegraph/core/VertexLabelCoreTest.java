@@ -34,6 +34,7 @@ import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.exception.NoIndexException;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.SchemaManager;
+import com.baidu.hugegraph.schema.Userdata;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.type.define.IdStrategy;
@@ -663,21 +664,6 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
     }
 
     @Test
-    public void testCreateTime() {
-        super.initPropertyKeys();
-        SchemaManager schema = graph().schema();
-
-        VertexLabel person = schema.vertexLabel("person")
-                                   .properties("name", "age", "city")
-                                   .primaryKeys("name")
-                                   .create();
-
-        Date createTime = (Date) person.userdata().get("create_time");
-        Date now = DateUtil.now();
-        Assert.assertFalse(createTime.after(now));
-    }
-
-    @Test
     public void testRemoveVertexLabel() {
         super.initPropertyKeys();
         SchemaManager schema = graph().schema();
@@ -980,5 +966,24 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
         Assert.assertTrue(vertexLabels.contains(person));
         Assert.assertTrue(vertexLabels.contains(author));
         Assert.assertTrue(vertexLabels.contains(book));
+    }
+
+    @Test
+    public void testCreateTime() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+
+        VertexLabel person = schema.vertexLabel("person")
+                                   .properties("name", "age", "city")
+                                   .primaryKeys("name")
+                                   .create();
+
+        Date createTime = (Date) person.userdata().get(Userdata.CREATE_TIME);
+        Date now = DateUtil.now();
+        Assert.assertFalse(createTime.after(now));
+
+        person = schema.getVertexLabel("person");
+        createTime = (Date) person.userdata().get(Userdata.CREATE_TIME);
+        Assert.assertFalse(createTime.after(now));
     }
 }

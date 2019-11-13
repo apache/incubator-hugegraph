@@ -565,6 +565,7 @@ public abstract class TableSerializer extends AbstractSerializer {
         entry.column(HugeKeys.INDEX_TYPE, indexLabel.indexType().code());
         entry.column(HugeKeys.FIELDS,
                      this.toLongList(indexLabel.indexFields()));
+        this.writeUserdata(indexLabel, entry);
         entry.column(HugeKeys.STATUS, indexLabel.status().code());
         return entry;
     }
@@ -593,6 +594,7 @@ public abstract class TableSerializer extends AbstractSerializer {
         indexLabel.indexType(SerialEnum.fromCode(IndexType.class,
                                                  indexType.byteValue()));
         indexLabel.indexFields(this.toIdArray(indexFields));
+        this.readUserdata(indexLabel, entry);
         indexLabel.status(SerialEnum.fromCode(SchemaStatus.class,
                                               status.byteValue()));
         return indexLabel;

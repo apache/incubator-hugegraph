@@ -34,6 +34,7 @@ import com.baidu.hugegraph.exception.NoIndexException;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.SchemaManager;
+import com.baidu.hugegraph.schema.Userdata;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.type.define.Frequency;
 import com.baidu.hugegraph.util.DateUtil;
@@ -680,27 +681,6 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
     }
 
     @Test
-    public void testCreateTime() {
-        super.initPropertyKeys();
-        SchemaManager schema = graph().schema();
-        schema.vertexLabel("person")
-              .properties("name", "age", "city")
-              .primaryKeys("name")
-              .create();
-        schema.vertexLabel("book").properties("id", "name")
-              .primaryKeys("id").create();
-        EdgeLabel look = schema.edgeLabel("look").multiTimes()
-                               .properties("time")
-                               .link("person", "book")
-                               .sortKeys("time")
-                               .create();
-
-        Date createTime = (Date) look.userdata().get("create_time");
-        Date now = DateUtil.now();
-        Assert.assertFalse(createTime.after(now));
-    }
-
-    @Test
     public void testRemoveEdgeLabel() {
         super.initPropertyKeys();
         SchemaManager schema = graph().schema();
@@ -1099,5 +1079,30 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
         Assert.assertEquals(2, edgeLabels.size());
         Assert.assertTrue(edgeLabels.contains(look));
         Assert.assertTrue(edgeLabels.contains(write));
+    }
+
+    @Test
+    public void testCreateTime() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+        schema.vertexLabel("person")
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .create();
+        schema.vertexLabel("book").properties("id", "name")
+              .primaryKeys("id").create();
+        EdgeLabel look = schema.edgeLabel("look").multiTimes()
+                               .properties("time")
+                               .link("person", "book")
+                               .sortKeys("time")
+                               .create();
+
+        Date createTime = (Date) look.userdata().get(Userdata.CREATE_TIME);
+        Date now = DateUtil.now();
+        Assert.assertFalse(createTime.after(now));
+
+        look = schema.getEdgeLabel("look");
+        createTime = (Date) look.userdata().get(Userdata.CREATE_TIME);
+        Assert.assertFalse(createTime.after(now));
     }
 }

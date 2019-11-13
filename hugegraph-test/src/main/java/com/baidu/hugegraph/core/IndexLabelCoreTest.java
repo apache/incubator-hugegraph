@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.core;
 
+import java.util.Date;
 import java.util.List;
 
 import org.apache.tinkerpop.gremlin.process.traversal.P;
@@ -28,16 +29,20 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.junit.Assume;
 import org.junit.Test;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.exception.NoIndexException;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.SchemaManager;
+import com.baidu.hugegraph.schema.Userdata;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.IndexType;
+import com.baidu.hugegraph.util.DateUtil;
+import com.google.common.collect.ImmutableList;
 
 public class IndexLabelCoreTest extends SchemaCoreTest {
 
@@ -1394,5 +1399,154 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
         edge = graph().traversal().E().hasLabel("authored")
                .has("contribution", "test").next();
         Assert.assertNotNull(edge);
+    }
+
+    @Test
+    public void testAddIndexLabelWithUserdata() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+        schema.vertexLabel("person")
+              .properties("id", "name", "age", "city")
+              .primaryKeys("id")
+              .create();
+
+        IndexLabel personByName = schema.indexLabel("personByName")
+                                        .onV("person").secondary().by("name")
+                                        .userdata("min", 0)
+                                        .userdata("max", 100)
+                                        .create();
+        Assert.assertEquals(3, personByName.userdata().size());
+        Assert.assertEquals(0, personByName.userdata().get("min"));
+        Assert.assertEquals(100, personByName.userdata().get("max"));
+
+        IndexLabel personByAge = schema.indexLabel("personByAge")
+                                        .onV("person").range().by("age")
+                                        .userdata("length", 15)
+                                        .userdata("length", 18)
+                                        .create();
+        // The same key user data will be overwritten
+        Assert.assertEquals(2, personByAge.userdata().size());
+        Assert.assertEquals(18, personByAge.userdata().get("length"));
+
+        List<Object> datas = ImmutableList.of("Beijing", "Shanghai");
+        IndexLabel personByCity = schema.indexLabel("personByCity")
+                                        .onV("person").secondary().by("city")
+                                        .userdata("range", datas)
+                                        .create();
+        Assert.assertEquals(2, personByCity.userdata().size());
+        Assert.assertEquals(datas, personByCity.userdata().get("range"));
+    }
+
+    @Test
+    public void testAppendIndexLabelWithUserdata() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+        schema.vertexLabel("person")
+              .properties("id", "name", "age", "city")
+              .primaryKeys("id")
+              .create();
+
+        IndexLabel personByName = schema.indexLabel("personByName")
+                                        .onV("person").secondary().by("name")
+                                        .userdata("min", 0)
+                                        .create();
+        Assert.assertEquals(2, personByName.userdata().size());
+        Assert.assertEquals(0, personByName.userdata().get("min"));
+
+        personByName = schema.indexLabel("personByName")
+                             .userdata("min", 1)
+                             .userdata("max", 100)
+                             .append();
+        Assert.assertEquals(3, personByName.userdata().size());
+        Assert.assertEquals(1, personByName.userdata().get("min"));
+        Assert.assertEquals(100, personByName.userdata().get("max"));
+    }
+
+    @Test
+    public void testEliminateIndexLabelWithUserdata() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+        schema.vertexLabel("person")
+              .properties("id", "name", "age", "city")
+              .primaryKeys("id")
+              .create();
+
+        IndexLabel personByName = schema.indexLabel("personByName")
+                                        .onV("person").secondary().by("name")
+                                        .userdata("min", 0)
+                                        .userdata("max", 100)
+                                        .create();
+        Assert.assertEquals(3, personByName.userdata().size());
+        Assert.assertEquals(0, personByName.userdata().get("min"));
+        Assert.assertEquals(100, personByName.userdata().get("max"));
+
+        personByName = schema.indexLabel("personByName")
+                             .userdata("max", "")
+                             .eliminate();
+        Assert.assertEquals(2, personByName.userdata().size());
+        Assert.assertEquals(0, personByName.userdata().get("min"));
+    }
+
+    @Test
+    public void testUpdateIndexLabelWithNonUserdata() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+        schema.vertexLabel("person")
+              .properties("id", "name", "age", "city")
+              .primaryKeys("id")
+              .create();
+        schema.vertexLabel("software")
+              .properties("id", "name")
+              .primaryKeys("id")
+              .create();
+
+        schema.indexLabel("personByName")
+              .onV("person").secondary().by("name")
+              .userdata("min", 0)
+              .userdata("max", 100)
+              .create();
+
+        Assert.assertThrows(HugeException.class, () -> {
+            schema.indexLabel("personByName").onV("software").append();
+        });
+        Assert.assertThrows(HugeException.class, () -> {
+            schema.indexLabel("personByName").range().append();
+        });
+        Assert.assertThrows(HugeException.class, () -> {
+            schema.indexLabel("personByName").by("age").append();
+        });
+
+        Assert.assertThrows(HugeException.class, () -> {
+            schema.indexLabel("personByName").onV("software").eliminate();
+        });
+        Assert.assertThrows(HugeException.class, () -> {
+            schema.indexLabel("personByName").range().eliminate();
+        });
+        Assert.assertThrows(HugeException.class, () -> {
+            schema.indexLabel("personByName").by("age").eliminate();
+        });
+    }
+
+    @Test
+    public void testCreateTime() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+        schema.vertexLabel("person")
+              .properties("id", "name", "age", "city")
+              .primaryKeys("id")
+              .create();
+
+        IndexLabel personByName = schema.indexLabel("personByName")
+                                        .onV("person").secondary().by("name")
+                                        .create();
+
+        Date createTime = (Date) personByName.userdata()
+                                             .get(Userdata.CREATE_TIME);
+        Date now = DateUtil.now();
+        Assert.assertFalse(createTime.after(now));
+
+        personByName = schema.getIndexLabel("personByName");
+        createTime = (Date) personByName.userdata().get(Userdata.CREATE_TIME);
+        Assert.assertFalse(createTime.after(now));
     }
 }

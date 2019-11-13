@@ -667,6 +667,7 @@ public class TextSerializer extends AbstractSerializer {
         entry.column(HugeKeys.INDEX_TYPE,
                      JsonUtil.toJson(indexLabel.indexType()));
         entry.column(HugeKeys.FIELDS, writeIds(indexLabel.indexFields()));
+        writeUserdata(indexLabel, entry);
         entry.column(HugeKeys.STATUS,
                      JsonUtil.toJson(indexLabel.status()));
         return entry;
@@ -694,6 +695,7 @@ public class TextSerializer extends AbstractSerializer {
         indexLabel.baseValue(readId(baseValue));
         indexLabel.indexType(JsonUtil.fromJson(indexType, IndexType.class));
         indexLabel.indexFields(readIds(indexFields));
+        readUserdata(indexLabel, entry);
         indexLabel.status(JsonUtil.fromJson(status, SchemaStatus.class));
         return indexLabel;
     }

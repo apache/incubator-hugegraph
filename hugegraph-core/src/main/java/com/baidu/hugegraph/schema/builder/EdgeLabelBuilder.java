@@ -159,9 +159,7 @@ public class EdgeLabelBuilder implements EdgeLabel.Builder {
             PropertyKey propertyKey = this.transaction.getPropertyKey(key);
             edgeLabel.nullableKey(propertyKey.id());
         }
-        for (Map.Entry<String, Object> entry : this.userdata.entrySet()) {
-            edgeLabel.userdata(entry.getKey(), entry.getValue());
-        }
+        edgeLabel.userdata(this.userdata);
         this.transaction.addEdgeLabel(edgeLabel);
         return edgeLabel;
     }
@@ -179,9 +177,7 @@ public class EdgeLabelBuilder implements EdgeLabel.Builder {
         this.checkNullableKeys(Action.ELIMINATE);
         this.checkUserdata(Action.ELIMINATE);
 
-        for (String key : this.userdata.keySet()) {
-            edgeLabel.removeUserdata(key);
-        }
+        edgeLabel.removeUserdata(this.userdata);
         this.transaction.addEdgeLabel(edgeLabel);
         return edgeLabel;
     }

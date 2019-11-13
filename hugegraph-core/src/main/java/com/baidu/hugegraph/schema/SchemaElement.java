@@ -89,9 +89,15 @@ public abstract class SchemaElement implements Namifiable, Typifiable,
         this.userdata.putAll(userdata);
     }
 
-    public Object removeUserdata(String key) {
+    public void removeUserdata(String key) {
         E.checkArgumentNotNull(key, "The userdata key can't be null");
-        return this.userdata.remove(key);
+        this.userdata.remove(key);
+    }
+
+    public void removeUserdata(Userdata userdata) {
+        for (String key : userdata.keySet()) {
+            this.userdata.remove(key);
+        }
     }
 
     public SchemaStatus status() {

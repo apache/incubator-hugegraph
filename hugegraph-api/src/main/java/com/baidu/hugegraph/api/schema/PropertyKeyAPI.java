@@ -21,7 +21,6 @@ package com.baidu.hugegraph.api.schema;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
@@ -44,6 +43,7 @@ import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.define.Checkable;
 import com.baidu.hugegraph.schema.PropertyKey;
+import com.baidu.hugegraph.schema.Userdata;
 import com.baidu.hugegraph.type.define.AggregateType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
@@ -177,7 +177,7 @@ public class PropertyKeyAPI extends API {
         @JsonProperty("properties")
         public String[] properties;
         @JsonProperty("user_data")
-        public Map<String, Object> userdata;
+        public Userdata userdata;
         @JsonProperty("check_exist")
         public Boolean checkExist;
 

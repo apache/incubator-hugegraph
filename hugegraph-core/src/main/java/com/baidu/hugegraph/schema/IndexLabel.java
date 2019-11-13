@@ -28,7 +28,6 @@ import java.util.Map;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
-import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.schema.builder.SchemaBuilder;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.IndexType;
@@ -121,16 +120,6 @@ public class IndexLabel extends SchemaElement {
         return this.indexFields.get(0);
     }
 
-    @Override
-    public Map<String, Object> userdata() {
-        throw new NotSupportException("user data for index label");
-    }
-
-    @Override
-    public void userdata(String key, Object value) {
-        throw new NotSupportException("user data for index label");
-    }
-
     // ABS of System index id must be below SchemaElement.MAX_PRIMITIVE_SYS_ID
     private static final int VL_IL_ID = -1;
     private static final int EL_IL_ID = -2;
@@ -220,6 +209,10 @@ public class IndexLabel extends SchemaElement {
         Builder on(HugeType baseType, String baseValue);
 
         Builder indexType(IndexType indexType);
+
+        Builder userdata(String key, Object value);
+
+        Builder userdata(Map<String, Object> userdata);
     }
 
     public static class CreatedIndexLabel {

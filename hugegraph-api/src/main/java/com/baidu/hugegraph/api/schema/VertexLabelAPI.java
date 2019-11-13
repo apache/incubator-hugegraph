@@ -44,6 +44,7 @@ import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.define.Checkable;
+import com.baidu.hugegraph.schema.Userdata;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.define.GraphMode;
 import com.baidu.hugegraph.type.define.IdStrategy;
@@ -183,7 +184,7 @@ public class VertexLabelAPI extends API {
         @JsonProperty("enable_label_index")
         public Boolean enableLabelIndex;
         @JsonProperty("user_data")
-        public Map<String, Object> userdata;
+        public Userdata userdata;
         @JsonProperty("check_exist")
         public Boolean checkExist;
 
