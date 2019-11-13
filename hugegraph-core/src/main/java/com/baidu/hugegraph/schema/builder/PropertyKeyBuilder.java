@@ -19,7 +19,6 @@
 
 package com.baidu.hugegraph.schema.builder;
 
-import java.util.HashMap;
 import java.util.Map;
 
 import com.baidu.hugegraph.HugeGraph;
@@ -31,6 +30,7 @@ import com.baidu.hugegraph.exception.NotAllowException;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaElement;
+import com.baidu.hugegraph.schema.Userdata;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Action;
 import com.baidu.hugegraph.type.define.AggregateType;
@@ -45,9 +45,8 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
     private DataType dataType;
     private Cardinality cardinality;
     private AggregateType aggregateType;
-    private Map<String, Object> userdata;
     private boolean checkExist;
-
+    private Userdata userdata;
     private SchemaTransaction transaction;
 
     public PropertyKeyBuilder(String name, SchemaTransaction transaction) {
@@ -58,7 +57,7 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
         this.dataType = DataType.TEXT;
         this.cardinality = Cardinality.SINGLE;
         this.aggregateType = AggregateType.NONE;
-        this.userdata = new HashMap<>();
+        this.userdata = new Userdata();
         this.checkExist = true;
         this.transaction = transaction;
     }
@@ -72,9 +71,7 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
         propertyKey.dataType(this.dataType);
         propertyKey.cardinality(this.cardinality);
         propertyKey.aggregateType(this.aggregateType);
-        for (Map.Entry<String, Object> entry : this.userdata.entrySet()) {
-            propertyKey.userdata(entry.getKey(), entry.getValue());
-        }
+        propertyKey.userdata(this.userdata);
         return propertyKey;
     }
 

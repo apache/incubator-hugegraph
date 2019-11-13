@@ -22,7 +22,6 @@ package com.baidu.hugegraph.schema.builder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +38,7 @@ import com.baidu.hugegraph.exception.NotAllowException;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaElement;
+import com.baidu.hugegraph.schema.Userdata;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Action;
@@ -56,7 +56,7 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
     private List<String> primaryKeys;
     private Set<String> nullableKeys;
     private Boolean enableLabelIndex;
-    private Map<String, Object> userdata;
+    private Userdata userdata;
     private boolean checkExist;
 
     private SchemaTransaction transaction;
@@ -71,7 +71,7 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
         this.primaryKeys = new ArrayList<>();
         this.nullableKeys = new HashSet<>();
         this.enableLabelIndex = null;
-        this.userdata = new HashMap<>();
+        this.userdata = new Userdata();
         this.checkExist = true;
 
         this.transaction = transaction;
@@ -99,9 +99,7 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
             PropertyKey propertyKey = this.transaction.getPropertyKey(key);
             vertexLabel.nullableKey(propertyKey.id());
         }
-        for (Map.Entry<String, Object> entry : this.userdata.entrySet()) {
-            vertexLabel.userdata(entry.getKey(), entry.getValue());
-        }
+        vertexLabel.userdata(this.userdata);
         return vertexLabel;
     }
 

@@ -51,6 +51,7 @@ import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.SchemaLabel;
+import com.baidu.hugegraph.schema.Userdata;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.task.HugeTask;
 import com.baidu.hugegraph.type.HugeType;
@@ -448,12 +449,11 @@ public class SchemaTransaction extends IndexableTransaction {
     }
 
     private static void setCreateTime(SchemaElement schema) {
-        final String createTime = "create_time";
         if (schema instanceof IndexLabel) {
             return;
         }
-        if (!schema.userdata().containsKey(createTime)) {
-            schema.userdata(createTime, DateUtil.now());
+        if (!schema.userdata().containsKey(Userdata.CREATE_TIME)) {
+            schema.userdata(Userdata.CREATE_TIME, DateUtil.now());
         }
     }
 

@@ -22,7 +22,6 @@ package com.baidu.hugegraph.schema.builder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -40,6 +39,7 @@ import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaElement;
+import com.baidu.hugegraph.schema.Userdata;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Action;
 import com.baidu.hugegraph.type.define.Frequency;
@@ -58,7 +58,7 @@ public class EdgeLabelBuilder implements EdgeLabel.Builder {
     private List<String> sortKeys;
     private Set<String> nullableKeys;
     private Boolean enableLabelIndex;
-    private Map<String, Object> userdata;
+    private Userdata userdata;
     private boolean checkExist;
 
     private SchemaTransaction transaction;
@@ -75,7 +75,7 @@ public class EdgeLabelBuilder implements EdgeLabel.Builder {
         this.sortKeys = new ArrayList<>();
         this.nullableKeys = new HashSet<>();
         this.enableLabelIndex = null;
-        this.userdata = new HashMap<>();
+        this.userdata = new Userdata();
         this.checkExist = true;
         this.transaction = transaction;
     }
@@ -105,9 +105,7 @@ public class EdgeLabelBuilder implements EdgeLabel.Builder {
             PropertyKey propertyKey = this.transaction.getPropertyKey(key);
             edgeLabel.nullableKey(propertyKey.id());
         }
-        for (Map.Entry<String, Object> entry : this.userdata.entrySet()) {
-            edgeLabel.userdata(entry.getKey(), entry.getValue());
-        }
+        edgeLabel.userdata(this.userdata);
         return edgeLabel;
     }
 
