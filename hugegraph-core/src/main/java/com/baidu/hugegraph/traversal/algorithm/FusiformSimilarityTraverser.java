@@ -51,7 +51,7 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
 
     public Map<Id, Set<Id>> fusiformSimilarity(Iterator<Vertex> vertices,
                                                Directions direction,
-                                               EdgeLabel edgeLabel,
+                                               EdgeLabel label,
                                                int minNeighborCount,
                                                long degree, float alpha,
                                                int top, String groupProperty,
@@ -69,7 +69,7 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
             HugeVertex vertex = (HugeVertex) vertices.next();
             // Find fusiform similarity for current vertex
             Set<Id> result = this.fusiformSimilarityForVertex(
-                             vertex, direction, edgeLabel, minNeighborCount,
+                             vertex, direction, label, minNeighborCount,
                              degree, alpha, top, groupProperty, minGroupCount,
                              capacity);
             if (result.isEmpty()) {
@@ -86,23 +86,21 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
 
     private Set<Id> fusiformSimilarityForVertex(HugeVertex vertex,
                                                 Directions direction,
-                                                EdgeLabel edgeLabel,
+                                                EdgeLabel label,
                                                 int minNeighborCount,
                                                 long degree, float alpha,
                                                 int top, String groupProperty,
                                                 int minGroupCount,
                                                 long capacity) {
-        boolean matched = this.matchMinNeighborCount(vertex, direction,
-                                                     edgeLabel,
+        boolean matched = this.matchMinNeighborCount(vertex, direction, label,
                                                      minNeighborCount, degree);
         if (!matched) {
             // Ignore current vertex if its neighbors number is not enough
             return ImmutableSet.of();
         }
-        Id label = edgeLabel.id();
         // Get similar nodes and counts
         Iterator<Edge> edges = this.edgesOfVertex(vertex.id(), direction,
-                                                  label, degree);
+                                                  label.id(), degree);
         Map<Id, MutableInteger> similars = new HashMap<>();
         Set<Id> neighbors = new HashSet<>();
         while (edges.hasNext()) {
@@ -115,7 +113,7 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
                           "fusiform similarity");
             Directions backDir = direction.opposite();
             Iterator<Edge> backEdges = this.edgesOfVertex(target, backDir,
-                                                          label, degree);
+                                                          label.id(), degree);
             Set<Id> currentSimilars = new HashSet<>();
             while (backEdges.hasNext()) {
                 Id node = ((HugeEdge) backEdges.next()).id().otherVertexId();
@@ -194,15 +192,14 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
                                           int minNeighborCount,
                                           long degree) {
         Iterator<Edge> edges;
-        Id label = edgeLabel.id();
         long neighborCount;
-        if (edgeLabel.frequency() == Frequency.SINGLE) {
+        if (edgeLabel != null && edgeLabel.frequency() == Frequency.SINGLE) {
             edges = this.edgesOfVertex(vertex.id(), direction,
-                                       label, minNeighborCount);
+                                       edgeLabel.id(), minNeighborCount);
             neighborCount = IteratorUtils.count(edges);
         } else {
             edges = this.edgesOfVertex(vertex.id(), direction,
-                                       label, degree);
+                                       (Id) null, degree);
             Set<Id> neighbors = new HashSet<>();
             while (edges.hasNext()) {
                 Id target = ((HugeEdge) edges.next()).id().otherVertexId();

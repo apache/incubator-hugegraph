@@ -70,8 +70,6 @@ public class FusiformSimilarityAPI extends API {
         E.checkArgumentNotNull(request.sources,
                                "The sources of fusiform similarity " +
                                "request can't be null");
-        E.checkArgument(request.label != null,
-                        "The edge label can't be null");
         if (request.direction == null) {
             request.direction = Directions.BOTH;
         }
@@ -98,7 +96,8 @@ public class FusiformSimilarityAPI extends API {
         Iterator<Vertex> sources = request.sources.sourcesVertices(g);
         E.checkArgument(sources != null && sources.hasNext(),
                         "The source vertices can't be empty");
-        EdgeLabel edgeLabel = g.edgeLabel(request.label);
+        EdgeLabel edgeLabel = request.label == null ?
+                              null : g.edgeLabel(request.label);
 
         FusiformSimilarityTraverser traverser =
                                     new FusiformSimilarityTraverser(g);
