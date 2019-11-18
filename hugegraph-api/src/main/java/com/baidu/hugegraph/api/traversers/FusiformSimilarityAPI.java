@@ -123,7 +123,7 @@ public class FusiformSimilarityAPI extends API {
         @JsonProperty("max_degree")
         public long degree = Long.valueOf(DEFAULT_DEGREE);
         @JsonProperty("alpha")
-        public float alpha;
+        public double alpha;
         @JsonProperty("top")
         public int top;
         @JsonProperty("group_property")
