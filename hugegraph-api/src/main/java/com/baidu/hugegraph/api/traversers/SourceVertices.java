@@ -79,6 +79,7 @@ public class SourceVertices {
                     }
                 }
             }
+            assert !query.empty();
             iterator = g.vertices(query);
             E.checkArgument(iterator.hasNext(), "Not exist source vertex " +
                             "with label '%s' and properties '%s'",
