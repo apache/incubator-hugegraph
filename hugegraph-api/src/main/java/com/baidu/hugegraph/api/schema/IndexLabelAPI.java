@@ -256,7 +256,7 @@ public class IndexLabelAPI extends API {
             if (this.indexType != null) {
                 builder.indexType(this.indexType);
             }
-            if (this.fields != null) {
+            if (this.fields != null && this.fields.length > 0) {
                 builder.by(this.fields);
             }
             if (this.userdata != null) {

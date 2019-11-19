@@ -20,8 +20,39 @@
 package com.baidu.hugegraph.schema;
 
 import java.util.HashMap;
+import java.util.Map;
+
+import com.baidu.hugegraph.exception.NotAllowException;
+import com.baidu.hugegraph.type.define.Action;
 
 public class Userdata extends HashMap<String, Object> {
 
+    private static final long serialVersionUID = -1235451175617197049L;
+
     public static final String CREATE_TIME = "create_time";
+
+    public static void check(Userdata userdata, Action action) {
+        if (userdata == null) {
+            return;
+        }
+        switch (action) {
+            case INSERT:
+            case APPEND:
+                for (Map.Entry<String, Object> e : userdata.entrySet()) {
+                    if (e.getValue() == null) {
+                        throw new NotAllowException(
+                                  "Not allowed pass null userdata value when " +
+                                  "create or append schema");
+                    }
+                }
+                break;
+            case ELIMINATE:
+            case DELETE:
+                // pass
+                break;
+            default:
+                throw new AssertionError(String.format(
+                          "Unknown schema action '%s'", action));
+        }
+    }
 }

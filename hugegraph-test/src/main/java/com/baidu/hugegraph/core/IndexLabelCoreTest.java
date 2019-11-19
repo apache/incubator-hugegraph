@@ -1488,7 +1488,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
     }
 
     @Test
-    public void testUpdateIndexLabelWithNonUserdata() {
+    public void testUpdateIndexLabelWithoutUserdata() {
         super.initPropertyKeys();
         SchemaManager schema = graph().schema();
         schema.vertexLabel("person")

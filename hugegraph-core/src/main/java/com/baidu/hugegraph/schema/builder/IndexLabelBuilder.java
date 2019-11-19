@@ -128,7 +128,7 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
          */
         this.checkFields(schemaLabel.properties());
         this.checkRepeatIndex(schemaLabel);
-        this.checkUserdata(Action.INSERT);
+        Userdata.check(this.userdata, Action.INSERT);
 
         // Async delete index label which is prefix of the new index label
         // TODO: use event to replace direct call
@@ -182,7 +182,7 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
                                         "since it doesn't exist", this.name);
         }
         this.checkStableVars();
-        this.checkUserdata(Action.APPEND);
+        Userdata.check(this.userdata, Action.APPEND);
 
         SchemaLabel schemaLabel = this.loadElement(indexLabel.baseType(),
                                                    indexLabel.baseValue());
@@ -199,7 +199,7 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
                                         "since it doesn't exist", this.name);
         }
         this.checkStableVars();
-        this.checkUserdata(Action.ELIMINATE);
+        Userdata.check(this.userdata, Action.ELIMINATE);
 
         SchemaLabel schemaLabel = this.loadElement(indexLabel.baseType(),
                                                    indexLabel.baseValue());
@@ -653,28 +653,6 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
         if (this.indexFields != null && !this.indexFields.isEmpty()) {
             throw new NotAllowException("Not allowed to update index fields " +
                                         "for index label '%s'", this.name);
-        }
-    }
-
-    private void checkUserdata(Action action) {
-        switch (action) {
-            case INSERT:
-            case APPEND:
-                for (Map.Entry<String, Object> e : this.userdata.entrySet()) {
-                    if (e.getValue() == null) {
-                        throw new NotAllowException(
-                                  "Not allowed pass null userdata value when " +
-                                  "create or append index label");
-                    }
-                }
-                break;
-            case ELIMINATE:
-            case DELETE:
-                // pass
-                break;
-            default:
-                throw new AssertionError(String.format(
-                          "Unknown schema action '%s'", action));
         }
     }
 }

@@ -903,7 +903,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
     }
 
     @Test
-    public void testEliminateVertexLabelWithNonUserdata() {
+    public void testEliminateVertexLabelWithoutUserdata() {
         super.initPropertyKeys();
         SchemaManager schema = graph().schema();
 

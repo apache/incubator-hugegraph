@@ -89,7 +89,7 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
         }
         tx.checkIdIfRestoringMode(type, this.id);
 
-        this.checkUserdata(Action.INSERT);
+        Userdata.check(this.userdata, Action.INSERT);
         this.checkAggregateType();
 
         propertyKey = this.build();
@@ -105,7 +105,7 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
                                         "since it doesn't exist", this.name);
         }
         this.checkStableVars();
-        this.checkUserdata(Action.APPEND);
+        Userdata.check(this.userdata, Action.APPEND);
 
         propertyKey.userdata(this.userdata);
         this.transaction.addPropertyKey(propertyKey);
@@ -120,7 +120,7 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
                                         "since it doesn't exist", this.name);
         }
         this.checkStableVars();
-        this.checkUserdata(Action.ELIMINATE);
+        Userdata.check(this.userdata, Action.ELIMINATE);
 
         propertyKey.removeUserdata(this.userdata);
         this.transaction.addPropertyKey(propertyKey);
@@ -297,28 +297,6 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
         if (this.cardinality != Cardinality.SINGLE) {
             throw new NotAllowException("Not allowed to update cardinality " +
                                         "for property key '%s'", this.name);
-        }
-    }
-
-    private void checkUserdata(Action action) {
-        switch (action) {
-            case INSERT:
-            case APPEND:
-                for (Map.Entry<String, Object> e : this.userdata.entrySet()) {
-                    if (e.getValue() == null) {
-                        throw new NotAllowException(
-                                  "Not allowed pass null userdata value when " +
-                                  "create or append property key");
-                    }
-                }
-                break;
-            case ELIMINATE:
-            case DELETE:
-                // pass
-                break;
-            default:
-                throw new AssertionError(String.format(
-                          "Unknown schema action '%s'", action));
         }
     }
 

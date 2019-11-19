@@ -206,7 +206,8 @@ public class JsonUtilTest extends BaseUnitTest {
                             "\"base_type\":\"VERTEX_LABEL\"," +
                             "\"base_value\":\"person\"," +
                             "\"index_type\":\"SECONDARY\"," +
-                            "\"fields\":[\"age\",\"city\"]}", json);
+                            "\"fields\":[\"age\",\"city\"]," +
+                            "\"user_data\":{}}", json);
     }
 
     @Test

@@ -431,7 +431,7 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
     }
 
     @Test
-    public void testUpdatePropertyKeyWithNonUserdata() {
+    public void testUpdatePropertyKeyWithoutUserdata() {
         SchemaManager schema = graph().schema();
 
         schema.propertyKey("age")

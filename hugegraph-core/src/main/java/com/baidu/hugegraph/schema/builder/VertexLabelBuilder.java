@@ -120,7 +120,7 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
         this.checkProperties(Action.INSERT);
         this.checkIdStrategy();
         this.checkNullableKeys(Action.INSERT);
-        this.checkUserdata(Action.INSERT);
+        Userdata.check(this.userdata, Action.INSERT);
 
         vertexLabel = this.build();
         tx.addVertexLabel(vertexLabel);
@@ -138,7 +138,7 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
         this.checkStableVars();
         this.checkProperties(Action.APPEND);
         this.checkNullableKeys(Action.APPEND);
-        this.checkUserdata(Action.APPEND);
+        Userdata.check(this.userdata, Action.APPEND);
 
         for (String key : this.properties) {
             PropertyKey propertyKey = this.transaction.getPropertyKey(key);
@@ -164,7 +164,7 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
         this.checkStableVars();
         this.checkProperties(Action.ELIMINATE);
         this.checkNullableKeys(Action.ELIMINATE);
-        this.checkUserdata(Action.ELIMINATE);
+        Userdata.check(this.userdata, Action.ELIMINATE);
 
         vertexLabel.removeUserdata(this.userdata);
         this.transaction.addVertexLabel(vertexLabel);
@@ -453,28 +453,6 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
             throw new NotAllowException(
                       "Not allowed to update enable_label_index " +
                       "for vertex label '%s'", this.name);
-        }
-    }
-
-    private void checkUserdata(Action action) {
-        switch (action) {
-            case INSERT:
-            case APPEND:
-                for (Map.Entry<String, Object> e : this.userdata.entrySet()) {
-                    if (e.getValue() == null) {
-                        throw new NotAllowException(
-                                  "Not allowed pass null userdata value when " +
-                                  "create or append vertex label");
-                    }
-                }
-                break;
-            case ELIMINATE:
-            case DELETE:
-                // pass
-                break;
-            default:
-                throw new AssertionError(String.format(
-                          "Unknown schema action '%s'", action));
         }
     }
 }
