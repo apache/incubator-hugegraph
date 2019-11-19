@@ -52,14 +52,14 @@ public class SourceVertices {
         E.checkArgument(!((this.ids == null || this.ids.isEmpty()) &&
                         (props == null || props.isEmpty()) &&
                         this.label == null), "No source vertices provided");
-        Iterator<Vertex> iter;
+        Iterator<Vertex> iterator;
         if (this.ids != null && !this.ids.isEmpty()) {
             List<Id> sourceIds = new ArrayList<>(this.ids.size());
             for (Object id : this.ids) {
                 sourceIds.add(HugeVertex.getIdValue(id));
             }
-            iter = g.vertices(sourceIds.toArray());
-            E.checkArgument(iter.hasNext(),
+            iterator = g.vertices(sourceIds.toArray());
+            E.checkArgument(iterator.hasNext(),
                             "Not exist source vertices with ids %s",
                             this.ids);
         } else {
@@ -79,12 +79,12 @@ public class SourceVertices {
                     }
                 }
             }
-            iter = g.vertices(query);
-            E.checkArgument(iter.hasNext(), "Not exist source vertex with " +
-                            "label '%s' and properties '%s'",
+            iterator = g.vertices(query);
+            E.checkArgument(iterator.hasNext(), "Not exist source vertex " +
+                            "with label '%s' and properties '%s'",
                             this.label, props);
         }
-        return iter;
+        return iterator;
     }
 
     @Override

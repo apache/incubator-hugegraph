@@ -39,7 +39,7 @@ import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.Frequency;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableMap;
 
 public class FusiformSimilarityTraverser extends HugeTraverser {
 
@@ -49,29 +49,28 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
         super(graph);
     }
 
-    public Map<Id, Set<Id>> fusiformSimilarity(Iterator<Vertex> vertices,
-                                               Directions direction,
-                                               EdgeLabel label,
-                                               int minNeighborCount,
-                                               long degree, double alpha,
-                                               int top, String groupProperty,
-                                               int minGroupCount, long capacity,
-                                               long limit) {
+    public Map<Id, Map<Id, Double>> fusiformSimilarity(
+                                    Iterator<Vertex> vertices,
+                                    Directions direction, EdgeLabel label,
+                                    int minNeighborCount, long degree,
+                                    double alpha, int top, String groupProperty,
+                                    int minGroupCount, long capacity,
+                                    long limit) {
         checkCapacity(capacity);
         checkLimit(limit);
         checkGroupArgs(groupProperty, minGroupCount);
 
         int foundCount = 0;
-        Map<Id, Set<Id>> results = new LinkedHashMap<>();
+        Map<Id, Map<Id, Double>> results = new LinkedHashMap<>();
         while (vertices.hasNext()) {
             checkCapacity(capacity, ++this.accessed,
                           "fusiform similarity");
             HugeVertex vertex = (HugeVertex) vertices.next();
             // Find fusiform similarity for current vertex
-            Set<Id> result = this.fusiformSimilarityForVertex(
-                             vertex, direction, label, minNeighborCount,
-                             degree, alpha, top, groupProperty, minGroupCount,
-                             capacity);
+            Map<Id, Double> result = this.fusiformSimilarityForVertex(
+                                     vertex, direction, label, minNeighborCount,
+                                     degree, alpha, top, groupProperty,
+                                     minGroupCount, capacity);
             if (result.isEmpty()) {
                 continue;
             }
@@ -84,19 +83,20 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
         return results;
     }
 
-    private Set<Id> fusiformSimilarityForVertex(HugeVertex vertex,
-                                                Directions direction,
-                                                EdgeLabel label,
-                                                int minNeighborCount,
-                                                long degree, double alpha,
-                                                int top, String groupProperty,
-                                                int minGroupCount,
-                                                long capacity) {
+    private Map<Id, Double> fusiformSimilarityForVertex(HugeVertex vertex,
+                                                        Directions direction,
+                                                        EdgeLabel label,
+                                                        int minNeighborCount,
+                                                        long degree,
+                                                        double alpha, int top,
+                                                        String groupProperty,
+                                                        int minGroupCount,
+                                                        long capacity) {
         boolean matched = this.matchMinNeighborCount(vertex, direction, label,
                                                      minNeighborCount, degree);
         if (!matched) {
             // Ignore current vertex if its neighbors number is not enough
-            return ImmutableSet.of();
+            return ImmutableMap.of();
         }
         Id labelId = label == null ? null : label.id();
         // Get similar nodes and counts
@@ -112,6 +112,7 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
             neighbors.add(target);
             checkCapacity(capacity, ++this.accessed,
                           "fusiform similarity");
+
             Directions backDir = direction.opposite();
             Iterator<Edge> backEdges = this.edgesOfVertex(target, backDir,
                                                           labelId, degree);
@@ -122,6 +123,7 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
                     continue;
                 }
                 currentSimilars.add(node);
+
                 MutableInteger count = similars.get(node);
                 if (count == null) {
                     count = new MutableInteger(0);
@@ -137,24 +139,24 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
         assert similars.containsKey(vertex.id());
         similars.remove(vertex.id());
         if (similars.isEmpty()) {
-            return ImmutableSet.of();
+            return ImmutableMap.of();
         }
 
         // Match alpha
-        int alphaCount = (int) (neighbors.size() * alpha);
-        Map<Id, Integer> matchedAlpha = new HashMap<>();
+        double neighborNum = neighbors.size();
+        Map<Id, Double> matchedAlpha = new HashMap<>();
         for (Map.Entry<Id, MutableInteger> entry : similars.entrySet()) {
-            int count = entry.getValue().value();
-            if (count >= alphaCount) {
-                matchedAlpha.put(entry.getKey(), count);
+            double score = entry.getValue().value() / neighborNum;
+            if (score >= alpha) {
+                matchedAlpha.put(entry.getKey(), score);
             }
         }
         if (matchedAlpha.isEmpty()) {
-            return ImmutableSet.of();
+            return ImmutableMap.of();
         }
 
         // Sorted and topN if needed
-        Map<Id, Integer> topN;
+        Map<Id, Double> topN;
         if (top > 0) {
             topN = CollectionUtil.sortByValue(matchedAlpha, false);
             topN = topN(topN, true, top);
@@ -172,10 +174,10 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
                 values.add(v.value(groupProperty));
             }
             if (values.size() < minGroupCount) {
-                return ImmutableSet.of();
+                return ImmutableMap.of();
             }
         }
-        return topN.keySet();
+        return topN;
     }
 
     private static void checkGroupArgs(String groupProperty,

@@ -20,9 +20,7 @@
 package com.baidu.hugegraph.api.traversers;
 
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
@@ -41,7 +39,6 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.server.RestServer;
-import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.traversal.algorithm.FusiformSimilarityTraverser;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
@@ -101,12 +98,13 @@ public class FusiformSimilarityAPI extends API {
 
         FusiformSimilarityTraverser traverser =
                                     new FusiformSimilarityTraverser(g);
-        Map<Id, Set<Id>> result = traverser.fusiformSimilarity(
-                                  sources, request.direction, edgeLabel,
-                                  request.minNeighborCount, request.degree,
-                                  request.alpha, request.top,
-                                  request.groupProperty, request.minGroupCount,
-                                  request.capacity, request.limit);
+        Map<Id, Map<Id, Double>> result = traverser.fusiformSimilarity(
+                                          sources, request.direction, edgeLabel,
+                                          request.minNeighborCount,
+                                          request.degree, request.alpha,
+                                          request.top, request.groupProperty,
+                                          request.minGroupCount,
+                                          request.capacity, request.limit);
         return JsonUtil.toJson(result);
     }
 
