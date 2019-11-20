@@ -110,8 +110,7 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
                 continue;
             }
             neighbors.add(target);
-            checkCapacity(capacity, ++this.accessed,
-                          "fusiform similarity");
+            checkCapacity(capacity, ++this.accessed, "fusiform similarity");
 
             Directions backDir = direction.opposite();
             Iterator<Edge> backEdges = this.edgesOfVertex(target, backDir,
@@ -134,14 +133,12 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
                 count.increase();
             }
         }
-
         // Delete source vertex
         assert similars.containsKey(vertex.id());
         similars.remove(vertex.id());
         if (similars.isEmpty()) {
             return ImmutableMap.of();
         }
-
         // Match alpha
         double neighborNum = neighbors.size();
         Map<Id, Double> matchedAlpha = new HashMap<>();
@@ -154,7 +151,6 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
         if (matchedAlpha.isEmpty()) {
             return ImmutableMap.of();
         }
-
         // Sorted and topN if needed
         Map<Id, Double> topN;
         if (top > 0) {
@@ -163,7 +159,6 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
         } else {
             topN = matchedAlpha;
         }
-
         // Filter by groupCount by property
         if (groupProperty != null) {
             Set<Object> values = new HashSet<>();
