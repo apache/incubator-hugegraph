@@ -234,6 +234,9 @@ public class GraphTransaction extends IndexableTransaction {
             assert !v.removed();
             v.committed();
             this.checkAggregateProperty(v);
+            // Check whether passed all non-null property
+            this.checkNonnullProperty(v);
+
             // Add vertex entry
             this.doInsert(this.serializer.writeVertex(v));
             // Update index of vertex(only include props)
@@ -454,9 +457,6 @@ public class GraphTransaction extends IndexableTransaction {
 
         // Check whether id match with id strategy
         this.checkId(id, keys, vertexLabel);
-
-        // Check whether passed all non-null property
-        this.checkNonnullProperty(keys, vertexLabel);
 
         // Create HugeVertex
         HugeVertex vertex = new HugeVertex(this, null, vertexLabel);
@@ -1193,7 +1193,9 @@ public class GraphTransaction extends IndexableTransaction {
         }
     }
 
-    private void checkNonnullProperty(List<Id> keys, VertexLabel vertexLabel) {
+    private void checkNonnullProperty(HugeVertex vertex) {
+        Set<Id> keys = vertex.getProperties().keySet();
+        VertexLabel vertexLabel = vertex.schemaLabel();
         // Check whether passed all non-null property
         @SuppressWarnings("unchecked")
         Collection<Id> nonNullKeys = CollectionUtils.subtract(
