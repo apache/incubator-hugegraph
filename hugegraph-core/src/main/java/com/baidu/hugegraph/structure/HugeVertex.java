@@ -406,9 +406,9 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
          *
          * The cardinality single may be user supplied single, it may also be
          * that user doesn't supplied cardinality, when it is latter situation,
-         * we shouldn't check it. Because of this, we are forced to give up
-         * the check of user supplied cardinality single.
-         * The cardinality not single must be user supplied, must check
+         * we shouldn't check it. Because of this reason, we are forced to
+         * give up the check of user supplied cardinality single.
+         * The cardinality not single must be user supplied, so should check it
          */
         if (cardinality != VertexProperty.Cardinality.single) {
             E.checkArgument(propertyKey.cardinality() ==

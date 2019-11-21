@@ -462,8 +462,10 @@ public class VertexCoreTest extends BaseCoreTest {
     @Test
     public void testAddVertexLabelNewVertexWithNonNullKeysAbsent() {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph().tx().open();
             // Absent 'city'
             graph().addVertex(T.label, "person", "name", "Baby", "age", 18);
+            graph().tx().commit();
         });
     }
 

@@ -108,4 +108,59 @@ public class GremlinApiTest extends BaseApiTest {
                 + "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
         assertResponseStatus(200, client().post(path, body));
     }
+
+    @Test
+    public void testSetVertexProperty() {
+        String pkPath = "/graphs/hugegraph/schema/propertykeys/";
+        // cardinality single
+        String foo = "{"
+                + "\"name\": \"foo\","
+                + "\"data_type\": \"TEXT\","
+                + "\"cardinality\": \"SINGLE\","
+                + "\"properties\":[]"
+                + "}";
+        assertResponseStatus(201, client().post(pkPath, foo));
+        // cardinality list
+        String bar = "{"
+                + "\"name\": \"bar\","
+                + "\"data_type\": \"TEXT\","
+                + "\"cardinality\": \"LIST\","
+                + "\"properties\":[]"
+                + "}";
+        assertResponseStatus(201, client().post(pkPath, bar));
+
+        String vlPath = "/graphs/hugegraph/schema/vertexlabels/";
+        String vertexLabel = "{"
+                + "\"name\": \"person\","
+                + "\"id_strategy\": \"CUSTOMIZE_STRING\","
+                + "\"properties\": [\"foo\", \"bar\"]"
+                + "}";
+        assertResponseStatus(201, client().post(vlPath, vertexLabel));
+
+        String body = "{"
+                + "\"gremlin\":\"g.addV('person').property(T.id, '1')"
+                + ".property('foo', '123').property('bar', '123')\","
+                + "\"bindings\":{},"
+                + "\"language\":\"gremlin-groovy\","
+                + "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
+        assertResponseStatus(200, client().post(path, body));
+
+        // supply cardinality
+        body = "{\"gremlin\":\"g.addV('person').property(T.id, '1')"
+                + ".property(single, 'foo', '123')"
+                + ".property(list, 'bar', '123')\","
+                + "\"bindings\":{},"
+                + "\"language\":\"gremlin-groovy\","
+                + "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
+        assertResponseStatus(200, client().post(path, body));
+
+        // supply cardinality
+        body = "{\"gremlin\":\"g.addV('person').property(T.id, '1')"
+                + ".property(list, 'foo', '123')"
+                + ".property(list, 'bar', '123')\","
+                + "\"bindings\":{},"
+                + "\"language\":\"gremlin-groovy\","
+                + "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
+        assertResponseStatus(400, client().post(path, body));
+    }
 }

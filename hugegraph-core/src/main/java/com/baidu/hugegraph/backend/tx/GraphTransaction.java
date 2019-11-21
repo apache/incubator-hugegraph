@@ -234,7 +234,7 @@ public class GraphTransaction extends IndexableTransaction {
             assert !v.removed();
             v.committed();
             this.checkAggregateProperty(v);
-            // Check whether passed all non-null property
+            // Check whether passed all non-null properties
             this.checkNonnullProperty(v);
 
             // Add vertex entry
