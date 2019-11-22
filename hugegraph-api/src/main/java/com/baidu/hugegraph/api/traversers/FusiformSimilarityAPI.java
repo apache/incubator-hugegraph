@@ -19,8 +19,10 @@
 
 package com.baidu.hugegraph.api.traversers;
 
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 
 import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
@@ -36,18 +38,22 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.traversal.algorithm.FusiformSimilarityTraverser;
+import com.baidu.hugegraph.traversal.algorithm.FusiformSimilarityTraverser.Similar;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
-import com.baidu.hugegraph.util.JsonUtil;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.*;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPACITY;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PATHS_LIMIT;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.NO_LIMIT;
 
 @Path("graphs/{graph}/traversers/fusiformsimilarity")
 @Singleton
@@ -98,14 +104,29 @@ public class FusiformSimilarityAPI extends API {
 
         FusiformSimilarityTraverser traverser =
                                     new FusiformSimilarityTraverser(g);
-        Map<Id, Map<Id, Double>> result = traverser.fusiformSimilarity(
-                                          sources, request.direction, edgeLabel,
-                                          request.minNeighborCount,
-                                          request.degree, request.alpha,
-                                          request.top, request.groupProperty,
-                                          request.minGroupCount,
-                                          request.capacity, request.limit);
-        return JsonUtil.toJson(result);
+        Map<Id, Map<Id, Similar>> result = traverser.fusiformSimilarity(
+                                           sources, request.direction,
+                                           edgeLabel, request.minNeighborCount,
+                                           request.degree, request.alpha,
+                                           request.top, request.groupProperty,
+                                           request.minGroupCount,
+                                           request.capacity, request.limit,
+                                           request.withIntermediary);
+        Iterator<Vertex> iterator = QueryResults.emptyIterator();
+        Set<Id> vertices = new HashSet<>();
+        if (request.withVertex) {
+            vertices.addAll(result.keySet());
+            for (Map<Id, Similar> entry : result.values()) {
+                vertices.addAll(entry.keySet());
+                if (request.withIntermediary) {
+                    for (Similar similar : entry.values()) {
+                        vertices.addAll(similar.intermediaries());
+                    }
+                }
+            }
+            iterator = g.vertices(vertices.toArray());
+        }
+        return manager.serializer(g).writeSimilars(result, iterator);
     }
 
     private static class FusiformSimilarityRequest {
@@ -132,17 +153,23 @@ public class FusiformSimilarityAPI extends API {
         public long capacity = Long.valueOf(DEFAULT_CAPACITY);
         @JsonProperty("limit")
         public long limit = Long.valueOf(DEFAULT_PATHS_LIMIT);
+        @JsonProperty("with_intermediary")
+        public boolean withIntermediary = false;
+        @JsonProperty("with_vertex")
+        public boolean withVertex = false;
 
         @Override
         public String toString() {
             return String.format("FusiformSimilarityRequest{sources=%s," +
                                  "label=%s,direction=%s,minNeighborCount=%s," +
                                  "degree=%s,alpha=%s,top=%s,groupProperty=%s," +
-                                 "minGroupCount=%s,capacity=%s,limit=%s}",
+                                 "minGroupCount=%s,capacity=%s,limit=%s," +
+                                 "withIntermediary=%s,withVertex=%s}",
                                  this.sources, this.label, this.direction,
                                  this.minNeighborCount, this.degree, this.alpha,
                                  this.top, this.groupProperty,
-                                 this.minGroupCount, this.capacity, this.limit);
+                                 this.minGroupCount, this.capacity, this.limit,
+                                 this.withIntermediary, this.withVertex);
         }
     }
 }

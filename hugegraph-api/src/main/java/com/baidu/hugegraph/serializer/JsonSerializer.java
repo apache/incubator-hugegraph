@@ -22,6 +22,7 @@ package com.baidu.hugegraph.serializer;
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +34,7 @@ import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.api.API;
+import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.page.PageInfo;
 import com.baidu.hugegraph.iterator.Metadatable;
 import com.baidu.hugegraph.schema.EdgeLabel;
@@ -40,6 +42,7 @@ import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.traversal.algorithm.CustomizedCrosspointsTraverser.CrosspointsPaths;
+import com.baidu.hugegraph.traversal.algorithm.FusiformSimilarityTraverser.Similar;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
 import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
 import com.baidu.hugegraph.util.JsonUtil;
@@ -237,5 +240,24 @@ public class JsonSerializer implements Serializer {
                                   "paths", pathList,
                                   "vertices", iterator);
         return JsonUtil.toJson(results);
+    }
+
+    @Override
+    public String writeSimilars(Map<Id, Map<Id, Similar>> similarsMap,
+                                Iterator<Vertex> vertices) {
+        // Similar to Map<String, Object>
+        Map<Id, Map<Id, Map<String, Object>>> results = new HashMap<>();
+        for (Map.Entry<Id, Map<Id, Similar>> entry : similarsMap.entrySet()) {
+            Id source = entry.getKey();
+            Map<Id, Similar> similars = entry.getValue();
+            int size = similars.size();
+            Map<Id, Map<String, Object>> similarMap = new HashMap<>(size);
+            for (Map.Entry<Id, Similar> e :similars.entrySet()) {
+                similarMap.put(e.getKey(), e.getValue().toMap());
+            }
+            results.put(source, similarMap);
+        }
+        return JsonUtil.toJson(ImmutableMap.of("similars", results,
+                                               "verticws", vertices));
     }
 }
