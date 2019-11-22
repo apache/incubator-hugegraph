@@ -22,6 +22,7 @@ package com.baidu.hugegraph.traversal.algorithm;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -41,6 +42,7 @@ import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.Frequency;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
@@ -181,9 +183,9 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
         for (Map.Entry<Id, Double> entry : topN.entrySet()) {
             Id similar = entry.getKey();
             double score = entry.getValue();
-            Set<Id> inters = withIntermediary ?
-                             new HashSet<>(intermediaries.get(similar)) :
-                             ImmutableSet.of();
+            List<Id> inters = withIntermediary ?
+                              intermediaries.get(similar) :
+                              ImmutableList.of();
             result.add(new Similar(similar, score, inters));
         }
         return result;
@@ -229,9 +231,9 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
 
         private Id id;
         private double score;
-        private Set<Id> intermediaries;
+        private List<Id> intermediaries;
 
-        public Similar(Id id, double score, Set<Id> intermediaries) {
+        public Similar(Id id, double score, List<Id> intermediaries) {
             this.id = id;
             this.score = score;
             this.intermediaries = intermediaries;
@@ -245,7 +247,7 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
             return this.score;
         }
 
-        public Set<Id> intermediaries() {
+        public List<Id> intermediaries() {
             return this.intermediaries;
         }
 
@@ -284,6 +286,20 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
                 }
             }
             return vertices;
+        }
+
+        public Map<Id, Set<Map<String, Object>>> toMap() {
+            Map<Id, Set<Map<String, Object>>> results = new HashMap<>();
+            for (Map.Entry<Id, Set<Similar>> entry : this.entrySet()) {
+                Id source = entry.getKey();
+                Set<Similar> similars = entry.getValue();
+                Set<Map<String, Object>> resultSet = new HashSet<>(similars.size());
+                for (Similar similar :similars) {
+                    resultSet.add(similar.toMap());
+                }
+                results.put(source, resultSet);
+            }
+            return results;
         }
     }
 }
