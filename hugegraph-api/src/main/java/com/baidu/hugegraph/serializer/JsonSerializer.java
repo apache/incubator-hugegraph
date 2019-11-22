@@ -259,6 +259,6 @@ public class JsonSerializer implements Serializer {
             results.put(source, resultSet);
         }
         return JsonUtil.toJson(ImmutableMap.of("similars", results,
-                                               "verticws", vertices));
+                                               "vertices", vertices));
     }
 }

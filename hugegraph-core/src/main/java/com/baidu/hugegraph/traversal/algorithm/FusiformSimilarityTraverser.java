@@ -22,7 +22,6 @@ package com.baidu.hugegraph.traversal.algorithm;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -53,19 +52,20 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
         super(graph);
     }
 
-    public Map<Id, Set<Similar>> fusiformSimilarity(
-                                 Iterator<Vertex> vertices,
-                                 Directions direction, EdgeLabel label,
-                                 int minNeighborCount, long degree,
-                                 double alpha, int top, String groupProperty,
-                                 int minGroupCount, long capacity, long limit,
-                                 boolean withIntermediary) {
+    public SimilarsMap fusiformSimilarity(Iterator<Vertex> vertices,
+                                          Directions direction, EdgeLabel label,
+                                          int minNeighborCount, long degree,
+                                          double alpha, int top,
+                                          String groupProperty,
+                                          int minGroupCount,
+                                          long capacity, long limit,
+                                          boolean withIntermediary) {
         checkCapacity(capacity);
         checkLimit(limit);
         checkGroupArgs(groupProperty, minGroupCount);
 
         int foundCount = 0;
-        Map<Id, Set<Similar>> results = new LinkedHashMap<>();
+        SimilarsMap results = new SimilarsMap();
         while (vertices.hasNext()) {
             checkCapacity(capacity, ++this.accessed, "fusiform similarity");
             HugeVertex vertex = (HugeVertex) vertices.next();
@@ -123,7 +123,9 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
                     continue;
                 }
                 currentSimilars.add(node);
-                intermediaries.add(node, target);
+                if (withIntermediary) {
+                    intermediaries.add(node, target);
+                }
 
                 MutableInteger count = similars.get(node);
                 if (count == null) {
@@ -267,6 +269,21 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
 
         public int value() {
             return this.count;
+        }
+    }
+
+    public static class SimilarsMap extends HashMap<Id, Set<Similar>> {
+
+        public Set<Id> vertices() {
+            Set<Id> vertices = new HashSet<>();
+            vertices.addAll(this.keySet());
+            for (Set<Similar> similars : this.values()) {
+                for (Similar similar : similars) {
+                    vertices.add(similar.id());
+                    vertices.addAll(similar.intermediaries());
+                }
+            }
+            return vertices;
         }
     }
 }

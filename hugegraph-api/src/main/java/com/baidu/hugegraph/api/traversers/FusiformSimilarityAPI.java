@@ -19,10 +19,7 @@
 
 package com.baidu.hugegraph.api.traversers;
 
-import java.util.HashSet;
 import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
 
 import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
@@ -37,13 +34,12 @@ import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
-import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.traversal.algorithm.FusiformSimilarityTraverser;
-import com.baidu.hugegraph.traversal.algorithm.FusiformSimilarityTraverser.Similar;
+import com.baidu.hugegraph.traversal.algorithm.FusiformSimilarityTraverser.SimilarsMap;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
@@ -104,26 +100,15 @@ public class FusiformSimilarityAPI extends API {
 
         FusiformSimilarityTraverser traverser =
                                     new FusiformSimilarityTraverser(g);
-        Map<Id, Set<Similar>> result = traverser.fusiformSimilarity(
-                                       sources, request.direction, edgeLabel,
-                                       request.minNeighborCount, request.degree,
-                                       request.alpha, request.top,
-                                       request.groupProperty,
-                                       request.minGroupCount, request.capacity,
-                                       request.limit, request.withIntermediary);
+        SimilarsMap result = traverser.fusiformSimilarity(
+                             sources, request.direction, edgeLabel,
+                             request.minNeighborCount, request.degree,
+                             request.alpha, request.top, request.groupProperty,
+                             request.minGroupCount, request.capacity,
+                             request.limit, request.withIntermediary);
         Iterator<Vertex> iterator = QueryResults.emptyIterator();
-        Set<Id> vertices = new HashSet<>();
         if (request.withVertex) {
-            vertices.addAll(result.keySet());
-            for (Set<Similar> similars : result.values()) {
-                for (Similar similar : similars) {
-                    vertices.add(similar.id());
-                    if (request.withIntermediary) {
-                        vertices.addAll(similar.intermediaries());
-                    }
-                }
-            }
-            iterator = g.vertices(vertices.toArray());
+            iterator = g.vertices(result.vertices().toArray());
         }
         return manager.serializer(g).writeSimilars(result, iterator);
     }
