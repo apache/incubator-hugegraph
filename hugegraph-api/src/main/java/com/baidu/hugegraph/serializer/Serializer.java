@@ -23,6 +23,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
@@ -80,6 +81,6 @@ public interface Serializer {
     public String writeCrosspoints(CrosspointsPaths paths,
                                    Iterator<Vertex> iterator, boolean withPath);
 
-    public String writeSimilars(Map<Id, Map<Id, Similar>> similars,
+    public String writeSimilars(Map<Id, Set<Similar>> similars,
                                 Iterator<Vertex> vertices);
 }

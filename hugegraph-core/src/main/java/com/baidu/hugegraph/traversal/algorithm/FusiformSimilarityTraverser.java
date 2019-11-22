@@ -53,29 +53,27 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
         super(graph);
     }
 
-    public Map<Id, Map<Id, Similar>> fusiformSimilarity(
-                                     Iterator<Vertex> vertices,
-                                     Directions direction, EdgeLabel label,
-                                     int minNeighborCount, long degree,
-                                     double alpha, int top,
-                                     String groupProperty, int minGroupCount,
-                                     long capacity, long limit,
-                                     boolean withIntermediary) {
+    public Map<Id, Set<Similar>> fusiformSimilarity(
+                                 Iterator<Vertex> vertices,
+                                 Directions direction, EdgeLabel label,
+                                 int minNeighborCount, long degree,
+                                 double alpha, int top, String groupProperty,
+                                 int minGroupCount, long capacity, long limit,
+                                 boolean withIntermediary) {
         checkCapacity(capacity);
         checkLimit(limit);
         checkGroupArgs(groupProperty, minGroupCount);
 
         int foundCount = 0;
-        Map<Id, Map<Id, Similar>> results = new LinkedHashMap<>();
+        Map<Id, Set<Similar>> results = new LinkedHashMap<>();
         while (vertices.hasNext()) {
             checkCapacity(capacity, ++this.accessed, "fusiform similarity");
             HugeVertex vertex = (HugeVertex) vertices.next();
             // Find fusiform similarity for current vertex
-            Map<Id, Similar> result = this.fusiformSimilarityForVertex(
-                                      vertex, direction, label,
-                                      minNeighborCount, degree, alpha, top,
-                                      groupProperty, minGroupCount, capacity,
-                                      withIntermediary);
+            Set<Similar> result = this.fusiformSimilarityForVertex(
+                                  vertex, direction, label, minNeighborCount,
+                                  degree, alpha, top, groupProperty,
+                                  minGroupCount, capacity, withIntermediary);
             if (result.isEmpty()) {
                 continue;
             }
@@ -88,17 +86,17 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
         return results;
     }
 
-    private Map<Id, Similar> fusiformSimilarityForVertex(
-                             HugeVertex vertex, Directions direction,
-                             EdgeLabel label, int minNeighborCount, long degree,
-                             double alpha, int top, String groupProperty,
-                             int minGroupCount, long capacity,
-                             boolean withIntermediary) {
+    private Set<Similar> fusiformSimilarityForVertex(
+                         HugeVertex vertex, Directions direction,
+                         EdgeLabel label, int minNeighborCount, long degree,
+                         double alpha, int top, String groupProperty,
+                         int minGroupCount, long capacity,
+                         boolean withIntermediary) {
         boolean matched = this.matchMinNeighborCount(vertex, direction, label,
                                                      minNeighborCount, degree);
         if (!matched) {
             // Ignore current vertex if its neighbors number is not enough
-            return ImmutableMap.of();
+            return ImmutableSet.of();
         }
         Id labelId = label == null ? null : label.id();
         // Get similar nodes and counts
@@ -141,7 +139,7 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
         assert similars.containsKey(vertex.id());
         similars.remove(vertex.id());
         if (similars.isEmpty()) {
-            return ImmutableMap.of();
+            return ImmutableSet.of();
         }
         // Match alpha
         double neighborNum = neighbors.size();
@@ -153,7 +151,7 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
             }
         }
         if (matchedAlpha.isEmpty()) {
-            return ImmutableMap.of();
+            return ImmutableSet.of();
         }
         // Sorted and topN if needed
         Map<Id, Double> topN;
@@ -173,18 +171,18 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
                 values.add(v.value(groupProperty));
             }
             if (values.size() < minGroupCount) {
-                return ImmutableMap.of();
+                return ImmutableSet.of();
             }
         }
         // Construct result
-        Map<Id, Similar> result = new HashMap<>(topN.size());
+        Set<Similar> result = new HashSet<>(topN.size());
         for (Map.Entry<Id, Double> entry : topN.entrySet()) {
             Id similar = entry.getKey();
             double score = entry.getValue();
             Set<Id> inters = withIntermediary ?
                              new HashSet<>(intermediaries.get(similar)) :
                              ImmutableSet.of();
-            result.put(similar, new Similar(score, inters));
+            result.add(new Similar(similar, score, inters));
         }
         return result;
     }
@@ -227,12 +225,22 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
 
     public static class Similar {
 
+        private Id id;
         private double score;
         private Set<Id> intermediaries;
 
-        public Similar(double score, Set<Id> intermediaries) {
+        public Similar(Id id, double score, Set<Id> intermediaries) {
+            this.id = id;
             this.score = score;
             this.intermediaries = intermediaries;
+        }
+
+        public Id id() {
+            return this.id;
+        }
+
+        public double score() {
+            return this.score;
         }
 
         public Set<Id> intermediaries() {
@@ -240,7 +248,7 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
         }
 
         public Map<String, Object> toMap() {
-            return ImmutableMap.of("score", this.score,
+            return ImmutableMap.of("id", this.id, "score", this.score,
                                    "intermediaries", this.intermediaries);
         }
     }

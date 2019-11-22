@@ -104,22 +104,21 @@ public class FusiformSimilarityAPI extends API {
 
         FusiformSimilarityTraverser traverser =
                                     new FusiformSimilarityTraverser(g);
-        Map<Id, Map<Id, Similar>> result = traverser.fusiformSimilarity(
-                                           sources, request.direction,
-                                           edgeLabel, request.minNeighborCount,
-                                           request.degree, request.alpha,
-                                           request.top, request.groupProperty,
-                                           request.minGroupCount,
-                                           request.capacity, request.limit,
-                                           request.withIntermediary);
+        Map<Id, Set<Similar>> result = traverser.fusiformSimilarity(
+                                       sources, request.direction, edgeLabel,
+                                       request.minNeighborCount, request.degree,
+                                       request.alpha, request.top,
+                                       request.groupProperty,
+                                       request.minGroupCount, request.capacity,
+                                       request.limit, request.withIntermediary);
         Iterator<Vertex> iterator = QueryResults.emptyIterator();
         Set<Id> vertices = new HashSet<>();
         if (request.withVertex) {
             vertices.addAll(result.keySet());
-            for (Map<Id, Similar> entry : result.values()) {
-                vertices.addAll(entry.keySet());
-                if (request.withIntermediary) {
-                    for (Similar similar : entry.values()) {
+            for (Set<Similar> similars : result.values()) {
+                for (Similar similar : similars) {
+                    vertices.add(similar.id());
+                    if (request.withIntermediary) {
                         vertices.addAll(similar.intermediaries());
                     }
                 }

@@ -23,9 +23,11 @@ import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -243,19 +245,18 @@ public class JsonSerializer implements Serializer {
     }
 
     @Override
-    public String writeSimilars(Map<Id, Map<Id, Similar>> similarsMap,
+    public String writeSimilars(Map<Id, Set<Similar>> similarsMap,
                                 Iterator<Vertex> vertices) {
         // Similar to Map<String, Object>
-        Map<Id, Map<Id, Map<String, Object>>> results = new HashMap<>();
-        for (Map.Entry<Id, Map<Id, Similar>> entry : similarsMap.entrySet()) {
+        Map<Id, Set<Map<String, Object>>> results = new HashMap<>();
+        for (Map.Entry<Id, Set<Similar>> entry : similarsMap.entrySet()) {
             Id source = entry.getKey();
-            Map<Id, Similar> similars = entry.getValue();
-            int size = similars.size();
-            Map<Id, Map<String, Object>> similarMap = new HashMap<>(size);
-            for (Map.Entry<Id, Similar> e :similars.entrySet()) {
-                similarMap.put(e.getKey(), e.getValue().toMap());
+            Set<Similar> similars = entry.getValue();
+            Set<Map<String, Object>> resultSet = new HashSet<>(similars.size());
+            for (Similar similar :similars) {
+                resultSet.add(similar.toMap());
             }
-            results.put(source, similarMap);
+            results.put(source, resultSet);
         }
         return JsonUtil.toJson(ImmutableMap.of("similars", results,
                                                "verticws", vertices));
