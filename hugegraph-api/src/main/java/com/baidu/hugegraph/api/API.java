@@ -39,9 +39,9 @@ import com.baidu.hugegraph.metrics.MetricsUtil;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.JsonUtil;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.Meter;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 
 public class API {
@@ -172,13 +172,15 @@ public class API {
         if (properties == null || properties.isEmpty()) {
             return ImmutableMap.of();
         }
-        ObjectMapper mapper = new ObjectMapper();
+
         Map<String, Object> props = null;
         try {
-            props = mapper.readValue(properties, Map.class);
+            props = JsonUtil.fromJson(properties, Map.class);
         } catch (Exception ignored) {}
+
         // If properties is the string "null", props will be null
-        E.checkArgument(props != null, "Invalid request with none properties");
+        E.checkArgument(props != null,
+                        "Invalid request with properties: %s", properties);
         return props;
     }
 
