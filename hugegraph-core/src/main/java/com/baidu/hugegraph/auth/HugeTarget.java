@@ -149,8 +149,8 @@ public class HugeTarget extends Entity {
     }
 
     public static HugeTarget fromVertex(Vertex vertex) {
-        HugeTarget entity = new HugeTarget((Id) vertex.id());
-        return fromVertex(vertex, entity);
+        HugeTarget target = new HugeTarget((Id) vertex.id());
+        return fromVertex(vertex, target);
     }
 
     public static Schema schema(HugeGraph graph) {

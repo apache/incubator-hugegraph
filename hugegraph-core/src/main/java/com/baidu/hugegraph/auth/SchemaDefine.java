@@ -161,7 +161,7 @@ public abstract class SchemaDefine {
         public static <T extends Relationship> T fromEdge(Edge edge,
                                                           T relationship) {
             E.checkArgument(edge.label().equals(relationship.label()),
-                            "Illegal edge label '%s' for entity '%s'",
+                            "Illegal edge label '%s' for relationship '%s'",
                             edge.label(), relationship.label());
             relationship.id((Id) edge.id());
             for (Iterator<Property<Object>> iter = edge.properties();

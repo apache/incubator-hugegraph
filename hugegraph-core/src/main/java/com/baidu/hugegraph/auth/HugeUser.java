@@ -38,13 +38,6 @@ import com.baidu.hugegraph.util.E;
 
 public class HugeUser extends Entity {
 
-    /*
-     * TODO: add vertex label: group and action (or group and graph)
-     * add edge label belongto: user belongto group
-     * add edge label access: group is allowed action (to graph)
-     * action: write/read vertex|edge(limit label), write/read schema
-     */
-
     private String name;
     private String password;
     private String phone;
@@ -218,8 +211,8 @@ public class HugeUser extends Entity {
     }
 
     public static HugeUser fromVertex(Vertex vertex) {
-        HugeUser entity = new HugeUser((Id) vertex.id());
-        return fromVertex(vertex, entity);
+        HugeUser user = new HugeUser((Id) vertex.id());
+        return fromVertex(vertex, user);
     }
 
     public static Schema schema(HugeGraph graph) {

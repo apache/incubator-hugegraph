@@ -150,8 +150,8 @@ public class HugeGroup extends Entity {
     }
 
     public static HugeGroup fromVertex(Vertex vertex) {
-        HugeGroup entity = new HugeGroup((Id) vertex.id());
-        return fromVertex(vertex, entity);
+        HugeGroup group = new HugeGroup((Id) vertex.id());
+        return fromVertex(vertex, group);
     }
 
     public static Schema schema(HugeGraph graph) {

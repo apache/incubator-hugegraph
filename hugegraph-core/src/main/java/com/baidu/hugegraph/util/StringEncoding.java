@@ -32,6 +32,7 @@ import com.google.common.base.CharMatcher;
 
 /**
  * @author Matthias Broecheler (me@matthiasb.com)
+ * @author HugeGraph Authors
  */
 public final class StringEncoding {
 
@@ -107,7 +108,7 @@ public final class StringEncoding {
     public static byte[] compress(String value) {
         try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
              GZIPOutputStream out = new GZIPOutputStream(bos, 256)) {
-            byte[] bytes = StringEncoding.encode(value);
+            byte[] bytes = encode(value);
             out.write(bytes);
             out.finish();
             return bos.toByteArray();
@@ -132,15 +133,13 @@ public final class StringEncoding {
     }
 
     public static String sha256(String string) {
-        byte[] stringBytes = StringEncoding.encode(string);
+        byte[] stringBytes = encode(string);
         DIGEST.reset();
         return Base64.getEncoder().encodeToString(DIGEST.digest(stringBytes));
     }
 
     public static String format(byte[] bytes) {
-        return String.format("%s[0x%s]",
-                             StringEncoding.decode(bytes),
-                             Bytes.toHex(bytes));
+        return String.format("%s[0x%s]", decode(bytes), Bytes.toHex(bytes));
     }
 
     public static UUID uuid(String value) {

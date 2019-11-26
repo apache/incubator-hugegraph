@@ -154,9 +154,9 @@ public class HugeAccess extends Relationship {
     }
 
     public static <V> HugeAccess fromEdge(Edge edge) {
-        HugeAccess belong = new HugeAccess((Id) edge.outVertex().id(),
+        HugeAccess access = new HugeAccess((Id) edge.outVertex().id(),
                                            (Id) edge.inVertex().id());
-        return fromEdge(edge, belong);
+        return fromEdge(edge, access);
     }
 
     public static Schema schema(HugeGraph graph) {
