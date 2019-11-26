@@ -111,6 +111,12 @@ function wait_for_startup() {
     local server_name="$2"
     local server_url="$3"
     local timeout_s="$4"
+    local username=""
+    local password=""
+    if [[ $# -eq 6 ]]; then
+        username="$5"
+        password="$6"
+    fi
 
     local now_s=`date '+%s'`
     local stop_s=$(( $now_s + $timeout_s ))
@@ -125,8 +131,14 @@ function wait_for_startup() {
             echo "Starting $server_name failed"
             return 1
         fi
-        status=`curl -o /dev/null -s -w %{http_code} $server_url`
-        if [ $status -eq 200 ]; then
+
+        if [[ -z "${username}" ]]; then
+            status=`curl -o /dev/null -s -w %{http_code} $server_url`
+        else
+            status=`curl -o /dev/null -u "${username}":"${password}" -s -w %{http_code} $server_url`
+        fi
+
+        if [[ $status -eq 200 ]]; then
             echo "OK"
             return 0
         fi

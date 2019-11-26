@@ -54,6 +54,38 @@ REST_SERVER_URL=`read_property "$CONF/rest-server.properties" "restserver.url"`
 check_port "$GREMLIN_SERVER_URL"
 check_port "$REST_SERVER_URL"
 
+
+USERNAME="admin"
+PASSWORD=`read_property "$CONF/rest-server.properties" "auth.admin_token"`
+if [[ -z "${PASSWORD}" ]]; then
+    USER_TOKENS=`read_property "$CONF/rest-server.properties" "auth.user_tokens"`
+    if [[ -z "${USER_TOKENS}" ]]; then
+        # no username and password
+        USERNAME=""
+    else
+        length=${#USER_TOKENS}
+        length=$[length-2]
+        USER_TOKENS=${USER_TOKENS:1:${length}}
+
+        # split by ,
+        FIRST_USER_TOKEN=`echo ${USER_TOKENS} | awk -F',' '{print $1}'`
+        if [[ -z "${FIRST_USER_TOKEN}" ]]; then
+            echo "Invalid config for auth.user_tokens"
+            exit 1
+        fi
+        # split by :
+        USERNAME=`echo ${FIRST_USER_TOKEN} | awk -F':' '{print $1}'`
+        PASSWORD=`echo ${FIRST_USER_TOKEN} | awk -F':' '{print $2}'`
+        if [[ -z "${USERNAME}" || -z "${PASSWORD}" ]]; then
+            echo "Invalid config for auth.user_tokens"
+            exit 1
+        fi
+        # trim space
+        USERNAME=`echo ${USERNAME} | xargs`
+        PASSWORD=`echo ${PASSWORD} | xargs`
+    fi
+fi
+
 echo "Starting HugeGraphServer..."
 if [ -n "$VERBOSE" ]; then
     "$BIN"/hugegraph-server.sh "$TOP"/conf/gremlin-server.yaml \
@@ -69,7 +101,7 @@ echo "$PID" > $PID_FILE
 
 trap 'kill $PID; exit' SIGHUP SIGINT SIGQUIT SIGTERM
 
-wait_for_startup ${PID} 'HugeGraphServer' "$REST_SERVER_URL/graphs" $SERVER_STARTUP_TIMEOUT_S || {
+wait_for_startup ${PID} 'HugeGraphServer' "$REST_SERVER_URL/graphs" ${SERVER_STARTUP_TIMEOUT_S} ${USERNAME} ${PASSWORD} || {
     echo "See $TOP/logs/hugegraph-server.log for HugeGraphServer log output." >&2
     exit 1
 }
