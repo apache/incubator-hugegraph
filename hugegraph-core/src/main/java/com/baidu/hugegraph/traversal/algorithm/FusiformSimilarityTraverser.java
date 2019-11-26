@@ -22,6 +22,7 @@ package com.baidu.hugegraph.traversal.algorithm;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -40,7 +41,6 @@ import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.Frequency;
-import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -160,8 +160,7 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
         // Sorted and topN if needed
         Map<Id, Double> topN;
         if (top > 0) {
-            topN = CollectionUtil.sortByValue(matchedAlpha, false);
-            topN = topN(topN, true, top);
+            topN = topN(matchedAlpha, true, top);
         } else {
             topN = matchedAlpha;
         }
@@ -295,7 +294,8 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
             for (Map.Entry<Id, Set<Similar>> entry : this.entrySet()) {
                 Id source = entry.getKey();
                 Set<Similar> similars = entry.getValue();
-                Set<Map<String, Object>> resultSet = new HashSet<>(similars.size());
+                Set<Map<String, Object>> resultSet =
+                                         new LinkedHashSet<>(similars.size());
                 for (Similar similar : similars) {
                     resultSet.add(similar.toMap());
                 }
