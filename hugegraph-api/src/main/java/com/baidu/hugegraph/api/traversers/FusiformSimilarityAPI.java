@@ -72,24 +72,28 @@ public class FusiformSimilarityAPI extends API {
         if (request.direction == null) {
             request.direction = Directions.BOTH;
         }
-        E.checkArgument(request.minNeighborCount > 0,
+        E.checkArgument(request.minNeighbors > 0,
                         "The min neighbor count must be > 0, but got: %s",
-                        request.minNeighborCount);
+                        request.minNeighbors);
         E.checkArgument(request.degree > 0 || request.degree == NO_LIMIT,
                         "The degree of request must be > 0, but got: %s",
                         request.degree);
         E.checkArgument(request.alpha > 0 && request.alpha <= 1.0,
                         "The alpha of request must be in range (0, 1], " +
                         "but got '%s'", request.alpha);
+        E.checkArgument(request.minSimilars >= 1,
+                        "The min similar count of request must be >= 1, " +
+                        "but got: %s", request.minSimilars);
         E.checkArgument(request.top >= 0,
                         "The top must be >= 0, but got: %s", request.top);
 
-        LOG.debug("Graph [{}] get fusiform nodes from '{}' with " +
+        LOG.debug("Graph [{}] get fusiform similars from '{}' with " +
                   "direction '{}', edge label '{}', min neighbor count '{}', " +
-                  "alpha '{}', group property '{}' and min group count '{}'",
+                  "alpha '{}', min similar count '{}', group property '{}' " +
+                  "and min group count '{}'",
                   graph, request.sources, request.direction, request.label,
-                  request.minNeighborCount, request.alpha,
-                  request.groupProperty, request.minGroupCount);
+                  request.minNeighbors, request.alpha, request.minSimilars,
+                  request.groupProperty, request.minGroups);
 
         HugeGraph g = graph(manager, graph);
         Iterator<Vertex> sources = request.sources.sourcesVertices(g);
@@ -102,10 +106,11 @@ public class FusiformSimilarityAPI extends API {
                                     new FusiformSimilarityTraverser(g);
         SimilarsMap result = traverser.fusiformSimilarity(
                              sources, request.direction, edgeLabel,
-                             request.minNeighborCount, request.degree,
-                             request.alpha, request.top, request.groupProperty,
-                             request.minGroupCount, request.capacity,
-                             request.limit, request.withIntermediary);
+                             request.minNeighbors, request.alpha,
+                             request.minSimilars, request.top,
+                             request.groupProperty, request.minGroups,
+                             request.degree, request.capacity, request.limit,
+                             request.withIntermediary);
         Iterator<Vertex> iterator = QueryResults.emptyIterator();
         if (request.withVertex) {
             iterator = g.vertices(result.vertices().toArray());
@@ -121,18 +126,20 @@ public class FusiformSimilarityAPI extends API {
         public String label;
         @JsonProperty("direction")
         public Directions direction;
-        @JsonProperty("min_neighbor_count")
-        public int minNeighborCount;
-        @JsonProperty("max_degree")
-        public long degree = Long.valueOf(DEFAULT_DEGREE);
+        @JsonProperty("min_neighbors")
+        public int minNeighbors;
         @JsonProperty("alpha")
         public double alpha;
+        @JsonProperty("min_similars")
+        public int minSimilars = 1;
         @JsonProperty("top")
         public int top;
         @JsonProperty("group_property")
         public String groupProperty;
-        @JsonProperty("min_group_count")
-        public int minGroupCount;
+        @JsonProperty("min_groups")
+        public int minGroups;
+        @JsonProperty("max_degree")
+        public long degree = Long.valueOf(DEFAULT_DEGREE);
         @JsonProperty("capacity")
         public long capacity = Long.valueOf(DEFAULT_CAPACITY);
         @JsonProperty("limit")
@@ -145,14 +152,16 @@ public class FusiformSimilarityAPI extends API {
         @Override
         public String toString() {
             return String.format("FusiformSimilarityRequest{sources=%s," +
-                                 "label=%s,direction=%s,minNeighborCount=%s," +
-                                 "degree=%s,alpha=%s,top=%s,groupProperty=%s," +
-                                 "minGroupCount=%s,capacity=%s,limit=%s," +
+                                 "label=%s,direction=%s,minNeighbors=%s," +
+                                 "alpha=%s,minSimilars=%s,top=%s," +
+                                 "groupProperty=%s,minGroups=%s," +
+                                 "degree=%s,capacity=%s,limit=%s," +
                                  "withIntermediary=%s,withVertex=%s}",
                                  this.sources, this.label, this.direction,
-                                 this.minNeighborCount, this.degree, this.alpha,
-                                 this.top, this.groupProperty,
-                                 this.minGroupCount, this.capacity, this.limit,
+                                 this.minNeighbors, this.alpha,
+                                 this.minSimilars, this.top,
+                                 this.groupProperty, this.minGroups,
+                                 this.degree, this.capacity, this.limit,
                                  this.withIntermediary, this.withVertex);
         }
     }

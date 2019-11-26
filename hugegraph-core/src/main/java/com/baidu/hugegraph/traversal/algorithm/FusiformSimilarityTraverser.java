@@ -56,15 +56,14 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
 
     public SimilarsMap fusiformSimilarity(Iterator<Vertex> vertices,
                                           Directions direction, EdgeLabel label,
-                                          int minNeighborCount, long degree,
-                                          double alpha, int top,
-                                          String groupProperty,
-                                          int minGroupCount,
-                                          long capacity, long limit,
+                                          int minNeighbors, double alpha,
+                                          int minSimilars, int top,
+                                          String groupProperty, int minGroups,
+                                          long degree, long capacity, long limit,
                                           boolean withIntermediary) {
         checkCapacity(capacity);
         checkLimit(limit);
-        checkGroupArgs(groupProperty, minGroupCount);
+        checkGroupArgs(groupProperty, minGroups);
 
         int foundCount = 0;
         SimilarsMap results = new SimilarsMap();
@@ -73,9 +72,10 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
             HugeVertex vertex = (HugeVertex) vertices.next();
             // Find fusiform similarity for current vertex
             Set<Similar> result = this.fusiformSimilarityForVertex(
-                                  vertex, direction, label, minNeighborCount,
-                                  degree, alpha, top, groupProperty,
-                                  minGroupCount, capacity, withIntermediary);
+                                  vertex, direction, label,
+                                  minNeighbors, alpha, minSimilars, top,
+                                  groupProperty, minGroups, degree, capacity,
+                                  withIntermediary);
             if (result.isEmpty()) {
                 continue;
             }
@@ -90,12 +90,12 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
 
     private Set<Similar> fusiformSimilarityForVertex(
                          HugeVertex vertex, Directions direction,
-                         EdgeLabel label, int minNeighborCount, long degree,
-                         double alpha, int top, String groupProperty,
-                         int minGroupCount, long capacity,
+                         EdgeLabel label, int minNeighbors, double alpha,
+                         int minSimilars, int top, String groupProperty,
+                         int minGroups, long degree, long capacity,
                          boolean withIntermediary) {
         boolean matched = this.matchMinNeighborCount(vertex, direction, label,
-                                                     minNeighborCount, degree);
+                                                     minNeighbors, degree);
         if (!matched) {
             // Ignore current vertex if its neighbors number is not enough
             return ImmutableSet.of();
@@ -154,9 +154,10 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
                 matchedAlpha.put(entry.getKey(), score);
             }
         }
-        if (matchedAlpha.isEmpty()) {
+        if (matchedAlpha.size() < minSimilars) {
             return ImmutableSet.of();
         }
+
         // Sorted and topN if needed
         Map<Id, Double> topN;
         if (top > 0) {
@@ -173,7 +174,7 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
                 Vertex v = graph().vertices(id).next();
                 values.add(v.value(groupProperty));
             }
-            if (values.size() < minGroupCount) {
+            if (values.size() < minGroups) {
                 return ImmutableSet.of();
             }
         }
@@ -190,10 +191,9 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
         return result;
     }
 
-    private static void checkGroupArgs(String groupProperty,
-                                       int minGroupCount) {
+    private static void checkGroupArgs(String groupProperty, int minGroups) {
         if (groupProperty != null) {
-            E.checkArgument(minGroupCount > 0,
+            E.checkArgument(minGroups > 0,
                             "Must set min group count when " +
                             "group property set");
         }
@@ -202,14 +202,14 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
     private boolean matchMinNeighborCount(HugeVertex vertex,
                                           Directions direction,
                                           EdgeLabel edgeLabel,
-                                          int minNeighborCount,
+                                          int minNeighbors,
                                           long degree) {
         Iterator<Edge> edges;
         long neighborCount;
         Id labelId = edgeLabel == null ? null : edgeLabel.id();
         if (edgeLabel != null && edgeLabel.frequency() == Frequency.SINGLE) {
             edges = this.edgesOfVertex(vertex.id(), direction,
-                                       labelId, minNeighborCount);
+                                       labelId, minNeighbors);
             neighborCount = IteratorUtils.count(edges);
         } else {
             edges = this.edgesOfVertex(vertex.id(), direction, labelId, degree);
@@ -217,13 +217,13 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
             while (edges.hasNext()) {
                 Id target = ((HugeEdge) edges.next()).id().otherVertexId();
                 neighbors.add(target);
-                if (neighbors.size() >= minNeighborCount) {
+                if (neighbors.size() >= minNeighbors) {
                     break;
                 }
             }
             neighborCount = neighbors.size();
         }
-        return neighborCount >= minNeighborCount;
+        return neighborCount >= minNeighbors;
     }
 
     public static class Similar {
