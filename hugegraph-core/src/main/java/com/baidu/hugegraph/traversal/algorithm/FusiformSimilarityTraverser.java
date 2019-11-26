@@ -229,13 +229,15 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
 
     public static class Similar {
 
-        private Id id;
-        private double score;
-        private List<Id> intermediaries;
+        private final Id id;
+        private final double score;
+        private final List<Id> intermediaries;
 
         public Similar(Id id, double score, List<Id> intermediaries) {
             this.id = id;
             this.score = score;
+            assert new HashSet<>(intermediaries).size() ==
+                   intermediaries.size() : "Invalid intermediaries";
             this.intermediaries = intermediaries;
         }
 
@@ -294,7 +296,7 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
                 Id source = entry.getKey();
                 Set<Similar> similars = entry.getValue();
                 Set<Map<String, Object>> resultSet = new HashSet<>(similars.size());
-                for (Similar similar :similars) {
+                for (Similar similar : similars) {
                     resultSet.add(similar.toMap());
                 }
                 results.put(source, resultSet);
