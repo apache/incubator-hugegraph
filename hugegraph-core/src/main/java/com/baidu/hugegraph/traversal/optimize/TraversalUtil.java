@@ -570,9 +570,9 @@ public final class TraversalUtil {
     private static <V> V validPredicateValue(V value, PropertyKey pkey) {
         V validValue = pkey.convValue(value, false);
         E.checkArgumentNotNull(validValue,
-                               "Invalid data type of query value, " +
-                               "expect '%s', actual '%s'",
-                               pkey.dataType().clazz(),
+                               "Invalid data type of query value '%s', " +
+                               "expect '%s' for '%s', actual '%s'",
+                               value, pkey.dataType().clazz(), pkey.name(),
                                value == null ? null : value.getClass());
         return validValue;
     }

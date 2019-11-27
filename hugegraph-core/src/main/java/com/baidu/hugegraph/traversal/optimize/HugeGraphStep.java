@@ -50,7 +50,7 @@ public final class HugeGraphStep<S, E extends Element>
     // Store limit/order-by
     private final Query queryInfo = new Query(HugeType.UNKNOWN);
 
-    private Iterator<E> lastTimeResults = null;
+    private Iterator<E> lastTimeResults = QueryResults.emptyIterator();
 
     public HugeGraphStep(final GraphStep<S, E> originGraphStep) {
         super(originGraphStep.getTraversal(),

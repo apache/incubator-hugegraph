@@ -178,8 +178,8 @@ public class QueryResults {
         return (Iterator<T>) EMPTY_ITERATOR;
     }
 
-    private static class EmptyIterator<T> implements Iterator<T>,
-                                                     Metadatable {
+    private static class EmptyIterator<T> implements Iterator<T>, Metadatable {
+
         @Override
         public Object metadata(String meta, Object... args) {
             return null;

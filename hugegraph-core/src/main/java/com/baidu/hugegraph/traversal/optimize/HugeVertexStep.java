@@ -38,6 +38,7 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.Log;
@@ -54,7 +55,7 @@ public final class HugeVertexStep<E extends Element>
     // Store limit/order-by
     private final Query queryInfo = new Query(null);
 
-    private Iterator<E> lastTimeResults = null;
+    private Iterator<E> lastTimeResults = QueryResults.emptyIterator();
 
     public HugeVertexStep(final VertexStep<E> originVertexStep) {
         super(originVertexStep.getTraversal(),
