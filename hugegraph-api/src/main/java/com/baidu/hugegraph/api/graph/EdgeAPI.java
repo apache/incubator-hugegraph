@@ -276,13 +276,9 @@ public class EdgeAPI extends BatchAPI {
 
         Map<String, Object> props = parseProperties(properties);
         if (page != null) {
-            E.checkArgument(vertexId == null && direction == null &&
-                            offset == 0,
+            E.checkArgument(offset == 0,
                             "Not support querying edges based on paging " +
-                            "and [vertex, direction, offset] together");
-            E.checkArgument(props.size() <= 1,
-                            "Not support querying edges based on paging " +
-                            "and more than one property");
+                            "and offset together");
         }
 
         Id vertex = VertexAPI.checkAndParseVertexId(vertexId);
