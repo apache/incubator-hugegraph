@@ -43,7 +43,10 @@ import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.*;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_LIMIT;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEPTH;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.NO_LIMIT;
 
 @Path("graphs/{graph}/traversers/personalrank")
 @Singleton

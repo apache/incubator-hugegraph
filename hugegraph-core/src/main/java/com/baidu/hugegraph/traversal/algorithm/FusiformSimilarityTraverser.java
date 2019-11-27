@@ -258,7 +258,7 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
         }
     }
 
-    public static class MutableInteger{
+    public static class MutableInteger {
 
         private int count;
 
