@@ -32,6 +32,7 @@ import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.traversal.algorithm.CustomizedCrosspointsTraverser.CrosspointsPaths;
+import com.baidu.hugegraph.traversal.algorithm.FusiformSimilarityTraverser.SimilarsMap;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
 
 public interface Serializer {
@@ -77,4 +78,7 @@ public interface Serializer {
 
     public String writeCrosspoints(CrosspointsPaths paths,
                                    Iterator<Vertex> iterator, boolean withPath);
+
+    public String writeSimilars(SimilarsMap similars,
+                                Iterator<Vertex> vertices);
 }

@@ -50,7 +50,9 @@ import com.baidu.hugegraph.schema.SchemaLabel;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Directions;
+import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -304,6 +306,25 @@ public class HugeTraverser {
 
     protected static <K, V> MultivaluedMap<K, V> newMultivalueMap() {
         return new MultivaluedHashMap<>();
+    }
+
+    public static <V extends Comparable<? super V>> Map<Id, V> topN(
+                  Map<Id, V> ranks, boolean sorted, long limit) {
+        if (sorted) {
+            ranks = CollectionUtil.sortByValue(ranks, false);
+        }
+        if (limit == NO_LIMIT) {
+            return ranks;
+        }
+        Map<Id, V> results = InsertionOrderUtil.newMap();
+        long count = 0;
+        for (Map.Entry<Id, V> entry : ranks.entrySet()) {
+            results.put(entry.getKey(), entry.getValue());
+            if (++count >= limit) {
+                break;
+            }
+        }
+        return results;
     }
 
     public static class Node {

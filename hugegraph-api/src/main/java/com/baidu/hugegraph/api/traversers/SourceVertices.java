@@ -47,20 +47,19 @@ public class SourceVertices {
     @JsonProperty("properties")
     public Map<String, Object> properties;
 
-    public List<HugeVertex> sourcesVertices(HugeGraph g) {
+    public Iterator<Vertex> sourcesVertices(HugeGraph g) {
         Map<String, Object> props = this.properties;
         E.checkArgument(!((this.ids == null || this.ids.isEmpty()) &&
                         (props == null || props.isEmpty()) &&
                         this.label == null), "No source vertices provided");
-        List<HugeVertex> vertices = new ArrayList<>();
-        Iterator<Vertex> iter;
+        Iterator<Vertex> iterator;
         if (this.ids != null && !this.ids.isEmpty()) {
             List<Id> sourceIds = new ArrayList<>(this.ids.size());
             for (Object id : this.ids) {
                 sourceIds.add(HugeVertex.getIdValue(id));
             }
-            iter = g.vertices(sourceIds.toArray());
-            E.checkArgument(iter.hasNext(),
+            iterator = g.vertices(sourceIds.toArray());
+            E.checkArgument(iterator.hasNext(),
                             "Not exist source vertices with ids %s",
                             this.ids);
         } else {
@@ -80,15 +79,13 @@ public class SourceVertices {
                     }
                 }
             }
-            iter = g.vertices(query);
-            E.checkArgument(iter.hasNext(), "Not exist source vertex with " +
-                            "label '%s' and properties '%s'",
+            assert !query.empty();
+            iterator = g.vertices(query);
+            E.checkArgument(iterator.hasNext(), "Not exist source vertex " +
+                            "with label '%s' and properties '%s'",
                             this.label, props);
         }
-        while (iter.hasNext()) {
-            vertices.add((HugeVertex) iter.next());
-        }
-        return vertices;
+        return iterator;
     }
 
     @Override

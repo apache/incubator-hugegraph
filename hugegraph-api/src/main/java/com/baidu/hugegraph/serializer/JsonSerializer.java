@@ -40,6 +40,7 @@ import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.traversal.algorithm.CustomizedCrosspointsTraverser.CrosspointsPaths;
+import com.baidu.hugegraph.traversal.algorithm.FusiformSimilarityTraverser.SimilarsMap;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
 import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
 import com.baidu.hugegraph.util.JsonUtil;
@@ -237,5 +238,12 @@ public class JsonSerializer implements Serializer {
                                   "paths", pathList,
                                   "vertices", iterator);
         return JsonUtil.toJson(results);
+    }
+
+    @Override
+    public String writeSimilars(SimilarsMap similars,
+                                Iterator<Vertex> vertices) {
+        return JsonUtil.toJson(ImmutableMap.of("similars", similars.toMap(),
+                                               "vertices", vertices));
     }
 }

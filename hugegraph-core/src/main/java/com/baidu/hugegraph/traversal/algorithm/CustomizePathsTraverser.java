@@ -28,6 +28,7 @@ import java.util.Map;
 import javax.ws.rs.core.MultivaluedMap;
 
 import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
@@ -46,17 +47,18 @@ public class CustomizePathsTraverser extends HugeTraverser {
         super(graph);
     }
 
-    public List<Path> customizedPaths(List<HugeVertex> vertices,
+    public List<Path> customizedPaths(Iterator<Vertex> vertices,
                                       List<Step> steps, boolean sorted,
                                       long capacity, long limit) {
-        E.checkArgument(!vertices.isEmpty(),
+        E.checkArgument(vertices.hasNext(),
                         "The source vertices can't be empty");
         E.checkArgument(!steps.isEmpty(), "The steps can't be empty");
         checkCapacity(capacity);
         checkLimit(limit);
 
         MultivaluedMap<Id, Node> sources = newMultivalueMap();
-        for (HugeVertex vertex : vertices) {
+        while (vertices.hasNext()) {
+            HugeVertex vertex = (HugeVertex) vertices.next();
             Node node = sorted ?
                         new WeightNode(vertex.id(), null, 0) :
                         new Node(vertex.id(), null);

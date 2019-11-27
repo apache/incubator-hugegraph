@@ -19,11 +19,6 @@
 
 package com.baidu.hugegraph.api.traversers;
 
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_LIMIT;
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEPTH;
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.NO_LIMIT;
-
 import java.util.Map;
 
 import javax.inject.Singleton;
@@ -41,13 +36,17 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.structure.HugeVertex;
+import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
 import com.baidu.hugegraph.traversal.algorithm.PersonalRankTraverser;
-import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
-import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_LIMIT;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEPTH;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.NO_LIMIT;
 
 @Path("graphs/{graph}/traversers/personalrank")
 @Singleton
@@ -95,27 +94,8 @@ public class PersonalRankAPI extends API {
                                               request.maxDepth);
         Map<Id, Double> ranks = traverser.personalRank(sourceId, request.label,
                                                        request.withLabel);
-        ranks = topN(ranks, request.sorted, request.limit);
+        ranks = HugeTraverser.topN(ranks, request.sorted, request.limit);
         return manager.serializer(g).writeMap(ranks);
-    }
-
-    private static Map<Id, Double> topN(Map<Id, Double> ranks,
-                                        boolean sorted, long limit) {
-        if (sorted) {
-            ranks = CollectionUtil.sortByValue(ranks, false);
-        }
-        if (limit == NO_LIMIT) {
-            return ranks;
-        }
-        Map<Id, Double> results = InsertionOrderUtil.newMap();
-        long count = 0;
-        for (Map.Entry<Id, Double> entry : ranks.entrySet()) {
-            results.put(entry.getKey(), entry.getValue());
-            if (++count >= limit) {
-                break;
-            }
-        }
-        return results;
     }
 
     private static class RankRequest {
