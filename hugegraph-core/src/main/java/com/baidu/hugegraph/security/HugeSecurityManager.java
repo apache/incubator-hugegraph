@@ -22,8 +22,10 @@ package com.baidu.hugegraph.security;
 import java.io.FileDescriptor;
 import java.net.InetAddress;
 import java.security.Permission;
+import java.util.Map;
 import java.util.Set;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 public class HugeSecurityManager extends SecurityManager {
@@ -51,8 +53,30 @@ public class HugeSecurityManager extends SecurityManager {
 
     private static final Set<String> WHITE_SYSTEM_PROPERTYS = ImmutableSet.of(
             "line.separator",
-            "file.separator"
+            "file.separator",
+            "socksProxyHost"
     );
+
+    private static final Map<String, Set<String>> BACKEND_CONNECT = ImmutableMap
+            .<String , Set<String>>builder()
+            // Cassandra & ScyllaDB
+            .put("com.baidu.hugegraph.backend.store.cassandra.CassandraStore",
+                 ImmutableSet.of("opened"))
+            // MySQL & PostgreSQL
+            .put("com.baidu.hugegraph.backend.store.mysql.MysqlStore",
+                 ImmutableSet.of("open", "init", "clear"))
+            // HBase
+            .put("com.baidu.hugegraph.backend.store.hbase.HbaseSessions$RowIterator",
+                 ImmutableSet.of("hasNext"))
+            .put("com.baidu.hugegraph.backend.store.hbase.HbaseSessions$Session",
+                 ImmutableSet.of("get"))
+            .put("com.baidu.hugegraph.backend.store.hbase.HbaseStore",
+                 ImmutableSet.of("open", "session", "initialized", "init",
+                                 "clear", "truncate", "commitTx", "query"))
+            .put("com.baidu.hugegraph.backend.store.hbase.HbaseTables$Counters",
+                 ImmutableSet.of("getCounter", "increaseCounter"))
+            // RocksDB has no sensitive operations
+            .build();
 
     @Override
     public void checkPermission(Permission permission) {
@@ -92,7 +116,8 @@ public class HugeSecurityManager extends SecurityManager {
 
     @Override
     public void checkAccess(Thread thread) {
-        if (callFromGremlin() && !callFromCaffeine()) {
+        if (callFromGremlin() && !callFromCaffeine() &&
+            !callFromBackendConnect() && !callFromEventHubNotify()) {
             throw new SecurityException(
                       "Not allowed to access thread via Gremlin");
         }
@@ -101,7 +126,8 @@ public class HugeSecurityManager extends SecurityManager {
 
     @Override
     public void checkAccess(ThreadGroup threadGroup) {
-        if (callFromGremlin() && !callFromCaffeine()) {
+        if (callFromGremlin() && !callFromCaffeine() &&
+            !callFromBackendConnect() && !callFromEventHubNotify()) {
             throw new SecurityException(
                       "Not allowed to access thread group via Gremlin");
         }
@@ -128,7 +154,7 @@ public class HugeSecurityManager extends SecurityManager {
 
     @Override
     public void checkRead(FileDescriptor fd) {
-        if (callFromGremlin()) {
+        if (callFromGremlin() && !callFromBackendConnect()) {
             throw new SecurityException("Not allowed to read fd via Gremlin");
         }
         super.checkRead(fd);
@@ -152,7 +178,7 @@ public class HugeSecurityManager extends SecurityManager {
 
     @Override
     public void checkWrite(FileDescriptor fd) {
-        if (callFromGremlin()) {
+        if (callFromGremlin() && !callFromBackendConnect()) {
             throw new SecurityException("Not allowed to write fd via Gremlin");
         }
         super.checkWrite(fd);
@@ -196,7 +222,7 @@ public class HugeSecurityManager extends SecurityManager {
 
     @Override
     public void checkConnect(String host, int port) {
-        if (callFromGremlin()) {
+        if (callFromGremlin() && !callFromBackendConnect()) {
             throw new SecurityException(
                       "Not allowed to connect socket via Gremlin");
         }
@@ -321,6 +347,14 @@ public class HugeSecurityManager extends SecurityManager {
         return callFromWorkerWithClass(CAFFEINE_CLASSES);
     }
 
+    private static boolean callFromBackendConnect() {
+        return callFromMethods(BACKEND_CONNECT);
+    }
+
+    private static boolean callFromEventHubNotify() {
+        return callFromMethod("com.baidu.hugegraph.event.EventHub", "notify");
+    }
+
     private static boolean callFromWorkerWithClass(Set<String> classes) {
         Thread curThread = Thread.currentThread();
         if (curThread.getName().startsWith(GREMLIN_SERVER_WORKER) ||
@@ -336,7 +370,19 @@ public class HugeSecurityManager extends SecurityManager {
         return false;
     }
 
-    @SuppressWarnings("unused")
+    private static boolean callFromMethods(Map<String, Set<String>> methods) {
+        Thread curThread = Thread.currentThread();
+        StackTraceElement[] elements = curThread.getStackTrace();
+        for (StackTraceElement element : elements) {
+            Set<String> clazzMethods = methods.get(element.getClassName());
+            if (clazzMethods != null &&
+                clazzMethods.contains(element.getMethodName())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private static boolean callFromMethod(String clazz, String method) {
         Thread curThread = Thread.currentThread();
         StackTraceElement[] elements = curThread.getStackTrace();

@@ -186,7 +186,7 @@ public class MysqlSessions extends BackendSessionPool {
         try {
             return this.connect(url);
         } catch (SQLException e) {
-            throw new BackendException("Failed to access %s", jdbcUrl);
+            throw new BackendException("Failed to access %s", e, jdbcUrl);
         }
     }
 
