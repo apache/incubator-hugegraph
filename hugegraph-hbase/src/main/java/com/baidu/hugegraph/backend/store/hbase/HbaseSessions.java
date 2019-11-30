@@ -205,7 +205,7 @@ public class HbaseSessions extends BackendSessionPool {
             } catch (TableNotEnabledException ignored) {
                 // pass
             }
-            return admin.truncateTableAsync(tableName, false);
+            return admin.truncateTableAsync(tableName, true);
         }
     }
 
