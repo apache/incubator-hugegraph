@@ -24,6 +24,10 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 import org.apache.hadoop.hbase.NamespaceExistException;
@@ -310,14 +314,25 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
         this.checkOpened();
 
         // Truncate tables
-        for (String table : this.tableNames()) {
-            try {
-                this.sessions.truncateTable(table);
-            } catch (IOException e) {
-                throw new BackendException(
-                          "Failed to truncate table '%s' for '%s'",
-                          e, table, this.store);
+        List<String> tables = this.tableNames();
+        Map<String, Future<Void>> futures = new HashMap<>(tables.size());
+        String currentTable = null;
+        try {
+            for (String table : tables) {
+                currentTable = table;
+                futures.put(table, this.sessions.truncateTable(table));
             }
+            long timeout = this.sessions.config()
+                                        .get(HbaseOptions.TRUNCATE_TIMEOUT);
+            for (Map.Entry<String, Future<Void>> entry : futures.entrySet()) {
+                currentTable = entry.getKey();
+                entry.getValue().get(timeout, TimeUnit.SECONDS);
+            }
+        } catch (IOException | InterruptedException |
+                 ExecutionException | TimeoutException e) {
+            throw new BackendException(
+                      "Failed to truncate table '%s' for '%s'",
+                      e, currentTable, this.store);
         }
 
         LOG.debug("Store truncated: {}", this.store);

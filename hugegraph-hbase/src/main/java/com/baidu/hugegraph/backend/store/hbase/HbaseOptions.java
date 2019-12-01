@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.backend.store.hbase;
 
 import static com.baidu.hugegraph.config.OptionChecker.disallowEmpty;
+import static com.baidu.hugegraph.config.OptionChecker.positiveInt;
 import static com.baidu.hugegraph.config.OptionChecker.rangeInt;
 
 import com.baidu.hugegraph.config.ConfigOption;
@@ -79,5 +80,13 @@ public class HbaseOptions extends OptionHolder {
                     "The max threads num of hbase connections.",
                     rangeInt(1, 1000),
                     64
+            );
+
+    public static final ConfigOption<Long> TRUNCATE_TIMEOUT =
+            new ConfigOption<>(
+                    "hbase.truncate_timeout",
+                    "The timeout in seconds of waiting for store truncate.",
+                    positiveInt(),
+                    30L
             );
 }
