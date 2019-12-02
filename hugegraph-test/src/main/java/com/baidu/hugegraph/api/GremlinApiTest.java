@@ -49,4 +49,39 @@ public class GremlinApiTest extends BaseApiTest {
         Response r = client().get(path, params);
         Assert.assertEquals(r.readEntity(String.class), 200, r.getStatus());
     }
+
+    @Test
+    public void testScript() {
+        String script = "schema=graph.schema();\n" +
+                "schema.propertyKey('name').asText().ifNotExist().create();\n" +
+                "schema.propertyKey('age').asInt().ifNotExist().create();\n" +
+                "schema.propertyKey('city').asUuid().ifNotExist().create();\n" +
+                "schema.propertyKey('lang').asText().ifNotExist().create();\n" +
+                "schema.propertyKey('date').asText().ifNotExist().create();\n" +
+                "schema.propertyKey('price').asInt().ifNotExist().create();\n" +
+                "\n" +
+                "person=schema.vertexLabel('person').properties('name','age','city').useCustomizeUUID().ifNotExist().create();\n" +
+                "knows=schema.edgeLabel('knows').sourceLabel('person').targetLabel('person').properties('date').ifNotExist().create();\n" +
+                "\n" +
+                "marko=graph.addVertex(T.id, '835e1153928149578691cf79258e90eb', T.label,'person','name','marko','age',29,'city','135e1153928149578691cf79258e90eb');\n" +
+                "vadas=graph.addVertex(T.id, '935e1153928149578691cf79258e90eb', T.label,'person','name','vadas','age',27,'city','235e1153928149578691cf79258e90eb');\n" +
+                "marko.addEdge('knows',vadas,'date','20160110');";
+
+        String bodyTemplate = "{"
+                + "\"gremlin\":\"%s\","
+                + "\"bindings\":{},"
+                + "\"language\":\"gremlin-groovy\","
+                + "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
+
+        String body = String.format(bodyTemplate, script);
+        Assert.assertEquals(200, client().post(path, body).getStatus());
+
+        String queryV = "g.V()";
+        body = String.format(bodyTemplate, queryV);
+        Assert.assertEquals(200, client().post(path, body).getStatus());
+
+        String queryE = "g.E()";
+        body = String.format(bodyTemplate, queryE);
+        Assert.assertEquals(200, client().post(path, body).getStatus());
+    }
 }

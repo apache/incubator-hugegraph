@@ -25,10 +25,15 @@ import java.security.Permission;
 import java.util.Map;
 import java.util.Set;
 
+import org.slf4j.Logger;
+
+import com.baidu.hugegraph.util.Log;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 public class HugeSecurityManager extends SecurityManager {
+
+    private static final String USER_DIR = System.getProperty("user.dir");
 
     private static final String GREMLIN_SERVER_WORKER = "gremlin-server-exec";
     private static final String TASK_WORKER = "task-worker";
@@ -57,33 +62,31 @@ public class HugeSecurityManager extends SecurityManager {
             "socksProxyHost"
     );
 
-    private static final Map<String, Set<String>> BACKEND_CONNECT = ImmutableMap
-            .<String , Set<String>>builder()
-            // Cassandra & ScyllaDB
-            .put("com.baidu.hugegraph.backend.store.cassandra.CassandraStore",
-                 ImmutableSet.of("opened"))
-            // MySQL & PostgreSQL
-            .put("com.baidu.hugegraph.backend.store.mysql.MysqlStore",
-                 ImmutableSet.of("open", "init", "clear"))
-            // HBase
-            .put("com.baidu.hugegraph.backend.store.hbase.HbaseSessions$RowIterator",
-                 ImmutableSet.of("hasNext"))
-            .put("com.baidu.hugegraph.backend.store.hbase.HbaseSessions$Session",
-                 ImmutableSet.of("get"))
-            .put("com.baidu.hugegraph.backend.store.hbase.HbaseStore",
-                 ImmutableSet.of("open", "session", "initialized", "init",
-                                 "clear", "truncate", "commitTx", "query"))
-            .put("com.baidu.hugegraph.backend.store.hbase.HbaseTables$Counters",
-                 ImmutableSet.of("getCounter", "increaseCounter"))
-            // RocksDB has no sensitive operations
-            .build();
+    private static final Map<String, Set<String>> BACKEND_SOCKET = ImmutableMap.of(
+            "com.baidu.hugegraph.backend.store.mysql.MysqlStore",
+            ImmutableSet.of("open", "init", "clear")
+    );
+
+    private static final Map<String, Set<String>> THREAD_NEW = ImmutableMap.of(
+            "java.util.concurrent.ThreadPoolExecutor",
+            ImmutableSet.of("addWorker"),
+            "io.netty.util.concurrent.SingleThreadEventExecutor",
+            ImmutableSet.of("startThread")
+    );
+
+    private static final Set<String> BACKEND_THREAD = ImmutableSet.of(
+            "com.baidu.hugegraph.backend.store.cassandra.CassandraStore",
+            "com.baidu.hugegraph.backend.store.hbase.HbaseStore",
+            "com.baidu.hugegraph.backend.store.hbase.HbaseStore$HbaseSchemaStore",
+            "com.baidu.hugegraph.backend.store.hbase.HbaseStore$HbaseGraphStore",
+            "com.baidu.hugegraph.backend.store.hbase.HbaseSessions$RowIterator");
 
     @Override
     public void checkPermission(Permission permission) {
         if (DENIED_PERMISSIONS.contains(permission.getName()) &&
             callFromGremlin()) {
-            throw new SecurityException(
-                      "Not allowed to access denied permission via Gremlin");
+            throw newSecurityException(
+                  "Not allowed to access denied permission via Gremlin");
         }
     }
 
@@ -91,16 +94,16 @@ public class HugeSecurityManager extends SecurityManager {
     public void checkPermission(Permission permission, Object context) {
         if (DENIED_PERMISSIONS.contains(permission.getName()) &&
             callFromGremlin()) {
-            throw new SecurityException(
-                      "Not allowed to access denied permission via Gremlin");
+            throw newSecurityException(
+                  "Not allowed to access denied permission via Gremlin");
         }
     }
 
     @Override
     public void checkCreateClassLoader() {
         if (!callFromAcceptClassLoaders() && callFromGremlin()) {
-            throw new SecurityException(
-                      "Not allowed to create class loader via Gremlin");
+            throw newSecurityException(
+                  "Not allowed to create class loader via Gremlin");
         }
         super.checkCreateClassLoader();
     }
@@ -108,8 +111,8 @@ public class HugeSecurityManager extends SecurityManager {
     @Override
     public void checkLink(String lib) {
         if (callFromGremlin()) {
-            throw new SecurityException(
-                      "Not allowed to link library via Gremlin");
+            throw newSecurityException(
+                  "Not allowed to link library via Gremlin");
         }
         super.checkLink(lib);
     }
@@ -117,9 +120,9 @@ public class HugeSecurityManager extends SecurityManager {
     @Override
     public void checkAccess(Thread thread) {
         if (callFromGremlin() && !callFromCaffeine() &&
-            !callFromBackendConnect() && !callFromEventHubNotify()) {
-            throw new SecurityException(
-                      "Not allowed to access thread via Gremlin");
+            !callFromBackendThread() && !callFromEventHubNotify()) {
+            throw newSecurityException(
+                  "Not allowed to access thread via Gremlin");
         }
         super.checkAccess(thread);
     }
@@ -127,9 +130,9 @@ public class HugeSecurityManager extends SecurityManager {
     @Override
     public void checkAccess(ThreadGroup threadGroup) {
         if (callFromGremlin() && !callFromCaffeine() &&
-            !callFromBackendConnect() && !callFromEventHubNotify()) {
-            throw new SecurityException(
-                      "Not allowed to access thread group via Gremlin");
+            !callFromBackendThread() && !callFromEventHubNotify()) {
+            throw newSecurityException(
+                  "Not allowed to access thread group via Gremlin");
         }
         super.checkAccess(threadGroup);
     }
@@ -137,8 +140,8 @@ public class HugeSecurityManager extends SecurityManager {
     @Override
     public void checkExit(int status) {
         if (callFromGremlin()) {
-            throw new SecurityException(
-                      "Not allowed to call System.exit() via Gremlin");
+            throw newSecurityException(
+                  "Not allowed to call System.exit() via Gremlin");
         }
         super.checkExit(status);
     }
@@ -146,24 +149,26 @@ public class HugeSecurityManager extends SecurityManager {
     @Override
     public void checkExec(String cmd) {
         if (callFromGremlin()) {
-            throw new SecurityException(
-                      "Not allowed to execute command via Gremlin");
+            throw newSecurityException(
+                  "Not allowed to execute command via Gremlin");
         }
         super.checkExec(cmd);
     }
 
     @Override
     public void checkRead(FileDescriptor fd) {
-        if (callFromGremlin() && !callFromBackendConnect()) {
-            throw new SecurityException("Not allowed to read fd via Gremlin");
+        if (callFromGremlin() && !callFromBackendSocket()) {
+            throw newSecurityException("Not allowed to read fd via Gremlin");
         }
         super.checkRead(fd);
     }
 
     @Override
     public void checkRead(String file) {
-        if (callFromGremlin() && !callFromCaffeine()) {
-            throw new SecurityException("Not allowed to read file via Gremlin");
+        if (callFromGremlin() && !callFromCaffeine() &&
+            !readGroovyInCurrentDir(file)) {
+            throw newSecurityException(
+                  "Not allowed to read file via Gremlin: %s", file);
         }
         super.checkRead(file);
     }
@@ -171,15 +176,16 @@ public class HugeSecurityManager extends SecurityManager {
     @Override
     public void checkRead(String file, Object context) {
         if (callFromGremlin()) {
-            throw new SecurityException("Not allowed to read file via Gremlin");
+            throw newSecurityException(
+                  "Not allowed to read file via Gremlin: %s", file);
         }
         super.checkRead(file, context);
     }
 
     @Override
     public void checkWrite(FileDescriptor fd) {
-        if (callFromGremlin() && !callFromBackendConnect()) {
-            throw new SecurityException("Not allowed to write fd via Gremlin");
+        if (callFromGremlin() && !callFromBackendSocket()) {
+            throw newSecurityException("Not allowed to write fd via Gremlin");
         }
         super.checkWrite(fd);
     }
@@ -187,8 +193,7 @@ public class HugeSecurityManager extends SecurityManager {
     @Override
     public void checkWrite(String file) {
         if (callFromGremlin()) {
-            throw new SecurityException(
-                      "Not allowed to write file via Gremlin");
+            throw newSecurityException("Not allowed to write file via Gremlin");
         }
         super.checkWrite(file);
     }
@@ -196,8 +201,8 @@ public class HugeSecurityManager extends SecurityManager {
     @Override
     public void checkDelete(String file) {
         if (callFromGremlin()) {
-            throw new SecurityException(
-                      "Not allowed to delete file via Gremlin");
+            throw newSecurityException(
+                  "Not allowed to delete file via Gremlin");
         }
         super.checkDelete(file);
     }
@@ -205,8 +210,8 @@ public class HugeSecurityManager extends SecurityManager {
     @Override
     public void checkListen(int port) {
         if (callFromGremlin()) {
-            throw new SecurityException(
-                      "Not allowed to listen socket via Gremlin");
+            throw newSecurityException(
+                  "Not allowed to listen socket via Gremlin");
         }
         super.checkListen(port);
     }
@@ -214,17 +219,17 @@ public class HugeSecurityManager extends SecurityManager {
     @Override
     public void checkAccept(String host, int port) {
         if (callFromGremlin()) {
-            throw new SecurityException(
-                      "Not allowed to accept socket via Gremlin");
+            throw newSecurityException(
+                  "Not allowed to accept socket via Gremlin");
         }
         super.checkAccept(host, port);
     }
 
     @Override
     public void checkConnect(String host, int port) {
-        if (callFromGremlin() && !callFromBackendConnect()) {
-            throw new SecurityException(
-                      "Not allowed to connect socket via Gremlin");
+        if (callFromGremlin() && !callFromBackendSocket()) {
+            throw newSecurityException(
+                  "Not allowed to connect socket via Gremlin");
         }
         super.checkConnect(host, port);
     }
@@ -232,8 +237,8 @@ public class HugeSecurityManager extends SecurityManager {
     @Override
     public void checkConnect(String host, int port, Object context) {
         if (callFromGremlin()) {
-            throw new SecurityException(
-                      "Not allowed to connect socket via Gremlin");
+            throw newSecurityException(
+                  "Not allowed to connect socket via Gremlin");
         }
         super.checkConnect(host, port, context);
     }
@@ -241,7 +246,7 @@ public class HugeSecurityManager extends SecurityManager {
     @Override
     public void checkMulticast(InetAddress maddr) {
         if (callFromGremlin()) {
-            throw new SecurityException("Not allowed to multicast via Gremlin");
+            throw newSecurityException("Not allowed to multicast via Gremlin");
         }
         super.checkMulticast(maddr);
     }
@@ -250,7 +255,7 @@ public class HugeSecurityManager extends SecurityManager {
     @SuppressWarnings("deprecation")
     public void checkMulticast(InetAddress maddr, byte ttl) {
         if (callFromGremlin()) {
-            throw new SecurityException("Not allowed to multicast via Gremlin");
+            throw newSecurityException("Not allowed to multicast via Gremlin");
         }
         super.checkMulticast(maddr, ttl);
     }
@@ -258,8 +263,8 @@ public class HugeSecurityManager extends SecurityManager {
     @Override
     public void checkSetFactory() {
         if (callFromGremlin()) {
-            throw new SecurityException(
-                      "Not allowed to set socket factory via Gremlin");
+            throw newSecurityException(
+                  "Not allowed to set socket factory via Gremlin");
         }
         super.checkSetFactory();
     }
@@ -267,8 +272,8 @@ public class HugeSecurityManager extends SecurityManager {
     @Override
     public void checkPropertiesAccess() {
         if (callFromGremlin()) {
-            throw new SecurityException(
-                      "Not allowed to access system properties via Gremlin");
+            throw newSecurityException(
+                  "Not allowed to access system properties via Gremlin");
         }
         super.checkPropertiesAccess();
     }
@@ -277,9 +282,8 @@ public class HugeSecurityManager extends SecurityManager {
     public void checkPropertyAccess(String key) {
         if (!callFromAcceptClassLoaders() && callFromGremlin() &&
             !WHITE_SYSTEM_PROPERTYS.contains(key)) {
-            throw new SecurityException(String.format(
-                      "Not allowed to access system property(%s) via Gremlin",
-                      key));
+            throw newSecurityException(
+                  "Not allowed to access system property(%s) via Gremlin", key);
         }
         super.checkPropertyAccess(key);
     }
@@ -287,7 +291,7 @@ public class HugeSecurityManager extends SecurityManager {
     @Override
     public void checkPrintJobAccess() {
         if (callFromGremlin()) {
-            throw new SecurityException("Not allowed to print job via Gremlin");
+            throw newSecurityException("Not allowed to print job via Gremlin");
         }
         super.checkPrintJobAccess();
     }
@@ -296,8 +300,8 @@ public class HugeSecurityManager extends SecurityManager {
     @SuppressWarnings("deprecation")
     public void checkSystemClipboardAccess() {
         if (callFromGremlin()) {
-            throw new SecurityException(
-                      "Not allowed to access system clipboard via Gremlin");
+            throw newSecurityException(
+                  "Not allowed to access system clipboard via Gremlin");
         }
         super.checkSystemClipboardAccess();
     }
@@ -335,6 +339,29 @@ public class HugeSecurityManager extends SecurityManager {
         super.checkAwtEventQueueAccess();
     }
 
+    private static SecurityException newSecurityException(String message,
+                                                          Object... args) {
+        if (args.length > 0) {
+            message = String.format(message, args);
+        }
+        /*
+         * use dynamic logger here because "static final logger" can't be
+         * initialized: the logger is not initialized when HugeSecurityManager
+         * class is loaded
+         */
+        Logger log = Log.logger(HugeSecurityManager.class);
+        log.warn("SecurityException: {}", message);
+        return new SecurityException(message);
+    }
+
+    private static boolean readGroovyInCurrentDir(String file) {
+        if (USER_DIR != null && file != null && file.startsWith(USER_DIR) &&
+            (file.endsWith(".class") || file.endsWith(".groovy"))) {
+            return true;
+        }
+        return false;
+    }
+
     private static boolean callFromGremlin() {
         return callFromWorkerWithClass(GREMLIN_EXECUTOR_CLASS);
     }
@@ -347,8 +374,15 @@ public class HugeSecurityManager extends SecurityManager {
         return callFromWorkerWithClass(CAFFEINE_CLASSES);
     }
 
-    private static boolean callFromBackendConnect() {
-        return callFromMethods(BACKEND_CONNECT);
+    private static boolean callFromBackendSocket() {
+        // Fixed issue #765
+        return callFromMethods(BACKEND_SOCKET);
+    }
+
+    private static boolean callFromBackendThread() {
+        // Fixed issue #765
+        return callFromMethods(THREAD_NEW) &&
+               callFromWorkerWithClass(BACKEND_THREAD);
     }
 
     private static boolean callFromEventHubNotify() {
