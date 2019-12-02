@@ -1420,10 +1420,10 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
         Assert.assertEquals(100, personByName.userdata().get("max"));
 
         IndexLabel personByAge = schema.indexLabel("personByAge")
-                                        .onV("person").range().by("age")
-                                        .userdata("length", 15)
-                                        .userdata("length", 18)
-                                        .create();
+                                       .onV("person").range().by("age")
+                                       .userdata("length", 15)
+                                       .userdata("length", 18)
+                                       .create();
         // The same key user data will be overwritten
         Assert.assertEquals(2, personByAge.userdata().size());
         Assert.assertEquals(18, personByAge.userdata().get("length"));

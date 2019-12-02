@@ -269,7 +269,7 @@ public class SchemaTransaction extends IndexableTransaction {
     protected void addSchema(SchemaElement schema) {
         LOG.debug("SchemaTransaction add {} with id '{}'",
                   schema.type(), schema.id());
-        setCreateTime(schema);
+        setCreateTimeIfNeeded(schema);
 
         LockUtil.Locks locks = new LockUtil.Locks(this.graph().name());
         try {
@@ -448,7 +448,7 @@ public class SchemaTransaction extends IndexableTransaction {
         }
     }
 
-    private static void setCreateTime(SchemaElement schema) {
+    private static void setCreateTimeIfNeeded(SchemaElement schema) {
         if (!schema.userdata().containsKey(Userdata.CREATE_TIME)) {
             schema.userdata(Userdata.CREATE_TIME, DateUtil.now());
         }
