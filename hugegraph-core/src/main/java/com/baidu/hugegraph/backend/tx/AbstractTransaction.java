@@ -154,8 +154,7 @@ public abstract class AbstractTransaction implements Transaction {
         RateLimiter rateLimiter = this.graph.rateLimiter();
         if (rateLimiter != null) {
             int size = this.mutationSize();
-            assert size > 0;
-            double time = rateLimiter.acquire(size);
+            double time = size > 0 ? rateLimiter.acquire(size) : 0.0;
             if (time > 0) {
                 LOG.debug("Waited for {}s to mutate {} item(s)", time, size);
             }
