@@ -278,7 +278,8 @@ public class SecurityManagerTest {
     }
 
     private static void assertError(String result, String message) {
-        Assert.assertTrue(result, result.endsWith(message));
+        Assert.assertTrue(result, result.endsWith(message) ||
+                                  result.contains(message));
     }
 
     private static String runGremlinJob(String gremlin) {
