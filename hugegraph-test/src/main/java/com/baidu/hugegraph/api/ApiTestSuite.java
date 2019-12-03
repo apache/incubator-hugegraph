@@ -35,6 +35,7 @@ import com.baidu.hugegraph.dist.RegisterUtil;
     EdgeApiTest.class,
     TaskApiTest.class,
     GremlinApiTest.class,
+    SecurityManagerTest.class,
     MetricsApiTest.class
 })
 public class ApiTestSuite {

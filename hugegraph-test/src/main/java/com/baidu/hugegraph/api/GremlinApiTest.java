@@ -58,15 +58,6 @@ public class GremlinApiTest extends BaseApiTest {
                 + "\"language\":\"gremlin-groovy\","
                 + "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
 
-
-        String queryV = "g.V()";
-        String body = String.format(bodyTemplate, queryV);
-        Assert.assertEquals(200, client().post(path, body).getStatus());
-
-        String queryE = "g.E()";
-        body = String.format(bodyTemplate, queryE);
-        Assert.assertEquals(200, client().post(path, body).getStatus());
-
         String script = "schema=hugegraph.schema();" +
                 "schema.propertyKey('name').asText().ifNotExist().create();" +
                 "schema.propertyKey('age').asInt().ifNotExist().create();" +
@@ -80,7 +71,15 @@ public class GremlinApiTest extends BaseApiTest {
                 "marko=hugegraph.addVertex(T.id, '835e1153928149578691cf79258e90eb', T.label,'person','name','marko','age',29,'city','135e1153928149578691cf79258e90eb');" +
                 "vadas=hugegraph.addVertex(T.id, '935e1153928149578691cf79258e90eb', T.label,'person','name','vadas','age',27,'city','235e1153928149578691cf79258e90eb');" +
                 "marko.addEdge('knows',vadas,'date','20160110');";
-        body = String.format(bodyTemplate, script);
+        String body = String.format(bodyTemplate, script);
+        Assert.assertEquals(200, client().post(path, body).getStatus());
+
+        String queryV = "g.V()";
+        body = String.format(bodyTemplate, queryV);
+        Assert.assertEquals(200, client().post(path, body).getStatus());
+
+        String queryE = "g.E()";
+        body = String.format(bodyTemplate, queryE);
         Assert.assertEquals(200, client().post(path, body).getStatus());
     }
 
@@ -102,34 +101,5 @@ public class GremlinApiTest extends BaseApiTest {
                 + "\"language\":\"gremlin-groovy\","
                 + "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
         Assert.assertEquals(200, client().post(path, body).getStatus());
-    }
-
-    @Test
-    public void testFile() {
-        String bodyTemplate = "{"
-                + "\"gremlin\":\"%s\","
-                + "\"bindings\":{},"
-                + "\"language\":\"gremlin-groovy\","
-                + "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
-
-        String readFile = "new FileInputStream(new File(\\\"\\\"))";
-        String body = String.format(bodyTemplate, readFile);
-        Assert.assertEquals(403, client().post(path, body).getStatus());
-
-        String readFd = "new FileInputStream(FileDescriptor.in)";
-        body = String.format(bodyTemplate, readFd);
-        Assert.assertEquals(403, client().post(path, body).getStatus());
-
-        String writeFile = "new FileOutputStream(new File(\\\"\\\"))";
-        body = String.format(bodyTemplate, writeFile);
-        Assert.assertEquals(403, client().post(path, body).getStatus());
-
-        String writeFd = "new FileOutputStream(FileDescriptor.out)";
-        body = String.format(bodyTemplate, writeFd);
-        Assert.assertEquals(403, client().post(path, body).getStatus());
-
-        String deleteFile = "new File(\\\"\\\").delete()";
-        body = String.format(bodyTemplate, deleteFile);
-        Assert.assertEquals(403, client().post(path, body).getStatus());
     }
 }

@@ -259,15 +259,16 @@ public abstract class CassandraStore
     public void init() {
         this.checkClusterConnected();
 
+        // Create keyspace if needed
+        if (!this.existsKeyspace()) {
+            this.initKeyspace();
+        }
+
         if (this.sessions.session().opened()) {
             // Session has ever been opened.
             LOG.warn("Session has ever been opened(exist keyspace '{}' before)",
                      this.keyspace);
         } else {
-            // Create keyspace if needed
-            if (!this.existsKeyspace()) {
-                this.initKeyspace();
-            }
             // Open session explicitly to get the exception when it fails
             this.sessions.session().open();
         }
