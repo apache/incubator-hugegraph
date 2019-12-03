@@ -64,7 +64,8 @@ public class HugeSecurityManager extends SecurityManager {
 
     private static final Map<String, Set<String>> BACKEND_SOCKET = ImmutableMap.of(
             "com.baidu.hugegraph.backend.store.mysql.MysqlStore",
-            ImmutableSet.of("open", "init", "clear")
+            ImmutableSet.of("open", "init", "clear",
+                            "opened", "initialized")
     );
 
     private static final Map<String, Set<String>> THREAD_NEW = ImmutableMap.of(
