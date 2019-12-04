@@ -49,8 +49,7 @@ public class HugeSecurityManager extends SecurityManager {
             "groovy.lang.GroovyClassLoader",
             "sun.reflect.DelegatingClassLoader",
             "org.codehaus.groovy.reflection.SunClassLoader",
-            "org.codehaus.groovy.runtime.callsite.CallSiteClassLoader",
-            "org.apache.hadoop.hbase.util.DynamicClassLoader"
+            "org.codehaus.groovy.runtime.callsite.CallSiteClassLoader"
     );
 
     private static final Set<String> CAFFEINE_CLASSES = ImmutableSet.of(
@@ -61,23 +60,7 @@ public class HugeSecurityManager extends SecurityManager {
             "line.separator",
             "file.separator",
             "socksProxyHost",
-            "file.encoding",// PostgreSQL
-            "maxOccurLimit",// HBase
-            "entityExpansionLimit",// HBase
-            "elementAttributeLimit", // HBase
-            "javax.xml.accessExternalDTD", // HBase
-            "javax.xml.accessExternalSchema", // HBase
-            "javax.xml.parsers.DocumentBuilderFactory",// HBase
-            "jdk.xml.maxOccurLimit", // HBase
-            "jdk.xml.maxXMLNameLimit", // HBase
-            "jdk.xml.maxElementDepth", // HBase
-            "jdk.xml.entityExpansionLimit",// HBase
-            "jdk.xml.totalEntitySizeLimit", // HBase
-            "jdk.xml.elementAttributeLimit",// HBase
-            "jdk.xml.entityReplacementLimit", // HBase
-            "jdk.xml.maxGeneralEntitySizeLimit", // HBase
-            "jdk.xml.maxParameterEntitySizeLimit", // HBase
-            "http://java.sun.com/xml/dom/properties/ancestor-check" // HBase
+            "file.encoding" // PostgreSQL
     );
 
     private static final Map<String, Set<String>> BACKEND_SOCKET = ImmutableMap.of(
@@ -95,16 +78,16 @@ public class HugeSecurityManager extends SecurityManager {
             ImmutableSet.of("startThread")
     );
 
-    private static final Set<String> THREAD_ACCESS = ImmutableSet.of(
-            "java.lang.Thread"
+    private static final Set<String> BACKEND_THREAD = ImmutableSet.of(
+            "com.baidu.hugegraph.backend.store.cassandra.CassandraStore"
     );
 
-    private static final Set<String> BACKEND_THREAD = ImmutableSet.of(
-            "com.baidu.hugegraph.backend.store.cassandra.CassandraStore",
+    private static final Set<String> HBASE_CLASSES = ImmutableSet.of(
             "com.baidu.hugegraph.backend.store.hbase.HbaseStore",
             "com.baidu.hugegraph.backend.store.hbase.HbaseStore$HbaseSchemaStore",
             "com.baidu.hugegraph.backend.store.hbase.HbaseStore$HbaseGraphStore",
-            "com.baidu.hugegraph.backend.store.hbase.HbaseSessions$RowIterator");
+            "com.baidu.hugegraph.backend.store.hbase.HbaseSessions$RowIterator"
+    );
 
     @Override
     public void checkPermission(Permission permission) {
@@ -126,7 +109,8 @@ public class HugeSecurityManager extends SecurityManager {
 
     @Override
     public void checkCreateClassLoader() {
-        if (!callFromAcceptClassLoaders() && callFromGremlin()) {
+        if (!callFromAcceptClassLoaders() && callFromGremlin() &&
+            !callFromHbaseBackend()) {
             throw newSecurityException(
                   "Not allowed to create class loader via Gremlin");
         }
@@ -145,7 +129,8 @@ public class HugeSecurityManager extends SecurityManager {
     @Override
     public void checkAccess(Thread thread) {
         if (callFromGremlin() && !callFromCaffeine() &&
-            !callFromBackendThread() && !callFromEventHubNotify()) {
+            !callFromBackendThread() && !callFromEventHubNotify() &&
+            !callFromHbaseBackend()) {
             throw newSecurityException(
                   "Not allowed to access thread via Gremlin");
         }
@@ -155,7 +140,8 @@ public class HugeSecurityManager extends SecurityManager {
     @Override
     public void checkAccess(ThreadGroup threadGroup) {
         if (callFromGremlin() && !callFromCaffeine() &&
-            !callFromBackendThread() && !callFromEventHubNotify()) {
+            !callFromBackendThread() && !callFromEventHubNotify() &&
+            !callFromHbaseBackend()) {
             throw newSecurityException(
                   "Not allowed to access thread group via Gremlin");
         }
@@ -191,7 +177,7 @@ public class HugeSecurityManager extends SecurityManager {
     @Override
     public void checkRead(String file) {
         if (callFromGremlin() && !callFromCaffeine() &&
-            !readGroovyInCurrentDir(file)) {
+            !readGroovyInCurrentDir(file) && !callFromHbaseBackend()) {
             throw newSecurityException(
                   "Not allowed to read file via Gremlin: %s", file);
         }
@@ -306,7 +292,7 @@ public class HugeSecurityManager extends SecurityManager {
     @Override
     public void checkPropertyAccess(String key) {
         if (!callFromAcceptClassLoaders() && callFromGremlin() &&
-            !WHITE_SYSTEM_PROPERTYS.contains(key)) {
+            !WHITE_SYSTEM_PROPERTYS.contains(key) && !callFromHbaseBackend()) {
             throw newSecurityException(
                   "Not allowed to access system property(%s) via Gremlin", key);
         }
@@ -380,8 +366,8 @@ public class HugeSecurityManager extends SecurityManager {
     }
 
     private static boolean readGroovyInCurrentDir(String file) {
-        if (USER_DIR != null && file != null &&
-            (file.startsWith(USER_DIR) || file.startsWith("/var"))) {
+        if (USER_DIR != null && file != null && file.startsWith(USER_DIR)
+            && file.endsWith(".class") && file.endsWith(".groovy")) {
             return true;
         }
         return false;
@@ -406,13 +392,16 @@ public class HugeSecurityManager extends SecurityManager {
 
     private static boolean callFromBackendThread() {
         // Fixed issue #758
-        return (callFromMethods(THREAD_NEW) ||
-                callFromWorkerWithClass(THREAD_ACCESS)) &&
+        return callFromMethods(THREAD_NEW) &&
                callFromWorkerWithClass(BACKEND_THREAD);
     }
 
     private static boolean callFromEventHubNotify() {
         return callFromMethod("com.baidu.hugegraph.event.EventHub", "notify");
+    }
+
+    private static boolean callFromHbaseBackend() {
+        return callFromWorkerWithClass(HBASE_CLASSES);
     }
 
     private static boolean callFromWorkerWithClass(Set<String> classes) {
