@@ -36,9 +36,9 @@ fi
 
 # Set timeout for hbase
 if [ "$BACKEND" == "hbase" ]; then
-    sed -i '$arestserver.request_timeout=100' $REST_CONF
-    sed -i '$agremlinserver.timeout=100' $REST_CONF
-    sed -i 's/scriptEvaluationTimeout.*/scriptEvaluationTimeout: 100000/' $GREMLIN_CONF
+    sed -i '$arestserver.request_timeout=200' $REST_CONF
+    sed -i '$agremlinserver.timeout=200' $REST_CONF
+    sed -i 's/scriptEvaluationTimeout.*/scriptEvaluationTimeout: 200000/' $GREMLIN_CONF
 fi
 
 # Append schema.sync_deletion=true to config file
