@@ -4,6 +4,7 @@ set -ev
 
 HOME_DIR=`pwd`
 TRAVIS_DIR=`dirname $0`
+mvn help:evaluate -Dexpression=project.version -DforceStdout
 VERSION=`mvn help:evaluate -Dexpression=project.version -q -DforceStdout`
 BASE_DIR=hugegraph-$VERSION
 BIN=$BASE_DIR/bin
