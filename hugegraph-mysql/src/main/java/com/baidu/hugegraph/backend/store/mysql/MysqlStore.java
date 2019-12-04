@@ -147,7 +147,7 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
     @Override
     public boolean opened() {
         this.checkClusterConnected();
-        return !this.sessions.session().closed();
+        return this.sessions.session().opened();
     }
 
     @Override
@@ -157,7 +157,7 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
         try {
             // Open a new session connected with specified database
             this.sessions.session().open();
-        } catch (SQLException e) {
+        } catch (Exception e) {
             throw new BackendException("Failed to connect database '%s'",
                                        this.database);
         }

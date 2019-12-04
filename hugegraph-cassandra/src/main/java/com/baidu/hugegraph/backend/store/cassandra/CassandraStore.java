@@ -123,7 +123,8 @@ public abstract class CassandraStore
                                                      this.store);
         }
 
-        if (this.sessions.opened()) {
+        assert this.sessions != null;
+        if (!this.sessions.closed()) {
             // TODO: maybe we should throw an exception here instead of ignore
             LOG.debug("Store {} has been opened before", this.store);
             this.sessions.useSession();
@@ -169,7 +170,7 @@ public abstract class CassandraStore
     @Override
     public boolean opened() {
         this.checkClusterConnected();
-        return !this.sessions.session().closed();
+        return this.sessions.session().opened();
     }
 
     @Override

@@ -26,12 +26,14 @@ import com.baidu.hugegraph.backend.store.BackendStore.TxState;
  */
 public abstract class BackendSession {
 
+    protected boolean opened;
     private int refs;
     private TxState txState;
     private final long created;
     private long updated;
 
     public BackendSession() {
+        this.opened = true;
         this.refs = 1;
         this.txState = TxState.CLEAN;
         this.created = System.currentTimeMillis();
@@ -50,9 +52,8 @@ public abstract class BackendSession {
         this.updated = System.currentTimeMillis();
     }
 
+    public abstract void open();
     public abstract void close();
-
-    public abstract boolean closed();
 
     public abstract Object commit();
 
@@ -62,6 +63,18 @@ public abstract class BackendSession {
 
     protected void reconnectIfNeeded() {
         // pass
+    }
+
+    protected void reset() {
+        // pass
+    }
+
+    public boolean opened() {
+        return this.opened;
+    }
+
+    public boolean closed() {
+        return !this.opened;
     }
 
     protected int attach() {

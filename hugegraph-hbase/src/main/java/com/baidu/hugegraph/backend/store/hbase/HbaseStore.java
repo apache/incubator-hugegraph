@@ -132,8 +132,8 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
             this.sessions = new HbaseSessions(config, this.namespace, this.store);
         }
 
-        // NOTE: seems to always return true even if not connected
-        if (this.sessions.opened()) {
+        assert this.sessions != null;
+        if (!this.sessions.closed()) {
             LOG.debug("Store {} has been opened before", this.store);
             this.sessions.useSession();
             return;
@@ -166,7 +166,7 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
     @Override
     public boolean opened() {
         this.checkConnectionOpened();
-        return !this.sessions.session().closed();
+        return this.sessions.session().opened();
     }
 
     @Override

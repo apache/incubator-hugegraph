@@ -118,6 +118,9 @@ public class MysqlSessions extends BackendSessionPool {
     public void dropDatabase() {
         LOG.debug("Drop database: {}", this.database());
 
+        // Close the under layer connections owned by each thread
+        this.forceResetSessions();
+
         String sql = this.buildDropDatabase(this.database());
         try (Connection conn = this.openWithoutDB(DROP_DB_TIMEOUT)) {
             conn.createStatement().execute(sql);
@@ -260,26 +263,36 @@ public class MysqlSessions extends BackendSessionPool {
 
         private Connection conn;
         private Map<String, PreparedStatement> statements;
-        private boolean opened;
         private int count;
 
         public Session() {
             this.conn = null;
             this.statements = new HashMap<>();
-            this.opened = false;
             this.count = 0;
-            try {
-                this.open();
-            } catch (SQLException ignored) {
-                // Ignore
-            }
         }
 
         public HugeConfig config() {
             return MysqlSessions.this.config();
         }
 
-        public void open() throws SQLException {
+        @Override
+        public void open() {
+            try {
+                this.doOpen();
+            } catch (SQLException e) {
+                throw new BackendException("Failed to open connection", e);
+            }
+        }
+
+        public void tryOpen() {
+            try {
+                this.doOpen();
+            } catch (SQLException ignored) {
+                // Ignore
+            }
+        }
+
+        public void doOpen() throws SQLException {
             if (this.conn != null && !this.conn.isClosed()) {
                 return;
             }
@@ -310,6 +323,7 @@ public class MysqlSessions extends BackendSessionPool {
             }
 
             this.opened = false;
+            this.conn = null;
             if (exception != null) {
                 throw new BackendException("Failed to close connection",
                                            exception);
@@ -317,8 +331,25 @@ public class MysqlSessions extends BackendSessionPool {
         }
 
         @Override
+        public boolean opened() {
+            if (this.opened && this.conn == null) {
+                // Reconnect if the connection is reset
+                tryOpen();
+            }
+            return this.opened && this.conn != null;
+        }
+
+        @Override
         public boolean closed() {
-            return !this.opened;
+            if (!this.opened || this.conn == null) {
+                return true;
+            }
+            try {
+                return this.conn.isClosed();
+            } catch (SQLException ignored) {
+                // Assume closed here
+                return true;
+            }
         }
 
         public void clear() {
@@ -396,6 +427,12 @@ public class MysqlSessions extends BackendSessionPool {
             } catch (SQLException ignored) {
                 // pass
             }
+        }
+
+        @Override
+        protected void reset() {
+            // NOTE: this method may be called by other threads
+            this.conn = null;
         }
 
         public ResultSet select(String sql) throws SQLException {

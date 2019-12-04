@@ -333,7 +333,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
     @Override
     public boolean opened() {
         this.checkDbOpened();
-        return !this.sessions.session().closed();
+        return this.sessions.session().opened();
     }
 
     @Override
