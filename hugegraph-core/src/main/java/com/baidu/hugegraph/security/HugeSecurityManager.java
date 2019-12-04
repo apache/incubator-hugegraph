@@ -229,7 +229,8 @@ public class HugeSecurityManager extends SecurityManager {
 
     @Override
     public void checkConnect(String host, int port) {
-        if (callFromGremlin() && !callFromBackendSocket()) {
+        if (callFromGremlin() && !callFromBackendSocket() &&
+            !callFromBackendHbase()) {
             throw newSecurityException(
                   "Not allowed to connect socket via Gremlin");
         }
