@@ -39,7 +39,7 @@ public class GremlinApiTest extends BaseApiTest {
                 + "\"bindings\":{},"
                 + "\"language\":\"gremlin-groovy\","
                 + "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
-        Assert.assertEquals(200, client().post(path, body).getStatus());
+        assertResponseStatus(200, client().post(path, body));
     }
 
     @Test
@@ -72,15 +72,15 @@ public class GremlinApiTest extends BaseApiTest {
                 "vadas=hugegraph.addVertex(T.id, '935e1153928149578691cf79258e90eb', T.label,'person','name','vadas','age',27,'city','235e1153928149578691cf79258e90eb');" +
                 "marko.addEdge('knows',vadas,'date','20160110');";
         String body = String.format(bodyTemplate, script);
-        Assert.assertEquals(200, client().post(path, body).getStatus());
+        assertResponseStatus(200, client().post(path, body));
 
         String queryV = "g.V()";
         body = String.format(bodyTemplate, queryV);
-        Assert.assertEquals(200, client().post(path, body).getStatus());
+        assertResponseStatus(200, client().post(path, body));
 
         String queryE = "g.E()";
         body = String.format(bodyTemplate, queryE);
-        Assert.assertEquals(200, client().post(path, body).getStatus());
+        assertResponseStatus(200, client().post(path, body));
     }
 
     @Test
@@ -90,14 +90,14 @@ public class GremlinApiTest extends BaseApiTest {
                 + "\"bindings\":{},"
                 + "\"language\":\"gremlin-groovy\","
                 + "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
-        Assert.assertEquals(200, client().post(path, body).getStatus());
+        assertResponseStatus(200, client().post(path, body));
 
         body = "{"
                 + "\"gremlin\":\"hugegraph.initBackend()\","
                 + "\"bindings\":{},"
                 + "\"language\":\"gremlin-groovy\","
                 + "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
-        Assert.assertEquals(200, client().post(path, body).getStatus());
+        assertResponseStatus(200, client().post(path, body));
     }
 
     @Test
@@ -107,6 +107,6 @@ public class GremlinApiTest extends BaseApiTest {
                 + "\"bindings\":{},"
                 + "\"language\":\"gremlin-groovy\","
                 + "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
-        Assert.assertEquals(200, client().post(path, body).getStatus());
+        assertResponseStatus(200, client().post(path, body));
     }
 }
