@@ -65,8 +65,7 @@ public class HugeSecurityManager extends SecurityManager {
 
     private static final Map<String, Set<String>> BACKEND_SOCKET = ImmutableMap.of(
             "com.baidu.hugegraph.backend.store.mysql.MysqlStore",
-            ImmutableSet.of("open", "init", "clear",
-                            "opened", "initialized")
+            ImmutableSet.of("open", "init", "clear", "opened", "initialized")
     );
 
     private static final Map<String, Set<String>> BACKEND_THREAD = ImmutableMap.of(
@@ -102,7 +101,7 @@ public class HugeSecurityManager extends SecurityManager {
     @Override
     public void checkCreateClassLoader() {
         if (!callFromAcceptClassLoaders() && callFromGremlin() &&
-            !callFromHbaseBackend()) {
+            !callFromBackendHbase()) {
             throw newSecurityException(
                   "Not allowed to create class loader via Gremlin");
         }
@@ -122,7 +121,7 @@ public class HugeSecurityManager extends SecurityManager {
     public void checkAccess(Thread thread) {
         if (callFromGremlin() && !callFromCaffeine() &&
             !callFromBackendThread() && !callFromEventHubNotify() &&
-            !callFromHbaseBackend()) {
+            !callFromBackendHbase()) {
             throw newSecurityException(
                   "Not allowed to access thread via Gremlin");
         }
@@ -133,7 +132,7 @@ public class HugeSecurityManager extends SecurityManager {
     public void checkAccess(ThreadGroup threadGroup) {
         if (callFromGremlin() && !callFromCaffeine() &&
             !callFromBackendThread() && !callFromEventHubNotify() &&
-            !callFromHbaseBackend()) {
+            !callFromBackendHbase()) {
             throw newSecurityException(
                   "Not allowed to access thread group via Gremlin");
         }
@@ -169,7 +168,7 @@ public class HugeSecurityManager extends SecurityManager {
     @Override
     public void checkRead(String file) {
         if (callFromGremlin() && !callFromCaffeine() &&
-            !readGroovyInCurrentDir(file) && !callFromHbaseBackend()) {
+            !readGroovyInCurrentDir(file) && !callFromBackendHbase()) {
             throw newSecurityException(
                   "Not allowed to read file via Gremlin: %s", file);
         }
@@ -284,7 +283,7 @@ public class HugeSecurityManager extends SecurityManager {
     @Override
     public void checkPropertyAccess(String key) {
         if (!callFromAcceptClassLoaders() && callFromGremlin() &&
-            !WHITE_SYSTEM_PROPERTYS.contains(key) && !callFromHbaseBackend()) {
+            !WHITE_SYSTEM_PROPERTYS.contains(key) && !callFromBackendHbase()) {
             throw newSecurityException(
                   "Not allowed to access system property(%s) via Gremlin", key);
         }
@@ -388,10 +387,12 @@ public class HugeSecurityManager extends SecurityManager {
     }
 
     private static boolean callFromEventHubNotify() {
+        // Fixed issue #758 notify() will create thread
+        // when submit task to executor
         return callFromMethod("com.baidu.hugegraph.event.EventHub", "notify");
     }
 
-    private static boolean callFromHbaseBackend() {
+    private static boolean callFromBackendHbase() {
         return callFromWorkerWithClass(HBASE_CLASSES);
     }
 
