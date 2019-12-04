@@ -25,6 +25,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.tinkerpop.gremlin.process.traversal.Compare;
 import org.apache.tinkerpop.gremlin.process.traversal.Contains;
@@ -60,6 +62,7 @@ import org.apache.tinkerpop.gremlin.structure.PropertyType;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
@@ -71,15 +74,18 @@ import com.baidu.hugegraph.backend.query.Condition.Relation;
 import com.baidu.hugegraph.backend.query.Condition.RelationType;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.iterator.FilterIterator;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaLabel;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.JsonUtil;
 import com.google.common.collect.ImmutableList;
 
 public final class TraversalUtil {
@@ -607,11 +613,26 @@ public final class TraversalUtil {
 
     private static <V> V validPredicateValue(V value, PropertyKey pkey) {
         V validValue = pkey.convValue(value, false);
-        E.checkArgumentNotNull(validValue,
-                               "Invalid data type of query value '%s', " +
-                               "expect '%s' for '%s', actual '%s'",
-                               value, pkey.dataType().clazz(), pkey.name(),
-                               value == null ? null : value.getClass());
+        if (validValue == null) {
+            if (pkey.cardinality() == Cardinality.SINGLE &&
+                value instanceof Collection) {
+                List<Class<?>> classes = new ArrayList<>();
+                for (Object v : (Collection<?>) value) {
+                    classes.add(v == null ? null : v.getClass());
+                }
+                E.checkArgument(false,
+                                "Invalid data type of query value in %s, " +
+                                "expect %s for '%s', actual got %s",
+                                value, pkey.dataType(), pkey.name(),
+                                value == null ? null : classes);
+            } else {
+                E.checkArgument(false,
+                                "Invalid data type of query value '%s', " +
+                                "expect %s for '%s', actual got %s",
+                                value, pkey.dataType(), pkey.name(),
+                                value == null ? null : value.getClass());
+            }
+        }
         return validValue;
     }
 
@@ -661,5 +682,77 @@ public final class TraversalUtil {
             }
         }
         return null;
+    }
+
+    public static P<?> parsePredicate(String predicate) {
+        // extract P from json string like {"properties": {"age": "P.gt(18)"}}
+        Pattern pattern = Pattern.compile("^P\\.([a-z]+)\\(([\\S ]*)\\)$");
+        Matcher matcher = pattern.matcher(predicate);
+        if (!matcher.find()) {
+            throw new HugeException("Invalid predicate: %s", predicate);
+        }
+
+        String method = matcher.group(1);
+        String value = matcher.group(2);
+        switch (method) {
+            case "eq":
+                return P.eq(predicateNumber(value));
+            case "neq":
+                return P.neq(predicateNumber(value));
+            case "lt":
+                return P.lt(predicateNumber(value));
+            case "lte":
+                return P.lte(predicateNumber(value));
+            case "gt":
+                return P.gt(predicateNumber(value));
+            case "gte":
+                return P.gte(predicateNumber(value));
+            case "between":
+                Number[] params = predicateNumbers(value, 2);
+                return P.between(params[0], params[1]);
+            case "inside":
+                params = predicateNumbers(value, 2);
+                return P.inside(params[0], params[1]);
+            case "outside":
+                params = predicateNumbers(value, 2);
+                return P.outside(params[0], params[1]);
+            case "within":
+                return P.within(predicateArgs(value));
+            default:
+                throw new NotSupportException("predicate '%s'", method);
+        }
+    }
+
+    private static Number predicateNumber(String value) {
+        try {
+            return JsonUtil.fromJson(value, Number.class);
+        } catch (Exception e) {
+            throw new HugeException(
+                      "Invalid value '%s', expect a number", e, value);
+        }
+    }
+
+    private static Number[] predicateNumbers(String value, int count) {
+        List<?> values = predicateArgs(value);
+        if (values.size() != count) {
+            throw new HugeException("Invalid numbers size %s, expect %s",
+                                    values.size(), count);
+        }
+        for (Object v : values) {
+            if (!(v instanceof Number)) {
+                throw new HugeException(
+                          "Invalid value '%s', expect a list of number", value);
+            }
+        }
+        return values.toArray(new Number[values.size()]);
+    }
+
+    private static List<?> predicateArgs(String value) {
+        try {
+            return JsonUtil.fromJson("[" + value + "]", List.class);
+        } catch (Exception e) {
+            throw new HugeException(
+                      "Invalid value '%s', expect a list", e, value);
+        }
     }
 }

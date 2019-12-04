@@ -66,6 +66,8 @@ import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeVertex;
+import com.baidu.hugegraph.traversal.optimize.QueryHolder;
+import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
@@ -301,6 +303,14 @@ public class EdgeAPI extends BatchAPI {
             }
         }
 
+        // Convert relational operator like P.gt()/P.lt()
+        for (Map.Entry<String, Object> prop : props.entrySet()) {
+            Object value = prop.getValue();
+            if (value instanceof String && ((String) value).startsWith("P.")) {
+                prop.setValue(TraversalUtil.parsePredicate((String) value));
+            }
+        }
+
         for (Map.Entry<String, Object> entry : props.entrySet()) {
             traversal = traversal.has(entry.getKey(), entry.getValue());
         }
@@ -308,7 +318,8 @@ public class EdgeAPI extends BatchAPI {
         if (page == null) {
             traversal = traversal.range(offset, offset + limit);
         } else {
-            traversal = traversal.has("~page", page).limit(limit);
+            traversal = traversal.has(QueryHolder.SYSPROP_PAGE, page)
+                                 .limit(limit);
         }
 
         return manager.serializer(g).writeEdges(traversal, page != null);
