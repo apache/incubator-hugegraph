@@ -59,7 +59,7 @@ public class HugeSecurityManager extends SecurityManager {
     private static final Set<String> WHITE_SYSTEM_PROPERTYS = ImmutableSet.of(
             "line.separator",
             "file.separator",
-            "socksProxyHost",
+            "socksProxyHost", // MySQL
             "file.encoding" // PostgreSQL
     );
 
@@ -69,17 +69,9 @@ public class HugeSecurityManager extends SecurityManager {
                             "opened", "initialized")
     );
 
-    private static final Map<String, Set<String>> THREAD_NEW = ImmutableMap.of(
-            "java.util.concurrent.ThreadPoolExecutor",
-            ImmutableSet.of("addWorker"),
-            "io.netty.util.concurrent.SingleThreadEventExecutor",
-            ImmutableSet.of("startThread"),
-            "org.apache.hbase.thirdparty.io.netty.util.concurrent.SingleThreadEventExecutor",
-            ImmutableSet.of("startThread")
-    );
-
-    private static final Set<String> BACKEND_THREAD = ImmutableSet.of(
-            "com.baidu.hugegraph.backend.store.cassandra.CassandraStore"
+    private static final Map<String, Set<String>> BACKEND_THREAD = ImmutableMap.of(
+            "com.baidu.hugegraph.backend.store.cassandra.CassandraStore",
+            ImmutableSet.of("open", "opened", "init")
     );
 
     private static final Set<String> HBASE_CLASSES = ImmutableSet.of(
@@ -367,7 +359,7 @@ public class HugeSecurityManager extends SecurityManager {
 
     private static boolean readGroovyInCurrentDir(String file) {
         if (USER_DIR != null && file != null && file.startsWith(USER_DIR)
-            && file.endsWith(".class") && file.endsWith(".groovy")) {
+            && (file.endsWith(".class") || file.endsWith(".groovy"))) {
             return true;
         }
         return false;
@@ -392,8 +384,7 @@ public class HugeSecurityManager extends SecurityManager {
 
     private static boolean callFromBackendThread() {
         // Fixed issue #758
-        return callFromMethods(THREAD_NEW) &&
-               callFromWorkerWithClass(BACKEND_THREAD);
+        return callFromMethods(BACKEND_THREAD);
     }
 
     private static boolean callFromEventHubNotify() {
