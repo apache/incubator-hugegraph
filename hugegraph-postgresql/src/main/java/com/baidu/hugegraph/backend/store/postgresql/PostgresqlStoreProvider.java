@@ -61,8 +61,7 @@ public class PostgresqlStoreProvider extends MysqlStoreProvider {
          */
         Iterator<BackendStore> iter = this.stores.values().iterator();
         while (iter.hasNext()) {
-            PostgresqlStore store = (PostgresqlStore) iter.next();
-            store.clear();
+            iter.next().clear();
         }
         this.notifyAndWaitEvent(Events.STORE_CLEAR);
     }

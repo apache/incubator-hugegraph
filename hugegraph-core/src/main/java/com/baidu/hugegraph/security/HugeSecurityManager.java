@@ -49,7 +49,8 @@ public class HugeSecurityManager extends SecurityManager {
             "groovy.lang.GroovyClassLoader",
             "sun.reflect.DelegatingClassLoader",
             "org.codehaus.groovy.reflection.SunClassLoader",
-            "org.codehaus.groovy.runtime.callsite.CallSiteClassLoader"
+            "org.codehaus.groovy.runtime.callsite.CallSiteClassLoader",
+            "org.apache.hadoop.hbase.util.DynamicClassLoader"
     );
 
     private static final Set<String> CAFFEINE_CLASSES = ImmutableSet.of(
@@ -92,6 +93,10 @@ public class HugeSecurityManager extends SecurityManager {
             ImmutableSet.of("startThread"),
             "org.apache.hbase.thirdparty.io.netty.util.concurrent.SingleThreadEventExecutor",
             ImmutableSet.of("startThread")
+    );
+
+    private static final Set<String> THREAD_ACCESS = ImmutableSet.of(
+            "java.lang.Thread"
     );
 
     private static final Set<String> BACKEND_THREAD = ImmutableSet.of(
@@ -401,7 +406,8 @@ public class HugeSecurityManager extends SecurityManager {
 
     private static boolean callFromBackendThread() {
         // Fixed issue #758
-        return callFromMethods(THREAD_NEW) &&
+        return (callFromMethods(THREAD_NEW) ||
+                callFromWorkerWithClass(THREAD_ACCESS)) &&
                callFromWorkerWithClass(BACKEND_THREAD);
     }
 
