@@ -125,7 +125,7 @@ public class MysqlSessions extends BackendSessionPool {
             if (e.getCause() instanceof SocketTimeoutException) {
                 LOG.warn("Drop database '{}' timeout", this.database());
             } else {
-                throw new BackendException("Failed to drop database '%s'",
+                throw new BackendException("Failed to drop database '%s'", e,
                                            this.database());
             }
         }

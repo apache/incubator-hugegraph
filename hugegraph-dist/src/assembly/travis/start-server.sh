@@ -8,6 +8,8 @@ VERSION=`mvn help:evaluate -Dexpression=project.version -q -DforceStdout`
 BASE_DIR=hugegraph-$VERSION
 BIN=$BASE_DIR/bin
 CONF=$BASE_DIR/conf/hugegraph.properties
+REST_CONF=$BASE_DIR/conf/rest-server.properties
+GREMLIN_CONF=$BASE_DIR/conf/gremlin-server.yaml
 
 # PostgreSQL configurations
 POSTGRESQL_DRIVER=org.postgresql.Driver
@@ -30,6 +32,13 @@ if [ "$BACKEND" == "postgresql" ]; then
     sed -i "s/#jdbc.driver=.*/jdbc.driver=$POSTGRESQL_DRIVER/" $CONF
     sed -i "s?#jdbc.url=.*?jdbc.url=$POSTGRESQL_URL?" $CONF
     sed -i "s/#jdbc.username=.*/jdbc.username=$POSTGRESQL_USERNAME/" $CONF
+fi
+
+# Set timeout for hbase
+if [ "$BACKEND" == "hbase" ]; then
+    sed -i '$arestserver.request_timeout=100' $REST_CONF
+    sed -i '$agremlinserver.timeout=100' $REST_CONF
+    sed -i 's/scriptEvaluationTimeout.*/scriptEvaluationTimeout: 100000/' $GREMLIN_CONF
 fi
 
 # Append schema.sync_deletion=true to config file

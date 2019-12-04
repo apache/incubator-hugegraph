@@ -59,7 +59,24 @@ public class HugeSecurityManager extends SecurityManager {
     private static final Set<String> WHITE_SYSTEM_PROPERTYS = ImmutableSet.of(
             "line.separator",
             "file.separator",
-            "socksProxyHost"
+            "socksProxyHost",
+            "file.encoding",// PostgreSQL
+            "maxOccurLimit",// HBase
+            "entityExpansionLimit",// HBase
+            "elementAttributeLimit", // HBase
+            "javax.xml.accessExternalDTD", // HBase
+            "javax.xml.accessExternalSchema", // HBase
+            "javax.xml.parsers.DocumentBuilderFactory",// HBase
+            "jdk.xml.maxOccurLimit", // HBase
+            "jdk.xml.maxXMLNameLimit", // HBase
+            "jdk.xml.maxElementDepth", // HBase
+            "jdk.xml.entityExpansionLimit",// HBase
+            "jdk.xml.totalEntitySizeLimit", // HBase
+            "jdk.xml.elementAttributeLimit",// HBase
+            "jdk.xml.entityReplacementLimit", // HBase
+            "jdk.xml.maxGeneralEntitySizeLimit", // HBase
+            "jdk.xml.maxParameterEntitySizeLimit", // HBase
+            "http://java.sun.com/xml/dom/properties/ancestor-check" // HBase
     );
 
     private static final Map<String, Set<String>> BACKEND_SOCKET = ImmutableMap.of(
@@ -72,6 +89,8 @@ public class HugeSecurityManager extends SecurityManager {
             "java.util.concurrent.ThreadPoolExecutor",
             ImmutableSet.of("addWorker"),
             "io.netty.util.concurrent.SingleThreadEventExecutor",
+            ImmutableSet.of("startThread"),
+            "org.apache.hbase.thirdparty.io.netty.util.concurrent.SingleThreadEventExecutor",
             ImmutableSet.of("startThread")
     );
 
@@ -356,8 +375,8 @@ public class HugeSecurityManager extends SecurityManager {
     }
 
     private static boolean readGroovyInCurrentDir(String file) {
-        if (USER_DIR != null && file != null && file.startsWith(USER_DIR) &&
-            (file.endsWith(".class") || file.endsWith(".groovy"))) {
+        if (USER_DIR != null && file != null &&
+            (file.startsWith(USER_DIR) || file.startsWith("/var"))) {
             return true;
         }
         return false;
@@ -376,12 +395,12 @@ public class HugeSecurityManager extends SecurityManager {
     }
 
     private static boolean callFromBackendSocket() {
-        // Fixed issue #765
+        // Fixed issue #758
         return callFromMethods(BACKEND_SOCKET);
     }
 
     private static boolean callFromBackendThread() {
-        // Fixed issue #765
+        // Fixed issue #758
         return callFromMethods(THREAD_NEW) &&
                callFromWorkerWithClass(BACKEND_THREAD);
     }

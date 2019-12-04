@@ -21,8 +21,10 @@ package com.baidu.hugegraph.backend.store.postgresql;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 
+import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
@@ -31,6 +33,7 @@ import com.baidu.hugegraph.backend.store.mysql.MysqlStoreProvider;
 import com.baidu.hugegraph.backend.store.mysql.MysqlTable;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Directions;
+import com.baidu.hugegraph.util.Events;
 
 public class PostgresqlStoreProvider extends MysqlStoreProvider {
 
@@ -47,6 +50,21 @@ public class PostgresqlStoreProvider extends MysqlStoreProvider {
     @Override
     public String type() {
         return "postgresql";
+    }
+
+    @Override
+    public void clear() throws BackendException {
+        this.checkOpened();
+        /*
+         * Issue #758: We should clear graph/schema/system store one by one to
+         * drop all tables because database will not be dropped
+         */
+        Iterator<BackendStore> iter = this.stores.values().iterator();
+        while (iter.hasNext()) {
+            PostgresqlStore store = (PostgresqlStore) iter.next();
+            store.clear();
+        }
+        this.notifyAndWaitEvent(Events.STORE_CLEAR);
     }
 
     @Override
