@@ -4,7 +4,7 @@ set -ev
 
 TRAVIS_DIR=`dirname $0`
 
-mvn install -DskipTests
+mvn package -DskipTests
 $TRAVIS_DIR/start-server.sh
 mvn test -P api-test,$BACKEND
 $TRAVIS_DIR/build-report.sh

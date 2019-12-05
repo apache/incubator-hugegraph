@@ -412,14 +412,15 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
     }
 
     @Override
-    public synchronized void clear() {
+    public synchronized void clear(boolean clearSpace) {
         this.checkDbOpened();
 
+        // Drop tables with main disk
         for (String table : this.tableNames()) {
             this.dropTable(this.sessions, table);
         }
 
-        // Drop table with optimized disk
+        // Drop tables with optimized disk
         Map<String, RocksDBSessions> tableDBMap = this.tableDBMapping();
         for (Map.Entry<String, RocksDBSessions> e : tableDBMap.entrySet()) {
             this.dropTable(e.getValue(), e.getKey());
@@ -461,7 +462,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
     public synchronized void truncate() {
         this.checkOpened();
 
-        this.clear();
+        this.clear(false);
         this.init();
 
         LOG.debug("Store truncated: {}", this.store);

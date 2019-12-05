@@ -247,7 +247,7 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
     }
 
     @Override
-    public void clear() {
+    public void clear(boolean clearSpace) {
         this.checkConnectionOpened();
 
         // Return if not exists namespace
@@ -261,29 +261,33 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
                       e, this.namespace);
         }
 
-        // Drop tables
-        for (String table : this.tableNames()) {
-            try {
-                this.sessions.dropTable(table);
-            } catch (TableNotFoundException e) {
-                continue;
-            } catch (IOException e) {
-                throw new BackendException("Failed to drop table '%s' for '%s'",
-                                           e, table, this.store);
+        if (!clearSpace) {
+            // Drop tables
+            for (String table : this.tableNames()) {
+                try {
+                    this.sessions.dropTable(table);
+                } catch (TableNotFoundException e) {
+                    continue;
+                } catch (IOException e) {
+                    throw new BackendException(
+                              "Failed to drop table '%s' for '%s'",
+                              e, table, this.store);
+                }
             }
-        }
-
-        // Drop namespace
-        try {
-            this.sessions.dropNamespace();
-        } catch (IOException e) {
-            String notEmpty = "Only empty namespaces can be removed";
-            if (e.getCause().getMessage().contains(notEmpty)) {
-                LOG.debug("Can't drop namespace '{}': {}", this.namespace, e);
-            } else {
-                throw new BackendException(
-                          "Failed to drop namespace '%s' for '%s'",
-                          e, this.namespace, this.store);
+        } else {
+            // Drop namespace
+            try {
+                this.sessions.dropNamespace();
+            } catch (IOException e) {
+                String notEmpty = "Only empty namespaces can be removed";
+                if (e.getCause().getMessage().contains(notEmpty)) {
+                    LOG.debug("Can't drop namespace '{}': {}",
+                              this.namespace, e);
+                } else {
+                    throw new BackendException(
+                              "Failed to drop namespace '%s' for '%s'",
+                              e, this.namespace, this.store);
+                }
             }
         }
 

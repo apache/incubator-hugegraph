@@ -59,6 +59,7 @@ public abstract class BackendSessionPool {
             session = this.newSession();
             assert session != null;
             this.threadLocalSession.set(session);
+            assert !this.sessions.containsKey(Thread.currentThread().getId());
             this.sessions.put(Thread.currentThread().getId(), session);
             int sessionCount = this.sessionCount.incrementAndGet();
             LOG.debug("Now(after connect({})) session count is: {}",

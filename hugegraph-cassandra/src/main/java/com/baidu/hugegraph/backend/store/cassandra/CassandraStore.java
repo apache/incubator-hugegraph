@@ -282,13 +282,16 @@ public abstract class CassandraStore
     }
 
     @Override
-    public void clear() {
+    public void clear(boolean clearSpace) {
         this.checkClusterConnected();
 
         if (this.existsKeyspace()) {
-            this.checkOpened();
-            this.clearTables();
-            this.clearKeyspace();
+            if (!clearSpace) {
+                this.checkOpened();
+                this.clearTables();
+            } else {
+                this.clearKeyspace();
+            }
         }
 
         LOG.debug("Store cleared: {}", this.store);

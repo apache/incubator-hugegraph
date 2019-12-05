@@ -118,9 +118,6 @@ public class MysqlSessions extends BackendSessionPool {
     public void dropDatabase() {
         LOG.debug("Drop database: {}", this.database());
 
-        // Close the under layer connections owned by each thread
-        this.forceResetSessions();
-
         String sql = this.buildDropDatabase(this.database());
         try (Connection conn = this.openWithoutDB(DROP_DB_TIMEOUT)) {
             conn.createStatement().execute(sql);
@@ -157,6 +154,11 @@ public class MysqlSessions extends BackendSessionPool {
         } catch (Exception e) {
             throw new BackendException("Failed to obtain table info", e);
         }
+    }
+
+    public void resetConnections() {
+        // Close the under layer connections owned by each thread
+        this.forceResetSessions();
     }
 
     protected String buildCreateDatabase(String database) {
@@ -284,7 +286,7 @@ public class MysqlSessions extends BackendSessionPool {
             }
         }
 
-        public void tryOpen() {
+        private void tryOpen() {
             try {
                 this.doOpen();
             } catch (SQLException ignored) {
@@ -292,7 +294,7 @@ public class MysqlSessions extends BackendSessionPool {
             }
         }
 
-        public void doOpen() throws SQLException {
+        private void doOpen() throws SQLException {
             if (this.conn != null && !this.conn.isClosed()) {
                 return;
             }
@@ -307,6 +309,11 @@ public class MysqlSessions extends BackendSessionPool {
                 return;
             }
 
+            this.opened = false;
+            this.doClose();
+        }
+
+        private void doClose() {
             SQLException exception = null;
             for (PreparedStatement statement : this.statements.values()) {
                 try {
@@ -315,15 +322,16 @@ public class MysqlSessions extends BackendSessionPool {
                     exception = e;
                 }
             }
+            this.statements.clear();
 
             try {
                 this.conn.close();
             } catch (SQLException e) {
                 exception = e;
+            } finally {
+                this.conn = null;
             }
 
-            this.opened = false;
-            this.conn = null;
             if (exception != null) {
                 throw new BackendException("Failed to close connection",
                                            exception);
@@ -432,7 +440,14 @@ public class MysqlSessions extends BackendSessionPool {
         @Override
         protected void reset() {
             // NOTE: this method may be called by other threads
-            this.conn = null;
+            if (this.conn == null) {
+                return;
+            }
+            try {
+                this.doClose();
+            } catch (Exception e) {
+                LOG.warn("Failed to reset connection", e);
+            }
         }
 
         public ResultSet select(String sql) throws SQLException {

@@ -168,7 +168,7 @@ public class HugeSecurityManager extends SecurityManager {
     @Override
     public void checkRead(String file) {
         if (callFromGremlin() && !callFromCaffeine() &&
-            !readGroovyInCurrentDir(file) && !callFromBackendHbase()) {
+            !readInCurrentDir(file) && !callFromBackendHbase()) {
             throw newSecurityException(
                   "Not allowed to read file via Gremlin: %s", file);
         }
@@ -357,9 +357,10 @@ public class HugeSecurityManager extends SecurityManager {
         return new SecurityException(message);
     }
 
-    private static boolean readGroovyInCurrentDir(String file) {
+    private static boolean readInCurrentDir(String file) {
         if (USER_DIR != null && file != null && file.startsWith(USER_DIR)
-            && (file.endsWith(".class") || file.endsWith(".groovy"))) {
+            && (file.endsWith(".class") || file.endsWith(".groovy") ||
+                file.endsWith(".properties"))) {
             return true;
         }
         return false;

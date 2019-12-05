@@ -46,7 +46,7 @@ public interface BackendStore {
 
     // Initialize/clear database
     public void init();
-    public void clear();
+    public void clear(boolean clearSpace);
     public boolean initialized();
 
     // Delete all data of database (keep table structure)
