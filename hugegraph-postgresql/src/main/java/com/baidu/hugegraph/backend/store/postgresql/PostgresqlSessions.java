@@ -89,17 +89,6 @@ public class PostgresqlSessions extends MysqlSessions {
     }
 
     @Override
-    public void dropDatabase() {
-        /*
-         * Issue #758.
-         * PostgreSQL drop database should terminate all other connections to
-         * the database, which will make other alive sessions terminated.
-         * TODO: PostgreSQL clear backend close all sessions
-         */
-        LOG.warn("Skip drop database: {}", this.database());
-    }
-
-    @Override
     protected String buildCreateDatabase(String database) {
         return String.format(POSTGRESQL_DB_CREATE, database);
     }
