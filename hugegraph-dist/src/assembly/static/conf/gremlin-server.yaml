@@ -1,4 +1,4 @@
-# host and port of gremlin server
+# host and port of gremlin server, need to be consistent with host and port in rest-server.properties
 #host: 127.0.0.1
 #port: 8182
 
