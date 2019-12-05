@@ -125,8 +125,9 @@ function wait_for_startup() {
             echo "Starting $server_name failed"
             return 1
         fi
+
         status=`curl -o /dev/null -s -w %{http_code} $server_url`
-        if [ $status -eq 200 ]; then
+        if [[ $status -eq 200 || $status -eq 401 ]]; then
             echo "OK"
             return 0
         fi
