@@ -181,6 +181,10 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
                  * Connections will be auto reconnected if not drop database
                  * in next step, but never do this operation because database
                  * might be blocked in mysql or throw 'terminating' exception.
+                 * we can't resetConnections() when dropDatabase(), because
+                 * there are 3 stores(schema,system,graph), which are shared
+                 * one database, other stores may keep connected with the
+                 * database when one store doing clear(clearSpace=false).
                  */
                 this.sessions.resetConnections();
             } else {

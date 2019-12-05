@@ -100,8 +100,7 @@ public class HugeSecurityManager extends SecurityManager {
 
     @Override
     public void checkCreateClassLoader() {
-        if (!callFromAcceptClassLoaders() && callFromGremlin() &&
-            !callFromBackendHbase()) {
+        if (!callFromAcceptClassLoaders() && callFromGremlin()) {
             throw newSecurityException(
                   "Not allowed to create class loader via Gremlin");
         }
@@ -168,7 +167,7 @@ public class HugeSecurityManager extends SecurityManager {
     @Override
     public void checkRead(String file) {
         if (callFromGremlin() && !callFromCaffeine() &&
-            !readInCurrentDir(file) && !callFromBackendHbase()) {
+            !readGroovyInCurrentDir(file) && !callFromBackendHbase()) {
             throw newSecurityException(
                   "Not allowed to read file via Gremlin: %s", file);
         }
@@ -357,10 +356,9 @@ public class HugeSecurityManager extends SecurityManager {
         return new SecurityException(message);
     }
 
-    private static boolean readInCurrentDir(String file) {
+    private static boolean readGroovyInCurrentDir(String file) {
         if (USER_DIR != null && file != null && file.startsWith(USER_DIR)
-            && (file.endsWith(".class") || file.endsWith(".groovy") ||
-                file.endsWith(".properties"))) {
+            && (file.endsWith(".class") || file.endsWith(".groovy"))) {
             return true;
         }
         return false;
@@ -389,12 +387,13 @@ public class HugeSecurityManager extends SecurityManager {
     }
 
     private static boolean callFromEventHubNotify() {
-        // Fixed issue #758 notify() will create thread
-        // when submit task to executor
+        // Fixed issue #758
+        // notify() will create thread when submit task to executor
         return callFromMethod("com.baidu.hugegraph.event.EventHub", "notify");
     }
 
     private static boolean callFromBackendHbase() {
+        // TODO: remove this unsafe entrance
         return callFromWorkerWithClass(HBASE_CLASSES);
     }
 
