@@ -5,7 +5,7 @@ set -ev
 TRAVIS_DIR=`dirname $0`
 
 if [ ! -d $HOME/downloads ]; then
-  mkdir $HOME/downloads
+    mkdir $HOME/downloads
 fi
 
 if [[ "$BACKEND" == "cassandra" || "$BACKEND" == "scylladb" ]]; then

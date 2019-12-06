@@ -267,7 +267,8 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
                 try {
                     this.sessions.dropTable(table);
                 } catch (TableNotFoundException e) {
-                    continue;
+                    LOG.warn("The table '{}' for '{}' does not exist " +
+                             "when trying to drop", table, this.store);
                 } catch (IOException e) {
                     throw new BackendException(
                               "Failed to drop table '%s' for '%s'",
