@@ -536,14 +536,10 @@ public class RocksDBStdSessions extends RocksDBSessions {
      */
     private final class StdSession extends RocksDBSessions.Session {
 
-        private boolean closed;
-
         private WriteBatch batch;
         private WriteOptions writeOptions;
 
         public StdSession(HugeConfig conf) {
-            this.closed = false;
-
             boolean bulkload = conf.get(RocksDBOptions.BULKLOAD_MODE);
             this.batch = new WriteBatch();
             this.writeOptions = new WriteOptions();
@@ -552,14 +548,19 @@ public class RocksDBStdSessions extends RocksDBSessions {
         }
 
         @Override
+        public void open() {
+            this.opened = true;
+        }
+
+        @Override
         public void close() {
             assert this.closeable();
-            this.closed = true;
+            this.opened = false;
         }
 
         @Override
         public boolean closed() {
-            return this.closed;
+            return !this.opened || !RocksDBStdSessions.this.opened();
         }
 
         /**

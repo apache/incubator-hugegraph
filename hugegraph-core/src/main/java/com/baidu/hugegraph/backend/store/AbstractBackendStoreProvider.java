@@ -112,7 +112,12 @@ public abstract class AbstractBackendStoreProvider
     public void clear() throws BackendException {
         this.checkOpened();
         for (BackendStore store : this.stores.values()) {
-            store.clear();
+            // Just clear tables of store, not clear space
+            store.clear(false);
+        }
+        for (BackendStore store : this.stores.values()) {
+            // Only clear space of store
+            store.clear(true);
         }
         this.notifyAndWaitEvent(Events.STORE_CLEAR);
 

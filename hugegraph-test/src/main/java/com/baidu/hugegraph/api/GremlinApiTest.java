@@ -39,7 +39,7 @@ public class GremlinApiTest extends BaseApiTest {
                 + "\"bindings\":{},"
                 + "\"language\":\"gremlin-groovy\","
                 + "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
-        Assert.assertEquals(200, client().post(path, body).getStatus());
+        assertResponseStatus(200, client().post(path, body));
     }
 
     @Test
@@ -48,5 +48,64 @@ public class GremlinApiTest extends BaseApiTest {
                                      "hugegraph.traversal().V()");
         Response r = client().get(path, params);
         Assert.assertEquals(r.readEntity(String.class), 200, r.getStatus());
+    }
+
+    @Test
+    public void testScript() {
+        String bodyTemplate = "{"
+                + "\"gremlin\":\"%s\","
+                + "\"bindings\":{},"
+                + "\"language\":\"gremlin-groovy\","
+                + "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
+
+        String script = "schema=hugegraph.schema();"
+                + "schema.propertyKey('name').asText().ifNotExist().create();"
+                + "schema.propertyKey('age').asInt().ifNotExist().create();"
+                + "schema.propertyKey('city').asUUID().ifNotExist().create();"
+                + "schema.propertyKey('lang').asText().ifNotExist().create();"
+                + "schema.propertyKey('date').asText().ifNotExist().create();"
+                + "schema.propertyKey('price').asInt().ifNotExist().create();"
+                + "person=schema.vertexLabel('person').properties('name','age','city').useCustomizeUuidId().ifNotExist().create();"
+                + "knows=schema.edgeLabel('knows').sourceLabel('person').targetLabel('person').properties('date').ifNotExist().create();"
+                + "marko=hugegraph.addVertex(T.id, '835e1153928149578691cf79258e90eb', T.label,'person','name','marko','age',29,'city','135e1153928149578691cf79258e90eb');"
+                + "vadas=hugegraph.addVertex(T.id, '935e1153928149578691cf79258e90eb', T.label,'person','name','vadas','age',27,'city','235e1153928149578691cf79258e90eb');"
+                + "marko.addEdge('knows',vadas,'date','20160110');";
+        String body = String.format(bodyTemplate, script);
+        assertResponseStatus(200, client().post(path, body));
+
+        String queryV = "g.V()";
+        body = String.format(bodyTemplate, queryV);
+        assertResponseStatus(200, client().post(path, body));
+
+        String queryE = "g.E()";
+        body = String.format(bodyTemplate, queryE);
+        assertResponseStatus(200, client().post(path, body));
+    }
+
+    @Test
+    public void testClearAndInit() {
+        String body = "{"
+                + "\"gremlin\":\"hugegraph.clearBackend()\","
+                + "\"bindings\":{},"
+                + "\"language\":\"gremlin-groovy\","
+                + "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
+        assertResponseStatus(200, client().post(path, body));
+
+        body = "{"
+                + "\"gremlin\":\"hugegraph.initBackend()\","
+                + "\"bindings\":{},"
+                + "\"language\":\"gremlin-groovy\","
+                + "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
+        assertResponseStatus(200, client().post(path, body));
+    }
+
+    @Test
+    public void testTruncate() {
+        String body = "{"
+                + "\"gremlin\":\"hugegraph.truncateBackend()\","
+                + "\"bindings\":{},"
+                + "\"language\":\"gremlin-groovy\","
+                + "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
+        assertResponseStatus(200, client().post(path, body));
     }
 }

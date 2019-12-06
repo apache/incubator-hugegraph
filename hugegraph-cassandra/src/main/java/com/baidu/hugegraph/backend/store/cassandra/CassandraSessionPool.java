@@ -209,21 +209,27 @@ public class CassandraSessionPool extends BackendSessionPool {
             } catch (InvalidQueryException ignored) {}
         }
 
+        @Override
         public void open() {
             assert this.session == null;
             this.session = cluster().connect(keyspace());
+            this.opened = true;
         }
 
+        @Override
         public boolean opened() {
-            return this.session != null;
+            if (this.opened && this.session == null) {
+                this.tryOpen();
+            }
+            return this.opened && this.session != null;
         }
 
         @Override
         public boolean closed() {
-            if (this.session == null) {
-                this.tryOpen();
+            if (!this.opened || this.session == null) {
+                return true;
             }
-            return this.session == null ? true : this.session.isClosed();
+            return this.session.isClosed();
         }
 
         @Override
@@ -233,6 +239,7 @@ public class CassandraSessionPool extends BackendSessionPool {
                 return;
             }
             this.session.close();
+            this.session = null;
         }
 
         @Override

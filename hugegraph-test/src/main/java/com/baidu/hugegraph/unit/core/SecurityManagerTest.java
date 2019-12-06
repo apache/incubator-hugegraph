@@ -119,6 +119,14 @@ public class SecurityManagerTest {
         String result = runGremlinJob("new FileInputStream(new File(\"\"))");
         assertError(result, "Not allowed to read file via Gremlin");
 
+        // read file
+        String pom = System.getProperty("user.dir") + "/a.groovy";
+        try (FileInputStream fis = new FileInputStream(new File(pom))) {
+        } catch (IOException ignored) {}
+        result = runGremlinJob(String.format(
+                 "new FileInputStream(new File(\"%s\"))", pom));
+        assertError(result, "(No such file or directory)");
+
         // read file fd
         @SuppressWarnings({ "unused", "resource" })
         FileInputStream fis = new FileInputStream(FileDescriptor.in);
@@ -278,7 +286,8 @@ public class SecurityManagerTest {
     }
 
     private static void assertError(String result, String message) {
-        Assert.assertTrue(result, result.endsWith(message));
+        Assert.assertTrue(result, result.endsWith(message) ||
+                                  result.contains(message));
     }
 
     private static String runGremlinJob(String gremlin) {
