@@ -4,10 +4,6 @@ set -ev
 
 TRAVIS_DIR=`dirname $0`
 
-if [ -d $HOME/.m2 ]; then
-    rm -fr $HOME/.m2
-fi
-
 if [ ! -d $HOME/downloads ]; then
     mkdir $HOME/downloads
 fi

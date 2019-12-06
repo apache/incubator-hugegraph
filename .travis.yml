@@ -21,7 +21,6 @@ install: mvn compile -Dmaven.javadoc.skip=true | grep -v "Downloading\|Downloade
 
 before_script:
   - $TRAVIS_DIR/install-backend.sh
-  - mvn install -DskipTests
 
 script:
   - mvn test -P core-test,$BACKEND
