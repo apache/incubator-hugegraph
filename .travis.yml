@@ -7,6 +7,7 @@ sudo: required
 
 cache:
   directories:
+    - $HOME/.m2
     - $HOME/downloads
 
 branches:
@@ -20,6 +21,7 @@ install: mvn compile -Dmaven.javadoc.skip=true | grep -v "Downloading\|Downloade
 
 before_script:
   - $TRAVIS_DIR/install-backend.sh
+  - mvn install -DskipTests
 
 script:
   - mvn test -P core-test,$BACKEND
