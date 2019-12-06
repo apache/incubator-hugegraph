@@ -82,8 +82,8 @@ public class CachedBackendStore implements BackendStore {
     }
 
     @Override
-    public void clear() {
-        this.store.clear();
+    public void clear(boolean clearSpace) {
+        this.store.clear(clearSpace);
     }
 
     @Override

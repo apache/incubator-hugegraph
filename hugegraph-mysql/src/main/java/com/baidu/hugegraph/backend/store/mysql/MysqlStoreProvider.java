@@ -19,14 +19,10 @@
 
 package com.baidu.hugegraph.backend.store.mysql;
 
-import java.util.Iterator;
-
-import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.store.AbstractBackendStoreProvider;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.mysql.MysqlStore.MysqlGraphStore;
 import com.baidu.hugegraph.backend.store.mysql.MysqlStore.MysqlSchemaStore;
-import com.baidu.hugegraph.util.Events;
 
 public class MysqlStoreProvider extends AbstractBackendStoreProvider {
 
@@ -42,20 +38,6 @@ public class MysqlStoreProvider extends AbstractBackendStoreProvider {
     @Override
     protected BackendStore newGraphStore(String store) {
         return new MysqlGraphStore(this, this.database(), store);
-    }
-
-    @Override
-    public void clear() throws BackendException {
-        this.checkOpened();
-        /*
-         * We should drop database once only with stores(schema/graph/system),
-         * otherwise it will easily lead to blocking when drop tables
-         */
-        Iterator<BackendStore> iter = this.stores.values().iterator();
-        if (iter.hasNext()) {
-            iter.next().clear();
-        }
-        this.notifyAndWaitEvent(Events.STORE_CLEAR);
     }
 
     @Override

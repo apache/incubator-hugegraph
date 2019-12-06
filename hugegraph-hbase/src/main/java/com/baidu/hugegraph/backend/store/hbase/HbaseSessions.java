@@ -115,6 +115,7 @@ public class HbaseSessions extends BackendSessionPool {
 
     @Override
     protected synchronized boolean opened() {
+        // NOTE: isClosed() seems to always return true even if not connected
         return this.hbase != null && !this.hbase.isClosed();
     }
 
@@ -232,11 +233,9 @@ public class HbaseSessions extends BackendSessionPool {
      */
     public final class Session extends BackendSession {
 
-        private boolean closed;
         private final Map<String, List<Row>> batch;
 
         public Session() {
-            this.closed = false;
             this.batch = new HashMap<>();
         }
 
@@ -273,14 +272,19 @@ public class HbaseSessions extends BackendSessionPool {
         }
 
         @Override
+        public void open() {
+            this.opened = true;
+        }
+
+        @Override
         public void close() {
             assert this.closeable();
-            this.closed = true;
+            this.opened = false;
         }
 
         @Override
         public boolean closed() {
-            return this.closed;
+            return !this.opened || !HbaseSessions.this.opened();
         }
 
         /**

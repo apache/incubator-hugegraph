@@ -147,7 +147,7 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
     @Override
     public boolean opened() {
         this.checkClusterConnected();
-        return !this.sessions.session().closed();
+        return this.sessions.session().opened();
     }
 
     @Override
@@ -157,7 +157,7 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
         try {
             // Open a new session connected with specified database
             this.sessions.session().open();
-        } catch (SQLException e) {
+        } catch (Exception e) {
             throw new BackendException("Failed to connect database '%s'",
                                        this.database);
         }
@@ -168,14 +168,28 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
     }
 
     @Override
-    public void clear() {
+    public void clear(boolean clearSpace) {
         // Check connected
         this.checkClusterConnected();
 
         if (this.sessions.existsDatabase()) {
-            this.checkOpened();
-            this.clearTables();
-            this.sessions.dropDatabase();
+            if (!clearSpace) {
+                this.checkOpened();
+                this.clearTables();
+                /*
+                 * Disconnect connections for following database drop.
+                 * Connections will be auto reconnected if not drop database
+                 * in next step, but never do this operation because database
+                 * might be blocked in mysql or throw 'terminating' exception.
+                 * we can't resetConnections() when dropDatabase(), because
+                 * there are 3 stores(schema,system,graph), which are shared
+                 * one database, other stores may keep connected with the
+                 * database when one store doing clear(clearSpace=false).
+                 */
+                this.sessions.resetConnections();
+            } else {
+                this.sessions.dropDatabase();
+            }
         }
 
         LOG.debug("Store cleared: {}", this.store);
