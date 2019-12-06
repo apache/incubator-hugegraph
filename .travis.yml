@@ -5,6 +5,11 @@ jdk:
 
 sudo: required
 
+cache:
+  directories:
+    - $HOME/.m2
+    - $HOME/downloads
+
 branches:
   only:
     - master
