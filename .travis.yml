@@ -42,6 +42,7 @@ script:
     fi
 
 after_success:
+  - rm -fr $HOME/.m2
   - bash <(curl -s https://codecov.io/bash)
 
 jobs:
