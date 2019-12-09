@@ -123,7 +123,8 @@ public abstract class CassandraStore
                                                      this.store);
         }
 
-        if (this.sessions.opened()) {
+        assert this.sessions != null;
+        if (!this.sessions.closed()) {
             // TODO: maybe we should throw an exception here instead of ignore
             LOG.debug("Store {} has been opened before", this.store);
             this.sessions.useSession();
@@ -169,7 +170,7 @@ public abstract class CassandraStore
     @Override
     public boolean opened() {
         this.checkClusterConnected();
-        return !this.sessions.session().closed();
+        return this.sessions.session().opened();
     }
 
     @Override
@@ -259,15 +260,16 @@ public abstract class CassandraStore
     public void init() {
         this.checkClusterConnected();
 
+        // Create keyspace if needed
+        if (!this.existsKeyspace()) {
+            this.initKeyspace();
+        }
+
         if (this.sessions.session().opened()) {
             // Session has ever been opened.
             LOG.warn("Session has ever been opened(exist keyspace '{}' before)",
                      this.keyspace);
         } else {
-            // Create keyspace if needed
-            if (!this.existsKeyspace()) {
-                this.initKeyspace();
-            }
             // Open session explicitly to get the exception when it fails
             this.sessions.session().open();
         }
@@ -280,13 +282,16 @@ public abstract class CassandraStore
     }
 
     @Override
-    public void clear() {
+    public void clear(boolean clearSpace) {
         this.checkClusterConnected();
 
         if (this.existsKeyspace()) {
-            this.checkOpened();
-            this.clearTables();
-            this.clearKeyspace();
+            if (!clearSpace) {
+                this.checkOpened();
+                this.clearTables();
+            } else {
+                this.clearKeyspace();
+            }
         }
 
         LOG.debug("Store cleared: {}", this.store);

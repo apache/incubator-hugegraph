@@ -230,9 +230,6 @@ public class VertexAPI extends BatchAPI {
             E.checkArgument(offset == 0,
                             "Not support querying vertices based on paging " +
                             "and offset together");
-            E.checkArgument(props.size() <= 1,
-                            "Not support querying vertices based on paging " +
-                            "and more than one property");
         }
 
         HugeGraph g = graph(manager, graph);

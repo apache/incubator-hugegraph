@@ -172,23 +172,21 @@ public class RocksDBSstSessions extends RocksDBSessions {
      */
     private final class SstSession extends Session {
 
-        private boolean closed;
         private Map<String, Changes> batch;
 
         public SstSession() {
-            this.closed = false;
             this.batch = new HashMap<>();
+        }
+
+        @Override
+        public void open() {
+            this.opened = true;
         }
 
         @Override
         public void close() {
             assert this.closeable();
-            this.closed = true;
-        }
-
-        @Override
-        public boolean closed() {
-            return this.closed;
+            this.opened = false;
         }
 
         /**

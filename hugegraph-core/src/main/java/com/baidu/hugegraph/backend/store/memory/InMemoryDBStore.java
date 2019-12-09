@@ -177,7 +177,7 @@ public abstract class InMemoryDBStore
     }
 
     @Override
-    public void clear() {
+    public void clear(boolean clearSpace) {
         for (InMemoryDBTable table : this.tables()) {
             table.clear(null);
         }
@@ -263,9 +263,9 @@ public abstract class InMemoryDBStore
         }
 
         @Override
-        public void clear() {
+        public void clear(boolean clearSpace) {
             this.counter.reset();
-            super.clear();
+            super.clear(clearSpace);
         }
 
         @Override
