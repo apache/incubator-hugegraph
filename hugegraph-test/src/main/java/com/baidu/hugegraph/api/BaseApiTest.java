@@ -40,7 +40,6 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 
 import com.baidu.hugegraph.HugeException;
-import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonNode;

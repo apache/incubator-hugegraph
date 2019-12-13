@@ -112,7 +112,7 @@ public class GremlinApiTest extends BaseApiTest {
     @Test
     public void testSetVertexProperty() {
         String pkPath = "/graphs/hugegraph/schema/propertykeys/";
-        // cardinality single
+        // Cardinality single
         String foo = "{"
                 + "\"name\": \"foo\","
                 + "\"data_type\": \"TEXT\","
@@ -120,7 +120,7 @@ public class GremlinApiTest extends BaseApiTest {
                 + "\"properties\":[]"
                 + "}";
         assertResponseStatus(201, client().post(pkPath, foo));
-        // cardinality list
+        // Cardinality list
         String bar = "{"
                 + "\"name\": \"bar\","
                 + "\"data_type\": \"TEXT\","
@@ -137,6 +137,7 @@ public class GremlinApiTest extends BaseApiTest {
                 + "}";
         assertResponseStatus(201, client().post(vlPath, vertexLabel));
 
+        // Not supply cardinality
         String body = "{"
                 + "\"gremlin\":\"g.addV('person').property(T.id, '1')"
                 + ".property('foo', '123').property('bar', '123')\","
@@ -145,7 +146,7 @@ public class GremlinApiTest extends BaseApiTest {
                 + "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
         assertResponseStatus(200, client().post(path, body));
 
-        // supply cardinality
+        // Supply matched cardinality
         body = "{\"gremlin\":\"g.addV('person').property(T.id, '1')"
                 + ".property(single, 'foo', '123')"
                 + ".property(list, 'bar', '123')\","
@@ -154,7 +155,7 @@ public class GremlinApiTest extends BaseApiTest {
                 + "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
         assertResponseStatus(200, client().post(path, body));
 
-        // supply cardinality
+        // Supply unmatch cardinality
         body = "{\"gremlin\":\"g.addV('person').property(T.id, '1')"
                 + ".property(list, 'foo', '123')"
                 + ".property(list, 'bar', '123')\","
@@ -162,5 +163,14 @@ public class GremlinApiTest extends BaseApiTest {
                 + "\"language\":\"gremlin-groovy\","
                 + "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
         assertResponseStatus(400, client().post(path, body));
+
+        // NOTE: supply unmatch cardinality, but we give up the check
+        body = "{\"gremlin\":\"g.addV('person').property(T.id, '1')"
+                + ".property(single, 'foo', '123')"
+                + ".property(single, 'bar', '123')\","
+                + "\"bindings\":{},"
+                + "\"language\":\"gremlin-groovy\","
+                + "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
+        assertResponseStatus(200, client().post(path, body));
     }
 }
