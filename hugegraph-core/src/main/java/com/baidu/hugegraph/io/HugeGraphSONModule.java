@@ -219,7 +219,6 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
             }
         }
 
-        @SuppressWarnings("deprecation")
         @Override
         public void serializeWithType(T value,
                                       JsonGenerator jsonGenerator,

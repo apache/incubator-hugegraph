@@ -143,8 +143,8 @@ public final class LockUtil {
     public static <K extends Comparable<K>> void lockRows(String graph,
                                                           String group,
                                                           Set<K> rows) {
-        RowLock rowLock = LockManager.instance().get(join(graph, ROW_LOCK))
-                                     .rowLock(group);
+        RowLock<K> rowLock = LockManager.instance().get(join(graph, ROW_LOCK))
+                                        .rowLock(group);
         rowLock.lockAll(rows);
     }
 
@@ -157,8 +157,8 @@ public final class LockUtil {
     public static <K extends Comparable<K>> void unlockRows(String graph,
                                                             String group,
                                                             Set<K> rows) {
-        RowLock rowLock = LockManager.instance().get(join(graph, ROW_LOCK))
-                                     .rowLock(group);
+        RowLock<K> rowLock = LockManager.instance().get(join(graph, ROW_LOCK))
+                                        .rowLock(group);
         rowLock.unlockAll(rows);
     }
 

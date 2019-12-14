@@ -903,6 +903,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
                 /*
                  * Prefix with `keyBegin`?
                  * TODO: use custom prefix_extractor instead
+                 *       or use ReadOptions.prefix_same_as_start
                  */
                 return Bytes.prefixWith(key, this.keyBegin);
             } else if (this.match(Session.SCAN_PREFIX_END)) {
