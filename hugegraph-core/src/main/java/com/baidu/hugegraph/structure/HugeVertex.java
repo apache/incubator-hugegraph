@@ -399,6 +399,25 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         }
 
         PropertyKey propertyKey = this.graph().propertyKey(key);
+        /*
+         * g.AddV("xxx").property("key1", val1).property("key2", val2)
+         * g.AddV("xxx").property(single, "key1", val1)
+         *              .property(list, "key2", val2)
+         *
+         * The cardinality single may be user supplied single, it may also be
+         * that user doesn't supplied cardinality, when it is latter situation,
+         * we shouldn't check it. Because of this reason, we are forced to
+         * give up the check of user supplied cardinality single.
+         * The cardinality not single must be user supplied, so should check it
+         */
+        if (cardinality != VertexProperty.Cardinality.single) {
+            E.checkArgument(propertyKey.cardinality() ==
+                            Cardinality.convert(cardinality),
+                            "Invalid cardinalty '%s' for property key '%s', " +
+                            "expect '%s'", cardinality, key,
+                            propertyKey.cardinality().string());
+        }
+
         // Check key in vertex label
         E.checkArgument(this.label.properties().contains(propertyKey.id()),
                         "Invalid property '%s' for vertex label '%s'",
