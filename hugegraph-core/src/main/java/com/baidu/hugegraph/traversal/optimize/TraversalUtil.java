@@ -90,6 +90,8 @@ import com.google.common.collect.ImmutableList;
 
 public final class TraversalUtil {
 
+    public static final String P_CALL = "P.";
+
     public static void extractHasContainer(HugeGraphStep<?, ?> newStep,
                                            Traversal.Admin<?, ?> traversal) {
         Step<?, ?> step = newStep;
@@ -685,7 +687,10 @@ public final class TraversalUtil {
     }
 
     public static P<?> parsePredicate(String predicate) {
-        // extract P from json string like {"properties": {"age": "P.gt(18)"}}
+        /*
+         * Extract P from json string like {"properties": {"age": "P.gt(18)"}}
+         * the `predicate` may actually be like "P.gt(18)"
+         */
         Pattern pattern = Pattern.compile("^P\\.([a-z]+)\\(([\\S ]*)\\)$");
         Matcher matcher = pattern.matcher(predicate);
         if (!matcher.find()) {

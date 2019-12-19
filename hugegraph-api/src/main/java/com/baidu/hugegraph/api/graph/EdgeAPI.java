@@ -271,7 +271,9 @@ public class EdgeAPI extends BatchAPI {
                        @QueryParam("properties") String properties,
                        @QueryParam("offset") @DefaultValue("0") long offset,
                        @QueryParam("page") String page,
-                       @QueryParam("limit") @DefaultValue("100") long limit) {
+                       @QueryParam("limit") @DefaultValue("100") long limit,
+                       @QueryParam("preserve_start_p") @DefaultValue("false")
+                       boolean preserveStartP) {
         LOG.debug("Graph [{}] query edges by vertex: {}, direction: {}, " +
                   "label: {}, properties: {}, offset: {}, page: {}, limit: {}",
                   vertexId, direction, label, properties, offset, page, limit);
@@ -306,7 +308,8 @@ public class EdgeAPI extends BatchAPI {
         // Convert relational operator like P.gt()/P.lt()
         for (Map.Entry<String, Object> prop : props.entrySet()) {
             Object value = prop.getValue();
-            if (value instanceof String && ((String) value).startsWith("P.")) {
+            if (!preserveStartP && value instanceof String &&
+                ((String) value).startsWith(TraversalUtil.P_CALL)) {
                 prop.setValue(TraversalUtil.parsePredicate((String) value));
             }
         }

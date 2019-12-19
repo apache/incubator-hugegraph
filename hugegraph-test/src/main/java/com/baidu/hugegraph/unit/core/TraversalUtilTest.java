@@ -34,25 +34,41 @@ public class TraversalUtilTest {
                             TraversalUtil.parsePredicate("P.eq(0)"));
         Assert.assertEquals(P.eq(-1),
                             TraversalUtil.parsePredicate("P.eq( -1 )"));
+        Assert.assertEquals(P.eq(18),
+                            TraversalUtil.parsePredicate("P.eq(\"18\")"));
         Assert.assertEquals(P.neq(0),
                             TraversalUtil.parsePredicate("P.neq(0)"));
 
         Assert.assertEquals(P.lt(-1),
                             TraversalUtil.parsePredicate("P.lt(-1)"));
+        Assert.assertEquals(P.lt(-1),
+                            TraversalUtil.parsePredicate("P.lt(\"-1\")"));
         Assert.assertEquals(P.lte(-123.45),
                             TraversalUtil.parsePredicate("P.lte(-123.45)"));
+        Assert.assertEquals(P.lte(3.14),
+                            TraversalUtil.parsePredicate("P.lte(\"3.14\")"));
 
         Assert.assertEquals(P.gt(18),
                             TraversalUtil.parsePredicate("P.gt(18)"));
+        Assert.assertEquals(P.gt(18),
+                            TraversalUtil.parsePredicate("P.gt(\"18\")"));
         Assert.assertEquals(P.gte(3.14),
                             TraversalUtil.parsePredicate("P.gte(3.14)"));
+        Assert.assertEquals(P.gte(3.14),
+                            TraversalUtil.parsePredicate("P.gte(\"3.14\")"));
 
         Assert.assertEquals(P.between(1, 100),
                             TraversalUtil.parsePredicate("P.between(1, 100)"));
+        Assert.assertEquals(P.between(1, 1.2),
+                            TraversalUtil.parsePredicate("P.between(1, 1.2)"));
         Assert.assertEquals(P.inside(1, 100),
                             TraversalUtil.parsePredicate("P.inside(1, 100)"));
+        Assert.assertEquals(P.inside(0.28, 1),
+                            TraversalUtil.parsePredicate("P.inside(0.28, 1)"));
         Assert.assertEquals(P.outside(1, 100),
                             TraversalUtil.parsePredicate("P.outside(1, 100)"));
+        Assert.assertEquals(P.outside(1, 1.5),
+                            TraversalUtil.parsePredicate("P.outside(1, 1.5)"));
 
         Assert.assertEquals(P.within(1, 3, 5),
                             TraversalUtil.parsePredicate("P.within(1, 3, 5)"));
@@ -148,6 +164,34 @@ public class TraversalUtilTest {
         });
 
         Assert.assertThrows(HugeException.class, () -> {
+            TraversalUtil.parsePredicate("P.between(18, 20m)");
+        }, e -> {
+            Assert.assertEquals("Invalid value '18, 20m', " +
+                                "expect a list", e.getMessage());
+        });
+
+        Assert.assertThrows(HugeException.class, () -> {
+            TraversalUtil.parsePredicate("P.between(\"18\", 20)");
+        }, e -> {
+            Assert.assertEquals("Invalid value '\"18\", 20', " +
+                                "expect a list of number", e.getMessage());
+        });
+
+        Assert.assertThrows(HugeException.class, () -> {
+            TraversalUtil.parsePredicate("P.between(18)");
+        }, e -> {
+            Assert.assertEquals("Invalid numbers size 1, expect 2",
+                                e.getMessage());
+        });
+
+        Assert.assertThrows(HugeException.class, () -> {
+            TraversalUtil.parsePredicate("P.between(18, 20, 30)");
+        }, e -> {
+            Assert.assertEquals("Invalid numbers size 3, expect 2",
+                                e.getMessage());
+        });
+
+        Assert.assertThrows(HugeException.class, () -> {
             TraversalUtil.parsePredicate("P.between(\"18m\", 20)");
         }, e -> {
             Assert.assertEquals("Invalid value '\"18m\", 20', " +
@@ -169,6 +213,13 @@ public class TraversalUtilTest {
         });
 
         Assert.assertThrows(HugeException.class, () -> {
+            TraversalUtil.parsePredicate("P.inside(18)");
+        }, e -> {
+            Assert.assertEquals("Invalid numbers size 1, expect 2",
+                                e.getMessage());
+        });
+
+        Assert.assertThrows(HugeException.class, () -> {
             TraversalUtil.parsePredicate("P.outside(18m, 20)");
         }, e -> {
             Assert.assertEquals("Invalid value '18m, 20', " +
@@ -180,6 +231,13 @@ public class TraversalUtilTest {
         }, e -> {
             Assert.assertEquals("Invalid value '\"18m\", 20', " +
                                 "expect a list of number", e.getMessage());
+        });
+
+        Assert.assertThrows(HugeException.class, () -> {
+            TraversalUtil.parsePredicate("P.outside(18)");
+        }, e -> {
+            Assert.assertEquals("Invalid numbers size 1, expect 2",
+                                e.getMessage());
         });
 
         Assert.assertThrows(HugeException.class, () -> {
