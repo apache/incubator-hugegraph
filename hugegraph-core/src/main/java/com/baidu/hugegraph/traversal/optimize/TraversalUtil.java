@@ -39,17 +39,24 @@ import org.apache.tinkerpop.gremlin.process.traversal.step.filter.HasStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.filter.RangeGlobalStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.map.CountGlobalStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.map.GraphStep;
+import org.apache.tinkerpop.gremlin.process.traversal.step.map.MaxGlobalStep;
+import org.apache.tinkerpop.gremlin.process.traversal.step.map.MeanGlobalStep;
+import org.apache.tinkerpop.gremlin.process.traversal.step.map.MinGlobalStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.map.NoOpBarrierStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.map.OrderGlobalStep;
+import org.apache.tinkerpop.gremlin.process.traversal.step.map.PropertiesStep;
+import org.apache.tinkerpop.gremlin.process.traversal.step.map.SumGlobalStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.sideEffect.IdentityStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.util.ElementValueComparator;
 import org.apache.tinkerpop.gremlin.process.traversal.step.util.HasContainer;
+import org.apache.tinkerpop.gremlin.process.traversal.step.util.ReducingBarrierStep;
 import org.apache.tinkerpop.gremlin.process.traversal.util.AndP;
 import org.apache.tinkerpop.gremlin.process.traversal.util.ConnectiveP;
 import org.apache.tinkerpop.gremlin.process.traversal.util.OrP;
 import org.apache.tinkerpop.gremlin.process.traversal.util.TraversalHelper;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Element;
+import org.apache.tinkerpop.gremlin.structure.PropertyType;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
@@ -58,6 +65,7 @@ import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.page.PageInfo;
 import com.baidu.hugegraph.backend.page.PageState;
+import com.baidu.hugegraph.backend.query.Aggregate.AggregateFunc;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.Condition.Relation;
 import com.baidu.hugegraph.backend.query.Condition.RelationType;
@@ -177,6 +185,50 @@ public final class TraversalUtil {
             }
         } while (step instanceof CountGlobalStep ||
                  step instanceof FilterStep ||
+                 step instanceof IdentityStep ||
+                 step instanceof NoOpBarrierStep);
+    }
+
+    public static void extractAggregateFunc(Step<?, ?> newStep,
+                                            Traversal.Admin<?, ?> traversal) {
+        PropertiesStep<?> propertiesStep = null;
+        Step<?, ?> step = newStep;
+        do {
+            step = step.getNextStep();
+            if (step instanceof PropertiesStep) {
+                @SuppressWarnings("resource")
+                PropertiesStep<?> propStep = (PropertiesStep<?>) step;
+                if (propStep.getReturnType() == PropertyType.VALUE &&
+                    propStep.getPropertyKeys().length == 1) {
+                    propertiesStep = propStep;
+                }
+            } else if (propertiesStep != null &&
+                       step instanceof ReducingBarrierStep) {
+                AggregateFunc aggregateFunc;
+                if (step instanceof CountGlobalStep) {
+                    aggregateFunc = AggregateFunc.COUNT;
+                } else if (step instanceof MaxGlobalStep) {
+                    aggregateFunc = AggregateFunc.MAX;
+                } else if (step instanceof MinGlobalStep) {
+                    aggregateFunc = AggregateFunc.MIN;
+                } else if (step instanceof MeanGlobalStep) {
+                    aggregateFunc = AggregateFunc.AVG;
+                } else if (step instanceof SumGlobalStep) {
+                    aggregateFunc = AggregateFunc.SUM;
+                } else {
+                    aggregateFunc = null;
+                }
+
+                if (aggregateFunc != null) {
+                    QueryHolder holder = (QueryHolder) newStep;
+                    holder.setAggregate(aggregateFunc,
+                                        propertiesStep.getPropertyKeys()[0]);
+                    traversal.removeStep(step);
+                    traversal.removeStep(propertiesStep);
+                }
+            }
+        } while (step instanceof FilterStep ||
+                 step instanceof PropertiesStep ||
                  step instanceof IdentityStep ||
                  step instanceof NoOpBarrierStep);
     }

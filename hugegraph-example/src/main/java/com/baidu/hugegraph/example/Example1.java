@@ -25,6 +25,7 @@ import java.util.List;
 
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.T;
@@ -60,9 +61,9 @@ public class Example1 {
         Example1.loadSchema(graph);
         Example1.loadData(graph);
         Example1.testQuery(graph);
-        Example1.testRemove(graph);
-        Example1.testVariables(graph);
-        Example1.testLeftIndexProcess(graph);
+//        Example1.testRemove(graph);
+//        Example1.testVariables(graph);
+//        Example1.testLeftIndexProcess(graph);
 
         Example1.thread(graph);
 
@@ -256,6 +257,40 @@ public class Example1 {
     }
 
     public static void testQuery(final HugeGraph graph) {
+//        System.out.println(">>>>groupCount="+
+//                graph.traversal().E().hasLabel("has_vcore_attr")
+//                .groupCount().by(__.outV().properties("p_trade").value()).explain());
+//
+//        System.out.println(">>>>flatmapCount="+
+//                graph.traversal().E().hasLabel("has_vcore_attr")
+//                .outV().has("p_trade","xx").count().profile());
+
+        System.out.println(">>>>groupCount="+
+                graph.traversal().E().hasLabel("write")
+                     .groupCount().by(__.bothV().values("name")).toList());
+
+        System.out.println(">>>>groupCount="+
+                graph.traversal().E().hasLabel("write")
+                     .group().by(__.inV().values("name")).toList());
+
+        System.out.println(">>>>num1="+
+                graph.traversal().V().hasLabel("author","book").count().toList());
+
+        System.out.println(">>>>num1.prop="+
+                graph.traversal().V().hasLabel("person").has("age", P.gt(18)).count().toList());
+
+        System.out.println(">>>>num1 max="+
+                graph.traversal().V().hasLabel("author").count().max().toList());
+
+        System.out.println(">>>>num2="+
+                graph.traversal().V().hasLabel("author").bothE().count().toList());
+
+        System.out.println(">>>>num3="+
+            graph.traversal().V().hasLabel("person").values("age").sum().toList());
+
+        System.out.println(">>>>num4="+
+            graph.traversal().V().hasLabel("person").both().values("age").sum().toList());
+
         // query all
         GraphTraversal<Vertex, Vertex> vertices = graph.traversal().V();
         int size = vertices.toList().size();

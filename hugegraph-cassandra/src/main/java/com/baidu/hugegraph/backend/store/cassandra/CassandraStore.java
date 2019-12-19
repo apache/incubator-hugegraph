@@ -253,6 +253,14 @@ public abstract class CassandraStore
     }
 
     @Override
+    public Number queryNumber(Query query) {
+        this.checkOpened();
+
+        CassandraTable table = this.table(CassandraTable.tableType(query));
+        return table.queryNumber(this.sessions.session(), query);
+    }
+
+    @Override
     public BackendFeatures features() {
         return FEATURES;
     }

@@ -39,6 +39,7 @@ import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
+import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
@@ -49,6 +50,7 @@ import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.page.IdHolderList;
 import com.baidu.hugegraph.backend.page.PageInfo;
 import com.baidu.hugegraph.backend.page.QueryList;
+import com.baidu.hugegraph.backend.query.Aggregate;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.ConditionQueryFlatten;
@@ -404,31 +406,36 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     @Override
-    public QueryResults query(Query query) {
+    public QueryResults<BackendEntry> query(Query query) {
         if (!(query instanceof ConditionQuery)) {
             LOG.debug("Query{final:{}}", query);
             return super.query(query);
         }
 
-        QueryList queries = new QueryList(query, super::query);
-        for (ConditionQuery cq: ConditionQueryFlatten.flatten(
-                                (ConditionQuery) query)) {
-            Query q = this.optimizeQuery(cq);
-            /*
-             * NOTE: There are two possibilities for this query:
-             * 1.sysprop-query, which would not be empty.
-             * 2.index-query result(ids after optimization), which may be empty.
-             */
-            if (q == null) {
-                queries.add(this.indexQuery(cq), this.batchSize);
-            } else if (!q.empty()) {
-                queries.add(q);
-            }
-        }
-
+        QueryList<BackendEntry> queries = this.optimizeQueries(query,
+                                                               super::query);
         LOG.debug("{}", queries);
         return queries.empty() ? QueryResults.empty() :
                                  queries.fetch(this.pageSize);
+    }
+
+    @Override
+    public Number queryNumber(Query query) {
+        if (!(query instanceof ConditionQuery)) {
+            return super.queryNumber(query);
+        }
+
+        QueryList<Number> queries = this.optimizeQueries(query, q -> {
+            boolean indexQuery = q.getClass() == IdQuery.class;
+            Number result = indexQuery ? q.ids().size() : super.queryNumber(q);
+            return new QueryResults<>(IteratorUtils.of(result), q);
+        });
+
+        QueryResults<Number> results = queries.empty() ?
+                                       QueryResults.empty() :
+                                       queries.fetch(this.pageSize);
+        Aggregate aggregate = query.aggregateNotNull();
+        return aggregate.reduce(results.iterator());
     }
 
     @Watched(prefix = "graph")
@@ -622,7 +629,7 @@ public class GraphTransaction extends IndexableTransaction {
     protected Iterator<HugeVertex> queryVerticesFromBackend(Query query) {
         assert query.resultType().isVertex();
 
-        QueryResults results = this.query(query);
+        QueryResults<BackendEntry> results = this.query(query);
         Iterator<BackendEntry> entries = results.iterator();
 
         Iterator<HugeVertex> vertices = new MapperIterator<>(entries, entry -> {
@@ -791,7 +798,7 @@ public class GraphTransaction extends IndexableTransaction {
     protected Iterator<HugeEdge> queryEdgesFromBackend(Query query) {
         assert query.resultType().isEdge();
 
-        QueryResults results = this.query(query);
+        QueryResults<BackendEntry> results = this.query(query);
         Iterator<BackendEntry> entries = results.iterator();
 
         Iterator<HugeEdge> edges = new FlatMapperIterator<>(entries, entry -> {
@@ -1107,6 +1114,26 @@ public class GraphTransaction extends IndexableTransaction {
                       "Not supported querying edges by %s, expect %s",
                       query.conditions(), EdgeId.KEYS[count]);
         }
+    }
+
+    private <R> QueryList<R> optimizeQueries(Query query,
+                                             QueryResults.Fetcher<R> fetcher) {
+        QueryList<R> queries = new QueryList<>(query, fetcher);
+        for (ConditionQuery cq: ConditionQueryFlatten.flatten(
+                                (ConditionQuery) query)) {
+            Query q = this.optimizeQuery(cq);
+            /*
+             * NOTE: There are two possibilities for this query:
+             * 1.sysprop-query, which would not be empty.
+             * 2.index-query result(ids after optimization), which may be empty.
+             */
+            if (q == null) {
+                queries.add(this.indexQuery(cq), this.batchSize);
+            } else if (!q.empty()) {
+                queries.add(q);
+            }
+        }
+        return queries;
     }
 
     private Query optimizeQuery(ConditionQuery query) {

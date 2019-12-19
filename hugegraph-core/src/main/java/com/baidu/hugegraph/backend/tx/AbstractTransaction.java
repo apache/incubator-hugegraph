@@ -86,7 +86,24 @@ public abstract class AbstractTransaction implements Transaction {
     }
 
     @Watched(prefix = "tx")
-    public QueryResults query(Query query) {
+    public Number queryNumber(Query query) {
+        LOG.debug("Transaction queryNumber: {}", query);
+
+        E.checkArgument(query.aggregate() != null,
+                        "The aggregate must be set for number query: %s",
+                        query);
+        Query squery = this.serializer.writeQuery(query);
+
+        this.beforeRead();
+        try {
+            return this.store.queryNumber(squery);
+        } finally {
+            this.afterRead(); // TODO: not complete the iteration currently
+        }
+    }
+
+    @Watched(prefix = "tx")
+    public QueryResults<BackendEntry> query(Query query) {
         LOG.debug("Transaction query: {}", query);
         /*
          * NOTE: it's dangerous if an IdQuery/ConditionQuery is empty
@@ -100,7 +117,7 @@ public abstract class AbstractTransaction implements Transaction {
 
         this.beforeRead();
         try {
-            return new QueryResults(this.store.query(squery), query);
+            return new QueryResults<>(this.store.query(squery), query);
         } finally {
             this.afterRead(); // TODO: not complete the iteration currently
         }

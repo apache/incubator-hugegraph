@@ -25,28 +25,27 @@ import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.query.QueryResults;
-import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.iterator.CIter;
 import com.baidu.hugegraph.util.E;
 
-public class PageEntryIterator implements CIter<BackendEntry> {
+public class PageEntryIterator<R> implements CIter<R> {
 
-    private final QueryList queries;
+    private final QueryList<R> queries;
     private final long pageSize;
     private final PageInfo pageInfo;
-    private final QueryResults queryResults; // for upper layer
+    private final QueryResults<R> queryResults; // for upper layer
 
-    private QueryList.PageResults pageResults;
+    private QueryList.PageResults<R> pageResults;
     private long remaining;
 
-    public PageEntryIterator(QueryList queries, long pageSize) {
+    public PageEntryIterator(QueryList<R> queries, long pageSize) {
         this.queries = queries;
         this.pageSize = pageSize;
         this.pageInfo = this.parsePageInfo();
-        this.queryResults = new QueryResults(this);
+        this.queryResults = new QueryResults<>(this);
 
-        this.pageResults = QueryList.PageResults.EMPTY;
+        this.pageResults = QueryList.PageResults.emptyIterator();
         this.remaining = queries.parent().limit();
     }
 
@@ -103,7 +102,7 @@ public class PageEntryIterator implements CIter<BackendEntry> {
     }
 
     @Override
-    public BackendEntry next() {
+    public R next() {
         if (!this.hasNext()) {
             throw new NoSuchElementException();
         }
@@ -126,7 +125,7 @@ public class PageEntryIterator implements CIter<BackendEntry> {
         this.closePageResults();
     }
 
-    public QueryResults results() {
+    public QueryResults<R> results() {
         return this.queryResults;
     }
 }
