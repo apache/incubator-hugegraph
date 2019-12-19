@@ -1028,7 +1028,7 @@ public class GraphTransaction extends IndexableTransaction {
                         this.store().provider().type());
     }
 
-    private void checkAggregateProperty(HugeProperty property) {
+    private void checkAggregateProperty(HugeProperty<?> property) {
         E.checkArgument(!property.isAggregateType() ||
                         this.store().features().supportsAggregateProperty(),
                         "The %s store does not support aggregate property",
