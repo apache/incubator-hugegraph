@@ -221,11 +221,11 @@ public class VertexAPI extends BatchAPI {
                        @PathParam("graph") String graph,
                        @QueryParam("label") String label,
                        @QueryParam("properties") String properties,
+                       @QueryParam("keep_start_p")
+                       @DefaultValue("false") boolean keepStartP,
                        @QueryParam("offset") @DefaultValue("0") long offset,
                        @QueryParam("page") String page,
-                       @QueryParam("limit") @DefaultValue("100") long limit,
-                       @QueryParam("preserve_start_p") @DefaultValue("false")
-                       boolean preserveStartP) {
+                       @QueryParam("limit") @DefaultValue("100") long limit) {
         LOG.debug("Graph [{}] query vertices by label: {}, properties: {}, " +
                   "offset: {}, page: {}, limit: {}",
                   graph, label, properties, offset, page, limit);
@@ -247,7 +247,7 @@ public class VertexAPI extends BatchAPI {
         // Convert relational operator like P.gt()/P.lt()
         for (Map.Entry<String, Object> prop : props.entrySet()) {
             Object value = prop.getValue();
-            if (!preserveStartP && value instanceof String &&
+            if (!keepStartP && value instanceof String &&
                 ((String) value).startsWith(TraversalUtil.P_CALL)) {
                 prop.setValue(TraversalUtil.parsePredicate((String) value));
             }

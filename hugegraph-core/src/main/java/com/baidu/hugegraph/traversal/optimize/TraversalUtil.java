@@ -84,6 +84,7 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.google.common.collect.ImmutableList;
@@ -732,27 +733,50 @@ public final class TraversalUtil {
         try {
             return JsonUtil.fromJson(value, Number.class);
         } catch (Exception e) {
+            // Try to parse date
+            if (e.getMessage().contains("not a valid number") ||
+                e.getMessage().contains("Unexpected character ('-'")) {
+                try {
+                    if (value.startsWith("\"")) {
+                        value = JsonUtil.fromJson(value, String.class);
+                    }
+                    return DateUtil.parse(value).getTime();
+                } catch (Exception ignored) {}
+            }
+
             throw new HugeException(
                       "Invalid value '%s', expect a number", e, value);
         }
     }
 
     private static Number[] predicateNumbers(String value, int count) {
-        List<?> values = predicateArgs(value);
+        List<Number> values = predicateArgs(value);
         if (values.size() != count) {
             throw new HugeException("Invalid numbers size %s, expect %s",
                                     values.size(), count);
         }
-        for (Object v : values) {
-            if (!(v instanceof Number)) {
-                throw new HugeException(
-                          "Invalid value '%s', expect a list of number", value);
+        for (int i = 0; i < count; i++) {
+            Object v = values.get(i);
+            if (v instanceof Number) {
+                continue;
             }
+            try {
+                v = predicateNumber(v.toString());
+            } catch (Exception ignored) {
+                // pass
+            }
+            if (v instanceof Number) {
+                values.set(i, (Number) v);
+                continue;
+            }
+            throw new HugeException(
+                      "Invalid value '%s', expect a list of number", value);
         }
         return values.toArray(new Number[values.size()]);
     }
 
-    private static List<?> predicateArgs(String value) {
+    @SuppressWarnings("unchecked")
+    private static <V> List<V> predicateArgs(String value) {
         try {
             return JsonUtil.fromJson("[" + value + "]", List.class);
         } catch (Exception e) {

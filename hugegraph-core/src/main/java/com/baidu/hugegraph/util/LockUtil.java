@@ -120,7 +120,7 @@ public final class LockUtil {
                 }
                 break;
             } catch (InterruptedException ignore) {
-                LOG.info("Trying to lock write of is interrupted!");
+                LOG.info("Trying to lock write of {} is interrupted!", lock);
             }
         }
         LOG.debug("Got the write lock '{}' of LockGroup '{}'", lock, group);
