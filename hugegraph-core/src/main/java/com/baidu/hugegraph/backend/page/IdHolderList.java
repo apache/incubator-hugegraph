@@ -43,15 +43,7 @@ public class IdHolderList extends ArrayList<IdHolder> {
         E.checkArgument(this.paging == holder.paging(),
                         "The IdHolder to be linked must be " +
                         "in same paging mode");
-        if (this.paging || this.isEmpty()) {
-            super.add(holder);
-        } else {
-            assert this.size() == 1;
-            IdHolder self = this.get(0);
-            assert !self.paging();
-            self.merge(holder.ids());
-        }
-        return true;
+        return super.add(holder);
     }
 
     @Override
@@ -60,14 +52,5 @@ public class IdHolderList extends ArrayList<IdHolder> {
             this.add(idHolder);
         }
         return true;
-    }
-
-    public int idsSize() {
-        if (this.paging || this.isEmpty()) {
-            return 0;
-        } else {
-            assert this.size() == 1;
-            return this.get(0).size();
-        }
     }
 }

@@ -43,6 +43,9 @@ import com.baidu.hugegraph.analyzer.Analyzer;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.page.IdHolder;
+import com.baidu.hugegraph.backend.page.IdHolder.BatchIdHolder;
+import com.baidu.hugegraph.backend.page.IdHolder.FixedIdHolder;
+import com.baidu.hugegraph.backend.page.IdHolder.PagingIdHolder;
 import com.baidu.hugegraph.backend.page.IdHolderList;
 import com.baidu.hugegraph.backend.page.PageIds;
 import com.baidu.hugegraph.backend.page.PageInfo;
@@ -413,7 +416,6 @@ public class GraphIndexTransaction extends AbstractTransaction {
         // Do index query
         boolean paging = query.paging();
         IdHolderList holders = new IdHolderList(paging);
-        long idsSize = 0;
         for (MatchedIndex index : indexes) {
             if (paging && index.indexLabels().size() > 1) {
                 throw new NotSupportException("joint index query in paging");
@@ -429,11 +431,6 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 IdHolder holder = this.doSingleOrJointIndex(queries);
                 holders.add(holder);
             }
-
-            idsSize += holders.idsSize();
-            if (query.reachLimit(idsSize)) {
-                break;
-            }
         }
         return holders;
     }
@@ -443,7 +440,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                                          MatchedIndex index) {
         query = this.constructSearchQuery(query, index);
         List<IdHolder> holders = new SortByCountIdHolderList(query.paging());
-        // sorted by matched count
+        // Sorted by matched count
         for (ConditionQuery q : ConditionQueryFlatten.flatten(query)) {
             IndexQueries queries = index.constructIndexQueries(q);
             assert !query.paging() || queries.size() <= 1;
@@ -476,7 +473,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
     private IdHolder doJointIndex(IndexQueries queries) {
         Set<Id> intersectIds = null;
         for (Map.Entry<IndexLabel, ConditionQuery> e : queries.entrySet()) {
-            Set<Id> ids = this.doIndexQuery(e.getKey(), e.getValue()).ids();
+            Set<Id> ids = this.doIndexQuery(e.getKey(), e.getValue()).all();
             if (intersectIds == null) {
                 intersectIds = ids;
             } else {
@@ -486,18 +483,41 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 break;
             }
         }
-        return new IdHolder(intersectIds);
+        return new FixedIdHolder(intersectIds);
     }
 
     @Watched(prefix = "index")
     private IdHolder doIndexQuery(IndexLabel indexLabel, ConditionQuery query) {
         if (!query.paging()) {
-            PageIds pageIds = this.doIndexQueryOnce(indexLabel, query);
-            return new IdHolder(pageIds.ids());
+            return this.doIndexQueryAll(indexLabel, query);
         } else {
-            return new IdHolder(query, (q) -> {
+            return new PagingIdHolder(query, q -> {
                 return this.doIndexQueryOnce(indexLabel, q);
             });
+        }
+    }
+
+    @Watched(prefix = "index")
+    private IdHolder doIndexQueryAll(IndexLabel indexLabel,
+                                     ConditionQuery query) {
+        LockUtil.Locks locks = new LockUtil.Locks(this.graph().name());
+        try {
+            locks.lockReads(LockUtil.INDEX_LABEL_DELETE, indexLabel.id());
+            locks.lockReads(LockUtil.INDEX_LABEL_REBUILD, indexLabel.id());
+
+            Iterator<BackendEntry> entries = super.query(query).iterator();
+            return new BatchIdHolder(locks, query, entries, batch -> {
+                Set<Id> ids = InsertionOrderUtil.newSet();
+                while (ids.size() < batch && entries.hasNext()) {
+                    HugeIndex index = this.serializer.readIndex(graph(), query,
+                                                                entries.next());
+                    ids.addAll(index.elementIds());
+                }
+                return ids;
+            });
+        } catch (Throwable e) {
+            locks.unlock();
+            throw e;
         }
     }
 
@@ -516,6 +536,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                                                             entries.next());
                 ids.addAll(index.elementIds());
                 if (query.reachLimit(ids.size())) {
+                    // TODO close iter
                     break;
                 }
             }
