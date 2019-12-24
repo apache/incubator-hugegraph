@@ -32,6 +32,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.rocksdb.BlockBasedTableConfig;
 import org.rocksdb.BloomFilter;
@@ -762,6 +763,8 @@ public class RocksDBStdSessions extends RocksDBSessions {
         }
     }
 
+    static AtomicLong iteropen = new AtomicLong();
+    static AtomicLong iterclose = new AtomicLong();
     /**
      * A wrapper for RocksIterator that convert RocksDB results to std Iterator
      */
@@ -779,6 +782,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
         public ColumnIterator(String table, RocksIterator iter,
                               byte[] keyBegin, byte[] keyEnd, int scanType) {
             E.checkNotNull(iter, "iter");
+            iteropen.incrementAndGet();
             this.table = table;
 
             this.iter = iter;
@@ -973,6 +977,9 @@ public class RocksDBStdSessions extends RocksDBSessions {
         public void close() {
             if (this.iter.isOwningHandle()) {
                 this.iter.close();
+                iterclose.incrementAndGet();
+                System.out.println(String.format("==========iter open:%s, close=%s",
+                                                 iteropen.get(), iterclose.get()));
             }
         }
     }
