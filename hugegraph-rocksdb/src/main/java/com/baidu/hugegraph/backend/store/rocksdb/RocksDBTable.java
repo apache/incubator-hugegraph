@@ -225,7 +225,7 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
                                           BackendColumnIterator cols,
                                           Query query) {
         return new BinaryEntryIterator<>(cols, query, (entry, col) -> {
-            if (entry == null || !entry.belongToMe(col)) {
+            if (entry == null || !entry.belongToMe(col) || query.resultType().isIndex()) {
                 HugeType type = query.resultType();
                 // NOTE: only support BinaryBackendEntry currently
                 entry = new BinaryBackendEntry(type, col.name);

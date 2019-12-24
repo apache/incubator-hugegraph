@@ -130,7 +130,10 @@ public abstract class BackendEntryIterator
     }
 
     protected void skipOffset() {
-        long offset = this.offset();
+        long offset = this.query.remainingOffset();
+        if (offset <= 0L) {
+            return;
+        }
 
         // Skip offset
         while (this.count < offset && this.fetch()) {
@@ -147,10 +150,7 @@ public abstract class BackendEntryIterator
                 this.current = null;
             }
         }
-    }
-
-    protected long offset() {
-        return this.query.offset();
+        this.query.skipOffset(this.count);
     }
 
     protected long sizeOf(BackendEntry entry) {

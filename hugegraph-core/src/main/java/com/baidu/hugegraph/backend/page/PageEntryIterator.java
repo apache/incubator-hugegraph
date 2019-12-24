@@ -36,7 +36,7 @@ public class PageEntryIterator implements Iterator<BackendEntry>, Metadatable {
     private final PageInfo pageInfo;
     private final QueryResults queryResults; // for upper layer
 
-    private QueryList.PageIterator pageResults;
+    private QueryList.PageResults pageResults;
     private long remaining;
 
     public PageEntryIterator(QueryList queries, long pageSize) {
@@ -45,7 +45,7 @@ public class PageEntryIterator implements Iterator<BackendEntry>, Metadatable {
         this.pageInfo = this.parsePageInfo();
         this.queryResults = new QueryResults(this);
 
-        this.pageResults = QueryList.PageIterator.EMPTY;
+        this.pageResults = QueryList.PageResults.EMPTY;
         this.remaining = queries.parent().limit();
     }
 

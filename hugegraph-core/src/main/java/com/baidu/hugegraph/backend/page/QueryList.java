@@ -27,16 +27,16 @@ import java.util.function.Function;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.page.IdHolder.BatchIdHolder;
+import com.baidu.hugegraph.backend.page.IdHolder.FixedIdHolder;
 import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.util.Bytes;
-import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 
 public final class QueryList {
 
@@ -62,17 +62,17 @@ public final class QueryList {
         return this.fetcher;
     }
 
-    public void add(IdHolderList holders) {
+    public void add(IdHolderList holders, long batchSize) {
         // IdHolderList is results of one index query, the query is flattened
-        if (!this.parent.paging()) {
-            for (QueryHolder q : this.queries) {
-                if (q instanceof IndexQuery) {
-                    ((IndexQuery) q).merge(holders);
-                    return;
-                }
-            }
-        }
-        this.queries.add(new IndexQuery(holders));
+//        if (!this.parent.paging()) {
+//            for (QueryHolder q : this.queries) {
+//                if (q instanceof IndexQuery) {
+//                    ((IndexQuery) q).merge(holders);
+//                    return;
+//                }
+//            }
+//        }
+        this.queries.add(new IndexQuery(holders, batchSize));
     }
 
     public void add(Query query) {
@@ -109,7 +109,7 @@ public final class QueryList {
         return QueryResults.flatMap(this.queries.iterator(), q -> q.iterator());
     }
 
-    protected PageIterator fetchNext(PageInfo pageInfo, long pageSize) {
+    protected PageResults fetchNext(PageInfo pageInfo, long pageSize) {
         QueryHolder query = null;
         int offset = pageInfo.offset();
         int current = 0;
@@ -123,27 +123,6 @@ public final class QueryList {
         E.checkNotNull(query, "query");
         assert offset >= current;
         return query.iterator(offset - current, pageInfo.page(), pageSize);
-    }
-
-    private static Set<Id> limit(Set<Id> ids, Query query) {
-        long fromIndex = query.offset();
-        E.checkArgument(fromIndex <= Integer.MAX_VALUE,
-                        "Offset must be <= 0x7fffffff, but got '%s'",
-                        fromIndex);
-
-        if (query.offset() >= ids.size()) {
-            return ImmutableSet.of();
-        }
-        if (query.nolimit() && query.offset() == 0) {
-            return ids;
-        }
-        long toIndex = query.total();
-        if (query.nolimit() || toIndex > ids.size()) {
-            toIndex = ids.size();
-        }
-        assert fromIndex < ids.size();
-        assert toIndex <= ids.size();
-        return CollectionUtil.subSet(ids, (int) fromIndex, (int) toIndex);
     }
 
     /**
@@ -164,7 +143,7 @@ public final class QueryList {
          * @param pageSize  set query page size
          * @return          BackendEntry iterator with page
          */
-        public PageIterator iterator(int index, String page, long pageSize);
+        public PageResults iterator(int index, String page, long pageSize);
 
         public int total();
     }
@@ -182,11 +161,13 @@ public final class QueryList {
 
         @Override
         public QueryResults iterator() {
+            // Iterate all
             return fetcher().apply(this.query);
         }
 
         @Override
-        public PageIterator iterator(int index, String page, long pageSize) {
+        public PageResults iterator(int index, String page, long pageSize) {
+            // Iterate by paging
             assert index == 0;
             Query query = this.query.copy();
             query.page(page);
@@ -196,8 +177,8 @@ public final class QueryList {
             }
             QueryResults rs = fetcher().apply(query);
             // Must iterate all entries before get the next page
-            return new PageIterator(rs.list().iterator(), rs.queries(),
-                                    PageInfo.pageState(rs.iterator()));
+            return new PageResults(rs.list().iterator(), rs.queries(),
+                                   PageInfo.pageState(rs.iterator()));
         }
 
         @Override
@@ -211,25 +192,19 @@ public final class QueryList {
      */
     private class IndexQuery implements QueryHolder {
 
-        // An IdHolder each sub-query
+        // One IdHolder each sub-query
         private final IdHolderList holders;
-        // To skip the offset in parent query
-        private long offsetToSkip;
+        // Fetching ids size each time, default 100
+        private final long batchSize;
 
-        public IndexQuery(IdHolderList holders) {
+        public IndexQuery(IdHolderList holders, long batchSize) {
             this.holders = holders;
-            this.offsetToSkip = this.holders.needSkipOffset() ?
-                                parent().offset() : -1L;
-        }
-
-        public void merge(IdHolderList holders) {
-            E.checkState(holders.sameParameters(this.holders),
-                         "Can't merge IdHolderList with different parameters");
-            this.holders.addAll(holders);
+            this.batchSize = batchSize;
         }
 
         @Override
         public QueryResults iterator() {
+            // Iterate all
             if (this.holders.size() == 1) {
                 return this.each(this.holders.get(0));
             }
@@ -237,38 +212,56 @@ public final class QueryList {
         }
 
         private QueryResults each(IdHolder holder) {
-            Set<Id> ids = holder.ids();
             Query parent = parent();
-            if (this.offsetToSkip > 0L) {
-                // Skip offset when needed
-                this.offsetToSkip -= ids.size();
-                ids = limit(ids, parent);
-            } else if (!parent.nolimit() && ids.size() > parent.total()) {
-                /*
-                 * Avoid too many ids in one time query,
-                 * Assume it will get one result by each id
-                 */
-                ids = CollectionUtil.subSet(ids, 0, (int) parent.total());
+            assert !holder.paging();
+
+            // Iterate by all
+            if (holder instanceof FixedIdHolder) {
+                Set<Id> ids = holder.all();
+                ids = parent.skipOffset(ids);
+                if (ids.isEmpty()) {
+                    return null;
+                }
+
+                IdQuery query = new IdQuery(parent, ids);
+                return fetcher().apply(query);
             }
 
-            if (ids.isEmpty()) {
-                return null;
-            }
-            IdQuery query = new IdQuery(parent, ids);
-            return fetcher().apply(query);
+            // Iterate by batch
+            assert holder instanceof BatchIdHolder;
+            return QueryResults.flatMap((BatchIdHolder) holder, h -> {
+                long remaining = parent.nolimit() ? Query.NO_LIMIT :
+                                 parent.remaining();
+                if (remaining > this.batchSize || remaining == Query.NO_LIMIT) {
+                    /*
+                     * Avoid too many ids in one time query,
+                     * Assume it will get one result by each id
+                     */
+                    remaining = this.batchSize;
+                }
+                Set<Id> ids = h.fetchNext(null, remaining).ids();
+                ids = parent.skipOffset(ids);
+                if (ids.isEmpty()) {
+                    return null;
+                }
+
+                IdQuery query = new IdQuery(parent, ids);
+                return fetcher().apply(query);
+            });
         }
 
         @Override
-        public PageIterator iterator(int index, String page, long pageSize) {
+        public PageResults iterator(int index, String page, long pageSize) {
+            // Iterate by paging
             IdHolder holder = this.holders.get(index);
             PageIds pageIds = holder.fetchNext(page, pageSize);
             if (pageIds.empty()) {
-                return PageIterator.EMPTY;
+                return PageResults.EMPTY;
             }
             IdQuery query = new IdQuery(parent(), pageIds.ids());
             QueryResults rs = fetcher().apply(query);
-            return new PageIterator(rs.iterator(), rs.queries(),
-                                    pageIds.pageState());
+            return new PageResults(rs.iterator(), rs.queries(),
+                                   pageIds.pageState());
         }
 
         @Override
@@ -277,19 +270,19 @@ public final class QueryList {
         }
     }
 
-    public static class PageIterator {
+    public static class PageResults {
 
-        public static final PageIterator EMPTY = new PageIterator(
-                                                 QueryResults.emptyIterator(),
-                                                 ImmutableList.of(Query.NONE),
-                                                 PageState.EMPTY);
+        public static final PageResults EMPTY = new PageResults(
+                                                QueryResults.emptyIterator(),
+                                                ImmutableList.of(Query.NONE),
+                                                PageState.EMPTY);
 
         private final Iterator<BackendEntry> iterator;
         private final List<Query> queries;
         private final PageState pageState;
 
-        public PageIterator(Iterator<BackendEntry> iterator,
-                            List<Query> queries, PageState pageState) {
+        public PageResults(Iterator<BackendEntry> iterator,
+                           List<Query> queries, PageState pageState) {
             this.iterator = iterator;
             this.queries = queries;
             this.pageState = pageState;

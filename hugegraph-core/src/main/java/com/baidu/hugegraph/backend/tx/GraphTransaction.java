@@ -405,7 +405,7 @@ public class GraphTransaction extends IndexableTransaction {
              * 2.index-query result(ids after optimization), which may be empty.
              */
             if (q == null) {
-                queries.add(this.indexQuery(cq));
+                queries.add(this.indexQuery(cq), 100L); // TODO: read from conf
             } else if (!q.empty()) {
                 queries.add(q);
             }

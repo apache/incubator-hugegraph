@@ -30,6 +30,7 @@ import com.baidu.hugegraph.exception.LimitExceedException;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.google.common.collect.ImmutableSet;
@@ -48,6 +49,7 @@ public class Query implements Cloneable {
     private HugeType resultType;
     private Map<HugeKeys, Order> orders;
     private long offset;
+    private long actualOffset;
     private long limit;
     private String page;
     private long capacity;
@@ -67,6 +69,7 @@ public class Query implements Cloneable {
         this.orders = null;
 
         this.offset = 0L;
+        this.actualOffset = 0L;
         this.limit = NO_LIMIT;
         this.page = null;
 
@@ -132,6 +135,57 @@ public class Query implements Cloneable {
     public void offset(long offset) {
         E.checkArgument(offset >= 0L, "Invalid offset %s", offset);
         this.offset = offset;
+    }
+
+    public long actualOffset() {
+        if (this.originQuery != null) {
+            return this.originQuery.actualOffset();
+        }
+        return this.actualOffset;
+    }
+
+    public long skipOffset(long offset) {
+        if (this.originQuery != null) {
+            return this.originQuery.skipOffset(offset);
+        }
+
+        this.actualOffset += offset;
+        return this.actualOffset;
+    }
+
+    public <T> Set<T> skipOffset(Set<T> elems) {
+        if (this.originQuery != null) {
+            return this.originQuery.skipOffset(elems);
+        }
+
+        long fromIndex = this.offset() - this.actualOffset;
+        E.checkArgument(fromIndex <= Integer.MAX_VALUE,
+                        "Offset must be <= 0x7fffffff, but got '%s'",
+                        fromIndex);
+
+        this.actualOffset += elems.size();
+
+        if (fromIndex >= elems.size()) {
+            return ImmutableSet.of();
+        }
+        if (this.nolimit() && this.offset() == 0) {
+            return elems;
+        }
+        long toIndex = this.total();
+        if (this.nolimit() || toIndex > elems.size()) {
+            toIndex = elems.size();
+        }
+        assert fromIndex < elems.size();
+        assert toIndex <= elems.size();
+        return CollectionUtil.subSet(elems, (int) fromIndex, (int) toIndex);
+    }
+
+    public long remainingOffset() {
+        return this.offset() - this.actualOffset();
+    }
+
+    public long remaining() {
+        return this.total() - this.actualOffset();
     }
 
     public long total() {

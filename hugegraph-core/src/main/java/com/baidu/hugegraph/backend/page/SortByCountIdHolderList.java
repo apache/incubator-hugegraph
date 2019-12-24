@@ -27,11 +27,10 @@ import org.apache.commons.lang.NotImplementedException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
-import com.google.common.collect.ImmutableSet;
 
 public class SortByCountIdHolderList extends IdHolderList {
 
-    private static final long serialVersionUID = -3702668078311531645L;
+    private static final long serialVersionUID = -7779357582250824558L;
 
     public SortByCountIdHolderList(boolean paging) {
         super(paging);
@@ -39,42 +38,39 @@ public class SortByCountIdHolderList extends IdHolderList {
 
     @Override
     public boolean add(IdHolder holder) {
-        if (!this.paging()) {
-            holder = new SortByCountIdHolder(holder);
+        if (this.paging()) {
+            return super.add(holder);
         }
-        return super.add(holder);
+
+        SortByCountIdHolder sortHolder = super.size() > 0 ?
+                                         (SortByCountIdHolder) super.get(0) :
+                                         new SortByCountIdHolder();
+        sortHolder.merge(holder);
+        return true;
     }
 
-    private static class SortByCountIdHolder extends IdHolder {
+    private static class SortByCountIdHolder implements IdHolder {
 
         private final Map<Id, Integer> ids;
 
-        public SortByCountIdHolder(IdHolder holder) {
-            super(ImmutableSet.of());
+        public SortByCountIdHolder() {
             this.ids = InsertionOrderUtil.newMap();
-            this.merge(holder.ids());
         }
 
-        @Override
-        public void merge(Set<Id> ids) {
-            for (Id id : ids) {
+        public void merge(IdHolder holder) {
+            for (Id id : holder.all()) {
                 this.ids.compute(id, (k, v) -> v == null ? 1 : v + 1);
             }
         }
 
         @Override
-        public Set<Id> ids() {
-            return CollectionUtil.sortByValue(this.ids, false).keySet();
-        }
-
-        @Override
-        public int size() {
-            return this.ids.size();
-        }
-
-        @Override
         public boolean paging() {
             return false;
+        }
+
+        @Override
+        public Set<Id> all() {
+            return CollectionUtil.sortByValue(this.ids, false).keySet();
         }
 
         @Override
