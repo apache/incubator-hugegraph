@@ -521,6 +521,9 @@ public class InMemoryDBTables {
             String indexLabel = entry.column(HugeKeys.INDEX_LABEL_ID);
             E.checkState(indexLabel != null, "Expect index label");
 
+            if (this.store().isEmpty()) {
+                return;
+            }
             Id indexLabelId = IdGenerator.of(indexLabel);
             Id min = HugeIndex.formatIndexId(entry.type(), indexLabelId, 0L);
             indexLabelId = IdGenerator.of(indexLabelId.asLong() + 1L);

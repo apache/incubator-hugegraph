@@ -22,7 +22,6 @@ package com.baidu.hugegraph.schema.builder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +38,7 @@ import com.baidu.hugegraph.exception.NotAllowException;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaElement;
+import com.baidu.hugegraph.schema.Userdata;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Action;
@@ -56,7 +56,7 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
     private List<String> primaryKeys;
     private Set<String> nullableKeys;
     private Boolean enableLabelIndex;
-    private Map<String, Object> userdata;
+    private Userdata userdata;
     private boolean checkExist;
 
     private SchemaTransaction transaction;
@@ -71,7 +71,7 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
         this.primaryKeys = new ArrayList<>();
         this.nullableKeys = new HashSet<>();
         this.enableLabelIndex = null;
-        this.userdata = new HashMap<>();
+        this.userdata = new Userdata();
         this.checkExist = true;
 
         this.transaction = transaction;
@@ -99,9 +99,7 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
             PropertyKey propertyKey = this.transaction.getPropertyKey(key);
             vertexLabel.nullableKey(propertyKey.id());
         }
-        for (Map.Entry<String, Object> entry : this.userdata.entrySet()) {
-            vertexLabel.userdata(entry.getKey(), entry.getValue());
-        }
+        vertexLabel.userdata(this.userdata);
         return vertexLabel;
     }
 
@@ -122,7 +120,7 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
         this.checkProperties(Action.INSERT);
         this.checkIdStrategy();
         this.checkNullableKeys(Action.INSERT);
-        this.checkUserdata(Action.INSERT);
+        Userdata.check(this.userdata, Action.INSERT);
 
         vertexLabel = this.build();
         tx.addVertexLabel(vertexLabel);
@@ -140,7 +138,7 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
         this.checkStableVars();
         this.checkProperties(Action.APPEND);
         this.checkNullableKeys(Action.APPEND);
-        this.checkUserdata(Action.APPEND);
+        Userdata.check(this.userdata, Action.APPEND);
 
         for (String key : this.properties) {
             PropertyKey propertyKey = this.transaction.getPropertyKey(key);
@@ -150,9 +148,7 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
             PropertyKey propertyKey = this.transaction.getPropertyKey(key);
             vertexLabel.nullableKey(propertyKey.id());
         }
-        for (Map.Entry<String, Object> entry : this.userdata.entrySet()) {
-            vertexLabel.userdata(entry.getKey(), entry.getValue());
-        }
+        vertexLabel.userdata(this.userdata);
         this.transaction.addVertexLabel(vertexLabel);
         return vertexLabel;
     }
@@ -168,11 +164,9 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
         this.checkStableVars();
         this.checkProperties(Action.ELIMINATE);
         this.checkNullableKeys(Action.ELIMINATE);
-        this.checkUserdata(Action.ELIMINATE);
+        Userdata.check(this.userdata, Action.ELIMINATE);
 
-        for (String key : this.userdata.keySet()) {
-            vertexLabel.removeUserdata(key);
-        }
+        vertexLabel.removeUserdata(this.userdata);
         this.transaction.addVertexLabel(vertexLabel);
         return vertexLabel;
     }
@@ -459,28 +453,6 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
             throw new NotAllowException(
                       "Not allowed to update enable_label_index " +
                       "for vertex label '%s'", this.name);
-        }
-    }
-
-    private void checkUserdata(Action action) {
-        switch (action) {
-            case INSERT:
-            case APPEND:
-                for (Map.Entry<String, Object> e : this.userdata.entrySet()) {
-                    if (e.getValue() == null) {
-                        throw new NotAllowException(
-                                  "Not allowed pass null userdata value when " +
-                                  "create or append vertex label");
-                    }
-                }
-                break;
-            case ELIMINATE:
-            case DELETE:
-                // pass
-                break;
-            default:
-                throw new AssertionError(String.format(
-                          "Unknown schema action '%s'", action));
         }
     }
 }

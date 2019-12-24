@@ -52,7 +52,7 @@ public class GraphSONSchemaSerializer {
         map.put(HugeKeys.USER_DATA, vertexLabel.userdata());
         return map;
     }
-    
+
     public Map<HugeKeys, Object> writeEdgeLabel(EdgeLabel edgeLabel) {
         HugeGraph graph = edgeLabel.graph();
         assert graph != null;
@@ -77,7 +77,7 @@ public class GraphSONSchemaSerializer {
         map.put(HugeKeys.USER_DATA, edgeLabel.userdata());
         return map;
     }
-    
+
     public Map<HugeKeys, Object> writePropertyKey(PropertyKey propertyKey) {
         HugeGraph graph = propertyKey.graph();
         assert graph != null;
@@ -112,6 +112,7 @@ public class GraphSONSchemaSerializer {
         }
         map.put(HugeKeys.INDEX_TYPE, indexLabel.indexType());
         map.put(HugeKeys.FIELDS, graph.mapPkId2Name(indexLabel.indexFields()));
+        map.put(HugeKeys.USER_DATA, indexLabel.userdata());
         return map;
     }
 }

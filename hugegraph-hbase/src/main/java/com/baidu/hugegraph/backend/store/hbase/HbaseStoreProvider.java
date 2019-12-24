@@ -58,7 +58,8 @@ public class HbaseStoreProvider extends AbstractBackendStoreProvider {
          *                    rangeLong and rangeDouble
          * [1.5] #633: support unique index
          * [1.6] #680: update index element-id to bin format
+         * [1.7] #746: support userdata for indexlabel
          */
-        return "1.6";
+        return "1.7";
     }
 }

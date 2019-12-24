@@ -225,6 +225,7 @@ public class CassandraTables {
                     .put(HugeKeys.BASE_VALUE, TYPE_SL)
                     .put(HugeKeys.INDEX_TYPE, DataType.tinyint())
                     .put(HugeKeys.FIELDS, DataType.list(TYPE_PK))
+                    .put(HugeKeys.USER_DATA, TYPE_UD)
                     .put(HugeKeys.STATUS, DataType.tinyint())
                     .build();
 

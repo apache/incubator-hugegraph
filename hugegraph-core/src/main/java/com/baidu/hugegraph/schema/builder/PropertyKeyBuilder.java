@@ -19,7 +19,6 @@
 
 package com.baidu.hugegraph.schema.builder;
 
-import java.util.HashMap;
 import java.util.Map;
 
 import com.baidu.hugegraph.HugeGraph;
@@ -31,6 +30,7 @@ import com.baidu.hugegraph.exception.NotAllowException;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaElement;
+import com.baidu.hugegraph.schema.Userdata;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Action;
 import com.baidu.hugegraph.type.define.AggregateType;
@@ -45,9 +45,8 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
     private DataType dataType;
     private Cardinality cardinality;
     private AggregateType aggregateType;
-    private Map<String, Object> userdata;
     private boolean checkExist;
-
+    private Userdata userdata;
     private SchemaTransaction transaction;
 
     public PropertyKeyBuilder(String name, SchemaTransaction transaction) {
@@ -58,7 +57,7 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
         this.dataType = DataType.TEXT;
         this.cardinality = Cardinality.SINGLE;
         this.aggregateType = AggregateType.NONE;
-        this.userdata = new HashMap<>();
+        this.userdata = new Userdata();
         this.checkExist = true;
         this.transaction = transaction;
     }
@@ -72,9 +71,7 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
         propertyKey.dataType(this.dataType);
         propertyKey.cardinality(this.cardinality);
         propertyKey.aggregateType(this.aggregateType);
-        for (Map.Entry<String, Object> entry : this.userdata.entrySet()) {
-            propertyKey.userdata(entry.getKey(), entry.getValue());
-        }
+        propertyKey.userdata(this.userdata);
         return propertyKey;
     }
 
@@ -92,7 +89,7 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
         }
         tx.checkIdIfRestoringMode(type, this.id);
 
-        this.checkUserdata(Action.INSERT);
+        Userdata.check(this.userdata, Action.INSERT);
         this.checkAggregateType();
 
         propertyKey = this.build();
@@ -108,11 +105,9 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
                                         "since it doesn't exist", this.name);
         }
         this.checkStableVars();
-        this.checkUserdata(Action.APPEND);
+        Userdata.check(this.userdata, Action.APPEND);
 
-        for (Map.Entry<String, Object> entry : this.userdata.entrySet()) {
-            propertyKey.userdata(entry.getKey(), entry.getValue());
-        }
+        propertyKey.userdata(this.userdata);
         this.transaction.addPropertyKey(propertyKey);
         return propertyKey;
     }
@@ -125,11 +120,9 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
                                         "since it doesn't exist", this.name);
         }
         this.checkStableVars();
-        this.checkUserdata(Action.ELIMINATE);
+        Userdata.check(this.userdata, Action.ELIMINATE);
 
-        for (String key : this.userdata.keySet()) {
-            propertyKey.removeUserdata(key);
-        }
+        propertyKey.removeUserdata(this.userdata);
         this.transaction.addPropertyKey(propertyKey);
         return propertyKey;
     }
@@ -304,28 +297,6 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
         if (this.cardinality != Cardinality.SINGLE) {
             throw new NotAllowException("Not allowed to update cardinality " +
                                         "for property key '%s'", this.name);
-        }
-    }
-
-    private void checkUserdata(Action action) {
-        switch (action) {
-            case INSERT:
-            case APPEND:
-                for (Map.Entry<String, Object> e : this.userdata.entrySet()) {
-                    if (e.getValue() == null) {
-                        throw new NotAllowException(
-                                  "Not allowed pass null userdata value when " +
-                                  "create or append property key");
-                    }
-                }
-                break;
-            case ELIMINATE:
-            case DELETE:
-                // pass
-                break;
-            default:
-                throw new AssertionError(String.format(
-                          "Unknown schema action '%s'", action));
         }
     }
 

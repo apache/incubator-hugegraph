@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.core;
 
+import java.util.Date;
 import java.util.List;
 
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -33,8 +34,10 @@ import com.baidu.hugegraph.exception.NoIndexException;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.SchemaManager;
+import com.baidu.hugegraph.schema.Userdata;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.type.define.Frequency;
+import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.Events;
 
 public class EdgeLabelCoreTest extends SchemaCoreTest {
@@ -892,7 +895,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
                                  .userdata("multiplicity", "one-to-many")
                                  .create();
 
-        Assert.assertEquals(1, father.userdata().size());
+        Assert.assertEquals(2, father.userdata().size());
         Assert.assertEquals("one-to-many",
                             father.userdata().get("multiplicity"));
 
@@ -902,7 +905,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
                                 .userdata("multiplicity", "many-to-many")
                                 .create();
         // The same key user data will be overwritten
-        Assert.assertEquals(1, write.userdata().size());
+        Assert.assertEquals(2, write.userdata().size());
         Assert.assertEquals("many-to-many",
                             write.userdata().get("multiplicity"));
     }
@@ -929,14 +932,14 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
                                 .userdata("multiplicity", "one-to-many")
                                 .create();
         // The same key user data will be overwritten
-        Assert.assertEquals(1, write.userdata().size());
+        Assert.assertEquals(2, write.userdata().size());
         Assert.assertEquals("one-to-many",
                             write.userdata().get("multiplicity"));
 
         write = schema.edgeLabel("write")
                       .userdata("icon", "picture2")
                       .append();
-        Assert.assertEquals(2, write.userdata().size());
+        Assert.assertEquals(3, write.userdata().size());
         Assert.assertEquals("one-to-many",
                             write.userdata().get("multiplicity"));
         Assert.assertEquals("picture2", write.userdata().get("icon"));
@@ -964,7 +967,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
                                 .userdata("multiplicity", "one-to-many")
                                 .userdata("icon", "picture2")
                                 .create();
-        Assert.assertEquals(2, write.userdata().size());
+        Assert.assertEquals(3, write.userdata().size());
         Assert.assertEquals("one-to-many",
                             write.userdata().get("multiplicity"));
         Assert.assertEquals("picture2", write.userdata().get("icon"));
@@ -973,13 +976,13 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
         write = schema.edgeLabel("write")
                       .userdata("icon", "")
                       .eliminate();
-        Assert.assertEquals(1, write.userdata().size());
+        Assert.assertEquals(2, write.userdata().size());
         Assert.assertEquals("one-to-many",
                             write.userdata().get("multiplicity"));
     }
 
     @Test
-    public void testEliminateVertexLabelWithNonUserdata() {
+    public void testEliminateVertexLabelWithoutUserdata() {
         super.initPropertyKeys();
 
         SchemaManager schema = graph().schema();
@@ -1076,5 +1079,30 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
         Assert.assertEquals(2, edgeLabels.size());
         Assert.assertTrue(edgeLabels.contains(look));
         Assert.assertTrue(edgeLabels.contains(write));
+    }
+
+    @Test
+    public void testCreateTime() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+        schema.vertexLabel("person")
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .create();
+        schema.vertexLabel("book").properties("id", "name")
+              .primaryKeys("id").create();
+        EdgeLabel look = schema.edgeLabel("look").multiTimes()
+                               .properties("time")
+                               .link("person", "book")
+                               .sortKeys("time")
+                               .create();
+
+        Date createTime = (Date) look.userdata().get(Userdata.CREATE_TIME);
+        Date now = DateUtil.now();
+        Assert.assertFalse(createTime.after(now));
+
+        look = schema.getEdgeLabel("look");
+        createTime = (Date) look.userdata().get(Userdata.CREATE_TIME);
+        Assert.assertFalse(createTime.after(now));
     }
 }

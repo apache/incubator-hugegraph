@@ -60,8 +60,9 @@ public class PostgresqlStoreProvider extends MysqlStoreProvider {
          * [1.2] #633: support unique index
          * [1.3] #661: reduce the storage of vertex/edge id
          * [1.4] #691: support aggregate property
+         * [1.5] #746: support userdata for indexlabel
          */
-        return "1.4";
+        return "1.5";
     }
 
     public static class PostgresqlSchemaStore extends PostgresqlStore {

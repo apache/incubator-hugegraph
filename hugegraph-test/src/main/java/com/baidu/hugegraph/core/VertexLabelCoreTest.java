@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.core;
 
+import java.util.Date;
 import java.util.List;
 
 import org.apache.tinkerpop.gremlin.process.traversal.P;
@@ -33,9 +34,11 @@ import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.exception.NoIndexException;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.SchemaManager;
+import com.baidu.hugegraph.schema.Userdata;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.type.define.IdStrategy;
+import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.Events;
 
 public class VertexLabelCoreTest extends SchemaCoreTest {
@@ -845,7 +848,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
                                    .properties("name")
                                    .userdata("super_vl", "person")
                                    .create();
-        Assert.assertEquals(1, player.userdata().size());
+        Assert.assertEquals(2, player.userdata().size());
         Assert.assertEquals("person", player.userdata().get("super_vl"));
 
         VertexLabel runner = schema.vertexLabel("runner")
@@ -854,7 +857,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
                                    .userdata("super_vl", "player")
                                    .create();
         // The same key user data will be overwritten
-        Assert.assertEquals(1, runner.userdata().size());
+        Assert.assertEquals(2, runner.userdata().size());
         Assert.assertEquals("player", runner.userdata().get("super_vl"));
     }
 
@@ -867,13 +870,13 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
                                    .properties("name")
                                    .userdata("super_vl", "person")
                                    .create();
-        Assert.assertEquals(1, player.userdata().size());
+        Assert.assertEquals(2, player.userdata().size());
         Assert.assertEquals("person", player.userdata().get("super_vl"));
 
         player = schema.vertexLabel("player")
                        .userdata("icon", "picture1")
                        .append();
-        Assert.assertEquals(2, player.userdata().size());
+        Assert.assertEquals(3, player.userdata().size());
         Assert.assertEquals("person", player.userdata().get("super_vl"));
         Assert.assertEquals("picture1", player.userdata().get("icon"));
     }
@@ -888,19 +891,19 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
                                    .userdata("super_vl", "person")
                                    .userdata("icon", "picture1")
                                    .create();
-        Assert.assertEquals(2, player.userdata().size());
+        Assert.assertEquals(3, player.userdata().size());
         Assert.assertEquals("person", player.userdata().get("super_vl"));
         Assert.assertEquals("picture1", player.userdata().get("icon"));
 
         player = schema.vertexLabel("player")
                        .userdata("icon", "")
                        .eliminate();
-        Assert.assertEquals(1, player.userdata().size());
+        Assert.assertEquals(2, player.userdata().size());
         Assert.assertEquals("person", player.userdata().get("super_vl"));
     }
 
     @Test
-    public void testEliminateVertexLabelWithNonUserdata() {
+    public void testEliminateVertexLabelWithoutUserdata() {
         super.initPropertyKeys();
         SchemaManager schema = graph().schema();
 
@@ -963,5 +966,24 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
         Assert.assertTrue(vertexLabels.contains(person));
         Assert.assertTrue(vertexLabels.contains(author));
         Assert.assertTrue(vertexLabels.contains(book));
+    }
+
+    @Test
+    public void testCreateTime() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+
+        VertexLabel person = schema.vertexLabel("person")
+                                   .properties("name", "age", "city")
+                                   .primaryKeys("name")
+                                   .create();
+
+        Date createTime = (Date) person.userdata().get(Userdata.CREATE_TIME);
+        Date now = DateUtil.now();
+        Assert.assertFalse(createTime.after(now));
+
+        person = schema.getVertexLabel("person");
+        createTime = (Date) person.userdata().get(Userdata.CREATE_TIME);
+        Assert.assertFalse(createTime.after(now));
     }
 }

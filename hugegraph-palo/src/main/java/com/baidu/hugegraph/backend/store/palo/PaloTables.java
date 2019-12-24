@@ -148,6 +148,7 @@ public class PaloTables {
             this.define.column(HugeKeys.BASE_VALUE, INT, NOT_NULL);
             this.define.column(HugeKeys.INDEX_TYPE, TINYINT, NOT_NULL);
             this.define.column(HugeKeys.FIELDS, VARCHAR, NOT_NULL);
+            this.define.column(HugeKeys.USER_DATA, VARCHAR, DEFAULT_EMPTY);
             this.define.column(HugeKeys.STATUS, TINYINT, NOT_NULL);
             // Unique keys/hash keys
             this.define.keys(HugeKeys.ID);

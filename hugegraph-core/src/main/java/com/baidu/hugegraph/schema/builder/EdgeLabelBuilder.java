@@ -22,7 +22,6 @@ package com.baidu.hugegraph.schema.builder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -40,6 +39,7 @@ import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaElement;
+import com.baidu.hugegraph.schema.Userdata;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Action;
 import com.baidu.hugegraph.type.define.Frequency;
@@ -58,7 +58,7 @@ public class EdgeLabelBuilder implements EdgeLabel.Builder {
     private List<String> sortKeys;
     private Set<String> nullableKeys;
     private Boolean enableLabelIndex;
-    private Map<String, Object> userdata;
+    private Userdata userdata;
     private boolean checkExist;
 
     private SchemaTransaction transaction;
@@ -75,7 +75,7 @@ public class EdgeLabelBuilder implements EdgeLabel.Builder {
         this.sortKeys = new ArrayList<>();
         this.nullableKeys = new HashSet<>();
         this.enableLabelIndex = null;
-        this.userdata = new HashMap<>();
+        this.userdata = new Userdata();
         this.checkExist = true;
         this.transaction = transaction;
     }
@@ -105,9 +105,7 @@ public class EdgeLabelBuilder implements EdgeLabel.Builder {
             PropertyKey propertyKey = this.transaction.getPropertyKey(key);
             edgeLabel.nullableKey(propertyKey.id());
         }
-        for (Map.Entry<String, Object> entry : this.userdata.entrySet()) {
-            edgeLabel.userdata(entry.getKey(), entry.getValue());
-        }
+        edgeLabel.userdata(this.userdata);
         return edgeLabel;
     }
 
@@ -133,7 +131,7 @@ public class EdgeLabelBuilder implements EdgeLabel.Builder {
         this.checkProperties(Action.INSERT);
         this.checkSortKeys();
         this.checkNullableKeys(Action.INSERT);
-        this.checkUserdata(Action.INSERT);
+        Userdata.check(this.userdata, Action.INSERT);
 
         edgeLabel = this.build();
         tx.addEdgeLabel(edgeLabel);
@@ -151,7 +149,7 @@ public class EdgeLabelBuilder implements EdgeLabel.Builder {
         this.checkStableVars();
         this.checkProperties(Action.APPEND);
         this.checkNullableKeys(Action.APPEND);
-        this.checkUserdata(Action.APPEND);
+        Userdata.check(this.userdata, Action.APPEND);
 
         for (String key : this.properties) {
             PropertyKey propertyKey = this.transaction.getPropertyKey(key);
@@ -161,9 +159,7 @@ public class EdgeLabelBuilder implements EdgeLabel.Builder {
             PropertyKey propertyKey = this.transaction.getPropertyKey(key);
             edgeLabel.nullableKey(propertyKey.id());
         }
-        for (Map.Entry<String, Object> entry : this.userdata.entrySet()) {
-            edgeLabel.userdata(entry.getKey(), entry.getValue());
-        }
+        edgeLabel.userdata(this.userdata);
         this.transaction.addEdgeLabel(edgeLabel);
         return edgeLabel;
     }
@@ -179,11 +175,9 @@ public class EdgeLabelBuilder implements EdgeLabel.Builder {
         this.checkStableVars();
         this.checkProperties(Action.ELIMINATE);
         this.checkNullableKeys(Action.ELIMINATE);
-        this.checkUserdata(Action.ELIMINATE);
+        Userdata.check(this.userdata, Action.ELIMINATE);
 
-        for (String key : this.userdata.keySet()) {
-            edgeLabel.removeUserdata(key);
-        }
+        edgeLabel.removeUserdata(this.userdata);
         this.transaction.addEdgeLabel(edgeLabel);
         return edgeLabel;
     }
@@ -447,28 +441,6 @@ public class EdgeLabelBuilder implements EdgeLabel.Builder {
             throw new NotAllowException(
                       "Not allowed to update enable_label_index " +
                       "for edge label '%s'", this.name);
-        }
-    }
-
-    private void checkUserdata(Action action) {
-        switch (action) {
-            case INSERT:
-            case APPEND:
-                for (Map.Entry<String, Object> e : this.userdata.entrySet()) {
-                    if (e.getValue() == null) {
-                        throw new NotAllowException(
-                                  "Not allowed pass null userdata value when " +
-                                  "create or append edge label");
-                    }
-                }
-                break;
-            case ELIMINATE:
-            case DELETE:
-                // pass
-                break;
-            default:
-                throw new AssertionError(String.format(
-                          "Unknown schema action '%s'", action));
         }
     }
 }

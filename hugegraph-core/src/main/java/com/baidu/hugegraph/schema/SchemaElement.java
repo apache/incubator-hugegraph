@@ -20,7 +20,6 @@
 package com.baidu.hugegraph.schema;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.tinkerpop.gremlin.structure.Graph;
@@ -46,7 +45,7 @@ public abstract class SchemaElement implements Namifiable, Typifiable,
 
     private final Id id;
     private final String name;
-    private final Map<String, Object> userdata;
+    private final Userdata userdata;
     private SchemaStatus status;
 
     public SchemaElement(final HugeGraph graph, Id id, String name) {
@@ -55,7 +54,7 @@ public abstract class SchemaElement implements Namifiable, Typifiable,
         this.graph = graph;
         this.id = id;
         this.name = name;
-        this.userdata = new HashMap<>();
+        this.userdata = new Userdata();
         this.status = SchemaStatus.CREATED;
     }
 
@@ -86,9 +85,19 @@ public abstract class SchemaElement implements Namifiable, Typifiable,
         this.userdata.put(key, value);
     }
 
-    public Object removeUserdata(String key) {
+    public void userdata(Userdata userdata) {
+        this.userdata.putAll(userdata);
+    }
+
+    public void removeUserdata(String key) {
         E.checkArgumentNotNull(key, "The userdata key can't be null");
-        return this.userdata.remove(key);
+        this.userdata.remove(key);
+    }
+
+    public void removeUserdata(Userdata userdata) {
+        for (String key : userdata.keySet()) {
+            this.userdata.remove(key);
+        }
     }
 
     public SchemaStatus status() {
