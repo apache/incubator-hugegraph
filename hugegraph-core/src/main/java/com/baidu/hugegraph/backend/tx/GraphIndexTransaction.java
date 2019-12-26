@@ -520,14 +520,17 @@ public class GraphIndexTransaction extends AbstractTransaction {
     @Watched(prefix = "index")
     private IdHolder doIndexQueryBatch(IndexLabel indexLabel,
                                        ConditionQuery query) {
-        LockUtil.Locks locks = new LockUtil.Locks(this.graph().name());
-        try {
-            // TODO move to 518gi
-            locks.lockReads(LockUtil.INDEX_LABEL_DELETE, indexLabel.id());
-            locks.lockReads(LockUtil.INDEX_LABEL_REBUILD, indexLabel.id());
+        Iterator<BackendEntry> entries = super.query(query).iterator();
+        return new BatchIdHolder(query, entries, batch -> {
+            LockUtil.Locks locks = new LockUtil.Locks(this.graph().name());
+            try {
+                // Catch lock every batch
+                locks.lockReads(LockUtil.INDEX_LABEL_DELETE, indexLabel.id());
+                locks.lockReads(LockUtil.INDEX_LABEL_REBUILD, indexLabel.id());
+                // Check exist that may be deleted after some batches
+                indexLabel.graph().indexLabel(indexLabel.id());
 
-            Iterator<BackendEntry> entries = super.query(query).iterator();
-            return new BatchIdHolder(locks, query, entries, batch -> {
+                // Iterate one batch, and keep iterator position
                 Set<Id> ids = InsertionOrderUtil.newSet();
                 while (ids.size() < batch && entries.hasNext()) {
                     HugeIndex index = this.serializer.readIndex(graph(), query,
@@ -535,11 +538,10 @@ public class GraphIndexTransaction extends AbstractTransaction {
                     ids.addAll(index.elementIds());
                 }
                 return ids;
-            });
-        } catch (Throwable e) {
-            locks.unlock();
-            throw e;
-        }
+            } finally {
+                locks.unlock();
+            }
+        });
     }
 
     @Watched(prefix = "index")
