@@ -34,8 +34,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.util.Strings;
-import org.apache.tinkerpop.gremlin.structure.Edge;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
@@ -57,6 +56,8 @@ import com.baidu.hugegraph.backend.query.Condition.Relation;
 import com.baidu.hugegraph.backend.query.Condition.RelationType;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.ConditionQueryFlatten;
+import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.serializer.AbstractSerializer;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendStore;
@@ -300,21 +301,26 @@ public class GraphIndexTransaction extends AbstractTransaction {
         ConditionQuery query = new ConditionQuery(HugeType.UNIQUE_INDEX);
         query.eq(HugeKeys.INDEX_LABEL_ID, indexLabel.id());
         query.eq(HugeKeys.FIELD_VALUES, value);
+        boolean exist;
         Iterator<BackendEntry> iterator = this.query(query).iterator();
-        boolean exist = iterator.hasNext();
-        if (exist) {
-            HugeIndex index = this.serializer.readIndex(graph(), query,
-                                                        iterator.next());
-            // Memory backend might return empty BackendEntry
-            if (index.elementIds().isEmpty()) {
-                return false;
+        try {
+            exist = iterator.hasNext();
+            if (exist) {
+                HugeIndex index = this.serializer.readIndex(graph(), query,
+                                                            iterator.next());
+                // Memory backend might return empty BackendEntry
+                if (index.elementIds().isEmpty()) {
+                    return false;
+                }
+                LOG.debug("Already has existed unique index record {}",
+                          index.elementId());
             }
-            LOG.debug("Already has existed unique index record {}",
-                      index.elementId());
-        }
-        while (iterator.hasNext()) {
-            LOG.warn("Unique constraint conflict found by record {}",
-                     iterator.next());
+            while (iterator.hasNext()) {
+                LOG.warn("Unique constraint conflict found by record {}",
+                         iterator.next());
+            }
+        } finally {
+            CloseableIterator.closeIterator(iterator);
         }
         return exist;
     }
@@ -452,8 +458,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
     private List<IdHolder> doSearchIndex(ConditionQuery query,
                                          MatchedIndex index) {
         query = this.constructSearchQuery(query, index);
-        List<IdHolder> holders = new SortByCountIdHolderList(query.paging());
         // Sorted by matched count
+        List<IdHolder> holders = new SortByCountIdHolderList(query.paging());
         for (ConditionQuery q : ConditionQueryFlatten.flatten(query)) {
             IndexQueries queries = index.constructIndexQueries(q);
             assert !query.paging() || queries.size() <= 1;
@@ -484,6 +490,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
     @Watched(prefix = "index")
     private IdHolder doJointIndex(IndexQueries queries) {
+        // All queries are joined with AND
         Set<Id> intersectIds = null;
         for (Map.Entry<IndexLabel, ConditionQuery> e : queries.entrySet()) {
             Set<Id> ids = this.doIndexQuery(e.getKey(), e.getValue()).all();
@@ -496,13 +503,13 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 break;
             }
         }
-        return new FixedIdHolder(intersectIds);
+        return new FixedIdHolder(queries.asQuery(), intersectIds);
     }
 
     @Watched(prefix = "index")
     private IdHolder doIndexQuery(IndexLabel indexLabel, ConditionQuery query) {
         if (!query.paging()) {
-            return this.doIndexQueryAll(indexLabel, query);
+            return this.doIndexQueryBatch(indexLabel, query);
         } else {
             return new PagingIdHolder(query, q -> {
                 return this.doIndexQueryOnce(indexLabel, q);
@@ -511,10 +518,11 @@ public class GraphIndexTransaction extends AbstractTransaction {
     }
 
     @Watched(prefix = "index")
-    private IdHolder doIndexQueryAll(IndexLabel indexLabel,
-                                     ConditionQuery query) {
+    private IdHolder doIndexQueryBatch(IndexLabel indexLabel,
+                                       ConditionQuery query) {
         LockUtil.Locks locks = new LockUtil.Locks(this.graph().name());
         try {
+            // TODO move to 518gi
             locks.lockReads(LockUtil.INDEX_LABEL_DELETE, indexLabel.id());
             locks.lockReads(LockUtil.INDEX_LABEL_REBUILD, indexLabel.id());
 
@@ -537,19 +545,20 @@ public class GraphIndexTransaction extends AbstractTransaction {
     @Watched(prefix = "index")
     private PageIds doIndexQueryOnce(IndexLabel indexLabel,
                                      ConditionQuery query) {
+        // Query all or one page
+        Iterator<BackendEntry> entries = null;
         LockUtil.Locks locks = new LockUtil.Locks(this.graph().name());
         try {
             locks.lockReads(LockUtil.INDEX_LABEL_DELETE, indexLabel.id());
             locks.lockReads(LockUtil.INDEX_LABEL_REBUILD, indexLabel.id());
 
             Set<Id> ids = InsertionOrderUtil.newSet();
-            Iterator<BackendEntry> entries = super.query(query).iterator();
+            entries = super.query(query).iterator();
             while (entries.hasNext()) {
                 HugeIndex index = this.serializer.readIndex(graph(), query,
                                                             entries.next());
                 ids.addAll(index.elementIds());
                 if (query.reachLimit(ids.size())) {
-                    // TODO close iter
                     break;
                 }
             }
@@ -568,6 +577,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
             return new PageIds(ids, PageInfo.pageState(entries));
         } finally {
             locks.unlock();
+            CloseableIterator.closeIterator(entries);
         }
     }
 
@@ -1316,6 +1326,28 @@ public class GraphIndexTransaction extends AbstractTransaction {
                          "Please ensure index queries only contains one entry");
             return this.entrySet().iterator().next();
         }
+
+        public Query asQuery() {
+            return new JointQuery(HugeType.UNKNOWN);
+        }
+
+        private class JointQuery extends Query {
+
+            public JointQuery(HugeType resultType) {
+                super(resultType);
+            }
+
+            @Override
+            public String toString() {
+                Collection<ConditionQuery> subs = values();
+                List<Query> origin = new ArrayList<>();
+                for (ConditionQuery sub : subs) {
+                    origin.add(sub.originQuery());
+                }
+                return String.format("JointQuery{origin=%s, subs=%s}",
+                                     origin, subs);
+            }
+        }
     }
 
     public enum OptimizedType {
@@ -1399,22 +1431,26 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 }
                 // Query and delete index equals element id
                 Iterator<BackendEntry> it = tx.query(q).iterator();
-                while (it.hasNext()) {
-                    BackendEntry entry = it.next();
-                    HugeIndex index = serializer.readIndex(graph(), q, entry);
-                    if (index.elementIds().contains(element.id())) {
-                        index.resetElementIds();
-                        index.elementIds(element.id());
-                        tx.doEliminate(serializer.writeIndex(index));
-                        tx.commit();
-                        // If deleted by error, re-add deleted index again
-                        if (this.deletedByError(query, element)) {
-                            tx.doAppend(serializer.writeIndex(index));
+                try {
+                    while (it.hasNext()) {
+                        HugeIndex index = serializer.readIndex(graph(), q,
+                                                               it.next());
+                        if (index.elementIds().contains(element.id())) {
+                            index.resetElementIds();
+                            index.elementIds(element.id());
+                            tx.doEliminate(serializer.writeIndex(index));
                             tx.commit();
-                        } else {
-                            count++;
+                            // If deleted by error, re-add deleted index again
+                            if (this.deletedByError(query, element)) {
+                                tx.doAppend(serializer.writeIndex(index));
+                                tx.commit();
+                            } else {
+                                count++;
+                            }
                         }
                     }
+                } finally {
+                    CloseableIterator.closeIterator(it);
                 }
             }
             return count;
@@ -1533,17 +1569,22 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
         private HugeElement newestElement(HugeElement element) {
             boolean isVertex = element instanceof HugeVertex;
-            if (isVertex) {
-                Iterator<Vertex> iterV = this.graph().vertices(element.id());
-                if (iterV.hasNext()) {
-                    return (HugeVertex) iterV.next();
+            Iterator<?> iter = QueryResults.emptyIterator();
+            try {
+                if (isVertex) {
+                    iter = this.graph().vertices(element.id());
+                    if (iter.hasNext()) {
+                        return (HugeVertex) iter.next();
+                    }
+                } else {
+                    assert element instanceof HugeEdge;
+                    iter = this.graph().edges(element.id());
+                    if (iter.hasNext()) {
+                        return (HugeEdge) iter.next();
+                    }
                 }
-            } else {
-                assert element instanceof HugeEdge;
-                Iterator<Edge> iterE = this.graph().edges(element.id());
-                if (iterE.hasNext()) {
-                    return (HugeEdge) iterE.next();
-                }
+            } finally {
+                CloseableIterator.closeIterator(iter);
             }
             return null;
         }

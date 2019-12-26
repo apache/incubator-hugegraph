@@ -28,6 +28,7 @@ import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 
 import com.baidu.hugegraph.HugeException;
@@ -222,14 +223,18 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         }
 
         Iterator<Edge> edges = tx().queryEdges(this.id());
-        boolean exist = edges.hasNext();
-        if (!exist && !throwIfNotExist) {
-            return false;
+        try {
+            boolean exist = edges.hasNext();
+            if (!exist && !throwIfNotExist) {
+                return false;
+            }
+            E.checkState(exist, "Edge '%s' does not exist", this.id);
+            this.copyProperties((HugeEdge) edges.next());
+            assert exist;
+            return true;
+        } finally {
+            CloseableIterator.closeIterator(edges);
         }
-        E.checkState(exist, "Edge '%s' does not exist", this.id);
-        this.copyProperties((HugeEdge) edges.next());
-        assert exist;
-        return true;
     }
 
     @Watched(prefix = "edge")

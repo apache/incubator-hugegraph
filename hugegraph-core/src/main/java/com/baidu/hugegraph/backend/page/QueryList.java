@@ -36,7 +36,6 @@ import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
-import com.google.common.collect.ImmutableList;
 
 public final class QueryList {
 
@@ -44,7 +43,7 @@ public final class QueryList {
     private final Query parent;
     // The size of each page fetched by the inner page
     private final Function<Query, QueryResults> fetcher;
-    private final List<QueryHolder> queries;
+    private final List<FlattenQuery> queries;
 
     public QueryList(HugeGraph graph, Query parent,
                      Function<Query, QueryResults> fetcher) {
@@ -82,7 +81,7 @@ public final class QueryList {
 
     public int total() {
         int total = 0;
-        for (QueryHolder q : this.queries) {
+        for (FlattenQuery q : this.queries) {
             total += q.total();
         }
         return total;
@@ -97,6 +96,7 @@ public final class QueryList {
         if (this.parent.paging()) {
             int pageSize = this.graph.configuration()
                                      .get(CoreOptions.QUERY_PAGE_SIZE);
+            @SuppressWarnings("resource") // closed by QueryResults
             PageEntryIterator iterator = new PageEntryIterator(this, pageSize);
             /*
              * NOTE: PageEntryIterator query will change every fetch time.
@@ -110,25 +110,30 @@ public final class QueryList {
     }
 
     protected PageResults fetchNext(PageInfo pageInfo, long pageSize) {
-        QueryHolder query = null;
+        FlattenQuery query = null;
         int offset = pageInfo.offset();
-        int current = 0;
-        for (QueryHolder q : this.queries) {
-            if (current + q.total() > offset) {
+        int visited = 0;
+        // Find the first FlattenQuery not visited
+        for (FlattenQuery q : this.queries) {
+            if (visited + q.total() > offset) {
+                /*
+                 * The first FlattenQuery not visited is found
+                 * q.total() return holders size if it's IndexQuery else 1
+                 */
                 query = q;
                 break;
             }
-            current += q.total();
+            visited += q.total();
         }
         E.checkNotNull(query, "query");
-        assert offset >= current;
-        return query.iterator(offset - current, pageInfo.page(), pageSize);
+        assert offset >= visited;
+        return query.iterator(offset - visited, pageInfo.page(), pageSize);
     }
 
     /**
      * A container that can generate queries
      */
-    private interface QueryHolder {
+    private interface FlattenQuery {
 
         /**
          * For non-paging situation
@@ -151,7 +156,7 @@ public final class QueryList {
     /**
      * Generate queries from tx.optimizeQuery()
      */
-    private class OptimizedQuery implements QueryHolder {
+    private class OptimizedQuery implements FlattenQuery {
 
         private final Query query;
 
@@ -175,10 +180,14 @@ public final class QueryList {
             if (this.query.nolimit()) {
                 query.limit(pageSize);
             }
-            QueryResults rs = fetcher().apply(query);
-            // Must iterate all entries before get the next page
-            return new PageResults(rs.list().iterator(), rs.queries(),
-                                   PageInfo.pageState(rs.iterator()));
+
+            QueryResults results = fetcher().apply(query);
+
+            // Must iterate all entries before get the next page state
+            QueryResults fetched = results.toList();
+            PageState pageState = PageInfo.pageState(results.iterator());
+
+            return new PageResults(fetched, pageState);
         }
 
         @Override
@@ -190,7 +199,7 @@ public final class QueryList {
     /**
      * Generate queries from tx.indexQuery()
      */
-    private class IndexQuery implements QueryHolder {
+    private class IndexQuery implements FlattenQuery {
 
         // One IdHolder each sub-query
         private final IdHolderList holders;
@@ -253,15 +262,18 @@ public final class QueryList {
         @Override
         public PageResults iterator(int index, String page, long pageSize) {
             // Iterate by paging
+            E.checkArgument(0 <= index && index <= this.holders.size(),
+                            "Invalid page index %s", index);
             IdHolder holder = this.holders.get(index);
             PageIds pageIds = holder.fetchNext(page, pageSize);
             if (pageIds.empty()) {
                 return PageResults.EMPTY;
             }
+
             IdQuery query = new IdQuery(parent(), pageIds.ids());
-            QueryResults rs = fetcher().apply(query);
-            return new PageResults(rs.iterator(), rs.queries(),
-                                   pageIds.pageState());
+            QueryResults results = fetcher().apply(query);
+
+            return new PageResults(results, pageIds.pageState());
         }
 
         @Override
@@ -273,23 +285,19 @@ public final class QueryList {
     public static class PageResults {
 
         public static final PageResults EMPTY = new PageResults(
-                                                QueryResults.emptyIterator(),
-                                                ImmutableList.of(Query.NONE),
+                                                QueryResults.empty(),
                                                 PageState.EMPTY);
 
-        private final Iterator<BackendEntry> iterator;
-        private final List<Query> queries;
+        private final QueryResults results;
         private final PageState pageState;
 
-        public PageResults(Iterator<BackendEntry> iterator,
-                           List<Query> queries, PageState pageState) {
-            this.iterator = iterator;
-            this.queries = queries;
+        public PageResults(QueryResults results, PageState pageState) {
+            this.results = results;
             this.pageState = pageState;
         }
 
         public Iterator<BackendEntry> get() {
-            return this.iterator;
+            return this.results.iterator();
         }
 
         public boolean hasNextPage() {
@@ -298,9 +306,10 @@ public final class QueryList {
         }
 
         public Query query() {
-            E.checkState(this.queries.size() == 1,
-                         "Expect queries size 1, but got: %s", this.queries);
-            return this.queries.get(0);
+            List<Query> queries = this.results.queries();
+            E.checkState(queries.size() == 1,
+                         "Expect queries size 1, but got: %s", queries);
+            return queries.get(0);
         }
 
         public String page() {

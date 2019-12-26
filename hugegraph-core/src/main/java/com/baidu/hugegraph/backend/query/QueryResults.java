@@ -28,13 +28,14 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.function.Function;
 
+import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.store.BackendEntry;
+import com.baidu.hugegraph.iterator.CIter;
 import com.baidu.hugegraph.iterator.FlatMapperIterator;
 import com.baidu.hugegraph.iterator.MapperIterator;
-import com.baidu.hugegraph.iterator.Metadatable;
 import com.baidu.hugegraph.type.Idfiable;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
@@ -81,8 +82,12 @@ public class QueryResults {
         return this.results;
     }
 
-    public List<BackendEntry> list() {
-        return IteratorUtils.list(this.results);
+    public QueryResults toList() {
+        List<BackendEntry> list = IteratorUtils.list(this.results);
+        CloseableIterator.closeIterator(this.results);
+        QueryResults fetched = new QueryResults(list.iterator());
+        fetched.addQueries(this.queries);
+        return fetched;
     }
 
     public List<Query> queries() {
@@ -106,11 +111,11 @@ public class QueryResults {
         }
 
         // Fill map with all elements
-        Map<Id, T> results = new HashMap<>();
-        fillMap(origin, results);
+        Map<Id, T> map = new HashMap<>();
+        QueryResults.fillMap(origin, map);
 
         return new MapperIterator<>(ids.iterator(), id -> {
-            return results.get(id);
+            return map.get(id);
         });
     }
 
@@ -148,10 +153,14 @@ public class QueryResults {
 
     public static <T extends Idfiable> void fillMap(Iterator<T> iterator,
                                                     Map<Id, T> map) {
-        while (iterator.hasNext()) {
-            T result = iterator.next();
-            assert result.id() != null;
-            map.put(result.id(), result);
+        try {
+            while (iterator.hasNext()) {
+                T result = iterator.next();
+                assert result.id() != null;
+                map.put(result.id(), result);
+            }
+        } finally {
+            CloseableIterator.closeIterator(iterator);
         }
     }
 
@@ -178,7 +187,7 @@ public class QueryResults {
         return (Iterator<T>) EMPTY_ITERATOR;
     }
 
-    private static class EmptyIterator<T> implements Iterator<T>, Metadatable {
+    private static class EmptyIterator<T> implements CIter<T> {
 
         @Override
         public Object metadata(String meta, Object... args) {
@@ -193,6 +202,10 @@ public class QueryResults {
         @Override
         public T next() {
             throw new NoSuchElementException();
+        }
+
+        @Override
+        public void close() throws Exception {
         }
     }
 }

@@ -40,7 +40,7 @@ import com.baidu.hugegraph.backend.store.BackendTable;
 import com.baidu.hugegraph.backend.store.Shard;
 import com.baidu.hugegraph.backend.store.rocksdb.RocksDBSessions.Session;
 import com.baidu.hugegraph.exception.NotSupportException;
-import com.baidu.hugegraph.iterator.ExtendableIterator;
+import com.baidu.hugegraph.iterator.FlatMapperIterator;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
@@ -138,11 +138,10 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
         // Query by id
         if (query.conditions().isEmpty()) {
             assert !query.ids().isEmpty();
-            ExtendableIterator<BackendEntry> rs = new ExtendableIterator<>();
-            for (Id id : query.ids()) {
-                rs.extend(newEntryIterator(this.queryById(session, id), query));
-            }
-            return rs;
+            // NOTE: this will lead to lazy create rocksdb iterator
+            return new FlatMapperIterator<>(query.ids().iterator(), id -> {
+                return newEntryIterator(this.queryById(session, id), query);
+            });
         }
 
         // Query by condition (or condition + id)
@@ -225,7 +224,7 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
                                           BackendColumnIterator cols,
                                           Query query) {
         return new BinaryEntryIterator<>(cols, query, (entry, col) -> {
-            if (entry == null || !entry.belongToMe(col) || query.resultType().isIndex()) {
+            if (entry == null || !entry.belongToMe(col)) {
                 HugeType type = query.resultType();
                 // NOTE: only support BinaryBackendEntry currently
                 entry = new BinaryBackendEntry(type, col.name);

@@ -25,6 +25,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
+
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.cache.CachedBackendStore.QueryId;
 import com.baidu.hugegraph.backend.id.Id;
@@ -168,10 +170,14 @@ public final class CachedGraphTransaction extends GraphTransaction {
         }
         if (!newQuery.empty()) {
             Iterator<HugeVertex> rs = super.queryVerticesFromBackend(newQuery);
-            while (rs.hasNext()) {
-                HugeVertex vertex = rs.next();
-                vertices.add(vertex);
-                this.verticesCache.update(vertex.id(), vertex);
+            try {
+                while (rs.hasNext()) {
+                    HugeVertex vertex = rs.next();
+                    vertices.add(vertex);
+                    this.verticesCache.update(vertex.id(), vertex);
+                }
+            } finally {
+                CloseableIterator.closeIterator(rs);
             }
         }
         return vertices.iterator();
@@ -188,10 +194,15 @@ public final class CachedGraphTransaction extends GraphTransaction {
         @SuppressWarnings("unchecked")
         List<HugeEdge> edges = (List<HugeEdge>) this.edgesCache.get(id);
         if (edges == null) {
-            // Iterator can't be cached, caching list instead
-            edges = ImmutableList.copyOf(super.queryEdgesFromBackend(query));
-            if (edges.size() <= MAX_CACHE_EDGES_PER_QUERY) {
-                this.edgesCache.update(id, edges);
+            Iterator<HugeEdge> rs = super.queryEdgesFromBackend(query);
+            try {
+                // Iterator can't be cached, caching list instead
+                edges = ImmutableList.copyOf(rs);
+                if (edges.size() <= MAX_CACHE_EDGES_PER_QUERY) {
+                    this.edgesCache.update(id, edges);
+                }
+            } finally {
+                CloseableIterator.closeIterator(rs);
             }
         }
         return edges.iterator();

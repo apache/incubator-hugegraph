@@ -37,6 +37,7 @@ import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 
 import com.baidu.hugegraph.HugeException;
@@ -270,11 +271,15 @@ public class GraphTransaction extends IndexableTransaction {
             // Query all edges of the vertex and remove them
             Query query = constructEdgesQuery(v.id(), Directions.BOTH);
             Iterator<HugeEdge> vedges = this.queryEdgesFromBackend(query);
-            while (vedges.hasNext()) {
-                this.checkTxEdgesCapacity();
-                HugeEdge edge = vedges.next();
-                // NOTE: will change the input parameter
-                removedEdges.put(edge.id(), edge);
+            try {
+                while (vedges.hasNext()) {
+                    this.checkTxEdgesCapacity();
+                    HugeEdge edge = vedges.next();
+                    // NOTE: will change the input parameter
+                    removedEdges.put(edge.id(), edge);
+                }
+            } finally {
+                CloseableIterator.closeIterator(vedges);
             }
         }
 
@@ -493,16 +498,20 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     public Iterator<Vertex> queryAdjacentVertices(Iterator<Edge> edges) {
-        if (!edges.hasNext()) {
-            return QueryResults.emptyIterator();
-        }
-
         List<Id> vertexIds = new ArrayList<>();
-        while (edges.hasNext()) {
-            HugeEdge edge = (HugeEdge) edges.next();
-            vertexIds.add(edge.otherVertex().id());
+        try {
+            if (!edges.hasNext()) {
+                return QueryResults.emptyIterator();
+            }
+            while (edges.hasNext()) {
+                HugeEdge edge = (HugeEdge) edges.next();
+                vertexIds.add(edge.otherVertex().id());
+            }
+        } finally {
+            CloseableIterator.closeIterator(edges);
         }
 
+        assert vertexIds.size() > 0;
         return this.queryVertices(vertexIds.toArray());
     }
 
@@ -1224,7 +1233,10 @@ public class GraphTransaction extends IndexableTransaction {
         }
         IdQuery idQuery = new IdQuery(HugeType.VERTEX, ids);
         Iterator<HugeVertex> results = this.queryVerticesFromBackend(idQuery);
-        if (results.hasNext()) {
+        try {
+            if (!results.hasNext()) {
+                return;
+            }
             HugeVertex existedVertex = results.next();
             HugeVertex newVertex = vertices.get(existedVertex.id());
             if (!existedVertex.label().equals(newVertex.label())) {
@@ -1235,6 +1247,8 @@ public class GraphTransaction extends IndexableTransaction {
                           newVertex.id(), newVertex.label(),
                           existedVertex.label());
             }
+        } finally {
+            CloseableIterator.closeIterator(results);
         }
     }
 
@@ -1521,16 +1535,20 @@ public class GraphTransaction extends IndexableTransaction {
             // Support label index, query by label index
             ((ConditionQuery) query).eq(HugeKeys.LABEL, label.id());
             Iterator<T> iter = fetcher.apply(query);
-            while (iter.hasNext()) {
-                consumer.accept(iter.next());
-                /*
-                 * Commit per batch to avoid too much data in single commit,
-                 * especially for Cassandra backend
-                 */
-                this.commitIfGtSize(GraphTransaction.COMMIT_BATCH);
+            try {
+                while (iter.hasNext()) {
+                    consumer.accept(iter.next());
+                    /*
+                     * Commit per batch to avoid too much data in single commit,
+                     * especially for Cassandra backend
+                     */
+                    this.commitIfGtSize(GraphTransaction.COMMIT_BATCH);
+                }
+                // Commit changes if exists
+                this.commit();
+            } finally {
+                CloseableIterator.closeIterator(iter);
             }
-            // Commit changes if exists
-            this.commit();
         } else {
             // Not support label index, query all and filter by label
             if (query.paging()) {
@@ -1539,23 +1557,27 @@ public class GraphTransaction extends IndexableTransaction {
             String page = null;
             do {
                 Iterator<T> iter = fetcher.apply(query);
-                while (iter.hasNext()) {
-                    T e = iter.next();
-                    SchemaLabel elemLabel = ((HugeElement) e).schemaLabel();
-                    if (label.equals(elemLabel)) {
-                        consumer.accept(e);
-                        /*
-                         * Commit per batch to avoid too much data in single
-                         * commit, especially for Cassandra backend
-                         */
-                        this.commitIfGtSize(GraphTransaction.COMMIT_BATCH);
+                try {
+                    while (iter.hasNext()) {
+                        T e = iter.next();
+                        SchemaLabel elemLabel = ((HugeElement) e).schemaLabel();
+                        if (label.equals(elemLabel)) {
+                            consumer.accept(e);
+                            /*
+                             * Commit per batch to avoid too much data in single
+                             * commit, especially for Cassandra backend
+                             */
+                            this.commitIfGtSize(GraphTransaction.COMMIT_BATCH);
+                        }
                     }
-                }
-                // Commit changes of every page before next page query
-                this.commit();
-                if (query.paging()) {
-                    page = PageInfo.pageState(iter).toString();
-                    query.page(page);
+                    // Commit changes of every page before next page query
+                    this.commit();
+                    if (query.paging()) {
+                        page = PageInfo.pageState(iter).toString();
+                        query.page(page);
+                    }
+                } finally {
+                    CloseableIterator.closeIterator(iter);
                 }
             } while (page != null);
         }

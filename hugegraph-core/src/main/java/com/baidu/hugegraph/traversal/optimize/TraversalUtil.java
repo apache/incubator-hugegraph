@@ -552,15 +552,13 @@ public final class TraversalUtil {
     public static Iterator<Edge> filterResult(Vertex vertex,
                                               Directions dir,
                                               Iterator<Edge> edges) {
-        final List<Edge> list = new ArrayList<>();
-        while (edges.hasNext()) {
-            Edge edge = edges.next();
+        return new FilterIterator<>(edges, edge -> {
             if (dir == Directions.OUT && vertex.equals(edge.outVertex()) ||
-                dir == Directions.IN && vertex.equals(edge.inVertex())) {
-                list.add(edge);
+                dir == Directions.IN  && vertex.equals(edge.inVertex())) {
+                return true;
             }
-        }
-        return list.iterator();
+            return false;
+        });
     }
 
     public static Query.Order convOrder(Order order) {
