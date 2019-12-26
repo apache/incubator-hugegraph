@@ -42,6 +42,7 @@ import javax.ws.rs.core.Context;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
@@ -282,9 +283,13 @@ public class VertexAPI extends BatchAPI {
         // TODO: add removeVertex(id) to improve
         commit(g, () -> {
             Iterator<Vertex> iter = g.vertices(id);
-            E.checkArgument(iter.hasNext(),
-                            "No such vertex with id: '%s'", idValue);
-            iter.next().remove();
+            try {
+                E.checkArgument(iter.hasNext(),
+                                "No such vertex with id: '%s'", idValue);
+                iter.next().remove();
+            } finally {
+                CloseableIterator.closeIterator(iter);
+            }
         });
     }
 

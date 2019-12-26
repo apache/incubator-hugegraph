@@ -29,6 +29,7 @@ import javax.ws.rs.NotFoundException;
 import javax.ws.rs.NotSupportedException;
 import javax.ws.rs.core.MediaType;
 
+import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
@@ -131,6 +132,10 @@ public class API {
                                      HugeType type,
                                      String id) {
         if (!iter.hasNext()) {
+            try {
+                CloseableIterator.closeIterator(iter);
+            } catch (Exception ignored) {}
+
             throw new NotFoundException(String.format(
                       "%s with id '%s' does not exist",
                       type.readableName(), id));

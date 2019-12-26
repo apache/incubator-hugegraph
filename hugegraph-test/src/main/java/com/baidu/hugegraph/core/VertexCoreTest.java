@@ -37,6 +37,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSo
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import org.junit.Assume;
 import org.junit.Before;
@@ -923,6 +924,7 @@ public class VertexCoreTest extends BaseCoreTest {
         Iterator<Vertex> iter = graph.graphTransaction().queryVertices(query);
         List<Vertex> vertices = IteratorUtils.list(iter);
         Assert.assertEquals(1, vertices.size());
+        CloseableIterator.closeIterator(iter);
     }
 
     @Test
@@ -2577,7 +2579,8 @@ public class VertexCoreTest extends BaseCoreTest {
                  .and(P.lt(29).or(P.eq(35)).or(P.gt(45)))
                 ).values("name").toList();
 
-        Assert.assertEquals(4, vertices.size());
+        // There is duplicate with OR condition
+        Assert.assertEquals(5, vertices.size());
 
         Set<String> names = ImmutableSet.of("Hebe", "James",
                                             "Tom Cat", "Lisa");
@@ -5025,6 +5028,7 @@ public class VertexCoreTest extends BaseCoreTest {
                                                    .has("~page", "").limit(10);
         Assert.assertEquals(10, IteratorUtils.count(iter));
         String page = TraversalUtil.page(iter);
+        CloseableIterator.closeIterator(iter);
 
         List<Vertex> vertices;
 
@@ -5092,6 +5096,7 @@ public class VertexCoreTest extends BaseCoreTest {
             pageAll.addAll(vertices);
 
             page = TraversalUtil.page(iter);
+            CloseableIterator.closeIterator(iter);
         }
         Assert.assertEquals(100, pageAll.size());
         Assert.assertTrue(all.containsAll(pageAll));
@@ -5159,6 +5164,7 @@ public class VertexCoreTest extends BaseCoreTest {
             GraphTraversal<Vertex, Vertex> iter;
             iter = g.V().has("~page", "").limit(capacity);
             Assert.assertEquals(10, IteratorUtils.count(iter));
+            CloseableIterator.closeIterator(iter);
 
             Assert.assertThrows(IllegalArgumentException.class, () -> {
                 /*
@@ -5190,15 +5196,19 @@ public class VertexCoreTest extends BaseCoreTest {
             GraphTraversal<Vertex, Vertex> iter;
             iter = g.V().has("~page", "").limit(-1);
             Assert.assertEquals(34, IteratorUtils.count(iter));
+            CloseableIterator.closeIterator(iter);
 
             iter = g.V().has("~page", "").limit(20);
             Assert.assertEquals(20, IteratorUtils.count(iter));
+            CloseableIterator.closeIterator(iter);
 
             iter = g.V().has("age", 30).has("~page", "").limit(-1);
             Assert.assertEquals(18, IteratorUtils.count(iter));
+            CloseableIterator.closeIterator(iter);
 
             iter = g.V().has("age", 30).has("~page", "").limit(10);
             Assert.assertEquals(10, IteratorUtils.count(iter));
+            CloseableIterator.closeIterator(iter);
         } finally {
             Query.defaultCapacity(old);
         }
@@ -5972,8 +5982,7 @@ public class VertexCoreTest extends BaseCoreTest {
                                  .toList();
         Assert.assertEquals(0, vertices.size());
 
-        vertices = g.V().hasLabel("person").hasLabel("person")
-                    .toList();
+        vertices = g.V().hasLabel("person").hasLabel("person").toList();
         Assert.assertEquals(5, vertices.size());
 
         vertices = g.V().hasLabel("person", "computer").hasLabel("person")

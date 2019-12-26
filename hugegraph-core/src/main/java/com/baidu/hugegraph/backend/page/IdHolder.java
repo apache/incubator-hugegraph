@@ -31,23 +31,66 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
+import com.baidu.hugegraph.iterator.CIter;
 import com.baidu.hugegraph.iterator.Metadatable;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.LockUtil.Locks;
 
-public interface IdHolder {
+public abstract class IdHolder {
 
-    public boolean paging();
+    protected final Query query;
+    protected boolean exhausted;
 
-    public Set<Id> all();
+    public IdHolder(Query query) {
+        E.checkNotNull(query, "query");;
+        this.query = query;
+        this.exhausted = false;
+    }
 
-    public PageIds fetchNext(String page, long pageSize);
+    public Query query() {
+        return this.query;
+    }
 
-    public static class PagingIdHolder implements IdHolder {
+    @Override
+    public String toString() {
+        return String.format("%s{%s}",
+                             this.getClass().getSimpleName(), this.query);
+    }
 
-        private final ConditionQuery query;
+    public abstract boolean paging();
+
+    public abstract Set<Id> all();
+
+    public abstract PageIds fetchNext(String page, long pageSize);
+
+    public static class FixedIdHolder extends IdHolder {
+
+        private final Set<Id> ids;
+
+        public FixedIdHolder(Query query, Set<Id> ids) {
+            super(query);
+            this.ids = ids;
+        }
+
+        @Override
+        public boolean paging() {
+            return false;
+        }
+
+        @Override
+        public Set<Id> all() {
+            return this.ids;
+        }
+
+        @Override
+        public PageIds fetchNext(String page, long pageSize) {
+            throw new NotImplementedException("FixedIdHolder.fetchNext");
+        }
+    }
+
+    public static class PagingIdHolder extends IdHolder {
+
         private final Function<ConditionQuery, PageIds> fetcher;
-        private boolean exhausted;
 
         /**
          * For paging situation
@@ -56,11 +99,10 @@ public interface IdHolder {
          */
         public PagingIdHolder(ConditionQuery query,
                               Function<ConditionQuery, PageIds> fetcher) {
+            super(query.copy());
             E.checkArgument(query.paging(),
                             "Query '%s' must include page info", query);
-            this.query = query.copy();
             this.fetcher = fetcher;
-            this.exhausted = false;
         }
 
         @Override
@@ -77,9 +119,9 @@ public interface IdHolder {
             this.query.page(page);
             this.query.limit(pageSize);
 
-            PageIds result = this.fetcher.apply(this.query);
+            PageIds result = this.fetcher.apply((ConditionQuery) this.query);
             assert result != null;
-            if (result.ids().size() != this.query.limit() || result.page() == null) {
+            if (result.ids().size() < pageSize || result.page() == null) {
                 this.exhausted = true;
             }
             return result;
@@ -91,37 +133,10 @@ public interface IdHolder {
         }
     }
 
-    public static class FixedIdHolder implements IdHolder {
-
-        private final Set<Id> ids;
-
-        public FixedIdHolder(Set<Id> ids) {
-            this.ids = ids;
-        }
-
-        @Override
-        public boolean paging() {
-            return false;
-        }
-
-        @Override
-        public Set<Id> all() {
-            return ids;
-        }
-
-        @Override
-        public PageIds fetchNext(String page, long pageSize) {
-            throw new NotImplementedException("FixedIdHolder.fetchNext");
-        }
-    }
-
-    public static class BatchIdHolder implements IdHolder,
-                                                 Iterator<IdHolder>,
-                                                 Metadatable,
-                                                 AutoCloseable {
+    public static class BatchIdHolder extends IdHolder
+                                      implements CIter<IdHolder> {
 
         private final Locks locks;
-        private final ConditionQuery query;
         private final Iterator<BackendEntry> entries;
         private final Function<Long, Set<Id>> fetcher;
         private long count;
@@ -129,8 +144,8 @@ public interface IdHolder {
         public BatchIdHolder(Locks locks, ConditionQuery query,
                              Iterator<BackendEntry> entries,
                              Function<Long, Set<Id>> fetcher) {
+            super(query);
             this.locks = locks;
-            this.query = query;
             this.entries = entries;
             this.fetcher = fetcher;
             this.count = 0L;
@@ -143,7 +158,14 @@ public interface IdHolder {
 
         @Override
         public boolean hasNext() {
-            return this.entries.hasNext();
+            if (this.exhausted) {
+                return false;
+            }
+            boolean hasNext= this.entries.hasNext();
+            if (!hasNext) {
+                this.close();
+            }
+            return hasNext;
         }
 
         @Override
@@ -167,6 +189,9 @@ public interface IdHolder {
             }
             Set<Id> ids = this.fetcher.apply(batchSize);
             this.count += ids.size();
+            if (ids.size() < batchSize) {
+                this.close();
+            }
 
             // If there is no data, the entries is not a Metadatable object
             if (ids.isEmpty()) {
@@ -178,7 +203,9 @@ public interface IdHolder {
 
         @Override
         public Set<Id> all() {
-            return this.fetcher.apply(this.remaining());
+            Set<Id> ids = this.fetcher.apply(this.remaining());
+            this.close();
+            return ids;
         }
 
         private long remaining() {
@@ -191,6 +218,10 @@ public interface IdHolder {
 
         @Override
         public void close() {
+            if (this.exhausted) {
+                return;
+            }
+            this.exhausted = true;
             try {
                 CloseableIterator.closeIterator(this.entries);
             } finally {

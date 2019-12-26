@@ -19,7 +19,6 @@
 
 package com.baidu.hugegraph.backend.store;
 
-import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 import com.baidu.hugegraph.backend.BackendException;
@@ -28,16 +27,16 @@ import com.baidu.hugegraph.backend.page.PageState;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.exception.LimitExceedException;
 import com.baidu.hugegraph.exception.NotSupportException;
-import com.baidu.hugegraph.iterator.Metadatable;
+import com.baidu.hugegraph.iterator.CIter;
 import com.baidu.hugegraph.util.E;
 
-public abstract class BackendEntryIterator
-                implements Iterator<BackendEntry>, AutoCloseable, Metadatable {
+public abstract class BackendEntryIterator implements CIter<BackendEntry> {
+
+    protected static final long INLINE_BATCH_SIZE = 1000L;
 
     protected final Query query;
 
     protected BackendEntry current;
-
     private long count;
 
     public BackendEntryIterator(Query query) {

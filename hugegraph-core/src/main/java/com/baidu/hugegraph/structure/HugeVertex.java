@@ -34,6 +34,7 @@ import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
+import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 
@@ -455,14 +456,18 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         }
 
         Iterator<Vertex> vertices = tx().queryVertices(this.id());
-        boolean exist = vertices.hasNext();
-        if (!exist && !throwIfNotExist) {
-            return false;
+        try {
+            boolean exist = vertices.hasNext();
+            if (!exist && !throwIfNotExist) {
+                return false;
+            }
+            E.checkState(exist, "Vertex '%s' does not exist", this.id);
+            this.copyProperties((HugeVertex) vertices.next());
+            assert exist;
+            return true;
+        } finally {
+            CloseableIterator.closeIterator(vertices);
         }
-        E.checkState(exist, "Vertex '%s' does not exist", this.id);
-        this.copyProperties((HugeVertex) vertices.next());
-        assert exist;
-        return true;
     }
 
     @Watched(prefix = "vertex")

@@ -34,6 +34,7 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import org.slf4j.Logger;
 
@@ -191,11 +192,15 @@ public class HugeVariables implements Graph.Variables {
     @Override
     public Set<String> keys() {
         Iterator<Vertex> vertices = this.queryAllVariableVertices();
-        Set<String> keys = new HashSet<>();
-        while (vertices.hasNext()) {
-            keys.add(vertices.next().<String>value(Hidden.hide(VARIABLE_KEY)));
+        try {
+            Set<String> keys = new HashSet<>();
+            while (vertices.hasNext()) {
+                keys.add(vertices.next().value(Hidden.hide(VARIABLE_KEY)));
+            }
+            return keys;
+        } finally {
+            CloseableIterator.closeIterator(vertices);
         }
-        return keys;
     }
 
     @Override
@@ -252,20 +257,24 @@ public class HugeVariables implements Graph.Variables {
 
     @Override
     public Map<String, Object> asMap() {
-        Map<String, Object> variables = new HashMap<>();
         Iterator<Vertex> vertices = this.queryAllVariableVertices();
-        while (vertices.hasNext()) {
-            Vertex vertex = vertices.next();
-            String key = vertex.value(Hidden.hide(VARIABLE_KEY));
-            String type = vertex.value(Hidden.hide(VARIABLE_TYPE));
-            if (!Arrays.asList(TYPES).contains(Hidden.hide(type))) {
-                throw Graph.Variables.Exceptions
-                           .dataTypeOfVariableValueNotSupported(type);
+        try {
+            Map<String, Object> variables = new HashMap<>();
+            while (vertices.hasNext()) {
+                Vertex vertex = vertices.next();
+                String key = vertex.value(Hidden.hide(VARIABLE_KEY));
+                String type = vertex.value(Hidden.hide(VARIABLE_TYPE));
+                if (!Arrays.asList(TYPES).contains(Hidden.hide(type))) {
+                    throw Graph.Variables.Exceptions
+                               .dataTypeOfVariableValueNotSupported(type);
+                }
+                Object value = vertex.value(Hidden.hide(type));
+                variables.put(key, value);
             }
-            Object value = vertex.value(Hidden.hide(type));
-            variables.put(key, value);
+            return Collections.unmodifiableMap(variables);
+        } finally {
+            CloseableIterator.closeIterator(vertices);
         }
-        return Collections.unmodifiableMap(variables);
     }
 
     @Override
@@ -350,10 +359,16 @@ public class HugeVariables implements Graph.Variables {
         query.query(Condition.eq(pkey.id(), key));
         query.showHidden(true);
         Iterator<Vertex> vertices = this.graph.vertices(query);
-        if (!vertices.hasNext()) {
-            return null;
+        try {
+            if (!vertices.hasNext()) {
+                return null;
+            }
+            HugeVertex vertex = (HugeVertex) vertices.next();
+            assert !vertices.hasNext();
+            return vertex;
+        } finally {
+            CloseableIterator.closeIterator(vertices);
         }
-        return (HugeVertex) vertices.next();
     }
 
     private Iterator<Vertex> queryAllVariableVertices() {

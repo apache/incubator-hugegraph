@@ -21,6 +21,7 @@ package com.baidu.hugegraph.backend.tx;
 
 import java.util.Iterator;
 
+import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
@@ -112,10 +113,14 @@ public abstract class AbstractTransaction implements Transaction {
     public BackendEntry query(HugeType type, Id id) {
         IdQuery q = new IdQuery(type, id);
         Iterator<BackendEntry> results = this.query(q).iterator();
-        if (results.hasNext()) {
-            BackendEntry entry = results.next();
-            assert !results.hasNext();
-            return entry;
+        try {
+            if (results.hasNext()) {
+                BackendEntry entry = results.next();
+                assert !results.hasNext();
+                return entry;
+            }
+        } finally {
+            CloseableIterator.closeIterator(results);
         }
         return null;
     }

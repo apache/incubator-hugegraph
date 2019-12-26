@@ -34,6 +34,7 @@ import java.util.concurrent.TimeoutException;
 import org.apache.commons.collections.IteratorUtils;
 import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
@@ -264,9 +265,13 @@ public class TaskScheduler {
         HugeTask<V> result =  this.call(() -> {
             HugeTask<V> task = null;
             Iterator<Vertex> vertices = this.tx().queryVertices(id);
-            if (vertices.hasNext()) {
-                task = HugeTask.fromVertex(vertices.next());
-                assert !vertices.hasNext();
+            try {
+                if (vertices.hasNext()) {
+                    task = HugeTask.fromVertex(vertices.next());
+                    assert !vertices.hasNext();
+                }
+            } finally {
+                CloseableIterator.closeIterator(vertices);
             }
             return task;
         });
@@ -307,17 +312,23 @@ public class TaskScheduler {
             this.remove(id);
         }
         return this.call(() -> {
-            HugeTask<V> result = null;
+            HugeVertex vertex = null;
             Iterator<Vertex> vertices = this.tx().queryVertices(id);
-            if (vertices.hasNext()) {
-                HugeVertex vertex = (HugeVertex) vertices.next();
-                result = HugeTask.fromVertex(vertex);
-                E.checkState(result.completed(),
-                             "Can't delete incomplete task '%s' in status %s",
-                             id, result.status());
-                this.tx().removeVertex(vertex);
-                assert !vertices.hasNext();
+            try {
+                if (vertices.hasNext()) {
+                    vertex = (HugeVertex) vertices.next();
+                    assert !vertices.hasNext();
+                } else {
+                    return null;
+                }
+            } finally {
+                CloseableIterator.closeIterator(vertices);
             }
+            HugeTask<V> result = HugeTask.fromVertex(vertex);
+            E.checkState(result.completed(),
+                         "Can't delete incomplete task '%s' in status %s",
+                         id, result.status());
+            this.tx().removeVertex(vertex);
             return result;
         });
     }
@@ -447,13 +458,17 @@ public class TaskScheduler {
         private void deleteIndex(HugeVertex vertex) {
             // Delete the old record if exist
             Iterator<Vertex> old = this.queryVertices(vertex.id());
-            if (old.hasNext()) {
-                HugeVertex oldV = (HugeVertex) old.next();
-                assert !old.hasNext();
-                if (this.indexValueChanged(oldV, vertex)) {
-                    // Only delete vertex index if index value changed
-                    this.indexTransaction().updateVertexIndex(oldV, true);
+            try {
+                if (old.hasNext()) {
+                    HugeVertex oldV = (HugeVertex) old.next();
+                    assert !old.hasNext();
+                    if (this.indexValueChanged(oldV, vertex)) {
+                        // Only delete vertex index if index value changed
+                        this.indexTransaction().updateVertexIndex(oldV, true);
+                    }
                 }
+            } finally {
+                CloseableIterator.closeIterator(old);
             }
         }
 

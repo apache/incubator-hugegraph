@@ -753,6 +753,8 @@ public class RocksDBStdSessions extends RocksDBSessions {
 
     static AtomicLong iteropen = new AtomicLong();
     static AtomicLong iterclose = new AtomicLong();
+    static Map<ColumnIterator, Long> maps = new ConcurrentHashMap<>();
+
     /**
      * A wrapper for RocksIterator that convert RocksDB results to std Iterator
      */
@@ -767,10 +769,21 @@ public class RocksDBStdSessions extends RocksDBSessions {
         private byte[] position;
         private boolean matched;
 
+                private Exception eee = new Exception("not-close-iter");
+                @Override
+                public String toString() {
+                    this.eee.printStackTrace();
+                    return this.table + "/query=" + (this.keyBegin == null ? "null" : StringEncoding.decode(this.keyBegin));
+                }
+
         public ColumnIterator(String table, RocksIterator iter,
                               byte[] keyBegin, byte[] keyEnd, int scanType) {
+            if (maps.size() > 0) {
+                System.out.println(">>>>>>>>>>>>>>>>>maps="+maps);
+            }
+            maps.put(this, iteropen.incrementAndGet());
+
             E.checkNotNull(iter, "iter");
-            iteropen.incrementAndGet();
             this.table = table;
 
             this.iter = iter;
@@ -965,6 +978,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
             if (this.iter.isOwningHandle()) {
                 this.iter.close();
                 iterclose.incrementAndGet();
+                maps.remove(this);
                 System.out.println(String.format("==========iter open:%s, close=%s",
                                                  iteropen.get(), iterclose.get()));
             }

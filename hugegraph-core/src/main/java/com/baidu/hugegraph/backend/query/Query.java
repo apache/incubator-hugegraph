@@ -156,6 +156,14 @@ public class Query implements Cloneable {
         this.limit = limit;
     }
 
+    public long remaining(long size) {
+        long limit = this.limit();
+        if (limit == NO_LIMIT) {
+            return NO_LIMIT;
+        }
+        return limit + this.offset() - size;
+    }
+
     public boolean reachLimit(long count) {
         long limit = this.limit();
         if (limit == NO_LIMIT) {
