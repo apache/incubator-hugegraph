@@ -31,7 +31,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
 
-import org.apache.commons.collections.IteratorUtils;
 import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
@@ -49,7 +48,7 @@ import com.baidu.hugegraph.exception.ConnectionException;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.iterator.MapperIterator;
-import com.baidu.hugegraph.iterator.WrappedIterator;
+import com.baidu.hugegraph.iterator.ToListIterator;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaManager;
@@ -403,7 +402,7 @@ public class TaskScheduler {
             Iterator<HugeTask<V>> tasks =
                     new MapperIterator<>(vertices, HugeTask::fromVertex);
             // Convert iterator to list to avoid across thread tx accessed
-            return new ListIterator<>(tasks);
+            return new ToListIterator<>(tasks);
         });
     }
 
@@ -414,7 +413,7 @@ public class TaskScheduler {
             Iterator<HugeTask<V>> tasks =
                     new MapperIterator<>(vertices, HugeTask::fromVertex);
             // Convert iterator to list to avoid across thread tx accessed
-            return new ListIterator<>(tasks);
+            return new ToListIterator<>(tasks);
         });
     }
 
@@ -545,35 +544,6 @@ public class TaskScheduler {
                                           .build();
             graph.schemaTransaction().addIndexLabel(label, indexLabel);
             return indexLabel;
-        }
-    }
-
-    // TODO: move to common module
-    private static class ListIterator<V> extends WrappedIterator<V> {
-
-        private final Iterator<V> origin;
-        private final Iterator<V> iterator;
-
-        public ListIterator(Iterator<V> origin) {
-            this.origin = origin;
-            @SuppressWarnings("unchecked")
-            List<V> results = IteratorUtils.toList(origin);
-            this.iterator = results.iterator();
-        }
-
-        @Override
-        protected boolean fetch() {
-            assert this.current == none();
-            if (!this.iterator.hasNext()) {
-                return false;
-            }
-            this.current = this.iterator.next();
-            return true;
-        }
-
-        @Override
-        protected Iterator<?> originIterator() {
-            return this.origin;
         }
     }
 }

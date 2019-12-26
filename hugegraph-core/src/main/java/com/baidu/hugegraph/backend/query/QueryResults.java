@@ -29,13 +29,13 @@ import java.util.Set;
 import java.util.function.Function;
 
 import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
-import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.iterator.CIter;
 import com.baidu.hugegraph.iterator.FlatMapperIterator;
 import com.baidu.hugegraph.iterator.MapperIterator;
+import com.baidu.hugegraph.iterator.ToListIterator;
 import com.baidu.hugegraph.type.Idfiable;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
@@ -83,9 +83,9 @@ public class QueryResults {
     }
 
     public QueryResults toList() {
-        List<BackendEntry> list = IteratorUtils.list(this.results);
+        ToListIterator<BackendEntry> list = new ToListIterator<>(this.results);
         CloseableIterator.closeIterator(this.results);
-        QueryResults fetched = new QueryResults(list.iterator());
+        QueryResults fetched = new QueryResults(list);
         fetched.addQueries(this.queries);
         return fetched;
     }
@@ -206,6 +206,7 @@ public class QueryResults {
 
         @Override
         public void close() throws Exception {
+            // pass
         }
     }
 }
