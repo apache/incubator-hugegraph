@@ -2587,7 +2587,7 @@ public class VertexCoreTest extends BaseCoreTest {
                  .and(P.lt(29).or(P.eq(35)).or(P.gt(45)))
                 ).values("name").toList();
 
-        // There is duplicate with OR condition
+        // There is duplicate results with OR condition
         Assert.assertEquals(5, vertices.size());
 
         Set<String> names = ImmutableSet.of("Hebe", "James",

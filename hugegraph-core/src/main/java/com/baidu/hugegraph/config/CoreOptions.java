@@ -225,7 +225,7 @@ public class CoreOptions extends OptionHolder {
                     "query.page_size",
                     "The size of each page when query using paging.",
                     rangeInt(1, (int) Query.DEFAULT_CAPACITY),
-                    2
+                    500
             );
 
     public static final ConfigOption<Long> SNOWFLAKE_WORKER_ID =
