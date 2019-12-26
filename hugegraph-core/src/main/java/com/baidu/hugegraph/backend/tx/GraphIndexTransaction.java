@@ -182,7 +182,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
             }
         }
 
-        if (firstNullField == 0 && !indexLabel.indexType().isUniuqe()) {
+        if (firstNullField == 0 && !indexLabel.indexType().isUnique()) {
             // The property value of first index field is null
             return;
         }
@@ -593,7 +593,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
         Set<IndexLabel> ils = InsertionOrderUtil.newSet();
         for (Id il : schemaLabel.indexLabels()) {
             IndexLabel indexLabel = schema.getIndexLabel(il);
-            if (indexLabel.indexType().isUniuqe()) {
+            if (indexLabel.indexType().isUnique()) {
                 continue;
             }
             ils.add(indexLabel);

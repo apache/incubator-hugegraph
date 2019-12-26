@@ -507,8 +507,8 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
              * 2. existed index label is prefix of new created index label
              * (except for unique index)
              */
-            if (this.indexType.isUniuqe() && oldFields.containsAll(newFields) ||
-                !this.indexType.isUniuqe() &&
+            if (this.indexType.isUnique() && oldFields.containsAll(newFields) ||
+                !this.indexType.isUnique() &&
                 CollectionUtil.prefixOf(oldFields, newFields)) {
                 overrideIndexLabelIds.add(id);
             }
@@ -528,7 +528,7 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
             VertexLabel vl = (VertexLabel) schemaLabel;
             if (vl.idStrategy().isPrimaryKey()) {
                 if (this.indexType.isSecondary() ||
-                    this.indexType.isUniuqe() ||
+                    this.indexType.isUnique() ||
                     this.indexType.isShard() &&
                     this.allStringIndex(this.indexFields)) {
                     List<String> pks = this.transaction.graph()
