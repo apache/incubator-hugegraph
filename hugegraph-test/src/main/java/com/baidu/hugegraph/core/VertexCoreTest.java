@@ -3509,6 +3509,38 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testQueryByUniqueIndex() {
+        HugeGraph graph = this.graph();
+        SchemaManager schema = graph.schema();
+
+        schema.vertexLabel("node")
+              .properties("name")
+              .useAutomaticId()
+              .ifNotExist()
+              .create();
+
+        schema.indexLabel("nodeByName")
+              .unique()
+              .onV("node")
+              .by("name")
+              .ifNotExist()
+              .create();
+
+        graph.addVertex(T.label, "node", "name", "tom");
+
+        graph.tx().commit();
+
+        Assert.assertThrows(NoIndexException.class, () -> {
+            graph.traversal().V().hasLabel("node").has("name", "tom").next();
+        }, (e) -> {
+            Assert.assertTrue(e.getMessage().equals(
+                              "Don't accept query based on properties [name] " +
+                              "that are not indexed in label 'node', " +
+                              "may not match secondary condition"));
+        });
+    }
+
+    @Test
     public void testRemoveVertex() {
         HugeGraph graph = graph();
         init10Vertices();

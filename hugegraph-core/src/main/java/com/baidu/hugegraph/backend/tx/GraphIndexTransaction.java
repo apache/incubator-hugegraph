@@ -592,7 +592,11 @@ public class GraphIndexTransaction extends AbstractTransaction {
         SchemaTransaction schema = this.graph().schemaTransaction();
         Set<IndexLabel> ils = InsertionOrderUtil.newSet();
         for (Id il : schemaLabel.indexLabels()) {
-            ils.add(schema.getIndexLabel(il));
+            IndexLabel indexLabel = schema.getIndexLabel(il);
+            if (indexLabel.indexType().isUniuqe()) {
+                continue;
+            }
+            ils.add(indexLabel);
         }
         if (ils.isEmpty()) {
             return null;
@@ -671,8 +675,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
     private static Set<IndexLabel> matchSingleOrCompositeIndex(
                                    ConditionQuery query,
                                    Set<IndexLabel> indexLabels) {
-        boolean reqiureRange = query.hasRangeCondition();
-        boolean reqiureSearch = query.hasSearchCondition();
+        boolean requireRange = query.hasRangeCondition();
+        boolean requireSearch = query.hasSearchCondition();
         Set<Id> queryPropKeys = query.userpropKeys();
         for (IndexLabel indexLabel : indexLabels) {
             List<Id> indexFields = indexLabel.indexFields();
@@ -690,11 +694,11 @@ public class GraphIndexTransaction extends AbstractTransaction {
              *   4.secondary (composite) index
              */
             IndexType indexType = indexLabel.indexType();
-            if ((reqiureSearch && !indexType.isSearch()) ||
-                (!reqiureSearch && indexType.isSearch())) {
+            if ((requireSearch && !indexType.isSearch()) ||
+                (!requireSearch && indexType.isSearch())) {
                 continue;
             }
-            if (reqiureRange && !indexType.isNumeric()) {
+            if (requireRange && !indexType.isNumeric()) {
                 continue;
             }
             return ImmutableSet.of(indexLabel);
