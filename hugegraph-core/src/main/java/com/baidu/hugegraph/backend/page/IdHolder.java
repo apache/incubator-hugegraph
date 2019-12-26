@@ -34,7 +34,6 @@ import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.iterator.CIter;
 import com.baidu.hugegraph.iterator.Metadatable;
 import com.baidu.hugegraph.util.E;
-import com.baidu.hugegraph.util.LockUtil.Locks;
 
 public abstract class IdHolder {
 
@@ -136,16 +135,14 @@ public abstract class IdHolder {
     public static class BatchIdHolder extends IdHolder
                                       implements CIter<IdHolder> {
 
-        private final Locks locks;
         private final Iterator<BackendEntry> entries;
         private final Function<Long, Set<Id>> fetcher;
         private long count;
 
-        public BatchIdHolder(Locks locks, ConditionQuery query,
+        public BatchIdHolder(ConditionQuery query,
                              Iterator<BackendEntry> entries,
                              Function<Long, Set<Id>> fetcher) {
             super(query);
-            this.locks = locks;
             this.entries = entries;
             this.fetcher = fetcher;
             this.count = 0L;
@@ -222,11 +219,8 @@ public abstract class IdHolder {
                 return;
             }
             this.exhausted = true;
-            try {
-                CloseableIterator.closeIterator(this.entries);
-            } finally {
-                this.locks.unlock();
-            }
+
+            CloseableIterator.closeIterator(this.entries);
         }
 
         @Override
