@@ -92,8 +92,7 @@ import com.google.common.collect.ImmutableList;
 
 public class GraphTransaction extends IndexableTransaction {
 
-    public static final int COMMIT_BATCH = 500;
-    private static final long TRAVERSE_BATCH = 100_000L;
+    public static final int COMMIT_BATCH = (int) Query.COMMIT_BATCH;
 
     private final GraphIndexTransaction indexTx;
 
@@ -114,6 +113,8 @@ public class GraphTransaction extends IndexableTransaction {
     private LockUtil.LocksTable locksTable;
 
     private final boolean checkVertexExist;
+    private final int batchSize;
+    private final int pageSize;
 
     private final int verticesCapacity;
     private final int edgesCapacity;
@@ -124,12 +125,16 @@ public class GraphTransaction extends IndexableTransaction {
         this.indexTx = new GraphIndexTransaction(graph, store);
         assert !this.indexTx.autoCommit();
 
+        this.locksTable = new LockUtil.LocksTable(graph.name());
+
         final HugeConfig conf = graph.configuration();
-        this.checkVertexExist = conf.get(
-                                CoreOptions.VERTEX_CHECK_CUSTOMIZED_ID_EXIST);
+        this.checkVertexExist = conf.get(CoreOptions
+                                         .VERTEX_CHECK_CUSTOMIZED_ID_EXIST);
+        this.batchSize = conf.get(CoreOptions.QUERY_BATCH_SIZE);
+        this.pageSize = conf.get(CoreOptions.QUERY_PAGE_SIZE);
+
         this.verticesCapacity = conf.get(CoreOptions.VERTEX_TX_CAPACITY);
         this.edgesCapacity = conf.get(CoreOptions.EDGE_TX_CAPACITY);
-        this.locksTable = new LockUtil.LocksTable(graph.name());
     }
 
     @Override
@@ -410,13 +415,14 @@ public class GraphTransaction extends IndexableTransaction {
              * 2.index-query result(ids after optimization), which may be empty.
              */
             if (q == null) {
-                queries.add(this.indexQuery(cq), 100L); // TODO: read from conf
+                queries.add(this.indexQuery(cq), this.batchSize);
             } else if (!q.empty()) {
                 queries.add(q);
             }
         }
 
-        return !queries.empty() ? queries.fetch() : QueryResults.empty();
+        return queries.empty() ? QueryResults.empty() :
+                                 queries.fetch(this.pageSize);
     }
 
     @Watched(prefix = "graph")
@@ -498,8 +504,7 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     public Iterator<Vertex> queryAdjacentVertices(Iterator<Edge> edges) {
-        // TODO read batch size from conf
-        return new BatchMapperIterator<>(100, edges, batchEdges -> {
+        return new BatchMapperIterator<>(this.batchSize, edges, batchEdges -> {
             List<Id> vertexIds = new ArrayList<>();
             for (Edge edge : batchEdges) {
                 vertexIds.add(((HugeEdge) edge).otherVertex().id());
@@ -1518,9 +1523,8 @@ public class GraphTransaction extends IndexableTransaction {
                                      Consumer<T> consumer, boolean deleting) {
         HugeType type = label.type() == HugeType.VERTEX_LABEL ?
                         HugeType.VERTEX : HugeType.EDGE;
-        Query query = label.enableLabelIndex() ?
-                      new ConditionQuery(type) :
-                      new Query(type);
+        Query query = label.enableLabelIndex() ? new ConditionQuery(type) :
+                                                 new Query(type);
         query.capacity(Query.NO_CAPACITY);
         query.limit(Query.NO_LIMIT);
         if (this.store().features().supportsQueryByPage()) {
@@ -1532,10 +1536,11 @@ public class GraphTransaction extends IndexableTransaction {
         query.showDeleting(deleting);
 
         if (label.enableLabelIndex()) {
-            // Support label index, query by label index
+            // Support label index, query by label index by paging
             ((ConditionQuery) query).eq(HugeKeys.LABEL, label.id());
             Iterator<T> iter = fetcher.apply(query);
             try {
+                // Fetch by paging automatically
                 while (iter.hasNext()) {
                     consumer.accept(iter.next());
                 }
@@ -1545,7 +1550,7 @@ public class GraphTransaction extends IndexableTransaction {
         } else {
             // Not support label index, query all and filter by label
             if (query.paging()) {
-                query.limit(TRAVERSE_BATCH);
+                query.limit(this.pageSize);
             }
             String page = null;
             do {
@@ -1560,6 +1565,7 @@ public class GraphTransaction extends IndexableTransaction {
                     }
                     if (query.paging()) {
                         page = PageInfo.pageState(iter).toString();
+                        query.page(page);
                     }
                 } finally {
                     CloseableIterator.closeIterator(iter);

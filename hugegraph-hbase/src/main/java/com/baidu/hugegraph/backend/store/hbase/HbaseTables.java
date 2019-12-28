@@ -168,7 +168,7 @@ public class HbaseTables {
 
     public static class IndexTable extends HbaseTable {
 
-        private static final int INDEX_DELETE_BATCH = 1000;
+        private static final long INDEX_DELETE_BATCH = Query.COMMIT_BATCH;
 
         public IndexTable(String table) {
             super(table);
@@ -195,7 +195,7 @@ public class HbaseTables {
              * Only delete index by label will come here
              * Regular index delete will call eliminate()
              */
-            int count = 0;
+            long count = 0L;
             for (BackendColumn column : entry.columns()) {
                 session.commit();
                 // Prefix query index label related indexes
@@ -205,11 +205,11 @@ public class HbaseTables {
                     // Commit once reaching batch size
                     if (++count >= INDEX_DELETE_BATCH) {
                         session.commit();
-                        count = 0;
+                        count = 0L;
                     }
                 }
             }
-            if (count > 0) {
+            if (count > 0L) {
                 session.commit();
             }
         }
