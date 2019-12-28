@@ -30,6 +30,7 @@ import java.util.function.Function;
 
 import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.iterator.CIter;
@@ -80,6 +81,10 @@ public class QueryResults {
 
     public Iterator<BackendEntry> iterator() {
         return this.results;
+    }
+
+    public BackendEntry one() {
+        return one(this.results);
     }
 
     public QueryResults toList() {
@@ -191,6 +196,23 @@ public class QueryResults {
             return results.iterator();
         }));
         return qr[0];
+    }
+
+    public static <T> T one(Iterator<T> iterator) {
+        try {
+            if (iterator.hasNext()) {
+                T result = iterator.next();
+                if (iterator.hasNext()) {
+                    throw new HugeException(
+                              "Expect just one result but got two: [%s, %s]",
+                              result, iterator.next());
+                }
+                return result;
+            }
+        } finally {
+            CloseableIterator.closeIterator(iterator);
+        }
+        return null;
     }
 
     public static QueryResults empty() {

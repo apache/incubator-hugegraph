@@ -33,7 +33,6 @@ import java.util.concurrent.TimeoutException;
 
 import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
@@ -262,17 +261,12 @@ public class TaskScheduler {
 
     public <V> HugeTask<V> findTask(Id id) {
         HugeTask<V> result =  this.call(() -> {
-            HugeTask<V> task = null;
             Iterator<Vertex> vertices = this.tx().queryVertices(id);
-            try {
-                if (vertices.hasNext()) {
-                    task = HugeTask.fromVertex(vertices.next());
-                    assert !vertices.hasNext();
-                }
-            } finally {
-                CloseableIterator.closeIterator(vertices);
+            Vertex vertex = QueryResults.one(vertices);
+            if (vertex == null) {
+                return null;
             }
-            return task;
+            return HugeTask.fromVertex(vertex);
         });
         if (result == null) {
             throw new NotFoundException("Can't find task with id '%s'", id);
@@ -311,17 +305,10 @@ public class TaskScheduler {
             this.remove(id);
         }
         return this.call(() -> {
-            HugeVertex vertex = null;
             Iterator<Vertex> vertices = this.tx().queryVertices(id);
-            try {
-                if (vertices.hasNext()) {
-                    vertex = (HugeVertex) vertices.next();
-                    assert !vertices.hasNext();
-                } else {
-                    return null;
-                }
-            } finally {
-                CloseableIterator.closeIterator(vertices);
+            HugeVertex vertex = (HugeVertex) QueryResults.one(vertices);
+            if (vertex == null) {
+                return null;
             }
             HugeTask<V> result = HugeTask.fromVertex(vertex);
             E.checkState(result.completed(),
@@ -457,17 +444,13 @@ public class TaskScheduler {
         private void deleteIndex(HugeVertex vertex) {
             // Delete the old record if exist
             Iterator<Vertex> old = this.queryVertices(vertex.id());
-            try {
-                if (old.hasNext()) {
-                    HugeVertex oldV = (HugeVertex) old.next();
-                    assert !old.hasNext();
-                    if (this.indexValueChanged(oldV, vertex)) {
-                        // Only delete vertex index if index value changed
-                        this.indexTransaction().updateVertexIndex(oldV, true);
-                    }
-                }
-            } finally {
-                CloseableIterator.closeIterator(old);
+            HugeVertex oldV = (HugeVertex) QueryResults.one(old);
+            if (oldV == null) {
+                return;
+            }
+            if (this.indexValueChanged(oldV, vertex)) {
+                // Only delete vertex index if index value changed
+                this.indexTransaction().updateVertexIndex(oldV, true);
             }
         }
 
