@@ -62,6 +62,7 @@ import com.baidu.hugegraph.backend.tx.GraphIndexTransaction.OptimizedType;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.exception.LimitExceedException;
+import com.baidu.hugegraph.iterator.BatchMapperIterator;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.iterator.FilterIterator;
 import com.baidu.hugegraph.iterator.FlatMapperIterator;
@@ -497,24 +498,20 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     public Iterator<Vertex> queryAdjacentVertices(Iterator<Edge> edges) {
-        List<Id> vertexIds = new ArrayList<>();
-        try {
-            if (!edges.hasNext()) {
-                return QueryResults.emptyIterator();
+        // TODO read batch size from conf
+        return new BatchMapperIterator<>(100, edges, batchEdges -> {
+            List<Id> vertexIds = new ArrayList<>();
+            for (Edge edge : batchEdges) {
+                vertexIds.add(((HugeEdge) edge).otherVertex().id());
             }
-            while (edges.hasNext()) {
-                HugeEdge edge = (HugeEdge) edges.next();
-                vertexIds.add(edge.otherVertex().id());
-            }
-        } finally {
-            CloseableIterator.closeIterator(edges);
-        }
-
-        assert vertexIds.size() > 0;
-        return this.queryVertices(vertexIds.toArray());
+            assert vertexIds.size() > 0;
+            return this.queryVertices(vertexIds.toArray());
+        });
     }
 
     public Iterator<Vertex> queryVertices(Object... vertexIds) {
+        Query.checkForceCapacity(vertexIds.length);
+
         // NOTE: allowed duplicated vertices if query by duplicated ids
         List<Id> ids = InsertionOrderUtil.newList();
         Map<Id, HugeVertex> vertices = new HashMap<>(vertexIds.length);
@@ -662,6 +659,8 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     public Iterator<Edge> queryEdges(Object... edgeIds) {
+        Query.checkForceCapacity(edgeIds.length);
+
         // NOTE: allowed duplicated edges if query by duplicated ids
         List<Id> ids = InsertionOrderUtil.newList();
         Map<Id, HugeEdge> edges = new HashMap<>(edgeIds.length);

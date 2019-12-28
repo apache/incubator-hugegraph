@@ -41,6 +41,7 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
+import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -196,6 +197,7 @@ public class HugeVariables implements Graph.Variables {
             Set<String> keys = new HashSet<>();
             while (vertices.hasNext()) {
                 keys.add(vertices.next().value(Hidden.hide(VARIABLE_KEY)));
+                Query.checkForceCapacity(keys.size());
             }
             return keys;
         } finally {
@@ -270,6 +272,7 @@ public class HugeVariables implements Graph.Variables {
                 }
                 Object value = vertex.value(Hidden.hide(type));
                 variables.put(key, value);
+                Query.checkForceCapacity(variables.size());
             }
             return Collections.unmodifiableMap(variables);
         } finally {

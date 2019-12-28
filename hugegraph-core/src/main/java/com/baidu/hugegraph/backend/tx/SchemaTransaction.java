@@ -324,17 +324,18 @@ public class SchemaTransaction extends IndexableTransaction {
     }
 
     protected <T extends SchemaElement> List<T> getAllSchema(HugeType type) {
-        List<T> result = new ArrayList<>();
+        List<T> results = new ArrayList<>();
         Query query = new Query(type);
         Iterator<BackendEntry> entries = this.query(query).iterator();
         try {
             while (entries.hasNext()) {
-                result.add(this.deserialize(entries.next(), type));
+                results.add(this.deserialize(entries.next(), type));
+                Query.checkForceCapacity(results.size());
             }
         } finally {
             CloseableIterator.closeIterator(entries);
         }
-        return result;
+        return results;
     }
 
     protected void removeSchema(SchemaElement schema) {

@@ -102,6 +102,7 @@ public class SchemaIndexTransaction extends AbstractTransaction {
                 HugeIndex index = this.serializer.readIndex(graph(), indexQuery,
                                                             entries.next());
                 idQuery.query(index.elementIds());
+                Query.checkForceCapacity(idQuery.ids().size());
             }
         } finally {
             CloseableIterator.closeIterator(entries);
