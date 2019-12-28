@@ -33,7 +33,6 @@ import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.store.BackendEntry;
-import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
 
@@ -61,7 +60,7 @@ public final class QueryList {
         return this.fetcher;
     }
 
-    public void add(IdHolderList holders, long batchSize) {
+    public void add(IdHolderList holders, long indexBatchSize) {
         // IdHolderList is results of one index query, the query is flattened
 //        if (!this.parent.paging()) {
 //            for (QueryHolder q : this.queries) {
@@ -71,7 +70,7 @@ public final class QueryList {
 //                }
 //            }
 //        }
-        this.queries.add(new IndexQuery(holders, batchSize));
+        this.queries.add(new IndexQuery(holders, indexBatchSize));
     }
 
     public void add(Query query) {
@@ -91,11 +90,9 @@ public final class QueryList {
         return this.queries.isEmpty();
     }
 
-    public QueryResults fetch() {
+    public QueryResults fetch(int pageSize) {
         assert !this.queries.isEmpty();
         if (this.parent.paging()) {
-            int pageSize = this.graph.configuration()
-                                     .get(CoreOptions.QUERY_PAGE_SIZE);
             @SuppressWarnings("resource") // closed by QueryResults
             PageEntryIterator iterator = new PageEntryIterator(this, pageSize);
             /*

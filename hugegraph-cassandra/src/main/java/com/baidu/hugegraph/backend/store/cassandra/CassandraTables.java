@@ -29,6 +29,7 @@ import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.id.IdUtil;
+import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Directions;
@@ -61,7 +62,7 @@ public class CassandraTables {
     private static final DataType TYPE_ID = DataType.blob();
     private static final DataType TYPE_PROP = DataType.blob();
 
-    private static final int COMMIT_DELETE_BATCH = 1000;
+    private static final long COMMIT_DELETE_BATCH = Query.COMMIT_BATCH;
 
     public static class Counters extends CassandraTable {
 
@@ -395,7 +396,7 @@ public class CassandraTables {
             }
 
             // Delete edges
-            int count = 0;
+            long count = 0L;
             for (Iterator<Row> it = rs.iterator(); it.hasNext();) {
                 Row row = it.next();
                 Object ownerVertex = row.getObject(OWNER_VERTEX);
@@ -409,13 +410,13 @@ public class CassandraTables {
                 session.add(buildDelete(label, otherVertex, Directions.IN,
                                         sortValues, ownerVertex));
 
-                count += 2;
+                count += 2L;
                 if (count >= COMMIT_DELETE_BATCH) {
                     session.commit();
                     count = 0;
                 }
             }
-            if (count > 0) {
+            if (count > 0L) {
                 session.commit();
             }
         }
@@ -553,7 +554,7 @@ public class CassandraTables {
             }
 
             final String FIELD_VALUES = formatKey(HugeKeys.FIELD_VALUES);
-            int count = 0;
+            long count = 0L;
             for (Iterator<Row> it = rs.iterator(); it.hasNext();) {
                 fieldValues = it.next().get(FIELD_VALUES, String.class);
                 Delete delete = QueryBuilder.delete().from(this.table());
@@ -563,7 +564,7 @@ public class CassandraTables {
 
                 if (++count >= COMMIT_DELETE_BATCH) {
                     session.commit();
-                    count = 0;
+                    count = 0L;
                 }
             }
         }

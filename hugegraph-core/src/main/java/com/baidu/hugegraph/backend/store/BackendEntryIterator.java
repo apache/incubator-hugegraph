@@ -32,7 +32,7 @@ import com.baidu.hugegraph.util.E;
 
 public abstract class BackendEntryIterator implements CIter<BackendEntry> {
 
-    protected static final long INLINE_BATCH_SIZE = 1000L;
+    protected static final long INLINE_BATCH_SIZE = Query.COMMIT_BATCH;
 
     protected final Query query;
 
