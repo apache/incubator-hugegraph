@@ -83,8 +83,7 @@ public class QueryResults {
     }
 
     public QueryResults toList() {
-        QueryResults fetched = new QueryResults(new ListIterator<>(
-                               Query.DEFAULT_CAPACITY, this.results));
+        QueryResults fetched = new QueryResults(toList(this.results));
         fetched.addQueries(this.queries);
         return fetched;
     }
@@ -148,6 +147,10 @@ public class QueryResults {
             ids.addAll(query.ids());
         }
         return ids;
+    }
+
+    public static <T> ListIterator<T> toList(Iterator<T> iterator) {
+        return new ListIterator<>(Query.DEFAULT_CAPACITY, iterator);
     }
 
     public static <T> void fillList(Iterator<T> iterator, List<T> list) {

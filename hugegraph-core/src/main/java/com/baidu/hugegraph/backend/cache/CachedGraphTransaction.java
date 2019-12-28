@@ -21,17 +21,17 @@ package com.baidu.hugegraph.backend.cache;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-
-import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.cache.CachedBackendStore.QueryId;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
@@ -39,12 +39,13 @@ import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.event.EventListener;
+import com.baidu.hugegraph.iterator.ExtendableIterator;
+import com.baidu.hugegraph.iterator.ListIterator;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.Events;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 public final class CachedGraphTransaction extends GraphTransaction {
@@ -155,7 +156,7 @@ public final class CachedGraphTransaction extends GraphTransaction {
 
     private Iterator<HugeVertex> queryVerticesByIds(IdQuery query) {
         IdQuery newQuery = new IdQuery(HugeType.VERTEX, query);
-        List<HugeVertex> vertices = new ArrayList<>(query.ids().size());
+        List<HugeVertex> vertices = new ArrayList<>();
         for (Id vertexId : query.ids()) {
             Object vertex = this.verticesCache.get(vertexId);
             if (vertex != null) {
@@ -164,25 +165,27 @@ public final class CachedGraphTransaction extends GraphTransaction {
                 newQuery.query(vertexId);
             }
         }
-        if (vertices.isEmpty()) {
+
+        // Join results from cache and backend
+        ExtendableIterator<HugeVertex> results = new ExtendableIterator<>();
+        if (!vertices.isEmpty()) {
+            results.extend(vertices.iterator());
+        } else {
             // Just use the origin query if find none from the cache
             newQuery = query;
         }
+
         if (!newQuery.empty()) {
             Iterator<HugeVertex> rs = super.queryVerticesFromBackend(newQuery);
-            try {
-                while (rs.hasNext()) {
-                    HugeVertex vertex = rs.next();
-                    vertices.add(vertex);
-                    this.verticesCache.update(vertex.id(), vertex);
-                    // Generally there are not too much data with id query
-                    Query.checkForceCapacity(vertices.size());
-                }
-            } finally {
-                CloseableIterator.closeIterator(rs);
+            // Generally there are not too much data with id query
+            ListIterator<HugeVertex> listIterator = QueryResults.toList(rs);
+            for (HugeVertex vertex :listIterator.list()) {
+                this.verticesCache.update(vertex.id(), vertex);
             }
+            results.extend(listIterator);
         }
-        return vertices.iterator();
+
+        return results;
     }
 
     @Override
@@ -192,25 +195,27 @@ public final class CachedGraphTransaction extends GraphTransaction {
             return super.queryEdgesFromBackend(query);
         }
 
-        Id id = new QueryId(query);
+        Id cacheKey = new QueryId(query);
         @SuppressWarnings("unchecked")
-        List<HugeEdge> edges = (List<HugeEdge>) this.edgesCache.get(id);
-        if (edges == null) {
+        List<HugeEdge> edges = (List<HugeEdge>) this.edgesCache.get(cacheKey);
+        if (edges != null) {
+            return edges.iterator();
+        } else {
             Iterator<HugeEdge> rs = super.queryEdgesFromBackend(query);
-            try {
-                // Iterator can't be cached, caching list instead
-                edges = ImmutableList.copyOf(rs);
-                Query.checkForceCapacity(edges.size());
-                if (edges.size() <= MAX_CACHE_EDGES_PER_QUERY) {
-                    this.edgesCache.update(id, edges);
-                }
-            } finally {
-                CloseableIterator.closeIterator(rs);
+            /*
+             * Iterator can't be cached, caching list instead
+             * Generally there are not too much data with id query
+             */
+            ListIterator<HugeEdge> listIterator = QueryResults.toList(rs);
+            edges = listIterator.list();
+            if (edges.size() == 0) {
+                this.edgesCache.update(cacheKey, Collections.emptyList());
+            } else if (edges.size() <= MAX_CACHE_EDGES_PER_QUERY) {
+                this.edgesCache.update(cacheKey, edges);
             }
+            return listIterator;
         }
-        return edges.iterator();
     }
-
 
     @Override
     protected void commitMutation2Backend(BackendMutation... mutations) {

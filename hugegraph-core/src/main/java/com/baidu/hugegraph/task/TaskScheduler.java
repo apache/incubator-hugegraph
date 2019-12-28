@@ -41,14 +41,13 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.page.PageInfo;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
-import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.event.EventListener;
 import com.baidu.hugegraph.exception.ConnectionException;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
-import com.baidu.hugegraph.iterator.ListIterator;
 import com.baidu.hugegraph.iterator.MapperIterator;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -438,7 +437,7 @@ public class TaskScheduler {
             Iterator<HugeTask<V>> tasks =
                     new MapperIterator<>(vertices, HugeTask::fromVertex);
             // Convert iterator to list to avoid across thread tx accessed
-            return new ListIterator<>(Query.DEFAULT_CAPACITY, tasks);
+            return QueryResults.toList(tasks);
         });
     }
 
@@ -449,7 +448,7 @@ public class TaskScheduler {
             Iterator<HugeTask<V>> tasks =
                     new MapperIterator<>(vertices, HugeTask::fromVertex);
             // Convert iterator to list to avoid across thread tx accessed
-            return new ListIterator<>(Query.DEFAULT_CAPACITY, tasks);
+            return QueryResults.toList(tasks);
         });
     }
 
