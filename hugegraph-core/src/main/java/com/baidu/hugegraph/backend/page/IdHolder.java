@@ -186,7 +186,7 @@ public abstract class IdHolder {
             }
             Set<Id> ids = this.fetcher.apply(batchSize);
             this.count += ids.size();
-            if (ids.size() < batchSize) {
+            if (ids.size() < batchSize || batchSize <= 0) {
                 this.close();
             }
 
