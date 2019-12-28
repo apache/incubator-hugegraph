@@ -4835,6 +4835,7 @@ public class VertexCoreTest extends BaseCoreTest {
                 vertices.add(vertex);
             }
             page = PageInfo.pageInfo(iterator);
+            CloseableIterator.closeIterator(iterator);
         }
         Assert.assertEquals(10, vertices.size());
     }

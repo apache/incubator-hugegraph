@@ -40,6 +40,7 @@ import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import org.junit.Assume;
 import org.junit.Before;
@@ -2938,6 +2939,7 @@ public class EdgeCoreTest extends BaseCoreTest {
                 edges.add(iterator.next());
             }
             page = PageInfo.pageInfo(iterator);
+            CloseableIterator.closeIterator(iterator);
         }
         Assert.assertEquals(18, edges.size());
     }
