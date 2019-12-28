@@ -514,8 +514,14 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 // Catch lock every batch
                 locks.lockReads(LockUtil.INDEX_LABEL_DELETE, indexLabel.id());
                 locks.lockReads(LockUtil.INDEX_LABEL_REBUILD, indexLabel.id());
-                // Check exist that may be deleted after some batches
-                indexLabel.graph().indexLabel(indexLabel.id());
+                if (!indexLabel.system()) {
+                    /*
+                     * Check exist because it may be deleted after some batches
+                     * throw exception if the index label not exists
+                     * NOTE: graph() will return null with system index label
+                     */
+                    indexLabel.graph().indexLabel(indexLabel.id());
+                }
 
                 // Iterate one batch, and keep iterator position
                 Set<Id> ids = InsertionOrderUtil.newSet();
