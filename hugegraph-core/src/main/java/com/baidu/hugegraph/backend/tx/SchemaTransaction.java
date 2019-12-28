@@ -35,6 +35,7 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.config.CoreOptions;
@@ -310,21 +311,20 @@ public class SchemaTransaction extends IndexableTransaction {
         LOG.debug("SchemaTransaction get {} by name '{}'",
                   type.readableName(), name);
         this.beforeRead();
+
         ConditionQuery query = new ConditionQuery(type);
         query.eq(HugeKeys.NAME, name);
-        Iterator<BackendEntry> iter = this.indexTx.query(query).iterator();
-        try {
-            if (iter.hasNext()) {
-                T schema = this.deserialize(iter.next(), type);
-                E.checkState(!iter.hasNext(),
-                             "Should not exist schema with same name '%s'", name);
-                return schema;
-            }
-        } finally {
-            this.afterRead();
-            CloseableIterator.closeIterator(iter);
+        QueryResults results = this.indexTx.query(query);
+
+        this.afterRead();
+
+        // Should not exist schema with same name
+        BackendEntry entry = results.one();
+        if (entry == null) {
+            return null;
         }
-        return null;
+        T schema = this.deserialize(entry, type);
+        return schema;
     }
 
     protected <T extends SchemaElement> List<T> getAllSchema(HugeType type) {

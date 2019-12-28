@@ -28,7 +28,6 @@ import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 
 import com.baidu.hugegraph.HugeException;
@@ -36,6 +35,7 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
+import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
@@ -223,18 +223,13 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         }
 
         Iterator<Edge> edges = tx().queryEdges(this.id());
-        try {
-            boolean exist = edges.hasNext();
-            if (!exist && !throwIfNotExist) {
-                return false;
-            }
-            E.checkState(exist, "Edge '%s' does not exist", this.id);
-            this.copyProperties((HugeEdge) edges.next());
-            assert exist;
-            return true;
-        } finally {
-            CloseableIterator.closeIterator(edges);
+        Edge edge = QueryResults.one(edges);
+        if (edge == null && !throwIfNotExist) {
+            return false;
         }
+        E.checkState(edge != null, "Edge '%s' does not exist", this.id);
+        this.copyProperties((HugeEdge) edge);
+        return true;
     }
 
     @Watched(prefix = "edge")

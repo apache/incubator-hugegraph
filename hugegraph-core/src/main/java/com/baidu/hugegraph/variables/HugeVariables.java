@@ -42,6 +42,7 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -362,16 +363,7 @@ public class HugeVariables implements Graph.Variables {
         query.query(Condition.eq(pkey.id(), key));
         query.showHidden(true);
         Iterator<Vertex> vertices = this.graph.vertices(query);
-        try {
-            if (!vertices.hasNext()) {
-                return null;
-            }
-            HugeVertex vertex = (HugeVertex) vertices.next();
-            assert !vertices.hasNext();
-            return vertex;
-        } finally {
-            CloseableIterator.closeIterator(vertices);
-        }
+        return (HugeVertex) QueryResults.one(vertices);
     }
 
     private Iterator<Vertex> queryAllVariableVertices() {

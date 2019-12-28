@@ -34,6 +34,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.util.Strings;
+import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 
 import com.baidu.hugegraph.HugeException;
@@ -1577,24 +1579,14 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
         private HugeElement newestElement(HugeElement element) {
             boolean isVertex = element instanceof HugeVertex;
-            Iterator<?> iter = QueryResults.emptyIterator();
-            try {
-                if (isVertex) {
-                    iter = this.graph().vertices(element.id());
-                    if (iter.hasNext()) {
-                        return (HugeVertex) iter.next();
-                    }
-                } else {
-                    assert element instanceof HugeEdge;
-                    iter = this.graph().edges(element.id());
-                    if (iter.hasNext()) {
-                        return (HugeEdge) iter.next();
-                    }
-                }
-            } finally {
-                CloseableIterator.closeIterator(iter);
+            if (isVertex) {
+                Iterator<Vertex> iter = this.graph().vertices(element.id());
+                return (HugeVertex) QueryResults.one(iter);
+            } else {
+                assert element instanceof HugeEdge;
+                Iterator<Edge> iter = this.graph().edges(element.id());
+                return (HugeEdge) QueryResults.one(iter);
             }
-            return null;
         }
     }
 }
