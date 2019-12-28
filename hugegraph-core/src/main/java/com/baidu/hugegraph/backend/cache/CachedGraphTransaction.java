@@ -175,6 +175,8 @@ public final class CachedGraphTransaction extends GraphTransaction {
                     HugeVertex vertex = rs.next();
                     vertices.add(vertex);
                     this.verticesCache.update(vertex.id(), vertex);
+                    // Generally there are not too much data with id query
+                    Query.checkForceCapacity(vertices.size());
                 }
             } finally {
                 CloseableIterator.closeIterator(rs);
@@ -185,7 +187,7 @@ public final class CachedGraphTransaction extends GraphTransaction {
 
     @Override
     protected Iterator<HugeEdge> queryEdgesFromBackend(Query query) {
-        if (query.empty() || query.paging()) {
+        if (query.empty() || query.paging() || query.bigCapacity()) {
             // Query all edges or query edges in paging, don't cache it
             return super.queryEdgesFromBackend(query);
         }
@@ -198,6 +200,7 @@ public final class CachedGraphTransaction extends GraphTransaction {
             try {
                 // Iterator can't be cached, caching list instead
                 edges = ImmutableList.copyOf(rs);
+                Query.checkForceCapacity(edges.size());
                 if (edges.size() <= MAX_CACHE_EDGES_PER_QUERY) {
                     this.edgesCache.update(id, edges);
                 }

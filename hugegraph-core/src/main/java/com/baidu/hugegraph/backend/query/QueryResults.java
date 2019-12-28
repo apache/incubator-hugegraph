@@ -34,8 +34,8 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.iterator.CIter;
 import com.baidu.hugegraph.iterator.FlatMapperIterator;
+import com.baidu.hugegraph.iterator.ListIterator;
 import com.baidu.hugegraph.iterator.MapperIterator;
-import com.baidu.hugegraph.iterator.ToListIterator;
 import com.baidu.hugegraph.type.Idfiable;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
@@ -83,9 +83,8 @@ public class QueryResults {
     }
 
     public QueryResults toList() {
-        ToListIterator<BackendEntry> list = new ToListIterator<>(this.results);
-        CloseableIterator.closeIterator(this.results);
-        QueryResults fetched = new QueryResults(list);
+        QueryResults fetched = new QueryResults(new ListIterator<>(
+                               Query.DEFAULT_CAPACITY, this.results));
         fetched.addQueries(this.queries);
         return fetched;
     }
@@ -151,6 +150,18 @@ public class QueryResults {
         return ids;
     }
 
+    public static <T> void fillList(Iterator<T> iterator, List<T> list) {
+        try {
+            while (iterator.hasNext()) {
+                T result = iterator.next();
+                list.add(result);
+                Query.checkForceCapacity(list.size());
+            }
+        } finally {
+            CloseableIterator.closeIterator(iterator);
+        }
+    }
+
     public static <T extends Idfiable> void fillMap(Iterator<T> iterator,
                                                     Map<Id, T> map) {
         try {
@@ -158,6 +169,7 @@ public class QueryResults {
                 T result = iterator.next();
                 assert result.id() != null;
                 map.put(result.id(), result);
+                Query.checkForceCapacity(map.size());
             }
         } finally {
             CloseableIterator.closeIterator(iterator);

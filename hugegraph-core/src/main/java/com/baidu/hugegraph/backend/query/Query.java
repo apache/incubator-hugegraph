@@ -120,7 +120,7 @@ public class Query implements Cloneable {
         this.getOrNewOrders().put(key, order);
     }
 
-    private Map<HugeKeys, Order> getOrNewOrders() {
+    protected Map<HugeKeys, Order> getOrNewOrders() {
         if (this.orders != null) {
             return this.orders;
         }
@@ -281,6 +281,10 @@ public class Query implements Cloneable {
         this.capacity = capacity;
     }
 
+    public boolean bigCapacity() {
+        return this.capacity == NO_CAPACITY || this.capacity > DEFAULT_CAPACITY;
+    }
+
     public void checkCapacity(long count) throws LimitExceedException {
         // Throw LimitExceedException if reach capacity
         if (this.capacity != Query.NO_CAPACITY && count > this.capacity) {
@@ -399,6 +403,15 @@ public class Query implements Cloneable {
     public static long defaultCapacity() {
         Long capacity = capacityContex.get();
         return capacity != null ? capacity : DEFAULT_CAPACITY;
+    }
+
+    public final static void checkForceCapacity(long count)
+                                                throws LimitExceedException {
+        if (count > Query.DEFAULT_CAPACITY) {
+            throw new LimitExceedException(
+                      "Too many records(must <= %s) for one query",
+                      Query.DEFAULT_CAPACITY);
+        }
     }
 
     public static enum Order {
