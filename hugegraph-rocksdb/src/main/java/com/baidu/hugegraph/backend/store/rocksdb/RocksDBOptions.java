@@ -139,7 +139,7 @@ public class RocksDBOptions extends OptionHolder {
                     inValues("none", "snappy", "z", "bzip2", "lz4", "lz4hc", "xpress", "zstd"),
                     CompressionType::getCompressionType,
                     String.class,
-                    "none", "none", "none", "none", "none", "none", "none"
+                    "none", "none", "snappy", "snappy", "snappy", "snappy", "snappy"
             );
 
     public static final ConfigConvOption<CompressionType> BOTTOMMOST_COMPRESSION =
