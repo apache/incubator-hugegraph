@@ -522,15 +522,17 @@ public class GraphIndexTransaction extends AbstractTransaction {
                      * throw exception if the index label not exists
                      * NOTE: graph() will return null with system index label
                      */
-                    indexLabel.graph().indexLabel(indexLabel.id());
+                    graph().indexLabel(indexLabel.id());
                 }
 
                 // Iterate one batch, and keep iterator position
                 Set<Id> ids = InsertionOrderUtil.newSet();
-                while (ids.size() < batch && entries.hasNext()) {
+                while ((ids.size() < batch || batch == Query.NO_LIMIT) &&
+                       entries.hasNext()) {
                     HugeIndex index = this.serializer.readIndex(graph(), query,
                                                                 entries.next());
                     ids.addAll(index.elementIds());
+                    Query.checkForceCapacity(ids.size());
                 }
                 return ids;
             } finally {
@@ -558,6 +560,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 if (query.reachLimit(ids.size())) {
                     break;
                 }
+                Query.checkForceCapacity(ids.size());
             }
             // If there is no data, the entries is not a Metadatable object
             if (ids.isEmpty()) {

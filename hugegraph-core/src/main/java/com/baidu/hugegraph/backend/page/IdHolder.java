@@ -184,14 +184,16 @@ public abstract class IdHolder {
                     batchSize = remaining;
                 }
             }
+            assert batchSize >= 0L : batchSize;
             Set<Id> ids = this.fetcher.apply(batchSize);
-            this.count += ids.size();
-            if (ids.size() < batchSize || batchSize <= 0) {
+            int size = ids.size();
+            this.count += size;
+            if (size < batchSize || size == 0) {
                 this.close();
             }
 
             // If there is no data, the entries is not a Metadatable object
-            if (ids.isEmpty()) {
+            if (size == 0) {
                 return PageIds.EMPTY;
             } else {
                 return new PageIds(ids, PageState.EMPTY);
@@ -201,6 +203,7 @@ public abstract class IdHolder {
         @Override
         public Set<Id> all() {
             Set<Id> ids = this.fetcher.apply(this.remaining());
+            this.count += ids.size();
             this.close();
             return ids;
         }
