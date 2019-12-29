@@ -405,7 +405,7 @@ public class GraphTransaction extends IndexableTransaction {
             return super.query(query);
         }
 
-        QueryList queries = new QueryList(this.graph(), query, super::query);
+        QueryList queries = new QueryList(query, super::query);
         for (ConditionQuery cq: ConditionQueryFlatten.flatten(
                                 (ConditionQuery) query)) {
             Query q = this.optimizeQuery(cq);

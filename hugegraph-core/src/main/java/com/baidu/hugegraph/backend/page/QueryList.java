@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 
-import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.page.IdHolder.BatchIdHolder;
 import com.baidu.hugegraph.backend.page.IdHolder.FixedIdHolder;
@@ -38,15 +37,12 @@ import com.baidu.hugegraph.util.E;
 
 public final class QueryList {
 
-    private final HugeGraph graph;
     private final Query parent;
     // The size of each page fetched by the inner page
     private final Function<Query, QueryResults> fetcher;
     private final List<FlattenQuery> queries;
 
-    public QueryList(HugeGraph graph, Query parent,
-                     Function<Query, QueryResults> fetcher) {
-        this.graph = graph;
+    public QueryList(Query parent, Function<Query, QueryResults> fetcher) {
         this.parent = parent;
         this.fetcher = fetcher;
         this.queries = new ArrayList<>();
