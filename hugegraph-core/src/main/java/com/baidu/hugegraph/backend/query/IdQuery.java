@@ -104,10 +104,4 @@ public class IdQuery extends Query {
         query.ids = InsertionOrderUtil.newSet(this.ids);
         return query;
     }
-
-    @Override
-    public String toString() {
-        return String.format("%s where id in %s",
-                             super.toString(), this.ids.toString());
-    }
 }
