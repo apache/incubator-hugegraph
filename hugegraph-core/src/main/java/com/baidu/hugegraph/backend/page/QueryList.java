@@ -86,6 +86,12 @@ public final class QueryList {
         return this.queries.isEmpty();
     }
 
+    @Override
+    public String toString() {
+        return String.format("Query{root:%s,queries:%s}",
+                             this.parent, this.queries);
+    }
+
     public QueryResults fetch(int pageSize) {
         assert !this.queries.isEmpty();
         if (this.parent.paging()) {
@@ -187,6 +193,11 @@ public final class QueryList {
         public int total() {
             return 1;
         }
+
+        @Override
+        public String toString() {
+            return String.format("OptimizedQuery{%s}", this.query);
+        }
     }
 
     /**
@@ -272,6 +283,11 @@ public final class QueryList {
         @Override
         public int total() {
             return this.holders.size();
+        }
+
+        @Override
+        public String toString() {
+            return String.format("IndexQuery{%s}", this.holders);
         }
     }
 

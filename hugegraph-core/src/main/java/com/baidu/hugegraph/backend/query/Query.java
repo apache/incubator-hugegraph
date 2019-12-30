@@ -106,6 +106,14 @@ public class Query implements Cloneable {
         return this.originQuery;
     }
 
+    public Query rootOriginQuery() {
+        Query root = this;
+        while (root.originQuery != null) {
+            root = root.originQuery;
+        }
+        return root;
+    }
+
     protected void originQuery(Query originQuery) {
         this.originQuery = originQuery;
     }
@@ -384,7 +392,7 @@ public class Query implements Cloneable {
         }
 
         StringBuilder sb = new StringBuilder(64);
-        sb.append("Query for ").append(this.resultType);
+        sb.append("`Query for ").append(this.resultType);
         for (Map.Entry<String, Object> entry : pairs.entrySet()) {
             sb.append(' ').append(entry.getKey())
               .append(' ').append(entry.getValue()).append(',');
@@ -393,6 +401,25 @@ public class Query implements Cloneable {
             // Delete last comma
             sb.deleteCharAt(sb.length() - 1);
         }
+
+        if (!this.empty()) {
+            sb.append(" where");
+        }
+
+        // Append ids
+        if (!this.ids().isEmpty()) {
+            sb.append(" id in ").append(this.ids());
+        }
+
+        // Append conditions
+        if (!this.conditions().isEmpty()) {
+            if (!this.ids().isEmpty()) {
+                sb.append(" and");
+            }
+            sb.append(" ").append(this.conditions());
+        }
+
+        sb.append('`');
         return sb.toString();
     }
 

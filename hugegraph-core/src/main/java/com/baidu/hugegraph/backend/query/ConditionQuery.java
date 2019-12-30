@@ -133,13 +133,6 @@ public final class ConditionQuery extends IdQuery {
         this.conditions = new LinkedHashSet<>();
     }
 
-    @Override
-    public String toString() {
-        return String.format("%s and %s",
-                             super.toString(),
-                             this.conditions.toString());
-    }
-
     public List<Condition.Relation> relations() {
         List<Condition.Relation> relations = new ArrayList<>();
         for (Condition c : this.conditions) {

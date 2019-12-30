@@ -484,14 +484,19 @@ public class GraphIndexTransaction extends AbstractTransaction {
     @Watched(prefix = "index")
     private IdHolder doSingleOrCompositeIndex(IndexQueries queries) {
         assert queries.size() == 1;
-        Map.Entry<IndexLabel, ConditionQuery> e = queries.one();
-        IndexLabel indexLabel = e.getKey();
-        ConditionQuery query = e.getValue();
+        Map.Entry<IndexLabel, ConditionQuery> entry = queries.one();
+        IndexLabel indexLabel = entry.getKey();
+        ConditionQuery query = entry.getValue();
         return this.doIndexQuery(indexLabel, query);
     }
 
     @Watched(prefix = "index")
     private IdHolder doJointIndex(IndexQueries queries) {
+        if (queries.bigCapacity()) {
+            LOG.warn("There is OOM risk if the joint operation is based on a " +
+                     "large amount of data, please use single index + filter " +
+                     "instead of joint index: {}", queries.rootQuery());
+        }
         // All queries are joined with AND
         Set<Id> intersectIds = null;
         for (Map.Entry<IndexLabel, ConditionQuery> e : queries.entrySet()) {
@@ -1334,31 +1339,55 @@ public class GraphIndexTransaction extends AbstractTransaction {
             return indexQueries;
         }
 
+        public boolean bigCapacity() {
+            for (Query subQuery : this.values()) {
+                if (subQuery.bigCapacity()) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         public Map.Entry<IndexLabel, ConditionQuery> one() {
             E.checkState(this.size() == 1,
                          "Please ensure index queries only contains one entry");
             return this.entrySet().iterator().next();
         }
 
-        public Query asQuery() {
-            return new JointQuery(HugeType.UNKNOWN);
+        public Query rootQuery() {
+            if (this.size() > 0) {
+                return this.values().iterator().next().rootOriginQuery();
+            }
+            return null;
         }
 
-        private class JointQuery extends Query {
+        public Query asQuery() {
+            @SuppressWarnings({ "unchecked", "rawtypes" })
+            Collection<Query> queries = (Collection) this.values();;
+            return new JointQuery(this.rootQuery().resultType(), queries);
+        }
 
-            public JointQuery(HugeType resultType) {
-                super(resultType);
+        private static class JointQuery extends Query {
+
+            private final Collection<Query> queries;
+
+            public JointQuery(HugeType type, Collection<Query> queries) {
+                super(type);
+                this.queries = queries;
+            }
+
+            @Override
+            public Query originQuery() {
+                List<Query> origins = new ArrayList<>();
+                for (Query q : this.queries) {
+                    origins.add(q.originQuery());
+                }
+                return new JointQuery(this.resultType(), origins);
             }
 
             @Override
             public String toString() {
-                Collection<ConditionQuery> subs = values();
-                List<Query> origin = new ArrayList<>();
-                for (ConditionQuery sub : subs) {
-                    origin.add(sub.originQuery());
-                }
-                return String.format("JointQuery{origin=%s, subs=%s}",
-                                     origin, subs);
+                return String.format("JointQuery %s", this.queries);
             }
         }
     }

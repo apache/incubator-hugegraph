@@ -52,8 +52,9 @@ public abstract class IdHolder {
 
     @Override
     public String toString() {
-        return String.format("%s{%s}",
-                             this.getClass().getSimpleName(), this.query);
+        return String.format("%s{origin:%s,final:%s}",
+                             this.getClass().getSimpleName(),
+                             this.query.originQuery(), this.query);
     }
 
     public abstract boolean paging();

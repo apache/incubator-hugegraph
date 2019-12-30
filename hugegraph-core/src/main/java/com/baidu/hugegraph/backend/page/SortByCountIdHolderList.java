@@ -77,6 +77,12 @@ public class SortByCountIdHolderList extends IdHolderList {
         public Set<Id> all() {
             return CollectionUtil.sortByValue(this.ids, false).keySet();
         }
+
+        @Override
+        public String toString() {
+            return String.format("%s{merged:%s}",
+                                 this.getClass().getSimpleName(), this.query);
+        }
     }
 
     private class MergedQuery extends Query {

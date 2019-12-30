@@ -403,6 +403,7 @@ public class GraphTransaction extends IndexableTransaction {
     @Override
     public QueryResults query(Query query) {
         if (!(query instanceof ConditionQuery)) {
+            LOG.debug("Query{final:{}}", query);
             return super.query(query);
         }
 
@@ -422,6 +423,7 @@ public class GraphTransaction extends IndexableTransaction {
             }
         }
 
+        LOG.debug("{}", queries);
         return queries.empty() ? QueryResults.empty() :
                                  queries.fetch(this.pageSize);
     }
