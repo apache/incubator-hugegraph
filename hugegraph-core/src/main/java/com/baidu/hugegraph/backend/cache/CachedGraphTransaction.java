@@ -196,9 +196,10 @@ public final class CachedGraphTransaction extends GraphTransaction {
         }
 
         Id cacheKey = new QueryId(query);
-        @SuppressWarnings("unchecked")
-        List<HugeEdge> edges = (List<HugeEdge>) this.edgesCache.get(cacheKey);
-        if (edges != null) {
+        Object value = this.edgesCache.get(cacheKey);
+        if (value != null) {
+            @SuppressWarnings("unchecked")
+            Collection<HugeEdge> edges = (Collection<HugeEdge>) value;
             return edges.iterator();
         } else {
             Iterator<HugeEdge> rs = super.queryEdgesFromBackend(query);
@@ -207,7 +208,7 @@ public final class CachedGraphTransaction extends GraphTransaction {
              * Generally there are not too much data with id query
              */
             ListIterator<HugeEdge> listIterator = QueryResults.toList(rs);
-            edges = listIterator.list();
+            Collection<HugeEdge> edges = listIterator.list();
             if (edges.size() == 0) {
                 this.edgesCache.update(cacheKey, Collections.emptyList());
             } else if (edges.size() <= MAX_CACHE_EDGES_PER_QUERY) {
