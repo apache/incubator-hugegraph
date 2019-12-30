@@ -1402,6 +1402,77 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
     }
 
     @Test
+    public void testRebuildIndexOfVertexWithoutLabelIndex() {
+        Assume.assumeFalse("Support query by label",
+                           storeFeatures().supportsQueryByLabel());
+
+        initDataWithoutLabelIndex();
+        List<Vertex> vertices = graph().traversal().V()
+                                       .has("city", "Shanghai").toList();
+        Assert.assertEquals(10, vertices.size());
+
+        graph().schema().indexLabel("readerByCity").rebuild();
+
+        vertices = graph().traversal().V()
+                          .has("city", "Shanghai").toList();
+        Assert.assertEquals(10, vertices.size());
+    }
+
+    @Test
+    public void testRebuildIndexOfEdgeWithoutLabelIndex() {
+        Assume.assumeFalse("Support query by label",
+                           storeFeatures().supportsQueryByLabel());
+
+        initDataWithoutLabelIndex();
+        List<Edge> edges = graph().traversal().E()
+                                  .has("date", P.lt("2019-12-30 13:00:00"))
+                                  .toList();
+        Assert.assertEquals(20, edges.size());
+
+        graph().schema().indexLabel("readByDate").rebuild();
+
+        edges = graph().traversal().E()
+                       .has("date", P.lt("2019-12-30 13:00:00")).toList();
+        Assert.assertEquals(20, edges.size());
+    }
+
+    @Test
+    public void testRemoveIndexLabelOfVertexWithoutLabelIndex() {
+        Assume.assumeFalse("Support query by label",
+                           storeFeatures().supportsQueryByLabel());
+
+        initDataWithoutLabelIndex();
+        List<Vertex> vertices = graph().traversal().V()
+                                       .has("city", "Shanghai").toList();
+        Assert.assertEquals(10, vertices.size());
+
+        graph().schema().indexLabel("readerByCity").remove();
+
+        Assert.assertThrows(NoIndexException.class, () ->
+                graph().traversal().V().has("city", "Shanghai").toList()
+        );
+    }
+
+    @Test
+    public void testRemoveIndexLabelOfEdgeWithoutLabelIndex() {
+        Assume.assumeFalse("Support query by label",
+                           storeFeatures().supportsQueryByLabel());
+
+        initDataWithoutLabelIndex();
+        List<Edge> edges = graph().traversal().E()
+                                  .has("date", P.lt("2019-12-30 13:00:00"))
+                                  .toList();
+        Assert.assertEquals(20, edges.size());
+
+        graph().schema().indexLabel("readByDate").remove();
+
+        Assert.assertThrows(NoIndexException.class, () ->
+                graph().traversal().E()
+                       .has("date", P.lt("2019-12-30 13:00:00")).toList()
+        );
+    }
+
+    @Test
     public void testAddIndexLabelWithUserdata() {
         super.initPropertyKeys();
         SchemaManager schema = graph().schema();

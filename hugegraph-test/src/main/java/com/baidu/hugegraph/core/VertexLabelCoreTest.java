@@ -840,6 +840,40 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
     }
 
     @Test
+    public void testRebuildIndexOfVertexLabelWithoutLabelIndex() {
+        Assume.assumeFalse("Support query by label",
+                           storeFeatures().supportsQueryByLabel());
+        initDataWithoutLabelIndex();
+        List<Vertex> vertices = graph().traversal().V()
+                                       .has("city", "Shanghai").toList();
+        Assert.assertEquals(10, vertices.size());
+
+        graph().schema().vertexLabel("reader").rebuildIndex();
+
+        vertices = graph().traversal().V()
+                          .has("city", "Shanghai").toList();
+        Assert.assertEquals(10, vertices.size());
+    }
+
+    @Test
+    public void testRemoveVertexLabelWithoutLabelIndex() {
+        Assume.assumeFalse("Support query by label",
+                           storeFeatures().supportsQueryByLabel());
+
+        initDataWithoutLabelIndex();
+        List<Vertex> vertices = graph().traversal().V()
+                                       .has("city", "Shanghai").toList();
+        Assert.assertEquals(10, vertices.size());
+
+        graph().schema().edgeLabel("read").remove();
+        graph().schema().vertexLabel("reader").remove();
+
+        Assert.assertThrows(NoIndexException.class, () ->
+                graph().traversal().V().has("city", "Shanghai").toList()
+        );
+    }
+
+    @Test
     public void testAddVertexLabelWithUserdata() {
         super.initPropertyKeys();
         SchemaManager schema = graph().schema();

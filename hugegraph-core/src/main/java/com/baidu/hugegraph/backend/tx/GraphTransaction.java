@@ -91,7 +91,7 @@ import com.google.common.collect.ImmutableList;
 public class GraphTransaction extends IndexableTransaction {
 
     public static final int COMMIT_BATCH = 500;
-    private static final long TRAVERSE_BATCH = 100_000L;
+    private final int traverseBatch;
 
     private final GraphIndexTransaction indexTx;
 
@@ -127,6 +127,7 @@ public class GraphTransaction extends IndexableTransaction {
                                 CoreOptions.VERTEX_CHECK_CUSTOMIZED_ID_EXIST);
         this.verticesCapacity = conf.get(CoreOptions.VERTEX_TX_CAPACITY);
         this.edgesCapacity = conf.get(CoreOptions.EDGE_TX_CAPACITY);
+        this.traverseBatch = conf.get(CoreOptions.QUERY_TRAVERSE_BATCH);
         this.locksTable = new LockUtil.LocksTable(graph.name());
     }
 
@@ -1528,7 +1529,7 @@ public class GraphTransaction extends IndexableTransaction {
         } else {
             // Not support label index, query all and filter by label
             if (query.paging()) {
-                query.limit(TRAVERSE_BATCH);
+                query.limit(this.traverseBatch);
             }
             String page = null;
             do {
@@ -1538,10 +1539,14 @@ public class GraphTransaction extends IndexableTransaction {
                     SchemaLabel elemLabel = ((HugeElement) e).schemaLabel();
                     if (label.equals(elemLabel)) {
                         consumer.accept(e);
+                        if (deleting) {
+                            this.commit();
+                        }
                     }
                 }
                 if (query.paging()) {
                     page = PageInfo.pageState(iter).toString();
+                    query.page(page);
                 }
             } while (page != null);
         }
