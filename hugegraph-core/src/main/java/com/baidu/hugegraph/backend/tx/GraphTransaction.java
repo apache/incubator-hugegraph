@@ -66,6 +66,7 @@ import com.baidu.hugegraph.iterator.BatchMapperIterator;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.iterator.FilterIterator;
 import com.baidu.hugegraph.iterator.FlatMapperIterator;
+import com.baidu.hugegraph.iterator.ListIterator;
 import com.baidu.hugegraph.iterator.MapperIterator;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.EdgeLabel;
@@ -774,8 +775,11 @@ public class GraphTransaction extends IndexableTransaction {
             if (query.ids().size() == 1) {
                 assert vertex.getEdges().size() == 1;
             }
-            // Copy to avoid ConcurrentModificationException when removing edge
-            return ImmutableList.copyOf(vertex.getEdges()).iterator();
+            /*
+             * Copy to avoid ConcurrentModificationException when removing edge
+             * because HugeEdge.remove() will update edges in owner vertex
+             */
+            return new ListIterator<>(ImmutableList.copyOf(vertex.getEdges()));
         });
 
         if (!this.store().features().supportsQuerySortByInputIds()) {
