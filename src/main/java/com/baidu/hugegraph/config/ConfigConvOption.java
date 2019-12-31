@@ -21,27 +21,29 @@ package com.baidu.hugegraph.config;
 
 import java.util.function.Function;
 
+import com.baidu.hugegraph.util.E;
 import com.google.common.base.Predicate;
 
-public class ConfigConvOption<R> extends TypedOption<String, R> {
+public class ConfigConvOption<T, R> extends TypedOption<T, R> {
 
-    private final Function<String, R> converter;
+    private final Function<T, R> converter;
 
-    public ConfigConvOption(String name, String desc, Predicate<String> pred,
-                            Function<String, R> convert, String value) {
+    public ConfigConvOption(String name, String desc, Predicate<T> pred,
+                            Function<T, R> convert, T value) {
         this(name, false, desc, pred, convert, value);
     }
 
+    @SuppressWarnings("unchecked")
     public ConfigConvOption(String name, boolean required, String desc,
-                            Predicate<String> pred, Function<String, R> convert,
-                            String value) {
-        super(name, required, desc, pred, String.class, value);
+                            Predicate<T> pred, Function<T, R> convert,
+                            T value) {
+        super(name, required, desc, pred, (Class<T>) value.getClass(), value);
+        E.checkNotNull(convert, "convert");
         this.converter = convert;
     }
 
     @Override
-    public R convert(Object value) {
-        assert value instanceof String;
-        return this.converter.apply((String) value);
+    public R convert(T value) {
+        return this.converter.apply(value);
     }
 }

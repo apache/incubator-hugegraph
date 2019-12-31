@@ -35,15 +35,8 @@ public class ConfigListConvOption<T, R> extends TypedOption<List<T>, List<R>> {
     @SuppressWarnings("unchecked")
     public ConfigListConvOption(String name, String desc,
                                 Predicate<List<T>> pred, Function<T, R> convert,
-                                T value) {
-        this(name, desc, pred, convert, (Class<T>) value.getClass(), value);
-    }
-
-    @SuppressWarnings("unchecked")
-    public ConfigListConvOption(String name, String desc,
-                                Predicate<List<T>> pred, Function<T, R> convert,
-                                Class<T> clazz, T... values) {
-        this(name, false, desc, pred, convert, clazz, Arrays.asList(values));
+                                T... values) {
+        this(name, false, desc, pred, convert, null, Arrays.asList(values));
     }
 
     @SuppressWarnings("unchecked")
@@ -52,21 +45,33 @@ public class ConfigListConvOption<T, R> extends TypedOption<List<T>, List<R>> {
                                 Class<T> clazz, List<T> values) {
         super(name, required, desc, pred,
               (Class<List<T>>) values.getClass(), values);
+        E.checkNotNull(convert, "convert");
+        if (clazz == null && values.size() > 0) {
+            clazz = (Class<T>) values.get(0).getClass();
+        }
         E.checkArgumentNotNull(clazz, "Element class can't be null");
         this.elemClass = clazz;
         this.converter = convert;
     }
 
     @Override
-    public List<R> convert(Object value) {
-        List<T> results = ConfigListOption.convert(value, part -> {
-            return super.convert(part, this.elemClass);
-        });
+    protected boolean forList() {
+        return true;
+    }
 
-        List<R> enums = new ArrayList<>(results.size());
-        for (T elem : results) {
-            enums.add(this.converter.apply(elem));
+    @Override
+    protected List<T> parse(Object value) {
+        return ConfigListOption.convert(value, part -> {
+            return this.parse(part, this.elemClass);
+        });
+    }
+
+    @Override
+    public List<R> convert(List<T> values) {
+        List<R> results = new ArrayList<>(values.size());
+        for (T value : values) {
+            results.add(this.converter.apply(value));
         }
-        return enums;
+        return results;
     }
 }

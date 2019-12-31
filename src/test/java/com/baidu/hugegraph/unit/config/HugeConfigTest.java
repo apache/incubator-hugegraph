@@ -28,6 +28,7 @@ import static com.baidu.hugegraph.config.OptionChecker.rangeDouble;
 import static com.baidu.hugegraph.config.OptionChecker.rangeInt;
 
 import java.util.Arrays;
+import java.util.List;
 
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.PropertiesConfiguration;
@@ -35,6 +36,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.baidu.hugegraph.config.ConfigConvOption;
+import com.baidu.hugegraph.config.ConfigException;
 import com.baidu.hugegraph.config.ConfigListConvOption;
 import com.baidu.hugegraph.config.ConfigListOption;
 import com.baidu.hugegraph.config.ConfigOption;
@@ -44,16 +46,49 @@ import com.baidu.hugegraph.config.OptionSpace;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.testutil.Whitebox;
 import com.baidu.hugegraph.unit.BaseUnitTest;
+import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 public class HugeConfigTest extends BaseUnitTest {
 
-    private static final String CONF =
-            "src/test/java/com/baidu/hugegraph/unit/config/test.conf";
+    private static final String PATH =
+                         "src/test/java/com/baidu/hugegraph/unit/config/";
+    private static final String CONF = PATH + "test.conf";
 
     @BeforeClass
     public static void init() {
         OptionSpace.register("test", TestOptions.class.getName());
+    }
+
+    @Test
+    public void testOptionDataType() {
+        Assert.assertEquals(String.class, TestOptions.text1.dataType());
+        Assert.assertEquals(Integer.class, TestOptions.int1.dataType());
+        Assert.assertEquals(Long.class, TestOptions.long1.dataType());
+        Assert.assertEquals(Float.class, TestOptions.float1.dataType());
+        Assert.assertEquals(Double.class, TestOptions.double1.dataType());
+        Assert.assertEquals(Boolean.class, TestOptions.bool.dataType());
+
+        Assert.assertEquals(List.class, TestOptions.list.dataType());
+        Assert.assertEquals(List.class, TestOptions.map.dataType());
+
+        Assert.assertEquals(String.class, TestOptions.weekday.dataType());
+        Assert.assertEquals(List.class, TestOptions.weekdays.dataType());
+    }
+
+    @Test
+    public void testOptionDesc() {
+        Assert.assertEquals("description of group1.text1",
+                            TestOptions.text1.desc());
+        Assert.assertEquals("description of group1.text2 sub",
+                            TestSubOptions.text2.desc());
+    }
+
+    @Test
+    public void testOptionRequired() {
+        Assert.assertEquals(false, TestOptions.text1.required());
+        Assert.assertEquals(true, TestSubOptions.text2.required());
     }
 
     @Test
@@ -84,6 +119,126 @@ public class HugeConfigTest extends BaseUnitTest {
     }
 
     @Test
+    public void testOptionWithError() {
+        Assert.assertThrows(ConfigException.class, () -> {
+            new ConfigOption<>(
+                    "group1.text",
+                    "description of group1.text",
+                    disallowEmpty(),
+                    ""
+            );
+        });
+
+        Assert.assertThrows(ConfigException.class, () -> {
+            new ConfigOption<>(
+                    "group1.choice",
+                    "description of group1.choice",
+                    allowValues("CHOICE-1", "CHOICE-2", "CHOICE-3"),
+                    "CHOICE-4"
+            );
+        });
+
+        Assert.assertThrows(ConfigException.class, () -> {
+            new ConfigListOption<>(
+                    "group1.list",
+                    true,
+                    "description of group1.list",
+                    disallowEmpty(),
+                    String.class,
+                    ImmutableList.of()
+            );
+        });
+
+        Assert.assertThrows(ConfigException.class, () -> {
+            new ConfigOption<>(
+                    "group1.int",
+                    "description of group1.int",
+                    positiveInt(),
+                    0
+            );
+        });
+
+        Assert.assertThrows(ConfigException.class, () -> {
+            new ConfigOption<>(
+                    "group1.int",
+                    "description of group1.int",
+                    nonNegativeInt(),
+                    -1
+            );
+        });
+
+        Assert.assertThrows(ConfigException.class, () -> {
+            new ConfigOption<>(
+                    "group1.long",
+                    "description of group1.long",
+                    rangeInt(1L, 100L),
+                    0L
+            );
+        });
+
+        Assert.assertThrows(ConfigException.class, () -> {
+            new ConfigOption<>(
+                    "group1.long",
+                    "description of group1.long",
+                    rangeInt(1L, 100L),
+                    101L
+            );
+        });
+
+        Assert.assertThrows(ConfigException.class, () -> {
+            new ConfigOption<>(
+                    "group1.double",
+                    "description of group1.double",
+                    rangeDouble(1D, 10D),
+                    0D
+            );
+        });
+
+        Assert.assertThrows(ConfigException.class, () -> {
+            new ConfigOption<>(
+                    "group1.double",
+                    "description of group1.double",
+                    rangeDouble(1D, 10D),
+                    11D
+            );
+        });
+
+        Assert.assertThrows(ConfigException.class, () -> {
+            new ConfigListOption<>(
+                    "group1.list",
+                    "description of list with invalid default values",
+                    disallowEmpty()
+            );
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            new ConfigListOption<>(
+                    "group1.list",
+                    "description of list with invalid default values",
+                    null
+            );
+        });
+
+        Assert.assertThrows(ConfigException.class, () -> {
+            new ConfigListConvOption<String, WeekDay>(
+                    "group1.list_conv",
+                    "description of list_conv with invalid default values",
+                    disallowEmpty(),
+                    s -> WeekDay.valueOf(s)
+            );
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            new ConfigListConvOption<String, WeekDay>(
+                    "group1.list_conv",
+                    "description of list_conv with invalid default values",
+                    null,
+                    s -> WeekDay.valueOf(s)
+            );
+        });
+    }
+
+    @Test
     public void testHugeConfig() throws Exception {
         Configuration conf = new PropertiesConfiguration();
         Whitebox.setInternalState(conf, "delimiterParsingDisabled", true);
@@ -105,15 +260,19 @@ public class HugeConfigTest extends BaseUnitTest {
 
         Assert.assertEquals(true, config.get(TestOptions.bool));
 
-        Assert.assertEquals(WeekDay.WEDNESDAY, config.get(TestOptions.weekday));
-        Assert.assertEquals(Arrays.asList(WeekDay.SATURDAY, WeekDay.SUNDAY),
-                            config.get(TestOptions.weekdays));
-
         Assert.assertEquals(Arrays.asList("list-value1", "list-value2"),
                             config.get(TestOptions.list));
 
         Assert.assertEquals(ImmutableMap.of("key1", "value1", "key2", "value2"),
                             config.getMap(TestOptions.map));
+
+        Assert.assertEquals(WeekDay.WEDNESDAY, config.get(TestOptions.weekday));
+        Assert.assertEquals(Arrays.asList(WeekDay.SATURDAY, WeekDay.SUNDAY),
+                            config.get(TestOptions.weekdays));
+
+        Assert.assertThrows(ConfigException.class, () -> {
+            new HugeConfig((Configuration) null);
+        });
     }
 
     @Test
@@ -140,6 +299,10 @@ public class HugeConfigTest extends BaseUnitTest {
 
         Assert.assertEquals(ImmutableMap.of("key1", "value1", "key3", "value3"),
                             config.getMap(TestOptions.map));
+
+        Assert.assertEquals(WeekDay.SUNDAY, config.get(TestOptions.weekday));
+        Assert.assertEquals(Arrays.asList(WeekDay.SATURDAY, WeekDay.FRIDAY),
+                            config.get(TestOptions.weekdays));
     }
 
     @Test
@@ -166,6 +329,36 @@ public class HugeConfigTest extends BaseUnitTest {
                             config.get(TestSubOptions.textsub));
     }
 
+    @Test
+    public void testHugeConfigWithTypeError() {
+        OptionSpace.register("test-type-error",
+                             TestOptionsWithTypeError.class.getName());
+
+        Assert.assertThrows(ConfigException.class, () -> {
+            new HugeConfig(PATH + "test-type-error.conf");
+        });
+    }
+
+    @Test
+    public void testHugeConfigWithCheckError() throws Exception {
+        OptionSpace.register("test-check-error",
+                             TestOptionsWithCheckError.class.getName());
+
+        Assert.assertThrows(ConfigException.class, () -> {
+            new HugeConfig(PATH + "test-check-error.conf");
+        });
+    }
+
+    @Test
+    public void testHugeConfigWithListOptionError() throws Exception {
+        OptionSpace.register("test-list-error",
+                             TestOptionsWithListError.class.getName());
+
+        Assert.assertThrows(IllegalStateException.class, () -> {
+            new HugeConfig(PATH + "test-list-error.conf");
+        });
+    }
+
     public static class TestOptions extends OptionHolder {
 
         private static volatile TestOptions instance;
@@ -190,7 +383,6 @@ public class HugeConfigTest extends BaseUnitTest {
                 new ConfigOption<>(
                         "group1.text2",
                         "description of group1.text2",
-                        disallowEmpty(),
                         "text2-value"
                 );
 
@@ -258,7 +450,7 @@ public class HugeConfigTest extends BaseUnitTest {
                         true
                 );
 
-        public static final ConfigConvOption<WeekDay> weekday =
+        public static final ConfigConvOption<String, WeekDay> weekday =
                 new ConfigConvOption<>(
                         "group1.weekday",
                         "description of group1.weekday",
@@ -275,7 +467,6 @@ public class HugeConfigTest extends BaseUnitTest {
                         inValues("SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY",
                                  "THURSDAY", "FRIDAY", "SATURDAY"),
                         WeekDay::valueOf,
-                        String.class,
                         "SATURDAY", "SUNDAY"
                 );
 
@@ -284,7 +475,6 @@ public class HugeConfigTest extends BaseUnitTest {
                         "group1.list",
                         "description of group1.list",
                         disallowEmpty(),
-                        String.class,
                         "list-value1", "list-value2"
                 );
 
@@ -293,7 +483,6 @@ public class HugeConfigTest extends BaseUnitTest {
                         "group1.map",
                         "description of group1.map",
                         disallowEmpty(),
-                        String.class,
                         "key1:value1", "key2:value2"
                 );
     }
@@ -303,8 +492,10 @@ public class HugeConfigTest extends BaseUnitTest {
         public static final ConfigOption<String> text2 =
                 new ConfigOption<>(
                         "group1.text2",
-                        "description of group1.text2",
+                        true,
+                        "description of group1.text2 sub",
                         disallowEmpty(),
+                        String.class,
                         "text2-value-override"
                 );
 
@@ -315,6 +506,86 @@ public class HugeConfigTest extends BaseUnitTest {
                         disallowEmpty(),
                         "textsub-value"
                 );
+    }
+
+    public static class TestOptionsWithTypeError extends OptionHolder {
+
+        private static volatile TestOptionsWithTypeError instance;
+
+        public static synchronized TestOptionsWithTypeError instance() {
+            if (instance == null) {
+                instance = new TestOptionsWithTypeError();
+                instance.registerOptions();
+            }
+            return instance;
+        }
+
+        public static final ConfigOption<Integer> intError =
+                new ConfigOption<>(
+                        "group1.int_type_error",
+                        "description of group1.int_type_error",
+                        rangeInt(1, 100),
+                        1
+                );
+    }
+
+    public static class TestOptionsWithCheckError extends OptionHolder {
+
+        private static volatile TestOptionsWithCheckError instance;
+
+        public static synchronized TestOptionsWithCheckError instance() {
+            if (instance == null) {
+                instance = new TestOptionsWithCheckError();
+                instance.registerOptions();
+            }
+            return instance;
+        }
+
+        public static final ConfigOption<Integer> intError =
+                new ConfigOption<>(
+                        "group1.int_check_error",
+                        "description of group1.int_check_error",
+                        rangeInt(1, 100),
+                        1
+                );
+    }
+
+    public static class TestOptionsWithListError extends OptionHolder {
+
+        private static volatile TestOptionsWithListError instance;
+
+        public static synchronized TestOptionsWithListError instance() {
+            if (instance == null) {
+                instance = new TestOptionsWithListError();
+                instance.registerOptions();
+            }
+            return instance;
+        }
+
+        public static final InvalidConfigListOption<Integer> listError =
+                new InvalidConfigListOption<>(
+                        "group1.list_for_list_error",
+                        "description of group1.list_for_list_error",
+                        disallowEmpty(),
+                        1
+                );
+
+        static class InvalidConfigListOption<T> extends ConfigOption<List<T>> {
+
+            @SuppressWarnings("unchecked")
+            public InvalidConfigListOption(String name, String desc,
+                                           Predicate<List<T>> pred,
+                                           T... values) {
+                super(name, false, desc, pred,
+                      (Class<List<T>>) Arrays.asList(values).getClass(),
+                      Arrays.asList(values));
+            }
+
+            @Override
+            protected boolean forList() {
+                return false;
+            }
+        }
     }
 
     public enum WeekDay {

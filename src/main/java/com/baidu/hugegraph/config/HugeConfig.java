@@ -48,9 +48,6 @@ public class HugeConfig extends PropertiesConfiguration {
         Iterator<String> keys = config.getKeys();
         while (keys.hasNext()) {
             String key = keys.next();
-            if (key.contains("..")) {
-                key = key.replace("..", ".");
-            }
             this.addProperty(key, config.getProperty(key));
         }
         this.checkRequiredOptions();
@@ -145,17 +142,7 @@ public class HugeConfig extends PropertiesConfiguration {
                         "Invalid value for key '%s': %s", key, value);
 
         TypedOption<?, ?> option = OptionSpace.get(key);
-        Class<?> dataType = option.dataType();
-
-        if (List.class.isAssignableFrom(dataType)) {
-            E.checkState(option instanceof ConfigListOption,
-                         "List option must be registered with " +
-                         "class ConfigListOption");
-        }
-
-        value = option.convert(value);
-        option.check(value);
-        return value;
+        return option.parseConvert(value);
     }
 
     private void checkRequiredOptions() {

@@ -40,6 +40,10 @@ public class OptionHolder {
 
     protected void registerOptions() {
         for (Field field : this.getClass().getFields()) {
+            if (!TypedOption.class.isAssignableFrom(field.getType())) {
+                // Skip if not option
+                continue;
+            }
             try {
                 TypedOption<?, ?> option = (TypedOption<?, ?>) field.get(this);
                 // Fields of subclass first, don't overwrite by superclass
