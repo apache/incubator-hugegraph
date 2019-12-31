@@ -127,7 +127,7 @@ public class GraphTransaction extends IndexableTransaction {
                                 CoreOptions.VERTEX_CHECK_CUSTOMIZED_ID_EXIST);
         this.verticesCapacity = conf.get(CoreOptions.VERTEX_TX_CAPACITY);
         this.edgesCapacity = conf.get(CoreOptions.EDGE_TX_CAPACITY);
-        this.traverseBatch = conf.get(CoreOptions.QUERY_TRAVERSE_BATCH);
+        this.traverseBatch = conf.get(CoreOptions.QUERY_PAGE_SIZE);
         this.locksTable = new LockUtil.LocksTable(graph.name());
     }
 

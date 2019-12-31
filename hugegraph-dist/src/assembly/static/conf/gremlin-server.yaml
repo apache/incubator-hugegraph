@@ -20,7 +20,8 @@ scriptEngines: {
         classImports: [
           java.lang.Math,
           com.baidu.hugegraph.util.DateUtil,
-          com.baidu.hugegraph.traversal.optimize.Text
+          com.baidu.hugegraph.traversal.optimize.Text,
+          com.baidu.hugegraph.traversal.optimize.TraversalUtil
         ],
         methodImports: [java.lang.Math#*]
       },

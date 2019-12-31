@@ -843,7 +843,19 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
     public void testRebuildIndexOfVertexLabelWithoutLabelIndex() {
         Assume.assumeFalse("Support query by label",
                            storeFeatures().supportsQueryByLabel());
+
         initDataWithoutLabelIndex();
+
+        // Not support query by label
+        Assert.assertThrows(NoIndexException.class, () -> {
+            graph().traversal().V().hasLabel("reader").toList();
+        }, e -> {
+            Assert.assertTrue(
+                   e.getMessage().startsWith("Don't accept query by label") &&
+                   e.getMessage().endsWith("it disables label index"));
+        });
+
+        // Query by property index is ok
         List<Vertex> vertices = graph().traversal().V()
                                        .has("city", "Shanghai").toList();
         Assert.assertEquals(10, vertices.size());
@@ -861,6 +873,17 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
                            storeFeatures().supportsQueryByLabel());
 
         initDataWithoutLabelIndex();
+
+        // Not support query by label
+        Assert.assertThrows(NoIndexException.class, () -> {
+            graph().traversal().V().hasLabel("reader").toList();
+        }, e -> {
+            Assert.assertTrue(
+                   e.getMessage().startsWith("Don't accept query by label") &&
+                   e.getMessage().endsWith("it disables label index"));
+        });
+
+        // Query by property index is ok
         List<Vertex> vertices = graph().traversal().V()
                                        .has("city", "Shanghai").toList();
         Assert.assertEquals(10, vertices.size());

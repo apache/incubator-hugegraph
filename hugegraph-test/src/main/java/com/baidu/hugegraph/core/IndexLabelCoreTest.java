@@ -1407,6 +1407,17 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
                            storeFeatures().supportsQueryByLabel());
 
         initDataWithoutLabelIndex();
+
+        // Not support query by label
+        Assert.assertThrows(NoIndexException.class, () -> {
+            graph().traversal().V().hasLabel("reader").toList();
+        }, e -> {
+            Assert.assertTrue(
+                   e.getMessage().startsWith("Don't accept query by label") &&
+                   e.getMessage().endsWith("it disables label index"));
+        });
+
+        // Query by property index is ok
         List<Vertex> vertices = graph().traversal().V()
                                        .has("city", "Shanghai").toList();
         Assert.assertEquals(10, vertices.size());
@@ -1424,6 +1435,17 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
                            storeFeatures().supportsQueryByLabel());
 
         initDataWithoutLabelIndex();
+
+        // Not support query by label
+        Assert.assertThrows(NoIndexException.class, () -> {
+            graph().traversal().E().hasLabel("read").toList();
+        }, e -> {
+            Assert.assertTrue(
+                   e.getMessage().startsWith("Don't accept query by label") &&
+                   e.getMessage().endsWith("it disables label index"));
+        });
+
+        // Query by property index is ok
         List<Edge> edges = graph().traversal().E()
                                   .has("date", P.lt("2019-12-30 13:00:00"))
                                   .toList();
@@ -1442,6 +1464,17 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
                            storeFeatures().supportsQueryByLabel());
 
         initDataWithoutLabelIndex();
+
+        // Not support query by label
+        Assert.assertThrows(NoIndexException.class, () -> {
+            graph().traversal().V().hasLabel("reader").toList();
+        }, e -> {
+            Assert.assertTrue(
+                   e.getMessage().startsWith("Don't accept query by label") &&
+                   e.getMessage().endsWith("it disables label index"));
+        });
+
+        // Query by property index is ok
         List<Vertex> vertices = graph().traversal().V()
                                        .has("city", "Shanghai").toList();
         Assert.assertEquals(10, vertices.size());
@@ -1459,6 +1492,17 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
                            storeFeatures().supportsQueryByLabel());
 
         initDataWithoutLabelIndex();
+
+        // Not support query by label
+        Assert.assertThrows(NoIndexException.class, () -> {
+            graph().traversal().E().hasLabel("read").toList();
+        }, e -> {
+            Assert.assertTrue(
+                   e.getMessage().startsWith("Don't accept query by label") &&
+                   e.getMessage().endsWith("it disables label index"));
+        });
+
+        // Query by property index is ok
         List<Edge> edges = graph().traversal().E()
                                   .has("date", P.lt("2019-12-30 13:00:00"))
                                   .toList();

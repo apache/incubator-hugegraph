@@ -228,14 +228,6 @@ public class CoreOptions extends OptionHolder {
                     500
             );
 
-    public static final ConfigOption<Integer> QUERY_TRAVERSE_BATCH =
-            new ConfigOption<>(
-                    "query.traverse_batch",
-                    "The batch size of each page when query all using paging.",
-                    rangeInt(1, (int) Query.DEFAULT_CAPACITY),
-                    100_000
-            );
-
     public static final ConfigOption<Long> SNOWFLAKE_WORKER_ID =
             new ConfigOption<>(
                     "snowflake.worker_id",

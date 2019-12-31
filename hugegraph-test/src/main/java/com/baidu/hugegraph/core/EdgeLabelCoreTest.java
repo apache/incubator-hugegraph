@@ -881,6 +881,17 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
                            storeFeatures().supportsQueryByLabel());
 
         initDataWithoutLabelIndex();
+
+        // Not support query by label
+        Assert.assertThrows(NoIndexException.class, () -> {
+            graph().traversal().E().hasLabel("read").toList();
+        }, e -> {
+            Assert.assertTrue(
+                   e.getMessage().startsWith("Don't accept query by label") &&
+                   e.getMessage().endsWith("it disables label index"));
+        });
+
+        // Query by property index is ok
         List<Edge> edges = graph().traversal().E()
                                   .has("date", P.lt("2019-12-30 13:00:00"))
                                   .toList();
@@ -899,6 +910,17 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
                            storeFeatures().supportsQueryByLabel());
 
         initDataWithoutLabelIndex();
+
+        // Not support query by label
+        Assert.assertThrows(NoIndexException.class, () -> {
+            graph().traversal().E().hasLabel("read").toList();
+        }, e -> {
+            Assert.assertTrue(
+                   e.getMessage().startsWith("Don't accept query by label") &&
+                   e.getMessage().endsWith("it disables label index"));
+        });
+
+        // Query by property index is ok
         List<Edge> edges = graph().traversal().E()
                                   .has("date", P.lt("2019-12-30 13:00:00"))
                                   .toList();
