@@ -28,8 +28,8 @@ import org.junit.Test;
 
 import com.baidu.hugegraph.concurrent.AtomicLock;
 import com.baidu.hugegraph.concurrent.KeyLock;
-import com.baidu.hugegraph.concurrent.RowLock;
 import com.baidu.hugegraph.concurrent.LockGroup;
+import com.baidu.hugegraph.concurrent.RowLock;
 import com.baidu.hugegraph.testutil.Assert;
 
 public class LockGroupTest {
@@ -80,9 +80,9 @@ public class LockGroupTest {
 
     @Test
     public void testRowLock() {
-        RowLock lock = this.group.rowLock("lock");
+        RowLock<?> lock = this.group.rowLock("lock");
         Assert.assertNotNull(lock);
-        RowLock lock1 = this.group.rowLock("lock");
+        RowLock<?> lock1 = this.group.rowLock("lock");
         Assert.assertSame(lock, lock1);
     }
 

@@ -62,10 +62,9 @@ public class RowLockTest extends BaseUnitTest {
         lock.unlockAll(ImmutableSet.of(1, 2, 3));
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void testRowLockWithMultiThreads() {
-        RowLock lock = new RowLock();
+        RowLock<Integer> lock = new RowLock<>();
         Set<String> names = new HashSet<>(THREADS_NUM);
         List<Integer> keys = new ArrayList<>(5);
         Random random = new Random();
@@ -84,10 +83,9 @@ public class RowLockTest extends BaseUnitTest {
         Assert.assertEquals(THREADS_NUM, names.size());
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void testRowLockWithMultiThreadsWithRandomKey() {
-        RowLock lock = new RowLock();
+        RowLock<Integer> lock = new RowLock<>();
         Set<String> names = new HashSet<>(THREADS_NUM);
 
         Assert.assertEquals(0, names.size());

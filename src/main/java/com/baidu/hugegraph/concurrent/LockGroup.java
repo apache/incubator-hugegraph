@@ -71,11 +71,14 @@ public class LockGroup {
         return (KeyLock) this.locksMap.get(lockName);
     }
 
-    public RowLock rowLock(String lockName) {
+    public <K extends Comparable<K>> RowLock<K> rowLock(String lockName) {
         if (!this.locksMap.containsKey(lockName)) {
-            this.locksMap.putIfAbsent(lockName, new RowLock());
+            this.locksMap.putIfAbsent(lockName, new RowLock<>());
         }
-        return (RowLock) this.locksMap.get(lockName);
+        Object value = this.locksMap.get(lockName);
+        @SuppressWarnings("unchecked")
+        RowLock<K> lock = (RowLock<K>) value;
+        return lock;
     }
 
     public String name() {
