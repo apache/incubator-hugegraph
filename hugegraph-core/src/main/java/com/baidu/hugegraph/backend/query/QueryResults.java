@@ -104,7 +104,7 @@ public class QueryResults {
             return origin;
         }
         Set<Id> ids;
-        if (this.paging() || !this.mustSortByInputIds() ||
+        if (!this.mustSortByInputIds() || this.paging() ||
             (ids = this.queryIds()).size() <= 1) {
             /*
              * Return the original iterator if it's paging query or if the
@@ -136,6 +136,16 @@ public class QueryResults {
         for (Query query : this.queries) {
             Query origin = query.originQuery();
             if (query.paging() || origin != null && origin.paging()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @SuppressWarnings("unused")
+    private boolean bigCapacity() {
+        for (Query query : this.queries) {
+            if (query.bigCapacity()) {
                 return true;
             }
         }
