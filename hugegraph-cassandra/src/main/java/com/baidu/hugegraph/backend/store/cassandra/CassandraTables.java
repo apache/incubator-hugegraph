@@ -63,7 +63,7 @@ public class CassandraTables {
     private static final DataType TYPE_ID = DataType.blob();
     private static final DataType TYPE_PROP = DataType.blob();
 
-    private static final int COMMIT_DELETE_BATCH = Query.COMMIT_BATCH;
+    private static final long COMMIT_DELETE_BATCH = Query.COMMIT_BATCH;
 
     public static class Counters extends CassandraTable {
 
