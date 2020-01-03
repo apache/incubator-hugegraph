@@ -27,6 +27,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.commons.lang.NotImplementedException;
+
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Condition;
@@ -156,6 +158,12 @@ public class InMemoryDBTable extends BackendTable<BackendSession,
             iterator = this.dropTails(iterator, query.limit());
         }
         return iterator;
+    }
+
+    @Override
+    public Number queryNumber(BackendSession session, Query query) {
+        // TODO implement
+        throw new NotImplementedException("InMemoryDBTable.queryNumber");
     }
 
     protected Map<Id, BackendEntry> queryById(Set<Id> ids,

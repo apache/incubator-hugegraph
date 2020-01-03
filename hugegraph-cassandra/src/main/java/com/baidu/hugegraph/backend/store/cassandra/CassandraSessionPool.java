@@ -24,7 +24,7 @@ import java.util.Collection;
 import java.util.List;
 
 import com.baidu.hugegraph.backend.BackendException;
-import com.baidu.hugegraph.backend.store.BackendSession;
+import com.baidu.hugegraph.backend.store.BackendSession.AbstractBackendSession;
 import com.baidu.hugegraph.backend.store.BackendSessionPool;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.util.E;
@@ -134,7 +134,7 @@ public class CassandraSessionPool extends BackendSessionPool {
      * The Session class is a wrapper of driver Session
      * Expect every thread hold a its own session(wrapper)
      */
-    public final class Session extends BackendSession {
+    public final class Session extends AbstractBackendSession {
 
         private com.datastax.driver.core.Session session;
         private BatchStatement batch;

@@ -273,6 +273,12 @@ public class Example1 {
                 graph.traversal().E().hasLabel("write")
                      .group().by(__.inV().values("name")).toList());
 
+        System.out.println(">>>>num0.v="+
+                graph.traversal().V().count().toList());
+
+        System.out.println(">>>>num0.e="+
+                graph.traversal().E().count().toList());
+
         System.out.println(">>>>num1="+
                 graph.traversal().V().hasLabel("author","book").count().toList());
 

@@ -215,8 +215,8 @@ public class HbaseTables {
         }
 
         @Override
-        protected BackendEntryIterator newEntryIterator(RowIterator rows,
-                                                        Query query) {
+        protected BackendEntryIterator newEntryIterator(Query query,
+                                                        RowIterator rows) {
             return new BinaryEntryIterator<>(rows, query, (entry, row) -> {
                 assert row.size() == 1;
                 BackendColumn col = BackendColumn.of(row.getRow(), row.value());

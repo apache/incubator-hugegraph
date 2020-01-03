@@ -57,6 +57,8 @@ import org.apache.hadoop.hbase.client.Row;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.client.TableDescriptorBuilder;
+import org.apache.hadoop.hbase.client.coprocessor.AggregationClient;
+import org.apache.hadoop.hbase.client.coprocessor.LongColumnInterpreter;
 import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.filter.FilterList.Operator;
 import org.apache.hadoop.hbase.filter.MultiRowRangeFilter;
@@ -68,9 +70,10 @@ import org.apache.hadoop.hbase.util.VersionInfo;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumn;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendIterator;
-import com.baidu.hugegraph.backend.store.BackendSession;
+import com.baidu.hugegraph.backend.store.BackendSession.AbstractBackendSession;
 import com.baidu.hugegraph.backend.store.BackendSessionPool;
 import com.baidu.hugegraph.config.HugeConfig;
+import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.StringEncoding;
@@ -78,6 +81,9 @@ import com.baidu.hugegraph.util.VersionUtil;
 import com.google.common.util.concurrent.Futures;
 
 public class HbaseSessions extends BackendSessionPool {
+
+    private static final String COPROCESSOR_AGGR =
+            "org.apache.hadoop.hbase.coprocessor.AggregateImplementation";
 
     private final String namespace;
     private Connection hbase;
@@ -96,6 +102,15 @@ public class HbaseSessions extends BackendSessionPool {
         E.checkState(this.hbase != null, "HBase connection is not opened");
         TableName tableName = TableName.valueOf(this.namespace, table);
         return this.hbase.getTable(tableName);
+    }
+
+    private AggregationClient aggregationClient() {
+        Configuration hConfig = this.hbase.getConfiguration();
+        hConfig = HBaseConfiguration.create(hConfig);
+        // TODO: read from conf
+        hConfig.setLong("hbase.rpc.timeout", 600000);
+        hConfig.setLong("hbase.client.scanner.caching", 1000);
+        return new AggregationClient(hConfig);
     }
 
     @Override
@@ -181,14 +196,15 @@ public class HbaseSessions extends BackendSessionPool {
     }
 
     public void createTable(String table, List<byte[]> cfs) throws IOException {
-        TableDescriptorBuilder tb = TableDescriptorBuilder.newBuilder(
-                                    TableName.valueOf(this.namespace, table));
+        TableDescriptorBuilder tdb = TableDescriptorBuilder.newBuilder(
+                                     TableName.valueOf(this.namespace, table));
         for (byte[] cf : cfs) {
-            tb.setColumnFamily(ColumnFamilyDescriptorBuilder.newBuilder(cf)
-                                                            .build());
+            tdb.setColumnFamily(ColumnFamilyDescriptorBuilder.newBuilder(cf)
+                                                             .build());
         }
-        try (Admin admin = this.hbase.getAdmin()) {
-            admin.createTable(tb.build());
+        tdb.setCoprocessor(COPROCESSOR_AGGR);
+        try(Admin admin = this.hbase.getAdmin()) {
+            admin.createTable(tdb.build());
         }
     }
 
@@ -259,9 +275,142 @@ public class HbaseSessions extends BackendSessionPool {
     }
 
     /**
-     * Session for HBase
+     * Session interface for HBase
      */
-    public final class Session extends BackendSession {
+    public interface HbaseSession<R> {
+
+        /**
+         * Add a row record to a table
+         */
+        public abstract void put(String table, byte[] family, byte[] rowkey,
+                                 Collection<BackendColumn> columns);
+
+        /**
+         * Add a row record to a table(can be used when adding an index)
+         */
+        public abstract void put(String table, byte[] family,
+                                 byte[] rowkey, byte[] qualifier, byte[] value);
+
+        /**
+         * Delete a record by rowkey and qualifier from a table
+         */
+        public default void remove(String table, byte[] family,
+                                   byte[] rowkey, byte[] qualifier) {
+            this.remove(table, family, rowkey, qualifier, false);
+        }
+
+        /**
+         * Delete a record by rowkey and qualifier from a table,
+         * just delete the latest version of the specified column if need
+         */
+        public void remove(String table, byte[] family, byte[] rowkey,
+                           byte[] qualifier, boolean latestVersion);
+
+        /**
+         * Delete a record by rowkey from a table
+         */
+        public void delete(String table, byte[] family, byte[] rowkey);
+
+        /**
+         * Get a record by rowkey and qualifier from a table
+         */
+        public R get(String table, byte[] family, byte[] rowkey,
+                     byte[] qualifier);
+
+        /**
+         * Get a record by rowkey from a table
+         */
+        public R get(String table, byte[] family, byte[] rowkey);
+
+        /**
+         * Get multi records by rowkeys from a table
+         */
+        public R get(String table, byte[] family, Set<byte[]> rowkeys);
+
+        /**
+         * Scan all records from a table
+         */
+        public default R scan(String table, long limit) {
+            Scan scan = new Scan();
+            if (limit >= 0) {
+                scan.setFilter(new PageFilter(limit));
+            }
+            return this.scan(table, scan);
+        }
+
+        /**
+         * Scan records by rowkey prefix from a table
+         */
+        public default R scan(String table, byte[] prefix) {
+            return this.scan(table, prefix, true, prefix);
+        }
+
+        /**
+         * Scan records by multi rowkey prefixs from a table
+         */
+        public default R scan(String table, Set<byte[]> prefixs) {
+            FilterList orFilters = new FilterList(Operator.MUST_PASS_ONE);
+            for (byte[] prefix : prefixs) {
+                FilterList andFilters = new FilterList(Operator.MUST_PASS_ALL);
+                List<RowRange> ranges = new ArrayList<>();
+                ranges.add(new RowRange(prefix, true, null, true));
+                andFilters.addFilter(new MultiRowRangeFilter(ranges));
+                andFilters.addFilter(new PrefixFilter(prefix));
+
+                orFilters.addFilter(andFilters);
+            }
+
+            Scan scan = new Scan().setFilter(orFilters);
+            return this.scan(table, scan);
+        }
+
+        /**
+         * Scan records by rowkey start and prefix from a table
+         */
+        public default R scan(String table, byte[] startRow,
+                              boolean inclusiveStart, byte[] prefix) {
+            Scan scan = new Scan().withStartRow(startRow, inclusiveStart)
+                                  .setFilter(new PrefixFilter(prefix));
+            return this.scan(table, scan);
+        }
+
+        /**
+         * Scan records by rowkey range from a table
+         */
+        public default R scan(String table, byte[] startRow, byte[] stopRow) {
+            return this.scan(table, startRow, true, stopRow, false);
+        }
+
+        /**
+         * Scan records by rowkey range from a table
+         */
+        public default R scan(String table,
+                              byte[] startRow, boolean inclusiveStart,
+                              byte[] stopRow, boolean inclusiveStop) {
+            Scan scan = new Scan().withStartRow(startRow, inclusiveStart);
+            if (stopRow != null) {
+                scan.withStopRow(stopRow, inclusiveStop);
+            }
+            return this.scan(table, scan);
+        }
+
+        /**
+         * Inner scan: send scan request to HBase and get iterator
+         */
+        public R scan(String table, Scan scan);
+
+        /**
+         * Increase a counter by rowkey and qualifier to a table
+         */
+        public long increase(String table, byte[] family,
+                             byte[] rowkey, byte[] qualifier, long value);
+    }
+
+    /**
+     * Session implement for HBase
+     */
+    public class Session extends AbstractBackendSession
+                         implements HbaseSession<RowIterator> {
 
         private final Map<String, List<Row>> batch;
 
@@ -366,6 +515,7 @@ public class HbaseSessions extends BackendSessionPool {
         /**
          * Add a row record to a table
          */
+        @Override
         public void put(String table, byte[] family, byte[] rowkey,
                         Collection<BackendColumn> columns) {
             Put put = new Put(rowkey);
@@ -378,6 +528,7 @@ public class HbaseSessions extends BackendSessionPool {
         /**
          * Add a row record to a table(can be used when adding an index)
          */
+        @Override
         public void put(String table, byte[] family,
                         byte[] rowkey, byte[] qualifier, byte[] value) {
             Put put = new Put(rowkey);
@@ -386,17 +537,10 @@ public class HbaseSessions extends BackendSessionPool {
         }
 
         /**
-         * Delete a record by rowkey and qualifier from a table
-         */
-        public void remove(String table, byte[] family,
-                           byte[] rowkey, byte[] qualifier) {
-            this.remove(table, family, rowkey, qualifier, false);
-        }
-
-        /**
          * Delete a record by rowkey and qualifier from a table,
          * just delete the latest version of the specified column if need
          */
+        @Override
         public void remove(String table, byte[] family, byte[] rowkey,
                            byte[] qualifier, boolean latestVersion) {
             assert family != null;
@@ -417,6 +561,7 @@ public class HbaseSessions extends BackendSessionPool {
         /**
          * Delete a record by rowkey from a table
          */
+        @Override
         public void delete(String table, byte[] family, byte[] rowkey) {
             assert rowkey != null;
             Delete delete = new Delete(rowkey);
@@ -429,6 +574,7 @@ public class HbaseSessions extends BackendSessionPool {
         /**
          * Get a record by rowkey and qualifier from a table
          */
+        @Override
         public RowIterator get(String table, byte[] family,
                                byte[] rowkey, byte[] qualifier) {
             assert !this.hasChanges();
@@ -446,6 +592,7 @@ public class HbaseSessions extends BackendSessionPool {
         /**
          * Get a record by rowkey from a table
          */
+        @Override
         public RowIterator get(String table, byte[] family, byte[] rowkey) {
             assert !this.hasChanges();
 
@@ -464,6 +611,7 @@ public class HbaseSessions extends BackendSessionPool {
         /**
          * Get multi records by rowkeys from a table
          */
+        @Override
         public RowIterator get(String table, byte[] family,
                                Set<byte[]> rowkeys) {
             assert !this.hasChanges();
@@ -485,72 +633,14 @@ public class HbaseSessions extends BackendSessionPool {
         }
 
         /**
-         * Scan all records from a table
-         */
-        public RowIterator scan(String table, long limit) {
-            assert !this.hasChanges();
-            Scan scan = new Scan();
-            if (limit >= 0) {
-                scan.setFilter(new PageFilter(limit));
-            }
-            return this.scan(table, scan);
-        }
-
-        /**
-         * Scan records by rowkey prefix from a table
-         */
-        public RowIterator scan(String table, byte[] prefix) {
-            assert !this.hasChanges();
-            return this.scan(table, prefix, true, prefix);
-        }
-
-        /**
-         * Scan records by multi rowkey prefixs from a table
-         */
-        public RowIterator scan(String table, Set<byte[]> prefixs) {
-            assert !this.hasChanges();
-
-            FilterList orFilters = new FilterList(Operator.MUST_PASS_ONE);
-            for (byte[] prefix : prefixs) {
-                FilterList andFilters = new FilterList(Operator.MUST_PASS_ALL);
-                List<RowRange> ranges = new ArrayList<>();
-                ranges.add(new RowRange(prefix, true, null, true));
-                andFilters.addFilter(new MultiRowRangeFilter(ranges));
-                andFilters.addFilter(new PrefixFilter(prefix));
-
-                orFilters.addFilter(andFilters);
-            }
-
-            Scan scan = new Scan().setFilter(orFilters);
-            return this.scan(table, scan);
-        }
-
-        /**
-         * Scan records by rowkey start and prefix from a table
-         */
-        public RowIterator scan(String table, byte[] startRow,
-                                boolean inclusiveStart, byte[] prefix) {
-            assert !this.hasChanges();
-            Scan scan = new Scan().withStartRow(startRow, inclusiveStart)
-                                  .setFilter(new PrefixFilter(prefix));
-            return this.scan(table, scan);
-        }
-
-        /**
          * Scan records by rowkey range from a table
          */
-        public RowIterator scan(String table, byte[] startRow, byte[] stopRow) {
-            assert !this.hasChanges();
-            return this.scan(table, startRow, true, stopRow, false);
-        }
-
-        /**
-         * Scan records by rowkey range from a table
-         */
+        @Override
         public RowIterator scan(String table,
                                 byte[] startRow, boolean inclusiveStart,
                                 byte[] stopRow, boolean inclusiveStop) {
             assert !this.hasChanges();
+
             Scan scan = new Scan().withStartRow(startRow, inclusiveStart);
             if (stopRow != null) {
                 String version = VersionInfo.getVersion();
@@ -574,7 +664,10 @@ public class HbaseSessions extends BackendSessionPool {
         /**
          * Inner scan: send scan request to HBase and get iterator
          */
-        private RowIterator scan(String table, Scan scan) {
+        @Override
+        public RowIterator scan(String table, Scan scan) {
+            assert !this.hasChanges();
+
             try (Table htable = table(table)) {
                 return new RowIterator(htable.getScanner(scan));
             } catch (IOException e) {
@@ -585,6 +678,7 @@ public class HbaseSessions extends BackendSessionPool {
         /**
          * Increase a counter by rowkey and qualifier to a table
          */
+        @Override
         public long increase(String table, byte[] family, byte[] rowkey,
                              byte[] qualifier, long value) {
             try (Table htable = table(table)) {
@@ -623,6 +717,91 @@ public class HbaseSessions extends BackendSessionPool {
                                        StringEncoding.format(val)));
                 }
             }
+        }
+
+        public CountSession countSession() {
+            return new CountSession(this);
+        }
+    }
+
+    public class CountSession implements HbaseSession<Number>, AutoCloseable {
+
+        private final Session origin;
+        private final AggregationClient aggrClient;
+
+        public CountSession(Session origin) {
+            this.origin = origin;
+            this.aggrClient = aggregationClient();
+        }
+
+        @Override
+        public void put(String table, byte[] family, byte[] rowkey,
+                        Collection<BackendColumn> columns) {
+            throw new NotSupportException("AggrSession.put");
+        }
+
+        @Override
+        public void put(String table, byte[] family, byte[] rowkey,
+                        byte[] qualifier, byte[] value) {
+            throw new NotSupportException("AggrSession.put");
+        }
+
+        @Override
+        public void remove(String table, byte[] family, byte[] rowkey,
+                           byte[] qualifier, boolean latestVersion) {
+            throw new NotSupportException("AggrSession.remove");
+        }
+
+        @Override
+        public void delete(String table, byte[] family, byte[] rowkey) {
+            throw new NotSupportException("AggrSession.delete");
+        }
+
+        @Override
+        public Number get(String table, byte[] family, byte[] rowkey,
+                          byte[] qualifier) {
+            return count(this.origin.get(table, family, rowkey, qualifier));
+        }
+
+        @Override
+        public Number get(String table, byte[] family, byte[] rowkey) {
+            return count(this.origin.get(table, family, rowkey));
+        }
+
+        @Override
+        public Number get(String table, byte[] family, Set<byte[]> rowkeys) {
+            return count(this.origin.get(table, family, rowkeys));
+        }
+
+        private long count(RowIterator iter) {
+            long count = 0L;
+            while (iter.hasNext()) {
+                if (!iter.next().isEmpty()) {
+                    count++;
+                }
+            }
+            return count;
+        }
+
+        @Override
+        public Number scan(String table, Scan scan) {
+            LongColumnInterpreter ci = new LongColumnInterpreter();
+            try {
+                return this.aggrClient.rowCount(table(table), ci, scan);
+            } catch (Throwable e) {
+                throw new BackendException(e);
+            }
+        }
+
+        @Override
+        public long increase(String table, byte[] family, byte[] rowkey,
+                             byte[] qualifier, long value) {
+            throw new NotSupportException("AggrSession.increase");
+        }
+
+        @Override
+        public void close() throws IOException {
+            this.aggrClient.close();
         }
     }
 
