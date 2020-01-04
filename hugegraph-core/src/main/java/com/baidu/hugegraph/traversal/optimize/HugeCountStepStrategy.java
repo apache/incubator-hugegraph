@@ -69,6 +69,7 @@ public final class HugeCountStepStrategy
             return;
         }
 
+        // Find HugeGraphStep before count()
         CountGlobalStep<?> originStep = steps.get(0);
         List<Step<?, ?>> originSteps = new ArrayList<>();
         HugeGraphStep<?, ? extends Element> graphStep = null;
@@ -98,22 +99,18 @@ public final class HugeCountStepStrategy
             return;
         }
 
-        if (true) {//TODO improve
-            graphStep.queryInfo().aggregate(AggregateFunc.COUNT, null);
-//            Step checkStep = new LambdaMapStep<>(traversal, t -> {
-//                Object result = t.get();
-//                E.checkState(result instanceof Number,
-//                             "Expect number result with count() step");
-//                return result;
-//            });
-//            TraversalHelper.replaceStep(step, checkStep, traversal);
-        }
         // Replace with HugeCountStep
-        HugeCountStep<?> newStep = new HugeCountStep<>(traversal, graphStep);
+        graphStep.queryInfo().aggregate(AggregateFunc.COUNT, null);
+        HugeCountStep<?> countStep = new HugeCountStep<>(traversal, graphStep);
         for (Step<?, ?> origin : originSteps) {
             traversal.removeStep(origin);
         }
-        traversal.addStep(0, newStep);
+        traversal.addStep(0, countStep);
+    }
+
+    @Override
+    public Set<Class<? extends ProviderOptimizationStrategy>> applyPrior() {
+        return Collections.singleton(HugeGraphStepStrategy.class);
     }
 
     @Override

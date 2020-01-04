@@ -684,16 +684,17 @@ public class EdgeCoreTest extends BaseCoreTest {
         Assert.assertEquals(10, edges.size());
     }
 
+    @Test
     public void testQueryAllWithLimitAfterDelete() {
         HugeGraph graph = graph();
         init18Edges();
 
         // Query all with limit after delete
         graph.traversal().E().limit(14).drop().iterate();
-        Assert.assertEquals(4L, graph.traversal().V().count().next());
+        Assert.assertEquals(4L, graph.traversal().E().count().next());
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             // Query with limit
-            graph.traversal().V().limit(3).toList();
+            graph.traversal().E().limit(3).toList();
         });
         graph.tx().commit();
         List<Edge> edges = graph.traversal().E().limit(3).toList();
@@ -3254,6 +3255,48 @@ public class EdgeCoreTest extends BaseCoreTest {
             count++;
         }
         Assert.assertEquals(2, count);
+    }
+
+    @Test
+    public void testQueryCount() {
+        HugeGraph graph = graph();
+
+        graph.schema().indexLabel("lookByTime").onE("look")
+             .secondary().by("time").create();
+        graph.schema().indexLabel("lookByScore").onE("look")
+             .range().by("score").create();
+
+        init18Edges();
+
+        GraphTraversalSource g = graph.traversal();
+
+        Assert.assertEquals(18L, g.E().count().next());
+
+        Assert.assertEquals(2L, g.E().hasLabel("created").count().next());
+        Assert.assertEquals(1L, g.E().hasLabel("know").count().next());
+        Assert.assertEquals(3L, g.E().hasLabel("authored").count().next());
+        Assert.assertEquals(7L, g.E().hasLabel("look").count().next());
+        Assert.assertEquals(4L, g.E().hasLabel("friend").count().next());
+        Assert.assertEquals(1L, g.E().hasLabel("follow").count().next());
+        Assert.assertEquals(11L, g.E().hasLabel("look", "friend")
+                                      .count().next());
+
+        Assert.assertEquals(5L, g.E().hasLabel("look")
+                                     .has("time", "2017-5-27").count().next());
+        Assert.assertEquals(2L, g.E().hasLabel("look")
+                                     .has("score", 3).count().next());
+        Assert.assertEquals(3L, g.E().hasLabel("look")
+                                     .has("score", P.gte(3)).count().next());
+        Assert.assertEquals(1L, g.E().hasLabel("look")
+                                     .has("score", P.lt(3)).count().next());
+
+        Assert.assertEquals(18L, g.E().count().min().next());
+        Assert.assertEquals(7L, g.E().hasLabel("look").count().max().next());
+
+        Assert.assertEquals(4L, g.E().hasLabel("look")
+                                     .values("score").count().next());
+        Assert.assertEquals(11L, g.E().hasLabel("look")
+                                      .values().count().next());
     }
 
     @Test
