@@ -98,16 +98,22 @@ public class BinaryEntryIterator<Elem> extends BackendEntryIterator {
         return this.current != null;
     }
 
-    @Override
-    protected final long sizeOf(BackendEntry entry) {
+    public final static long sizeOfBackendEntry(BackendEntry entry) {
         /*
-         * One edge per column (one entry <==> a vertex),
-         * or one element id per column (one entry <==> an index)
+         * 3 cases:
+         *  1) one vertex per entry
+         *  2) one edge per column (one entry <==> a vertex),
+         *  3) one element id per column (one entry <==> an index)
          */
         if (entry.type().isEdge() || entry.type().isIndex()) {
             return entry.columnsSize();
         }
         return 1L;
+    }
+
+    @Override
+    protected final long sizeOf(BackendEntry entry) {
+        return sizeOfBackendEntry(entry);
     }
 
     @Override
