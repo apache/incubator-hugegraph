@@ -27,10 +27,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.commons.lang.NotImplementedException;
-
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.query.Aggregate;
+import com.baidu.hugegraph.backend.query.Aggregate.AggregateFunc;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.IdPrefixQuery;
 import com.baidu.hugegraph.backend.query.IdRangeQuery;
@@ -113,6 +113,22 @@ public class InMemoryDBTable extends BackendTable<BackendSession,
     }
 
     @Override
+    public Number queryNumber(BackendSession session, Query query) {
+        Aggregate aggregate = query.aggregateNotNull();
+        if (aggregate.func() != AggregateFunc.COUNT) {
+            throw new NotSupportException(aggregate.toString());
+        }
+
+        assert aggregate.func() == AggregateFunc.COUNT;
+        Iterator<BackendEntry> results = this.query(session, query);
+        long total = 0L;
+        while (results.hasNext()) {
+            total += this.sizeOfBackendEntry(results.next());
+        }
+        return total;
+    }
+
+    @Override
     public Iterator<BackendEntry> query(BackendSession session, Query query) {
         if (query.paging()) {
             throw new NotSupportException("paging by InMemoryDBStore");
@@ -158,12 +174,6 @@ public class InMemoryDBTable extends BackendTable<BackendSession,
             iterator = this.dropTails(iterator, query.limit());
         }
         return iterator;
-    }
-
-    @Override
-    public Number queryNumber(BackendSession session, Query query) {
-        // TODO implement
-        throw new NotImplementedException("InMemoryDBTable.queryNumber");
     }
 
     protected Map<Id, BackendEntry> queryById(Set<Id> ids,
@@ -237,6 +247,10 @@ public class InMemoryDBTable extends BackendTable<BackendSession,
             entries.add(iterator.next());
         }
         return entries.iterator();
+    }
+
+    protected long sizeOfBackendEntry(BackendEntry entry) {
+        return 1L;
     }
 
     private static boolean matchCondition(BackendEntry item, Condition c) {

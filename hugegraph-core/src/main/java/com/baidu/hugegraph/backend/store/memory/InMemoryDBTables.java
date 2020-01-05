@@ -329,6 +329,11 @@ public class InMemoryDBTables {
             return entries.iterator();
         }
 
+        @Override
+        protected long sizeOfBackendEntry(BackendEntry entry) {
+            return entry.columnsSize();
+        }
+
         private static Id vertexIdOfEdge(TextBackendEntry entry) {
             assert entry.type().isEdge();
             // Assume the first part is owner vertex id
