@@ -427,7 +427,7 @@ public class MysqlSessions extends BackendSessionPool {
         }
 
         @Override
-        protected void reconnectIfNeeded() {
+        public void reconnectIfNeeded() {
             if (!this.opened) {
                 return;
             }
@@ -444,7 +444,7 @@ public class MysqlSessions extends BackendSessionPool {
         }
 
         @Override
-        protected void reset() {
+        public void reset() {
             // NOTE: this method may be called by other threads
             if (this.conn == null) {
                 return;

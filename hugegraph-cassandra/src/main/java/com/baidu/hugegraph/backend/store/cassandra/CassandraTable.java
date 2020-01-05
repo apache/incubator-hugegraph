@@ -123,9 +123,10 @@ public abstract class CassandraTable
         return this.query(query, session::query, this::results2Entries);
     }
 
-    protected <T, R> Iterator<R> query(Query query,
-                     Function<Statement, ResultSet> fetcher,
-                     BiFunction<Query, ResultSet, Iterator<R>> parser) {
+    protected <R> Iterator<R> query(Query query,
+                                    Function<Statement, ResultSet> fetcher,
+                                    BiFunction<Query, ResultSet, Iterator<R>>
+                                    parser) {
         ExtendableIterator<R> rs = new ExtendableIterator<>();
 
         if (query.limit() == 0L && !query.nolimit()) {
@@ -150,10 +151,10 @@ public abstract class CassandraTable
     }
 
     protected List<Select> query2Select(String table, Query query) {
-        // Set table
+        // Build query
         Selection selection = QueryBuilder.select();
 
-        // Set count()
+        // Set aggregate
         Aggregate aggregate = query.aggregate();
         if (aggregate != null) {
             if (aggregate.countAll()) {
