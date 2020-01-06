@@ -279,7 +279,10 @@ public class BackendMutation {
         public int size() {
             int size = 0;
             for (Map<Id, List<BackendAction>> m : this.mutations.values()) {
-                size += m.size();
+                // NOTE: Index entry has same id with different subIds
+                for (List<BackendAction> actions : m.values()) {
+                    size += actions.size();
+                }
             }
             return size;
         }
