@@ -3569,10 +3569,10 @@ public class EdgeCoreTest extends BaseCoreTest {
         Assert.assertThrows(NoIndexException.class, () -> {
             graph().traversal().E().hasLabel("like").has("weight", 0.5).next();
         }, (e) -> {
-            Assert.assertTrue(e.getMessage().equals(
-                              "Don't accept query based on properties " +
-                              "[weight] that are not indexed in label 'like'," +
-                              " may not match secondary condition"));
+            Assert.assertEquals("Don't accept query based on properties " +
+                                "[weight] that are not indexed in label " +
+                                "'like', may not match secondary condition",
+                                e.getMessage());
         });
     }
 

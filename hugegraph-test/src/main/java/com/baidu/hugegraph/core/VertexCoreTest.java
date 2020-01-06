@@ -3533,10 +3533,10 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertThrows(NoIndexException.class, () -> {
             graph.traversal().V().hasLabel("node").has("name", "tom").next();
         }, (e) -> {
-            Assert.assertTrue(e.getMessage().equals(
-                              "Don't accept query based on properties [name] " +
-                              "that are not indexed in label 'node', " +
-                              "may not match secondary condition"));
+            Assert.assertEquals("Don't accept query based on properties " +
+                                "[name] that are not indexed in label 'node'," +
+                                " may not match secondary condition",
+                                e.getMessage());
         });
     }
 
@@ -3588,6 +3588,7 @@ public class VertexCoreTest extends BaseCoreTest {
         graph.tx().commit();
     }
 
+    @Test
     public void testRemoveVertexAfterAddVertexWithTx() {
         HugeGraph graph = graph();
         GraphTransaction tx = graph.openTransaction();
