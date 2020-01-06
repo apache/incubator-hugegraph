@@ -3588,7 +3588,6 @@ public class VertexCoreTest extends BaseCoreTest {
         graph.tx().commit();
     }
 
-    @Test
     public void testRemoveVertexAfterAddVertexWithTx() {
         HugeGraph graph = graph();
         GraphTransaction tx = graph.openTransaction();
