@@ -116,7 +116,7 @@ public enum IndexType implements SerialEnum {
         return this == SHARD;
     }
 
-    public boolean isUniuqe() {
+    public boolean isUnique() {
         return this == UNIQUE;
     }
 }

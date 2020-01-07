@@ -3509,6 +3509,35 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testQueryByUniqueIndex() {
+        HugeGraph graph = this.graph();
+        SchemaManager schema = graph.schema();
+        schema.vertexLabel("node")
+              .properties("name")
+              .useAutomaticId()
+              .ifNotExist()
+              .create();
+        schema.indexLabel("nodeByName")
+              .unique()
+              .onV("node")
+              .by("name")
+              .ifNotExist()
+              .create();
+
+        graph.addVertex(T.label, "node", "name", "tom");
+        graph.tx().commit();
+
+        Assert.assertThrows(NoIndexException.class, () -> {
+            graph.traversal().V().hasLabel("node").has("name", "tom").next();
+        }, (e) -> {
+            Assert.assertEquals("Don't accept query based on properties " +
+                                "[name] that are not indexed in label 'node'," +
+                                " may not match secondary condition",
+                                e.getMessage());
+        });
+    }
+
+    @Test
     public void testRemoveVertex() {
         HugeGraph graph = graph();
         init10Vertices();
@@ -3556,6 +3585,7 @@ public class VertexCoreTest extends BaseCoreTest {
         graph.tx().commit();
     }
 
+    @Test
     public void testRemoveVertexAfterAddVertexWithTx() {
         HugeGraph graph = graph();
         GraphTransaction tx = graph.openTransaction();
@@ -3569,7 +3599,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
         List<Vertex> vertices = graph.traversal().V().toList();
         Assert.assertEquals(1, vertices.size());
-        assertNotContains(vertices, T.label, "book", "name", "java-2");
+        assertNotContains(vertices, T.label, "book", "name", "java-1");
     }
 
     @Test

@@ -57,6 +57,7 @@ import com.baidu.hugegraph.backend.store.Shard;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.exception.LimitExceedException;
+import com.baidu.hugegraph.exception.NoIndexException;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.structure.HugeEdge;
@@ -3531,6 +3532,43 @@ public class EdgeCoreTest extends BaseCoreTest {
         edge3.remove();
         edge2.property("weight", 1.0);
         graph().tx().commit();
+    }
+
+    @Test
+    public void testQueryEdgeByUniqueIndex() {
+        SchemaManager schema = graph().schema();
+        schema.propertyKey("weight").asDouble().ifNotExist().create();
+        schema.vertexLabel("user")
+              .properties("name")
+              .primaryKeys("name")
+              .ifNotExist()
+              .create();
+        schema.edgeLabel("like")
+              .sourceLabel("user")
+              .targetLabel("user")
+              .properties("weight")
+              .ifNotExist()
+              .create();
+        schema.indexLabel("likeByWeight")
+              .onE("like")
+              .by("weight")
+              .unique()
+              .ifNotExist()
+              .create();
+
+        Vertex marko = graph().addVertex(T.label, "user", "name", "marko");
+        Vertex vadas = graph().addVertex(T.label, "user", "name", "vadas");
+        marko.addEdge("like", vadas, "weight", 0.5);
+        graph().tx().commit();
+
+        Assert.assertThrows(NoIndexException.class, () -> {
+            graph().traversal().E().hasLabel("like").has("weight", 0.5).next();
+        }, (e) -> {
+            Assert.assertEquals("Don't accept query based on properties " +
+                                "[weight] that are not indexed in label " +
+                                "'like', may not match secondary condition",
+                                e.getMessage());
+        });
     }
 
     @Test
