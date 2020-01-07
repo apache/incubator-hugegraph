@@ -3585,6 +3585,7 @@ public class VertexCoreTest extends BaseCoreTest {
         graph.tx().commit();
     }
 
+    @Test
     public void testRemoveVertexAfterAddVertexWithTx() {
         HugeGraph graph = graph();
         GraphTransaction tx = graph.openTransaction();
@@ -3598,7 +3599,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
         List<Vertex> vertices = graph.traversal().V().toList();
         Assert.assertEquals(1, vertices.size());
-        assertNotContains(vertices, T.label, "book", "name", "java-2");
+        assertNotContains(vertices, T.label, "book", "name", "java-1");
     }
 
     @Test
