@@ -3512,13 +3512,11 @@ public class VertexCoreTest extends BaseCoreTest {
     public void testQueryByUniqueIndex() {
         HugeGraph graph = this.graph();
         SchemaManager schema = graph.schema();
-
         schema.vertexLabel("node")
               .properties("name")
               .useAutomaticId()
               .ifNotExist()
               .create();
-
         schema.indexLabel("nodeByName")
               .unique()
               .onV("node")
@@ -3527,7 +3525,6 @@ public class VertexCoreTest extends BaseCoreTest {
               .create();
 
         graph.addVertex(T.label, "node", "name", "tom");
-
         graph.tx().commit();
 
         Assert.assertThrows(NoIndexException.class, () -> {

@@ -3538,20 +3538,17 @@ public class EdgeCoreTest extends BaseCoreTest {
     public void testQueryEdgeByUniqueIndex() {
         SchemaManager schema = graph().schema();
         schema.propertyKey("weight").asDouble().ifNotExist().create();
-
         schema.vertexLabel("user")
               .properties("name")
               .primaryKeys("name")
               .ifNotExist()
               .create();
-
         schema.edgeLabel("like")
               .sourceLabel("user")
               .targetLabel("user")
               .properties("weight")
               .ifNotExist()
               .create();
-
         schema.indexLabel("likeByWeight")
               .onE("like")
               .by("weight")
@@ -3561,9 +3558,7 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         Vertex marko = graph().addVertex(T.label, "user", "name", "marko");
         Vertex vadas = graph().addVertex(T.label, "user", "name", "vadas");
-
         marko.addEdge("like", vadas, "weight", 0.5);
-
         graph().tx().commit();
 
         Assert.assertThrows(NoIndexException.class, () -> {
