@@ -22,9 +22,11 @@ package com.baidu.hugegraph.core;
 import java.util.Date;
 import java.util.List;
 
+import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.junit.Assume;
 import org.junit.Test;
 
 import com.baidu.hugegraph.HugeException;
@@ -433,7 +435,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
     }
 
     @Test
-    public void testAddEdgeLabelWithDisableeLabelIndex() {
+    public void testAddEdgeLabelWithDisableLabelIndex() {
         super.initPropertyKeys();
         HugeGraph graph =  graph();
         SchemaManager schema = graph.schema();
@@ -871,6 +873,65 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph().traversal().E().hasLabel("write").toList();
         });
+    }
+
+    @Test
+    public void testRebuildIndexOfEdgeLabelWithoutLabelIndex() {
+        Assume.assumeFalse("Support query by label",
+                           storeFeatures().supportsQueryByLabel());
+
+        initDataWithoutLabelIndex();
+
+        // Not support query by label
+        Assert.assertThrows(NoIndexException.class, () -> {
+            graph().traversal().E().hasLabel("read").toList();
+        }, e -> {
+            Assert.assertTrue(
+                   e.getMessage().startsWith("Don't accept query by label") &&
+                   e.getMessage().endsWith("it disables label index"));
+        });
+
+        // Query by property index is ok
+        List<Edge> edges = graph().traversal().E()
+                                  .has("date", P.lt("2019-12-30 13:00:00"))
+                                  .toList();
+        Assert.assertEquals(20, edges.size());
+
+        graph().schema().edgeLabel("read").rebuildIndex();
+
+        edges = graph().traversal().E()
+                       .has("date", P.lt("2019-12-30 13:00:00")).toList();
+        Assert.assertEquals(20, edges.size());
+    }
+
+    @Test
+    public void testRemoveEdgeLabelWithoutLabelIndex() {
+        Assume.assumeFalse("Support query by label",
+                           storeFeatures().supportsQueryByLabel());
+
+        initDataWithoutLabelIndex();
+
+        // Not support query by label
+        Assert.assertThrows(NoIndexException.class, () -> {
+            graph().traversal().E().hasLabel("read").toList();
+        }, e -> {
+            Assert.assertTrue(
+                   e.getMessage().startsWith("Don't accept query by label") &&
+                   e.getMessage().endsWith("it disables label index"));
+        });
+
+        // Query by property index is ok
+        List<Edge> edges = graph().traversal().E()
+                                  .has("date", P.lt("2019-12-30 13:00:00"))
+                                  .toList();
+        Assert.assertEquals(20, edges.size());
+
+        graph().schema().edgeLabel("read").remove();
+
+        Assert.assertThrows(NoIndexException.class, () ->
+                graph().traversal().E()
+                       .has("date", P.lt("2019-12-30 13:00:00")).toList()
+        );
     }
 
     @Test

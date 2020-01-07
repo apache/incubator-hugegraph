@@ -86,11 +86,6 @@ public class RebuildIndexCallable extends SchemaCallable {
         Consumer<?> indexUpdater = (elem) -> {
             for (Id id : indexLabelIds) {
                 graphTx.updateIndex(id, (HugeElement) elem);
-                /*
-                 * Commit per batch to avoid too much data in single commit,
-                 * especially for Cassandra backend
-                 */
-                graphTx.commitIfGtSize(GraphTransaction.COMMIT_BATCH);
             }
         };
 

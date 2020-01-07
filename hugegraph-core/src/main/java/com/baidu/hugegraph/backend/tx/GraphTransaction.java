@@ -91,7 +91,7 @@ import com.google.common.collect.ImmutableList;
 public class GraphTransaction extends IndexableTransaction {
 
     public static final int COMMIT_BATCH = 500;
-    private static final long TRAVERSE_BATCH = 100_000L;
+    private final int pageSize;
 
     private final GraphIndexTransaction indexTx;
 
@@ -127,6 +127,7 @@ public class GraphTransaction extends IndexableTransaction {
                                 CoreOptions.VERTEX_CHECK_CUSTOMIZED_ID_EXIST);
         this.verticesCapacity = conf.get(CoreOptions.VERTEX_TX_CAPACITY);
         this.edgesCapacity = conf.get(CoreOptions.EDGE_TX_CAPACITY);
+        this.pageSize = conf.get(CoreOptions.QUERY_PAGE_SIZE);
         this.locksTable = new LockUtil.LocksTable(graph.name());
     }
 
@@ -1524,11 +1525,18 @@ public class GraphTransaction extends IndexableTransaction {
             Iterator<T> iter = fetcher.apply(query);
             while (iter.hasNext()) {
                 consumer.accept(iter.next());
+                /*
+                 * Commit per batch to avoid too much data in single commit,
+                 * especially for Cassandra backend
+                 */
+                this.commitIfGtSize(GraphTransaction.COMMIT_BATCH);
             }
+            // Commit changes if exists
+            this.commit();
         } else {
             // Not support label index, query all and filter by label
             if (query.paging()) {
-                query.limit(TRAVERSE_BATCH);
+                query.limit(this.pageSize);
             }
             String page = null;
             do {
@@ -1538,10 +1546,18 @@ public class GraphTransaction extends IndexableTransaction {
                     SchemaLabel elemLabel = ((HugeElement) e).schemaLabel();
                     if (label.equals(elemLabel)) {
                         consumer.accept(e);
+                        /*
+                         * Commit per batch to avoid too much data in single
+                         * commit, especially for Cassandra backend
+                         */
+                        this.commitIfGtSize(GraphTransaction.COMMIT_BATCH);
                     }
                 }
+                // Commit changes of every page before next page query
+                this.commit();
                 if (query.paging()) {
                     page = PageInfo.pageState(iter).toString();
+                    query.page(page);
                 }
             } while (page != null);
         }

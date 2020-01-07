@@ -840,6 +840,63 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
     }
 
     @Test
+    public void testRebuildIndexOfVertexLabelWithoutLabelIndex() {
+        Assume.assumeFalse("Support query by label",
+                           storeFeatures().supportsQueryByLabel());
+
+        initDataWithoutLabelIndex();
+
+        // Not support query by label
+        Assert.assertThrows(NoIndexException.class, () -> {
+            graph().traversal().V().hasLabel("reader").toList();
+        }, e -> {
+            Assert.assertTrue(
+                   e.getMessage().startsWith("Don't accept query by label") &&
+                   e.getMessage().endsWith("it disables label index"));
+        });
+
+        // Query by property index is ok
+        List<Vertex> vertices = graph().traversal().V()
+                                       .has("city", "Shanghai").toList();
+        Assert.assertEquals(10, vertices.size());
+
+        graph().schema().vertexLabel("reader").rebuildIndex();
+
+        vertices = graph().traversal().V()
+                          .has("city", "Shanghai").toList();
+        Assert.assertEquals(10, vertices.size());
+    }
+
+    @Test
+    public void testRemoveVertexLabelWithoutLabelIndex() {
+        Assume.assumeFalse("Support query by label",
+                           storeFeatures().supportsQueryByLabel());
+
+        initDataWithoutLabelIndex();
+
+        // Not support query by label
+        Assert.assertThrows(NoIndexException.class, () -> {
+            graph().traversal().V().hasLabel("reader").toList();
+        }, e -> {
+            Assert.assertTrue(
+                   e.getMessage().startsWith("Don't accept query by label") &&
+                   e.getMessage().endsWith("it disables label index"));
+        });
+
+        // Query by property index is ok
+        List<Vertex> vertices = graph().traversal().V()
+                                       .has("city", "Shanghai").toList();
+        Assert.assertEquals(10, vertices.size());
+
+        graph().schema().edgeLabel("read").remove();
+        graph().schema().vertexLabel("reader").remove();
+
+        Assert.assertThrows(NoIndexException.class, () ->
+                graph().traversal().V().has("city", "Shanghai").toList()
+        );
+    }
+
+    @Test
     public void testAddVertexLabelWithUserdata() {
         super.initPropertyKeys();
         SchemaManager schema = graph().schema();

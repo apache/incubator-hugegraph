@@ -19,8 +19,14 @@
 
 package com.baidu.hugegraph.core;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
+import org.apache.tinkerpop.gremlin.structure.T;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+
+import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
@@ -80,5 +86,76 @@ public class SchemaCoreTest extends BaseCoreTest {
         for (String label : labels) {
             Assert.assertNull(graph().schemaTransaction().getIndexLabel(label));
         }
+    }
+
+    protected void initDataWithoutLabelIndex() {
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
+        initPropertyKeys();
+
+        schema.propertyKey("date")
+              .asDate()
+              .ifNotExist()
+              .create();
+
+        schema.vertexLabel("reader").properties("name", "city", "age")
+              .primaryKeys("name")
+              .enableLabelIndex(false)
+              .ifNotExist()
+              .create();
+
+        schema.indexLabel("readerByCity")
+              .onV("reader")
+              .by("city")
+              .secondary()
+              .ifNotExist()
+              .create();
+
+        schema.vertexLabel("book").properties("name")
+              .primaryKeys("name")
+              .enableLabelIndex(false)
+              .ifNotExist()
+              .create();
+
+        schema.edgeLabel("read")
+              .sourceLabel("reader")
+              .targetLabel("book")
+              .properties("date")
+              .enableLabelIndex(false)
+              .ifNotExist()
+              .create();
+
+        schema.indexLabel("readByDate")
+              .onE("read")
+              .by("date")
+              .range()
+              .ifNotExist()
+              .create();
+
+        String[] cities = {"Beijing Haidian", "Beijing Chaoyang",
+                           "Shanghai", "Nanjing", "Hangzhou"};
+        List<Vertex> sources = new ArrayList<>(50);
+        for (int i = 0; i < 50; i++) {
+            String city = cities[i / 10];
+            sources.add(graph.addVertex(T.label, "reader",
+                                        "name", "source" + i,
+                                        "city", city, "age", 21));
+        }
+
+        List<Vertex> targets = new ArrayList<>(50);
+        for (int i = 0; i < 50; i++) {
+            targets.add(graph.addVertex(T.label, "book",
+                                        "name", "java-book" + i));
+        }
+
+        String[] dates = {"2019-12-30 11:00:00", "2019-12-30 12:00:00",
+                          "2019-12-30 13:00:00", "2019-12-30 14:00:00",
+                          "2019-12-30 15:00:00"};
+        for (int i = 0; i < 50; i++) {
+            String date = dates[i / 10];
+            sources.get(i).addEdge("read", targets.get(i), "date", date);
+        }
+
+        graph.tx().commit();
     }
 }
