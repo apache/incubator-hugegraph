@@ -106,7 +106,7 @@ public class RocksDBOptions extends OptionHolder {
                     7
             );
 
-    public static final ConfigConvOption<CompactionStyle> COMPACTION_STYLE =
+    public static final ConfigConvOption<String, CompactionStyle> COMPACTION_STYLE =
             new ConfigConvOption<>(
                     "rocksdb.compaction_style",
                     "Set compaction style for RocksDB: LEVEL/UNIVERSAL/FIFO.",
@@ -138,11 +138,10 @@ public class RocksDBOptions extends OptionHolder {
                     "allowed values are none/snappy/z/bzip2/lz4/lz4hc/xpress/zstd.",
                     inValues("none", "snappy", "z", "bzip2", "lz4", "lz4hc", "xpress", "zstd"),
                     CompressionType::getCompressionType,
-                    String.class,
                     "none", "none", "snappy", "snappy", "snappy", "snappy", "snappy"
             );
 
-    public static final ConfigConvOption<CompressionType> BOTTOMMOST_COMPRESSION =
+    public static final ConfigConvOption<String, CompressionType> BOTTOMMOST_COMPRESSION =
             new ConfigConvOption<>(
                     "rocksdb.bottommost_compression",
                     "The compression algorithm for the bottommost level of RocksDB, " +
@@ -152,7 +151,7 @@ public class RocksDBOptions extends OptionHolder {
                     "none"
             );
 
-    public static final ConfigConvOption<CompressionType> COMPRESSION =
+    public static final ConfigConvOption<String, CompressionType> COMPRESSION =
             new ConfigConvOption<>(
                     "rocksdb.compression",
                     "The compression algorithm for compressing blocks of RocksDB, " +
