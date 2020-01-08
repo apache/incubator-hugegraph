@@ -19,10 +19,8 @@
 
 package com.baidu.hugegraph.iterator;
 
-import java.util.ArrayList;
 import java.util.Deque;
 import java.util.Iterator;
-import java.util.List;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
 import com.baidu.hugegraph.util.E;
@@ -30,13 +28,11 @@ import com.baidu.hugegraph.util.E;
 public class ExtendableIterator<T> extends WrappedIterator<T> {
 
     private final Deque<Iterator<T>> itors;
-    private final List<Iterator<T>> removedItors;
 
     private Iterator<T> currentIterator;
 
     public ExtendableIterator() {
         this.itors = new ConcurrentLinkedDeque<>();
-        this.removedItors = new ArrayList<>();
         this.currentIterator = null;
     }
 
@@ -62,11 +58,6 @@ public class ExtendableIterator<T> extends WrappedIterator<T> {
 
     @Override
     public void close() throws Exception {
-        for (Iterator<T> iter : this.removedItors) {
-            if (iter instanceof AutoCloseable) {
-                ((AutoCloseable) iter).close();
-            }
-        }
         for (Iterator<T> iter : this.itors) {
             if (iter instanceof AutoCloseable) {
                 ((AutoCloseable) iter).close();
@@ -75,7 +66,7 @@ public class ExtendableIterator<T> extends WrappedIterator<T> {
     }
 
     @Override
-    protected Iterator<?> originIterator() {
+    protected Iterator<T> originIterator() {
         return this.currentIterator;
     }
 
@@ -98,7 +89,7 @@ public class ExtendableIterator<T> extends WrappedIterator<T> {
                 // The last one
                 return false;
             }
-            this.removedItors.add(this.itors.removeFirst());
+            close(this.itors.removeFirst());
         }
 
         assert first != null && first.hasNext();

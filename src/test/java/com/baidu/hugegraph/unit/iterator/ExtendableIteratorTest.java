@@ -175,7 +175,30 @@ public class ExtendableIteratorTest extends BaseUnitTest {
     }
 
     @Test
-    public void testCloseAfterNext() throws Exception {
+    public void testCloseAfterNext1() throws Exception {
+        CloseableItor<Integer> c1 = new CloseableItor<>(DATA1.iterator());
+        CloseableItor<Integer> c2 = new CloseableItor<>(DATA2.iterator());
+        CloseableItor<Integer> c3 = new CloseableItor<>(DATA3.iterator());
+
+        ExtendableIterator<Integer> results = new ExtendableIterator<>();
+        results.extend(c1).extend(c2).extend(c3);
+
+        results.next();
+        results.hasNext();
+
+        Assert.assertTrue(c1.closed()); // close after iterated
+        Assert.assertFalse(c2.closed());
+        Assert.assertFalse(c3.closed());
+
+        results.close();
+
+        Assert.assertTrue(c1.closed());
+        Assert.assertTrue(c2.closed());
+        Assert.assertTrue(c3.closed());
+    }
+
+    @Test
+    public void testCloseAfterNext3() throws Exception {
         CloseableItor<Integer> c1 = new CloseableItor<>(DATA1.iterator());
         CloseableItor<Integer> c2 = new CloseableItor<>(DATA2.iterator());
         CloseableItor<Integer> c3 = new CloseableItor<>(DATA3.iterator());
@@ -191,8 +214,8 @@ public class ExtendableIteratorTest extends BaseUnitTest {
             results.next();
         }
 
-        Assert.assertFalse(c1.closed());
-        Assert.assertFalse(c2.closed());
+        Assert.assertTrue(c1.closed());
+        Assert.assertTrue(c2.closed());
         Assert.assertFalse(c3.closed());
 
         results.close();

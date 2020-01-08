@@ -20,28 +20,28 @@
 package com.baidu.hugegraph.iterator;
 
 import java.util.Iterator;
+import java.util.List;
 import java.util.function.Function;
 
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.InsertionOrderUtil;
+import com.google.common.collect.ImmutableList;
 
-public class FlatMapperIterator<T, R> extends WrappedIterator<R> {
+public class BatchMapperIterator<T, R> extends WrappedIterator<R> {
 
+    private final int batch;
     private final Iterator<T> originIterator;
-    private final Function<T, Iterator<R>> mapperCallback;
+    private final Function<List<T>, Iterator<R>> mapperCallback;
 
-    protected Iterator<R> batchIterator;
+    private Iterator<R> batchIterator;
 
-    public FlatMapperIterator(Iterator<T> origin,
-                              Function<T, Iterator<R>> mapper) {
+    public BatchMapperIterator(int batch, Iterator<T> origin,
+                               Function<List<T>, Iterator<R>> mapper) {
+        E.checkArgument(batch > 0, "Expect batch > 0, but got %s", batch);
+        this.batch = batch;
         this.originIterator = origin;
         this.mapperCallback = mapper;
         this.batchIterator = null;
-    }
-
-    @Override
-    public void close() throws Exception {
-        this.resetBatchIterator();
-        super.close();
     }
 
     @Override
@@ -55,11 +55,11 @@ public class FlatMapperIterator<T, R> extends WrappedIterator<R> {
             return true;
         }
 
-        while (this.originIterator.hasNext()) {
-            T next = this.originIterator.next();
+        List<T> list = this.nextBatch();
+        if (!list.isEmpty()) {
             assert this.batchIterator == null;
             // Do fetch
-            this.batchIterator = this.mapperCallback.apply(next);
+            this.batchIterator = this.mapperCallback.apply(list);
             if (this.batchIterator != null && this.fetchFromBatch()) {
                 return true;
             }
@@ -67,7 +67,19 @@ public class FlatMapperIterator<T, R> extends WrappedIterator<R> {
         return false;
     }
 
-    protected boolean fetchFromBatch() {
+    protected final List<T> nextBatch() {
+        if (!this.originIterator.hasNext()) {
+            return ImmutableList.of();
+        }
+        List<T> list = InsertionOrderUtil.newList();
+        for (int i = 0; i < this.batch && this.originIterator.hasNext(); i++) {
+            T next = this.originIterator.next();
+            list.add(next);
+        }
+        return list;
+    }
+
+    protected final boolean fetchFromBatch() {
         E.checkNotNull(this.batchIterator, "mapper results");
         while (this.batchIterator.hasNext()) {
             R result = this.batchIterator.next();

@@ -33,7 +33,7 @@ public class MapperIterator<T, R> extends WrappedIterator<R> {
     }
 
     @Override
-    protected Iterator<?> originIterator() {
+    protected Iterator<T> originIterator() {
         return this.originIterator;
     }
 

@@ -36,17 +36,17 @@ public class FlatMapperFilterIterator<T, R> extends FlatMapperIterator<T, R> {
     }
 
     @Override
-    protected final boolean fetchMapped() {
-        E.checkNotNull(this.results, "mapper results");
-        while (this.results.hasNext()) {
-            R result = this.results.next();
+    protected final boolean fetchFromBatch() {
+        E.checkNotNull(this.batchIterator, "mapper results");
+        while (this.batchIterator.hasNext()) {
+            R result = this.batchIterator.next();
             if (result != null && this.filterCallback.apply(result)) {
                 assert this.current == none();
                 this.current = result;
                 return true;
             }
         }
-        this.results = null;
+        this.resetBatchIterator();
         return false;
     }
 }

@@ -1,0 +1,265 @@
+/*
+ * Copyright 2017 HugeGraph Authors
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
+package com.baidu.hugegraph.unit.iterator;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.function.Function;
+
+import org.junit.Test;
+
+import com.baidu.hugegraph.iterator.BatchMapperIterator;
+import com.baidu.hugegraph.testutil.Assert;
+import com.baidu.hugegraph.unit.BaseUnitTest;
+import com.baidu.hugegraph.unit.iterator.ExtendableIteratorTest.CloseableItor;
+import com.google.common.collect.ImmutableList;
+
+@SuppressWarnings("resource")
+public class BatchMapperIteratorTest extends BaseUnitTest {
+
+    private static final Iterator<Integer> EMPTY = Collections.emptyIterator();
+
+    private static final List<Integer> DATA1 = ImmutableList.of(1);
+    private static final List<Integer> DATA2 = ImmutableList.of(2, 3);
+    private static final List<Integer> DATA3 = ImmutableList.of(4, 5, 6);
+
+    private static final Function<List<Integer>, Iterator<Integer>> MAPPER =
+                         batch -> batch.iterator();
+
+    @Test
+    public void testBatchMapper() {
+        Iterator<Integer> results;
+
+        results = new BatchMapperIterator<>(1, DATA1.iterator(), MAPPER);
+        Assert.assertEquals(ImmutableList.of(1), ImmutableList.copyOf(results));
+
+        results = new BatchMapperIterator<>(1, DATA2.iterator(), MAPPER);
+        Assert.assertEquals(ImmutableList.of(2, 3),
+                            ImmutableList.copyOf(results));
+
+        results = new BatchMapperIterator<>(1, DATA3.iterator(), MAPPER);
+        Assert.assertEquals(ImmutableList.of(4, 5, 6),
+                            ImmutableList.copyOf(results));
+    }
+
+    @Test
+    public void testBatch() {
+        Iterator<Integer> results;
+
+        results = new BatchMapperIterator<>(2, DATA2.iterator(), MAPPER);
+        Assert.assertEquals(ImmutableList.of(2, 3),
+                            ImmutableList.copyOf(results));
+
+        results = new BatchMapperIterator<>(2, DATA3.iterator(), MAPPER);
+        Assert.assertEquals(ImmutableList.of(4, 5, 6),
+                            ImmutableList.copyOf(results));
+
+        results = new BatchMapperIterator<>(3, DATA3.iterator(), MAPPER);
+        Assert.assertEquals(ImmutableList.of(4, 5, 6),
+                            ImmutableList.copyOf(results));
+
+        results = new BatchMapperIterator<>(4, DATA3.iterator(), MAPPER);
+        Assert.assertEquals(ImmutableList.of(4, 5, 6),
+                            ImmutableList.copyOf(results));
+    }
+
+    @Test
+    public void testInvalidBatch() {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            new BatchMapperIterator<>(0, DATA1.iterator(), MAPPER);
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            new BatchMapperIterator<>(-1, DATA1.iterator(), MAPPER);
+        });
+    }
+
+    @Test
+    public void testHasNext() {
+        Iterator<Integer> results;
+
+        results = new BatchMapperIterator<>(1, EMPTY, MAPPER);
+        Assert.assertFalse(results.hasNext());
+
+        results = new BatchMapperIterator<>(1, DATA1.iterator(), MAPPER);
+        Assert.assertTrue(results.hasNext());
+    }
+
+    @Test
+    public void testHasNextAndNextWithMultiTimes() {
+        Iterator<Integer> results;
+
+        results = new BatchMapperIterator<>(1, DATA3.iterator(), MAPPER);
+
+        for (int i = 0; i < 5; i++) {
+            Assert.assertTrue(results.hasNext());
+        }
+
+        for (int i = 0; i < 3; i++) {
+            results.next();
+        }
+
+        Assert.assertFalse(results.hasNext());
+        Assert.assertFalse(results.hasNext());
+
+        Assert.assertThrows(NoSuchElementException.class, () -> {
+            results.next();
+        });
+        Assert.assertThrows(NoSuchElementException.class, () -> {
+            results.next();
+        });
+    }
+
+    @Test
+    public void testNext() {
+        Iterator<Integer> results;
+
+        results = new BatchMapperIterator<>(1, DATA1.iterator(), MAPPER);
+        // Call next() without hasNext()
+        Assert.assertEquals(1, results.next());
+
+        results = new BatchMapperIterator<>(1, DATA3.iterator(), MAPPER);
+        Assert.assertEquals(4, results.next());
+        Assert.assertEquals(5, results.next());
+        Assert.assertEquals(6, results.next());
+
+        results = new BatchMapperIterator<>(2, DATA3.iterator(), MAPPER);
+        Assert.assertEquals(4, results.next());
+        Assert.assertEquals(5, results.next());
+        Assert.assertEquals(6, results.next());
+    }
+
+    @Test
+    public void testNextWithMultiTimes() {
+        Iterator<Integer> results;
+
+        results = new BatchMapperIterator<>(1, DATA2.iterator(), MAPPER);
+
+        for (int i = 0; i < 2; i++) {
+            results.next();
+        }
+        Assert.assertThrows(NoSuchElementException.class, () -> {
+            results.next();
+        });
+    }
+
+    @Test
+    public void testMapperWithBatch() {
+        Iterator<Integer> results;
+
+        results = new BatchMapperIterator<>(1, DATA3.iterator(), batch -> {
+            Assert.assertEquals(1, batch.size());
+            return batch.iterator();
+        });
+        Assert.assertEquals(4, results.next());
+        Assert.assertEquals(5, results.next());
+        Assert.assertEquals(6, results.next());
+        Assert.assertFalse(results.hasNext());
+
+        results = new BatchMapperIterator<>(2, DATA3.iterator(), batch -> {
+            if (batch.size() == 1) {
+                Assert.assertEquals(6, batch.get(0));
+            } else {
+                Assert.assertEquals(2, batch.size());
+            }
+            return batch.iterator();
+        });
+        Assert.assertEquals(4, results.next());
+        Assert.assertEquals(5, results.next());
+        Assert.assertEquals(6, results.next());
+        Assert.assertFalse(results.hasNext());
+
+        results = new BatchMapperIterator<>(3, DATA3.iterator(), batch -> {
+            Assert.assertEquals(3, batch.size());
+            return batch.iterator();
+        });
+        Assert.assertEquals(4, results.next());
+        Assert.assertEquals(5, results.next());
+        Assert.assertEquals(6, results.next());
+        Assert.assertFalse(results.hasNext());
+
+        results = new BatchMapperIterator<>(4, DATA3.iterator(), batch -> {
+            Assert.assertEquals(3, batch.size());
+            return batch.iterator();
+        });
+        Assert.assertEquals(4, results.next());
+        Assert.assertEquals(5, results.next());
+        Assert.assertEquals(6, results.next());
+        Assert.assertFalse(results.hasNext());
+    }
+
+    @Test
+    public void testMapperThenReturn2X() {
+        Iterator<Integer> results;
+
+        results = new BatchMapperIterator<>(1, DATA3.iterator(), batch -> {
+            List<Integer> list = new ArrayList<>();
+            for (int i : batch) {
+                list.add(2 * i);
+            }
+            return list.iterator();
+        });
+
+        Assert.assertEquals(8, results.next());
+        Assert.assertEquals(10, results.next());
+        Assert.assertEquals(12, results.next());
+        Assert.assertFalse(results.hasNext());
+    }
+
+    @Test
+    public void testMapperReturnNullThenHasNext() {
+        Iterator<Integer> results;
+
+        results = new BatchMapperIterator<>(1, DATA3.iterator(), batch -> {
+            return null;
+        });
+        Assert.assertFalse(results.hasNext());
+        Assert.assertFalse(results.hasNext());
+    }
+
+    @Test
+    public void testMapperReturnNullThenNext() {
+        Iterator<Integer> results;
+
+        results = new BatchMapperIterator<>(1, DATA3.iterator(), batch -> {
+            return null;
+        });
+        Assert.assertThrows(NoSuchElementException.class, () -> {
+            results.next();
+        });
+        Assert.assertThrows(NoSuchElementException.class, () -> {
+            results.next();
+        });
+    }
+
+    @Test
+    public void testClose() throws Exception {
+        CloseableItor<Integer> vals = new CloseableItor<>(DATA1.iterator());
+
+        Iterator<Integer> results = new BatchMapperIterator<>(1, vals, MAPPER);
+
+        Assert.assertFalse(vals.closed());
+        ((BatchMapperIterator<?, ?>) results).close();
+        Assert.assertTrue(vals.closed());
+    }
+}

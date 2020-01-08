@@ -21,32 +21,5 @@ package com.baidu.hugegraph.iterator;
 
 import java.util.Iterator;
 
-public class IterableIterator<T> implements Iterator<T> {
-
-    private final Iterable<T> iterable;
-    private final Iterator<T> iterator;
-
-    public IterableIterator(Iterable<T> iterable) {
-        this.iterable = iterable;
-        this.iterator = iterable.iterator();
-    }
-
-    @Override
-    public boolean hasNext() {
-        return this.iterator.hasNext();
-    }
-
-    @Override
-    public T next() {
-        return this.iterator.next();
-    }
-
-    @Override
-    public void remove() {
-        this.iterator.remove();
-    }
-
-    public Iterable<T> iterable() {
-        return iterable;
-    }
+public interface CIter<R> extends Iterator<R>, AutoCloseable, Metadatable {
 }

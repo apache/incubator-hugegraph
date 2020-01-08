@@ -30,10 +30,12 @@ import com.baidu.hugegraph.unit.config.HugeConfigTest;
 import com.baidu.hugegraph.unit.config.OptionSpaceTest;
 import com.baidu.hugegraph.unit.date.SafeDateFormatTest;
 import com.baidu.hugegraph.unit.event.EventHubTest;
+import com.baidu.hugegraph.unit.iterator.BatchMapperIteratorTest;
 import com.baidu.hugegraph.unit.iterator.ExtendableIteratorTest;
 import com.baidu.hugegraph.unit.iterator.FilterIteratorTest;
 import com.baidu.hugegraph.unit.iterator.FlatMapperFilterIteratorTest;
 import com.baidu.hugegraph.unit.iterator.FlatMapperIteratorTest;
+import com.baidu.hugegraph.unit.iterator.ListIteratorTest;
 import com.baidu.hugegraph.unit.iterator.MapperIteratorTest;
 import com.baidu.hugegraph.unit.license.ExtraParamTest;
 import com.baidu.hugegraph.unit.license.LicenseCreateParamTest;
@@ -74,6 +76,8 @@ import com.baidu.hugegraph.unit.version.VersionTest;
     MapperIteratorTest.class,
     FlatMapperIteratorTest.class,
     FlatMapperFilterIteratorTest.class,
+    ListIteratorTest.class,
+    BatchMapperIteratorTest.class,
 
     BytesTest.class,
     CollectionUtilTest.class,
