@@ -33,6 +33,7 @@ import java.util.stream.Collectors;
 import org.apache.hadoop.hbase.NamespaceExistException;
 import org.apache.hadoop.hbase.TableExistsException;
 import org.apache.hadoop.hbase.TableNotFoundException;
+import org.apache.hadoop.hbase.client.Connection;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.backend.BackendException;
@@ -73,10 +74,24 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
         this.namespace = namespace;
         this.store = store;
         this.sessions = null;
+
+        this.registerMetaHandlers();
+        LOG.debug("Store loaded: {}", store);
+    }
+
+    private void registerMetaHandlers() {
+        this.registerMetaHandler("metrics", (session, meta, args) -> {
+            HbaseMetrics metrics = new HbaseMetrics(hbase());
+            return metrics.getMetrics();
+        });
     }
 
     protected void registerTableManager(HugeType type, HbaseTable table) {
         this.tables.put(type, table);
+    }
+
+    private Connection hbase() {
+        return this.sessions.hbase();
     }
 
     @Override

@@ -1,0 +1,102 @@
+/*
+ * Copyright 2017 HugeGraph Authors
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
+package com.baidu.hugegraph.backend.store.hbase;
+
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.hadoop.hbase.ClusterMetrics;
+import org.apache.hadoop.hbase.RegionMetrics;
+import org.apache.hadoop.hbase.ServerMetrics;
+import org.apache.hadoop.hbase.ServerName;
+import org.apache.hadoop.hbase.Size;
+import org.apache.hadoop.hbase.client.Admin;
+import org.apache.hadoop.hbase.client.Connection;
+
+import com.baidu.hugegraph.backend.store.BackendMetrics;
+import com.baidu.hugegraph.util.InsertionOrderUtil;
+
+public class HbaseMetrics implements BackendMetrics {
+
+    private final Connection hbase;
+
+    public HbaseMetrics(Connection hbase) {
+        this.hbase = hbase;
+    }
+
+    @Override
+    public Map<String, Object> getMetrics() {
+        Map<String, Object> results = InsertionOrderUtil.newMap();
+        try {
+            Admin admin = this.hbase.getAdmin();
+            // Cluster info
+            ClusterMetrics clusterMetrics = admin.getClusterMetrics();
+            results.put("cluster_id", clusterMetrics.getClusterId());
+            results.put("average_load", clusterMetrics.getAverageLoad());
+            results.put("hbase_version", clusterMetrics.getHBaseVersion());
+            results.put("region_count", clusterMetrics.getRegionCount());
+            // Region servers info
+            Collection<ServerName> servers = admin.getRegionServers();
+            results.put(NODES, servers.size());
+            Map<ServerName, ServerMetrics> metrics =
+                            clusterMetrics.getLiveServerMetrics();
+            Map<String, Object> regionServers = InsertionOrderUtil.newMap();
+            for (Map.Entry<ServerName, ServerMetrics> e : metrics.entrySet()) {
+                ServerName server = e.getKey();
+                String address = server.getAddress().toString();
+                List<RegionMetrics> regions = admin.getRegionMetrics(server);
+                regionServers.put(address, this.getRegionServerMetrics(
+                                           e.getValue(), regions));
+            }
+            results.put("region_servers", regionServers);
+        } catch (Throwable e) {
+            results.put(EXCEPTION, e.getMessage());
+        }
+        return results;
+    }
+
+    private Map<String, Object> getRegionServerMetrics(
+                                ServerMetrics serverMetrics,
+                                List<RegionMetrics> regions) {
+        Map<String, Object> metrics = InsertionOrderUtil.newMap();
+        metrics.put("max_heap_size",
+                    serverMetrics.getMaxHeapSize().get(Size.Unit.MEGABYTE));
+        metrics.put("used_heap_size",
+                    serverMetrics.getUsedHeapSize().get(Size.Unit.MEGABYTE));
+        metrics.put("request_count", serverMetrics.getRequestCount());
+        metrics.put("request_count_per_second",
+                    serverMetrics.getRequestCountPerSecond());
+        for (RegionMetrics region : regions) {
+            String table = region.getNameAsString().split(",")[0];
+            metrics.put(table, this.getRegionMetrics(region));
+        }
+        return metrics;
+    }
+
+    private Map<String, Object> getRegionMetrics(RegionMetrics region) {
+        Map<String, Object> metrics = InsertionOrderUtil.newMap();
+        metrics.put("mem_store_size",
+                    region.getMemStoreSize().get(Size.Unit.MEGABYTE));
+        metrics.put("mem_store_file_size",
+                    region.getStoreFileSize().get(Size.Unit.MEGABYTE));
+        return metrics;
+    }
+}

@@ -73,6 +73,16 @@ public abstract class InMemoryDBStore
         this.database = database;
         this.store = store;
         this.tables = new HashMap<>();
+
+        this.registerMetaHandlers();
+        LOG.debug("Store loaded: {}", store);
+    }
+
+    private void registerMetaHandlers() {
+        this.registerMetaHandler("metrics", (session, meta, args) -> {
+            InMemoryMetrics metrics = new InMemoryMetrics();
+            return metrics.getMetrics();
+        });
     }
 
     protected void registerTableManager(HugeType type, InMemoryDBTable table) {

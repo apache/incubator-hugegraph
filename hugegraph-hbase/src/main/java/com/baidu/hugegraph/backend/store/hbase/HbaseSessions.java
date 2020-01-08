@@ -85,6 +85,10 @@ public class HbaseSessions extends BackendSessionPool {
         this.namespace = namespace;
     }
 
+    public Connection hbase() {
+        return this.hbase;
+    }
+
     private Table table(String table) throws IOException {
         E.checkState(this.hbase != null, "HBase connection is not opened");
         TableName tableName = TableName.valueOf(this.namespace, table);

@@ -22,6 +22,7 @@ package com.baidu.hugegraph.backend.store.cassandra;
 import java.io.IOException;
 import java.lang.management.MemoryUsage;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.cassandra.tools.NodeProbe;
 
@@ -50,7 +51,9 @@ public class CassandraMetrics implements BackendMetrics {
     @Override
     public Map<String, Object> getMetrics() {
         Map<String, Object> results = InsertionOrderUtil.newMap();
-        for (Host host : this.cluster.getMetadata().getAllHosts()) {
+        Set<Host> hosts = this.cluster.getMetadata().getAllHosts();
+        results.put(NODES, hosts.size());
+        for (Host host : hosts) {
             String address = host.getAddress().getHostAddress();
             results.put(address, this.getMetricsByHost(address));
         }
