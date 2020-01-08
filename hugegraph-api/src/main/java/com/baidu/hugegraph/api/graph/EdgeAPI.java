@@ -402,13 +402,28 @@ public class EdgeAPI extends BatchAPI {
     }
 
     private Id getEdgeId(HugeGraph g, JsonEdge newEdge) {
+        Id labelId = g.edgeLabel(newEdge.label).id();
+        List<Id> sortKeyIds = g.edgeLabel(labelId).sortKeys();
+
         if (newEdge.id != null) {
+            // check the sortKeys are not updated
+            HugeEdge edge = (HugeEdge) g.edges(newEdge.id).next();
+            sortKeyIds.forEach(skId -> {
+                PropertyKey pk = g.propertyKey(skId);
+                String sortKey = pk.name();
+                Object sortKeyValue = newEdge.properties.get(sortKey);
+                sortKeyValue = pk.convValue(sortKeyValue, true);
+                Object oldSortKeyValue = edge.value(sortKey);
+                E.checkArgument(sortKeyValue == null ||
+                                sortKeyValue.equals(oldSortKeyValue),
+                                "The value of sort key '%s' either be null " +
+                                "or equal with origin '%s', but got '%s'",
+                                sortKey, oldSortKeyValue, sortKeyValue);
+            });
             return EdgeId.parse(newEdge.id.toString());
         }
 
         String sortKeys = "";
-        Id labelId = g.edgeLabel(newEdge.label).id();
-        List<Id> sortKeyIds = g.edgeLabel(labelId).sortKeys();
         if (!sortKeyIds.isEmpty()) {
             List<Object> sortKeyValues = new ArrayList<>(sortKeyIds.size());
             sortKeyIds.forEach(skId -> {
@@ -421,12 +436,9 @@ public class EdgeAPI extends BatchAPI {
             });
             sortKeys = ConditionQuery.concatValues(sortKeyValues);
         }
-
-        // TODO: How to get Direction from JsonEdge easily? or any better way?
-        EdgeId edgeId = new EdgeId(HugeVertex.getIdValue(newEdge.source),
-                                   Directions.OUT, labelId, sortKeys,
-                                   HugeVertex.getIdValue(newEdge.target));
-        return edgeId;
+        return new EdgeId(HugeVertex.getIdValue(newEdge.source),
+                          Directions.OUT, labelId, sortKeys,
+                          HugeVertex.getIdValue(newEdge.target));
     }
 
     protected static class BatchEdgeRequest {

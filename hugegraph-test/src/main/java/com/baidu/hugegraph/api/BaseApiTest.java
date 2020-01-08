@@ -242,9 +242,9 @@ public class BaseApiTest {
                 + "\"name\": \"knows\",\n"
                 + "\"source_label\": \"person\",\n"
                 + "\"target_label\": \"person\",\n"
-                + "\"frequency\": \"SINGLE\",\n"
+                + "\"frequency\": \"MULTIPLE\",\n"
                 + "\"properties\":[\"date\", \"weight\"],\n"
-                + "\"sort_keys\":[],\n"
+                + "\"sort_keys\":[\"date\"],\n"
                 + "\"nullable_keys\":[]\n"
                 + "}");
     }
