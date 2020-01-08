@@ -19,20 +19,20 @@
 
 package com.baidu.hugegraph.backend.serializer;
 
-import org.apache.commons.lang.NotImplementedException;
-
 import com.baidu.hugegraph.HugeGraph;
-import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumn;
 import com.baidu.hugegraph.schema.VertexLabel;
+import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.structure.HugeVertexProperty;
+import com.baidu.hugegraph.type.define.HugeKeys;
 
-public class BinaryInlineSerializer extends BinarySerializer {
+public class BinaryScatterSerializer extends BinarySerializer {
 
-    public BinaryInlineSerializer() {
+    public BinaryScatterSerializer() {
         super(true, true);
     }
 
@@ -44,16 +44,13 @@ public class BinaryInlineSerializer extends BinarySerializer {
             return entry;
         }
 
-        int propsCount = vertex.getProperties().size();
-        BytesBuffer buffer = BytesBuffer.allocate(8 + 16 * propsCount);
-
         // Write vertex label
-        buffer.writeId(vertex.schemaLabel().id());
+        entry.column(this.formatLabel(vertex));
 
-        // Write all properties of the vertex
-        this.formatProperties(vertex.getProperties().values(), buffer);
-
-        entry.column(entry.id().asBytes(), buffer.bytes());
+        // Write all properties of a Vertex
+        for (HugeProperty<?> prop : vertex.getProperties().values()) {
+            entry.column(this.formatProperty(prop));
+        }
 
         return entry;
     }
@@ -65,39 +62,31 @@ public class BinaryInlineSerializer extends BinarySerializer {
         }
         BinaryBackendEntry entry = this.convertEntry(bytesEntry);
 
+        // Parse label
+        final byte[] VL = this.formatSyspropName(entry.id(), HugeKeys.LABEL);
+        BackendColumn vl = entry.column(VL);
+        VertexLabel label = VertexLabel.NONE;
+        if (vl != null) {
+            label = graph.vertexLabel(BytesBuffer.wrap(vl.value).readId());
+        }
+
         // Parse id
         Id id = entry.id().origin();
-        Id vid = id.edge() ? ((EdgeId) id).ownerVertexId() : id;
-        HugeVertex vertex = new HugeVertex(graph, vid, VertexLabel.NONE);
+        HugeVertex vertex = new HugeVertex(graph, id, label);
 
         // Parse all properties and edges of a Vertex
         for (BackendColumn col : entry.columns()) {
-            if (id.edge()) {
-                // Parse vertex edges
-                this.parseColumn(col, vertex);
-            } else {
-                // Parse vertex properties
-                assert entry.columnsSize() == 1 : entry.columnsSize();
-                this.parseVertex(col.value, vertex);
-            }
+            this.parseColumn(col, vertex);
         }
 
         return vertex;
     }
 
-    protected void parseVertex(byte[] value, HugeVertex vertex) {
-        BytesBuffer buffer = BytesBuffer.wrap(value);
-
-        // Parse vertex label
-        VertexLabel label = vertex.graph().vertexLabel(buffer.readId());
-        vertex.vertexLabel(label);
-
-        // Parse properties
-        this.parseProperties(buffer, vertex);
-    }
-
     @Override
     public BackendEntry writeVertexProperty(HugeVertexProperty<?> prop) {
-        throw new NotImplementedException("Unsupported writeVertexProperty()");
+        BinaryBackendEntry entry = newBackendEntry(prop.element());
+        entry.column(this.formatProperty(prop));
+        entry.subId(IdGenerator.of(prop.key()));
+        return entry;
     }
 }

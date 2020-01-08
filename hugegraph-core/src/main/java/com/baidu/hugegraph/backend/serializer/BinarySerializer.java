@@ -367,23 +367,34 @@ public class BinarySerializer extends AbstractSerializer {
             return entry;
         }
 
-        // Write vertex label
-        entry.column(this.formatLabel(vertex));
+        int propsCount = vertex.getProperties().size();
+        BytesBuffer buffer = BytesBuffer.allocate(8 + 16 * propsCount);
 
-        // Write all properties of a Vertex
-        for (HugeProperty<?> prop : vertex.getProperties().values()) {
-            entry.column(this.formatProperty(prop));
-        }
+        // Write vertex label
+        buffer.writeId(vertex.schemaLabel().id());
+
+        // Write all properties of the vertex
+        this.formatProperties(vertex.getProperties().values(), buffer);
+
+        entry.column(entry.id().asBytes(), buffer.bytes());
 
         return entry;
     }
 
+    protected void parseVertex(byte[] value, HugeVertex vertex) {
+        BytesBuffer buffer = BytesBuffer.wrap(value);
+
+        // Parse vertex label
+        VertexLabel label = vertex.graph().vertexLabel(buffer.readId());
+        vertex.vertexLabel(label);
+
+        // Parse properties
+        this.parseProperties(buffer, vertex);
+    }
+
     @Override
     public BackendEntry writeVertexProperty(HugeVertexProperty<?> prop) {
-        BinaryBackendEntry entry = newBackendEntry(prop.element());
-        entry.column(this.formatProperty(prop));
-        entry.subId(IdGenerator.of(prop.key()));
-        return entry;
+        throw new NotImplementedException("Unsupported writeVertexProperty()");
     }
 
     @Override
@@ -393,21 +404,22 @@ public class BinarySerializer extends AbstractSerializer {
         }
         BinaryBackendEntry entry = this.convertEntry(bytesEntry);
 
-        // Parse label
-        final byte[] VL = this.formatSyspropName(entry.id(), HugeKeys.LABEL);
-        BackendColumn vl = entry.column(VL);
-        VertexLabel label = VertexLabel.NONE;
-        if (vl != null) {
-            label = graph.vertexLabel(BytesBuffer.wrap(vl.value).readId());
-        }
-
         // Parse id
         Id id = entry.id().origin();
-        HugeVertex vertex = new HugeVertex(graph, id, label);
+        Id vid = id.edge() ? ((EdgeId) id).ownerVertexId() : id;
+        HugeVertex vertex = new HugeVertex(graph, vid, VertexLabel.NONE);
 
         // Parse all properties and edges of a Vertex
         for (BackendColumn col : entry.columns()) {
-            this.parseColumn(col, vertex);
+            if (entry.type().isEdge()) {
+                // NOTE: the id is vertex type even if query edge
+                // Parse vertex edges
+                this.parseColumn(col, vertex);
+            } else {
+                // Parse vertex properties
+                assert entry.columnsSize() == 1 : entry.columnsSize();
+                this.parseVertex(col.value, vertex);
+            }
         }
 
         return vertex;

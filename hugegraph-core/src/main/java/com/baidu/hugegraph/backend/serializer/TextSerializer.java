@@ -116,6 +116,22 @@ public class TextSerializer extends AbstractSerializer {
         return JsonUtil.toJson(prop.value());
     }
 
+    private String formatPropertyName() {
+        return HugeType.PROPERTY.string();
+    }
+
+    private String formatPropertyValues(HugeVertex vertex) {
+        StringBuilder sb = new StringBuilder(256 * vertex.getProperties().size());
+        // Vertex properties
+        for (HugeProperty<?> property : vertex.getProperties().values()) {
+            sb.append(VALUE_SPLITOR);
+            sb.append(this.formatPropertyName(property));
+            sb.append(VALUE_SPLITOR);
+            sb.append(this.formatPropertyValue(property));
+        }
+        return sb.toString();
+    }
+
     private void parseProperty(String colName, String colValue,
                                HugeElement owner) {
         String[] colParts = SplicingIdGenerator.split(colName);
@@ -139,6 +155,14 @@ public class TextSerializer extends AbstractSerializer {
                 v = JsonUtil.castNumber(v, pkey.dataType().clazz());
                 owner.addProperty(pkey, v);
             }
+        }
+    }
+
+    private void parseProperties(String colValue, HugeVertex vertex) {
+        String[] valParts = colValue.split(VALUE_SPLITOR);
+        // Edge properties
+        for (int i = 1; i < valParts.length; i += 2) {
+            this.parseProperty(valParts[i], valParts[i + 1], vertex);
         }
     }
 
@@ -215,11 +239,11 @@ public class TextSerializer extends AbstractSerializer {
         String type = SplicingIdGenerator.split(colName)[0];
         // Parse property
         if (type.equals(writeType(HugeType.PROPERTY))) {
-            this.parseProperty(colName, colValue, vertex);
+            this.parseProperties(colValue, vertex);
         }
         // Parse edge
         else if (type.equals(writeType(HugeType.EDGE_OUT)) ||
-            type.equals(writeType(HugeType.EDGE_IN))) {
+                 type.equals(writeType(HugeType.EDGE_IN))) {
             this.parseEdge(colName, colValue, vertex);
         }
         // Parse system property
@@ -244,29 +268,27 @@ public class TextSerializer extends AbstractSerializer {
         }
 
         // Add all properties of a Vertex
-        for (HugeProperty<?> prop : vertex.getProperties().values()) {
-            entry.column(this.formatPropertyName(prop),
-                         this.formatPropertyValue(prop));
-        }
-
+        entry.column(this.formatPropertyName(),
+                     this.formatPropertyValues(vertex));
         return entry;
     }
 
     @Override
     public BackendEntry writeVertexProperty(HugeVertexProperty<?> prop) {
-        HugeVertex vertex = prop.element();
-        TextBackendEntry entry = newBackendEntry(vertex);
-        entry.subId(IdGenerator.of(prop.key()));
-
-        // Write label (NOTE: maybe just with edges if label is null)
-        if (vertex.schemaLabel() != null) {
-            entry.column(this.formatSyspropName(HugeKeys.LABEL),
-                         writeId(vertex.schemaLabel().id()));
-        }
-
-        entry.column(this.formatPropertyName(prop),
-                     this.formatPropertyValue(prop));
-        return entry;
+        throw new NotImplementedException("Unsupported writeVertexProperty()");
+//        HugeVertex vertex = prop.element();
+//        TextBackendEntry entry = newBackendEntry(vertex);
+//        entry.subId(IdGenerator.of(prop.key()));
+//
+//        // Write label (NOTE: maybe just with edges if label is null)
+//        if (vertex.schemaLabel() != null) {
+//            entry.column(this.formatSyspropName(HugeKeys.LABEL),
+//                         writeId(vertex.schemaLabel().id()));
+//        }
+//
+//        entry.column(this.formatPropertyName(prop),
+//                     this.formatPropertyValue(prop));
+//        return entry;
     }
 
     @Override
