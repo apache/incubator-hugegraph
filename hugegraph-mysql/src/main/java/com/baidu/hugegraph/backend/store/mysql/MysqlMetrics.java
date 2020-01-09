@@ -28,6 +28,6 @@ public class MysqlMetrics implements BackendMetrics {
 
     @Override
     public Map<String, Object> getMetrics() {
-        return ImmutableMap.of("nodes", 1);
+        return ImmutableMap.of(NODES, 1);
     }
 }

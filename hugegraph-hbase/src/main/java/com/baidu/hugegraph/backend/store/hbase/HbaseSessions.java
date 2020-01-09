@@ -85,7 +85,8 @@ public class HbaseSessions extends BackendSessionPool {
         this.namespace = namespace;
     }
 
-    public Connection hbase() {
+    protected Connection hbase() {
+        E.checkState(this.hbase != null, "HBase connection is not opened");
         return this.hbase;
     }
 

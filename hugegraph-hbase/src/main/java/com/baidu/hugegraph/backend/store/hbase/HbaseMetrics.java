@@ -32,21 +32,22 @@ import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Connection;
 
 import com.baidu.hugegraph.backend.store.BackendMetrics;
+import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
 
 public class HbaseMetrics implements BackendMetrics {
 
     private final Connection hbase;
 
-    public HbaseMetrics(Connection hbase) {
-        this.hbase = hbase;
+    public HbaseMetrics(HbaseSessions hbase) {
+        E.checkArgumentNotNull(hbase, "HBase connection is not opened");
+        this.hbase = hbase.hbase();
     }
 
     @Override
     public Map<String, Object> getMetrics() {
         Map<String, Object> results = InsertionOrderUtil.newMap();
-        try {
-            Admin admin = this.hbase.getAdmin();
+        try (Admin admin = this.hbase.getAdmin()) {
             // Cluster info
             ClusterMetrics clusterMetrics = admin.getClusterMetrics();
             results.put("cluster_id", clusterMetrics.getClusterId());
@@ -63,8 +64,9 @@ public class HbaseMetrics implements BackendMetrics {
                 ServerName server = e.getKey();
                 String address = server.getAddress().toString();
                 List<RegionMetrics> regions = admin.getRegionMetrics(server);
+                ServerMetrics serverMetrics = e.getValue();
                 regionServers.put(address, this.getRegionServerMetrics(
-                                           e.getValue(), regions));
+                                           serverMetrics, regions));
             }
             results.put("region_servers", regionServers);
         } catch (Throwable e) {
@@ -85,8 +87,8 @@ public class HbaseMetrics implements BackendMetrics {
         metrics.put("request_count_per_second",
                     serverMetrics.getRequestCountPerSecond());
         for (RegionMetrics region : regions) {
-            String table = region.getNameAsString().split(",")[0];
-            metrics.put(table, this.getRegionMetrics(region));
+            metrics.put(region.getNameAsString(),
+                        this.getRegionMetrics(region));
         }
         return metrics;
     }

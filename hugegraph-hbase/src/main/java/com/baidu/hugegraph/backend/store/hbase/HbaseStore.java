@@ -81,17 +81,13 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
 
     private void registerMetaHandlers() {
         this.registerMetaHandler("metrics", (session, meta, args) -> {
-            HbaseMetrics metrics = new HbaseMetrics(hbase());
+            HbaseMetrics metrics = new HbaseMetrics(this.sessions);
             return metrics.getMetrics();
         });
     }
 
     protected void registerTableManager(HugeType type, HbaseTable table) {
         this.tables.put(type, table);
-    }
-
-    private Connection hbase() {
-        return this.sessions.hbase();
     }
 
     @Override

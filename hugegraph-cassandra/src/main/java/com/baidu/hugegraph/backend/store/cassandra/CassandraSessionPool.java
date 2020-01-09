@@ -99,7 +99,7 @@ public class CassandraSessionPool extends BackendSessionPool {
         return (this.cluster != null && !this.cluster.isClosed());
     }
 
-    public final synchronized Cluster cluster() {
+    protected final synchronized Cluster cluster() {
         E.checkState(this.cluster != null,
                      "Cassandra cluster has not been initialized");
         return this.cluster;
