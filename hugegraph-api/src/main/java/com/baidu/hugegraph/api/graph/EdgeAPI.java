@@ -425,7 +425,7 @@ public class EdgeAPI extends BatchAPI {
         if (newEdge.id != null) {
             E.checkArgument(edgeId.equals(newEdge.id),
                             "The sort key values either be null " +
-                            "or equal with origin");
+                            "or equal to origin when specified edge id");
         }
         return edgeId;
     }

@@ -64,7 +64,7 @@ public class EdgeApiTest extends BaseApiTest {
     public void testBatchUpdate() throws IOException {
         String outVId = getVertexId("person", "name", "marko");
         String inVId = getVertexId("person", "name", "josh");
-        // create
+        // Create
         String edge = String.format("{"
                 + "\"label\": \"knows\","
                 + "\"outVLabel\": \"person\","
@@ -78,9 +78,9 @@ public class EdgeApiTest extends BaseApiTest {
         Response r = client().post(path, edge);
         // The edge id is 'S1:marko>1>7JooBil0>S1:josh'
         String content = assertResponseStatus(201, r);
-        String id = parseId(content);
+        String edgeId = parseId(content);
 
-        // update edge with edgeId
+        // Update edge with edgeId
         edge = String.format("{"
                 + "\"edges\":["
                 + "{"
@@ -102,14 +102,15 @@ public class EdgeApiTest extends BaseApiTest {
                 + "},"
                 + "\"check_vertex\":false,"
                 + "\"create_if_not_exist\":true"
-                + "}", id, outVId, inVId);
+                + "}", edgeId, outVId, inVId);
         r = client().put(path + "batch", edge, ImmutableMap.of());
-        // Now allowed to modify sortkey values, the property date has changed
+        // Now allowed to modify sortkey values, the property 'date' has changed
         content = assertResponseStatus(400, r);
         Assert.assertTrue(content.contains(
-                          "either be null or equal with origin"));
+                          "either be null or equal to origin when " +
+                          "specified edge id"));
 
-        // update edge without edgeId
+        // Update edge without edgeId
         edge = String.format("{"
                 + "\"edges\":["
                 + "{"
@@ -133,7 +134,9 @@ public class EdgeApiTest extends BaseApiTest {
                 + "}", outVId, inVId);
         r = client().put(path + "batch", edge, ImmutableMap.of());
         // Add a new edge when sortkey value has changed
-        assertResponseStatus(200, r);
+        content = assertResponseStatus(200, r);
+        String newEdgeId = parseId(content);
+        Assert.assertNotEquals(newEdgeId, edgeId);
     }
 
     @Test
