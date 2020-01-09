@@ -118,6 +118,7 @@ public class MetricsApiTest extends BaseApiTest {
                     assertMapContains(regionServer, "request_count");
                     assertMapContains(regionServer,
                                       "request_count_per_second");
+                    assertMapContains(regionServer, "regions");
                 }
                 break;
             default:

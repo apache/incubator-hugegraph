@@ -62,11 +62,10 @@ public class HbaseMetrics implements BackendMetrics {
             Map<String, Object> regionServers = InsertionOrderUtil.newMap();
             for (Map.Entry<ServerName, ServerMetrics> e : metrics.entrySet()) {
                 ServerName server = e.getKey();
-                String address = server.getAddress().toString();
-                List<RegionMetrics> regions = admin.getRegionMetrics(server);
                 ServerMetrics serverMetrics = e.getValue();
-                regionServers.put(address, this.getRegionServerMetrics(
-                                           serverMetrics, regions));
+                List<RegionMetrics> regions = admin.getRegionMetrics(server);
+                regionServers.put(server.getAddress().toString(),
+                                  formatMetrics(serverMetrics, regions));
             }
             results.put("region_servers", regionServers);
         } catch (Throwable e) {
@@ -75,9 +74,9 @@ public class HbaseMetrics implements BackendMetrics {
         return results;
     }
 
-    private Map<String, Object> getRegionServerMetrics(
-                                ServerMetrics serverMetrics,
-                                List<RegionMetrics> regions) {
+    private static Map<String, Object> formatMetrics(
+                                       ServerMetrics serverMetrics,
+                                       List<RegionMetrics> regions) {
         Map<String, Object> metrics = InsertionOrderUtil.newMap();
         metrics.put("max_heap_size",
                     serverMetrics.getMaxHeapSize().get(Size.Unit.MEGABYTE));
@@ -86,14 +85,20 @@ public class HbaseMetrics implements BackendMetrics {
         metrics.put("request_count", serverMetrics.getRequestCount());
         metrics.put("request_count_per_second",
                     serverMetrics.getRequestCountPerSecond());
+        metrics.put("regions", formatMetrics(regions));
+        return metrics;
+    }
+
+    private static Map<String, Object> formatMetrics(
+                                       List<RegionMetrics> regions) {
+        Map<String, Object> metrics = InsertionOrderUtil.newMap();
         for (RegionMetrics region : regions) {
-            metrics.put(region.getNameAsString(),
-                        this.getRegionMetrics(region));
+            metrics.put(region.getNameAsString(), formatMetrics(region));
         }
         return metrics;
     }
 
-    private Map<String, Object> getRegionMetrics(RegionMetrics region) {
+    private static Map<String, Object> formatMetrics(RegionMetrics region) {
         Map<String, Object> metrics = InsertionOrderUtil.newMap();
         metrics.put("mem_store_size",
                     region.getMemStoreSize().get(Size.Unit.MEGABYTE));
