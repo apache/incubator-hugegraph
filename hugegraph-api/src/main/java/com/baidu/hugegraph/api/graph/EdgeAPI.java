@@ -402,43 +402,32 @@ public class EdgeAPI extends BatchAPI {
     }
 
     private Id getEdgeId(HugeGraph g, JsonEdge newEdge) {
+        String sortKeys = "";
         Id labelId = g.edgeLabel(newEdge.label).id();
         List<Id> sortKeyIds = g.edgeLabel(labelId).sortKeys();
-
-        if (newEdge.id != null) {
-            // check the sortKeys are not updated
-            HugeEdge edge = (HugeEdge) g.edges(newEdge.id).next();
+        if (!sortKeyIds.isEmpty()) {
+            List<Object> sortKeyValues = new ArrayList<>(sortKeyIds.size());
             sortKeyIds.forEach(skId -> {
                 PropertyKey pk = g.propertyKey(skId);
                 String sortKey = pk.name();
                 Object sortKeyValue = newEdge.properties.get(sortKey);
-                sortKeyValue = pk.convValue(sortKeyValue, true);
-                Object oldSortKeyValue = edge.value(sortKey);
-                E.checkArgument(sortKeyValue == null ||
-                                sortKeyValue.equals(oldSortKeyValue),
-                                "The value of sort key '%s' either be null " +
-                                "or equal with origin '%s', but got '%s'",
-                                sortKey, oldSortKeyValue, sortKeyValue);
-            });
-            return EdgeId.parse(newEdge.id.toString());
-        }
-
-        String sortKeys = "";
-        if (!sortKeyIds.isEmpty()) {
-            List<Object> sortKeyValues = new ArrayList<>(sortKeyIds.size());
-            sortKeyIds.forEach(skId -> {
-                String sortKey = g.propertyKey(skId).name();
-                Object sortKeyValue = newEdge.properties.get(sortKey);
                 E.checkArgument(sortKeyValue != null,
                                 "The value of sort key '%s' can't be null",
                                 sortKey);
+                sortKeyValue = pk.convValue(sortKeyValue, true);
                 sortKeyValues.add(sortKeyValue);
             });
             sortKeys = ConditionQuery.concatValues(sortKeyValues);
         }
-        return new EdgeId(HugeVertex.getIdValue(newEdge.source),
-                          Directions.OUT, labelId, sortKeys,
-                          HugeVertex.getIdValue(newEdge.target));
+        EdgeId edgeId = new EdgeId(HugeVertex.getIdValue(newEdge.source),
+                                   Directions.OUT, labelId, sortKeys,
+                                   HugeVertex.getIdValue(newEdge.target));
+        if (newEdge.id != null) {
+            E.checkArgument(edgeId.equals(newEdge.id),
+                            "The sort key values either be null " +
+                            "or equal with origin");
+        }
+        return edgeId;
     }
 
     protected static class BatchEdgeRequest {
