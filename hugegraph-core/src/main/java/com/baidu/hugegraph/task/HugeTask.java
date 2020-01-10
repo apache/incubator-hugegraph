@@ -37,6 +37,7 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.slf4j.Logger;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.type.define.SerialEnum;
@@ -189,6 +190,10 @@ public class HugeTask<V> extends FutureTask<V> {
         return TaskStatus.COMPLETED_STATUSES.contains(this.status);
     }
 
+    public boolean cancelled() {
+        return this.status == TaskStatus.CANCELLED || this.isCancelled();
+    }
+
     @Override
     public String toString() {
         return String.format("HugeTask(%s)%s", this.id, this.asMap());
@@ -196,20 +201,28 @@ public class HugeTask<V> extends FutureTask<V> {
 
     @Override
     public void run() {
+        if (this.cancelled()) {
+            // Scheduled task is running after canceled
+            return;
+        }
         try {
-            assert this.status.code() < TaskStatus.RUNNING.code();
+            assert this.status.code() < TaskStatus.RUNNING.code() : this.status;
             if (this.checkDependenciesSuccess()) {
                 this.status(TaskStatus.RUNNING);
                 super.run();
             }
         } catch (Throwable e) {
             this.setException(e);
+        } finally {
+            LOG.debug("Task is finished {}", this);
         }
     }
 
     @Override
     public boolean cancel(boolean mayInterruptIfRunning) {
         try {
+            // NOTE: Gremlin sleep() can't be interrupted by default
+            // https://mrhaki.blogspot.com/2016/10/groovy-goodness-interrupted-sleeping.html
             return super.cancel(mayInterruptIfRunning);
         } finally {
             this.status(TaskStatus.CANCELLED);
@@ -243,8 +256,8 @@ public class HugeTask<V> extends FutureTask<V> {
 
     @Override
     protected void setException(Throwable e) {
-        if (!(this.status == TaskStatus.CANCELLED &&
-              e instanceof InterruptedException)) {
+        if (!(this.cancelled() &&
+              HugeException.rootCause(e) instanceof InterruptedException)) {
             LOG.warn("An exception occurred when running task: {}",
                      this.id(), e);
             this.result = e.toString();
@@ -288,6 +301,7 @@ public class HugeTask<V> extends FutureTask<V> {
     }
 
     protected void status(TaskStatus status) {
+        E.checkNotNull(status, "status");
         this.status = status;
     }
 

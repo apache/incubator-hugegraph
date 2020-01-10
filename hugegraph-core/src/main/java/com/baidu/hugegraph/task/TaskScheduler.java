@@ -198,7 +198,7 @@ public class TaskScheduler {
 
     protected void remove(Id id) {
         HugeTask<?> task = this.tasks.remove(id);
-        assert task == null || task.completed();
+        assert task == null || task.completed() || task.isCancelled();
     }
 
     public <V> void save(HugeTask<V> task) {
