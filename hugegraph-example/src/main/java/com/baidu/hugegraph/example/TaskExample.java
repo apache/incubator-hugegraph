@@ -42,7 +42,13 @@ public class TaskExample {
         LOG.info("TaskExample start!");
 
         HugeGraph graph = ExampleUtil.loadGraph();
+        testTask(graph);
+        graph.close();
 
+        HugeGraph.shutdown(30L);
+    }
+
+    public static void testTask(HugeGraph graph) throws InterruptedException {
         Id id = IdGenerator.of(8);
         String callable = "com.baidu.hugegraph.example.TaskExample$TestTask";
         HugeTask<?> task = new HugeTask<>(id, null, callable, "test-parameter");
@@ -76,15 +82,14 @@ public class TaskExample {
 
         iter = scheduler.findTask(TaskStatus.SUCCESS, -1, null);
         assert iter.hasNext();
-
-        graph.close();
-
-        HugeGraph.shutdown(30L);
+        task = iter.next();
+        assert task.status() == TaskStatus.SUCCESS;
+        assert task.retries() == 1;
     }
 
     public static class TestTask extends TaskCallable<Integer> {
 
-        public static final int UNIT = 100;
+        public static final int UNIT = 100; // ms
 
         public volatile boolean run = true;
 

@@ -40,14 +40,19 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
+import com.baidu.hugegraph.backend.serializer.BytesBuffer;
+import com.baidu.hugegraph.exception.LimitExceedException;
 import com.baidu.hugegraph.type.define.SerialEnum;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
+import com.baidu.hugegraph.util.JsonUtil;
 import com.baidu.hugegraph.util.Log;
 
 public class HugeTask<V> extends FutureTask<V> {
 
     private static final Logger LOG = Log.logger(HugeTask.class);
+
+    private static final int MAX_PROPERTY_LENGTH = BytesBuffer.STRING_LEN_MAX;
 
     private final TaskCallable<V> callable;
 
@@ -234,6 +239,11 @@ public class HugeTask<V> extends FutureTask<V> {
         }
     }
 
+    public void fail(Throwable e) {
+        this.result = e.toString();
+        this.status(TaskStatus.FAILED);
+    }
+
     @Override
     protected void done() {
         try {
@@ -248,7 +258,7 @@ public class HugeTask<V> extends FutureTask<V> {
     @Override
     protected void set(V v) {
         if (v != null) {
-            this.result = v.toString();
+            this.result = JsonUtil.toJson(v);
         }
         this.status(TaskStatus.SUCCESS);
         super.set(v);
@@ -260,9 +270,8 @@ public class HugeTask<V> extends FutureTask<V> {
               HugeException.rootCause(e) instanceof InterruptedException)) {
             LOG.warn("An exception occurred when running task: {}",
                      this.id(), e);
-            this.result = e.toString();
             // Update status to FAILED if exception occurred(not interrupted)
-            this.status(TaskStatus.FAILED);
+            this.fail(e);
         }
         super.setException(e);
     }
@@ -297,12 +306,27 @@ public class HugeTask<V> extends FutureTask<V> {
     }
 
     protected TaskCallable<V> callable() {
+        E.checkNotNull(this.callable, "callable");
         return this.callable;
     }
 
     protected void status(TaskStatus status) {
         E.checkNotNull(status, "status");
         this.status = status;
+    }
+
+    protected void checkProperties() {
+        final int limit = MAX_PROPERTY_LENGTH;
+        if (this.input != null && this.input.length() > limit) {
+            throw new LimitExceedException(
+                      "Task input size %s exceeded limit %s bytes",
+                      this.input.length(), limit);
+        }
+        if (this.result != null && this.result.length() > limit) {
+            throw new LimitExceedException(
+                      "Task result size %s exceeded limit %s bytes",
+                      this.result.length(), limit);
+        }
     }
 
     protected void property(String key, Object value) {

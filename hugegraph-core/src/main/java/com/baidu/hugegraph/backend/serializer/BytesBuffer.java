@@ -62,6 +62,7 @@ public final class BytesBuffer {
     public static final int BIG_ID_LEN_MAX = 0x7fff + 1; // 32768
 
     public static final byte STRING_ENDING_BYTE = (byte) 0xff;
+    public static final int STRING_LEN_MAX = UINT16_MAX;
 
     // The value must be in range [8, ID_LEN_MAX]
     public static final int INDEX_HASH_ID_THRESHOLD = 32;

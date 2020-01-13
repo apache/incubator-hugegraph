@@ -67,9 +67,19 @@ public abstract class Job<T> extends TaskCallable<T> {
         }
     }
 
+    public int progress() {
+        HugeTask<T> task = this.task();
+        return task.progress();
+    }
+
     private void save() {
         HugeTask<T> task = this.task();
         task.updateTime(new Date());
-        this.scheduler().save(task);
+        try {
+            this.scheduler().save(task);
+        } catch (Throwable e) {
+            task.fail(e);
+            this.scheduler().save(task);
+        }
     }
 }
