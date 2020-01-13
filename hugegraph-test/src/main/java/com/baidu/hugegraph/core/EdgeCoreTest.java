@@ -537,14 +537,6 @@ public class EdgeCoreTest extends BaseCoreTest {
 
     @Test
     public void testOverrideEdge() {
-        /**
-         * schema.edgeLabel("authored").singleTime()
-         *               .properties("contribution", "comment", "score")
-         *               .nullableKeys("score", "contribution", "comment")
-         *               .link("author", "book")
-         *               .enableLabelIndex(true)
-         *               .create();
-         */
         HugeGraph graph = graph();
         Vertex marko = graph().addVertex(T.label, "author", "id", 1,
                                          "name", "marko", "age", 28,

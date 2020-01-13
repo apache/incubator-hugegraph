@@ -48,6 +48,7 @@ import com.baidu.hugegraph.unit.mysql.WhereBuilderTest;
 import com.baidu.hugegraph.unit.rocksdb.RocksDBCountersTest;
 import com.baidu.hugegraph.unit.rocksdb.RocksDBSessionsTest;
 import com.baidu.hugegraph.unit.serializer.BinaryBackendEntryTest;
+import com.baidu.hugegraph.unit.serializer.BinaryScatterSerializerTest;
 import com.baidu.hugegraph.unit.serializer.BinarySerializerTest;
 import com.baidu.hugegraph.unit.serializer.BytesBufferTest;
 import com.baidu.hugegraph.unit.serializer.SerializerFactoryTest;
@@ -94,6 +95,7 @@ import com.baidu.hugegraph.unit.util.VersionTest;
     TableBackendEntryTest.class,
     BinaryBackendEntryTest.class,
     BinarySerializerTest.class,
+    BinaryScatterSerializerTest.class,
 
     /* cassandra */
     CassandraTest.class,

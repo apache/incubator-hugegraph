@@ -121,13 +121,17 @@ public class TextSerializer extends AbstractSerializer {
     }
 
     private String formatPropertyValues(HugeVertex vertex) {
-        StringBuilder sb = new StringBuilder(256 * vertex.getProperties().size());
+        int size = vertex.getProperties().size();
+        StringBuilder sb = new StringBuilder(256 * size);
         // Vertex properties
+        int i = 0;
         for (HugeProperty<?> property : vertex.getProperties().values()) {
-            sb.append(VALUE_SPLITOR);
             sb.append(this.formatPropertyName(property));
             sb.append(VALUE_SPLITOR);
             sb.append(this.formatPropertyValue(property));
+            if (++i < size) {
+                sb.append(VALUE_SPLITOR);
+            }
         }
         return sb.toString();
     }
@@ -159,10 +163,17 @@ public class TextSerializer extends AbstractSerializer {
     }
 
     private void parseProperties(String colValue, HugeVertex vertex) {
+        if (colValue == null || colValue.isEmpty()) {
+            return;
+        }
         String[] valParts = colValue.split(VALUE_SPLITOR);
         // Edge properties
-        for (int i = 1; i < valParts.length; i += 2) {
-            this.parseProperty(valParts[i], valParts[i + 1], vertex);
+        for (int i = 0; i < valParts.length; i += 2) {
+            try {
+                this.parseProperty(valParts[i], valParts[i + 1], vertex);
+            } catch (ArrayIndexOutOfBoundsException e) {
+                throw e;
+            }
         }
     }
 
@@ -276,19 +287,6 @@ public class TextSerializer extends AbstractSerializer {
     @Override
     public BackendEntry writeVertexProperty(HugeVertexProperty<?> prop) {
         throw new NotImplementedException("Unsupported writeVertexProperty()");
-//        HugeVertex vertex = prop.element();
-//        TextBackendEntry entry = newBackendEntry(vertex);
-//        entry.subId(IdGenerator.of(prop.key()));
-//
-//        // Write label (NOTE: maybe just with edges if label is null)
-//        if (vertex.schemaLabel() != null) {
-//            entry.column(this.formatSyspropName(HugeKeys.LABEL),
-//                         writeId(vertex.schemaLabel().id()));
-//        }
-//
-//        entry.column(this.formatPropertyName(prop),
-//                     this.formatPropertyValue(prop));
-//        return entry;
     }
 
     @Override
