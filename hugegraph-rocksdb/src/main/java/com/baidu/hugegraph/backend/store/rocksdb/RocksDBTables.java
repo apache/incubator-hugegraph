@@ -120,6 +120,16 @@ public class RocksDBTables {
         public Vertex(String database) {
             super(database, TABLE);
         }
+
+        @Override
+        protected BackendColumnIterator queryById(Session session, Id id) {
+            byte[] value = session.get(this.table(), id.asBytes());
+            if (value == null) {
+                return BackendColumnIterator.empty();
+            }
+            BackendColumn col = BackendColumn.of(id.asBytes(), value);
+            return new BackendColumnIteratorWrapper(col);
+        }
     }
 
     public static class Edge extends RocksDBTable {
