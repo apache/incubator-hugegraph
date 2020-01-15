@@ -225,23 +225,38 @@ public class HugeTask<V> extends FutureTask<V> {
 
     @Override
     public boolean cancel(boolean mayInterruptIfRunning) {
-        try {
-            // NOTE: Gremlin sleep() can't be interrupted by default
-            // https://mrhaki.blogspot.com/2016/10/groovy-goodness-interrupted-sleeping.html
-            return super.cancel(mayInterruptIfRunning);
-        } finally {
-            this.status(TaskStatus.CANCELLED);
-            try {
-                this.callable.cancelled();
-            } catch (Throwable e) {
-                LOG.error("An exception occurred when calling cancelled()", e);
-            }
+        // NOTE: Gremlin sleep() can't be interrupted by default
+        // https://mrhaki.blogspot.com/2016/10/groovy-goodness-interrupted-sleeping.html
+        boolean cancelled = super.cancel(mayInterruptIfRunning);
+        if (!cancelled) {
+            return cancelled;
         }
+
+        try {
+            if (this.status(TaskStatus.CANCELLED)) {
+                this.callable.cancelled();
+            } else {
+                // Maybe the worker is still running and set status SUCCESS
+                cancelled = false;
+            }
+        } catch (Throwable e) {
+            LOG.error("An exception occurred when calling cancelled()", e);
+        }
+        return cancelled;
     }
 
-    public void fail(Throwable e) {
-        this.result = e.toString();
-        this.status(TaskStatus.FAILED);
+    public boolean fail(Throwable e) {
+        E.checkNotNull(e, "exception");
+        if (!(this.cancelled() &&
+              HugeException.rootCause(e) instanceof InterruptedException)) {
+            LOG.warn("An exception occurred when running task: {}", this.id(), e);
+            // Update status to FAILED if exception occurred(not interrupted)
+            if (this.status(TaskStatus.FAILED)) {
+                this.result = e.toString();
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
@@ -257,22 +272,15 @@ public class HugeTask<V> extends FutureTask<V> {
 
     @Override
     protected void set(V v) {
-        if (v != null) {
+        if (this.status(TaskStatus.SUCCESS) && v != null) {
             this.result = JsonUtil.toJson(v);
         }
-        this.status(TaskStatus.SUCCESS);
         super.set(v);
     }
 
     @Override
     protected void setException(Throwable e) {
-        if (!(this.cancelled() &&
-              HugeException.rootCause(e) instanceof InterruptedException)) {
-            LOG.warn("An exception occurred when running task: {}",
-                     this.id(), e);
-            // Update status to FAILED if exception occurred(not interrupted)
-            this.fail(e);
-        }
+        this.fail(e);
         super.setException(e);
     }
 
@@ -310,9 +318,13 @@ public class HugeTask<V> extends FutureTask<V> {
         return this.callable;
     }
 
-    protected void status(TaskStatus status) {
+    protected synchronized boolean status(TaskStatus status) {
         E.checkNotNull(status, "status");
-        this.status = status;
+        if (!this.completed()) {
+            this.status = status;
+            return true;
+        }
+        return false;
     }
 
     protected void checkProperties() {
@@ -342,7 +354,8 @@ public class HugeTask<V> extends FutureTask<V> {
                 // pass
                 break;
             case P.STATUS:
-                this.status(SerialEnum.fromCode(TaskStatus.class, (byte) value));
+                this.status = SerialEnum.fromCode(TaskStatus.class,
+                                                  (byte) value);
                 break;
             case P.PROGRESS:
                 this.progress = (int) value;

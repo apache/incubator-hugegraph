@@ -166,7 +166,7 @@ public class TaskScheduler {
         E.checkArgumentNotNull(task, "Task can't be null");
         E.checkArgument(!this.tasks.containsKey(task.id()),
                         "Task '%s' is already in the queue", task.id());
-        E.checkArgument(!task.isDone(),
+        E.checkArgument(!task.isDone() && !task.completed(),
                         "No need to restore completed task '%s' with status %s",
                         task.id(), task.status());
         task.status(TaskStatus.RESTORING);
@@ -200,8 +200,9 @@ public class TaskScheduler {
         callable.task(task);
     }
 
-    public <V> void cancel(HugeTask<V> task) {
+    public <V> boolean cancel(HugeTask<V> task) {
         E.checkArgumentNotNull(task, "Task can't be null");
+        boolean cancelled = false;
         if (!task.completed()) {
             /*
              * Task may be loaded from backend store and not initialized. like:
@@ -211,10 +212,11 @@ public class TaskScheduler {
              */
             this.initTaskCallable(task);
 
-            task.cancel(true);
+            cancelled = task.cancel(true);
             this.remove(task.id());
         }
         assert task.completed();
+        return cancelled;
     }
 
     protected void remove(Id id) {

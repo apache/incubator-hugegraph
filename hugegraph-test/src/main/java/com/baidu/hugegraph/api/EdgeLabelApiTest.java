@@ -77,7 +77,7 @@ public class EdgeLabelApiTest extends BaseApiTest {
                 + "\"sort_keys\":[]"
                 + "}";
         Map<String, Object> params = ImmutableMap.of("action", "append");
-        r = client().put(path + "created", edgeLabel, params);
+        r = client().put(path, "created", edgeLabel, params);
         assertResponseStatus(200, r);
     }
 

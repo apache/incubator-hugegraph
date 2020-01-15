@@ -78,8 +78,13 @@ public abstract class Job<T> extends TaskCallable<T> {
         try {
             this.scheduler().save(task);
         } catch (Throwable e) {
-            task.fail(e);
-            this.scheduler().save(task);
+            if (task.fail(e)) {
+                // Failed to save, try to save the failure reason to task result
+                this.scheduler().save(task);
+            } else {
+                // Not really failed, may be interrupted by cancel()
+                throw e;
+            }
         }
     }
 }
