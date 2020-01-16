@@ -208,7 +208,7 @@ public class HugeTask<V> extends FutureTask<V> {
     @Override
     public void run() {
         if (this.cancelled()) {
-            // Scheduled task is running after canceled
+            // Scheduled task is running after cancelled
             return;
         }
         try {
@@ -238,7 +238,7 @@ public class HugeTask<V> extends FutureTask<V> {
                 // Callback for saving status to store
                 this.callable.cancelled();
             } else {
-                // Maybe the worker is still running and set status SUCCESS
+                // Maybe the worker is still running then set status SUCCESS
                 cancelled = false;
             }
         } catch (Throwable e) {

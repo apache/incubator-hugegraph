@@ -73,7 +73,23 @@ public class TaskApiTest extends BaseApiTest {
 
         Map<String, Object> params = ImmutableMap.of("action", "cancel");
         Response r = client().put(path, String.valueOf(taskId), "", params);
-        assertResponseStatus(202, r);
+        String content = r.readEntity(String.class);
+        Assert.assertTrue(content,
+                          r.getStatus() == 202 || r.getStatus() == 400);
+        if (r.getStatus() == 202) {
+            String status = assertJsonContains(content, "task_status");
+            Assert.assertEquals("cancelled", status);
+        } else {
+            assert r.getStatus() == 400;
+            String error = String.format(
+                           "Can't cancel task '%s' which is completed", taskId);
+            Assert.assertContains(error, content);
+
+            r = client().get(path, String.valueOf(taskId));
+            content = assertResponseStatus(200, r);
+            String status = assertJsonContains(content, "task_status");
+            Assert.assertEquals("success", status);
+        }
     }
 
     @Test

@@ -72,7 +72,6 @@ public class IndexLabelApiTest extends BaseApiTest {
                 + "\"max\": 100"
                 + "}"
                 + "}";
-        System.out.println(indexLabel);
         Map<String, Object> params = ImmutableMap.of("action", "append");
         r = client().put(path, "personByAge", indexLabel, params);
         assertResponseStatus(200, r);
