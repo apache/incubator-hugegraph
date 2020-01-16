@@ -331,10 +331,7 @@ public class HugeTask<V> extends FutureTask<V> {
             E.checkState(this.type != null, "Task type can't be null");
             E.checkState(this.name != null, "Task name can't be null");
         }
-        if (!this.completed() || status == TaskStatus.FAILED) {
-            if (this.completed() && status == TaskStatus.FAILED) {
-                System.out.println(this.status);
-            }
+        if (!this.completed()) {
             this.status = status;
             return true;
         }
