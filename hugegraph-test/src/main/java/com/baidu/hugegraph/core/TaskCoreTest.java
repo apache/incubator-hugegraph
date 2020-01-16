@@ -261,10 +261,113 @@ public class TaskCoreTest extends BaseCoreTest {
         builder.name("test-job-gremlin")
                .input("")
                .job(new GremlinJob());
-
         HugeTask<Object> task = builder.schedule();
         scheduler.waitUntilTaskCompleted(task.id(), 10);
+        Assert.assertEquals(TaskStatus.FAILED, task.status());
         Assert.assertContains("Can't read json", task.result());
+
+        builder = JobBuilder.of(graph);
+        builder.name("test-job-gremlin")
+               .job(new GremlinJob());
+        task = builder.schedule();
+        scheduler.waitUntilTaskCompleted(task.id(), 10);
+        Assert.assertEquals(TaskStatus.FAILED, task.status());
+        Assert.assertContains("The input can't be null", task.result());
+
+        builder = JobBuilder.of(graph);
+        builder.name("test-job-gremlin")
+               .input("{}")
+               .job(new GremlinJob());
+        task = builder.schedule();
+        scheduler.waitUntilTaskCompleted(task.id(), 10);
+        Assert.assertEquals(TaskStatus.FAILED, task.status());
+        Assert.assertContains("Invalid gremlin value 'null'", task.result());
+
+        builder = JobBuilder.of(graph);
+        builder.name("test-job-gremlin")
+               .input("{\"gremlin\":8}")
+               .job(new GremlinJob());
+        task = builder.schedule();
+        scheduler.waitUntilTaskCompleted(task.id(), 10);
+        Assert.assertEquals(TaskStatus.FAILED, task.status());
+        Assert.assertContains("Invalid gremlin value '8'", task.result());
+
+        builder = JobBuilder.of(graph);
+        builder.name("test-job-gremlin")
+               .input("{\"gremlin\":\"\"}")
+               .job(new GremlinJob());
+        task = builder.schedule();
+        scheduler.waitUntilTaskCompleted(task.id(), 10);
+        Assert.assertEquals(TaskStatus.FAILED, task.status());
+        Assert.assertContains("Invalid bindings value 'null'", task.result());
+
+        builder = JobBuilder.of(graph);
+        builder.name("test-job-gremlin")
+               .input("{\"gremlin\":\"\", \"bindings\":\"\"}")
+               .job(new GremlinJob());
+        task = builder.schedule();
+        scheduler.waitUntilTaskCompleted(task.id(), 10);
+        Assert.assertEquals(TaskStatus.FAILED, task.status());
+        Assert.assertContains("Invalid bindings value ''", task.result());
+
+        builder = JobBuilder.of(graph);
+        builder.name("test-job-gremlin")
+               .input("{\"gremlin\":\"\", \"bindings\":{}}")
+               .job(new GremlinJob());
+        task = builder.schedule();
+        scheduler.waitUntilTaskCompleted(task.id(), 10);
+        Assert.assertEquals(TaskStatus.FAILED, task.status());
+        Assert.assertContains("Invalid language value 'null'", task.result());
+
+        builder = JobBuilder.of(graph);
+        builder.name("test-job-gremlin")
+               .input("{\"gremlin\":\"\", \"bindings\":{}, \"language\":{}}")
+               .job(new GremlinJob());
+        task = builder.schedule();
+        scheduler.waitUntilTaskCompleted(task.id(), 10);
+        Assert.assertEquals(TaskStatus.FAILED, task.status());
+        Assert.assertContains("Invalid language value '{}'", task.result());
+
+        builder = JobBuilder.of(graph);
+        builder.name("test-job-gremlin")
+               .input("{\"gremlin\":\"\", \"bindings\":{}, \"language\":\"\"}")
+               .job(new GremlinJob());
+        task = builder.schedule();
+        scheduler.waitUntilTaskCompleted(task.id(), 10);
+        Assert.assertEquals(TaskStatus.FAILED, task.status());
+        Assert.assertContains("Invalid aliases value 'null'", task.result());
+
+        builder = JobBuilder.of(graph);
+        builder.name("test-job-gremlin")
+               .input("{\"gremlin\":\"\", \"bindings\":{}, " +
+                      "\"language\":\"test\", \"aliases\":{}}")
+               .job(new GremlinJob());
+        task = builder.schedule();
+        scheduler.waitUntilTaskCompleted(task.id(), 10);
+        Assert.assertEquals(TaskStatus.FAILED, task.status());
+        Assert.assertContains("test is not an available GremlinScriptEngine",
+                              task.result());
+    }
+
+    @Test
+    public void testGremlinJobWithError() throws TimeoutException {
+        HugeGraph graph = graph();
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            JobBuilder.of(graph)
+                      .job(new GremlinJob())
+                      .schedule();
+        }, e -> {
+            Assert.assertContains("Job name can't be null", e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            JobBuilder.of(graph)
+                      .name("test-job-gremlin")
+                      .schedule();
+        }, e -> {
+            Assert.assertContains("Job callable can't be null", e.getMessage());
+        });
 
         // failure task with big input
         char[] chars = new char[65536];

@@ -27,6 +27,7 @@ import java.util.Map;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.exception.LimitExceedException;
 import com.baidu.hugegraph.traversal.optimize.HugeScriptTraversal;
+import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
 
 public class GremlinJob extends Job<Object> {
@@ -42,17 +43,32 @@ public class GremlinJob extends Job<Object> {
 
     @Override
     public Object execute() throws Exception {
+        String input = this.task().input();
+        E.checkArgumentNotNull(input, "The input can't be null");
         @SuppressWarnings("unchecked")
-        Map<String, Object> input = JsonUtil.fromJson(this.task().input(),
-                                                      Map.class);
-        String gremlin = (String) input.get("gremlin");
+        Map<String, Object> map = JsonUtil.fromJson(input, Map.class);
+
+        Object value = map.get("gremlin");
+        E.checkArgument(value instanceof String,
+                        "Invalid gremlin value '%s'", value);
+        String gremlin = (String) value;
+
+        value = map.get("bindings");
+        E.checkArgument(value instanceof Map,
+                        "Invalid bindings value '%s'", value);
         @SuppressWarnings("unchecked")
-        Map<String, Object> bindings = (Map<String, Object>)
-                                       input.get("bindings");
-        String language = (String) input.get("language");
+        Map<String, Object> bindings = (Map<String, Object>) value;
+
+        value = map.get("language");
+        E.checkArgument(value instanceof String,
+                        "Invalid language value '%s'", value);
+        String language = (String) value;
+
+        value = map.get("aliases");
+        E.checkArgument(value instanceof Map,
+                        "Invalid aliases value '%s'", value);
         @SuppressWarnings("unchecked")
-        Map<String, String> aliases = (Map<String, String>)
-                                      input.get("aliases");
+        Map<String, String> aliases = (Map<String, String>) value;
 
         bindings.put(TASK_BIND_NAME, new GremlinJobProxy());
 
