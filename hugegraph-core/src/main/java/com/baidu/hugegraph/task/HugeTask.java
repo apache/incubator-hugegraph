@@ -180,6 +180,7 @@ public class HugeTask<V> extends FutureTask<V> {
     }
 
     public void input(String input) {
+        checkPropertySize(input, P.unhide(P.INPUT));
         this.input = input;
     }
 
@@ -234,6 +235,7 @@ public class HugeTask<V> extends FutureTask<V> {
 
         try {
             if (this.status(TaskStatus.CANCELLED)) {
+                // Callback for saving status to store
                 this.callable.cancelled();
             } else {
                 // Maybe the worker is still running and set status SUCCESS
@@ -249,7 +251,8 @@ public class HugeTask<V> extends FutureTask<V> {
         E.checkNotNull(e, "exception");
         if (!(this.cancelled() &&
               HugeException.rootCause(e) instanceof InterruptedException)) {
-            LOG.warn("An exception occurred when running task: {}", this.id(), e);
+            LOG.warn("An exception occurred when running task: {}",
+                     this.id(), e);
             // Update status to FAILED if exception occurred(not interrupted)
             if (this.status(TaskStatus.FAILED)) {
                 this.result = e.toString();
@@ -262,6 +265,7 @@ public class HugeTask<V> extends FutureTask<V> {
     @Override
     protected void done() {
         try {
+            // Callback for saving status to store
             this.callable.done();
         } catch (Throwable e) {
             LOG.error("An exception occurred when calling done()", e);
@@ -272,9 +276,12 @@ public class HugeTask<V> extends FutureTask<V> {
 
     @Override
     protected void set(V v) {
+        String result = JsonUtil.toJson(v);
+        checkPropertySize(result, P.unhide(P.RESULT));
         if (this.status(TaskStatus.SUCCESS) && v != null) {
-            this.result = JsonUtil.toJson(v);
+            this.result = result;
         }
+        // Will call done() and may cause to save to store
         super.set(v);
     }
 
@@ -320,7 +327,14 @@ public class HugeTask<V> extends FutureTask<V> {
 
     protected synchronized boolean status(TaskStatus status) {
         E.checkNotNull(status, "status");
-        if (!this.completed()) {
+        if (status.code() > TaskStatus.NEW.code()) {
+            E.checkState(this.type != null, "Task type can't be null");
+            E.checkState(this.name != null, "Task name can't be null");
+        }
+        if (!this.completed() || status == TaskStatus.FAILED) {
+            if (this.completed() && status == TaskStatus.FAILED) {
+                System.out.println(this.status);
+            }
             this.status = status;
             return true;
         }
@@ -328,17 +342,8 @@ public class HugeTask<V> extends FutureTask<V> {
     }
 
     protected void checkProperties() {
-        final int limit = MAX_PROPERTY_LENGTH;
-        if (this.input != null && this.input.length() > limit) {
-            throw new LimitExceedException(
-                      "Task input size %s exceeded limit %s bytes",
-                      this.input.length(), limit);
-        }
-        if (this.result != null && this.result.length() > limit) {
-            throw new LimitExceedException(
-                      "Task result size %s exceeded limit %s bytes",
-                      this.result.length(), limit);
-        }
+        checkPropertySize(this.input, P.unhide(P.INPUT));
+        checkPropertySize(this.result, P.unhide(P.RESULT));
     }
 
     protected void property(String key, Object value) {
@@ -516,6 +521,14 @@ public class HugeTask<V> extends FutureTask<V> {
 
     private static <V> Collector<V, ?, Set<V>> toOrderSet() {
         return Collectors.toCollection(InsertionOrderUtil::newSet);
+    }
+
+    private static void checkPropertySize(String property, String name) {
+        if (property != null && property.length() > MAX_PROPERTY_LENGTH) {
+            throw new LimitExceedException(
+                      "Task %s size %s exceeded limit %s bytes",
+                      name, property.length(), MAX_PROPERTY_LENGTH);
+        }
     }
 
     public static final class P {

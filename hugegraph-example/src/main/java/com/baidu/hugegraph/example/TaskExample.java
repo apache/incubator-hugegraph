@@ -32,6 +32,7 @@ import com.baidu.hugegraph.task.TaskCallable;
 import com.baidu.hugegraph.task.TaskManager;
 import com.baidu.hugegraph.task.TaskScheduler;
 import com.baidu.hugegraph.task.TaskStatus;
+import com.baidu.hugegraph.testutil.Whitebox;
 import com.baidu.hugegraph.util.Log;
 
 public class TaskExample {
@@ -76,6 +77,7 @@ public class TaskExample {
 
         Thread.sleep(TestTask.UNIT * 10);
         System.out.println(">>>> restore task...");
+        Whitebox.setInternalState(task, "status", TaskStatus.RUNNING);
         scheduler.restore(task);
         Thread.sleep(TestTask.UNIT * 80);
         scheduler.save(task);
