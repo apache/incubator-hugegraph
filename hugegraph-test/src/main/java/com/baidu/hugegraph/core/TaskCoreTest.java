@@ -253,6 +253,64 @@ public class TaskCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testGremlinJobWithScript() throws TimeoutException {
+        HugeGraph graph = graph();
+        TaskScheduler scheduler = graph.taskScheduler();
+
+        String script = "schema=graph.schema();"
+                + "schema.propertyKey('name').asText().ifNotExist().create();"
+                + "schema.propertyKey('age').asInt().ifNotExist().create();"
+                + "schema.propertyKey('lang').asText().ifNotExist().create();"
+                + "schema.propertyKey('date').asDate().ifNotExist().create();"
+                + "schema.propertyKey('price').asInt().ifNotExist().create();"
+                + "person1=schema.vertexLabel('person1').properties('name','age').ifNotExist().create();"
+                + "person2=schema.vertexLabel('person2').properties('name','age').ifNotExist().create();"
+                + "knows=schema.edgeLabel('knows').sourceLabel('person1').targetLabel('person2').properties('date').ifNotExist().create();"
+                + "for(int i = 0; i < 1000; i++) {"
+                + "  p1=graph.addVertex(T.label,'person1','name','p1-'+i,'age',29);"
+                + "  p2=graph.addVertex(T.label,'person2','name','p2-'+i,'age',27);"
+                + "  p1.addEdge('knows',p2,'date','2016-01-10');"
+                + "}";
+
+        HugeTask<Object> task = runGremlinJob(script);
+        task = scheduler.waitUntilTaskCompleted(task.id(), 10);
+        Assert.assertEquals("test-gremlin-job", task.name());
+        Assert.assertEquals("gremlin", task.type());
+        Assert.assertEquals(TaskStatus.SUCCESS, task.status());
+        Assert.assertEquals("[]", task.result());
+
+        script = "g.V().count()";
+        task = runGremlinJob(script);
+        task = scheduler.waitUntilTaskCompleted(task.id(), 10);
+        Assert.assertEquals(TaskStatus.SUCCESS, task.status());
+        Assert.assertEquals("[2000]", task.result());
+
+        script = "g.V().hasLabel('person1').count()";
+        task = runGremlinJob(script);
+        task = scheduler.waitUntilTaskCompleted(task.id(), 10);
+        Assert.assertEquals(TaskStatus.SUCCESS, task.status());
+        Assert.assertEquals("[1000]", task.result());
+
+        script = "g.V().hasLabel('person2').count()";
+        task = runGremlinJob(script);
+        task = scheduler.waitUntilTaskCompleted(task.id(), 10);
+        Assert.assertEquals(TaskStatus.SUCCESS, task.status());
+        Assert.assertEquals("[1000]", task.result());
+
+        script = "g.E().count()";
+        task = runGremlinJob(script);
+        task = scheduler.waitUntilTaskCompleted(task.id(), 10);
+        Assert.assertEquals(TaskStatus.SUCCESS, task.status());
+        Assert.assertEquals("[1000]", task.result());
+
+        script = "g.E().hasLabel('knows').count()";
+        task = runGremlinJob(script);
+        task = scheduler.waitUntilTaskCompleted(task.id(), 10);
+        Assert.assertEquals(TaskStatus.SUCCESS, task.status());
+        Assert.assertEquals("[1000]", task.result());
+    }
+
+    @Test
     public void testGremlinJobWithFailure() throws TimeoutException {
         HugeGraph graph = graph();
         TaskScheduler scheduler = graph.taskScheduler();

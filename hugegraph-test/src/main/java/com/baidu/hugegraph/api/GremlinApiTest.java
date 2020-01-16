@@ -67,8 +67,8 @@ public class GremlinApiTest extends BaseApiTest {
                 + "schema.propertyKey('price').asInt().ifNotExist().create();"
                 + "person=schema.vertexLabel('person').properties('name','age','city').useCustomizeUuidId().ifNotExist().create();"
                 + "knows=schema.edgeLabel('knows').sourceLabel('person').targetLabel('person').properties('date').ifNotExist().create();"
-                + "marko=hugegraph.addVertex(T.id, '835e1153928149578691cf79258e90eb', T.label,'person','name','marko','age',29,'city','135e1153928149578691cf79258e90eb');"
-                + "vadas=hugegraph.addVertex(T.id, '935e1153928149578691cf79258e90eb', T.label,'person','name','vadas','age',27,'city','235e1153928149578691cf79258e90eb');"
+                + "marko=hugegraph.addVertex(T.id,'835e1153928149578691cf79258e90eb',T.label,'person','name','marko','age',29,'city','135e1153928149578691cf79258e90eb');"
+                + "vadas=hugegraph.addVertex(T.id,'935e1153928149578691cf79258e90eb',T.label,'person','name','vadas','age',27,'city','235e1153928149578691cf79258e90eb');"
                 + "marko.addEdge('knows',vadas,'date','20160110');";
         String body = String.format(bodyTemplate, script);
         assertResponseStatus(200, client().post(path, body));
