@@ -113,7 +113,8 @@ public class GraphTransaction extends IndexableTransaction {
 
     private LockUtil.LocksTable locksTable;
 
-    private final boolean checkVertexExist;
+    private final boolean checkCustomVertexExist;
+    private final boolean checkAdjacentVertexExist;
     private final int batchSize;
     private final int pageSize;
 
@@ -129,8 +130,10 @@ public class GraphTransaction extends IndexableTransaction {
         this.locksTable = new LockUtil.LocksTable(graph.name());
 
         final HugeConfig conf = graph.configuration();
-        this.checkVertexExist = conf.get(CoreOptions
-                                         .VERTEX_CHECK_CUSTOMIZED_ID_EXIST);
+        this.checkCustomVertexExist =
+             conf.get(CoreOptions.VERTEX_CHECK_CUSTOMIZED_ID_EXIST);
+        this.checkAdjacentVertexExist =
+             conf.get(CoreOptions.VERTEX_ADJACENT_VERTEX_EXIST);
         this.batchSize = conf.get(CoreOptions.QUERY_BATCH_SIZE);
         this.pageSize = conf.get(CoreOptions.QUERY_PAGE_SIZE);
 
@@ -234,7 +237,7 @@ public class GraphTransaction extends IndexableTransaction {
 
     protected void prepareAdditions(Map<Id, HugeVertex> addedVertices,
                                     Map<Id, HugeEdge> addedEdges) {
-        if (this.checkVertexExist) {
+        if (this.checkCustomVertexExist) {
             this.checkVertexExistIfCustomizedId(addedVertices);
         }
         // Do vertex update
@@ -513,11 +516,22 @@ public class GraphTransaction extends IndexableTransaction {
                 vertexIds.add(((HugeEdge) edge).otherVertex().id());
             }
             assert vertexIds.size() > 0;
-            return this.queryVertices(vertexIds.toArray());
+            return this.queryAdjacentVertices(vertexIds.toArray());
         });
     }
 
+    public Iterator<Vertex> queryAdjacentVertices(Object... vertexIds) {
+        return this.queryVertices(vertexIds, true,
+                                  this.checkAdjacentVertexExist);
+    }
+
     public Iterator<Vertex> queryVertices(Object... vertexIds) {
+        return this.queryVertices(vertexIds, false, false);
+    }
+
+    protected Iterator<Vertex> queryVertices(Object[] vertexIds,
+                                             boolean adjacentVertex,
+                                             boolean checkMustExist) {
         Query.checkForceCapacity(vertexIds.length);
 
         // NOTE: allowed duplicated vertices if query by duplicated ids
@@ -544,20 +558,26 @@ public class GraphTransaction extends IndexableTransaction {
 
         if (!query.empty()) {
             // Query from backend store
-            if (vertices.isEmpty() && query.ids().size() == ids.size()) {
-                // Sort at the lower layer and return directly
-                Iterator<HugeVertex> it = this.queryVerticesFromBackend(query);
-                @SuppressWarnings({ "unchecked", "rawtypes" })
-                Iterator<Vertex> r = (Iterator) it;
-                return r;
-            }
             query.mustSortByInput(false);
             Iterator<HugeVertex> it = this.queryVerticesFromBackend(query);
             QueryResults.fillMap(it, vertices);
         }
 
         return new MapperIterator<>(ids.iterator(), id -> {
-            return vertices.get(id);
+            HugeVertex vertex = vertices.get(id);
+            if (vertex == null) {
+                if (checkMustExist) {
+                    throw new HugeException("Vertex '%s' does not exist", id);
+                } else if (adjacentVertex) {
+                    assert !checkMustExist;
+                    // Return undefined if adjacentVertex but !checkMustExist
+                    vertex = HugeVertex.undefined(this.graph(), id);
+                } else {
+                    // Return null
+                    assert vertex == null;
+                }
+            }
+            return vertex;
         });
     }
 
@@ -693,12 +713,16 @@ public class GraphTransaction extends IndexableTransaction {
         if (!query.empty()) {
             // Query from backend store
             if (edges.isEmpty() && query.ids().size() == ids.size()) {
-                // Sort at the lower layer and return directly
+                /*
+                 * Sort at the lower layer and return directly if there is no
+                 * local vertex and duplicated id.
+                 */
                 Iterator<HugeEdge> it = this.queryEdgesFromBackend(query);
                 @SuppressWarnings({ "unchecked", "rawtypes" })
                 Iterator<Edge> r = (Iterator) it;
                 return r;
             }
+
             query.mustSortByInput(false);
             Iterator<HugeEdge> it = this.queryEdgesFromBackend(query);
             QueryResults.fillMap(it, edges);
