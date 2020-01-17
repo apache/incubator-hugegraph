@@ -94,7 +94,6 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
     @Override
     public VertexLabel schemaLabel() {
-        this.ensureFilledProperties(false);
         return this.label;
     }
 

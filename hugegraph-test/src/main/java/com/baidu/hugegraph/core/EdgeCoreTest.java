@@ -1363,6 +1363,7 @@ public class EdgeCoreTest extends BaseCoreTest {
                         .has("score", 3).otherV().toList();
         Assert.assertEquals(1, vertices.size());
         adjacent = (HugeVertex) vertices.get(0);
+        adjacent.properties();
         // NOTE: if not commit, adjacent.label() will return 'book'
         Assert.assertTrue(adjacent.schemaLabel().undefined());
         Assert.assertEquals("~undefined", adjacent.label());
@@ -1398,7 +1399,7 @@ public class EdgeCoreTest extends BaseCoreTest {
             Assert.assertThrows(HugeException.class, () -> {
                 Vertex v = graph.traversal().V(james.id()).outE()
                                 .has("score", 3).otherV().next();
-                v.label(); // throw
+                v.properties(); // throw
             }, e -> {
                 Assert.assertContains("Vertex 'java' does not exist",
                                       e.getMessage());
@@ -1407,7 +1408,7 @@ public class EdgeCoreTest extends BaseCoreTest {
             Assert.assertThrows(HugeException.class, () -> {
                 Vertex v = graph.traversal().V(james.id()).outE()
                                 .has("score", 3).otherV().next();
-                v.properties(); // throw
+                v.values(); // throw
             }, e -> {
                 Assert.assertContains("Vertex 'java' does not exist",
                                       e.getMessage());
