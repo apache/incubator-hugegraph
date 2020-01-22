@@ -183,15 +183,11 @@ public class MysqlSessions extends BackendSessionPool {
      * Connect DB without specified database
      */
     protected Connection openWithoutDB(int timeout) {
-        String jdbcUrl = this.config.get(MysqlOptions.JDBC_URL);
-        String url = new URIBuilder().setPath(jdbcUrl)
-                                     .setParameter("socketTimeout",
-                                                   String.valueOf(timeout))
-                                     .toString();
+        String url = this.buildUri(true, timeout);
         try {
             return this.connect(url);
         } catch (SQLException e) {
-            throw new BackendException("Failed to access %s", e, jdbcUrl);
+            throw new BackendException("Failed to access %s", e, url);
         }
     }
 
@@ -199,20 +195,11 @@ public class MysqlSessions extends BackendSessionPool {
      * Connect DB with specified database, but won't auto reconnect
      */
     protected Connection openWithDB(int timeout) {
-        String jdbcUrl = this.config.get(MysqlOptions.JDBC_URL);
-        if (jdbcUrl.endsWith("/")) {
-            jdbcUrl = String.format("%s%s", jdbcUrl, this.database());
-        } else {
-            jdbcUrl = String.format("%s/%s", jdbcUrl, this.database());
-        }
-        String url = new URIBuilder().setPath(jdbcUrl)
-                                     .setParameter("socketTimeout",
-                                                   String.valueOf(timeout))
-                                     .toString();
+        String url = this.buildUri(true, timeout);
         try {
             return this.connect(url);
         } catch (SQLException e) {
-            throw new BackendException("Failed to access %s", jdbcUrl);
+            throw new BackendException("Failed to access %s", e, url);
         }
     }
 
@@ -220,6 +207,11 @@ public class MysqlSessions extends BackendSessionPool {
      * Connect DB with specified database
      */
     private Connection open(boolean autoReconnect) throws SQLException {
+        String url = this.buildUri(autoReconnect, null);
+        return this.connect(url);
+    }
+
+    protected String buildUri(boolean autoReconnect, Integer timeout) {
         String url = this.config.get(MysqlOptions.JDBC_URL);
         if (url.endsWith("/")) {
             url = String.format("%s%s", url, this.database());
@@ -240,7 +232,10 @@ public class MysqlSessions extends BackendSessionPool {
                   .setParameter("autoReconnect", String.valueOf(autoReconnect))
                   .setParameter("maxReconnects", String.valueOf(maxTimes))
                   .setParameter("initialTimeout", String.valueOf(interval));
-        return this.connect(uriBuilder.toString());
+        if (timeout != null) {
+            uriBuilder.setParameter("socketTimeout", String.valueOf(timeout));
+        }
+        return uriBuilder.toString();
     }
 
     protected URIBuilder newConnectionURIBuilder() {
