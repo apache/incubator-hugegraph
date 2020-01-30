@@ -22,6 +22,7 @@ package com.baidu.hugegraph.backend.serializer;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.lang.NotImplementedException;
 
@@ -443,7 +444,11 @@ public class BinarySerializer extends AbstractSerializer {
 
     @Override
     public HugeEdge readEdge(HugeGraph graph, BackendEntry bytesEntry) {
-        throw new NotImplementedException("Unsupported readEdge()");
+        HugeVertex vertex = this.readVertex(graph, bytesEntry);
+        Set<HugeEdge> edges = vertex.getEdges();
+        E.checkState(edges.size() == 1,
+                     "Expect one edge in vertex, but got %s", edges.size());
+        return edges.iterator().next();
     }
 
     @Override

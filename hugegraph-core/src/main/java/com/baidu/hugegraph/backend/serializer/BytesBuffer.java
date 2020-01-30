@@ -664,9 +664,17 @@ public final class BytesBuffer {
         return new BinaryId(this.bytes(), null);
     }
 
-    public BinaryId parseId() {
+    public BinaryId parseId(HugeType type) {
+        if (type.isIndex()) {
+            return this.readIndexId(type);
+        }
         // Parse id from bytes
         int start = this.buffer.position();
+        /*
+         * Since edge id in edges table doesn't prefix with leading 0x7e,
+         * so readId() will return the source vertex id instead of edge id,
+         * can't call: type.isEdge() ? this.readEdgeId() : this.readId();
+         */
         Id id = this.readId();
         int end = this.buffer.position();
         int len = end - start;

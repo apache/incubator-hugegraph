@@ -28,6 +28,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
 
+import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.util.Log;
 
 public class CacheManager {
@@ -98,6 +99,13 @@ public class CacheManager {
     public Cache cache(String name, int capacity) {
         if (!this.caches.containsKey(name)) {
             this.caches.putIfAbsent(name, new RamCache(capacity));
+        }
+        return this.caches.get(name);
+    }
+
+    public Cache offheapCache(HugeGraph graph, String name, int capacity) {
+        if (!this.caches.containsKey(name)) {
+            this.caches.putIfAbsent(name, new OffheapCache(graph, capacity));
         }
         return this.caches.get(name);
     }
