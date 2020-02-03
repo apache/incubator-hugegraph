@@ -151,6 +151,7 @@ public class OffheapCache extends AbstractCache {
 
         @Override
         public int serializedSize(Id id) {
+            // NOTE: return size must be == actual bytes to write
             // TODO improve
             return id.length() + 2;
         }
@@ -206,6 +207,7 @@ public class OffheapCache extends AbstractCache {
 
         @Override
         public int serializedSize(Object element) {
+            // NOTE: return size must be >= actual bytes to write
             // TODO improve
 //            BackendColumn column = oneColumn(this.serialize(element));
 //            return column.name.length + column.value.length;
