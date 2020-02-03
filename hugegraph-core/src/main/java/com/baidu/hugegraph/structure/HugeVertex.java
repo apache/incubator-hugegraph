@@ -115,6 +115,8 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
                              "Primary values must not be empty " +
                              "(has properties %s)", hasProperties());
                 this.name = SplicingIdGenerator.concatValues(propValues);
+                E.checkArgument(!this.name.isEmpty(),
+                                "The value of primary key can't be empty");
             }
         }
         return this.name;
