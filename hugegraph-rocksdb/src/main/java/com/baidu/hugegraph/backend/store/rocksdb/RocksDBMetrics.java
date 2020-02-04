@@ -49,6 +49,7 @@ public class RocksDBMetrics implements BackendMetrics {
     @Override
     public Map<String, Object> getMetrics() {
         Map<String, Object> metrics = InsertionOrderUtil.newMap();
+        metrics.put(NODES, 1);
         // NOTE: the unit of rocksdb mem property is bytes
         metrics.put(MEM_USED, this.getMemUsed() / Bytes.MB);
         metrics.put(MEM_UNIT, "MB");

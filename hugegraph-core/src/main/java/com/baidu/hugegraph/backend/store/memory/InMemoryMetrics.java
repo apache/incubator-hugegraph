@@ -17,26 +17,17 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.backend.store;
+package com.baidu.hugegraph.backend.store.memory;
 
 import java.util.Map;
 
-public interface BackendMetrics {
+import com.baidu.hugegraph.backend.store.BackendMetrics;
+import com.google.common.collect.ImmutableMap;
 
-    public String BACKEND = "backend";
+public class InMemoryMetrics implements BackendMetrics {
 
-    public String NODES = "nodes";
-
-    // Memory related metrics
-    public String MEM_USED = "mem_used";
-    public String MEM_COMMITED = "mem_commited";
-    public String MEM_MAX = "mem_max";
-    public String MEM_UNIT = "mem_unit";
-
-    // Data load related metrics
-    public String DATA_SIZE = "data_size";
-
-    public String EXCEPTION = "exception";
-
-    public Map<String, Object> getMetrics();
+    @Override
+    public Map<String, Object> getMetrics() {
+        return ImmutableMap.of(NODES, 1);
+    }
 }

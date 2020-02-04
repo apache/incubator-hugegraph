@@ -22,12 +22,14 @@ package com.baidu.hugegraph.backend.store.cassandra;
 import java.io.IOException;
 import java.lang.management.MemoryUsage;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.cassandra.tools.NodeProbe;
 
 import com.baidu.hugegraph.backend.store.BackendMetrics;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.util.Bytes;
+import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Host;
@@ -39,8 +41,10 @@ public class CassandraMetrics implements BackendMetrics {
     private final String username;
     private final String password;
 
-    public CassandraMetrics(Cluster cluster, HugeConfig conf) {
-        this.cluster = cluster;
+    public CassandraMetrics(CassandraSessionPool sessions, HugeConfig conf) {
+        E.checkArgumentNotNull(sessions,
+                               "Cassandra sessions have not been initialized");
+        this.cluster = sessions.cluster();
         this.port = conf.get(CassandraOptions.CASSANDRA_JMX_PORT);
         this.username = conf.get(CassandraOptions.CASSANDRA_USERNAME);
         this.password = conf.get(CassandraOptions.CASSANDRA_PASSWORD);
@@ -50,7 +54,9 @@ public class CassandraMetrics implements BackendMetrics {
     @Override
     public Map<String, Object> getMetrics() {
         Map<String, Object> results = InsertionOrderUtil.newMap();
-        for (Host host : this.cluster.getMetadata().getAllHosts()) {
+        Set<Host> hosts = this.cluster.getMetadata().getAllHosts();
+        results.put(NODES, hosts.size());
+        for (Host host : hosts) {
             String address = host.getAddress().getHostAddress();
             results.put(address, this.getMetricsByHost(address));
         }
