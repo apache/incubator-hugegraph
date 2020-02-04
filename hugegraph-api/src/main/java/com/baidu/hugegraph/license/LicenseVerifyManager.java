@@ -176,7 +176,7 @@ public class LicenseVerifyManager extends CommonLicenseManager {
             return;
         }
 
-        // Mac must not empty
+        // The mac must be not empty here
         if (!StringUtils.isEmpty(expectIp)) {
             String actualMac;
             try {
@@ -194,9 +194,9 @@ public class LicenseVerifyManager extends CommonLicenseManager {
                       actualMac, expectMac);
             }
         } else {
-            matched = false;
             String expectFormatMac = expectMac.replaceAll(":", "-");
             List<String> actualMacs = this.machineInfo.getMacAddress();
+            matched = false;
             for (String actualMac : actualMacs) {
                 String actualFormatMac = actualMac.replaceAll(":", "-");
                 if (actualFormatMac.equalsIgnoreCase(expectFormatMac)) {
