@@ -495,6 +495,14 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testAddVertexWithPrimaryValuesEmpty() {
+        HugeGraph graph = graph();
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.addVertex(T.label, "book", "name", "");
+        });
+    }
+
+    @Test
     public void testAddVertexWithoutVertexLabel() {
         HugeGraph graph = graph();
         Assert.assertThrows(IllegalArgumentException.class, () -> {
