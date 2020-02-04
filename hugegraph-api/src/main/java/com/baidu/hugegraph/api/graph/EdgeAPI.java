@@ -402,30 +402,31 @@ public class EdgeAPI extends BatchAPI {
     }
 
     private Id getEdgeId(HugeGraph g, JsonEdge newEdge) {
-        if (newEdge.id != null) {
-            return EdgeId.parse(newEdge.id.toString());
-        }
-
         String sortKeys = "";
         Id labelId = g.edgeLabel(newEdge.label).id();
         List<Id> sortKeyIds = g.edgeLabel(labelId).sortKeys();
         if (!sortKeyIds.isEmpty()) {
             List<Object> sortKeyValues = new ArrayList<>(sortKeyIds.size());
             sortKeyIds.forEach(skId -> {
-                String sortKey = g.propertyKey(skId).name();
+                PropertyKey pk = g.propertyKey(skId);
+                String sortKey = pk.name();
                 Object sortKeyValue = newEdge.properties.get(sortKey);
                 E.checkArgument(sortKeyValue != null,
                                 "The value of sort key '%s' can't be null",
                                 sortKey);
+                sortKeyValue = pk.convValue(sortKeyValue, true);
                 sortKeyValues.add(sortKeyValue);
             });
             sortKeys = ConditionQuery.concatValues(sortKeyValues);
         }
-
-        // TODO: How to get Direction from JsonEdge easily? or any better way?
         EdgeId edgeId = new EdgeId(HugeVertex.getIdValue(newEdge.source),
                                    Directions.OUT, labelId, sortKeys,
                                    HugeVertex.getIdValue(newEdge.target));
+        if (newEdge.id != null) {
+            E.checkArgument(edgeId.equals(newEdge.id),
+                            "The sort key values either be null " +
+                            "or equal to origin when specified edge id");
+        }
         return edgeId;
     }
 
