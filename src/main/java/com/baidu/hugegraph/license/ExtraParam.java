@@ -41,14 +41,29 @@ public class ExtraParam {
     @JsonProperty("cpus")
     private int cpus;
 
+    // The unit is MB
     @JsonProperty("ram")
     private int ram;
 
     @JsonProperty("threads")
     private int threads;
 
+    // The unit is MB
     @JsonProperty("memory")
     private int memory;
+
+    @JsonProperty("nodes")
+    private int nodes;
+
+    // The unit is MB
+    @JsonProperty("data_size")
+    private long dataSize;
+
+    @JsonProperty("vertices")
+    private long vertices;
+
+    @JsonProperty("edges")
+    private long edges;
 
     public String id() {
         return this.id;
@@ -84,5 +99,21 @@ public class ExtraParam {
 
     public int memory() {
         return this.memory;
+    }
+
+    public int nodes() {
+        return this.nodes;
+    }
+
+    public long dataSize() {
+        return this.dataSize;
+    }
+
+    public long vertices() {
+        return this.vertices;
+    }
+
+    public long edges() {
+        return this.edges;
     }
 }
