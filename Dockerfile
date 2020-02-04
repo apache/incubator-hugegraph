@@ -44,5 +44,6 @@ RUN set -e \
 
 EXPOSE 8080 8088
 WORKDIR /root
+VOLUME /root
 
 ENTRYPOINT ["./hugegraph-server/bin/start-hugegraph.sh"]
