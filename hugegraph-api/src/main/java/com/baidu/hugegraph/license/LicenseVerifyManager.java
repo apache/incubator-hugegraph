@@ -190,7 +190,7 @@ public class LicenseVerifyManager extends CommonLicenseManager {
             String actualFormatMac = actualMac.replaceAll(":", "-");
             if (!actualFormatMac.equalsIgnoreCase(expectFormatMac)) {
                 throw newLicenseException(
-                      "The server's mac '%s' doesn't match the authorized '%s'",
+                      "The server's macs '%s' don't match the authorized '%s'",
                       actualMac, expectMac);
             }
         } else {
@@ -206,8 +206,8 @@ public class LicenseVerifyManager extends CommonLicenseManager {
             }
             if (!matched) {
                 throw newLicenseException(
-                        "The server's mac '%s' doesn't match the authorized '%s'",
-                        actualMacs, expectMac);
+                      "The server's macs '%s' don't match the authorized '%s'",
+                      actualMacs, expectMac);
             }
         }
     }
