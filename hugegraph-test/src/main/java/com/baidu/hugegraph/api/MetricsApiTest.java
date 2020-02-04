@@ -115,6 +115,7 @@ public class MetricsApiTest extends BaseApiTest {
                     Map<?, ?> regionServer = (Map<?, ?>) value;
                     assertMapContains(regionServer, "max_heap_size");
                     assertMapContains(regionServer, "used_heap_size");
+                    assertMapContains(regionServer, "heap_size_unit");
                     assertMapContains(regionServer, "request_count");
                     assertMapContains(regionServer,
                                       "request_count_per_second");

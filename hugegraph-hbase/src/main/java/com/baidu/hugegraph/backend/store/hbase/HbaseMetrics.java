@@ -82,6 +82,7 @@ public class HbaseMetrics implements BackendMetrics {
                     serverMetrics.getMaxHeapSize().get(Size.Unit.MEGABYTE));
         metrics.put("used_heap_size",
                     serverMetrics.getUsedHeapSize().get(Size.Unit.MEGABYTE));
+        metrics.put("heap_size_unit", "MB");
         metrics.put("request_count", serverMetrics.getRequestCount());
         metrics.put("request_count_per_second",
                     serverMetrics.getRequestCountPerSecond());
@@ -102,8 +103,9 @@ public class HbaseMetrics implements BackendMetrics {
         Map<String, Object> metrics = InsertionOrderUtil.newMap();
         metrics.put("mem_store_size",
                     region.getMemStoreSize().get(Size.Unit.MEGABYTE));
-        metrics.put("mem_store_file_size",
+        metrics.put("file_store_size",
                     region.getStoreFileSize().get(Size.Unit.MEGABYTE));
+        metrics.put("store_size_unit", "MB");
         return metrics;
     }
 }
