@@ -42,21 +42,28 @@ import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumn;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
 
 public class OffheapCache extends AbstractCache {
 
-    private final OHCache<Id, Object> cache;
+    private final OHCache<Id, Value> cache;
     private final HugeGraph graph;
+    private final AbstractSerializer serializer;
 
     public OffheapCache(HugeGraph graph, int capacity) {
         super(capacity);
         this.graph = graph;
         this.cache = this.builder().capacity(capacity).build();
+        this.serializer = new BinarySerializer();
     }
 
     private HugeGraph graph() {
         return this.graph;
+    }
+
+    private AbstractSerializer serializer() {
+        return this.serializer;
     }
 
     @Override
@@ -64,8 +71,8 @@ public class OffheapCache extends AbstractCache {
         CloseableIterator<Id> iter = this.cache.keyIterator();
         while (iter.hasNext()) {
             Id key = iter.next();
-            Object value = this.cache.get(key);
-            consumer.accept(value);
+            Value value = this.cache.get(key);
+            consumer.accept(value.value());
         }
     }
 
@@ -81,12 +88,13 @@ public class OffheapCache extends AbstractCache {
 
     @Override
     protected Object access(Id id) {
-        return this.cache.get(id);
+        Value value = this.cache.get(id);
+        return value == null ? null : value.value();
     }
 
     @Override
     protected void write(Id id, Object value) {
-        this.cache.put(id, value);
+        this.cache.put(id, new Value(value));
     }
 
     @Override
@@ -105,8 +113,8 @@ public class OffheapCache extends AbstractCache {
         return Collections.emptyIterator();
     }
 
-    private OHCacheBuilder<Id, Object> builder() {
-        return OHCacheBuilder.<Id, Object>newBuilder()
+    private OHCacheBuilder<Id, Value> builder() {
+        return OHCacheBuilder.<Id, Value>newBuilder()
                              .keySerializer(new IdSerializer())
                              .valueSerializer(new ValueSerializer())
                              .eviction(Eviction.LRU);
@@ -152,21 +160,89 @@ public class OffheapCache extends AbstractCache {
         @Override
         public int serializedSize(Id id) {
             // NOTE: return size must be == actual bytes to write
-            // TODO improve
-            return id.length() + 2;
+            return BytesBuffer.allocate(id.length() + 2)
+                              .writeId(id, true).position();
         }
     }
 
-    private class ValueSerializer implements CacheSerializer<Object> {
+    private class ValueSerializer implements CacheSerializer<Value> {
 
-        private final AbstractSerializer serializer;
-
-        public ValueSerializer() {
-            this.serializer = new BinarySerializer();
+        @Override
+        public Value deserialize(ByteBuffer input) {
+            return new Value(input);
         }
 
         @Override
-        public Object deserialize(ByteBuffer input) {
+        public void serialize(Value value, ByteBuffer output) {
+            output.put(value.asBuffer());
+        }
+
+        @Override
+        public int serializedSize(Value value) {
+            // NOTE: return size must be >= actual bytes to write
+            return value.serializedSize();
+        }
+    }
+
+    private class Value {
+
+        private final Object value;
+        private BytesBuffer svalue = null;
+        private int serializedSize = 0;
+
+        public Value(Object value) {
+            E.checkNotNull(value, "value");
+            this.value = value;
+        }
+
+        public Value(ByteBuffer input) {
+            this.value = this.deserialize(input);
+        }
+
+        public Object value() {
+            return this.value;
+        }
+
+        public int serializedSize() {
+            this.asBuffer();
+            return this.serializedSize;
+        }
+
+        public ByteBuffer asBuffer() {
+            if (this.svalue == null) {
+                int listSize = 1;
+                if (this.value instanceof List) {
+                    listSize = ((List<?>) this.value).size();
+                }
+                this.svalue = BytesBuffer.allocate(64 * listSize);
+                this.serialize(this.value, this.svalue);
+                this.serializedSize = this.svalue.position();
+                this.svalue.flip();
+            }
+            return this.svalue.asByteBuffer();
+        }
+
+        private void serialize(Object element, BytesBuffer buffer) {
+            if (element instanceof List) {
+                @SuppressWarnings("unchecked")
+                List<Object> list = (List<Object>) element;
+                // Write list
+                buffer.write(0);
+                buffer.writeVInt(list.size());
+                for (Object i : list) {
+                    this.serialize(i, buffer);
+                }
+                return;
+            }
+
+            BackendEntry entry = this.serialize(element);
+            BackendColumn column = oneColumn(entry);
+            buffer.write(entry.type().code());
+            buffer.writeBytes(column.name);
+            buffer.writeBytes(column.value);
+        }
+
+        private Object deserialize(ByteBuffer input) {
             BytesBuffer buffer = BytesBuffer.wrap(input);
             if (buffer.peek() == 0) {
                 // Read list
@@ -182,44 +258,12 @@ public class OffheapCache extends AbstractCache {
                                     buffer.readBytes(), buffer.readBytes());
         }
 
-        @Override
-        public void serialize(Object element, ByteBuffer output) {
-            if (element instanceof List) {
-                @SuppressWarnings("unchecked")
-                List<Object> list = (List<Object>) element;
-                // Write list
-                BytesBuffer buffer = BytesBuffer.wrap(output);
-                buffer.write(0);
-                buffer.writeVInt(list.size());
-                for (Object i : list) {
-                    this.serialize(i, output);
-                }
-                return;
-            }
-
-            BackendEntry entry = this.serialize(element);
-            BackendColumn column = oneColumn(entry);
-            BytesBuffer buffer = BytesBuffer.wrap(output);
-            buffer.write(entry.type().code());
-            buffer.writeBytes(column.name);
-            buffer.writeBytes(column.value);
-        }
-
-        @Override
-        public int serializedSize(Object element) {
-            // NOTE: return size must be >= actual bytes to write
-            // TODO improve
-//            BackendColumn column = oneColumn(this.serialize(element));
-//            return column.name.length + column.value.length;
-            return 64;
-        }
-
         private BackendEntry serialize(Object value) {
             BackendEntry entry;
             if (value instanceof HugeVertex) {
-                entry = this.serializer.writeVertex((HugeVertex) value);
+                entry = serializer().writeVertex((HugeVertex) value);
             } else if (value instanceof HugeEdge) {
-                entry = this.serializer.writeEdge((HugeEdge) value);
+                entry = serializer().writeEdge((HugeEdge) value);
             } else {
                 throw new AssertionError("Invalid type of value: " + value);
             }
@@ -231,9 +275,9 @@ public class OffheapCache extends AbstractCache {
             BinaryBackendEntry entry = new BinaryBackendEntry(type, key);
             entry.column(key, value);
             if (type.isVertex()) {
-                return this.serializer.readVertex(graph(), entry);
+                return serializer().readVertex(graph(), entry);
             } else if (type.isEdge()) {
-                return this.serializer.readEdge(graph(), entry);
+                return serializer().readEdge(graph(), entry);
             } else {
                 throw new AssertionError("Invalid type: " + type);
             }

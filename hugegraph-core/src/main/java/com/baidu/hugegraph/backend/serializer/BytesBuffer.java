@@ -127,11 +127,16 @@ public final class BytesBuffer {
 
     public byte[] bytes() {
         byte[] bytes = this.buffer.array();
-        if (this.buffer.position() == bytes.length) {
+        int position = this.buffer.position();
+        if (position == bytes.length) {
             return bytes;
         } else {
-            return Arrays.copyOf(bytes, this.buffer.position());
+            return Arrays.copyOf(bytes, position);
         }
+    }
+
+    public int position() {
+        return this.buffer.position();
     }
 
     public BytesBuffer copyFrom(BytesBuffer other) {
