@@ -8,11 +8,11 @@ ENV PKG_URL https://github.com/hugegraph
 RUN set -x \
     && apt-get -q update \
     && apt-get -q install -y --no-install-recommends --no-install-suggests \
-    curl \
-    lsof \
-    g++ \
-    gcc \
-    openjdk-8-jdk \ 
+       curl \
+       lsof \
+       g++ \
+       gcc \
+       openjdk-8-jdk \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* 
 
