@@ -165,6 +165,15 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
         return session.scan(this.table(), id.asBytes());
     }
 
+    protected BackendColumnIterator getById(Session session, Id id) {
+        byte[] value = session.get(this.table(), id.asBytes());
+        if (value == null) {
+            return BackendColumnIterator.empty();
+        }
+        BackendColumn col = BackendColumn.of(id.asBytes(), value);
+        return new BackendEntry.BackendColumnIteratorWrapper(col);
+    }
+
     protected BackendColumnIterator queryByPrefix(Session session,
                                                   IdPrefixQuery query) {
         int type = query.inclusiveStart() ?

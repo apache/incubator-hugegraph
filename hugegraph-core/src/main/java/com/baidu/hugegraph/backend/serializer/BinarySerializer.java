@@ -412,10 +412,11 @@ public class BinarySerializer extends AbstractSerializer {
         // Parse all properties and edges of a Vertex
         for (BackendColumn col : entry.columns()) {
             if (entry.type().isEdge()) {
-                // NOTE: the id is vertex type even if query edge
+                // NOTE: the entry id type is vertex even if entry type is edge
                 // Parse vertex edges
                 this.parseColumn(col, vertex);
             } else {
+                assert entry.type().isVertex();
                 // Parse vertex properties
                 assert entry.columnsSize() == 1 : entry.columnsSize();
                 this.parseVertex(col.value, vertex);

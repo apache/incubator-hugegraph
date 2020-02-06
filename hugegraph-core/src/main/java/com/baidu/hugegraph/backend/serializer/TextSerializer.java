@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.backend.serializer;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -122,7 +123,7 @@ public class TextSerializer extends AbstractSerializer {
 
     private String formatPropertyValues(HugeVertex vertex) {
         int size = vertex.getProperties().size();
-        StringBuilder sb = new StringBuilder(256 * size);
+        StringBuilder sb = new StringBuilder(64 * size);
         // Vertex properties
         int i = 0;
         for (HugeProperty<?> property : vertex.getProperties().values()) {
@@ -167,13 +168,14 @@ public class TextSerializer extends AbstractSerializer {
             return;
         }
         String[] valParts = colValue.split(VALUE_SPLITOR);
+        E.checkState(valParts.length % 2 == 0,
+                     "The property key values length must be even number, " +
+                     "but got %s, length is '%s'",
+                     Arrays.toString(valParts), valParts.length);
         // Edge properties
         for (int i = 0; i < valParts.length; i += 2) {
-            try {
-                this.parseProperty(valParts[i], valParts[i + 1], vertex);
-            } catch (ArrayIndexOutOfBoundsException e) {
-                throw e;
-            }
+            assert i + 1 < valParts.length;
+            this.parseProperty(valParts[i], valParts[i + 1], vertex);
         }
     }
 

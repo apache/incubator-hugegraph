@@ -29,9 +29,7 @@ import com.baidu.hugegraph.backend.query.Condition.Relation;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.serializer.BinarySerializer;
 import com.baidu.hugegraph.backend.store.BackendEntry;
-import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumn;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumnIterator;
-import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumnIteratorWrapper;
 import com.baidu.hugegraph.backend.store.rocksdb.RocksDBSessions.Session;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
@@ -123,12 +121,7 @@ public class RocksDBTables {
 
         @Override
         protected BackendColumnIterator queryById(Session session, Id id) {
-            byte[] value = session.get(this.table(), id.asBytes());
-            if (value == null) {
-                return BackendColumnIterator.empty();
-            }
-            BackendColumn col = BackendColumn.of(id.asBytes(), value);
-            return new BackendColumnIteratorWrapper(col);
+            return this.getById(session, id);
         }
     }
 
@@ -151,12 +144,7 @@ public class RocksDBTables {
 
         @Override
         protected BackendColumnIterator queryById(Session session, Id id) {
-            byte[] value = session.get(this.table(), id.asBytes());
-            if (value == null) {
-                return BackendColumnIterator.empty();
-            }
-            BackendColumn col = BackendColumn.of(id.asBytes(), value);
-            return new BackendColumnIteratorWrapper(col);
+            return this.getById(session, id);
         }
     }
 
