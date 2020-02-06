@@ -103,7 +103,7 @@ public class EdgeApiTest extends BaseApiTest {
                 + "\"check_vertex\":false,"
                 + "\"create_if_not_exist\":true"
                 + "}", edgeId, outVId, inVId);
-        r = client().put(path + "batch", edge, ImmutableMap.of());
+        r = client().put(path, "batch", edge, ImmutableMap.of());
         // Now allowed to modify sortkey values, the property 'date' has changed
         content = assertResponseStatus(400, r);
         Assert.assertTrue(content.contains(
@@ -132,7 +132,7 @@ public class EdgeApiTest extends BaseApiTest {
                 + "\"check_vertex\":false,"
                 + "\"create_if_not_exist\":true"
                 + "}", outVId, inVId);
-        r = client().put(path + "batch", edge, ImmutableMap.of());
+        r = client().put(path, "batch", edge, ImmutableMap.of());
         // Add a new edge when sortkey value has changed
         content = assertResponseStatus(200, r);
         String newEdgeId = parseId(content);
