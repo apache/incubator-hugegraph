@@ -47,6 +47,7 @@ import org.junit.Test;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
+import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.page.PageInfo;
@@ -532,6 +533,42 @@ public class EdgeCoreTest extends BaseCoreTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             james.addEdge("authored", book, "score", "5");
         });
+    }
+
+    @Test
+    public void testOverrideEdge() {
+        HugeGraph graph = graph();
+        Vertex marko = graph().addVertex(T.label, "author", "id", 1,
+                                         "name", "marko", "age", 28,
+                                         "lived", "Beijing");
+        Vertex java = graph().addVertex(T.label, "book",
+                                        "name", "Java in action");
+
+        Object edgeId = marko.addEdge("authored", java,
+                                      "contribution", "2010-01-01", "score", 99)
+                             .id();
+        graph.tx().commit();
+        Edge edge = graph.edges(edgeId).next();
+        Assert.assertTrue(edge.property("contribution").isPresent());
+        Assert.assertEquals("2010-01-01", edge.value("contribution"));
+        Assert.assertTrue(edge.property("score").isPresent());
+        Assert.assertEquals(99, edge.value("score"));
+
+        marko.addEdge("authored", java, "score", 100).id();
+        graph.tx().commit();
+        edge = graph.edges(edgeId).next();
+        Assert.assertFalse(edge.property("contribution").isPresent());
+        Assert.assertTrue(edge.property("score").isPresent());
+        Assert.assertEquals(100, edge.value("score"));
+
+        marko.addEdge("authored", java, "contribution", "2011-01-01",
+                      "score", 101).id();
+        graph.tx().commit();
+        edge = graph.edges(edgeId).next();
+        Assert.assertTrue(edge.property("contribution").isPresent());
+        Assert.assertEquals("2011-01-01", edge.value("contribution"));
+        Assert.assertTrue(edge.property("score").isPresent());
+        Assert.assertEquals(101, edge.value("score"));
     }
 
     @Test
@@ -4609,10 +4646,10 @@ public class EdgeCoreTest extends BaseCoreTest {
 
     private Vertex vertex(String label, String pkName, Object pkValue) {
         List<Vertex> vertices = graph().traversal().V()
-                                .hasLabel(label)
-                                .has(pkName, pkValue).toList();
-        Assert.assertEquals(1, vertices.size());
-        return vertices.get(0);
+                                       .hasLabel(label).has(pkName, pkValue)
+                                       .toList();
+        Assert.assertTrue(vertices.size() <= 1);
+        return vertices.size() == 1 ? vertices.get(0) : null;
     }
 
     private static void assertContains(

@@ -4822,6 +4822,36 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertFalse(vertex.property("lived").isPresent());
     }
 
+    @Test
+    public void testOverrideVertex() {
+        HugeGraph graph = graph();
+
+        graph.addVertex(T.label, "person", "name", "marko",
+                        "age", 18, "city", "Beijing");
+        graph.tx().commit();
+        Vertex vertex = vertex("person", "name", "marko");
+        Assert.assertTrue(vertex.property("age").isPresent());
+        Assert.assertEquals(18, vertex.value("age"));
+        Assert.assertTrue(vertex.property("city").isPresent());
+        Assert.assertEquals("Beijing", vertex.value("city"));
+
+        graph.addVertex(T.label, "person", "name", "marko", "city", "Wuhan");
+        graph.tx().commit();
+        vertex = vertex("person", "name", "marko");
+        Assert.assertFalse(vertex.property("age").isPresent());
+        Assert.assertTrue(vertex.property("city").isPresent());
+        Assert.assertEquals("Wuhan", vertex.value("city"));
+
+        graph.addVertex(T.label, "person", "name", "marko",
+                        "age", 19, "city", "Shanghai");
+        graph.tx().commit();
+        vertex = vertex("person", "name", "marko");
+        Assert.assertTrue(vertex.property("age").isPresent());
+        Assert.assertEquals(19, vertex.value("age"));
+        Assert.assertTrue(vertex.property("city").isPresent());
+        Assert.assertEquals("Shanghai", vertex.value("city"));
+    }
+
     @SuppressWarnings("unchecked")
     @Test
     public void testScanVertex() {
@@ -6241,8 +6271,8 @@ public class VertexCoreTest extends BaseCoreTest {
 
     private Vertex vertex(String label, String pkName, Object pkValue) {
         List<Vertex> vertices = graph().traversal().V()
-                                .hasLabel(label).has(pkName, pkValue)
-                                .toList();
+                                       .hasLabel(label).has(pkName, pkValue)
+                                       .toList();
         Assert.assertTrue(vertices.size() <= 1);
         return vertices.size() == 1 ? vertices.get(0) : null;
     }

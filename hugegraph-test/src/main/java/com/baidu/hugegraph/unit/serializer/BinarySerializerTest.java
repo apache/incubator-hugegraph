@@ -21,7 +21,7 @@ package com.baidu.hugegraph.unit.serializer;
 
 import org.junit.Test;
 
-import com.baidu.hugegraph.backend.serializer.BinaryInlineSerializer;
+import com.baidu.hugegraph.backend.serializer.BinarySerializer;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeVertex;
@@ -30,11 +30,11 @@ import com.baidu.hugegraph.testutil.Whitebox;
 import com.baidu.hugegraph.unit.BaseUnitTest;
 import com.baidu.hugegraph.unit.FakeObjects;
 
-public class BinaryInlineSerializerTest extends BaseUnitTest {
+public class BinarySerializerTest extends BaseUnitTest {
 
     @Test
     public void testVertex() {
-        BinaryInlineSerializer ser = new BinaryInlineSerializer();
+        BinarySerializer ser = new BinarySerializer();
         HugeEdge edge = new FakeObjects().newEdge(123, 456);
 
         BackendEntry entry1 = ser.writeVertex(edge.sourceVertex());
@@ -59,7 +59,7 @@ public class BinaryInlineSerializerTest extends BaseUnitTest {
 
     @Test
     public void testEdge() {
-        BinaryInlineSerializer ser = new BinaryInlineSerializer();
+        BinarySerializer ser = new BinarySerializer();
 
         FakeObjects objects = new FakeObjects();
         HugeEdge edge1 = objects.newEdge(123, 456);
