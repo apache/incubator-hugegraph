@@ -34,7 +34,7 @@ import com.baidu.hugegraph.util.E;
 
 public class HugeFactory {
 
-    private static final String NAME_REGEX = "^[A-Za-z][A-Za-z0-9_]{0,47}$";
+    public static final String NAME_REGEX = "^[A-Za-z][A-Za-z0-9_]{0,47}$";
 
     private static final Map<String, HugeGraph> graphs = new HashMap<>();
 

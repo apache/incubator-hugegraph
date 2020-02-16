@@ -55,6 +55,8 @@ import com.baidu.hugegraph.task.TaskManager;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 
+import static com.baidu.hugegraph.HugeFactory.NAME_REGEX;
+
 public final class GraphManager {
 
     private static final Logger LOG = Log.logger(RestServer.class);
@@ -82,6 +84,13 @@ public final class GraphManager {
         for (Map.Entry<String, String> conf : graphConfs.entrySet()) {
             String name = conf.getKey();
             String path = conf.getValue();
+            E.checkArgument(name.matches(NAME_REGEX),
+                            "Invalid graph name '%s' in " +
+                            "rest-server.properties, valid graph name " +
+                            "is up to 48 alpha-numeric characters and " +
+                            "underscores and only letters are " +
+                            "supported as first letter. " +
+                            "Note: letter is case insensitive", name);
             try {
                 this.loadGraph(name, path);
             } catch (RuntimeException e) {

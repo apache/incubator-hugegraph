@@ -21,6 +21,7 @@ package com.baidu.hugegraph.cmd;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.collections.map.MultiValueMap;
 import org.apache.commons.configuration.ConfigurationException;
@@ -35,6 +36,8 @@ import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.dist.RegisterUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
+
+import static com.baidu.hugegraph.HugeFactory.NAME_REGEX;
 
 public class InitStore {
 
@@ -57,6 +60,7 @@ public class InitStore {
         exceptions.put("InvalidQueryException", "unconfigured table");
     }
 
+    @SuppressWarnings("unchecked")
     public static void main(String[] args)
                        throws ConfigurationException, InterruptedException {
         E.checkArgument(args.length == 1,
@@ -83,7 +87,15 @@ public class InitStore {
                         "Must contain at least one graph");
 
         for (ConfigurationNode graphName : graphNames) {
+            String name = ((Map.Entry<String, Object>)
+                           graphName.getReference()).getKey();
             String configPath = graphName.getValue().toString();
+            E.checkArgument(name.matches(NAME_REGEX),
+                            "Invalid graph name '%s' in gremlin-server.yaml," +
+                            " valid graph name is up to 48 alpha-numeric " +
+                            "characters and underscores and only letters are " +
+                            "supported as first letter. " +
+                            "Note: letter is case insensitive", name);
             initGraph(configPath);
         }
 
