@@ -195,7 +195,7 @@ public class MysqlSessions extends BackendSessionPool {
      * Connect DB with specified database, but won't auto reconnect
      */
     protected Connection openWithDB(int timeout) {
-        String url = this.buildUri(true, false, false, timeout);
+        String url = this.buildUri(false, true, false, timeout);
         try {
             return this.connect(url);
         } catch (SQLException e) {
@@ -211,10 +211,10 @@ public class MysqlSessions extends BackendSessionPool {
         return this.connect(url);
     }
 
-    protected String buildUri(boolean withdb, boolean withConnParams,
+    protected String buildUri(boolean withConnParams, boolean withDB,
                               boolean autoReconnect, Integer timeout) {
         String url = this.config.get(MysqlOptions.JDBC_URL);
-        if (withdb) {
+        if (withDB) {
             if (url.endsWith("/")) {
                 url = String.format("%s%s", url, this.database());
             } else {
