@@ -21,6 +21,7 @@ package com.baidu.hugegraph.cmd;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.collections.map.MultiValueMap;
 import org.apache.commons.configuration.ConfigurationException;
@@ -83,6 +84,10 @@ public class InitStore {
                         "Must contain at least one graph");
 
         for (ConfigurationNode graphName : graphNames) {
+            @SuppressWarnings("unchecked")
+            String name = ((Map.Entry<String, Object>)
+                           graphName.getReference()).getKey();
+            HugeFactory.checkGraphName(name, "gremlin-server.yaml");
             String configPath = graphName.getValue().toString();
             initGraph(configPath);
         }

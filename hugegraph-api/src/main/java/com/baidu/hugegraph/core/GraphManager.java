@@ -34,6 +34,7 @@ import org.apache.tinkerpop.gremlin.structure.Transaction;
 import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
 import org.slf4j.Logger;
 
+import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.auth.HugeAuthenticator;
 import com.baidu.hugegraph.auth.HugeFactoryAuthProxy;
@@ -82,6 +83,7 @@ public final class GraphManager {
         for (Map.Entry<String, String> conf : graphConfs.entrySet()) {
             String name = conf.getKey();
             String path = conf.getValue();
+            HugeFactory.checkGraphName(name, "rest-server.properties");
             try {
                 this.loadGraph(name, path);
             } catch (RuntimeException e) {
