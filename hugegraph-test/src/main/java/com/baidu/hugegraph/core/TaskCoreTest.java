@@ -73,6 +73,7 @@ public class TaskCoreTest extends BaseCoreTest {
                 Thread.sleep(SLEEP_TIME);
                 return 125;
             }
+
             @Override
             protected void done() {
                 scheduler.save(this.task());
