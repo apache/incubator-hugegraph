@@ -183,15 +183,11 @@ public class MysqlSessions extends BackendSessionPool {
      * Connect DB without specified database
      */
     protected Connection openWithoutDB(int timeout) {
-        String jdbcUrl = this.config.get(MysqlOptions.JDBC_URL);
-        String url = new URIBuilder().setPath(jdbcUrl)
-                                     .setParameter("socketTimeout",
-                                                   String.valueOf(timeout))
-                                     .toString();
+        String url = this.buildUri(false, false, false, timeout);
         try {
             return this.connect(url);
         } catch (SQLException e) {
-            throw new BackendException("Failed to access %s", e, jdbcUrl);
+            throw new BackendException("Failed to access %s", e, url);
         }
     }
 
@@ -199,20 +195,11 @@ public class MysqlSessions extends BackendSessionPool {
      * Connect DB with specified database, but won't auto reconnect
      */
     protected Connection openWithDB(int timeout) {
-        String jdbcUrl = this.config.get(MysqlOptions.JDBC_URL);
-        if (jdbcUrl.endsWith("/")) {
-            jdbcUrl = String.format("%s%s", jdbcUrl, this.database());
-        } else {
-            jdbcUrl = String.format("%s/%s", jdbcUrl, this.database());
-        }
-        String url = new URIBuilder().setPath(jdbcUrl)
-                                     .setParameter("socketTimeout",
-                                                   String.valueOf(timeout))
-                                     .toString();
+        String url = this.buildUri(false, true, false, timeout);
         try {
             return this.connect(url);
         } catch (SQLException e) {
-            throw new BackendException("Failed to access %s", jdbcUrl);
+            throw new BackendException("Failed to access %s", e, url);
         }
     }
 
@@ -220,27 +207,39 @@ public class MysqlSessions extends BackendSessionPool {
      * Connect DB with specified database
      */
     private Connection open(boolean autoReconnect) throws SQLException {
+        String url = this.buildUri(true, true, autoReconnect, null);
+        return this.connect(url);
+    }
+
+    protected String buildUri(boolean withConnParams, boolean withDB,
+                              boolean autoReconnect, Integer timeout) {
         String url = this.config.get(MysqlOptions.JDBC_URL);
-        if (url.endsWith("/")) {
-            url = String.format("%s%s", url, this.database());
-        } else {
-            url = String.format("%s/%s", url, this.database());
+        if (withDB) {
+            if (url.endsWith("/")) {
+                url = String.format("%s%s", url, this.database());
+            } else {
+                url = String.format("%s/%s", url, this.database());
+            }
         }
 
         int maxTimes = this.config.get(MysqlOptions.JDBC_RECONNECT_MAX_TIMES);
         int interval = this.config.get(MysqlOptions.JDBC_RECONNECT_INTERVAL);
         String sslMode = this.config.get(MysqlOptions.JDBC_SSL_MODE);
 
-        URIBuilder uriBuilder = this.newConnectionURIBuilder();
-        uriBuilder.setPath(url)
-                  .setParameter("useSSL", sslMode)
-                  .setParameter("characterEncoding", "utf-8")
-                  .setParameter("rewriteBatchedStatements", "true")
-                  .setParameter("useServerPrepStmts", "false")
-                  .setParameter("autoReconnect", String.valueOf(autoReconnect))
-                  .setParameter("maxReconnects", String.valueOf(maxTimes))
-                  .setParameter("initialTimeout", String.valueOf(interval));
-        return this.connect(uriBuilder.toString());
+        URIBuilder builder = this.newConnectionURIBuilder();
+        builder.setPath(url).setParameter("useSSL", sslMode);
+        if (withConnParams) {
+            builder.setParameter("characterEncoding", "utf-8")
+                   .setParameter("rewriteBatchedStatements", "true")
+                   .setParameter("useServerPrepStmts", "false")
+                   .setParameter("autoReconnect", String.valueOf(autoReconnect))
+                   .setParameter("maxReconnects", String.valueOf(maxTimes))
+                   .setParameter("initialTimeout", String.valueOf(interval));
+        }
+        if (timeout != null) {
+            builder.setParameter("socketTimeout", String.valueOf(timeout));
+        }
+        return builder.toString();
     }
 
     protected URIBuilder newConnectionURIBuilder() {
