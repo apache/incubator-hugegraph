@@ -50,8 +50,8 @@ public class TaskCoreTest extends BaseCoreTest {
 
     @After
     @Override
-    public void setup() {
-        super.setup();
+    public void teardown() throws Exception {
+        super.teardown();
 
         HugeGraph graph = graph();
         TaskScheduler scheduler = graph.taskScheduler();
@@ -67,7 +67,7 @@ public class TaskCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         TaskScheduler scheduler = graph.taskScheduler();
 
-        TaskCallable<Integer> callable =  new TaskCallable<Integer>() {
+        TaskCallable<Integer> callable = new TaskCallable<Integer>() {
             @Override
             public Integer call() throws Exception {
                 Thread.sleep(SLEEP_TIME);
@@ -132,7 +132,7 @@ public class TaskCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         TaskScheduler scheduler = graph.taskScheduler();
 
-        TaskCallable<Integer> callable =  new TaskCallable<Integer>() {
+        TaskCallable<Integer> callable = new TaskCallable<Integer>() {
             @Override
             public Integer call() throws Exception {
                 Thread.sleep(SLEEP_TIME);
