@@ -22,7 +22,7 @@ package com.baidu.hugegraph.core;
 import java.util.Iterator;
 import java.util.concurrent.TimeoutException;
 
-import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import com.baidu.hugegraph.HugeGraph;
@@ -48,10 +48,10 @@ public class TaskCoreTest extends BaseCoreTest {
 
     private static final int SLEEP_TIME = 200;
 
-    @After
+    @Before
     @Override
-    public void teardown() throws Exception {
-        super.teardown();
+    public void setup() {
+        super.setup();
 
         HugeGraph graph = graph();
         TaskScheduler scheduler = graph.taskScheduler();
