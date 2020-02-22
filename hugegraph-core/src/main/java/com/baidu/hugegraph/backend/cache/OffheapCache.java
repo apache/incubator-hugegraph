@@ -94,7 +94,17 @@ public class OffheapCache extends AbstractCache {
 
     @Override
     protected void write(Id id, Object value) {
-        this.cache.put(id, new Value(value));
+        long expireTime = this.expire();
+        if (expireTime <= 0) {
+            this.cache.put(id, new Value(value));
+        } else {
+            expireTime += now();
+            /*
+             * Seems only the linked implementation support expiring entries,
+             * the chunked implementation does not support it.
+             */
+            this.cache.put(id, new Value(value), expireTime);
+        }
     }
 
     @Override
@@ -109,7 +119,7 @@ public class OffheapCache extends AbstractCache {
 
     @Override
     protected <K, V> Iterator<CacheNode<K, V>> nodes() {
-        // No needed to expire by timer, return none
+        // No needed to expire by timer, return none. use OHCache TTL instead
         return Collections.emptyIterator();
     }
 
@@ -117,33 +127,10 @@ public class OffheapCache extends AbstractCache {
         return OHCacheBuilder.<Id, Value>newBuilder()
                              .keySerializer(new IdSerializer())
                              .valueSerializer(new ValueSerializer())
-                             .eviction(Eviction.LRU);
+                             .eviction(Eviction.LRU)
+                             .throwOOME(true)
+                             .timeouts(true);
     }
-
-//    private OHCacheBuilder<byte[], byte[]> builder() {
-//        return OHCacheBuilder.<byte[], byte[]>newBuilder()
-//                             .keySerializer(new BytesSerializer())
-//                             .valueSerializer(new BytesSerializer())
-//                             .eviction(Eviction.LRU);
-//    }
-
-//    static class BytesSerializer implements CacheSerializer<byte[]> {
-//
-//        @Override
-//        public byte[] deserialize(ByteBuffer input) {
-//            return BytesBuffer.wrap(input).readBytes();
-//        }
-//
-//        @Override
-//        public void serialize(byte[] bytes, ByteBuffer output) {
-//            BytesBuffer.wrap(output).writeBytes(bytes);
-//        }
-//
-//        @Override
-//        public int serializedSize(byte[] bytes) {
-//            return bytes.length;
-//        }
-//    }
 
     private class IdSerializer implements CacheSerializer<Id> {
 
