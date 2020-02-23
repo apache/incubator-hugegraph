@@ -428,7 +428,7 @@ public class TaskCoreTest extends BaseCoreTest {
             Assert.assertContains("Job callable can't be null", e.getMessage());
         });
 
-        // failure task with big input
+        // Test failure task with big input
         char[] chars = new char[65536];
         for (int i = 0; i < chars.length; i++) {
             chars[i] = '8';
@@ -460,7 +460,7 @@ public class TaskCoreTest extends BaseCoreTest {
         Assert.assertTrue(task.result(), task.result() == null ||
                           task.result().endsWith("InterruptedException"));
 
-        // cancel success task
+        // Cancel success task
         HugeTask<Object> task2 = runGremlinJob("1+2");
         scheduler.waitUntilTaskCompleted(task2.id(), 10);
         Assert.assertEquals(TaskStatus.SUCCESS, task2.status());
@@ -468,7 +468,7 @@ public class TaskCoreTest extends BaseCoreTest {
         Assert.assertEquals(TaskStatus.SUCCESS, task2.status());
         Assert.assertEquals("3", task2.result());
 
-        // cancel failure task with big results (job size exceeded limit)
+        // Cancel failure task with big results (job size exceeded limit)
         String bigList = "def l=[]; for (i in 1..10001) l.add(i); l;";
         HugeTask<Object> task3 = runGremlinJob(bigList);
         scheduler.waitUntilTaskCompleted(task3.id(), 10);
@@ -479,7 +479,7 @@ public class TaskCoreTest extends BaseCoreTest {
                               "has exceeded the max limit 10000",
                               task3.result());
 
-        // cancel failure task with big results (task exceeded limit 64k)
+        // Cancel failure task with big results (task exceeded limit 64k)
         String bigResults = "def big='123456789'; def l=[]; " +
                             "for (i in 1..9000) l.add(big); l;";
         HugeTask<Object> task4 = runGremlinJob(bigResults);
