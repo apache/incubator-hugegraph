@@ -40,7 +40,6 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.analyzer.Analyzer;
-import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.page.IdHolder;
 import com.baidu.hugegraph.backend.page.IdHolderList;
@@ -331,15 +330,16 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
         // NOTE: Currently we can't support filter changes in memory
         if (this.hasUpdates()) {
-            throw new BackendException("Can't do index query when " +
-                                       "there are changes in transaction");
+            throw new HugeException("Can't do index query when " +
+                                    "there are changes in transaction");
         }
 
         // Can't query by index and by non-label sysprop at the same time
         List<Condition> conds = query.syspropConditions();
         if (conds.size() > 1 ||
             (conds.size() == 1 && !query.containsCondition(HugeKeys.LABEL))) {
-            throw new BackendException("Can't do index query with %s", conds);
+            throw new HugeException("Can't do index query with %s and %s",
+                                    conds, query.userpropConditions());
         }
 
         // Query by index
@@ -370,7 +370,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
             indexType = HugeType.EDGE_LABEL_INDEX;
             schemaLabel = this.graph().edgeLabel(label);
         } else {
-            throw new BackendException("Can't query %s by label", queryType);
+            throw new HugeException("Can't query %s by label", queryType);
         }
 
         if (!this.store().features().supportsQueryByLabel() &&
@@ -980,7 +980,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
             case RANGE_LONG:
             case RANGE_DOUBLE:
                 if (query.userpropConditions().size() > 2) {
-                    throw new BackendException(
+                    throw new HugeException(
                               "Range query has two conditions at most, " +
                               "but got: %s", query.userpropConditions());
                 }

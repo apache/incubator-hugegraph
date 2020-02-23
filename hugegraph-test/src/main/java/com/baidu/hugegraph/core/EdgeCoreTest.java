@@ -45,15 +45,16 @@ import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
-import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.page.PageInfo;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
+import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.Shard;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.config.CoreOptions;
@@ -1002,6 +1003,40 @@ public class EdgeCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testQueryEdgesByInvalidSysprop() {
+        HugeGraph graph = graph();
+        init18Edges();
+
+        List<Edge> edges = graph.traversal().E().hasLabel("know").toList();
+        Assert.assertEquals(1, edges.size());
+        Object id = edges.get(0).id();
+
+        Assert.assertThrows(HugeException.class, () -> {
+            graph.traversal().E().hasLabel("know").has("ID", id).toList();
+        }, e -> {
+            Assert.assertContains("Not supported querying by id and conditions",
+                                  e.getMessage());
+        });
+
+        Assert.assertThrows(HugeException.class, () -> {
+            graph.traversal().E().hasLabel("know").has("NAME", "n1").toList();
+        }, e -> {
+            Assert.assertContains("Not supported querying edges by",
+                                  e.getMessage());
+            Assert.assertContains("NAME == n1", e.getMessage());
+        });
+
+        Assert.assertThrows(HugeException.class, () -> {
+            graph.traversal().E().hasLabel("know").has("NAME", "n2")
+                                                  .has("name", "").toList();
+        }, e -> {
+            Assert.assertContains("Can't do index query with [LABEL ==",
+                                  e.getMessage());
+            Assert.assertContains("NAME == n2", e.getMessage());
+        });
+    }
+
+    @Test
     public void testQueryEdgesByLabel() {
         HugeGraph graph = graph();
         init18Edges();
@@ -1055,8 +1090,66 @@ public class EdgeCoreTest extends BaseCoreTest {
         ConditionQuery q = new ConditionQuery(HugeType.EDGE);
         q.eq(HugeKeys.DIRECTION, Direction.OUT);
 
-        Assert.assertThrows(BackendException.class, () -> {
+        Assert.assertThrows(HugeException.class, () -> {
             graph.edges(q);
+        });
+    }
+
+    @Test
+    public void testQueryEdgesByHasKey() {
+        HugeGraph graph = graph();
+        BackendFeatures features = graph.graphTransaction().store().features();
+        Assume.assumeTrue("Not support CONTAINS_KEY query",
+                          features.supportsQueryWithContainsKey());
+        init18Edges();
+
+        List<Edge> edges = graph.traversal().E()
+                                .hasLabel("authored").hasKey("score")
+                                .toList();
+        Assert.assertEquals(1, edges.size());
+        Assert.assertEquals(3, edges.get(0).value("score"));
+
+        edges = graph.traversal().E().hasKey("score").toList();
+        Assert.assertEquals(5, edges.size());
+    }
+
+    @Test
+    public void testQueryEdgesByHasKeys() {
+        HugeGraph graph = graph();
+        init18Edges();
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.traversal().E().hasLabel("authored")
+                 .hasKey("score", "time").toList();
+        });
+    }
+
+    @Test
+    public void testQueryEdgesByHasValue() {
+        HugeGraph graph = graph();
+        BackendFeatures features = graph.graphTransaction().store().features();
+        Assume.assumeTrue("Not support CONTAINS query",
+                          features.supportsQueryWithContains());
+        init18Edges();
+
+        List<Edge> edges = graph.traversal().E()
+                                .hasLabel("authored").hasValue(3)
+                                .toList();
+        Assert.assertEquals(1, edges.size());
+        Assert.assertEquals(3, edges.get(0).value("score"));
+
+        edges = graph.traversal().E().hasValue(3).toList();
+        Assert.assertEquals(3, edges.size());
+    }
+
+    @Test
+    public void testQueryEdgesByHasValues() {
+        HugeGraph graph = graph();
+        init18Edges();
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.traversal().E().hasLabel("authored")
+                 .hasValue(3, "2017-5-1").toList();
         });
     }
 
