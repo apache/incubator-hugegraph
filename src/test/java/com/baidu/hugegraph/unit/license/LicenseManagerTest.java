@@ -258,7 +258,8 @@ public class LicenseManagerTest {
             String extra = (String) content.getExtra();
             List<ExtraParam> extraParams;
             try {
-                TypeReference type = new TypeReference<List<ExtraParam>>() {};
+                TypeReference<List<ExtraParam>> type;
+                type = new TypeReference<List<ExtraParam>>() {};
                 extraParams = MAPPER.readValue(extra, type);
             } catch (IOException e) {
                 throw new RuntimeException("Failed to read extra params", e);
