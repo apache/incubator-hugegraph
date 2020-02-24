@@ -135,9 +135,9 @@ public class BaseApiTest {
             return this.target.path(path).request().post(entity);
         }
 
-        public Response put(String path, String content,
+        public Response put(String path, String id, String content,
                             Map<String, Object> params) {
-            WebTarget target = this.target.path(path);
+            WebTarget target = this.target.path(path).path(id);
             for (Map.Entry<String, Object> i : params.entrySet()) {
                 target = target.queryParam(i.getKey(), i.getValue());
             }

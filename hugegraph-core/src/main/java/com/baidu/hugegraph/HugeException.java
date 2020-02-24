@@ -38,4 +38,16 @@ public class HugeException extends RuntimeException {
     public HugeException(String message, Throwable cause, Object... args) {
         super(String.format(message, args), cause);
     }
+
+    public Throwable rootCause() {
+        return rootCause(this);
+    }
+
+    public static Throwable rootCause(Throwable e) {
+        Throwable cause = e;
+        while (cause.getCause() != null) {
+            cause = cause.getCause();
+        }
+        return cause;
+    }
 }

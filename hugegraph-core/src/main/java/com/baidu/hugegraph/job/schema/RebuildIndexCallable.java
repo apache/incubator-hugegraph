@@ -50,7 +50,11 @@ public class RebuildIndexCallable extends SchemaCallable {
 
     @Override
     public Object execute() {
-        this.rebuildIndex(this.schemaElement());
+        SchemaElement schema = this.schemaElement();
+        // If the schema does not exist, ignore it
+        if (schema != null) {
+            this.rebuildIndex(schema);
+        }
         return null;
     }
 
@@ -65,6 +69,7 @@ public class RebuildIndexCallable extends SchemaCallable {
                     assert indexLabel.baseType() == HugeType.EDGE_LABEL;
                     label = this.graph().edgeLabel(indexLabel.baseValue());
                 }
+                assert label != null;
                 this.rebuildIndex(label, ImmutableSet.of(indexLabel.id()));
                 break;
             case VERTEX_LABEL:

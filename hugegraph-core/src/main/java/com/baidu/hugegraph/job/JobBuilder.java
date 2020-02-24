@@ -67,7 +67,7 @@ public class JobBuilder<T> {
 
     public HugeTask<T> schedule() {
         E.checkArgumentNotNull(this.name, "Job name can't be null");
-        E.checkArgumentNotNull(this.job, "Job can't be null");
+        E.checkArgumentNotNull(this.job, "Job callable can't be null");
 
         HugeTask<T> task = new HugeTask<>(this.genTaskId(), null, this.job);
         task.type(this.job.type());

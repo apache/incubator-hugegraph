@@ -115,7 +115,8 @@ public abstract class BackendEntryIterator
 
     protected final void checkInterrupted() {
         if (Thread.interrupted()) {
-            throw new BackendException("Interrupted, maybe it is timed out");
+            throw new BackendException("Interrupted, maybe it is timed out",
+                                       new InterruptedException());
         }
     }
 

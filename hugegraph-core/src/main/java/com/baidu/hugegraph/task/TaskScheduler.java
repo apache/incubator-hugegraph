@@ -164,10 +164,13 @@ public class TaskScheduler {
 
     public <V> Future<?> restore(HugeTask<V> task) {
         E.checkArgumentNotNull(task, "Task can't be null");
-        E.checkArgument(!task.isDone(),
-                        "No need to restore task '%s', it has been completed",
-                        task.id());
+        E.checkArgument(!this.tasks.containsKey(task.id()),
+                        "Task '%s' is already in the queue", task.id());
+        E.checkArgument(!task.isDone() && !task.completed(),
+                        "No need to restore completed task '%s' with status %s",
+                        task.id(), task.status());
         task.status(TaskStatus.RESTORING);
+        task.retry();
         return this.submitTask(task);
     }
 
@@ -182,27 +185,50 @@ public class TaskScheduler {
         E.checkArgument(size <= MAX_PENDING_TASKS,
                         "Pending tasks size %s has exceeded the max limit %s",
                         size, MAX_PENDING_TASKS);
+        this.initTaskCallable(task);
         this.tasks.put(task.id(), task);
-        task.callable().scheduler(this);
-        task.callable().task(task);
         return this.taskExecutor.submit(task);
     }
 
-    public <V> void cancel(HugeTask<V> task) {
+    private <V> void initTaskCallable(HugeTask<V> task) {
+        if (this.tasks.containsKey(task.id())) {
+            // Assume initialized
+            return;
+        }
+        TaskCallable<V> callable = task.callable();
+        callable.scheduler(this);
+        callable.task(task);
+    }
+
+    public <V> boolean cancel(HugeTask<V> task) {
         E.checkArgumentNotNull(task, "Task can't be null");
+        boolean cancelled = false;
         if (!task.completed()) {
-            task.cancel(true);
+            /*
+             * Task may be loaded from backend store and not initialized. like:
+             * A task is completed but failed to save in the last step,
+             * resulting in the status of the task not being updated to storage,
+             * the task is not in memory, so it's not initialized when canceled.
+             */
+            this.initTaskCallable(task);
+
+            cancelled = task.cancel(true);
             this.remove(task.id());
         }
+        assert task.completed();
+        return cancelled;
     }
 
     protected void remove(Id id) {
         HugeTask<?> task = this.tasks.remove(id);
-        assert task == null || task.completed();
+        assert task == null || task.completed() || task.isCancelled();
     }
 
     public <V> void save(HugeTask<V> task) {
         E.checkArgumentNotNull(task, "Task can't be null");
+        // Check property size
+        task.checkProperties();
+        // Do save
         this.call(() -> {
             // Construct vertex from task
             HugeVertex vertex = this.tx().constructVertex(task);
@@ -325,8 +351,17 @@ public class TaskScheduler {
     public <V> HugeTask<V> waitUntilTaskCompleted(Id id, long seconds)
                                                   throws TimeoutException {
         long passes = seconds * 1000 / QUERY_INTERVAL;
+        HugeTask<V> task = null;
         for (long pass = 0;; pass++) {
-            HugeTask<V> task = this.task(id);
+            try {
+                task = this.task(id);
+            } catch (NotFoundException e) {
+                if (task != null && task.completed()) {
+                    assert task.id().asLong() < 0L : task.id();
+                    return task;
+                }
+                throw e;
+            }
             if (task.completed()) {
                 return task;
             }
@@ -415,8 +450,9 @@ public class TaskScheduler {
         // Ensure all db operations are executed in dbExecutor thread(s)
         try {
             return this.dbExecutor.submit(callable).get();
-        } catch (Exception e) {
-            throw new HugeException("Failed to update/query TaskStore", e);
+        } catch (Throwable e) {
+            throw new HugeException("Failed to update/query TaskStore: %s",
+                                    e, e.toString());
         }
     }
 

@@ -29,21 +29,11 @@ import org.junit.Test;
 
 import com.baidu.hugegraph.testutil.Assert;
 
-import jersey.repackaged.com.google.common.collect.ImmutableList;
 import jersey.repackaged.com.google.common.collect.ImmutableMap;
 
 public class TaskApiTest extends BaseApiTest {
 
     private static String path = "/graphs/hugegraph/tasks/";
-    private static String rebuildPath =
-            "/graphs/hugegraph/jobs/rebuild/indexlabels/personByCity";
-    private static String personByCity = "personByCity";
-    private static Map<String, Object> personByCityIL = ImmutableMap.of(
-            "name", "personByCity",
-            "base_type", "VERTEX_LABEL",
-            "base_value", "person",
-            "index_type", "SECONDARY",
-            "fields", ImmutableList.of("city"));
 
     @Before
     public void prepareSchema() {
@@ -78,6 +68,31 @@ public class TaskApiTest extends BaseApiTest {
     }
 
     @Test
+    public void testCancel() {
+        int taskId = this.rebuild();
+
+        Map<String, Object> params = ImmutableMap.of("action", "cancel");
+        Response r = client().put(path, String.valueOf(taskId), "", params);
+        String content = r.readEntity(String.class);
+        Assert.assertTrue(content,
+                          r.getStatus() == 202 || r.getStatus() == 400);
+        if (r.getStatus() == 202) {
+            String status = assertJsonContains(content, "task_status");
+            Assert.assertEquals("cancelled", status);
+        } else {
+            assert r.getStatus() == 400;
+            String error = String.format(
+                           "Can't cancel task '%s' which is completed", taskId);
+            Assert.assertContains(error, content);
+
+            r = client().get(path, String.valueOf(taskId));
+            content = assertResponseStatus(200, r);
+            String status = assertJsonContains(content, "task_status");
+            Assert.assertEquals("success", status);
+        }
+    }
+
+    @Test
     public void testDelete() {
         int taskId = this.rebuild();
 
@@ -87,7 +102,10 @@ public class TaskApiTest extends BaseApiTest {
     }
 
     private int rebuild() {
-        Response r = client().put(rebuildPath, personByCity, personByCityIL);
+        String rebuildPath = "/graphs/hugegraph/jobs/rebuild/indexlabels";
+        String personByCity = "personByCity";
+        Map<String, Object> params = ImmutableMap.of();
+        Response r = client().put(rebuildPath, personByCity, "",  params);
         String content = assertResponseStatus(202, r);
         return assertJsonContains(content, "task_id");
     }

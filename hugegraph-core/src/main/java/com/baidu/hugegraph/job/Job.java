@@ -21,11 +21,16 @@ package com.baidu.hugegraph.job;
 
 import java.util.Date;
 
+import org.slf4j.Logger;
+
 import com.baidu.hugegraph.task.HugeTask;
 import com.baidu.hugegraph.task.TaskCallable;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.Log;
 
 public abstract class Job<T> extends TaskCallable<T> {
+
+    private static final Logger LOG = Log.logger(HugeTask.class);
 
     private volatile long lastSaveTime = System.currentTimeMillis();
     private volatile long saveInterval = 1000 * 30;
@@ -67,9 +72,25 @@ public abstract class Job<T> extends TaskCallable<T> {
         }
     }
 
+    public int progress() {
+        HugeTask<T> task = this.task();
+        return task.progress();
+    }
+
     private void save() {
         HugeTask<T> task = this.task();
         task.updateTime(new Date());
-        this.scheduler().save(task);
+        try {
+            this.scheduler().save(task);
+        } catch (Throwable e) {
+            if (task.completed()) {
+                /*
+                 * Failed to save task and the status is stable(can't be update)
+                 * just log the task. seems no need try again.
+                 */
+                LOG.error("Failed to save task with error \"{}\": {}", e, task);
+            }
+            throw e;
+        }
     }
 }

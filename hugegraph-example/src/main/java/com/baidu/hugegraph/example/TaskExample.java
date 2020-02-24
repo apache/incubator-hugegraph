@@ -32,6 +32,7 @@ import com.baidu.hugegraph.task.TaskCallable;
 import com.baidu.hugegraph.task.TaskManager;
 import com.baidu.hugegraph.task.TaskScheduler;
 import com.baidu.hugegraph.task.TaskStatus;
+import com.baidu.hugegraph.testutil.Whitebox;
 import com.baidu.hugegraph.util.Log;
 
 public class TaskExample {
@@ -42,7 +43,13 @@ public class TaskExample {
         LOG.info("TaskExample start!");
 
         HugeGraph graph = ExampleUtil.loadGraph();
+        testTask(graph);
+        graph.close();
 
+        HugeGraph.shutdown(30L);
+    }
+
+    public static void testTask(HugeGraph graph) throws InterruptedException {
         Id id = IdGenerator.of(8);
         String callable = "com.baidu.hugegraph.example.TaskExample$TestTask";
         HugeTask<?> task = new HugeTask<>(id, null, callable, "test-parameter");
@@ -70,21 +77,21 @@ public class TaskExample {
 
         Thread.sleep(TestTask.UNIT * 10);
         System.out.println(">>>> restore task...");
+        Whitebox.setInternalState(task, "status", TaskStatus.RUNNING);
         scheduler.restore(task);
         Thread.sleep(TestTask.UNIT * 80);
         scheduler.save(task);
 
         iter = scheduler.findTask(TaskStatus.SUCCESS, -1, null);
         assert iter.hasNext();
-
-        graph.close();
-
-        HugeGraph.shutdown(30L);
+        task = iter.next();
+        assert task.status() == TaskStatus.SUCCESS;
+        assert task.retries() == 1;
     }
 
     public static class TestTask extends TaskCallable<Integer> {
 
-        public static final int UNIT = 100;
+        public static final int UNIT = 100; // ms
 
         public volatile boolean run = true;
 
