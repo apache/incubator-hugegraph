@@ -430,6 +430,12 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 holders.add(holder);
             }
 
+            /*
+             * Finish early if records exceeds required.
+             * NOTE: need to skip the offset if offset > 0, but can't handle
+             * it here because the query may a sub-query after flatten,
+             * so the offset will be handle in QueryList.IndexQuery
+             */
             idsSize += holders.idsSize();
             if (query.reachLimit(idsSize)) {
                 break;

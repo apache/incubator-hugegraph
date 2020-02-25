@@ -147,8 +147,7 @@ public class InMemoryDBTable extends BackendTable<BackendSession,
         }
         iterator = this.skipOffset(iterator, query.offset());
 
-        if (query.limit() != Query.NO_LIMIT &&
-            query.offset() + query.limit() < rs.size()) {
+        if (!query.nolimit() && query.total() < rs.size()) {
             iterator = this.dropTails(iterator, query.limit());
         }
         return iterator;

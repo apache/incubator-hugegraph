@@ -554,8 +554,7 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     public Iterator<Vertex> queryVertices(Query query) {
-        E.checkArgument(this.removedVertices.isEmpty() ||
-                        query.limit() == Query.NO_LIMIT,
+        E.checkArgument(this.removedVertices.isEmpty() || query.nolimit(),
                         "It's not allowed to query with limit when " +
                         "there are uncommitted delete records.");
 
@@ -701,8 +700,7 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     public Iterator<Edge> queryEdges(Query query) {
-        E.checkArgument(this.removedEdges.isEmpty() ||
-                        query.limit() == Query.NO_LIMIT,
+        E.checkArgument(this.removedEdges.isEmpty() || query.nolimit(),
                         "It's not allowed to query with limit when " +
                         "there are uncommitted delete records.");
 

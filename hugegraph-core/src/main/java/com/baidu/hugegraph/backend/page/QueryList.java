@@ -124,7 +124,6 @@ public final class QueryList {
         return query.iterator(offset - current, pageInfo.page(), pageSize);
     }
 
-    @SuppressWarnings("unused")
     private static Set<Id> limit(Set<Id> ids, Query query) {
         long fromIndex = query.offset();
         E.checkArgument(fromIndex <= Integer.MAX_VALUE,
@@ -134,11 +133,11 @@ public final class QueryList {
         if (query.offset() >= ids.size()) {
             return ImmutableSet.of();
         }
-        if (query.limit() == Query.NO_LIMIT && query.offset() == 0) {
+        if (query.nolimit() && query.offset() == 0) {
             return ids;
         }
-        long toIndex = query.offset() + query.limit();
-        if (query.limit() == Query.NO_LIMIT || toIndex > ids.size()) {
+        long toIndex = query.total();
+        if (query.nolimit() || toIndex > ids.size()) {
             toIndex = ids.size();
         }
         assert fromIndex < ids.size();
@@ -191,14 +190,13 @@ public final class QueryList {
             Query query = this.query.copy();
             query.page(page);
             // Not set limit to pageSize due to PageEntryIterator.remaining
-            if (this.query.limit() == Query.NO_LIMIT) {
+            if (this.query.nolimit()) {
                 query.limit(pageSize);
             }
-            QueryResults results = fetcher().apply(query);
+            QueryResults rs = fetcher().apply(query);
             // Must iterate all entries before get the next page
-            return new PageIterator(results.list().iterator(),
-                                    results.queries(),
-                                    PageInfo.pageState(results.iterator()));
+            return new PageIterator(rs.list().iterator(), rs.queries(),
+                                    PageInfo.pageState(rs.iterator()));
         }
 
         @Override
@@ -212,11 +210,14 @@ public final class QueryList {
      */
     private class IndexQuery implements QueryHolder {
 
-        // Actual is an instance of IdHolderList
+        // Actual it's an instance of IdHolderList
         private final List<IdHolder> holders;
+        // To skip the offset in parent query
+        private long offsetToSkip;
 
         public IndexQuery(List<IdHolder> holders) {
             this.holders = holders;
+            this.offsetToSkip = parent().offset();
         }
 
         @Override
@@ -229,18 +230,23 @@ public final class QueryList {
 
         private QueryResults each(IdHolder holder) {
             Set<Id> ids = holder.ids();
-            if (ids.isEmpty()) {
-                return null;
-            }
-            if (parent().limit() != Query.NO_LIMIT &&
-                ids.size() > parent().limit()) {
+            Query parent = parent();
+            if (this.offsetToSkip > 0L) {
+                // Skip offset when needed
+                this.offsetToSkip -= ids.size();
+                ids = limit(ids, parent);
+            } else if (!parent.nolimit() && ids.size() > parent.total()) {
                 /*
                  * Avoid too many ids in one time query,
                  * Assume it will get one result by each id
                  */
-                ids = CollectionUtil.subSet(ids, 0, (int) parent().limit());
+                ids = CollectionUtil.subSet(ids, 0, (int) parent.total());
             }
-            IdQuery query = new IdQuery(parent(), ids);
+
+            if (ids.isEmpty()) {
+                return null;
+            }
+            IdQuery query = new IdQuery(parent, ids);
             return fetcher().apply(query);
         }
 
@@ -252,8 +258,8 @@ public final class QueryList {
                 return PageIterator.EMPTY;
             }
             IdQuery query = new IdQuery(parent(), pageIds.ids());
-            QueryResults results = fetcher().apply(query);
-            return new PageIterator(results.iterator(), results.queries(),
+            QueryResults rs = fetcher().apply(query);
+            return new PageIterator(rs.iterator(), rs.queries(),
                                     pageIds.pageState());
         }
 
