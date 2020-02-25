@@ -74,6 +74,7 @@ import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.StringEncoding;
 import com.baidu.hugegraph.util.VersionUtil;
+import com.google.common.util.concurrent.Futures;
 
 public class HbaseSessions extends BackendSessionPool {
 
@@ -202,15 +203,23 @@ public class HbaseSessions extends BackendSessionPool {
         }
     }
 
-    public Future<Void> truncateTable(String table) throws IOException {
+    public Future<Void> disableTable(String table) throws IOException {
         assert this.existsTable(table);
         TableName tableName = TableName.valueOf(this.namespace, table);
         try(Admin admin = this.hbase.getAdmin()) {
             try {
-                admin.disableTable(tableName);
+                return admin.disableTableAsync(tableName);
             } catch (TableNotEnabledException ignored) {
-                // pass
+                // Ignore if it's disabled
+                return Futures.immediateFuture(null);
             }
+        }
+    }
+
+    public Future<Void> truncateTable(String table) throws IOException {
+        assert this.existsTable(table);
+        TableName tableName = TableName.valueOf(this.namespace, table);
+        try(Admin admin = this.hbase.getAdmin()) {
             return admin.truncateTableAsync(tableName, true);
         }
     }

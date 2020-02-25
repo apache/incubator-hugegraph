@@ -33,7 +33,6 @@ import java.util.stream.Collectors;
 import org.apache.hadoop.hbase.NamespaceExistException;
 import org.apache.hadoop.hbase.TableExistsException;
 import org.apache.hadoop.hbase.TableNotFoundException;
-import org.apache.hadoop.hbase.client.Connection;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.backend.BackendException;
@@ -328,18 +327,35 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
     @Override
     public void truncate() {
         this.checkOpened();
+        Session session = this.sessions.session();
+        long timeout = this.sessions.config()
+                                    .get(HbaseOptions.TRUNCATE_TIMEOUT);
 
         // Truncate tables
         List<String> tables = this.tableNames();
         Map<String, Future<Void>> futures = new HashMap<>(tables.size());
         String currentTable = null;
         try {
+            // Disable tables async
+            for (Iterator<String> it = tables.iterator(); it.hasNext();) {
+                String table = it.next();
+                currentTable = table;
+                if (!session.scan(table, 1L).hasNext()) {
+                    it.remove();
+                    continue;
+                }
+                futures.put(table, this.sessions.disableTable(table));
+            }
+            for (Map.Entry<String, Future<Void>> entry : futures.entrySet()) {
+                currentTable = entry.getKey();
+                entry.getValue().get(timeout, TimeUnit.SECONDS);
+            }
+
+            // Truncate tables async
             for (String table : tables) {
                 currentTable = table;
                 futures.put(table, this.sessions.truncateTable(table));
             }
-            long timeout = this.sessions.config()
-                                        .get(HbaseOptions.TRUNCATE_TIMEOUT);
             for (Map.Entry<String, Future<Void>> entry : futures.entrySet()) {
                 currentTable = entry.getKey();
                 entry.getValue().get(timeout, TimeUnit.SECONDS);
