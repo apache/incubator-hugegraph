@@ -42,6 +42,7 @@ import org.apache.hadoop.hbase.RegionMetrics;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.Size;
 import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.TableNotDisabledException;
 import org.apache.hadoop.hbase.TableNotEnabledException;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.ColumnFamilyDescriptorBuilder;
@@ -203,7 +204,22 @@ public class HbaseSessions extends BackendSessionPool {
         }
     }
 
-    public Future<Void> disableTable(String table) throws IOException {
+    public void enableTable(String table) throws IOException {
+        assert this.existsTable(table);
+        TableName tableName = TableName.valueOf(this.namespace, table);
+        try(Admin admin = this.hbase.getAdmin()) {
+            if (admin.isTableEnabled(tableName)) {
+                return;
+            }
+            try {
+                admin.enableTable(tableName);
+            } catch (TableNotDisabledException ignored) {
+                // pass
+            }
+        }
+    }
+
+    public Future<Void> disableTableAsync(String table) throws IOException {
         assert this.existsTable(table);
         TableName tableName = TableName.valueOf(this.namespace, table);
         try(Admin admin = this.hbase.getAdmin()) {
@@ -216,7 +232,7 @@ public class HbaseSessions extends BackendSessionPool {
         }
     }
 
-    public Future<Void> truncateTable(String table) throws IOException {
+    public Future<Void> truncateTableAsync(String table) throws IOException {
         assert this.existsTable(table);
         TableName tableName = TableName.valueOf(this.namespace, table);
         try(Admin admin = this.hbase.getAdmin()) {
