@@ -473,7 +473,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
                               SerializerProvider provider)
                               throws IOException {
             jsonGenerator.writeStartObject();
-            jsonGenerator.writeStringField("fileName", file.getName());
+            jsonGenerator.writeStringField("file", file.getName());
             jsonGenerator.writeEndObject();
         }
     }
