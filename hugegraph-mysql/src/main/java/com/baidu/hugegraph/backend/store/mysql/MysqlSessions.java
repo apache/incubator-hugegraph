@@ -429,6 +429,14 @@ public class MysqlSessions extends BackendSessionPool {
 
         @Override
         protected void reconnectIfNeeded() {
+            if (!this.opened) {
+                return;
+            }
+
+            if (this.conn == null) {
+                tryOpen();
+            }
+
             try {
                 this.execute("SELECT 1;");
             } catch (SQLException ignored) {
