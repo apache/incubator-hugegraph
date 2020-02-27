@@ -62,11 +62,12 @@ public final class QueryList {
         return this.fetcher;
     }
 
-    public void add(List<IdHolder> holders) {
+    public void add(IdHolderList holders) {
+        // IdHolderList is results of one index query, the query is flattened
         if (!this.parent.paging()) {
             for (QueryHolder q : this.queries) {
                 if (q instanceof IndexQuery) {
-                    ((IndexQuery) q).holders.addAll(holders);
+                    ((IndexQuery) q).merge(holders);
                     return;
                 }
             }
@@ -210,14 +211,21 @@ public final class QueryList {
      */
     private class IndexQuery implements QueryHolder {
 
-        // Actual it's an instance of IdHolderList
-        private final List<IdHolder> holders;
+        // An IdHolder each sub-query
+        private final IdHolderList holders;
         // To skip the offset in parent query
         private long offsetToSkip;
 
-        public IndexQuery(List<IdHolder> holders) {
+        public IndexQuery(IdHolderList holders) {
             this.holders = holders;
-            this.offsetToSkip = parent().offset();
+            this.offsetToSkip = this.holders.needSkipOffset() ?
+                                parent().offset() : -1L;
+        }
+
+        public void merge(IdHolderList holders) {
+            E.checkState(holders.sameParameters(this.holders),
+                         "Can't merge IdHolderList with different parameters");
+            this.holders.addAll(holders);
         }
 
         @Override

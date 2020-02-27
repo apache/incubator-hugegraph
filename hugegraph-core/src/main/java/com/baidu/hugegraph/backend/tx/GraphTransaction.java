@@ -45,7 +45,7 @@ import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
-import com.baidu.hugegraph.backend.page.IdHolder;
+import com.baidu.hugegraph.backend.page.IdHolderList;
 import com.baidu.hugegraph.backend.page.PageInfo;
 import com.baidu.hugegraph.backend.page.QueryList;
 import com.baidu.hugegraph.backend.query.Condition;
@@ -1102,7 +1102,7 @@ public class GraphTransaction extends IndexableTransaction {
         return null;
     }
 
-    private List<IdHolder> indexQuery(ConditionQuery query) {
+    private IdHolderList indexQuery(ConditionQuery query) {
         /*
          * Optimize by index-query
          * It will return a list of id (maybe empty) if success,
