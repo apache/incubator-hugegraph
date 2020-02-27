@@ -42,6 +42,7 @@ import org.apache.hadoop.hbase.RegionMetrics;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.Size;
 import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.TableNotDisabledException;
 import org.apache.hadoop.hbase.TableNotEnabledException;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.ColumnFamilyDescriptorBuilder;
@@ -74,6 +75,7 @@ import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.StringEncoding;
 import com.baidu.hugegraph.util.VersionUtil;
+import com.google.common.util.concurrent.Futures;
 
 public class HbaseSessions extends BackendSessionPool {
 
@@ -147,7 +149,7 @@ public class HbaseSessions extends BackendSessionPool {
     }
 
     public boolean existsNamespace() throws IOException {
-        try(Admin admin = this.hbase.getAdmin()) {
+        try (Admin admin = this.hbase.getAdmin()) {
             for (NamespaceDescriptor ns : admin.listNamespaceDescriptors()) {
                 if (this.namespace.equals(ns.getName())) {
                     return true;
@@ -160,20 +162,20 @@ public class HbaseSessions extends BackendSessionPool {
     public void createNamespace() throws IOException {
         NamespaceDescriptor ns = NamespaceDescriptor.create(this.namespace)
                                                     .build();
-        try(Admin admin = this.hbase.getAdmin()) {
+        try (Admin admin = this.hbase.getAdmin()) {
             admin.createNamespace(ns);
         }
     }
 
     public void dropNamespace() throws IOException {
-        try(Admin admin = this.hbase.getAdmin()) {
+        try (Admin admin = this.hbase.getAdmin()) {
             admin.deleteNamespace(this.namespace);
         }
     }
 
     public boolean existsTable(String table) throws IOException {
         TableName tableName = TableName.valueOf(this.namespace, table);
-        try(Admin admin = this.hbase.getAdmin()) {
+        try (Admin admin = this.hbase.getAdmin()) {
             return admin.tableExists(tableName);
         }
     }
@@ -185,14 +187,14 @@ public class HbaseSessions extends BackendSessionPool {
             tb.setColumnFamily(ColumnFamilyDescriptorBuilder.newBuilder(cf)
                                                             .build());
         }
-        try(Admin admin = this.hbase.getAdmin()) {
+        try (Admin admin = this.hbase.getAdmin()) {
             admin.createTable(tb.build());
         }
     }
 
     public void dropTable(String table) throws IOException {
         TableName tableName = TableName.valueOf(this.namespace, table);
-        try(Admin admin = this.hbase.getAdmin()) {
+        try (Admin admin = this.hbase.getAdmin()) {
             try {
                 admin.disableTable(tableName);
             } catch (TableNotEnabledException ignored) {
@@ -202,22 +204,45 @@ public class HbaseSessions extends BackendSessionPool {
         }
     }
 
-    public Future<Void> truncateTable(String table) throws IOException {
+    public void enableTable(String table) throws IOException {
         assert this.existsTable(table);
         TableName tableName = TableName.valueOf(this.namespace, table);
-        try(Admin admin = this.hbase.getAdmin()) {
+        try (Admin admin = this.hbase.getAdmin()) {
+            if (admin.isTableEnabled(tableName)) {
+                return;
+            }
             try {
-                admin.disableTable(tableName);
-            } catch (TableNotEnabledException ignored) {
+                admin.enableTable(tableName);
+            } catch (TableNotDisabledException ignored) {
                 // pass
             }
+        }
+    }
+
+    public Future<Void> disableTableAsync(String table) throws IOException {
+        assert this.existsTable(table);
+        TableName tableName = TableName.valueOf(this.namespace, table);
+        try (Admin admin = this.hbase.getAdmin()) {
+            try {
+                return admin.disableTableAsync(tableName);
+            } catch (TableNotEnabledException ignored) {
+                // Ignore if it's disabled
+                return Futures.immediateFuture(null);
+            }
+        }
+    }
+
+    public Future<Void> truncateTableAsync(String table) throws IOException {
+        assert this.existsTable(table);
+        TableName tableName = TableName.valueOf(this.namespace, table);
+        try (Admin admin = this.hbase.getAdmin()) {
             return admin.truncateTableAsync(tableName, true);
         }
     }
 
     public long storeSize(String table) throws IOException {
         long total = 0;
-        try(Admin admin = this.hbase.getAdmin()) {
+        try (Admin admin = this.hbase.getAdmin()) {
             for (ServerName rs : admin.getRegionServers()) {
                 // NOTE: we can use getLoad() before hbase 2.0
                 //ServerLoad load = admin.getClusterStatus().getLoad(rs);
