@@ -117,7 +117,8 @@ public class CassandraFeatures implements BackendFeatures {
         return false;
     }
 
-    @Override public boolean supportsTtl() {
+    @Override
+    public boolean supportsTtl() {
         return true;
     }
 }

@@ -186,8 +186,9 @@ public class HbaseTables {
         private static final long INDEX_DELETE_BATCH = Query.COMMIT_BATCH;
         protected HugeType type;
 
-        public IndexTable(String table) {
+        public IndexTable(String table, HugeType type) {
             super(table);
+            this.type = type;
         }
 
         public HugeType type() {
@@ -264,8 +265,7 @@ public class HbaseTables {
         public static final String TABLE = HugeType.VERTEX_LABEL_INDEX.string();
 
         public VertexLabelIndex(String store) {
-            super(joinTableName(store, TABLE));
-            this.type = HugeType.SECONDARY_INDEX;
+            super(joinTableName(store, TABLE), HugeType.SECONDARY_INDEX);
         }
     }
 
@@ -274,8 +274,7 @@ public class HbaseTables {
         public static final String TABLE = HugeType.EDGE_LABEL_INDEX.string();
 
         public EdgeLabelIndex(String store) {
-            super(joinTableName(store, TABLE));
-            this.type = HugeType.SECONDARY_INDEX;
+            super(joinTableName(store, TABLE), HugeType.SECONDARY_INDEX);
         }
     }
 
@@ -284,8 +283,7 @@ public class HbaseTables {
         public static final String TABLE = HugeType.SECONDARY_INDEX.string();
 
         public SecondaryIndex(String store) {
-            super(joinTableName(store, TABLE));
-            this.type = HugeType.SECONDARY_INDEX;
+            super(joinTableName(store, TABLE), HugeType.SECONDARY_INDEX);
         }
     }
 
@@ -294,8 +292,7 @@ public class HbaseTables {
         public static final String TABLE = HugeType.SEARCH_INDEX.string();
 
         public SearchIndex(String store) {
-            super(joinTableName(store, TABLE));
-            this.type = HugeType.SECONDARY_INDEX;
+            super(joinTableName(store, TABLE), HugeType.SECONDARY_INDEX);
         }
     }
 
@@ -304,16 +301,14 @@ public class HbaseTables {
         public static final String TABLE = HugeType.UNIQUE_INDEX.string();
 
         public UniqueIndex(String store) {
-            super(joinTableName(store, TABLE));
-            this.type = HugeType.SECONDARY_INDEX;
+            super(joinTableName(store, TABLE), HugeType.SECONDARY_INDEX);
         }
     }
 
     public static class RangeIndex extends IndexTable {
 
         public RangeIndex(String store, HugeType type) {
-            super(joinTableName(store, type.string()));
-            this.type = type;
+            super(joinTableName(store, type.string()), type);
         }
 
         public static RangeIndex rangeInt(String store) {
@@ -338,8 +333,7 @@ public class HbaseTables {
         public static final String TABLE = HugeType.SHARD_INDEX.string();
 
         public ShardIndex(String store) {
-            super(joinTableName(store, TABLE));
-            this.type = HugeType.SECONDARY_INDEX;
+            super(joinTableName(store, TABLE), HugeType.SECONDARY_INDEX);
         }
     }
 }

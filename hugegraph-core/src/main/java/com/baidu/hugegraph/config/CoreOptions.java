@@ -247,10 +247,10 @@ public class CoreOptions extends OptionHolder {
                     10000L
             );
 
-    public static final ConfigOption<Boolean> SCHEMA_SYNC_DELETION =
+    public static final ConfigOption<Boolean> SYNC_DELETION =
             new ConfigOption<>(
-                    "schema.sync_deletion",
-                    "Whether to delete schema synchronously.",
+                    "sync_deletion",
+                    "Whether to delete schema and expired data synchronously.",
                     disallowEmpty(),
                     false
             );
@@ -263,18 +263,10 @@ public class CoreOptions extends OptionHolder {
                     "l1"
             );
 
-    public static final ConfigOption<Boolean> EXPIRED_SYNC_DELETION =
-            new ConfigOption<>(
-                    "expired.sync_deletion",
-                    "Whether to delete expired object synchronously.",
-                    disallowEmpty(),
-                    false
-            );
-
     public static final ConfigOption<Integer> EXPIRED_DELETE_BATCH =
             new ConfigOption<>(
                     "expired.delete_batch",
-                    "Whether to delete expired object synchronously.",
+                    "The batch size used to delete expired data.",
                     rangeInt(1, 500),
                     10
             );

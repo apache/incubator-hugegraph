@@ -40,13 +40,16 @@ import com.baidu.hugegraph.util.E;
 import com.datastax.driver.core.DataType;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
+import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.exceptions.DriverException;
+import com.datastax.driver.core.querybuilder.BuiltStatement;
 import com.datastax.driver.core.querybuilder.Clause;
 import com.datastax.driver.core.querybuilder.Delete;
 import com.datastax.driver.core.querybuilder.Insert;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Select;
 import com.datastax.driver.core.querybuilder.Update;
+import com.datastax.driver.core.querybuilder.Using;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
@@ -319,33 +322,21 @@ public class CassandraTables {
         public void insert(CassandraSessionPool.Session session,
                            CassandraBackendEntry.Row entry) {
             Insert insert = this.buildInsert(entry);
-            int ttl = ttl(entry);
-            if (ttl != 0) {
-                insert.using(QueryBuilder.ttl(ttl));
-            }
-            session.add(insert);
+            session.add(setTtl(insert, entry));
         }
 
         @Override
         public void append(CassandraSessionPool.Session session,
                            CassandraBackendEntry.Row entry) {
             Update update = this.buildAppend(entry);
-            int ttl = ttl(entry);
-            if (ttl != 0) {
-                update.using(QueryBuilder.ttl(ttl));
-            }
-            session.add(update);
+            session.add(setTtl(update, entry));
         }
 
         @Override
         public void eliminate(CassandraSessionPool.Session session,
                               CassandraBackendEntry.Row entry) {
             Update update = this.buildEliminate(entry);
-            int ttl = ttl(entry);
-            if (ttl != 0) {
-                update.using(QueryBuilder.ttl(ttl));
-            }
-            session.add(update);
+            session.add(setTtl(update, entry));
         }
 
         @Override
@@ -623,11 +614,7 @@ public class CassandraTables {
                            CassandraBackendEntry.Row entry) {
             assert entry.columns().size() == 4;
             Insert insert = this.buildInsert(entry);
-            int ttl = ttl(entry);
-            if (ttl != 0) {
-                insert.using(QueryBuilder.ttl(ttl));
-            }
-            session.add(insert);
+            session.add(setTtl(insert, entry));
         }
 
         @Override
@@ -743,11 +730,7 @@ public class CassandraTables {
                            CassandraBackendEntry.Row entry) {
             assert entry.columns().size() == 4;
             Insert insert = this.buildInsert(entry);
-            int ttl = ttl(entry);
-            if (ttl != 0) {
-                insert.using(QueryBuilder.ttl(ttl));
-            }
-            session.add(insert);
+            session.add(setTtl(insert, entry));
         }
 
         @Override
@@ -834,6 +817,21 @@ public class CassandraTables {
             throw new BackendException(
                       "ShardIndex insertion is not supported.");
         }
+    }
+
+    private static Statement setTtl(BuiltStatement statement,
+                                    CassandraBackendEntry.Row entry) {
+        int ttl = ttl(entry);
+        if (ttl != 0) {
+            Using usingTtl = QueryBuilder.ttl(ttl);
+            if (statement instanceof Insert) {
+                ((Insert) statement).using(usingTtl);
+            } else {
+                assert statement instanceof Update;
+                ((Update) statement).using(usingTtl);
+            }
+        }
+        return statement;
     }
 
     private static int ttl(CassandraBackendEntry.Row entry) {

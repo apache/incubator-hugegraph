@@ -189,15 +189,15 @@ public abstract class MysqlTable
     }
 
     protected String buildDeleteTemplate(List<HugeKeys> idNames,
-                                         Long expiredTime) {
-        boolean cached;
-        if (expiredTime == null || expiredTime == 0L) {
-            cached = true;
+                                         long expiredTime) {
+        boolean updateCache;
+        if (expiredTime == 0L) {
+            updateCache = true;
             if (this.deleteTemplate != null) {
                 return this.deleteTemplate;
             }
         } else {
-            cached = false;
+            updateCache = false;
             // Set delete with ttl to avoid mistaken deletion
             idNames.add(HugeKeys.EXPIRED_TIME);
         }
@@ -210,7 +210,7 @@ public abstract class MysqlTable
         where.and(formatKeys(idNames), "=");
         delete.append(where.build());
 
-        if (cached) {
+        if (updateCache) {
             this.deleteTemplate = delete.toString();
             return this.deleteTemplate;
         } else {
