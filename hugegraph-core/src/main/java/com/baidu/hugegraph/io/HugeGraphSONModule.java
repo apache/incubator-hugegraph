@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.io;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.Date;
 import java.util.Map;
@@ -169,6 +170,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         module.addSerializer(IndexLabel.class, new IndexLabelSerializer());
 
         module.addSerializer(Shard.class, new ShardSerializer());
+        module.addSerializer(File.class, new FileSerializer());
     }
 
     public static void registerGraphSerializers(SimpleModule module) {
@@ -456,6 +458,22 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
             jsonGenerator.writeStringField("start", shard.start());
             jsonGenerator.writeStringField("end", shard.end());
             jsonGenerator.writeNumberField("length", shard.length());
+            jsonGenerator.writeEndObject();
+        }
+    }
+
+    private static class FileSerializer extends StdSerializer<File> {
+
+        public FileSerializer() {
+            super(File.class);
+        }
+
+        @Override
+        public void serialize(File file, JsonGenerator jsonGenerator,
+                              SerializerProvider provider)
+                              throws IOException {
+            jsonGenerator.writeStartObject();
+            jsonGenerator.writeStringField("fileName", file.getName());
             jsonGenerator.writeEndObject();
         }
     }
