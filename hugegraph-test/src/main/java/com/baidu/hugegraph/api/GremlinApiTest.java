@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.api;
 
+import java.util.List;
 import java.util.Map;
 
 import javax.ws.rs.core.Response;
@@ -172,5 +173,21 @@ public class GremlinApiTest extends BaseApiTest {
                 + "\"language\":\"gremlin-groovy\","
                 + "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
         assertResponseStatus(200, client().post(path, body));
+    }
+
+    @Test
+    public void testFileSerialize() {
+        String body = "{"
+                + "\"gremlin\":\"File file = new File('test.text')\","
+                + "\"bindings\":{},"
+                + "\"language\":\"gremlin-groovy\","
+                + "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
+        Response r = client().post(path, body);
+        String content = r.readEntity(String.class);
+        Assert.assertTrue(content, r.getStatus() == 200);
+        Map<?, ?> result = assertJsonContains(content, "result");
+        @SuppressWarnings("unchecked")
+        Map data = ((List<Map>) assertMapContains(result, "data")).get(0);
+        Assert.assertEquals("test.text", data.get("fileName"));
     }
 }
