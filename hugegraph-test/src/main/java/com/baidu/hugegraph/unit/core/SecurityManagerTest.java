@@ -154,6 +154,12 @@ public class SecurityManagerTest {
         new File("").delete();
         result = runGremlinJob("new File(\"\").delete()");
         assertError(result, "Not allowed to delete file via Gremlin");
+
+        // get absolute path
+        new File("").getAbsolutePath();
+        result = runGremlinJob("new File(\"\").getAbsolutePath()");
+        assertError(result, "Not allowed to access " +
+                    "system property(user.dir) via Gremlin");
     }
 
     @Test
