@@ -325,7 +325,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
      * @return      converted id query
      */
     @Watched(prefix = "index")
-    public List<IdHolder> queryIndex(ConditionQuery query) {
+    public IdHolderList queryIndex(ConditionQuery query) {
         // Index query must have been flattened in Graph tx
         query.checkFlattened();
 
@@ -355,7 +355,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
     }
 
     @Watched(prefix = "index")
-    private List<IdHolder> queryByLabel(ConditionQuery query) {
+    private IdHolderList queryByLabel(ConditionQuery query) {
         HugeType queryType = query.resultType();
         IndexLabel il = IndexLabel.label(queryType);
         Id label = query.condition(HugeKeys.LABEL);
@@ -390,13 +390,15 @@ public class GraphIndexTransaction extends AbstractTransaction {
         indexQuery.capacity(query.capacity());
 
         IdHolder idHolder = this.doIndexQuery(il, indexQuery);
-        List<IdHolder> holders = new IdHolderList(query.paging());
+
+        // NOTE: the backend itself will skip the offset
+        IdHolderList holders = new IdHolderList(query.paging(), false);
         holders.add(idHolder);
         return holders;
     }
 
     @Watched(prefix = "index")
-    private List<IdHolder> queryByUserprop(ConditionQuery query) {
+    private IdHolderList queryByUserprop(ConditionQuery query) {
         // Get user applied label or collect all qualified labels with
         // related index labels
         Set<MatchedIndex> indexes = this.collectMatchedIndexes(query);
@@ -406,12 +408,12 @@ public class GraphIndexTransaction extends AbstractTransaction {
         }
 
         // Value type of Condition not matched
+        boolean paging = query.paging();
         if (!validQueryConditionValues(this.graph(), query)) {
-            return ImmutableList.of();
+            return IdHolderList.empty(paging);
         }
 
         // Do index query
-        boolean paging = query.paging();
         IdHolderList holders = new IdHolderList(paging);
         long idsSize = 0;
         for (MatchedIndex index : indexes) {
@@ -430,6 +432,12 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 holders.add(holder);
             }
 
+            /*
+             * Finish early if records exceeds required.
+             * NOTE: need to skip the offset if offset > 0, but can't handle
+             * it here because the query may a sub-query after flatten,
+             * so the offset will be handle in QueryList.IndexQuery
+             */
             idsSize += holders.idsSize();
             if (query.reachLimit(idsSize)) {
                 break;

@@ -113,7 +113,7 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
 
     @Override
     public Iterator<BackendEntry> query(Session session, Query query) {
-        if (query.limit() == 0 && query.limit() != Query.NO_LIMIT) {
+        if (query.limit() == 0L && !query.nolimit()) {
             LOG.debug("Return empty result(limit=0) for query {}", query);
             return ImmutableList.<BackendEntry>of().iterator();
         }
