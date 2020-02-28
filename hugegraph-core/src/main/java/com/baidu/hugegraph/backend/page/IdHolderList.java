@@ -26,16 +26,40 @@ import com.baidu.hugegraph.util.E;
 
 public class IdHolderList extends ArrayList<IdHolder> {
 
+    private static final IdHolderList EMPTY_P = new IdHolderList(true);
+    private static final IdHolderList EMPTY_NP = new IdHolderList(false);
+
     private static final long serialVersionUID = -738694176552424990L;
 
     private final boolean paging;
+    private final boolean needSkipOffset;
+
+    public static IdHolderList empty(boolean paging) {
+        IdHolderList empty = paging ? EMPTY_P : EMPTY_NP;
+        empty.clear();
+        return empty;
+    }
 
     public IdHolderList(boolean paging) {
+        this(paging, true);
+    }
+
+    public IdHolderList(boolean paging, boolean needSkipOffset) {
         this.paging = paging;
+        this.needSkipOffset = needSkipOffset;
     }
 
     public boolean paging() {
         return this.paging;
+    }
+
+    public boolean needSkipOffset() {
+        return this.needSkipOffset;
+    }
+
+    public boolean sameParameters(IdHolderList other) {
+        return this.paging == other.paging &&
+               this.needSkipOffset == other.needSkipOffset;
     }
 
     @Override

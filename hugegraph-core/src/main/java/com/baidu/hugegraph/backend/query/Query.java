@@ -156,6 +156,10 @@ public class Query implements Cloneable {
         this.limit = limit;
     }
 
+    public boolean nolimit() {
+        return this.limit() == NO_LIMIT;
+    }
+
     public boolean reachLimit(long count) {
         long limit = this.limit();
         if (limit == NO_LIMIT) {
@@ -178,7 +182,7 @@ public class Query implements Cloneable {
 
         // Update limit
         if (end != -1L) {
-            if (this.limit() != Query.NO_LIMIT) {
+            if (!this.nolimit()) {
                 end = Math.min(end, offset + this.limit());
             } else {
                 assert end < Query.NO_LIMIT;
