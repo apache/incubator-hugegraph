@@ -189,9 +189,9 @@ public abstract class MysqlTable
     }
 
     protected String buildDeleteTemplate(List<HugeKeys> idNames,
-                                         long expiredTime) {
+                                         Long expiredTime) {
         boolean updateCache;
-        if (expiredTime == 0L) {
+        if (expiredTime == null || expiredTime == 0L) {
             updateCache = true;
             if (this.deleteTemplate != null) {
                 return this.deleteTemplate;

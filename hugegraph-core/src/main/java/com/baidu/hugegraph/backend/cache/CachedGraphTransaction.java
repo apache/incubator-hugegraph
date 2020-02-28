@@ -216,7 +216,7 @@ public final class CachedGraphTransaction extends GraphTransaction {
 
         return results;
     }
-
+    @SuppressWarnings("unchecked")
     @Override
     protected final Iterator<HugeEdge> queryEdgesFromBackend(Query query) {
         if (query.empty() || query.paging() || query.bigCapacity()) {
@@ -226,40 +226,37 @@ public final class CachedGraphTransaction extends GraphTransaction {
 
         Id cacheKey = new QueryId(query);
         Object value = this.edgesCache.get(cacheKey);
+        Collection<HugeEdge> edges;
         if (value != null) {
-            @SuppressWarnings("unchecked")
-            Collection<HugeEdge> edges = (Collection<HugeEdge>) value;
-            return edges.iterator();
+            edges = (Collection<HugeEdge>) value;
         } else {
             Iterator<HugeEdge> rs = super.queryEdgesFromBackend(query);
             /*
              * Iterator can't be cached, caching list instead
              * Generally there are not too much data with id query
              */
-            ListIterator<HugeEdge> listIterator = QueryResults.toList(rs);
-            Collection<HugeEdge> edges = listIterator.list();
-            if (edges.size() == 0) {
-                this.edgesCache.update(cacheKey, Collections.emptyList());
-            } else {
-                long now = DateUtil.now().getTime();
-                List<HugeEdge> survivedEdges = new ArrayList<>();
-                for (HugeEdge edge : edges) {
-                    if (edge.expiredTime() != 0 && edge.expiredTime() < now) {
-                        GraphTransaction.asyncDeleteExpiredObject(graph(),
-                                                                  edge);
-                    } else {
-                        survivedEdges.add(edge);
-                    }
-                }
-                if (survivedEdges.size() < edges.size()) {
-                    edges = survivedEdges;
-                }
-                if (edges.size() <= MAX_CACHE_EDGES_PER_QUERY) {
-                    this.edgesCache.update(cacheKey, edges);
+            edges = QueryResults.toList(rs).list();
+        }
+        if (edges.size() == 0) {
+            this.edgesCache.update(cacheKey, Collections.emptyList());
+        } else {
+            long now = DateUtil.now().getTime();
+            List<HugeEdge> survivedEdges = new ArrayList<>();
+            for (HugeEdge edge : edges) {
+                if (edge.expiredTime() != 0 && edge.expiredTime() < now) {
+                    GraphTransaction.asyncDeleteExpiredObject(graph(), edge);
+                } else {
+                    survivedEdges.add(edge);
                 }
             }
-            return listIterator;
+            if (survivedEdges.size() < edges.size()) {
+                edges = survivedEdges;
+            }
+            if (edges.size() <= MAX_CACHE_EDGES_PER_QUERY) {
+                this.edgesCache.update(cacheKey, edges);
+            }
         }
+        return edges.iterator();
     }
 
     @Override
