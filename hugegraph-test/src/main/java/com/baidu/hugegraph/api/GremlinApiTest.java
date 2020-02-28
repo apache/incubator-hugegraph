@@ -188,6 +188,6 @@ public class GremlinApiTest extends BaseApiTest {
         Map<?, ?> result = assertJsonContains(content, "result");
         @SuppressWarnings("unchecked")
         Map data = ((List<Map>) assertMapContains(result, "data")).get(0);
-        Assert.assertEquals("test.text", data.get("fileName"));
+        Assert.assertEquals("test.text", data.get("file"));
     }
 }
