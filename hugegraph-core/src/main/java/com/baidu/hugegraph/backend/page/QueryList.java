@@ -58,14 +58,6 @@ public final class QueryList {
 
     public void add(IdHolderList holders, long indexBatchSize) {
         // IdHolderList is results of one index query, the query is flattened
-//        if (!this.parent.paging()) {
-//            for (QueryHolder q : this.queries) {
-//                if (q instanceof IndexQuery) {
-//                    ((IndexQuery) q).merge(holders);
-//                    return;
-//                }
-//            }
-//        }
         this.queries.add(new IndexQuery(holders, indexBatchSize));
     }
 

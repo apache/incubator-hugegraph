@@ -93,11 +93,6 @@ public abstract class IdHolder {
 
         private final Function<ConditionQuery, PageIds> fetcher;
 
-        /**
-         * For paging situation
-         * @param query         original query
-         * @param fetcher    function to fetch one page ids
-         */
         public PagingIdHolder(ConditionQuery query,
                               Function<ConditionQuery, PageIds> fetcher) {
             super(query.copy());
