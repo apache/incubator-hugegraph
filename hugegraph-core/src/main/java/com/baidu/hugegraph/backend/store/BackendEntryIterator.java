@@ -129,7 +129,7 @@ public abstract class BackendEntryIterator implements CIter<BackendEntry> {
     }
 
     protected void skipOffset() {
-        long offset = this.query.remainingOffset();
+        long offset = this.query.offset() - this.query.actualOffset();
         if (offset <= 0L) {
             return;
         }

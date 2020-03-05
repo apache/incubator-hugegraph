@@ -534,7 +534,7 @@ public abstract class MysqlTable
         select.append(query.offset());
         select.append(";");
 
-        query.skipOffset(query.remainingOffset());
+        query.skipOffset(query.offset());
     }
 
     protected Iterator<BackendEntry> results2Entries(Query query,

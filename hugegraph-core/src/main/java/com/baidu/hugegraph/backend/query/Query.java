@@ -155,6 +155,7 @@ public class Query implements Cloneable {
     }
 
     public long skipOffset(long offset) {
+        E.checkArgument(offset >= 0L, "Invalid offset value: %s", offset);
         if (this.originQuery != null) {
             return this.originQuery.skipOffset(offset);
         }
@@ -169,29 +170,29 @@ public class Query implements Cloneable {
         }
 
         long fromIndex = this.offset() - this.actualOffset;
+        this.actualOffset += elems.size();
+
+        if (fromIndex < 0L) {
+            // Skipping offset is overhead, no need to skip
+            fromIndex = 0L;
+        }
         E.checkArgument(fromIndex <= Integer.MAX_VALUE,
                         "Offset must be <= 0x7fffffff, but got '%s'",
                         fromIndex);
 
-        this.actualOffset += elems.size();
-
         if (fromIndex >= elems.size()) {
             return ImmutableSet.of();
-        }
-        if (this.nolimit() && this.offset() == 0) {
-            return elems;
         }
         long toIndex = this.total();
         if (this.nolimit() || toIndex > elems.size()) {
             toIndex = elems.size();
         }
+        if (fromIndex == 0L && toIndex == elems.size()) {
+            return elems;
+        }
         assert fromIndex < elems.size();
         assert toIndex <= elems.size();
         return CollectionUtil.subSet(elems, (int) fromIndex, (int) toIndex);
-    }
-
-    public long remainingOffset() {
-        return this.offset() - this.actualOffset();
     }
 
     public long remaining() {

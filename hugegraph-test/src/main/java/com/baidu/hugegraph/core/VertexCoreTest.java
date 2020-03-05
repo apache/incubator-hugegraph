@@ -2510,6 +2510,29 @@ public class VertexCoreTest extends BaseCoreTest {
         assertContains(vertices,
                        T.label, "author", "id", 5, "name", "James",
                        "age", 62, "lived", "San Francisco Bay Area");
+
+        vertices = graph.traversal().V().hasLabel("author")
+                                    .has("lived", Text.contains("Bay Area"))
+                                    .limit(1)
+                                    .toList();
+        Assert.assertEquals(1, vertices.size());
+        Assert.assertEquals("James", vertices.get(0).value("name"));
+
+        vertices = graph.traversal().V().hasLabel("author")
+                                    .has("lived", Text.contains("Bay Area"))
+                                    .skip(1)
+                                    .toList();
+        Assert.assertEquals(3, vertices.size());
+        Assert.assertEquals("Tom", vertices.get(0).value("name"));
+        Assert.assertEquals("Jason", vertices.get(1).value("name"));
+        Assert.assertEquals("Dim", vertices.get(2).value("name"));
+
+        vertices = graph.traversal().V().hasLabel("author")
+                                    .has("lived", Text.contains("Bay Area"))
+                                    .skip(2).limit(1)
+                                    .toList();
+        Assert.assertEquals(1, vertices.size());
+        Assert.assertEquals("Jason", vertices.get(0).value("name"));
     }
 
     @Test

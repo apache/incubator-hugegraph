@@ -174,7 +174,7 @@ public abstract class IdHolder {
         public PageIds fetchNext(String page, long batchSize) {
             E.checkArgument(page == null,
                             "Not support page parameter by BatchIdHolder");
-            E.checkArgument(batchSize > 0L,
+            E.checkArgument(batchSize >= 0L,
                             "Invalid batch size value: %s", batchSize);
 
             if (!this.query.nolimit()) {
