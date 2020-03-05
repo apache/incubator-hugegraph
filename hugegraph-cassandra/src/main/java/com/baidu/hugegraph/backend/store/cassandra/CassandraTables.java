@@ -449,7 +449,7 @@ public class CassandraTables {
                          "The next entry must be EDGE");
 
             long maxSize = BackendEntryIterator.INLINE_BATCH_SIZE;
-            if (current != null && current.columnsSize() < maxSize) {
+            if (current != null && current.subRows().size() < maxSize) {
                 Object nextVertexId = next.column(HugeKeys.OWNER_VERTEX);
                 if (current.id().equals(IdGenerator.of(nextVertexId))) {
                     current.subRow(next.row());
