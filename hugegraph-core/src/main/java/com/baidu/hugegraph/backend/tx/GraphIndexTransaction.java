@@ -457,12 +457,16 @@ public class GraphIndexTransaction extends AbstractTransaction {
     }
 
     @Watched(prefix = "index")
-    private List<IdHolder> doSearchIndex(ConditionQuery query,
-                                         MatchedIndex index) {
+    private IdHolderList doSearchIndex(ConditionQuery query,
+                                       MatchedIndex index) {
         query = this.constructSearchQuery(query, index);
         // Sorted by matched count
-        List<IdHolder> holders = new SortByCountIdHolderList(query.paging());
+        IdHolderList holders = new SortByCountIdHolderList(query.paging());
         for (ConditionQuery q : ConditionQueryFlatten.flatten(query)) {
+            if (!q.nolimit()) {
+                // Increase limit for intersection
+                increaseLimit(q);
+            }
             IndexQueries queries = index.constructIndexQueries(q);
             assert !query.paging() || queries.size() <= 1;
             IdHolder holder = this.doSingleOrJointIndex(queries);
@@ -500,7 +504,13 @@ public class GraphIndexTransaction extends AbstractTransaction {
         // All queries are joined with AND
         Set<Id> intersectIds = null;
         for (Map.Entry<IndexLabel, ConditionQuery> e : queries.entrySet()) {
-            Set<Id> ids = this.doIndexQuery(e.getKey(), e.getValue()).all();
+            IndexLabel indexLabel = e.getKey();
+            ConditionQuery query = e.getValue();
+            if (!query.nolimit()) {
+                // Increase limit for intersection
+                increaseLimit(query);
+            }
+            Set<Id> ids = this.doIndexQuery(indexLabel, query).all();
             if (intersectIds == null) {
                 intersectIds = ids;
             } else {
@@ -1263,6 +1273,10 @@ public class GraphIndexTransaction extends AbstractTransaction {
             indexLabels.add(indexLabel);
         }
         return indexLabels;
+    }
+
+    private static void increaseLimit(Query query) {
+        query.limit(query.limit() * 2L + 8L);
     }
 
     public void removeIndex(IndexLabel indexLabel) {
