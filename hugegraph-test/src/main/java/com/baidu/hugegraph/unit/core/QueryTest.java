@@ -109,8 +109,8 @@ public class QueryTest {
     @Test
     public void testToStringOfIdRangeQuery() {
         IdRangeQuery query = new IdRangeQuery(HugeType.EDGE,
-                                               IdGenerator.of(1),
-                                               IdGenerator.of(3));
+                                              IdGenerator.of(1),
+                                              IdGenerator.of(3));
         query.limit(5L);
         Assert.assertEquals("`Query for EDGE limit 5 where id in range [1, 3)`",
                             query.toString());

@@ -520,7 +520,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 break;
             }
         }
-        return new FixedIdHolder(queries.asQuery(), intersectIds);
+        return new FixedIdHolder(queries.asJointQuery(), intersectIds);
     }
 
     @Watched(prefix = "index")
@@ -1276,6 +1276,11 @@ public class GraphIndexTransaction extends AbstractTransaction {
     }
 
     private static void increaseLimit(Query query) {
+        assert !query.nolimit();
+        /*
+         * NOTE: in order to retain enough records after the intersection.
+         * The parameters don't make much sense and need to be improved
+         */
         query.limit(query.limit() * 2L + 8L);
     }
 
@@ -1375,7 +1380,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
             return null;
         }
 
-        public Query asQuery() {
+        public Query asJointQuery() {
             @SuppressWarnings({ "unchecked", "rawtypes" })
             Collection<Query> queries = (Collection) this.values();;
             return new JointQuery(this.rootQuery().resultType(), queries);
