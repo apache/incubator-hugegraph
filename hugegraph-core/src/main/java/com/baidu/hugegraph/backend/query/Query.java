@@ -44,9 +44,9 @@ public class Query implements Cloneable {
     public static final long NO_CAPACITY = -1L;
     public static final long DEFAULT_CAPACITY = 800000L; // HugeGraph-777
 
-    private static final ThreadLocal<Long> capacityContex = new ThreadLocal<>();
+    private static final ThreadLocal<Long> capacityContext = new ThreadLocal<>();
 
-    public static final Query NONE = new Query(HugeType.UNKNOWN);
+    protected static final Query NONE = new Query(HugeType.UNKNOWN);
 
     private HugeType resultType;
     private Map<HugeKeys, Order> orders;
@@ -425,13 +425,13 @@ public class Query implements Cloneable {
     }
 
     public static long defaultCapacity(long capacity) {
-        Long old = capacityContex.get();
-        capacityContex.set(capacity);
+        Long old = capacityContext.get();
+        capacityContext.set(capacity);
         return old != null ? old : DEFAULT_CAPACITY;
     }
 
     public static long defaultCapacity() {
-        Long capacity = capacityContex.get();
+        Long capacity = capacityContext.get();
         return capacity != null ? capacity : DEFAULT_CAPACITY;
     }
 
