@@ -179,7 +179,7 @@ public final class CachedGraphTransaction extends GraphTransaction {
             Iterator<HugeVertex> rs = super.queryVerticesFromBackend(newQuery);
             // Generally there are not too much data with id query
             ListIterator<HugeVertex> listIterator = QueryResults.toList(rs);
-            for (HugeVertex vertex :listIterator.list()) {
+            for (HugeVertex vertex : listIterator.list()) {
                 this.verticesCache.update(vertex.id(), vertex);
             }
             results.extend(listIterator);

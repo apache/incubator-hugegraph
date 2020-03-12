@@ -149,7 +149,7 @@ public class Query implements Cloneable {
 
     public long actualOffset() {
         if (this.originQuery != null) {
-            return this.originQuery.actualOffset();
+            return this.rootOriginQuery().actualOffset();
         }
         return this.actualOffset;
     }
@@ -157,7 +157,7 @@ public class Query implements Cloneable {
     public long skipOffset(long offset) {
         E.checkArgument(offset >= 0L, "Invalid offset value: %s", offset);
         if (this.originQuery != null) {
-            return this.originQuery.skipOffset(offset);
+            return this.rootOriginQuery().skipOffset(offset);
         }
 
         this.actualOffset += offset;
@@ -166,7 +166,7 @@ public class Query implements Cloneable {
 
     public <T> Set<T> skipOffset(Set<T> elems) {
         if (this.originQuery != null) {
-            return this.originQuery.skipOffset(elems);
+            return this.rootOriginQuery().skipOffset(elems);
         }
 
         long fromIndex = this.offset() - this.actualOffset;

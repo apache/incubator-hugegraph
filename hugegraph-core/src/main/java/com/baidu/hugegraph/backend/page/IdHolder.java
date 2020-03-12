@@ -155,7 +155,7 @@ public abstract class IdHolder {
             if (this.exhausted) {
                 return false;
             }
-            boolean hasNext= this.entries.hasNext();
+            boolean hasNext = this.entries.hasNext();
             if (!hasNext) {
                 this.close();
             }

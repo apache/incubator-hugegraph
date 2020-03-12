@@ -554,7 +554,7 @@ public final class TraversalUtil {
                                               Iterator<Edge> edges) {
         return new FilterIterator<>(edges, edge -> {
             if (dir == Directions.OUT && vertex.equals(edge.outVertex()) ||
-                dir == Directions.IN  && vertex.equals(edge.inVertex())) {
+                dir == Directions.IN && vertex.equals(edge.inVertex())) {
                 return true;
             }
             return false;

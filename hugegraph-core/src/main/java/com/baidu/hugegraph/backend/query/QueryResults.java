@@ -213,9 +213,9 @@ public class QueryResults {
             if (iterator.hasNext()) {
                 T result = iterator.next();
                 if (iterator.hasNext()) {
-                    throw new HugeException(
-                              "Expect just one result but got two: [%s, %s]",
-                              result, iterator.next());
+                    throw new HugeException("Expect just one result, " +
+                                            "but got at least two: [%s, %s]",
+                                            result, iterator.next());
                 }
                 return result;
             }
