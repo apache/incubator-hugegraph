@@ -64,6 +64,14 @@ public class HugeSecurityManager extends SecurityManager {
             "file.encoding" // PostgreSQL
     );
 
+    private static final Map<String, Set<String>> ASYNC_TASKS = ImmutableMap.of(
+            "com.baidu.hugegraph.backend.tx.SchemaTransaction",
+            ImmutableSet.of("rebuildIndex", "removeVertexLabel",
+                            "removeEdgeLabel", "removeIndexLabel"),
+            "com.baidu.hugegraph.backend.tx.GraphIndexTransaction",
+            ImmutableSet.of("asyncRemoveIndexLeft")
+    );
+
     private static final Map<String, Set<String>> BACKEND_SOCKET = ImmutableMap.of(
             "com.baidu.hugegraph.backend.store.mysql.MysqlStore",
             ImmutableSet.of("open", "init", "clear", "opened", "initialized")
@@ -120,8 +128,8 @@ public class HugeSecurityManager extends SecurityManager {
     @Override
     public void checkAccess(Thread thread) {
         if (callFromGremlin() && !callFromCaffeine() &&
-            !callFromBackendThread() && !callFromEventHubNotify() &&
-            !callFromBackendHbase()) {
+            !callFromAsyncTasks() && !callFromEventHubNotify() &&
+            !callFromBackendThread() && !callFromBackendHbase()) {
             throw newSecurityException(
                   "Not allowed to access thread via Gremlin");
         }
@@ -131,8 +139,8 @@ public class HugeSecurityManager extends SecurityManager {
     @Override
     public void checkAccess(ThreadGroup threadGroup) {
         if (callFromGremlin() && !callFromCaffeine() &&
-            !callFromBackendThread() && !callFromEventHubNotify() &&
-            !callFromBackendHbase()) {
+            !callFromAsyncTasks() && !callFromEventHubNotify() &&
+            !callFromBackendThread() && !callFromBackendHbase()) {
             throw newSecurityException(
                   "Not allowed to access thread group via Gremlin");
         }
@@ -391,6 +399,11 @@ public class HugeSecurityManager extends SecurityManager {
         // Fixed issue #758
         // notify() will create thread when submit task to executor
         return callFromMethod("com.baidu.hugegraph.event.EventHub", "notify");
+    }
+
+    private static boolean callFromAsyncTasks() {
+        // Async tasks will create thread when submitted to executor
+        return callFromMethods(ASYNC_TASKS);
     }
 
     private static boolean callFromBackendHbase() {
