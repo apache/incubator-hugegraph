@@ -66,8 +66,8 @@ public class HugeSecurityManager extends SecurityManager {
 
     private static final Map<String, Set<String>> ASYNC_TASKS = ImmutableMap.of(
             "com.baidu.hugegraph.backend.tx.SchemaTransaction",
-            ImmutableSet.of("rebuildIndex", "removeVertexLabel",
-                            "removeEdgeLabel", "removeIndexLabel"),
+            ImmutableSet.of("removeVertexLabel", "removeEdgeLabel",
+                            "removeIndexLabel", "rebuildIndex"),
             "com.baidu.hugegraph.backend.tx.GraphIndexTransaction",
             ImmutableSet.of("asyncRemoveIndexLeft")
     );
