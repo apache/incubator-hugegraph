@@ -214,12 +214,11 @@ public class MysqlSessions extends BackendSessionPool {
     protected String buildUri(boolean withConnParams, boolean withDB,
                               boolean autoReconnect, Integer timeout) {
         String url = this.config.get(MysqlOptions.JDBC_URL);
+        if (!url.endsWith("/")) {
+            url = String.format("%s/", url);
+        }
         if (withDB) {
-            if (url.endsWith("/")) {
-                url = String.format("%s%s", url, this.database());
-            } else {
-                url = String.format("%s/%s", url, this.database());
-            }
+            url = String.format("%s%s", url, this.database());
         }
 
         int maxTimes = this.config.get(MysqlOptions.JDBC_RECONNECT_MAX_TIMES);
