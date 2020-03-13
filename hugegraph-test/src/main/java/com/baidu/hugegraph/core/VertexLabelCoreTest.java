@@ -852,7 +852,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
         }, e -> {
             Assert.assertTrue(
                    e.getMessage().startsWith("Don't accept query by label") &&
-                   e.getMessage().endsWith("it disables label index"));
+                   e.getMessage().endsWith("label index is disabled"));
         });
 
         // Query by property index is ok
@@ -880,7 +880,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
         }, e -> {
             Assert.assertTrue(
                    e.getMessage().startsWith("Don't accept query by label") &&
-                   e.getMessage().endsWith("it disables label index"));
+                   e.getMessage().endsWith("label index is disabled"));
         });
 
         // Query by property index is ok

@@ -44,6 +44,7 @@ import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.id.SnowflakeIdGenerator;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
@@ -457,13 +458,12 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         }
 
         Iterator<Vertex> vertices = tx().queryVertices(this.id());
-        boolean exist = vertices.hasNext();
-        if (!exist && !throwIfNotExist) {
+        Vertex vertex = QueryResults.one(vertices);
+        if (vertex == null && !throwIfNotExist) {
             return false;
         }
-        E.checkState(exist, "Vertex '%s' does not exist", this.id);
-        this.copyProperties((HugeVertex) vertices.next());
-        assert exist;
+        E.checkState(vertex != null, "Vertex '%s' does not exist", this.id);
+        this.copyProperties((HugeVertex) vertex);
         return true;
     }
 

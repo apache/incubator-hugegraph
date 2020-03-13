@@ -32,6 +32,7 @@ import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.id.IdUtil;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.store.BackendEntry;
+import com.baidu.hugegraph.backend.store.BackendEntryIterator;
 import com.baidu.hugegraph.backend.store.TableDefine;
 import com.baidu.hugegraph.backend.store.mysql.MysqlBackendEntry;
 import com.baidu.hugegraph.backend.store.mysql.MysqlSessions;
@@ -272,7 +273,8 @@ public class PaloTables {
             E.checkState(next != null && next.type().isEdge(),
                          "The next entry must be EDGE");
 
-            if (current != null) {
+            long maxSize = BackendEntryIterator.INLINE_BATCH_SIZE;
+            if (current != null && current.subRows().size() < maxSize) {
                 Id nextVertexId = IdGenerator.of(
                                   next.<String>column(HugeKeys.OWNER_VERTEX));
                 if (current.id().equals(nextVertexId)) {
@@ -316,7 +318,8 @@ public class PaloTables {
             E.checkState(next != null && next.type().isIndex(),
                          "The next entry must be INDEX");
 
-            if (current != null) {
+            long maxSize = BackendEntryIterator.INLINE_BATCH_SIZE;
+            if (current != null && current.subRows().size() < maxSize) {
                 String currentId = this.entryId(current);
                 String nextId = this.entryId(next);
                 if (currentId.equals(nextId)) {

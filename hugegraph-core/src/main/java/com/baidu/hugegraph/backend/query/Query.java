@@ -30,6 +30,7 @@ import com.baidu.hugegraph.exception.LimitExceedException;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.google.common.collect.ImmutableSet;
@@ -38,16 +39,19 @@ public class Query implements Cloneable {
 
     public static final long NO_LIMIT = Long.MAX_VALUE;
 
+    public static final long COMMIT_BATCH = 500;
+
     public static final long NO_CAPACITY = -1L;
     public static final long DEFAULT_CAPACITY = 800000L; // HugeGraph-777
 
-    private static final ThreadLocal<Long> capacityContex = new ThreadLocal<>();
+    private static final ThreadLocal<Long> capacityContext = new ThreadLocal<>();
 
-    public static final Query NONE = new Query(HugeType.UNKNOWN);
+    protected static final Query NONE = new Query(HugeType.UNKNOWN);
 
     private HugeType resultType;
     private Map<HugeKeys, Order> orders;
     private long offset;
+    private long actualOffset;
     private long limit;
     private String page;
     private long capacity;
@@ -67,6 +71,7 @@ public class Query implements Cloneable {
         this.orders = null;
 
         this.offset = 0L;
+        this.actualOffset = 0L;
         this.limit = NO_LIMIT;
         this.page = null;
 
@@ -101,6 +106,14 @@ public class Query implements Cloneable {
         return this.originQuery;
     }
 
+    public Query rootOriginQuery() {
+        Query root = this;
+        while (root.originQuery != null) {
+            root = root.originQuery;
+        }
+        return root;
+    }
+
     protected void originQuery(Query originQuery) {
         this.originQuery = originQuery;
     }
@@ -117,7 +130,7 @@ public class Query implements Cloneable {
         this.getOrNewOrders().put(key, order);
     }
 
-    private Map<HugeKeys, Order> getOrNewOrders() {
+    protected Map<HugeKeys, Order> getOrNewOrders() {
         if (this.orders != null) {
             return this.orders;
         }
@@ -132,6 +145,58 @@ public class Query implements Cloneable {
     public void offset(long offset) {
         E.checkArgument(offset >= 0L, "Invalid offset %s", offset);
         this.offset = offset;
+    }
+
+    public long actualOffset() {
+        if (this.originQuery != null) {
+            return this.rootOriginQuery().actualOffset();
+        }
+        return this.actualOffset;
+    }
+
+    public long skipOffset(long offset) {
+        E.checkArgument(offset >= 0L, "Invalid offset value: %s", offset);
+        if (this.originQuery != null) {
+            return this.rootOriginQuery().skipOffset(offset);
+        }
+
+        this.actualOffset += offset;
+        return this.actualOffset;
+    }
+
+    public <T> Set<T> skipOffset(Set<T> elems) {
+        if (this.originQuery != null) {
+            return this.rootOriginQuery().skipOffset(elems);
+        }
+
+        long fromIndex = this.offset() - this.actualOffset;
+        this.actualOffset += elems.size();
+
+        if (fromIndex < 0L) {
+            // Skipping offset is overhead, no need to skip
+            fromIndex = 0L;
+        }
+        E.checkArgument(fromIndex <= Integer.MAX_VALUE,
+                        "Offset must be <= 0x7fffffff, but got '%s'",
+                        fromIndex);
+
+        if (fromIndex >= elems.size()) {
+            return ImmutableSet.of();
+        }
+        long toIndex = this.total();
+        if (this.nolimit() || toIndex > elems.size()) {
+            toIndex = elems.size();
+        }
+        if (fromIndex == 0L && toIndex == elems.size()) {
+            return elems;
+        }
+        assert fromIndex < elems.size();
+        assert toIndex <= elems.size();
+        return CollectionUtil.subSet(elems, (int) fromIndex, (int) toIndex);
+    }
+
+    public long remaining() {
+        return this.total() - this.actualOffset();
     }
 
     public long total() {
@@ -225,6 +290,10 @@ public class Query implements Cloneable {
 
     public void capacity(long capacity) {
         this.capacity = capacity;
+    }
+
+    public boolean bigCapacity() {
+        return this.capacity == NO_CAPACITY || this.capacity > DEFAULT_CAPACITY;
     }
 
     public void checkCapacity(long count) throws LimitExceedException {
@@ -324,7 +393,7 @@ public class Query implements Cloneable {
         }
 
         StringBuilder sb = new StringBuilder(64);
-        sb.append("Query for ").append(this.resultType);
+        sb.append("`Query for ").append(this.resultType);
         for (Map.Entry<String, Object> entry : pairs.entrySet()) {
             sb.append(' ').append(entry.getKey())
               .append(' ').append(entry.getValue()).append(',');
@@ -333,18 +402,46 @@ public class Query implements Cloneable {
             // Delete last comma
             sb.deleteCharAt(sb.length() - 1);
         }
+
+        if (!this.empty()) {
+            sb.append(" where");
+        }
+
+        // Append ids
+        if (!this.ids().isEmpty()) {
+            sb.append(" id in ").append(this.ids());
+        }
+
+        // Append conditions
+        if (!this.conditions().isEmpty()) {
+            if (!this.ids().isEmpty()) {
+                sb.append(" and");
+            }
+            sb.append(" ").append(this.conditions());
+        }
+
+        sb.append('`');
         return sb.toString();
     }
 
     public static long defaultCapacity(long capacity) {
-        Long old = capacityContex.get();
-        capacityContex.set(capacity);
+        Long old = capacityContext.get();
+        capacityContext.set(capacity);
         return old != null ? old : DEFAULT_CAPACITY;
     }
 
     public static long defaultCapacity() {
-        Long capacity = capacityContex.get();
+        Long capacity = capacityContext.get();
         return capacity != null ? capacity : DEFAULT_CAPACITY;
+    }
+
+    public final static void checkForceCapacity(long count)
+                                                throws LimitExceedException {
+        if (count > Query.DEFAULT_CAPACITY) {
+            throw new LimitExceedException(
+                      "Too many records(must <= %s) for one query",
+                      Query.DEFAULT_CAPACITY);
+        }
     }
 
     public static enum Order {

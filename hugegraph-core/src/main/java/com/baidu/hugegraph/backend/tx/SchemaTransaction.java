@@ -26,6 +26,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
 import org.apache.tinkerpop.gremlin.structure.Graph;
+import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
@@ -34,6 +35,7 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.config.CoreOptions;
@@ -309,28 +311,35 @@ public class SchemaTransaction extends IndexableTransaction {
         LOG.debug("SchemaTransaction get {} by name '{}'",
                   type.readableName(), name);
         this.beforeRead();
+
         ConditionQuery query = new ConditionQuery(type);
         query.eq(HugeKeys.NAME, name);
-        Iterator<BackendEntry> iter = this.indexTx.query(query).iterator();
+        QueryResults results = this.indexTx.query(query);
+
         this.afterRead();
-        if (iter.hasNext()) {
-            T schema = this.deserialize(iter.next(), type);
-            E.checkState(!iter.hasNext(),
-                         "Should not exist schema with same name '%s'", name);
-            return schema;
+
+        // Should not exist schema with same name
+        BackendEntry entry = results.one();
+        if (entry == null) {
+            return null;
         }
-        return null;
+        T schema = this.deserialize(entry, type);
+        return schema;
     }
 
     protected <T extends SchemaElement> List<T> getAllSchema(HugeType type) {
+        List<T> results = new ArrayList<>();
         Query query = new Query(type);
         Iterator<BackendEntry> entries = this.query(query).iterator();
-
-        List<T> result = new ArrayList<>();
-        while (entries.hasNext()) {
-            result.add(this.deserialize(entries.next(), type));
+        try {
+            while (entries.hasNext()) {
+                results.add(this.deserialize(entries.next(), type));
+                Query.checkForceCapacity(results.size());
+            }
+        } finally {
+            CloseableIterator.closeIterator(entries);
         }
-        return result;
+        return results;
     }
 
     protected void removeSchema(SchemaElement schema) {

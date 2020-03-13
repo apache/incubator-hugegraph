@@ -30,6 +30,7 @@ import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.util.StringEncoding;
 
 /**
  * This class is unused now, just for debug or test
@@ -167,12 +168,12 @@ public class CachedBackendStore implements BackendStore {
      */
     static class QueryId implements Id {
 
-        private Query id;
+        private String query;
         private int hashCode;
 
         public QueryId(Query q) {
-            this.id = q;
-            this.hashCode = this.id.hashCode();
+            this.query = q.toString();
+            this.hashCode = q.hashCode();
         }
 
         @Override
@@ -190,24 +191,22 @@ public class CachedBackendStore implements BackendStore {
             if (!(other instanceof QueryId)) {
                 return false;
             }
-            return this.id.equals(((QueryId) other).id);
+            return this.query.equals(((QueryId) other).query);
         }
 
         @Override
         public int compareTo(Id o) {
-            // TODO: improve
-            return this.hashCode() - o.hashCode();
+            return this.query.compareTo(o.asString());
         }
 
         @Override
         public Object asObject() {
-            // TODO: improve
-            return null;
+            return this.query;
         }
 
         @Override
         public String asString() {
-            return this.id.toString();
+            return this.query;
         }
 
         @Override
@@ -218,19 +217,17 @@ public class CachedBackendStore implements BackendStore {
 
         @Override
         public byte[] asBytes() {
-            // TODO: improve
-            return null;
+            return StringEncoding.encode(this.query);
         }
 
         @Override
         public String toString() {
-            return this.id.toString();
+            return this.query;
         }
 
         @Override
         public int length() {
-            // TODO: improve
-            return 32;
+            return this.query.length();
         }
     }
 }

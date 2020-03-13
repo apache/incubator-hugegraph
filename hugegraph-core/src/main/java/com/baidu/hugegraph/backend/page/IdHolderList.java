@@ -32,7 +32,6 @@ public class IdHolderList extends ArrayList<IdHolder> {
     private static final long serialVersionUID = -738694176552424990L;
 
     private final boolean paging;
-    private final boolean needSkipOffset;
 
     public static IdHolderList empty(boolean paging) {
         IdHolderList empty = paging ? EMPTY_P : EMPTY_NP;
@@ -41,25 +40,11 @@ public class IdHolderList extends ArrayList<IdHolder> {
     }
 
     public IdHolderList(boolean paging) {
-        this(paging, true);
-    }
-
-    public IdHolderList(boolean paging, boolean needSkipOffset) {
         this.paging = paging;
-        this.needSkipOffset = needSkipOffset;
     }
 
     public boolean paging() {
         return this.paging;
-    }
-
-    public boolean needSkipOffset() {
-        return this.needSkipOffset;
-    }
-
-    public boolean sameParameters(IdHolderList other) {
-        return this.paging == other.paging &&
-               this.needSkipOffset == other.needSkipOffset;
     }
 
     @Override
@@ -67,15 +52,7 @@ public class IdHolderList extends ArrayList<IdHolder> {
         E.checkArgument(this.paging == holder.paging(),
                         "The IdHolder to be linked must be " +
                         "in same paging mode");
-        if (this.paging || this.isEmpty()) {
-            super.add(holder);
-        } else {
-            assert this.size() == 1;
-            IdHolder self = this.get(0);
-            assert !self.paging();
-            self.merge(holder.ids());
-        }
-        return true;
+        return super.add(holder);
     }
 
     @Override
@@ -84,14 +61,5 @@ public class IdHolderList extends ArrayList<IdHolder> {
             this.add(idHolder);
         }
         return true;
-    }
-
-    public int idsSize() {
-        if (this.paging || this.isEmpty()) {
-            return 0;
-        } else {
-            assert this.size() == 1;
-            return this.get(0).size();
-        }
     }
 }

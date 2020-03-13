@@ -19,89 +19,218 @@
 
 package com.baidu.hugegraph.backend.page;
 
+import java.util.Iterator;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.function.Function;
 
+import org.apache.commons.lang.NotImplementedException;
+import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
+
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
+import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.backend.store.BackendEntry;
+import com.baidu.hugegraph.iterator.CIter;
+import com.baidu.hugegraph.iterator.Metadatable;
 import com.baidu.hugegraph.util.E;
-import com.baidu.hugegraph.util.InsertionOrderUtil;
-import com.google.common.collect.ImmutableSet;
 
-public class IdHolder {
+public abstract class IdHolder {
 
-    private final ConditionQuery query;
-    private final Function<ConditionQuery, PageIds> idsFetcher;
-    private boolean exhausted;
+    protected final Query query;
+    protected boolean exhausted;
 
-    private Set<Id> ids;
-
-    /**
-     * For non-paging situation
-     * @param ids   all ids
-     */
-    public IdHolder(Set<Id> ids) {
-        this.query = null;
-        this.idsFetcher = null;
+    public IdHolder(Query query) {
+        E.checkNotNull(query, "query");;
+        this.query = query;
         this.exhausted = false;
-        if (ids instanceof ImmutableSet) {
-            this.ids = InsertionOrderUtil.newSet(ids);
-        } else {
+    }
+
+    public Query query() {
+        return this.query;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("%s{origin:%s,final:%s}",
+                             this.getClass().getSimpleName(),
+                             this.query.originQuery(), this.query);
+    }
+
+    public abstract boolean paging();
+
+    public abstract Set<Id> all();
+
+    public abstract PageIds fetchNext(String page, long pageSize);
+
+    public static class FixedIdHolder extends IdHolder {
+
+        // Used by Joint Index
+        private final Set<Id> ids;
+
+        public FixedIdHolder(Query query, Set<Id> ids) {
+            super(query);
             this.ids = ids;
         }
-    }
 
-    /**
-     * For paging situation
-     * @param query         original query
-     * @param idsFetcher    function to fetch one page ids
-     */
-    public IdHolder(ConditionQuery query,
-                    Function<ConditionQuery, PageIds> idsFetcher) {
-        E.checkArgument(query.paging(),
-                        "Query '%s' must include page info", query);
-        this.query = query.copy();
-        this.idsFetcher = idsFetcher;
-        this.exhausted = false;
-        this.ids = null;
-    }
-
-    public void merge(Set<Id> ids) {
-        E.checkNotNull(this.ids, "ids");
-        this.ids.addAll(ids);
-    }
-
-    public Set<Id> ids() {
-        E.checkNotNull(this.ids, "ids");
-        return this.ids;
-    }
-
-    public int size() {
-        if (this.ids == null) {
-            return 0;
-        }
-        return this.ids.size();
-    }
-
-    public boolean paging() {
-        return this.idsFetcher != null;
-    }
-
-    public PageIds fetchNext(String page, long pageSize) {
-        if (this.exhausted) {
-            return PageIds.EMPTY;
+        @Override
+        public boolean paging() {
+            return false;
         }
 
-        this.query.page(page);
-        this.query.limit(pageSize);
+        @Override
+        public Set<Id> all() {
+            return this.ids;
+        }
 
-        PageIds result = this.idsFetcher.apply(this.query);
+        @Override
+        public PageIds fetchNext(String page, long pageSize) {
+            throw new NotImplementedException("FixedIdHolder.fetchNext");
+        }
+    }
 
-        assert result != null;
-        this.ids = result.ids();
-        if (this.ids.size() != this.query.limit() || result.page() == null) {
+    public static class PagingIdHolder extends IdHolder {
+
+        private final Function<ConditionQuery, PageIds> fetcher;
+
+        public PagingIdHolder(ConditionQuery query,
+                              Function<ConditionQuery, PageIds> fetcher) {
+            super(query.copy());
+            E.checkArgument(query.paging(),
+                            "Query '%s' must include page info", query);
+            this.fetcher = fetcher;
+        }
+
+        @Override
+        public boolean paging() {
+            return true;
+        }
+
+        @Override
+        public PageIds fetchNext(String page, long pageSize) {
+            if (this.exhausted) {
+                return PageIds.EMPTY;
+            }
+
+            this.query.page(page);
+            this.query.limit(pageSize);
+
+            PageIds result = this.fetcher.apply((ConditionQuery) this.query);
+            assert result != null;
+            if (result.ids().size() < pageSize || result.page() == null) {
+                this.exhausted = true;
+            }
+            return result;
+        }
+
+        @Override
+        public Set<Id> all() {
+            throw new NotImplementedException("PagingIdHolder.all");
+        }
+    }
+
+    public static class BatchIdHolder extends IdHolder
+                                      implements CIter<IdHolder> {
+
+        private final Iterator<BackendEntry> entries;
+        private final Function<Long, Set<Id>> fetcher;
+        private long count;
+
+        public BatchIdHolder(ConditionQuery query,
+                             Iterator<BackendEntry> entries,
+                             Function<Long, Set<Id>> fetcher) {
+            super(query);
+            this.entries = entries;
+            this.fetcher = fetcher;
+            this.count = 0L;
+        }
+
+        @Override
+        public boolean paging() {
+            return false;
+        }
+
+        @Override
+        public boolean hasNext() {
+            if (this.exhausted) {
+                return false;
+            }
+            boolean hasNext = this.entries.hasNext();
+            if (!hasNext) {
+                this.close();
+            }
+            return hasNext;
+        }
+
+        @Override
+        public IdHolder next() {
+            if (!hasNext()) {
+                throw new NoSuchElementException();
+            }
+            return this;
+        }
+
+        @Override
+        public PageIds fetchNext(String page, long batchSize) {
+            E.checkArgument(page == null,
+                            "Not support page parameter by BatchIdHolder");
+            E.checkArgument(batchSize >= 0L,
+                            "Invalid batch size value: %s", batchSize);
+
+            if (!this.query.nolimit()) {
+                long remaining = this.remaining();
+                if (remaining < batchSize) {
+                    batchSize = remaining;
+                }
+            }
+            assert batchSize >= 0L : batchSize;
+            Set<Id> ids = this.fetcher.apply(batchSize);
+            int size = ids.size();
+            this.count += size;
+            if (size < batchSize || size == 0) {
+                this.close();
+            }
+
+            // If there is no data, the entries is not a Metadatable object
+            if (size == 0) {
+                return PageIds.EMPTY;
+            } else {
+                return new PageIds(ids, PageState.EMPTY);
+            }
+        }
+
+        @Override
+        public Set<Id> all() {
+            Set<Id> ids = this.fetcher.apply(this.remaining());
+            this.count += ids.size();
+            this.close();
+            return ids;
+        }
+
+        private long remaining() {
+            if (this.query.nolimit()) {
+                return Query.NO_LIMIT;
+            } else {
+                return this.query.total() - this.count;
+            }
+        }
+
+        @Override
+        public void close() {
+            if (this.exhausted) {
+                return;
+            }
             this.exhausted = true;
+
+            CloseableIterator.closeIterator(this.entries);
         }
-        return result;
+
+        @Override
+        public Object metadata(String meta, Object... args) {
+            E.checkState(this.entries instanceof Metadatable,
+                         "Invalid iterator for Metadatable: %s",
+                         this.entries.getClass());
+            return ((Metadatable) this.entries).metadata(meta, args);
+        }
     }
 }

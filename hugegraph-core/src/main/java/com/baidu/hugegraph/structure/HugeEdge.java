@@ -35,6 +35,7 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
+import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
@@ -222,13 +223,12 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         }
 
         Iterator<Edge> edges = tx().queryEdges(this.id());
-        boolean exist = edges.hasNext();
-        if (!exist && !throwIfNotExist) {
+        Edge edge = QueryResults.one(edges);
+        if (edge == null && !throwIfNotExist) {
             return false;
         }
-        E.checkState(exist, "Edge '%s' does not exist", this.id);
-        this.copyProperties((HugeEdge) edges.next());
-        assert exist;
+        E.checkState(edge != null, "Edge '%s' does not exist", this.id);
+        this.copyProperties((HugeEdge) edge);
         return true;
     }
 

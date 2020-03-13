@@ -76,6 +76,9 @@ public class BinaryEntryIterator<Elem> extends BackendEntryIterator {
             } else if (merged == this.current) {
                 // The next entry belongs to the current entry
                 assert this.current != null;
+                if (this.sizeOf(this.current) >= INLINE_BATCH_SIZE) {
+                    break;
+                }
             } else {
                 // New entry
                 assert this.next == null;

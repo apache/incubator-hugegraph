@@ -140,7 +140,23 @@ public class CoreOptions extends OptionHolder {
                     "Whether to check the vertices exist for those using " +
                     "customized id strategy",
                     disallowEmpty(),
-                    true
+                    false
+            );
+
+    public static final ConfigOption<Integer> QUERY_BATCH_SIZE =
+            new ConfigOption<>(
+                    "query.batch_size",
+                    "The size of each batch when querying by batch.",
+                    rangeInt(1, (int) Query.DEFAULT_CAPACITY),
+                    1000
+            );
+
+    public static final ConfigOption<Integer> QUERY_PAGE_SIZE =
+            new ConfigOption<>(
+                    "query.page_size",
+                    "The size of each page when querying by paging.",
+                    rangeInt(1, (int) Query.DEFAULT_CAPACITY),
+                    500
             );
 
     public static final ConfigOption<Integer> VERTEX_TX_CAPACITY =
@@ -218,14 +234,6 @@ public class CoreOptions extends OptionHolder {
                     "The expire time in seconds of edge cache.",
                     rangeInt(0, Integer.MAX_VALUE),
                     (60 * 10)
-            );
-
-    public static final ConfigOption<Integer> QUERY_PAGE_SIZE =
-            new ConfigOption<>(
-                    "query.page_size",
-                    "The size of each page when query using paging.",
-                    rangeInt(1, (int) Query.DEFAULT_CAPACITY),
-                    500
             );
 
     public static final ConfigOption<Long> SNOWFLAKE_WORKER_ID =

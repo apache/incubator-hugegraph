@@ -28,13 +28,15 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.function.Function;
 
-import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
+import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.store.BackendEntry;
+import com.baidu.hugegraph.iterator.CIter;
 import com.baidu.hugegraph.iterator.FlatMapperIterator;
+import com.baidu.hugegraph.iterator.ListIterator;
 import com.baidu.hugegraph.iterator.MapperIterator;
-import com.baidu.hugegraph.iterator.Metadatable;
 import com.baidu.hugegraph.type.Idfiable;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
@@ -81,8 +83,14 @@ public class QueryResults {
         return this.results;
     }
 
-    public List<BackendEntry> list() {
-        return IteratorUtils.list(this.results);
+    public BackendEntry one() {
+        return one(this.results);
+    }
+
+    public QueryResults toList() {
+        QueryResults fetched = new QueryResults(toList(this.results));
+        fetched.addQueries(this.queries);
+        return fetched;
     }
 
     public List<Query> queries() {
@@ -96,7 +104,7 @@ public class QueryResults {
             return origin;
         }
         Set<Id> ids;
-        if (this.paging() || !this.mustSortByInputIds() ||
+        if (!this.mustSortByInputIds() || this.paging() ||
             (ids = this.queryIds()).size() <= 1) {
             /*
              * Return the original iterator if it's paging query or if the
@@ -106,11 +114,11 @@ public class QueryResults {
         }
 
         // Fill map with all elements
-        Map<Id, T> results = new HashMap<>();
-        fillMap(origin, results);
+        Map<Id, T> map = new HashMap<>();
+        QueryResults.fillMap(origin, map);
 
         return new MapperIterator<>(ids.iterator(), id -> {
-            return results.get(id);
+            return map.get(id);
         });
     }
 
@@ -134,6 +142,16 @@ public class QueryResults {
         return false;
     }
 
+    @SuppressWarnings("unused")
+    private boolean bigCapacity() {
+        for (Query query : this.queries) {
+            if (query.bigCapacity()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private Set<Id> queryIds() {
         if (this.queries.size() == 1) {
             return this.queries.get(0).ids();
@@ -146,12 +164,33 @@ public class QueryResults {
         return ids;
     }
 
+    public static <T> ListIterator<T> toList(Iterator<T> iterator) {
+        return new ListIterator<>(Query.DEFAULT_CAPACITY, iterator);
+    }
+
+    public static <T> void fillList(Iterator<T> iterator, List<T> list) {
+        try {
+            while (iterator.hasNext()) {
+                T result = iterator.next();
+                list.add(result);
+                Query.checkForceCapacity(list.size());
+            }
+        } finally {
+            CloseableIterator.closeIterator(iterator);
+        }
+    }
+
     public static <T extends Idfiable> void fillMap(Iterator<T> iterator,
                                                     Map<Id, T> map) {
-        while (iterator.hasNext()) {
-            T result = iterator.next();
-            assert result.id() != null;
-            map.put(result.id(), result);
+        try {
+            while (iterator.hasNext()) {
+                T result = iterator.next();
+                assert result.id() != null;
+                map.put(result.id(), result);
+                Query.checkForceCapacity(map.size());
+            }
+        } finally {
+            CloseableIterator.closeIterator(iterator);
         }
     }
 
@@ -169,6 +208,23 @@ public class QueryResults {
         return qr[0];
     }
 
+    public static <T> T one(Iterator<T> iterator) {
+        try {
+            if (iterator.hasNext()) {
+                T result = iterator.next();
+                if (iterator.hasNext()) {
+                    throw new HugeException("Expect just one result, " +
+                                            "but got at least two: [%s, %s]",
+                                            result, iterator.next());
+                }
+                return result;
+            }
+        } finally {
+            CloseableIterator.closeIterator(iterator);
+        }
+        return null;
+    }
+
     public static QueryResults empty() {
         return EMPTY;
     }
@@ -178,7 +234,7 @@ public class QueryResults {
         return (Iterator<T>) EMPTY_ITERATOR;
     }
 
-    private static class EmptyIterator<T> implements Iterator<T>, Metadatable {
+    private static class EmptyIterator<T> implements CIter<T> {
 
         @Override
         public Object metadata(String meta, Object... args) {
@@ -193,6 +249,11 @@ public class QueryResults {
         @Override
         public T next() {
             throw new NoSuchElementException();
+        }
+
+        @Override
+        public void close() throws Exception {
+            // pass
         }
     }
 }

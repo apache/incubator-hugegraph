@@ -31,7 +31,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
 
-import org.apache.commons.collections.IteratorUtils;
 import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
@@ -41,6 +40,7 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.page.PageInfo;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
+import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.event.EventListener;
@@ -48,7 +48,6 @@ import com.baidu.hugegraph.exception.ConnectionException;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.iterator.MapperIterator;
-import com.baidu.hugegraph.iterator.WrappedIterator;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaManager;
@@ -288,13 +287,12 @@ public class TaskScheduler {
 
     public <V> HugeTask<V> findTask(Id id) {
         HugeTask<V> result =  this.call(() -> {
-            HugeTask<V> task = null;
             Iterator<Vertex> vertices = this.tx().queryVertices(id);
-            if (vertices.hasNext()) {
-                task = HugeTask.fromVertex(vertices.next());
-                assert !vertices.hasNext();
+            Vertex vertex = QueryResults.one(vertices);
+            if (vertex == null) {
+                return null;
             }
-            return task;
+            return HugeTask.fromVertex(vertex);
         });
         if (result == null) {
             throw new NotFoundException("Can't find task with id '%s'", id);
@@ -333,17 +331,16 @@ public class TaskScheduler {
             this.remove(id);
         }
         return this.call(() -> {
-            HugeTask<V> result = null;
             Iterator<Vertex> vertices = this.tx().queryVertices(id);
-            if (vertices.hasNext()) {
-                HugeVertex vertex = (HugeVertex) vertices.next();
-                result = HugeTask.fromVertex(vertex);
-                E.checkState(result.completed(),
-                             "Can't delete incomplete task '%s' in status %s",
-                             id, result.status());
-                this.tx().removeVertex(vertex);
-                assert !vertices.hasNext();
+            HugeVertex vertex = (HugeVertex) QueryResults.one(vertices);
+            if (vertex == null) {
+                return null;
             }
+            HugeTask<V> result = HugeTask.fromVertex(vertex);
+            E.checkState(result.completed(),
+                         "Can't delete incomplete task '%s' in status %s",
+                         id, result.status());
+            this.tx().removeVertex(vertex);
             return result;
         });
     }
@@ -427,7 +424,7 @@ public class TaskScheduler {
             Iterator<HugeTask<V>> tasks =
                     new MapperIterator<>(vertices, HugeTask::fromVertex);
             // Convert iterator to list to avoid across thread tx accessed
-            return new ListIterator<>(tasks);
+            return QueryResults.toList(tasks);
         });
     }
 
@@ -438,7 +435,7 @@ public class TaskScheduler {
             Iterator<HugeTask<V>> tasks =
                     new MapperIterator<>(vertices, HugeTask::fromVertex);
             // Convert iterator to list to avoid across thread tx accessed
-            return new ListIterator<>(tasks);
+            return QueryResults.toList(tasks);
         });
     }
 
@@ -483,13 +480,13 @@ public class TaskScheduler {
         private void deleteIndex(HugeVertex vertex) {
             // Delete the old record if exist
             Iterator<Vertex> old = this.queryVertices(vertex.id());
-            if (old.hasNext()) {
-                HugeVertex oldV = (HugeVertex) old.next();
-                assert !old.hasNext();
-                if (this.indexValueChanged(oldV, vertex)) {
-                    // Only delete vertex index if index value changed
-                    this.indexTransaction().updateVertexIndex(oldV, true);
-                }
+            HugeVertex oldV = (HugeVertex) QueryResults.one(old);
+            if (oldV == null) {
+                return;
+            }
+            if (this.indexValueChanged(oldV, vertex)) {
+                // Only delete vertex index if index value changed
+                this.indexTransaction().updateVertexIndex(oldV, true);
             }
         }
 
@@ -566,35 +563,6 @@ public class TaskScheduler {
                                           .build();
             graph.schemaTransaction().addIndexLabel(label, indexLabel);
             return indexLabel;
-        }
-    }
-
-    // TODO: move to common module
-    private static class ListIterator<V> extends WrappedIterator<V> {
-
-        private final Iterator<V> origin;
-        private final Iterator<V> iterator;
-
-        public ListIterator(Iterator<V> origin) {
-            this.origin = origin;
-            @SuppressWarnings("unchecked")
-            List<V> results = IteratorUtils.toList(origin);
-            this.iterator = results.iterator();
-        }
-
-        @Override
-        protected boolean fetch() {
-            assert this.current == none();
-            if (!this.iterator.hasNext()) {
-                return false;
-            }
-            this.current = this.iterator.next();
-            return true;
-        }
-
-        @Override
-        protected Iterator<?> originIterator() {
-            return this.origin;
         }
     }
 }
