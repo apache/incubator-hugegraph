@@ -81,7 +81,7 @@ public abstract class IdGenerator {
     public final static Id ofStoredString(String id, IdType type) {
         switch (type) {
             case LONG:
-                return of(LongEncoding.decodeSortable(id));
+                return of(LongId.decode(id));
             case UUID:
                 byte[] bytes = Base64.getDecoder().decode(id);
                 return of(bytes, IdType.UUID);
@@ -95,7 +95,7 @@ public abstract class IdGenerator {
     public final static String asStoredString(Id id) {
         switch (id.type()) {
             case LONG:
-                return LongEncoding.encodeSortable(id.asLong());
+                return LongId.encode(id.asLong());
             case UUID:
                 return Base64.getEncoder().encodeToString(id.asBytes());
             case STRING:
@@ -260,6 +260,28 @@ public abstract class IdGenerator {
         @Override
         public double doubleValue() {
             return this.id;
+        }
+
+        public static String encode(long value) {
+            boolean neg = false;
+            if (value < 0L) {
+                neg = true;
+                value = -value;
+            }
+            assert value >= 0L;
+            String encoded = LongEncoding.encode(value);
+            return neg ? "-" + encoded : encoded;
+        }
+
+        public static long decode(String value) {
+            boolean neg = false;
+            if (value.startsWith("-")) {
+                neg = true;
+                value = value.substring(1);
+            }
+            long decoded = LongEncoding.decode(value);
+            assert decoded >= 0L;
+            return neg ? -decoded : decoded;
         }
     }
 

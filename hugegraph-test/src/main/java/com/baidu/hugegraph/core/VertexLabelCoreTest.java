@@ -784,7 +784,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
         graph().tx().commit();
 
         List<Vertex> vertex = graph().traversal().V().hasLabel("person")
-                              .has("city", "Beijing").toList();
+                                     .has("city", "Beijing").toList();
         Assert.assertNotNull(vertex);
         Assert.assertEquals(2, vertex.size());
 

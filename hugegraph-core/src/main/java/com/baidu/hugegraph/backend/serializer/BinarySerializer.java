@@ -325,7 +325,7 @@ public class BinarySerializer extends AbstractSerializer {
             int idLen = 1 + elemId.length();
             buffer = BytesBuffer.allocate(idLen);
             // Write element-id
-            buffer.writeId(elemId, true);
+            buffer.writeId(elemId);
         } else {
             Id indexId = index.id();
             HugeType type = index.type();
@@ -487,7 +487,7 @@ public class BinarySerializer extends AbstractSerializer {
         if (!index.type().isRangeIndex()) {
             fieldValues = query.condition(HugeKeys.FIELD_VALUES);
             if (!index.fieldValues().equals(fieldValues)) {
-                // Update field-values for hashed index-id
+                // Update field-values for hashed or encoded index-id
                 index.fieldValues(fieldValues);
             }
         }
