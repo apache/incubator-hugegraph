@@ -92,6 +92,7 @@ public class InMemoryDBStoreProvider extends AbstractBackendStoreProvider {
          *                    rangeLong and rangeDouble
          * [1.4] #746: support userdata for indexlabel
          * [1.5] #820: store vertex properties in one column
+         * [1.6] #894: encode label id in string index
          */
         return "1.5";
     }
