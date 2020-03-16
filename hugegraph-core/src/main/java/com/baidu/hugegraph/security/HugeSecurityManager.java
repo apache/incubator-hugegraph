@@ -79,7 +79,13 @@ public class HugeSecurityManager extends SecurityManager {
 
     private static final Map<String, Set<String>> BACKEND_THREAD = ImmutableMap.of(
             "com.baidu.hugegraph.backend.store.cassandra.CassandraStore",
-            ImmutableSet.of("open", "opened", "init")
+            ImmutableSet.of("open", "opened", "init"),
+            /*
+             * fixed https://github
+             * .com/hugegraph/hugegraph/pull/892#issuecomment-598545072
+             */
+            "com.datastax.driver.core.AbstractSession",
+            ImmutableSet.of("execute")
     );
 
     private static final Set<String> HBASE_CLASSES = ImmutableSet.of(
