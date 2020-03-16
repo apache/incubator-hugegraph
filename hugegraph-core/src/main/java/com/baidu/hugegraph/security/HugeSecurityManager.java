@@ -65,6 +65,7 @@ public class HugeSecurityManager extends SecurityManager {
     );
 
     private static final Map<String, Set<String>> ASYNC_TASKS = ImmutableMap.of(
+            // Fixed https://github.com/hugegraph/hugegraph/pull/892#issue-387202362
             "com.baidu.hugegraph.backend.tx.SchemaTransaction",
             ImmutableSet.of("removeVertexLabel", "removeEdgeLabel",
                             "removeIndexLabel", "rebuildIndex"),
@@ -73,22 +74,22 @@ public class HugeSecurityManager extends SecurityManager {
     );
 
     private static final Map<String, Set<String>> BACKEND_SOCKET = ImmutableMap.of(
+            // Fixed #758
             "com.baidu.hugegraph.backend.store.mysql.MysqlStore",
             ImmutableSet.of("open", "init", "clear", "opened", "initialized")
     );
 
     private static final Map<String, Set<String>> BACKEND_THREAD = ImmutableMap.of(
+            // Fixed #758
             "com.baidu.hugegraph.backend.store.cassandra.CassandraStore",
             ImmutableSet.of("open", "opened", "init"),
-            /*
-             * fixed https://github
-             * .com/hugegraph/hugegraph/pull/892#issuecomment-598545072
-             */
+            // Fixed https://github.com/hugegraph/hugegraph/pull/892#issuecomment-598545072
             "com.datastax.driver.core.AbstractSession",
             ImmutableSet.of("execute")
     );
 
     private static final Set<String> HBASE_CLASSES = ImmutableSet.of(
+            // Fixed #758
             "com.baidu.hugegraph.backend.store.hbase.HbaseStore",
             "com.baidu.hugegraph.backend.store.hbase.HbaseStore$HbaseSchemaStore",
             "com.baidu.hugegraph.backend.store.hbase.HbaseStore$HbaseGraphStore",
