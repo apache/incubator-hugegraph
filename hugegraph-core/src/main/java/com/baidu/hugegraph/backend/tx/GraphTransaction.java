@@ -830,7 +830,7 @@ public class GraphTransaction extends IndexableTransaction {
                 continue;
             } else if ((edge = this.addedEdges.get(id)) != null ||
                        (edge = this.updatedEdges.get(id)) != null) {
-                if (edge.expiredTime() != 0L && edge.expiredTime() < now) {
+                if (0L < edge.expiredTime() && edge.expiredTime() < now) {
                     continue;
                 }
                 // Found from local tx
@@ -952,7 +952,7 @@ public class GraphTransaction extends IndexableTransaction {
         long now = DateUtil.now().getTime();
         if (!this.store().features().supportsTtl() && !query.showExpired()) {
             edges = new FilterIterator<>(edges, edge -> {
-                if (edge.expiredTime() != 0L && edge.expiredTime() < now) {
+                if (0L < edge.expiredTime() && edge.expiredTime() < now) {
                     asyncDeleteExpiredObject(this.graph(), edge);
                     return false;
                 }
@@ -1900,9 +1900,9 @@ public class GraphTransaction extends IndexableTransaction {
             }
             throw e;
         }
-        // If SYNC_DELETION is true, wait async thread done before
+        // If TASK_SYNC_DELETION is true, wait async thread done before
         // continue. This is used when running tests.
-        if (graph.configuration().get(CoreOptions.SYNC_DELETION)) {
+        if (graph.configuration().get(CoreOptions.TASK_SYNC_DELETION)) {
             task.syncWait();
         }
     }

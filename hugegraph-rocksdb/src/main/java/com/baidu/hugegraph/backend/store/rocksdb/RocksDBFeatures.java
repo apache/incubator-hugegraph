@@ -121,7 +121,8 @@ public class RocksDBFeatures implements BackendFeatures {
         return false;
     }
 
-    @Override public boolean supportsTtl() {
+    @Override
+    public boolean supportsTtl() {
         return false;
     }
 }

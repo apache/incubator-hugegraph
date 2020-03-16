@@ -341,7 +341,7 @@ public abstract class TableSerializer extends AbstractSerializer {
 
         if (!graph.graphTransaction().store().features().supportsTtl() &&
             !query.showExpired() &&
-            index.expiredTime() != 0L && index.expiredTime() < now) {
+            0L < index.expiredTime() && index.expiredTime() < now) {
             GraphTransaction.asyncDeleteExpiredObject(graph, index);
             return null;
         } else {

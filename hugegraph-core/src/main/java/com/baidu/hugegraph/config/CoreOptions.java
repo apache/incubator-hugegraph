@@ -247,9 +247,9 @@ public class CoreOptions extends OptionHolder {
                     10000L
             );
 
-    public static final ConfigOption<Boolean> SYNC_DELETION =
+    public static final ConfigOption<Boolean> TASK_SYNC_DELETION =
             new ConfigOption<>(
-                    "sync_deletion",
+                    "task.sync_deletion",
                     "Whether to delete schema and expired data synchronously.",
                     disallowEmpty(),
                     false

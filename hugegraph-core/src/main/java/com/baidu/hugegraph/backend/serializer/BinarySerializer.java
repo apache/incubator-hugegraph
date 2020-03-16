@@ -385,7 +385,7 @@ public class BinarySerializer extends AbstractSerializer {
             long expiredTime = buffer.readVLong();
             if (!graph.graphTransaction().store().features().supportsTtl() &&
                 !query.showExpired() &&
-                expiredTime != 0L && expiredTime < now) {
+                0L < expiredTime && expiredTime < now) {
                 HugeIndex removeIndex = index.clone();
                 removeIndex.expiredTime(expiredTime);
                 removeIndex.resetElementIds();

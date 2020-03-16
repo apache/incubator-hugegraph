@@ -68,6 +68,9 @@ public class CassandraTables {
     private static final DataType TYPE_ID = DataType.blob();
     private static final DataType TYPE_PROP = DataType.blob();
 
+    private static final DataType TYPE_TTL = DataType.cint();
+    private static final DataType TYPE_EXPIRED_TIME = DataType.bigint();
+
     private static final long COMMIT_DELETE_BATCH = Query.COMMIT_BATCH;
 
     public static class Counters extends CassandraTable {
@@ -173,7 +176,7 @@ public class CassandraTables {
                     .put(HugeKeys.ENABLE_LABEL_INDEX, DataType.cboolean())
                     .put(HugeKeys.USER_DATA, TYPE_UD)
                     .put(HugeKeys.STATUS, DataType.tinyint())
-                    .put(HugeKeys.TTL, DataType.cint())
+                    .put(HugeKeys.TTL, TYPE_TTL)
                     .put(HugeKeys.TTL_START_TIME, TYPE_PK)
                     .build();
 
@@ -304,7 +307,7 @@ public class CassandraTables {
             );
             ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of(
                     HugeKeys.PROPERTIES, DataType.map(TYPE_PK, TYPE_PROP),
-                    HugeKeys.EXPIRED_TIME, DataType.decimal()
+                    HugeKeys.EXPIRED_TIME, TYPE_EXPIRED_TIME
             );
 
             this.createTable(session, pkeys, ckeys, columns);
@@ -676,7 +679,7 @@ public class CassandraTables {
                     HugeKeys.ELEMENT_IDS, TYPE_ID
             );
             ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of(
-                    HugeKeys.EXPIRED_TIME, DataType.decimal()
+                    HugeKeys.EXPIRED_TIME, TYPE_EXPIRED_TIME
             );
 
             this.createTable(session, pkeys, ckeys, columns);
@@ -836,7 +839,7 @@ public class CassandraTables {
 
     private static int ttl(CassandraBackendEntry.Row entry) {
         long expired = entry.column(HugeKeys.EXPIRED_TIME);
-        if (expired != 0L) {
+        if (expired > 0L) {
             int ttl = (int) (expired - DateUtil.now().getTime()) / 1000;
             if (ttl > 0) {
                 return ttl;

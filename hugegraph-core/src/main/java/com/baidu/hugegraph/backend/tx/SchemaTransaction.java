@@ -421,7 +421,8 @@ public class SchemaTransaction extends IndexableTransaction {
     }
 
     public boolean syncDelete() {
-        return this.params().configuration().get(CoreOptions.SYNC_DELETION);
+        return this.params().configuration()
+                            .get(CoreOptions.TASK_SYNC_DELETION);
     }
 
     @Watched(prefix = "schema")
@@ -502,7 +503,7 @@ public class SchemaTransaction extends IndexableTransaction {
                                                .dependencies(dependencies);
         HugeTask<?> task = builder.schedule();
 
-        // If SYNC_DELETION is true, wait async thread done before
+        // If TASK_SYNC_DELETION is true, wait async thread done before
         // continue. This is used when running tests.
         if (sync) {
             task.syncWait();

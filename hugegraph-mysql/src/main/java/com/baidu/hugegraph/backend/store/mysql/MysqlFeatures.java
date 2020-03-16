@@ -116,7 +116,8 @@ public class MysqlFeatures implements BackendFeatures {
         return false;
     }
 
-    @Override public boolean supportsTtl() {
+    @Override
+    public boolean supportsTtl() {
         return false;
     }
 }

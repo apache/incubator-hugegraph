@@ -243,7 +243,7 @@ public final class CachedGraphTransaction extends GraphTransaction {
             long now = DateUtil.now().getTime();
             List<HugeEdge> survivedEdges = new ArrayList<>();
             for (HugeEdge edge : edges) {
-                if (edge.expiredTime() != 0 && edge.expiredTime() < now) {
+                if (0L < edge.expiredTime() && edge.expiredTime() < now) {
                     GraphTransaction.asyncDeleteExpiredObject(graph(), edge);
                 } else {
                     survivedEdges.add(edge);
