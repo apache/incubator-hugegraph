@@ -334,19 +334,9 @@ public abstract class TableSerializer extends AbstractSerializer {
         HugeIndex index = new HugeIndex(indexLabel);
         index.fieldValues(indexValues);
         for (Object elemId : elemIds) {
-            index.elementIds(this.readId(elemId));
+            index.elementIds(this.readId(elemId), expiredTime.longValue());
         }
-        index.expiredTime(expiredTime.longValue());
-        long now = DateUtil.now().getTime();
-
-        if (!graph.graphTransaction().store().features().supportsTtl() &&
-            !query.showExpired() &&
-            0L < index.expiredTime() && index.expiredTime() < now) {
-            GraphTransaction.asyncDeleteExpiredObject(graph, index);
-            return null;
-        } else {
-            return index;
-        }
+        return index;
     }
 
     @Override

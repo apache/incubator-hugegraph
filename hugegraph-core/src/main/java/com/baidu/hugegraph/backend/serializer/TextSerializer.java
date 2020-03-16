@@ -405,22 +405,10 @@ public class TextSerializer extends AbstractSerializer {
             if (indexLabel.queryType().isEdge()) {
                 elemId = EdgeId.parse(elemId.asString());
             }
-            index.elementIds(elemId);
+            index.elementIds(elemId, JsonUtil.fromJson(expiredTime, Long.class));
         }
         // Memory backend might return empty BackendEntry
-        if (index.elementIds().isEmpty()) {
-            return index;
-        }
-        index.expiredTime(JsonUtil.fromJson(expiredTime, Long.class));
-        long now = DateUtil.now().getTime();
-        if (!graph.graphTransaction().store().features().supportsTtl() &&
-            !query.showExpired() &&
-            0L < index.expiredTime() && index.expiredTime() < now) {
-            GraphTransaction.asyncDeleteExpiredObject(graph, index);
-            return null;
-        } else {
-            return index;
-        }
+        return index;
     }
 
     @Override

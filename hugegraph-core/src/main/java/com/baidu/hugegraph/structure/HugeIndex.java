@@ -19,7 +19,6 @@
 
 package com.baidu.hugegraph.structure;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -36,6 +35,7 @@ import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.DataType;
+import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.HashUtil;
 import com.baidu.hugegraph.util.NumericUtil;
@@ -44,8 +44,7 @@ public class HugeIndex implements GraphType, Cloneable {
 
     private Object fieldValues;
     private IndexLabel indexLabel;
-    private Set<Id> elementIds;
-    private long expiredTime;
+    private Set<IdWithExpiredTime> elementIds;
 
     public HugeIndex(IndexLabel indexLabel) {
         E.checkNotNull(indexLabel, "label");
@@ -53,7 +52,6 @@ public class HugeIndex implements GraphType, Cloneable {
         this.indexLabel = indexLabel;
         this.elementIds = new LinkedHashSet<>();
         this.fieldValues = null;
-        this.expiredTime = 0L;
     }
 
     @Override
@@ -95,19 +93,43 @@ public class HugeIndex implements GraphType, Cloneable {
         return this.indexLabel;
     }
 
-    public Id elementId() {
+    public IdWithExpiredTime element() {
         E.checkState(this.elementIds.size() == 1,
                      "Expect one element id, actual %s",
                      this.elementIds.size());
         return this.elementIds.iterator().next();
     }
 
-    public Set<Id> elementIds() {
-        return Collections.unmodifiableSet(this.elementIds);
+    public Id elementId() {
+        return this.element().id();
     }
 
-    public void elementIds(Id... elementIds) {
-        this.elementIds.addAll(Arrays.asList(elementIds));
+    public Set<Id> elementIds() {
+        Set<Id> ids = new LinkedHashSet<>(this.elementIds.size());
+        for (IdWithExpiredTime idWithExpiredTime : this.elementIds) {
+            ids.add(idWithExpiredTime.id());
+        }
+        return Collections.unmodifiableSet(ids);
+    }
+
+    public Set<IdWithExpiredTime> expiredElementIds() {
+        long now = DateUtil.now().getTime();
+        Set<IdWithExpiredTime> expired = new LinkedHashSet<>();
+        for (IdWithExpiredTime id : this.elementIds) {
+            if (0L < id.expiredTime && id.expiredTime < now) {
+                expired.add(id);
+            }
+        }
+        this.elementIds.removeAll(expired);
+        return expired;
+    }
+
+    public void elementIds(Id elementId) {
+        this.elementIds(elementId, 0L);
+    }
+
+    public void elementIds(Id elementId, long expiredTime) {
+        this.elementIds.add(new IdWithExpiredTime(elementId, expiredTime));
     }
 
     public void resetElementIds() {
@@ -115,11 +137,7 @@ public class HugeIndex implements GraphType, Cloneable {
     }
 
     public long expiredTime() {
-        return this.expiredTime;
-    }
-
-    public void expiredTime(long expiredTime) {
-        this.expiredTime = expiredTime;
+        return this.element().expiredTime();
     }
 
     @Override
@@ -235,5 +253,24 @@ public class HugeIndex implements GraphType, Cloneable {
 
     public static Number bytes2number(byte[] bytes, Class<?> clazz) {
         return NumericUtil.sortableBytesToNumber(bytes, clazz);
+    }
+
+    public static class IdWithExpiredTime {
+
+        private Id id;
+        private long expiredTime;
+
+        public IdWithExpiredTime(Id id, long expiredTime) {
+            this.id = id;
+            this.expiredTime = expiredTime;
+        }
+
+        public Id id() {
+            return this.id;
+        }
+
+        public long expiredTime() {
+            return this.expiredTime;
+        }
     }
 }
