@@ -227,15 +227,6 @@ public class HbaseTables {
         }
     }
 
-    public static class SecondaryIndex extends IndexTable {
-
-        public static final String TABLE = HugeType.SECONDARY_INDEX.string();
-
-        public SecondaryIndex(String store) {
-            super(joinTableName(store, TABLE));
-        }
-    }
-
     public static class VertexLabelIndex extends IndexTable {
 
         public static final String TABLE = HugeType.VERTEX_LABEL_INDEX.string();
@@ -250,6 +241,15 @@ public class HbaseTables {
         public static final String TABLE = HugeType.EDGE_LABEL_INDEX.string();
 
         public EdgeLabelIndex(String store) {
+            super(joinTableName(store, TABLE));
+        }
+    }
+
+    public static class SecondaryIndex extends IndexTable {
+
+        public static final String TABLE = HugeType.SECONDARY_INDEX.string();
+
+        public SecondaryIndex(String store) {
             super(joinTableName(store, TABLE));
         }
     }
