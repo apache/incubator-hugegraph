@@ -543,7 +543,7 @@ public class CassandraTables {
                     HugeKeys.ELEMENT_IDS, TYPE_ID
             );
             ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of(
-                    HugeKeys.EXPIRED_TIME, DataType.decimal()
+                    HugeKeys.EXPIRED_TIME, TYPE_EXPIRED_TIME
             );
 
             this.createTable(session, pkeys, ckeys, columns);

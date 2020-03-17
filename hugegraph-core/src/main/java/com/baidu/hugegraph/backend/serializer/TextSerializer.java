@@ -42,7 +42,6 @@ import com.baidu.hugegraph.backend.query.IdPrefixQuery;
 import com.baidu.hugegraph.backend.query.IdRangeQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
-import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -52,6 +51,7 @@ import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeEdgeProperty;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.structure.HugeIndex;
+import com.baidu.hugegraph.structure.HugeIndex.IdWithExpiredTime;
 import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.structure.HugeVertexProperty;
@@ -65,9 +65,9 @@ import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.type.define.IndexType;
 import com.baidu.hugegraph.type.define.SchemaStatus;
-import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
+import com.google.common.collect.ImmutableMap;
 
 public class TextSerializer extends AbstractSerializer {
 
@@ -372,9 +372,7 @@ public class TextSerializer extends AbstractSerializer {
             entry.column(formatSyspropName(HugeKeys.INDEX_LABEL_ID),
                          writeId(index.indexLabelId()));
             entry.column(formatSyspropName(HugeKeys.ELEMENT_IDS),
-                         writeIds(index.elementIds()));
-            entry.column(formatSyspropName(HugeKeys.EXPIRED_TIME),
-                         JsonUtil.toJson(index.expiredTime()));
+                         writeElementId(index.elementId(), index.expiredTime()));
             entry.subId(index.elementId());
         }
         return entry;
@@ -395,17 +393,19 @@ public class TextSerializer extends AbstractSerializer {
                               formatSyspropName(HugeKeys.INDEX_LABEL_ID));
         String elemIds = entry.column(
                          formatSyspropName(HugeKeys.ELEMENT_IDS));
-        String expiredTime = entry.column(
-                             formatSyspropName(HugeKeys.EXPIRED_TIME));
 
         IndexLabel indexLabel = IndexLabel.label(graph, readId(indexLabelId));
         HugeIndex index = new HugeIndex(indexLabel);
         index.fieldValues(JsonUtil.fromJson(indexValues, Object.class));
-        for (Id elemId : readIds(elemIds)) {
+        for (IdWithExpiredTime elemId : readElementIds(elemIds)) {
+            long expiredTime = elemId.expiredTime();
+            Id id;
             if (indexLabel.queryType().isEdge()) {
-                elemId = EdgeId.parse(elemId.asString());
+                id = EdgeId.parse(elemId.id().asString());
+            } else {
+                id = elemId.id();
             }
-            index.elementIds(elemId, JsonUtil.fromJson(expiredTime, Long.class));
+            index.elementIds(id, expiredTime);
         }
         // Memory backend might return empty BackendEntry
         return index;
@@ -814,6 +814,14 @@ public class TextSerializer extends AbstractSerializer {
         return JsonUtil.toJson(array);
     }
 
+    private static String writeElementId(Id id, long expiredTime) {
+        Object[] array = new Object[1];
+        Object idValue = id.number() ? id.asLong() : id.asString();
+        array[0] = ImmutableMap.of(HugeKeys.ID.string(), idValue,
+                                   HugeKeys.EXPIRED_TIME.string(), expiredTime);
+        return JsonUtil.toJson(array);
+    }
+
     private static Id[] readIds(String str) {
         Object[] values = JsonUtil.fromJson(str, Object[].class);
         Id[] ids = new Id[values.length];
@@ -825,6 +833,27 @@ public class TextSerializer extends AbstractSerializer {
                 assert value instanceof String;
                 ids[i] = IdGenerator.of(value.toString());
             }
+        }
+        return ids;
+    }
+
+    private static IdWithExpiredTime[] readElementIds(String str) {
+        Object[] values = JsonUtil.fromJson(str, Object[].class);
+        IdWithExpiredTime[] ids = new IdWithExpiredTime[values.length];
+        for (int i = 0; i < values.length; i++) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> map = (Map) values[i];
+            Object idValue = map.get(HugeKeys.ID.string());
+            long expiredTime = ((Number) map.get(
+                               HugeKeys.EXPIRED_TIME.string())).longValue();
+            Id id;
+            if (idValue instanceof Number) {
+                id = IdGenerator.of(((Number) idValue).longValue());
+            } else {
+                assert idValue instanceof String;
+                id = IdGenerator.of(idValue.toString());
+            }
+            ids[i] = new IdWithExpiredTime(id, expiredTime);
         }
         return ids;
     }
