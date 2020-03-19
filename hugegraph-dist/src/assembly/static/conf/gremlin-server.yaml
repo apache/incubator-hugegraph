@@ -19,9 +19,19 @@ scriptEngines: {
       org.apache.tinkerpop.gremlin.jsr223.ImportGremlinPlugin: {
         classImports: [
           java.lang.Math,
-          com.baidu.hugegraph.util.DateUtil,
+          com.baidu.hugegraph.type.define.Directions,
+          com.baidu.hugegraph.traversal.algorithm.CustomizePathsTraverser,
+          com.baidu.hugegraph.traversal.algorithm.CustomizedCrosspointsTraverser,
+          com.baidu.hugegraph.traversal.algorithm.FusiformSimilarityTraverser,
+          com.baidu.hugegraph.traversal.algorithm.HugeTraverser,
+          com.baidu.hugegraph.traversal.algorithm.NeighborRankTraverser,
+          com.baidu.hugegraph.traversal.algorithm.PathsTraverser,
+          com.baidu.hugegraph.traversal.algorithm.PersonalRankTraverser,
+          com.baidu.hugegraph.traversal.algorithm.ShortestPathTraverser,
+          com.baidu.hugegraph.traversal.algorithm.SubGraphTraverser,
           com.baidu.hugegraph.traversal.optimize.Text,
-          com.baidu.hugegraph.traversal.optimize.TraversalUtil
+          com.baidu.hugegraph.traversal.optimize.TraversalUtil,
+          com.baidu.hugegraph.util.DateUtil
         ],
         methodImports: [java.lang.Math#*]
       },
