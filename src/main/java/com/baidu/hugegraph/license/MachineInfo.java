@@ -77,7 +77,7 @@ public class MachineInfo {
     }
 
     public List<InetAddress> getLocalAllInetAddress() {
-        Enumeration interfaces;
+        Enumeration<NetworkInterface> interfaces;
         try {
             interfaces = NetworkInterface.getNetworkInterfaces();
         } catch (SocketException e) {
@@ -86,10 +86,10 @@ public class MachineInfo {
 
         List<InetAddress> result = new ArrayList<>();
         while (interfaces.hasMoreElements()) {
-            NetworkInterface iface = (NetworkInterface) interfaces.nextElement();
-            for (Enumeration inetAddresses = iface.getInetAddresses();
+            NetworkInterface nw = interfaces.nextElement();
+            for (Enumeration<InetAddress> inetAddresses = nw.getInetAddresses();
                  inetAddresses.hasMoreElements(); ) {
-                InetAddress inetAddr = (InetAddress) inetAddresses.nextElement();
+                InetAddress inetAddr = inetAddresses.nextElement();
                 if (!inetAddr.isLoopbackAddress() &&
                     !inetAddr.isLinkLocalAddress() &&
                     !inetAddr.isMulticastAddress()) {

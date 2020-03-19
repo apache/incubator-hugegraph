@@ -23,11 +23,12 @@ package com.baidu.hugegraph.util;
  */
 public final class LongEncoding {
 
-    private static final String BASE_SYMBOLS =
+    private static final String B64_SYMBOLS =
             "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz~";
 
     private static final String LENGTH_SYMBOLS = "0123456789ABCDEF";
-    private static final char NEG = LENGTH_SYMBOLS.charAt(0);
+    private static final char SORTABLE_NEG = LENGTH_SYMBOLS.charAt(0);
+    private static final char SIGNED_NEG = '-';
 
     private static final long FULL_LONG = Long.MIN_VALUE;
 
@@ -50,14 +51,14 @@ public final class LongEncoding {
             num += FULL_LONG;
         }
 
-        String encoded = encode(num, BASE_SYMBOLS);
+        String encoded = encode(num, B64_SYMBOLS);
         int length = encoded.length();
         E.checkArgument(length <= LENGTH_SYMBOLS.length(),
                         "Length symbols can't represent encoded number '%s'",
                         encoded);
         StringBuilder sb = new StringBuilder(length + 2);
         if (negative) {
-            sb.append(NEG);
+            sb.append(SORTABLE_NEG);
         }
         char len = LENGTH_SYMBOLS.charAt(length);
         sb.append(len);
@@ -69,45 +70,70 @@ public final class LongEncoding {
     public static long decodeSortable(String str) {
         E.checkArgument(str.length() >= 2,
                         "Length of sortable encoded string must be >=2");
-        boolean negative = str.charAt(0) == NEG;
+        boolean negative = str.charAt(0) == SORTABLE_NEG;
         int lengthPos = 0;
         if (negative) {
             lengthPos = 1;
         }
-        int length = BASE_SYMBOLS.indexOf(str.charAt(lengthPos));
+        int length = B64_SYMBOLS.indexOf(str.charAt(lengthPos));
         E.checkArgument(length == str.length() - lengthPos - 1,
                         "Can't decode illegal string '%s' with wrong length",
                         str);
         String encoded = str.substring(lengthPos + 1);
-        long value = decode(encoded);
+        long value = decode(encoded, B64_SYMBOLS);
         if (negative) {
             value -= FULL_LONG;
         }
         return value;
     }
 
-    public static boolean validSortableChar(char c) {
-        return BASE_SYMBOLS.indexOf(c) != -1;
+    public static String encodeSignedB64(long value) {
+        boolean negative = false;
+        if (value < 0L) {
+            negative = true;
+            if (value == FULL_LONG) {
+                return "-80000000000";
+            }
+            value = -value;
+        }
+        assert value >= 0L : value;
+        String encoded = encodeB64(value);
+        return negative ? SIGNED_NEG + encoded : encoded;
     }
 
-    public static String encode(long num) {
-        return encode(num, BASE_SYMBOLS);
+    public static long decodeSignedB64(String value) {
+        boolean negative = false;
+        if (!value.isEmpty() && value.charAt(0) == SIGNED_NEG) {
+            negative = true;
+            value = value.substring(1);
+        }
+        long decoded = decodeB64(value);
+        return negative ? -decoded : decoded;
     }
 
-    public static long decode(String str) {
-        return decode(str, BASE_SYMBOLS);
+    public static boolean validB64Char(char c) {
+        return B64_SYMBOLS.indexOf(c) != -1;
     }
 
-    public static long decode(String str, String symbols) {
+    public static String encodeB64(long num) {
+        return encode(num, B64_SYMBOLS);
+    }
+
+    public static long decodeB64(String str) {
+        return decode(str, B64_SYMBOLS);
+    }
+
+    public static long decode(String encoded, String symbols) {
         final int B = symbols.length();
         E.checkArgument(B > 0, "The symbols parameter can't be empty");
-        long num = 0;
-        for (char ch : str.toCharArray()) {
+        long num = 0L;
+        for (char ch : encoded.toCharArray()) {
             num *= B;
             int pos = symbols.indexOf(ch);
             if (pos < 0)
-                throw new NumberFormatException(
-                          "Symbol set does not match string");
+                throw new NumberFormatException(String.format(
+                          "Can't decode symbol '%s' in string '%s'",
+                          ch, encoded));
             num += pos;
         }
         return num;
@@ -115,14 +141,14 @@ public final class LongEncoding {
 
     public static String encode(long num, String symbols) {
         final int B = symbols.length();
-        E.checkArgument(num >= 0, "Expected non-negative number: %s", num);
+        E.checkArgument(num >= 0L, "Expected non-negative number: %s", num);
         E.checkArgument(B > 0, "The symbols parameter can't be empty");
 
         StringBuilder sb = new StringBuilder();
         do {
             sb.append(symbols.charAt((int) (num % B)));
             num /= B;
-        } while (num != 0);
+        } while (num != 0L);
 
         return sb.reverse().toString();
     }

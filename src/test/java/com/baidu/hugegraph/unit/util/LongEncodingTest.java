@@ -37,191 +37,376 @@ import com.baidu.hugegraph.util.NumericUtil;
 public class LongEncodingTest extends BaseUnitTest {
 
     @Test
+    public void testValidB64Char() {
+        Assert.assertTrue(LongEncoding.validB64Char('0'));
+        Assert.assertTrue(LongEncoding.validB64Char('1'));
+        Assert.assertTrue(LongEncoding.validB64Char('9'));
+        Assert.assertTrue(LongEncoding.validB64Char('A'));
+        Assert.assertTrue(LongEncoding.validB64Char('Z'));
+        Assert.assertTrue(LongEncoding.validB64Char('_'));
+        Assert.assertTrue(LongEncoding.validB64Char('a'));
+        Assert.assertTrue(LongEncoding.validB64Char('z'));
+        Assert.assertTrue(LongEncoding.validB64Char('~'));
+
+        Assert.assertFalse(LongEncoding.validB64Char('`'));
+        Assert.assertFalse(LongEncoding.validB64Char('!'));
+        Assert.assertFalse(LongEncoding.validB64Char('@'));
+        Assert.assertFalse(LongEncoding.validB64Char('#'));
+        Assert.assertFalse(LongEncoding.validB64Char('$'));
+        Assert.assertFalse(LongEncoding.validB64Char('%'));
+        Assert.assertFalse(LongEncoding.validB64Char('^'));
+        Assert.assertFalse(LongEncoding.validB64Char('&'));
+        Assert.assertFalse(LongEncoding.validB64Char('*'));
+        Assert.assertFalse(LongEncoding.validB64Char('('));
+        Assert.assertFalse(LongEncoding.validB64Char(')'));
+        Assert.assertFalse(LongEncoding.validB64Char('-'));
+        Assert.assertFalse(LongEncoding.validB64Char('+'));
+        Assert.assertFalse(LongEncoding.validB64Char('='));
+        Assert.assertFalse(LongEncoding.validB64Char('['));
+        Assert.assertFalse(LongEncoding.validB64Char(']'));
+        Assert.assertFalse(LongEncoding.validB64Char('{'));
+        Assert.assertFalse(LongEncoding.validB64Char('}'));
+        Assert.assertFalse(LongEncoding.validB64Char('|'));
+        Assert.assertFalse(LongEncoding.validB64Char('\\'));
+        Assert.assertFalse(LongEncoding.validB64Char(';'));
+        Assert.assertFalse(LongEncoding.validB64Char(':'));
+        Assert.assertFalse(LongEncoding.validB64Char('\''));
+        Assert.assertFalse(LongEncoding.validB64Char('\"'));
+        Assert.assertFalse(LongEncoding.validB64Char('<'));
+        Assert.assertFalse(LongEncoding.validB64Char(','));
+        Assert.assertFalse(LongEncoding.validB64Char('>'));
+        Assert.assertFalse(LongEncoding.validB64Char('.'));
+        Assert.assertFalse(LongEncoding.validB64Char('?'));
+        Assert.assertFalse(LongEncoding.validB64Char('/'));
+        Assert.assertFalse(LongEncoding.validB64Char('\t'));
+        Assert.assertFalse(LongEncoding.validB64Char('\b'));
+    }
+
+    @Test
     public void testEncode() {
-        String val0 = LongEncoding.encode(0);
+        String val0 = LongEncoding.encodeB64(0);
         Assert.assertEquals("0", val0);
 
-        String val1 = LongEncoding.encode(1);
+        String val1 = LongEncoding.encodeB64(1);
         Assert.assertEquals("1", val1);
 
-        String val9 = LongEncoding.encode(9);
+        String val9 = LongEncoding.encodeB64(9);
         Assert.assertEquals("9", val9);
 
-        String val10 = LongEncoding.encode(10);
+        String val10 = LongEncoding.encodeB64(10);
         Assert.assertEquals("A", val10);
 
-        String val35 = LongEncoding.encode(35);
+        String val35 = LongEncoding.encodeB64(35);
         Assert.assertEquals("Z", val35);
 
-        String val36 = LongEncoding.encode(36);
+        String val36 = LongEncoding.encodeB64(36);
         Assert.assertEquals("_", val36);
 
-        String val37 = LongEncoding.encode(37);
+        String val37 = LongEncoding.encodeB64(37);
         Assert.assertEquals("a", val37);
 
-        String val62 = LongEncoding.encode(62);
+        String val62 = LongEncoding.encodeB64(62);
         Assert.assertEquals("z", val62);
 
-        String val63 = LongEncoding.encode(63);
+        String val63 = LongEncoding.encodeB64(63);
         Assert.assertEquals("~", val63);
     }
 
     @Test
     public void testEncodeWithMultiString() {
-        String val64 = LongEncoding.encode(64);
+        Assert.assertEquals("0", LongEncoding.encode(0L, "0123456789"));
+        Assert.assertEquals("1", LongEncoding.encode(1L, "0123456789"));
+        Assert.assertEquals("123", LongEncoding.encode(123L, "0123456789"));
+        Assert.assertEquals("13579", LongEncoding.encode(13579L, "0123456789"));
+        Assert.assertEquals("24680", LongEncoding.encode(24680L, "0123456789"));
+
+        String val64 = LongEncoding.encodeB64(64);
         Assert.assertEquals("10", val64);
 
-        String val65 = LongEncoding.encode(65);
+        String val65 = LongEncoding.encodeB64(65);
         Assert.assertEquals("11", val65);
 
-        String val99 = LongEncoding.encode(99);
+        String val99 = LongEncoding.encodeB64(99);
         Assert.assertEquals("1Z", val99);
 
-        String val100 = LongEncoding.encode(100);
+        String val100 = LongEncoding.encodeB64(100);
         Assert.assertEquals("1_", val100);
 
-        String val126 = LongEncoding.encode(126);
+        String val126 = LongEncoding.encodeB64(126);
         Assert.assertEquals("1z", val126);
 
-        String val127 = LongEncoding.encode(127);
+        String val127 = LongEncoding.encodeB64(127);
         Assert.assertEquals("1~", val127);
 
-        String val128 = LongEncoding.encode(128);
+        String val128 = LongEncoding.encodeB64(128);
         Assert.assertEquals("20", val128);
 
-        String val200 = LongEncoding.encode(200);
+        String val200 = LongEncoding.encodeB64(200);
         Assert.assertEquals("38", val200);
 
-        String val1000 = LongEncoding.encode(1000);
+        String val1000 = LongEncoding.encodeB64(1000);
         Assert.assertEquals("Fd", val1000);
 
-        String val1234 = LongEncoding.encode(1234);
+        String val1234 = LongEncoding.encodeB64(1234);
         Assert.assertEquals("JI", val1234);
 
-        String val10000 = LongEncoding.encode(10000);
+        String val10000 = LongEncoding.encodeB64(10000);
         Assert.assertEquals("2SG", val10000);
 
-        String val12345 = LongEncoding.encode(12345);
+        String val12345 = LongEncoding.encodeB64(12345);
         Assert.assertEquals("30u", val12345);
 
-        String val22345 = LongEncoding.encode(22345);
+        String val22345 = LongEncoding.encodeB64(22345);
         Assert.assertEquals("5T9", val22345);
 
-        String val92345 = LongEncoding.encode(92345);
+        String val92345 = LongEncoding.encodeB64(92345);
         Assert.assertEquals("MYu", val92345);
 
-        String val12345678 = LongEncoding.encode(12345678);
+        String val12345678 = LongEncoding.encodeB64(12345678);
         Assert.assertEquals("k65E", val12345678);
 
-        String val112345678 = LongEncoding.encode(112345678);
+        String val112345678 = LongEncoding.encodeB64(112345678);
         Assert.assertEquals("6h_9E", val112345678);
 
-        String valIntMax = LongEncoding.encode(Integer.MAX_VALUE);
+        String valIntMax = LongEncoding.encodeB64(Integer.MAX_VALUE);
         Assert.assertEquals("1~~~~~", valIntMax);
 
-        String valLongMax = LongEncoding.encode(Long.MAX_VALUE);
+        String valLongMax = LongEncoding.encodeB64(Long.MAX_VALUE);
         Assert.assertEquals("7~~~~~~~~~~", valLongMax);
     }
 
     @Test
-    public void testEncodeNegative() {
+    public void testEncodeWithError() {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
-            LongEncoding.encode(-1);
+            LongEncoding.encode(1, "");
+        }, e -> {
+            Assert.assertEquals("The symbols parameter can't be empty",
+                                e.getMessage());
         });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
-            LongEncoding.encode(Long.MIN_VALUE);
+            LongEncoding.encode(-1, "");
+        }, e -> {
+            Assert.assertContains("Expected non-negative number",
+                                  e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            LongEncoding.encodeB64(-1);
+        }, e -> {
+            Assert.assertContains("Expected non-negative number",
+                                  e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            LongEncoding.encodeB64(Long.MIN_VALUE);
+        }, e -> {
+            Assert.assertContains("Expected non-negative number",
+                                  e.getMessage());
         });
     }
 
     @Test
     public void testDecode() {
-        long valEmpty = LongEncoding.decode("");
+        long valEmpty = LongEncoding.decodeB64("");
         Assert.assertEquals(0, valEmpty);
 
-        long val0 = LongEncoding.decode("0");
+        long val0 = LongEncoding.decodeB64("0");
         Assert.assertEquals(0, val0);
 
-        long val1 = LongEncoding.decode("1");
+        long val1 = LongEncoding.decodeB64("1");
         Assert.assertEquals(1, val1);
 
-        long val9 = LongEncoding.decode("9");
+        long val9 = LongEncoding.decodeB64("9");
         Assert.assertEquals(9, val9);
 
-        long val10 = LongEncoding.decode("A");
+        long val10 = LongEncoding.decodeB64("A");
         Assert.assertEquals(10, val10);
 
-        long val35 = LongEncoding.decode("Z");
+        long val35 = LongEncoding.decodeB64("Z");
         Assert.assertEquals(35, val35);
 
-        long val36 = LongEncoding.decode("_");
+        long val36 = LongEncoding.decodeB64("_");
         Assert.assertEquals(36, val36);
 
-        long val37 = LongEncoding.decode("a");
+        long val37 = LongEncoding.decodeB64("a");
         Assert.assertEquals(37, val37);
 
-        long val62 = LongEncoding.decode("z");
+        long val62 = LongEncoding.decodeB64("z");
         Assert.assertEquals(62, val62);
 
-        long val63 = LongEncoding.decode("~");
+        long val63 = LongEncoding.decodeB64("~");
         Assert.assertEquals(63, val63);
     }
 
     @Test
     public void testDecodeWithMultiString() {
-        long val64 = LongEncoding.decode("10");
+        Assert.assertEquals(0L, LongEncoding.decode("0", "0123456789"));
+        Assert.assertEquals(1L, LongEncoding.decode("1", "0123456789"));
+        Assert.assertEquals(123L, LongEncoding.decode("123", "0123456789"));
+        Assert.assertEquals(13579L, LongEncoding.decode("13579", "0123456789"));
+        Assert.assertEquals(24680L, LongEncoding.decode("24680", "0123456789"));
+
+        long val64 = LongEncoding.decodeB64("10");
         Assert.assertEquals(64, val64);
 
-        long val65 = LongEncoding.decode("11");
+        long val65 = LongEncoding.decodeB64("11");
         Assert.assertEquals(65, val65);
 
-        long val99 = LongEncoding.decode("1Z");
+        long val99 = LongEncoding.decodeB64("1Z");
         Assert.assertEquals(99, val99);
 
-        long val100 = LongEncoding.decode("1_");
+        long val100 = LongEncoding.decodeB64("1_");
         Assert.assertEquals(100, val100);
 
-        long val126 = LongEncoding.decode("1z");
+        long val126 = LongEncoding.decodeB64("1z");
         Assert.assertEquals(126, val126);
 
-        long val127 = LongEncoding.decode("1~");
+        long val127 = LongEncoding.decodeB64("1~");
         Assert.assertEquals(127, val127);
 
-        long val128 = LongEncoding.decode("20");
+        long val128 = LongEncoding.decodeB64("20");
         Assert.assertEquals(128, val128);
 
-        long val200 = LongEncoding.decode("38");
+        long val200 = LongEncoding.decodeB64("38");
         Assert.assertEquals(200, val200);
 
-        long val1000 = LongEncoding.decode("Fd");
+        long val1000 = LongEncoding.decodeB64("Fd");
         Assert.assertEquals(1000, val1000);
 
-        long val1234 = LongEncoding.decode("JI");
+        long val1234 = LongEncoding.decodeB64("JI");
         Assert.assertEquals(1234, val1234);
 
-        long val10000 = LongEncoding.decode("2SG");
+        long val10000 = LongEncoding.decodeB64("2SG");
         Assert.assertEquals(10000, val10000);
 
-        long val12345 = LongEncoding.decode("30u");
+        long val12345 = LongEncoding.decodeB64("30u");
         Assert.assertEquals(12345, val12345);
 
-        long val22345 = LongEncoding.decode("5T9");
+        long val22345 = LongEncoding.decodeB64("5T9");
         Assert.assertEquals(22345, val22345);
 
-        long val92345 = LongEncoding.decode("MYu");
+        long val92345 = LongEncoding.decodeB64("MYu");
         Assert.assertEquals(92345, val92345);
 
-        long val12345678 = LongEncoding.decode("k65E");
+        long val12345678 = LongEncoding.decodeB64("k65E");
         Assert.assertEquals(12345678, val12345678);
 
-        long val112345678 = LongEncoding.decode("6h_9E");
+        long val112345678 = LongEncoding.decodeB64("6h_9E");
         Assert.assertEquals(112345678, val112345678);
 
-        long valIntMax = LongEncoding.decode("1~~~~~");
+        long valIntMax = LongEncoding.decodeB64("1~~~~~");
         Assert.assertEquals(Integer.MAX_VALUE, valIntMax);
 
-        long valLongMax = LongEncoding.decode("7~~~~~~~~~~");
+        long valLongMax = LongEncoding.decodeB64("7~~~~~~~~~~");
         Assert.assertEquals(Long.MAX_VALUE, valLongMax);
+    }
+
+    @Test
+    public void testDecodeWithError() {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            LongEncoding.decode("1", "");
+        }, e -> {
+            Assert.assertEquals("The symbols parameter can't be empty",
+                                e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            LongEncoding.decode("1a", "0123456789");
+        }, e -> {
+            Assert.assertEquals("Can't decode symbol 'a' in string '1a'",
+                                e.getMessage());
+        });
+    }
+
+    @Test
+    public void testEncodeSignedB64() {
+        String val1234 = LongEncoding.encodeSignedB64(1234);
+        Assert.assertEquals("JI", val1234);
+
+        String val23 = LongEncoding.encodeSignedB64(23);
+        Assert.assertEquals("N", val23);
+
+        String valIntMax = LongEncoding.encodeSignedB64(Integer.MAX_VALUE);
+        Assert.assertEquals("1~~~~~", valIntMax);
+
+        String valLongMax = LongEncoding.encodeSignedB64(Long.MAX_VALUE);
+        Assert.assertEquals("7~~~~~~~~~~", valLongMax);
+
+        String val0 = LongEncoding.encodeSignedB64(0);
+        Assert.assertEquals("0", val0);
+
+        String valNeg1 = LongEncoding.encodeSignedB64(-1);
+        Assert.assertEquals("-1", valNeg1);
+
+        String valIntMinP1 = LongEncoding.encodeSignedB64(Integer.MIN_VALUE +
+                                                          1L);
+        Assert.assertEquals("-1~~~~~", valIntMinP1);
+
+        String valIntMin = LongEncoding.encodeSignedB64(Integer.MIN_VALUE);
+        Assert.assertEquals("-200000", valIntMin);
+
+        String valLongMinPlus1 = LongEncoding.encodeSignedB64(Long.MIN_VALUE +
+                                                              1L);
+        Assert.assertEquals("-7~~~~~~~~~~", valLongMinPlus1);
+
+        String valLongMin = LongEncoding.encodeSignedB64(Long.MIN_VALUE);
+        Assert.assertEquals("-80000000000", valLongMin);
+    }
+
+    @Test
+    public void testDecodeSignedB64() {
+        long val1234 = LongEncoding.decodeSignedB64("JI");
+        Assert.assertEquals(1234, val1234);
+
+        long val23 = LongEncoding.decodeSignedB64("N");
+        Assert.assertEquals(23, val23);
+
+        long valIntMax = LongEncoding.decodeSignedB64("1~~~~~");
+        Assert.assertEquals(Integer.MAX_VALUE, valIntMax);
+
+        long valLongMax = LongEncoding.decodeSignedB64("7~~~~~~~~~~");
+        Assert.assertEquals(Long.MAX_VALUE, valLongMax);
+
+        long val0 = LongEncoding.decodeSignedB64("0");
+        Assert.assertEquals(0, val0);
+
+        long valn1 = LongEncoding.decodeSignedB64("-1");
+        Assert.assertEquals(-1, valn1);
+
+        long valIntMinPlus1 = LongEncoding.decodeSignedB64("-1~~~~~");
+        Assert.assertEquals(Integer.MIN_VALUE + 1L, valIntMinPlus1);
+
+        long valIntMin = LongEncoding.decodeSignedB64("-200000");
+        Assert.assertEquals(Integer.MIN_VALUE, valIntMin);
+
+        long valLongMinPlus1 = LongEncoding.decodeSignedB64("-7~~~~~~~~~~");
+        Assert.assertEquals(Long.MIN_VALUE + 1L, valLongMinPlus1);
+
+        long valLongMin = LongEncoding.decodeSignedB64("-80000000000");
+        Assert.assertEquals(Long.MIN_VALUE, valLongMin);
+    }
+
+    @Test
+    public void testDecodeSignedB64Overflow() {
+        long valOverflow = LongEncoding.decodeSignedB64("80000000000");
+        Assert.assertEquals(Long.MIN_VALUE, valOverflow);
+
+        long valOverflow2 = LongEncoding.decodeSignedB64("80000000001");
+        Assert.assertEquals(Long.MIN_VALUE + 1L, valOverflow2);
+
+        long valOverflow3 = LongEncoding.decodeSignedB64("800000000001");
+        Assert.assertEquals(1L, valOverflow3);
+
+        long valOverflow4 = LongEncoding.decodeSignedB64("80000000000JI");
+        Assert.assertEquals(1234L, valOverflow4);
+
+        long valOverflow5 = LongEncoding.decodeSignedB64("80000000000N");
+        Assert.assertEquals(23L, valOverflow5);
+
+        long valOverflow6 = LongEncoding.decodeSignedB64("80000000000" +
+                                                         "7~~~~~~~~~~");
+        Assert.assertEquals(Long.MAX_VALUE, valOverflow6);
     }
 
     @Test

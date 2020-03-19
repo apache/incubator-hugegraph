@@ -37,7 +37,7 @@ public class FileKeyStoreParam extends AbstractKeyStoreParam {
     private String keyPwd;
     private String storePwd;
 
-    public FileKeyStoreParam(Class clazz, String resource, String alias,
+    public FileKeyStoreParam(Class<?> clazz, String resource, String alias,
                              String storePwd, String keyPwd) {
         super(clazz, resource);
         this.storePath = resource;

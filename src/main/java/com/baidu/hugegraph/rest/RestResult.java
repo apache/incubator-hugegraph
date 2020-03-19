@@ -66,6 +66,7 @@ public class RestResult {
         }
     }
 
+    @SuppressWarnings("deprecation")
     public <T> List<T> readList(String key, Class<T> clazz) {
         try {
             JsonNode root = mapper.readTree(this.content);
@@ -84,6 +85,7 @@ public class RestResult {
         }
     }
 
+    @SuppressWarnings("deprecation")
     public <T> List<T> readList(Class<T> clazz) {
         JavaType type = mapper.getTypeFactory()
                               .constructParametrizedType(ArrayList.class,
