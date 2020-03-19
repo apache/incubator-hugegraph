@@ -5,9 +5,7 @@
 # timeout in ms of gremlin query
 scriptEvaluationTimeout: 30000
 
-# If you want to start gremlin-server for gremlin-console(web-socket),
-# please change `HttpChannelizer` to `WebSocketChannelizer` or comment this line.
-channelizer: org.apache.tinkerpop.gremlin.server.channel.HttpChannelizer
+channelizer: org.apache.tinkerpop.gremlin.server.channel.WsAndHttpChannelizer
 graphs: {
   hugegraph: conf/hugegraph.properties
 }
