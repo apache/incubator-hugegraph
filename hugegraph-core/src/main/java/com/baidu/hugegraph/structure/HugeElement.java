@@ -122,7 +122,7 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
 
     public Map<Id, HugeProperty<?>> getFilledProperties() {
         this.ensureFilledProperties(true);
-        return Collections.unmodifiableMap(this.properties);
+        return this.getProperties();
     }
 
     public Map<Id, Object> getPropertiesMap() {

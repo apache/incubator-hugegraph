@@ -143,6 +143,14 @@ public class CoreOptions extends OptionHolder {
                     false
             );
 
+    public static final ConfigOption<Boolean> VERTEX_ADJACENT_VERTEX_EXIST =
+            new ConfigOption<>(
+                    "vertex.check_adjacent_vertex_exist",
+                    "Whether to check the adjacent vertices of edges exist",
+                    disallowEmpty(),
+                    false
+            );
+
     public static final ConfigOption<Integer> QUERY_BATCH_SIZE =
             new ConfigOption<>(
                     "query.batch_size",

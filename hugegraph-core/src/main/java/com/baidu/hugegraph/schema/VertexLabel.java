@@ -34,8 +34,10 @@ import com.baidu.hugegraph.type.define.IdStrategy;
 
 public class VertexLabel extends SchemaLabel {
 
-    public static final VertexLabel NONE =
-                        new VertexLabel(null, IdGenerator.of(0), "");
+    private static final Id ZERO = IdGenerator.of(0L);
+    private static final String UNDEF = "~undefined";
+
+    public static final VertexLabel NONE = new VertexLabel(null, ZERO, UNDEF);
 
     private IdStrategy idStrategy;
     private List<Id> primaryKeys;
@@ -69,6 +71,14 @@ public class VertexLabel extends SchemaLabel {
 
     public void primaryKeys(Id... ids) {
         this.primaryKeys.addAll(Arrays.asList(ids));
+    }
+
+    public boolean undefined() {
+        return this.id() == ZERO && this.name() == UNDEF;
+    }
+
+    public static VertexLabel undefined(HugeGraph graph) {
+        return new VertexLabel(graph, ZERO, UNDEF);
     }
 
     public interface Builder extends SchemaBuilder<VertexLabel> {
