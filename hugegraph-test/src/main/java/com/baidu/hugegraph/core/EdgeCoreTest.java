@@ -51,6 +51,7 @@ import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.page.PageInfo;
+import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
@@ -1009,17 +1010,39 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         List<Edge> edges = graph.traversal().E().hasLabel("know").toList();
         Assert.assertEquals(1, edges.size());
-        Object id = edges.get(0).id();
+        HugeEdge edge = (HugeEdge) edges.get(0);
+        Id id = edge.id();
+        Id know = edge.schemaLabel().id();
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.traversal().E().hasLabel("know").has("ID", id).toList();
+        }, e -> {
+            Assert.assertContains("Undefined property key: 'ID'",
+                                  e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.traversal().E().hasLabel("know").has("NAME", "n1").toList();
+        }, e -> {
+            Assert.assertContains("Undefined property key: 'NAME'",
+                                  e.getMessage());
+        });
 
         Assert.assertThrows(HugeException.class, () -> {
-            graph.traversal().E().hasLabel("know").has("ID", id).toList();
+            ConditionQuery query = new ConditionQuery(HugeType.EDGE);
+            query.eq(HugeKeys.LABEL, know);
+            query.query(id);
+            graph.edges(query).hasNext();
         }, e -> {
             Assert.assertContains("Not supported querying by id and conditions",
                                   e.getMessage());
         });
 
         Assert.assertThrows(HugeException.class, () -> {
-            graph.traversal().E().hasLabel("know").has("NAME", "n1").toList();
+            ConditionQuery query = new ConditionQuery(HugeType.EDGE);
+            query.eq(HugeKeys.LABEL, know);
+            query.eq(HugeKeys.NAME, "n1");
+            graph.edges(query).hasNext();
         }, e -> {
             Assert.assertContains("Not supported querying edges by",
                                   e.getMessage());
@@ -1027,8 +1050,11 @@ public class EdgeCoreTest extends BaseCoreTest {
         });
 
         Assert.assertThrows(HugeException.class, () -> {
-            graph.traversal().E().hasLabel("know").has("NAME", "n2")
-                                                  .has("name", "").toList();
+            ConditionQuery query = new ConditionQuery(HugeType.EDGE);
+            query.eq(HugeKeys.LABEL, know);
+            query.eq(HugeKeys.NAME, "n2");
+            query.query(Condition.eq(IdGenerator.of("fake"), "n3"));
+            graph.edges(query).hasNext();
         }, e -> {
             Assert.assertContains("Can't do index query with [LABEL ==",
                                   e.getMessage());

@@ -47,9 +47,11 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.Id.IdType;
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.id.SnowflakeIdGenerator;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.page.PageInfo;
+import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
@@ -1122,16 +1124,38 @@ public class VertexCoreTest extends BaseCoreTest {
         List<Vertex> vertices = graph.traversal().V().hasLabel("author")
                                                      .has("id", 1).toList();
         Assert.assertEquals(1, vertices.size());
+        Vertex vertex = vertices.get(0);
+        Id author = graph.vertexLabel(vertex.label()).id();
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.traversal().V().hasLabel("author").has("ID", 1).toList();
+        }, e -> {
+            Assert.assertContains("Undefined property key: 'ID'",
+                                  e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.traversal().V().hasLabel("author").has("NAME", "n1").toList();
+        }, e -> {
+            Assert.assertContains("Undefined property key: 'NAME'",
+                                  e.getMessage());
+        });
 
         Assert.assertThrows(HugeException.class, () -> {
-            graph.traversal().V().hasLabel("author").has("ID", 1).toList();
+            ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
+            query.eq(HugeKeys.LABEL, author);
+            query.query((Id) vertex.id());
+            graph.vertices(query).hasNext();
         }, e -> {
             Assert.assertContains("Not supported querying by id and conditions",
                                   e.getMessage());
         });
 
         Assert.assertThrows(HugeException.class, () -> {
-            graph.traversal().V().hasLabel("author").has("NAME", "n1").toList();
+            ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
+            query.eq(HugeKeys.LABEL, author);
+            query.eq(HugeKeys.NAME, "n1");
+            graph.vertices(query).hasNext();
         }, e -> {
             Assert.assertContains("Not supported querying vertices by",
                                   e.getMessage());
@@ -1139,8 +1163,11 @@ public class VertexCoreTest extends BaseCoreTest {
         });
 
         Assert.assertThrows(HugeException.class, () -> {
-            graph.traversal().V().hasLabel("author").has("NAME", "n2")
-                                                    .has("name", "").toList();
+            ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
+            query.eq(HugeKeys.LABEL, author);
+            query.eq(HugeKeys.NAME, "n2");
+            query.query(Condition.eq(IdGenerator.of("fake"), "n3"));
+            graph.vertices(query).hasNext();
         }, e -> {
             Assert.assertContains("Can't do index query with [LABEL ==",
                                   e.getMessage());
