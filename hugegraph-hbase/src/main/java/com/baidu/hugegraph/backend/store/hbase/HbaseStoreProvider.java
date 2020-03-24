@@ -61,7 +61,7 @@ public class HbaseStoreProvider extends AbstractBackendStoreProvider {
          * [1.7] #746: support userdata for indexlabel
          * [1.8] #820: store vertex properties in one column
          * [1.9] #894: encode label id in string index
-         * [1.10] #295: support ttl for edge label
+         * [1.10] #295: support ttl
          */
         return "1.10";
     }

@@ -116,6 +116,28 @@ public class HbaseTables {
         public Vertex(String store) {
             super(joinTableName(store, TABLE));
         }
+
+        @Override
+        public void insert(Session session, BackendEntry entry) {
+            Collection<BackendColumn> columns = entry.columns();
+            assert columns.size() == 1;
+            BackendColumn col = columns.iterator().next();
+            E.checkArgument(col.name.length == 0,
+                            "Expect empty column name, " +
+                            "please ensure hbase serializer is used");
+            long expiredTime = BytesBuffer.wrap(col.value).readVLong();
+            if (expiredTime == 0) {
+                session.put(this.table(), CF, entry.id().asBytes(),
+                            entry.columns());
+            } else {
+                long ttl = expiredTime - DateUtil.now().getTime();
+                if (ttl <= 0) {
+                    return;
+                }
+                session.put(this.table(), CF, entry.id().asBytes(),
+                            entry.columns(), ttl);
+            }
+        }
     }
 
     public static class Edge extends HbaseTable {
@@ -184,7 +206,7 @@ public class HbaseTables {
     public static class IndexTable extends HbaseTable {
 
         private static final long INDEX_DELETE_BATCH = Query.COMMIT_BATCH;
-        protected HugeType type;
+        protected final HugeType type;
 
         public IndexTable(String table, HugeType type) {
             super(table);

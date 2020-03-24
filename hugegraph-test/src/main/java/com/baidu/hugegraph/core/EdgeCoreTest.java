@@ -185,8 +185,8 @@ public class EdgeCoreTest extends BaseCoreTest {
               .enableLabelIndex(false)
               .ifNotExist().create();
         schema.edgeLabel("read").link("person", "book")
-              .ttl(3000L)
               .properties("place", "date")
+              .ttl(3000L)
               .enableLabelIndex(true)
               .ifNotExist()
               .create();

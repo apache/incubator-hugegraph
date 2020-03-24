@@ -72,6 +72,7 @@ import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.CollectionUtil;
+import com.baidu.hugegraph.util.DateUtil;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
@@ -132,6 +133,19 @@ public class VertexCoreTest extends BaseCoreTest {
               .properties("id", "comment", "contribution")
               .primaryKeys("id")
               .nullableKeys("comment", "contribution")
+              .create();
+        schema.vertexLabel("fan")
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .ttl(3000L)
+              .ifNotExist()
+              .create();
+        schema.vertexLabel("follower")
+              .properties("name", "age", "city", "birth")
+              .primaryKeys("name")
+              .ttl(3000L)
+              .ttlStartTime("birth")
+              .ifNotExist()
               .create();
     }
 
@@ -850,6 +864,868 @@ public class VertexCoreTest extends BaseCoreTest {
 
         long count = graph.traversal().V().count().next();
         Assert.assertEquals(2, count);
+    }
+
+    @Test
+    public void testAddVertexWithTtl() {
+        Vertex vertex = graph().addVertex(T.label, "fan", "name", "Baby",
+                                          "age", 3, "city", "Beijing");
+        graph().tx().commit();
+
+        Iterator<Vertex> vertices = graph().vertices(vertex);
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(vertex, vertices.next());
+
+        try {
+            Thread.sleep(3000L);
+        } catch (InterruptedException e) {
+            // Ignore
+        }
+        vertices = graph().vertices(vertex);
+        Assert.assertFalse(vertices.hasNext());
+    }
+
+    @Test
+    public void testAddVertexWithTtlAndTtlStartTime() {
+        Vertex vertex = graph().addVertex(
+                        T.label, "follower", "name",
+                        "Baby", "age", 3, "city", "Beijing",
+                        "birth", DateUtil.now().getTime() - 1000);
+        graph().tx().commit();
+
+        Iterator<Vertex> vertices = graph().vertices(vertex);
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(vertex, vertices.next());
+
+        try {
+            Thread.sleep(1000L);
+        } catch (InterruptedException e) {
+            // Ignore
+        }
+        vertices = graph().vertices(vertex);
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(vertex, vertices.next());
+
+        try {
+            Thread.sleep(1000L);
+        } catch (InterruptedException e) {
+            // Ignore
+        }
+        vertices = graph().vertices(vertex);
+        Assert.assertFalse(vertices.hasNext());
+    }
+
+    @Test
+    public void testAddVertexWithSecondaryIndexAndTtl() {
+        graph().schema().indexLabel("fanByCity").onV("fan").by("city")
+               .secondary().ifNotExist().create();
+
+        Vertex vertex = graph().addVertex(T.label, "fan", "name", "Baby",
+                                          "age", 3, "city", "Beijing");
+        graph().tx().commit();
+
+        Iterator<Vertex> vertices = graph().traversal().V()
+                                           .has("city", "Beijing");
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(vertex, vertices.next());
+
+        try {
+            Thread.sleep(3000L);
+        } catch (InterruptedException e) {
+            // Ignore
+        }
+
+        vertices = graph().traversal().V().has("city", "Beijing");
+        Assert.assertFalse(vertices.hasNext());
+    }
+
+    @Test
+    public void testAddVertexWithRangeIndexAndTtl() {
+        graph().schema().indexLabel("fanByAge").onV("fan").by("age")
+               .range().ifNotExist().create();
+
+        Vertex vertex1 = graph().addVertex(T.label, "fan", "name", "Baby1",
+                                           "age", 3, "city", "Beijing");
+        Vertex vertex2 = graph().addVertex(T.label, "fan", "name", "Baby2",
+                                           "age", 4, "city", "Beijing");
+        Vertex vertex3 = graph().addVertex(T.label, "fan", "name", "Baby3",
+                                           "age", 5, "city", "Beijing");
+        Vertex vertex4 = graph().addVertex(T.label, "fan", "name", "Baby4",
+                                           "age", 6, "city", "Beijing");
+        Vertex vertex5 = graph().addVertex(T.label, "fan", "name", "Baby5",
+                                           "age", 7, "city", "Beijing");
+        graph().tx().commit();
+
+        Iterator<Vertex> vertices = graph().traversal().V().has("age", 5);
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(vertex3, vertices.next());
+
+        vertices = graph().traversal().V().has("age", P.gt(6));
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(vertex5, vertices.next());
+
+        vertices = graph().traversal().V().has("age", P.gte(6));
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(2, IteratorUtils.count(vertices));
+
+        vertices = graph().traversal().V().has("age", P.lt(4));
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(vertex1, vertices.next());
+
+        vertices = graph().traversal().V().has("age", P.lte(4));
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(2, IteratorUtils.count(vertices));
+
+        try {
+            Thread.sleep(3000L);
+        } catch (InterruptedException e) {
+            // Ignore
+        }
+
+        vertices = graph().traversal().V().has("age", 5);
+        Assert.assertFalse(vertices.hasNext());
+
+        vertices = graph().traversal().V().has("age", P.gt(6));
+        Assert.assertFalse(vertices.hasNext());
+
+        vertices = graph().traversal().V().has("age", P.gte(6));
+        Assert.assertFalse(vertices.hasNext());
+
+        vertices = graph().traversal().V().has("age", P.lt(4));
+        Assert.assertFalse(vertices.hasNext());
+
+        vertices = graph().traversal().V().has("age", P.lte(4));
+        Assert.assertFalse(vertices.hasNext());
+    }
+
+    @Test
+    public void testAddVertexWithShardIndexAndTtl() {
+        graph().schema().indexLabel("fanByCityAndAge").onV("fan")
+               .by("city", "age").shard().ifNotExist().create();
+
+        Vertex vertex1 = graph().addVertex(T.label, "fan", "name", "Baby1",
+                                           "age", 3, "city", "Beijing");
+        Vertex vertex2 = graph().addVertex(T.label, "fan", "name", "Baby2",
+                                           "age", 4, "city", "Beijing");
+        Vertex vertex3 = graph().addVertex(T.label, "fan", "name", "Baby3",
+                                           "age", 5, "city", "Beijing");
+        Vertex vertex4 = graph().addVertex(T.label, "fan", "name", "Baby4",
+                                           "age", 6, "city", "Beijing");
+        Vertex vertex5 = graph().addVertex(T.label, "fan", "name", "Baby5",
+                                           "age", 7, "city", "Beijing");
+        Vertex vertex6 = graph().addVertex(T.label, "fan", "name", "Baby6",
+                                           "age", 5, "city", "Shanghai");
+        graph().tx().commit();
+
+        Iterator<Vertex> vertices = graph().traversal().V().has("city",
+                                                                "Shanghai");
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(vertex6, vertices.next());
+
+        vertices = graph().traversal().V().has("city", "Beijing")
+                          .has("age", 5);
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(vertex3, vertices.next());
+
+        vertices = graph().traversal().V().has("city", "Beijing")
+                          .has("age", P.gt(6));
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(vertex5, vertices.next());
+
+        vertices = graph().traversal().V().has("city", "Beijing")
+                          .has("age", P.gte(6));
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(2, IteratorUtils.count(vertices));
+
+        vertices = graph().traversal().V().has("city", "Beijing")
+                          .has("age", P.lt(4));
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(vertex1, vertices.next());
+
+        vertices = graph().traversal().V().has("city", "Beijing")
+                          .has("age", P.lte(4));
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(2, IteratorUtils.count(vertices));
+
+        try {
+            Thread.sleep(3000L);
+        } catch (InterruptedException e) {
+            // Ignore
+        }
+
+        vertices = graph().traversal().V().has("city", "Shanghai");
+        Assert.assertFalse(vertices.hasNext());
+
+        vertices = graph().traversal().V().has("city", "Beijing")
+                          .has("age", 5);
+        Assert.assertFalse(vertices.hasNext());
+
+        vertices = graph().traversal().V().has("city", "Beijing")
+                          .has("age", P.gt(6));
+        Assert.assertFalse(vertices.hasNext());
+
+        vertices = graph().traversal().V().has("city", "Beijing")
+                          .has("age", P.gte(6));
+        Assert.assertFalse(vertices.hasNext());
+
+        vertices = graph().traversal().V().has("city", "Beijing")
+                          .has("age", P.lt(4));
+        Assert.assertFalse(vertices.hasNext());
+
+        vertices = graph().traversal().V().has("city", "Beijing")
+                          .has("age", P.lte(4));
+        Assert.assertFalse(vertices.hasNext());
+    }
+
+    @Test
+    public void testAddVertexWithSearchIndexAndTtl() {
+        graph().schema().indexLabel("fanByCity").onV("fan")
+               .by("city").search().ifNotExist().create();
+
+        Vertex vertex = graph().addVertex(T.label, "fan", "name", "Baby",
+                                        "age", 3, "city", "Beijing Haidian");
+        graph().tx().commit();
+
+        Iterator<Vertex> vertices = graph().traversal().V().has(
+                                    "city", Text.contains("Haidian"));
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(vertex, vertices.next());
+
+        try {
+            Thread.sleep(3000L);
+        } catch (InterruptedException e) {
+            // Ignore
+        }
+
+        vertices = graph().traversal().V().has("city",
+                                               Text.contains("Haidian"));
+        Assert.assertFalse(vertices.hasNext());
+    }
+
+    @Test
+    public void testAddVertexWithUniqueIndexAndTtl() {
+        graph().schema().indexLabel("fanByCity").onV("fan")
+               .by("city").unique().ifNotExist().create();
+
+        graph().addVertex(T.label, "fan", "name", "Baby",
+                          "age", 3, "city", "Beijing");
+        graph().tx().commit();
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph().addVertex(T.label, "fan", "name", "Baby2",
+                              "age", 3, "city", "Beijing");
+            graph().tx().commit();
+        });
+
+        try {
+            Thread.sleep(3000L);
+        } catch (InterruptedException e) {
+            // Ignore
+        }
+
+        graph().addVertex(T.label, "fan", "name", "Baby2",
+                          "age", 3, "city", "Beijing");
+        graph().tx().commit();
+    }
+
+    @Test
+    public void testOverrideVertexWithSecondaryIndexAndTtl() {
+        graph().schema().indexLabel("fanByCity").onV("fan").by("city")
+               .secondary().ifNotExist().create();
+
+        Vertex vertex = graph().addVertex(T.label, "fan", "name", "Baby",
+                                          "age", 3, "city", "Beijing");
+        graph().tx().commit();
+
+        Iterator<Vertex> vertices = graph().traversal().V()
+                                           .has("city", "Beijing");
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(vertex, vertices.next());
+
+        try {
+            Thread.sleep(3000L);
+        } catch (InterruptedException e) {
+            // Ignore
+        }
+
+        // Override
+        vertex = graph().addVertex(T.label, "fan", "name", "Baby",
+                                   "age", 3, "city", "Shanghai");
+        graph().tx().commit();
+
+        // Due to overridden vertices are expired,
+        // query will lead to async delete
+        vertices = graph().traversal().V().has("city", "Beijing");
+        Assert.assertFalse(vertices.hasNext());
+
+        vertices = graph().traversal().V().has("city", "Shanghai");
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(vertex, vertices.next());
+
+        try {
+            Thread.sleep(3000L);
+        } catch (InterruptedException e) {
+            // Ignore
+        }
+
+        // All edges are expired after 6s
+        vertices = graph().traversal().V().has("city", "Beijing");
+        Assert.assertFalse(vertices.hasNext());
+        vertices = graph().traversal().V().has("city", "Shanghai");
+        Assert.assertFalse(vertices.hasNext());
+    }
+
+    @Test
+    public void testOverrideVertexWithRangeIndexAndTtl() {
+        graph().schema().indexLabel("fanByAge").onV("fan").by("age")
+               .range().ifNotExist().create();
+
+        Vertex vertex1 = graph().addVertex(T.label, "fan", "name", "Baby1",
+                                           "age", 3, "city", "Beijing");
+        Vertex vertex2 = graph().addVertex(T.label, "fan", "name", "Baby2",
+                                           "age", 5, "city", "Beijing");
+        Vertex vertex3 = graph().addVertex(T.label, "fan", "name", "Baby3",
+                                           "age", 7, "city", "Beijing");
+        Vertex vertex4 = graph().addVertex(T.label, "fan", "name", "Baby4",
+                                           "age", 9, "city", "Beijing");
+        Vertex vertex5 = graph().addVertex(T.label, "fan", "name", "Baby5",
+                                           "age", 11, "city", "Beijing");
+        graph().tx().commit();
+
+        Iterator<Vertex> vertices = graph().traversal().V().has("age", 7);
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(vertex3, vertices.next());
+
+        vertices = graph().traversal().V().has("age", P.gt(9));
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(vertex5, vertices.next());
+
+        vertices = graph().traversal().V().has("age", P.gte(9));
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(2, IteratorUtils.count(vertices));
+
+        vertices = graph().traversal().V().has("age", P.lt(5));
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(vertex1, vertices.next());
+
+        vertices = graph().traversal().V().has("age", P.lte(5));
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(2, IteratorUtils.count(vertices));
+
+        try {
+            Thread.sleep(3000L);
+        } catch (InterruptedException e) {
+            // Ignore
+        }
+
+        // Override
+        Vertex vertex6 = graph().addVertex(T.label, "fan", "name", "Baby6",
+                                           "age", 4, "city", "Beijing");
+        Vertex vertex7 = graph().addVertex(T.label, "fan", "name", "Baby7",
+                                           "age", 6, "city", "Beijing");
+        Vertex vertex8 = graph().addVertex(T.label, "fan", "name", "Baby8",
+                                           "age", 8, "city", "Beijing");
+        Vertex vertex9 = graph().addVertex(T.label, "fan", "name", "Baby9",
+                                           "age", 10, "city", "Beijing");
+        Vertex vertex10 = graph().addVertex(T.label, "fan", "name", "Baby10",
+                                            "age", 12, "city", "Beijing");
+        graph().tx().commit();
+        /*
+         * Due to overridden vertices are expired,
+         * query will lead to async delete
+         */
+        vertices = graph().traversal().V().has("age", 7);
+        Assert.assertFalse(vertices.hasNext());
+
+        vertices = graph().traversal().V().has("age", 8);
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(vertex8, vertices.next());
+
+        vertices = graph().traversal().V().has("age", P.gt(10));
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(vertex10, vertices.next());
+
+        vertices = graph().traversal().V().has("age", P.gte(10));
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(2, IteratorUtils.count(vertices));
+
+        vertices = graph().traversal().V().has("age", P.lt(6));
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(vertex6, vertices.next());
+
+        vertices = graph().traversal().V().has("age", P.lte(6));
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(2, IteratorUtils.count(vertices));
+
+        try {
+            Thread.sleep(3000L);
+        } catch (InterruptedException e) {
+            // Ignore
+        }
+
+        // All edges are expired after 6s
+        vertices = graph().traversal().V().has("age", 7);
+        Assert.assertFalse(vertices.hasNext());
+
+        vertices = graph().traversal().V().has("age", 8);
+        Assert.assertFalse(vertices.hasNext());
+
+        vertices = graph().traversal().V().has("age", P.gt(10));
+        Assert.assertFalse(vertices.hasNext());
+
+        vertices = graph().traversal().V().has("age", P.gte(10));
+        Assert.assertFalse(vertices.hasNext());
+
+        vertices = graph().traversal().V().has("age", P.lt(6));
+        Assert.assertFalse(vertices.hasNext());
+
+        vertices = graph().traversal().V().has("age", P.lte(6));
+        Assert.assertFalse(vertices.hasNext());
+    }
+
+    @Test
+    public void testOverrideVertexWithShardIndexAndTtl() {
+        graph().schema().indexLabel("fanByCityAndAge").onV("fan")
+               .by("city", "age").shard().ifNotExist().create();
+
+        Vertex vertex1 = graph().addVertex(T.label, "fan", "name", "Baby1",
+                                           "age", 1, "city", "Beijing");
+        Vertex vertex2 = graph().addVertex(T.label, "fan", "name", "Baby2",
+                                           "age", 3, "city", "Beijing");
+        Vertex vertex3 = graph().addVertex(T.label, "fan", "name", "Baby3",
+                                           "age", 5, "city", "Beijing");
+        Vertex vertex4 = graph().addVertex(T.label, "fan", "name", "Baby4",
+                                           "age", 7, "city", "Beijing");
+        Vertex vertex5 = graph().addVertex(T.label, "fan", "name", "Baby5",
+                                           "age", 9, "city", "Beijing");
+        Vertex vertex6 = graph().addVertex(T.label, "fan", "name", "Baby6",
+                                           "age", 5, "city", "Shanghai");
+        graph().tx().commit();
+
+        Iterator<Vertex> vertices = graph().traversal().V().has("city",
+                                                                "Shanghai");
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(vertex6, vertices.next());
+
+        vertices = graph().traversal().V().has("city", "Beijing")
+                          .has("age", 5);
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(vertex3, vertices.next());
+
+        vertices = graph().traversal().V().has("city", "Beijing")
+                          .has("age", P.gt(7));
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(vertex5, vertices.next());
+
+        vertices = graph().traversal().V().has("city", "Beijing")
+                          .has("age", P.gte(7));
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(2, IteratorUtils.count(vertices));
+
+        vertices = graph().traversal().V().has("city", "Beijing")
+                          .has("age", P.lt(3));
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(vertex1, vertices.next());
+
+        vertices = graph().traversal().V().has("city", "Beijing")
+                          .has("age", P.lte(3));
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(2, IteratorUtils.count(vertices));
+
+        try {
+            Thread.sleep(3000L);
+        } catch (InterruptedException e) {
+            // Ignore
+        }
+
+        Vertex vertex7 = graph().addVertex(T.label, "fan", "name", "Baby7",
+                                           "age", 2, "city", "Beijing");
+        Vertex vertex8 = graph().addVertex(T.label, "fan", "name", "Baby8",
+                                           "age", 4, "city", "Beijing");
+        Vertex vertex9 = graph().addVertex(T.label, "fan", "name", "Baby9",
+                                           "age", 6, "city", "Beijing");
+        Vertex vertex10 = graph().addVertex(T.label, "fan",
+                                            "name", "Baby10", "age", 8,
+                                            "city", "Beijing");
+        Vertex vertex11 = graph().addVertex(T.label, "fan",
+                                            "name", "Baby101", "age", 10,
+                                            "city", "Beijing");
+        Vertex vertex12 = graph().addVertex(T.label, "fan",
+                                            "name", "Baby12", "age", 6,
+                                            "city", "Shenzhen");
+        graph().tx().commit();
+
+        // Due to overridden vertices are expired, query will lead to async delete
+        vertices = graph().traversal().V().has("city", "Shanghai");
+        Assert.assertFalse(vertices.hasNext());
+
+        vertices = graph().traversal().V().has("city", "Shenzhen");
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(vertex12, vertices.next());
+
+        vertices = graph().traversal().V().has("city", "Beijing")
+                          .has("age", 5);
+        Assert.assertFalse(vertices.hasNext());
+
+        vertices = graph().traversal().V().has("city", "Beijing")
+                          .has("age", 6);
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(vertex9, vertices.next());
+
+        vertices = graph().traversal().V().has("city", "Beijing")
+                          .has("age", P.gt(8));
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(vertex11, vertices.next());
+
+        vertices = graph().traversal().V().has("city", "Beijing")
+                          .has("age", P.gte(8));
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(2, IteratorUtils.count(vertices));
+
+        vertices = graph().traversal().V().has("city", "Beijing")
+                          .has("age", P.lt(4));
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(vertex7, vertices.next());
+
+        vertices = graph().traversal().V().has("city", "Beijing")
+                          .has("age", P.lte(4));
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(2, IteratorUtils.count(vertices));
+
+        try {
+            Thread.sleep(3000L);
+        } catch (InterruptedException e) {
+            // Ignore
+        }
+
+        // All vertices are expired after 6s
+        vertices = graph().traversal().V().has("city", "Shanghai");
+        Assert.assertFalse(vertices.hasNext());
+
+        vertices = graph().traversal().V().has("city", "Shenzhen");
+        Assert.assertFalse(vertices.hasNext());
+
+        vertices = graph().traversal().V().has("city", "Beijing")
+                          .has("age", 5);
+        Assert.assertFalse(vertices.hasNext());
+
+        vertices = graph().traversal().V().has("city", "Beijing")
+                          .has("age", 6);
+        Assert.assertFalse(vertices.hasNext());
+
+        vertices = graph().traversal().V().has("city", "Beijing")
+                          .has("age", P.gt(8));
+        Assert.assertFalse(vertices.hasNext());
+
+        vertices = graph().traversal().V().has("city", "Beijing")
+                          .has("age", P.gte(8));
+        Assert.assertFalse(vertices.hasNext());
+
+        vertices = graph().traversal().V().has("city", "Beijing")
+                          .has("age", P.lt(4));
+        Assert.assertFalse(vertices.hasNext());
+
+        vertices = graph().traversal().V().has("city", "Beijing")
+                          .has("age", P.lte(4));
+        Assert.assertFalse(vertices.hasNext());
+    }
+
+    @Test
+    public void testOverrideVertexWithSearchIndexAndTtl() {
+        graph().schema().indexLabel("fanByCity").onV("fan")
+               .by("city").search().ifNotExist().create();
+
+        Vertex vertex = graph().addVertex(T.label, "fan", "name", "Baby1",
+                                          "age", 3, "city", "Beijing Haidian");
+        graph().tx().commit();
+
+        Iterator<Vertex> vertices = graph().traversal().V().has(
+                                    "city", Text.contains("Haidian"));
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(vertex, vertices.next());
+
+        try {
+            Thread.sleep(3000L);
+        } catch (InterruptedException e) {
+            // Ignore
+        }
+
+        vertex = graph().addVertex(T.label, "fan", "name", "Baby2",
+                                   "age", 3, "city", "Shanghai Pudong");
+        graph().tx().commit();
+
+        // Due to overridden vertices are expired, query will lead to async delete
+        vertices = graph().traversal().V().has("city",
+                                               Text.contains("Haidian"));
+        Assert.assertFalse(vertices.hasNext());
+
+        vertices = graph().traversal().V().has("city",
+                                               Text.contains("Pudong"));
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(vertex, vertices.next());
+
+        try {
+            Thread.sleep(3000L);
+        } catch (InterruptedException e) {
+            // Ignore
+        }
+
+        // All vertices are expired after 6s
+        vertices = graph().traversal().V().has("city",
+                                               Text.contains("Pudong"));
+        Assert.assertFalse(vertices.hasNext());
+    }
+
+    @Test
+    public void testQueryVertexWithTtlInTx() {
+        Vertex vertex1 = graph().addVertex(T.label, "fan", "name", "Baby1",
+                                           "age", 3, "city", "Beijing");
+        graph().tx().commit();
+        // Add vertices in tx
+        Vertex vertex2 = graph().addVertex(T.label, "fan", "name", "Baby2",
+                                           "age", 3, "city", "Beijing");
+
+        Iterator<Vertex> vertices = graph().vertices(vertex1);
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(vertex1, vertices.next());
+
+        vertices = graph().vertices(vertex2);
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(vertex2, vertices.next());
+
+        try {
+            Thread.sleep(3000L);
+        } catch (InterruptedException e) {
+            // Ignore
+        }
+
+        // All vertices are expired after 3s
+        vertices = graph().vertices(vertex1);
+        Assert.assertFalse(vertices.hasNext());
+
+        vertices = graph().vertices(vertex2);
+        Assert.assertFalse(vertices.hasNext());
+    }
+
+    @Test
+    public void testQueryVertexWithSecondaryIndexAndTtlInTx() {
+        graph().schema().indexLabel("fanByCity").onV("fan").by("city")
+               .secondary().ifNotExist().create();
+
+        graph().addVertex(T.label, "fan", "name", "Baby1",
+                          "age", 3, "city", "Beijing");
+        graph().tx().commit();
+        // Add vertices in tx
+        graph().addVertex(T.label, "fan", "name", "Baby2",
+                          "age", 3, "city", "Beijing");
+
+        Iterator<Vertex> vertices = graph().traversal().V()
+                                           .has("city", "Beijing");
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(2, IteratorUtils.count(vertices));
+
+        try {
+            Thread.sleep(3000L);
+        } catch (InterruptedException e) {
+            // Ignore
+        }
+
+        // All vertices are expired after 3s
+        vertices = graph().traversal().V().has("city", "Beijing");
+        Assert.assertFalse(vertices.hasNext());
+    }
+
+    @Test
+    public void testQueryVertexWithRangeIndexAndTtlInTx() {
+        graph().schema().indexLabel("fanByAge").onV("fan").by("age")
+               .range().ifNotExist().create();
+
+        graph().addVertex(T.label, "fan", "name", "Baby1",
+                          "age", 3, "city", "Beijing");
+        graph().addVertex(T.label, "fan", "name", "Baby2",
+                          "age", 4, "city", "Beijing");
+        graph().addVertex(T.label, "fan", "name", "Baby3",
+                          "age", 5, "city", "Beijing");
+        graph().addVertex(T.label, "fan", "name", "Baby4",
+                          "age", 6, "city", "Beijing");
+        graph().addVertex(T.label, "fan", "name", "Baby5",
+                          "age", 7, "city", "Beijing");
+        graph().tx().commit();
+
+        // Add vertices in tx
+        graph().addVertex(T.label, "fan", "name", "Baby6",
+                          "age", 3, "city", "Beijing");
+        graph().addVertex(T.label, "fan", "name", "Baby7",
+                          "age", 4, "city", "Beijing");
+        graph().addVertex(T.label, "fan", "name", "Baby8",
+                          "age", 5, "city", "Beijing");
+        graph().addVertex(T.label, "fan", "name", "Baby9",
+                          "age", 6, "city", "Beijing");
+        graph().addVertex(T.label, "fan", "name", "Baby10",
+                          "age", 7, "city", "Beijing");
+
+        Iterator<Vertex> vertices = graph().traversal().V().has("age", 5);
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(2, IteratorUtils.count(vertices));
+
+        vertices = graph().traversal().V().has("age", P.gt(6));
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(2, IteratorUtils.count(vertices));
+
+        vertices = graph().traversal().V().has("age", P.gte(6));
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(4, IteratorUtils.count(vertices));
+
+        vertices = graph().traversal().V().has("age", P.lt(4));
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(2, IteratorUtils.count(vertices));
+
+        vertices = graph().traversal().V().has("age", P.lte(4));
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(4, IteratorUtils.count(vertices));
+
+        try {
+            Thread.sleep(3000L);
+        } catch (InterruptedException e) {
+            // Ignore
+        }
+
+        // All vertices are expired after 3s
+        vertices = graph().traversal().V().has("age", 5);
+        Assert.assertFalse(vertices.hasNext());
+
+        vertices = graph().traversal().V().has("age", P.gt(6));
+        Assert.assertFalse(vertices.hasNext());
+
+        vertices = graph().traversal().V().has("age", P.gte(6));
+        Assert.assertFalse(vertices.hasNext());
+
+        vertices = graph().traversal().V().has("age", P.lt(4));
+        Assert.assertFalse(vertices.hasNext());
+
+        vertices = graph().traversal().V().has("age", P.lte(4));
+        Assert.assertFalse(vertices.hasNext());
+    }
+
+    @Test
+    public void testQueryVertexWithShardIndexAndTtlInTx() {
+        graph().schema().indexLabel("fanByCityAndAge").onV("fan")
+               .by("city", "age").shard().ifNotExist().create();
+
+        graph().addVertex(T.label, "fan", "name", "Baby1",
+                          "age", 3, "city", "Beijing");
+        graph().addVertex(T.label, "fan", "name", "Baby2",
+                          "age", 4, "city", "Beijing");
+        graph().addVertex(T.label, "fan", "name", "Baby3",
+                          "age", 5, "city", "Beijing");
+        graph().addVertex(T.label, "fan", "name", "Baby4",
+                          "age", 6, "city", "Beijing");
+        graph().addVertex(T.label, "fan", "name", "Baby5",
+                          "age", 7, "city", "Beijing");
+        graph().addVertex(T.label, "fan", "name", "Baby6",
+                          "age", 5, "city", "Shanghai");
+        graph().tx().commit();
+
+        // Add vertices in tx
+        graph().addVertex(T.label, "fan", "name", "Baby7",
+                          "age", 3, "city", "Beijing");
+        graph().addVertex(T.label, "fan", "name", "Baby8",
+                          "age", 4, "city", "Beijing");
+        graph().addVertex(T.label, "fan", "name", "Baby9",
+                          "age", 5, "city", "Beijing");
+        graph().addVertex(T.label, "fan", "name", "Baby10",
+                          "age", 6, "city", "Beijing");
+        graph().addVertex(T.label, "fan", "name", "Baby11",
+                          "age", 7, "city", "Beijing");
+        graph().addVertex(T.label, "fan", "name", "Baby12",
+                          "age", 5, "city", "Shanghai");
+
+        Iterator<Vertex> vertices = graph().traversal().V().has("city", "Shanghai");
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(2, IteratorUtils.count(vertices));
+
+        vertices = graph().traversal().V().has("city", "Beijing")
+                          .has("age", 5);
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(2, IteratorUtils.count(vertices));
+
+        vertices = graph().traversal().V().has("city", "Beijing")
+                          .has("age", P.gt(6));
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(2, IteratorUtils.count(vertices));
+
+        vertices = graph().traversal().V().has("city", "Beijing")
+                          .has("age", P.gte(6));
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(4, IteratorUtils.count(vertices));
+
+        vertices = graph().traversal().V().has("city", "Beijing")
+                          .has("age", P.lt(4));
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(2, IteratorUtils.count(vertices));
+
+        vertices = graph().traversal().V().has("city", "Beijing")
+                          .has("age", P.lte(4));
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(4, IteratorUtils.count(vertices));
+
+        try {
+            Thread.sleep(3000L);
+        } catch (InterruptedException e) {
+            // Ignore
+        }
+
+        // All vertices are expired after 3s
+        vertices = graph().traversal().V().has("city", "Shanghai");
+        Assert.assertFalse(vertices.hasNext());
+
+        vertices = graph().traversal().V().has("city", "Beijing")
+                          .has("age", 5);
+        Assert.assertFalse(vertices.hasNext());
+
+        vertices = graph().traversal().V().has("city", "Beijing")
+                          .has("age", P.gt(6));
+        Assert.assertFalse(vertices.hasNext());
+
+        vertices = graph().traversal().V().has("city", "Beijing")
+                          .has("age", P.gte(6));
+        Assert.assertFalse(vertices.hasNext());
+
+        vertices = graph().traversal().V().has("city", "Beijing")
+                          .has("age", P.lt(4));
+        Assert.assertFalse(vertices.hasNext());
+
+        vertices = graph().traversal().V().has("city", "Beijing")
+                          .has("age", P.lte(4));
+        Assert.assertFalse(vertices.hasNext());
+    }
+
+    @Test
+    public void testQueryVertexWithSearchIndexAndTtlInTx() {
+        graph().schema().indexLabel("fanByCity").onV("fan")
+               .by("city").search().ifNotExist().create();
+
+        graph().addVertex(T.label, "fan", "name", "Baby1",
+                          "age", 3, "city", "Beijing Haidian");
+        graph().tx().commit();
+
+        graph().addVertex(T.label, "fan", "name", "Baby2",
+                          "age", 3, "city", "Beijing Haidian");
+
+        Iterator<Vertex> vertices = graph().traversal().V().has(
+                                    "city", Text.contains("Haidian"));
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(2, IteratorUtils.count(vertices));
+
+        try {
+            Thread.sleep(3000L);
+        } catch (InterruptedException e) {
+            // Ignore
+        }
+
+        // All vertices are expired after 3s
+        vertices = graph().traversal().V().has("city", Text.contains("Haidian"));
+        Assert.assertFalse(vertices.hasNext());
     }
 
     @Test

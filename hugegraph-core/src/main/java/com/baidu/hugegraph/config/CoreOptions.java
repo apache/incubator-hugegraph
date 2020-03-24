@@ -250,7 +250,7 @@ public class CoreOptions extends OptionHolder {
     public static final ConfigOption<Boolean> TASK_SYNC_DELETION =
             new ConfigOption<>(
                     "task.sync_deletion",
-                    "Whether to delete schema and expired data synchronously.",
+                    "Whether to delete schema or expired data synchronously.",
                     disallowEmpty(),
                     false
             );

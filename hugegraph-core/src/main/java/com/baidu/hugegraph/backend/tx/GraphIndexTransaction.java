@@ -130,11 +130,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
         // Update label index if backend store not supports label-query
         HugeIndex index = new HugeIndex(IndexLabel.label(element.type()));
         index.fieldValues(element.schemaLabel().id().asLong());
-        if (element.type().isEdge()) {
-            index.elementIds(element.id(), ((HugeEdge) element).expiredTime());
-        } else {
-            index.elementIds(element.id());
-        }
+        index.elementIds(element.id(), element.expiredTime());
 
         if (removed) {
             this.doEliminate(this.serializer.writeIndex(index));
@@ -201,8 +197,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
         List<Object> propValues = allPropValues.subList(0, firstNullField);
 
         // Expired time
-        long expiredTime = element.type().isEdge() ?
-                           ((HugeEdge) element).expiredTime() : 0L;
+        long expiredTime = element.expiredTime();
 
         // Update index for each index type
         switch (indexLabel.indexType()) {

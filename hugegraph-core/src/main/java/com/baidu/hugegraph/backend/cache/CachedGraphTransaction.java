@@ -180,14 +180,19 @@ public final class CachedGraphTransaction extends GraphTransaction {
     }
 
     private Iterator<HugeVertex> queryVerticesByIds(IdQuery query) {
+        long now = DateUtil.now().getTime();
         IdQuery newQuery = new IdQuery(HugeType.VERTEX, query);
         List<HugeVertex> vertices = new ArrayList<>();
         for (Id vertexId : query.ids()) {
-            Object vertex = this.verticesCache.get(vertexId);
-            if (vertex != null) {
-                vertices.add((HugeVertex) vertex);
-            } else {
+            HugeVertex vertex = (HugeVertex) this.verticesCache.get(vertexId);
+            if (vertex == null) {
                 newQuery.query(vertexId);
+            } else {
+                if (0L < vertex.expiredTime() && vertex.expiredTime() < now) {
+                    GraphTransaction.asyncDeleteExpiredObject(graph(), vertex);
+                } else {
+                    vertices.add(vertex);
+                }
             }
         }
 
@@ -204,18 +209,27 @@ public final class CachedGraphTransaction extends GraphTransaction {
             Iterator<HugeVertex> rs = super.queryVerticesFromBackend(newQuery);
             // Generally there are not too much data with id query
             ListIterator<HugeVertex> listIterator = QueryResults.toList(rs);
-            for (HugeVertex vertex : listIterator.list()) {
-                if (vertex.sizeOfSubProperties() > MAX_CACHE_PROPS_PER_VERTEX) {
-                    // Skip large vertex
-                    continue;
+            List<HugeVertex> survivedVertices = new ArrayList<>();
+            Collection<HugeVertex> backendVertices = listIterator.list();
+            for (HugeVertex vertex : backendVertices) {
+                if (0L < vertex.expiredTime() && vertex.expiredTime() < now) {
+                    GraphTransaction.asyncDeleteExpiredObject(graph(), vertex);
+                } else {
+                    survivedVertices.add(vertex);
+                    int propSize = vertex.sizeOfSubProperties();
+                    if (propSize > MAX_CACHE_PROPS_PER_VERTEX) {
+                        // Skip large vertex
+                        continue;
+                    }
+                    this.verticesCache.update(vertex.id(), vertex);
                 }
-                this.verticesCache.update(vertex.id(), vertex);
             }
-            results.extend(listIterator);
+            results.extend(survivedVertices.iterator());
         }
 
         return results;
     }
+
     @SuppressWarnings("unchecked")
     @Override
     protected final Iterator<HugeEdge> queryEdgesFromBackend(Query query) {

@@ -39,6 +39,7 @@ import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.Userdata;
+import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Action;
 import com.baidu.hugegraph.type.define.Frequency;
@@ -472,6 +473,14 @@ public class EdgeLabelBuilder extends AbstractBuilder
                             "Can't set ttl start time if ttl is not set");
             return;
         }
+        VertexLabel source = this.transaction.getVertexLabel(this.sourceLabel);
+        VertexLabel target = this.transaction.getVertexLabel(this.targetLabel);
+        E.checkArgument(this.ttl <= source.ttl() && this.ttl <= target.ttl(),
+                        "The ttl(%s) of edge label '%s' should less than " +
+                        "ttl(%s) of source label '%s' and ttl(%s) of target " +
+                        "label '%s'", this.ttl, this.name,
+                        source.ttl(), this.sourceLabel,
+                        target.ttl(), this.targetLabel);
         if (this.ttlStartTime == null) {
             return;
         }

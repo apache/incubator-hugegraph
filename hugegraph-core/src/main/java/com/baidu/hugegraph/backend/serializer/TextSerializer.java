@@ -293,6 +293,9 @@ public class TextSerializer extends AbstractSerializer {
                          writeId(vertex.schemaLabel().id()));
         }
 
+        // Write expired time
+        entry.column(this.formatSyspropName(HugeKeys.EXPIRED_TIME),
+                     writeLong(vertex.expiredTime()));
         // Add all properties of a Vertex
         entry.column(this.formatPropertyName(),
                      this.formatPropertyValues(vertex));
@@ -321,6 +324,13 @@ public class TextSerializer extends AbstractSerializer {
 
         Id id = IdUtil.readString(entry.id().asString());
         HugeVertex vertex = new HugeVertex(graph, id, vertexLabel);
+
+        String expiredTime = entry.column(this.formatSyspropName(
+                             HugeKeys.EXPIRED_TIME));
+        // Expired time is null when backend entry is fake vertex with edges
+        if (expiredTime != null) {
+            vertex.expiredTime(readLong(expiredTime));
+        }
 
         // Parse all properties or edges of a Vertex
         for (String name : entry.columnNames()) {
@@ -856,6 +866,14 @@ public class TextSerializer extends AbstractSerializer {
             ids[i] = new IdWithExpiredTime(id, expiredTime);
         }
         return ids;
+    }
+
+    private static String writeLong(long value) {
+        return JsonUtil.toJson(value);
+    }
+
+    private static long readLong(String value) {
+        return Long.parseLong(value);
     }
 
     private static void writeUserdata(SchemaElement schema,

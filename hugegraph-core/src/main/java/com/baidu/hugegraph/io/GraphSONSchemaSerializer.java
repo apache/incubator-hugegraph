@@ -49,6 +49,11 @@ public class GraphSONSchemaSerializer {
                 graph.mapIlId2Name(vertexLabel.indexLabels()));
         map.put(HugeKeys.PROPERTIES,
                 graph.mapPkId2Name(vertexLabel.properties()));
+        map.put(HugeKeys.TTL, vertexLabel.ttl());
+        if (!IdGenerator.ZERO.equals(vertexLabel.ttlStartTime())) {
+            map.put(HugeKeys.TTL_START_TIME,
+                    graph.propertyKey(vertexLabel.ttlStartTime()).name());
+        }
         map.put(HugeKeys.ENABLE_LABEL_INDEX, vertexLabel.enableLabelIndex());
         map.put(HugeKeys.USER_DATA, vertexLabel.userdata());
         return map;

@@ -610,6 +610,7 @@ public class GraphTransaction extends IndexableTransaction {
         } else {
             vertex.assignId(id);
         }
+        vertex.setExpiredTime();
 
         return vertex;
     }
@@ -664,6 +665,7 @@ public class GraphTransaction extends IndexableTransaction {
         List<Id> ids = InsertionOrderUtil.newList();
         Map<Id, HugeVertex> vertices = new HashMap<>(vertexIds.length);
 
+        long now = DateUtil.now().getTime();
         IdQuery query = new IdQuery(HugeType.VERTEX);
         for (Object vertexId : vertexIds) {
             HugeVertex vertex;
@@ -673,6 +675,9 @@ public class GraphTransaction extends IndexableTransaction {
                 continue;
             } else if ((vertex = this.addedVertices.get(id)) != null ||
                        (vertex = this.updatedVertices.get(id)) != null) {
+                if (0L < vertex.expiredTime() && vertex.expiredTime() < now) {
+                    continue;
+                }
                 // Found from local tx
                 vertices.put(vertex.id(), vertex);
             } else {
@@ -759,6 +764,17 @@ public class GraphTransaction extends IndexableTransaction {
         Iterator<HugeVertex> vertices = new MapperIterator<>(entries,
                                                              this::parseEntry);
 
+        long now = DateUtil.now().getTime();
+        if (!this.store().features().supportsTtl() && !query.showExpired()) {
+            vertices = new FilterIterator<>(vertices, vertex -> {
+                if (0L < vertex.expiredTime() && vertex.expiredTime() < now) {
+                    asyncDeleteExpiredObject(this.graph(), vertex);
+                    return false;
+                }
+                return true;
+            });
+        }
+
         if (!this.store().features().supportsQuerySortByInputIds()) {
             // There is no id in BackendEntry, so sort after deserialization
             vertices = results.keepInputOrderIfNeeded(vertices);
@@ -835,7 +851,6 @@ public class GraphTransaction extends IndexableTransaction {
                 }
                 // Found from local tx
                 edges.put(edge.id(), edge);
-
             } else {
                 // Prepare to query from backend store
                 query.query(id);
@@ -1578,10 +1593,19 @@ public class GraphTransaction extends IndexableTransaction {
     private Iterator<?> joinTxVertices(Query query,
                                        Iterator<HugeVertex> vertices) {
         assert query.resultType().isVertex();
-        return this.joinTxRecords(query, vertices,
-                                  (q, v) -> q.test(v) ? v : null,
-                                  this.addedVertices, this.removedVertices,
-                                  this.updatedVertices);
+        vertices =  this.joinTxRecords(query, vertices,
+                                       (q, v) -> q.test(v) ? v : null,
+                                       this.addedVertices, this.removedVertices,
+                                       this.updatedVertices);
+        // Filter edges with ttl
+        long now = DateUtil.now().getTime();
+        if (!query.showExpired()) {
+            vertices = new FilterIterator<>(vertices, vertex -> {
+                return vertex.expiredTime() == 0L ||
+                       vertex.expiredTime() >= now;
+            });
+        }
+        return vertices;
     }
 
     private Iterator<?> joinTxEdges(Query query, Iterator<HugeEdge> edges,
@@ -1909,24 +1933,24 @@ public class GraphTransaction extends IndexableTransaction {
 
     public static EphemeralJob newEphemeralJob(JobCounter jobCounter,
                                                Object object) {
-        if (object instanceof HugeEdge) {
-            return new DeleteExpiredEdgeJob(jobCounter.edges());
+        if (object instanceof HugeElement) {
+            return new DeleteExpiredElementJob(jobCounter.edges());
         } else {
             assert object instanceof HugeIndex;
             return new DeleteExpiredIndexJob(jobCounter.indexes());
         }
     }
 
-    public static class DeleteExpiredEdgeJob extends EphemeralJob<Object> {
+    public static class DeleteExpiredElementJob extends EphemeralJob<Object> {
 
         private static final String JOB_TYPE = "delete_expired_edge";
 
-        private Set<HugeEdge> edges;
+        private Set<HugeElement> elements;
 
-        private DeleteExpiredEdgeJob(Set<HugeEdge> edges) {
-            E.checkArgument(edges != null && !edges.isEmpty(),
-                            "The edge can't be null or empty");
-            this.edges = edges;
+        private DeleteExpiredElementJob(Set<HugeElement> elements) {
+            E.checkArgument(elements != null && !elements.isEmpty(),
+                            "The element can't be null or empty");
+            this.elements = elements;
         }
 
         @Override
@@ -1939,13 +1963,14 @@ public class GraphTransaction extends IndexableTransaction {
             HugeGraph graph = this.graph();
             GraphTransaction tx = graph.graphTransaction();
             try {
-                for (HugeEdge edge : this.edges) {
-                    tx.removeEdge(edge);
+                for (HugeElement element : this.elements) {
+                    element.remove();
                 }
                 tx.commit();
             } catch (Exception e) {
                 tx.rollback();
-                LOG.warn("Failed to delete expired edges: {}", this.edges);
+                LOG.warn("Failed to delete expired elements: {}",
+                         this.elements);
                 throw e;
             } finally {
                 JOB_COUNTERS.jobCounter(graph).jobDecrement();
@@ -1978,17 +2003,21 @@ public class GraphTransaction extends IndexableTransaction {
             try {
                 for (HugeIndex index : this.indexes) {
                     /*
-                     * Delete expired edge(if exist) of the index,
+                     * Delete expired element(if exist) of the index,
                      * otherwise just delete expired index only
                      */
-                    IdQuery query = new IdQuery(HugeType.EDGE);
+                    HugeType type = index.indexLabel().queryType().isVertex()?
+                                    HugeType.VERTEX : HugeType.EDGE;
+                    IdQuery query = new IdQuery(type);
                     query.query(index.elementId());
                     query.showExpired(true);
-                    Iterator<Edge> edges = tx.queryEdges(query);
-                    if (edges.hasNext()) {
-                        HugeEdge edge = (HugeEdge) edges.next();
-                        if (edge.expiredTime() == index.expiredTime()) {
-                            tx.removeEdge(edge);
+                    Iterator<?> elements = type.isVertex() ?
+                                           tx.queryVertices(query) :
+                                           tx.queryEdges(query);
+                    if (elements.hasNext()) {
+                        HugeElement element = (HugeElement) elements.next();
+                        if (element.expiredTime() == index.expiredTime()) {
+                            element.remove();
                         } else {
                             tx.indexTx.doEliminate(
                             graph.serializer().writeIndex(index));
@@ -2028,13 +2057,13 @@ public class GraphTransaction extends IndexableTransaction {
     private static class JobCounter {
 
         private AtomicInteger jobs;
-        private Set<HugeEdge> edges;
+        private Set<HugeElement> elements;
         private Set<HugeIndex> indexes;
         private int batchSize;
 
         public JobCounter(int batchSize) {
             this.jobs = new AtomicInteger(0);
-            this.edges = ConcurrentHashMap.newKeySet();
+            this.elements = ConcurrentHashMap.newKeySet();
             this.indexes = ConcurrentHashMap.newKeySet();
             this.batchSize = batchSize;
         }
@@ -2051,8 +2080,8 @@ public class GraphTransaction extends IndexableTransaction {
             this.jobs.incrementAndGet();
         }
 
-        public Set<HugeEdge> edges() {
-            return this.edges;
+        public Set<HugeElement> edges() {
+            return this.elements;
         }
 
         public Set<HugeIndex> indexes() {
@@ -2060,8 +2089,8 @@ public class GraphTransaction extends IndexableTransaction {
         }
 
         public void clear(Object object) {
-            if (object instanceof HugeEdge) {
-                this.edges = ConcurrentHashMap.newKeySet();
+            if (object instanceof HugeElement) {
+                this.elements = ConcurrentHashMap.newKeySet();
             } else {
                 assert object instanceof HugeIndex;
                 this.indexes = ConcurrentHashMap.newKeySet();
@@ -2069,22 +2098,22 @@ public class GraphTransaction extends IndexableTransaction {
         }
 
         public boolean addAndTriggerDelete(Object object) {
-            return object instanceof HugeEdge ?
-                   addEdgeAndTriggerDelete((HugeEdge) object) :
+            return object instanceof HugeElement ?
+                   addElementAndTriggerDelete((HugeElement) object) :
                    addIndexAndTriggerDelete((HugeIndex) object);
         }
 
         /**
-         * Try to add edge in collection waiting to be deleted
-         * @param edge
+         * Try to add element in collection waiting to be deleted
+         * @param element
          * @return true if should create a new delete job, false otherwise
          */
-        public boolean addEdgeAndTriggerDelete(HugeEdge edge) {
-            if (this.edges.size() >= this.batchSize) {
+        public boolean addElementAndTriggerDelete(HugeElement element) {
+            if (this.elements.size() >= this.batchSize) {
                 return true;
             }
-            this.edges.add(edge);
-            return this.edges.size() >= this.batchSize;
+            this.elements.add(element);
+            return this.elements.size() >= this.batchSize;
         }
 
         /**

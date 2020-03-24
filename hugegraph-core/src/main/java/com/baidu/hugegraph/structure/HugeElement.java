@@ -22,6 +22,7 @@ package com.baidu.hugegraph.structure;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -50,6 +51,7 @@ import com.baidu.hugegraph.type.Idfiable;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.CollectionUtil;
+import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.E;
 import com.google.common.collect.ImmutableMap;
 
@@ -62,6 +64,7 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
 
     protected Id id;
     protected Map<Id, HugeProperty<?>> properties;
+    protected long expiredTime;
     protected boolean removed;
     protected boolean fresh;
     protected boolean propLoaded;
@@ -71,6 +74,7 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
         this.graph = graph;
         this.id = id;
         this.properties = EMPTY;
+        this.expiredTime = 0L;
         this.removed = false;
         this.fresh = false;
         this.propLoaded = true;
@@ -119,6 +123,36 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
 
     public void committed() {
         this.fresh = false;
+    }
+
+    public void setExpiredTime() {
+        SchemaLabel label = this.schemaLabel();
+        if (label.ttl() == 0L) {
+            return;
+        }
+        long now = DateUtil.now().getTime();
+        if (label.ttlStartTime() == IdGenerator.ZERO) {
+            this.expiredTime(now + label.ttl());
+            return;
+        }
+        Date date = this.getPropertyValue(label.ttlStartTime());
+        if (date == null) {
+            this.expiredTime(now + label.ttl());
+            return;
+        }
+        long expired = date.getTime() + label.ttl();
+        E.checkArgument(expired > now,
+                        "The expired time '%s' of '%s' is prior to now: %s",
+                        new Date(expired), this, DateUtil.now());
+        this.expiredTime(expired);
+    }
+
+    public long expiredTime() {
+        return this.expiredTime;
+    }
+
+    public void expiredTime(long expiredTime) {
+        this.expiredTime = expiredTime;
     }
 
     public Map<Id, HugeProperty<?>> getProperties() {

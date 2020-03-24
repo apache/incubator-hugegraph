@@ -159,6 +159,8 @@ public class MysqlTables {
             this.define.column(HugeKeys.ENABLE_LABEL_INDEX, BOOLEAN);
             this.define.column(HugeKeys.USER_DATA, LARGE_JSON);
             this.define.column(HugeKeys.STATUS, TINYINT);
+            this.define.column(HugeKeys.TTL, INT);
+            this.define.column(HugeKeys.TTL_START_TIME, DATATYPE_PK);
             this.define.keys(HugeKeys.ID);
         }
     }
@@ -256,6 +258,7 @@ public class MysqlTables {
             this.define.column(HugeKeys.ID, SMALL_TEXT);
             this.define.column(HugeKeys.LABEL, DATATYPE_SL);
             this.define.column(HugeKeys.PROPERTIES, HUGE_TEXT);
+            this.define.column(HugeKeys.EXPIRED_TIME, BIGINT);
             this.define.keys(HugeKeys.ID);
         }
     }

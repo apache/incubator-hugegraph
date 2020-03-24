@@ -38,6 +38,7 @@ import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.HashUtil;
+import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.NumericUtil;
 
 public class HugeIndex implements GraphType, Cloneable {
@@ -105,7 +106,7 @@ public class HugeIndex implements GraphType, Cloneable {
     }
 
     public Set<Id> elementIds() {
-        Set<Id> ids = new LinkedHashSet<>(this.elementIds.size());
+        Set<Id> ids = InsertionOrderUtil.newSet(this.elementIds.size());
         for (IdWithExpiredTime idWithExpiredTime : this.elementIds) {
             ids.add(idWithExpiredTime.id());
         }
@@ -114,7 +115,8 @@ public class HugeIndex implements GraphType, Cloneable {
 
     public Set<IdWithExpiredTime> expiredElementIds() {
         long now = DateUtil.now().getTime();
-        Set<IdWithExpiredTime> expired = new LinkedHashSet<>();
+        Set<IdWithExpiredTime> expired = InsertionOrderUtil.newSet(
+                                         this.elementIds.size());
         for (IdWithExpiredTime id : this.elementIds) {
             if (0L < id.expiredTime && id.expiredTime < now) {
                 expired.add(id);

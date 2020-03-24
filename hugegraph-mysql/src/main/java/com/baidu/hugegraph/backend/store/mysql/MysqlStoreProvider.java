@@ -61,7 +61,7 @@ public class MysqlStoreProvider extends AbstractBackendStoreProvider {
          * [1.7] #746: support userdata for indexlabel
          * [1.8] #894: asStoredString() encoding is changed to signed B64
          *             instead of sortable B64
-         * [1.9] #295: support ttl for edge label
+         * [1.9] #295: support ttl
          */
         return "1.9";
     }
