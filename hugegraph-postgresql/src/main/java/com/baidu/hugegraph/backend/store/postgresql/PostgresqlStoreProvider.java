@@ -61,6 +61,8 @@ public class PostgresqlStoreProvider extends MysqlStoreProvider {
          * [1.3] #661: reduce the storage of vertex/edge id
          * [1.4] #691: support aggregate property
          * [1.5] #746: support userdata for indexlabel
+         * [1.6] #894: asStoredString() encoding is changed to signed B64
+         *             instead of sortable B64
          */
         return "1.5";
     }

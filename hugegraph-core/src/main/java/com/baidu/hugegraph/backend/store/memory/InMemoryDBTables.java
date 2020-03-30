@@ -34,7 +34,6 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
-import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.Condition.RangeConditions;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
@@ -370,14 +369,14 @@ public class InMemoryDBTables {
                          "Secondary index query must be condition query " +
                          "and have two conditions, but got: %s", query);
             String fieldValue = null;
-            String indexLabelId = null;
+            Id indexLabelId = null;
             for (Condition c : conditions) {
                 assert c instanceof Condition.Relation;
                 Condition.Relation r = (Condition.Relation) c;
                 if (r.key() == HugeKeys.FIELD_VALUES) {
                     fieldValue = r.value().toString();
                 } else if (r.key() == HugeKeys.INDEX_LABEL_ID) {
-                    indexLabelId = r.value().toString();
+                    indexLabelId = (Id) r.value();
                 } else {
                     E.checkState(false,
                                  "Secondary index query conditions must be" +
@@ -386,7 +385,9 @@ public class InMemoryDBTables {
                 }
             }
             assert fieldValue != null && indexLabelId != null;
-            Id id = SplicingIdGenerator.splicing(indexLabelId, fieldValue);
+
+            Id id = HugeIndex.formatIndexId(query.resultType(),
+                                            indexLabelId, fieldValue);
             IdQuery q = new IdQuery(query, id);
             q.offset(query.offset());
             q.limit(query.limit());

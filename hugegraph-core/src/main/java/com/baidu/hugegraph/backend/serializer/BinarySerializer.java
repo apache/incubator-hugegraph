@@ -91,7 +91,13 @@ public class BinarySerializer extends AbstractSerializer {
     }
 
     @Override
-    public BinaryBackendEntry newBackendEntry(HugeType type, Id id) {
+    protected BinaryBackendEntry newBackendEntry(HugeType type, Id id) {
+        if (type.isEdge()) {
+            E.checkState(id instanceof BinaryId,
+                         "Expect a BinaryId for BackendEntry with edge id");
+            return new BinaryBackendEntry(type, (BinaryId) id);
+        }
+
         BytesBuffer buffer = BytesBuffer.allocate(1 + id.length());
         byte[] idBytes = type.isIndex() ?
                          buffer.writeIndexId(id, type).bytes() :
@@ -106,7 +112,7 @@ public class BinarySerializer extends AbstractSerializer {
     protected final BinaryBackendEntry newBackendEntry(HugeEdge edge) {
         BinaryId id = new BinaryId(formatEdgeName(edge),
                                    edge.idWithDirection());
-        return new BinaryBackendEntry(edge.type(), id);
+        return newBackendEntry(edge.type(), id);
     }
 
     protected final BinaryBackendEntry newBackendEntry(SchemaElement elem) {
@@ -229,16 +235,6 @@ public class BinarySerializer extends AbstractSerializer {
         return buffer.bytes();
     }
 
-    protected BackendColumn formatEdge(HugeEdge edge) {
-        byte[] name;
-        if (this.keyWithIdPrefix) {
-            name = this.formatEdgeName(edge);
-        } else {
-            name = EMPTY_BYTES;
-        }
-        return BackendColumn.of(name, this.formatEdgeValue(edge));
-    }
-
     protected void parseEdge(BackendColumn col, HugeVertex vertex,
                              HugeGraph graph) {
         // owner-vertex + dir + edge-label + sort-values + other-vertex
@@ -292,6 +288,18 @@ public class BinarySerializer extends AbstractSerializer {
         this.parseProperties(buffer, edge);
     }
 
+
+    protected void parseVertex(byte[] value, HugeVertex vertex) {
+        BytesBuffer buffer = BytesBuffer.wrap(value);
+
+        // Parse vertex label
+        VertexLabel label = vertex.graph().vertexLabel(buffer.readId());
+        vertex.vertexLabel(label);
+
+        // Parse properties
+        this.parseProperties(buffer, vertex);
+    }
+
     protected void parseColumn(BackendColumn col, HugeVertex vertex) {
         BytesBuffer buffer = BytesBuffer.wrap(col.name);
         Id id = this.keyWithIdPrefix ? buffer.readId() : vertex.id();
@@ -325,7 +333,7 @@ public class BinarySerializer extends AbstractSerializer {
             int idLen = 1 + elemId.length();
             buffer = BytesBuffer.allocate(idLen);
             // Write element-id
-            buffer.writeId(elemId, true);
+            buffer.writeId(elemId);
         } else {
             Id indexId = index.id();
             HugeType type = index.type();
@@ -376,20 +384,11 @@ public class BinarySerializer extends AbstractSerializer {
         // Write all properties of the vertex
         this.formatProperties(vertex.getProperties().values(), buffer);
 
-        entry.column(entry.id().asBytes(), buffer.bytes());
+        // Fill column
+        byte[] name = this.keyWithIdPrefix ? entry.id().asBytes() : EMPTY_BYTES;
+        entry.column(name, buffer.bytes());
 
         return entry;
-    }
-
-    protected void parseVertex(byte[] value, HugeVertex vertex) {
-        BytesBuffer buffer = BytesBuffer.wrap(value);
-
-        // Parse vertex label
-        VertexLabel label = vertex.graph().vertexLabel(buffer.readId());
-        vertex.vertexLabel(label);
-
-        // Parse properties
-        this.parseProperties(buffer, vertex);
     }
 
     @Override
@@ -429,7 +428,10 @@ public class BinarySerializer extends AbstractSerializer {
     @Override
     public BackendEntry writeEdge(HugeEdge edge) {
         BinaryBackendEntry entry = newBackendEntry(edge);
-        entry.column(this.formatEdge(edge));
+        byte[] name = this.keyWithIdPrefix ?
+                      this.formatEdgeName(edge) : EMPTY_BYTES;
+        byte[] value = this.formatEdgeValue(edge);
+        entry.column(name, value);
         return entry;
     }
 
@@ -487,7 +489,7 @@ public class BinarySerializer extends AbstractSerializer {
         if (!index.type().isRangeIndex()) {
             fieldValues = query.condition(HugeKeys.FIELD_VALUES);
             if (!index.fieldValues().equals(fieldValues)) {
-                // Update field-values for hashed index-id
+                // Update field-values for hashed or encoded index-id
                 index.fieldValues(fieldValues);
             }
         }

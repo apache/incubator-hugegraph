@@ -122,13 +122,14 @@ public class GraphIndexTransaction extends AbstractTransaction {
         }
 
         // Don't update label index if it's not enabled
-        if (!element.schemaLabel().enableLabelIndex()) {
+        SchemaLabel label = element.schemaLabel();
+        if (!label.enableLabelIndex()) {
             return;
         }
 
         // Update label index if backend store not supports label-query
         HugeIndex index = new HugeIndex(IndexLabel.label(element.type()));
-        index.fieldValues(element.schemaLabel().id().asLong());
+        index.fieldValues(label.id());
         index.elementIds(element.id());
 
         if (removed) {
@@ -1200,7 +1201,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
         int length = value.length();
         CharBuffer cbuf = CharBuffer.wrap(value.toCharArray());
         char last = cbuf.charAt(length - 1);
-        E.checkArgument(last == '!' || LongEncoding.validSortableChar(last),
+        E.checkArgument(last == '!' || LongEncoding.validB64Char(last),
                         "Invalid character '%s' for String index", last);
         cbuf.put(length - 1,  (char) (last + 1));
         return cbuf.toString();
