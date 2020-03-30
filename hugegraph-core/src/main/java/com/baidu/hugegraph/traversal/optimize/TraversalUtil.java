@@ -275,14 +275,7 @@ public final class TraversalUtil {
         BiPredicate<?, ?> bp = has.getPredicate().getBiPredicate();
         assert bp instanceof Compare;
 
-        boolean isSyspropKey = true;
-        try {
-            string2HugeKey(has.getKey());
-        } catch (IllegalArgumentException ignored) {
-            isSyspropKey = false;
-        }
-
-        return isSyspropKey ?
+        return isSysProp(has.getKey()) ?
                convCompare2SyspropRelation(graph, type, has) :
                convCompare2UserpropRelation(graph, type, has);
     }
@@ -294,7 +287,8 @@ public final class TraversalUtil {
         BiPredicate<?, ?> bp = has.getPredicate().getBiPredicate();
         assert bp instanceof Compare;
 
-        HugeKeys key = string2HugeKey(has.getKey());
+        HugeKeys key = token2HugeKey(has.getKey());
+        E.checkNotNull(key, "token key");
         Object value = convSysValueIfNeeded(graph, type, key, has.getValue());
 
         switch ((Compare) bp) {
@@ -373,13 +367,7 @@ public final class TraversalUtil {
                             "multiple values");
         }
 
-        HugeKeys hugeKey = null;
-        try {
-            hugeKey = string2HugeKey(originKey);
-        } catch (IllegalArgumentException ignored) {
-            // Ignore
-        }
-
+        HugeKeys hugeKey = token2HugeKey(originKey);
         List<?> valueList;
         if (hugeKey != null) {
             valueList = convSysListValueIfNeeded(graph, type, hugeKey, values);
@@ -412,7 +400,8 @@ public final class TraversalUtil {
         E.checkArgument(bp == Compare.eq, "CONTAINS query with relation " +
                         "'%s' is not supported", bp);
 
-        HugeKeys key = string2HugeKey(has.getKey());
+        HugeKeys key = token2HugeKey(has.getKey());
+        E.checkNotNull(key, "token key");
         Object value = has.getValue();
 
         if (keyForContainsKey(has.getKey())) {
@@ -431,6 +420,11 @@ public final class TraversalUtil {
     }
 
     public static HugeKeys string2HugeKey(String key) {
+        HugeKeys hugeKey = token2HugeKey(key);
+        return hugeKey != null ? hugeKey : HugeKeys.valueOf(key);
+    }
+
+    public static HugeKeys token2HugeKey(String key) {
         if (key.equals(T.label.getAccessor())) {
             return HugeKeys.LABEL;
         } else if (key.equals(T.id.getAccessor())) {
@@ -438,7 +432,7 @@ public final class TraversalUtil {
         } else if (keyForContainsKeyOrValue(key)) {
             return HugeKeys.PROPERTIES;
         }
-        return HugeKeys.valueOf(key);
+        return null;
     }
 
     public static boolean keyForContainsKeyOrValue(String key) {
@@ -502,14 +496,8 @@ public final class TraversalUtil {
         if (QueryHolder.SYSPROP_PAGE.equals(key)) {
             return true;
         }
-        try {
-            string2HugeKey(key);
-            // Come here if key is ~id, ~label, ~key and ~value
-            return true;
-        } catch (IllegalArgumentException e) {
-            // Ignore
-            return false;
-        }
+        // Return true if key is ~id, ~label, ~key and ~value
+        return token2HugeKey(key) != null;
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -524,7 +512,7 @@ public final class TraversalUtil {
         }
     }
 
-    private static Object convSysValueIfNeeded(HugeGraph graph,HugeType type,
+    private static Object convSysValueIfNeeded(HugeGraph graph, HugeType type,
                                                HugeKeys key, Object value) {
         if (key == HugeKeys.LABEL && !(value instanceof Id)) {
             value = SchemaLabel.getLabelId(graph, type, value);

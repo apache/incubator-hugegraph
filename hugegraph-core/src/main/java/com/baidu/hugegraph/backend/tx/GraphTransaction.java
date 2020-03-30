@@ -1035,13 +1035,51 @@ public class GraphTransaction extends IndexableTransaction {
         return false;
     }
 
-    public static void verifyEdgesConditionQuery(ConditionQuery query) {
+    private static void verifyVerticesConditionQuery(ConditionQuery query) {
+        assert query.resultType().isVertex();
+
+        int total = query.conditions().size();
+        if (total == 1) {
+            /*
+             * Supported query:
+             *  1.query just by edge label
+             *  2.query just by PROPERTIES (like containsKey,containsValue)
+             *  3.query with scan
+             */
+            if (query.containsCondition(HugeKeys.LABEL) ||
+                query.containsCondition(HugeKeys.PROPERTIES) ||
+                query.containsScanCondition()) {
+                return;
+            }
+        }
+
+        int matched = 0;
+        if (query.containsCondition(HugeKeys.PROPERTIES)) {
+            matched++;
+            if (query.containsCondition(HugeKeys.LABEL)) {
+                matched++;
+            }
+        }
+
+        if (matched != total) {
+            throw new HugeException("Not supported querying vertices by %s",
+                                    query.conditions());
+        }
+    }
+
+    private static void verifyEdgesConditionQuery(ConditionQuery query) {
         assert query.resultType().isEdge();
 
         int total = query.conditions().size();
         if (total == 1) {
-            // Supported: 1.query just by edge label, 2.query with scan
+            /*
+             * Supported query:
+             *  1.query just by edge label
+             *  2.query just by PROPERTIES (like containsKey,containsValue)
+             *  3.query with scan
+             */
             if (query.containsCondition(HugeKeys.LABEL) ||
+                query.containsCondition(HugeKeys.PROPERTIES) ||
                 query.containsScanCondition()) {
                 return;
             }
@@ -1055,28 +1093,28 @@ public class GraphTransaction extends IndexableTransaction {
             }
             matched++;
         }
+        int count = matched;
+
+        if (query.containsCondition(HugeKeys.PROPERTIES)) {
+            matched++;
+            if (count < 3 && query.containsCondition(HugeKeys.LABEL)) {
+                matched++;
+            }
+        }
+
         if (matched != total) {
-            throw new BackendException(
+            throw new HugeException(
                       "Not supported querying edges by %s, expect %s",
-                      query.conditions(), EdgeId.KEYS[matched]);
+                      query.conditions(), EdgeId.KEYS[count]);
         }
     }
 
-    private void checkAggregateProperty(HugeElement element) {
-        E.checkArgument(element.getAggregateProperties().isEmpty() ||
-                        this.store().features().supportsAggregateProperty(),
-                        "The %s store does not support aggregate property",
-                        this.store().provider().type());
-    }
-
-    private void checkAggregateProperty(HugeProperty<?> property) {
-        E.checkArgument(!property.isAggregateType() ||
-                        this.store().features().supportsAggregateProperty(),
-                        "The %s store does not support aggregate property",
-                        this.store().provider().type());
-    }
-
     private Query optimizeQuery(ConditionQuery query) {
+        if (!query.ids().isEmpty()) {
+            throw new HugeException(
+                      "Not supported querying by id and conditions: %s", query);
+        }
+
         Id label = (Id) query.condition(HugeKeys.LABEL);
 
         // Optimize vertex query
@@ -1131,12 +1169,18 @@ public class GraphTransaction extends IndexableTransaction {
          * but we don't support query edges only by direction/target-vertex.
          */
         if (query.allSysprop()) {
-            if (query.resultType().isEdge()) {
+            if (query.resultType().isVertex()) {
+                verifyVerticesConditionQuery(query);
+            } else if (query.resultType().isEdge()) {
                 verifyEdgesConditionQuery(query);
             }
-            // Query by label & store supports feature or not query by label
+            /*
+             * Just support:
+             *  1.not query by label
+             *  2.or query by label and store supports this feature
+             */
             boolean byLabel = (label != null && query.conditions().size() == 1);
-            if (this.store().features().supportsQueryByLabel() || !byLabel) {
+            if (!byLabel || this.store().features().supportsQueryByLabel()) {
                 return query;
             }
         }
@@ -1232,6 +1276,20 @@ public class GraphTransaction extends IndexableTransaction {
             default:
                 throw new AssertionError("Unknown id strategy: " + strategy);
         }
+    }
+
+    private void checkAggregateProperty(HugeElement element) {
+        E.checkArgument(element.getAggregateProperties().isEmpty() ||
+                        this.store().features().supportsAggregateProperty(),
+                        "The %s store does not support aggregate property",
+                        this.store().provider().type());
+    }
+
+    private void checkAggregateProperty(HugeProperty<?> property) {
+        E.checkArgument(!property.isAggregateType() ||
+                        this.store().features().supportsAggregateProperty(),
+                        "The %s store does not support aggregate property",
+                        this.store().provider().type());
     }
 
     private void checkNonnullProperty(HugeVertex vertex) {
@@ -1483,7 +1541,7 @@ public class GraphTransaction extends IndexableTransaction {
 
     public void removeVertices(VertexLabel vertexLabel) {
         if (this.hasUpdates()) {
-            throw new BackendException("There are still changes to commit");
+            throw new HugeException("There are still changes to commit");
         }
 
         boolean autoCommit = this.autoCommit();
@@ -1506,7 +1564,7 @@ public class GraphTransaction extends IndexableTransaction {
 
     public void removeEdges(EdgeLabel edgeLabel) {
         if (this.hasUpdates()) {
-            throw new BackendException("There are still changes to commit");
+            throw new HugeException("There are still changes to commit");
         }
 
         boolean autoCommit = this.autoCommit();

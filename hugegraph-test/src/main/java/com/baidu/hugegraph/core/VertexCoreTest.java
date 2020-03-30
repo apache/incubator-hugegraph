@@ -48,9 +48,11 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.Id.IdType;
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.id.SnowflakeIdGenerator;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.page.PageInfo;
+import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
@@ -1089,6 +1091,18 @@ public class VertexCoreTest extends BaseCoreTest {
         assertContains(vertices,
                        T.label, "author", "id", 1, "name", "James Gosling",
                        "age", 62, "lived", "Canadian");
+
+        vertices = graph.traversal().V().hasId(id).toList();
+        Assert.assertEquals(1, vertices.size());
+        assertContains(vertices,
+                       T.label, "author", "id", 1, "name", "James Gosling",
+                       "age", 62, "lived", "Canadian");
+
+        vertices = graph.traversal().V().has(T.id, id).toList();
+        Assert.assertEquals(1, vertices.size());
+        assertContains(vertices,
+                       T.label, "author", "id", 1, "name", "James Gosling",
+                       "age", 62, "lived", "Canadian");
     }
 
     @Test
@@ -1101,6 +1115,65 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertTrue(graph.traversal().V(id).toList().isEmpty());
         Assert.assertThrows(NoSuchElementException.class, () -> {
             graph.traversal().V(id).next();
+        });
+    }
+
+    @Test
+    public void testQueryByInvalidSysprop() {
+        HugeGraph graph = graph();
+        init10Vertices();
+
+        List<Vertex> vertices = graph.traversal().V().hasLabel("author")
+                                                     .has("id", 1).toList();
+        Assert.assertEquals(1, vertices.size());
+        Vertex vertex = vertices.get(0);
+        Id author = graph.vertexLabel(vertex.label()).id();
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.traversal().V().hasLabel("author").has("ID", 1).toList();
+        }, e -> {
+            Assert.assertContains("Undefined property key: 'ID'",
+                                  e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.traversal().V().hasLabel("author").has("NAME", "n1").toList();
+        }, e -> {
+            Assert.assertContains("Undefined property key: 'NAME'",
+                                  e.getMessage());
+        });
+
+        Assert.assertThrows(HugeException.class, () -> {
+            ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
+            query.eq(HugeKeys.LABEL, author);
+            query.query((Id) vertex.id());
+            graph.vertices(query).hasNext();
+        }, e -> {
+            Assert.assertContains("Not supported querying by id and conditions",
+                                  e.getMessage());
+        });
+
+        Assert.assertThrows(HugeException.class, () -> {
+            ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
+            query.eq(HugeKeys.LABEL, author);
+            query.eq(HugeKeys.NAME, "n1");
+            graph.vertices(query).hasNext();
+        }, e -> {
+            Assert.assertContains("Not supported querying vertices by",
+                                  e.getMessage());
+            Assert.assertContains("NAME == n1", e.getMessage());
+        });
+
+        Assert.assertThrows(HugeException.class, () -> {
+            ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
+            query.eq(HugeKeys.LABEL, author);
+            query.eq(HugeKeys.NAME, "n2");
+            query.query(Condition.eq(IdGenerator.of("fake"), "n3"));
+            graph.vertices(query).hasNext();
+        }, e -> {
+            Assert.assertContains("Can't do index query with [LABEL ==",
+                                  e.getMessage());
+            Assert.assertContains("NAME == n2", e.getMessage());
         });
     }
 
@@ -1177,7 +1250,8 @@ public class VertexCoreTest extends BaseCoreTest {
 
         // Query vertex by primary-values
         List<Vertex> vertices = graph.traversal().V()
-                                     .hasLabel("author").has("id", 1).toList();
+                                     .hasLabel("author")
+                                     .has("id", 1).toList();
         Assert.assertEquals(1, vertices.size());
         assertContains(vertices,
                        T.label, "author", "id", 1, "name", "James Gosling",
@@ -1222,6 +1296,15 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertEquals(1, vertices.size());
         assertContains(vertices,
                        T.label, "language", "name", "python", "dynamic", true);
+
+        // Query vertex by condition (does contain the property name?)
+        q = new ConditionQuery(HugeType.VERTEX);
+        q.key(HugeKeys.PROPERTIES, dynamic.id());
+        vertices = ImmutableList.copyOf(graph.vertices(q));
+
+        Assert.assertEquals(1, vertices.size());
+        assertContains(vertices,
+                       T.label, "language", "name", "python", "dynamic", true);
     }
 
     @Test
@@ -1233,7 +1316,8 @@ public class VertexCoreTest extends BaseCoreTest {
         init10Vertices();
 
         List<Vertex> vertices = graph.traversal().V()
-                                     .hasLabel("language").hasKey("dynamic")
+                                     .hasLabel("language")
+                                     .hasKey("dynamic")
                                      .toList();
         Assert.assertEquals(1, vertices.size());
         assertContains(vertices,
@@ -1294,7 +1378,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph.traversal().V().hasLabel("language")
-                 .hasValue("python", true).toList();
+                 .hasValue("python", "java").toList();
         });
     }
 
