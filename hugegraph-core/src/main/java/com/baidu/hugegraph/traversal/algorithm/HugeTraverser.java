@@ -257,6 +257,13 @@ public class HugeTraverser {
         return g.limit(limit);
     }
 
+    protected Object getVertexLabelId(Object label) {
+        if (label == null) {
+            return null;
+        }
+        return SchemaLabel.getLabelId(this.graph, HugeType.VERTEX, label);
+    }
+
     protected Id getEdgeLabelId(Object label) {
         if (label == null) {
             return null;
@@ -264,32 +271,32 @@ public class HugeTraverser {
         return SchemaLabel.getLabelId(this.graph, HugeType.EDGE, label);
     }
 
-    protected static void checkPositive(int value, String name) {
+    public static void checkPositive(int value, String name) {
         E.checkArgument(value > 0,
                         "The %s parameter must be > 0, but got '%s'",
                         name, value);
     }
 
-    protected static void checkDegree(long degree) {
+    public static void checkDegree(long degree) {
         checkPositiveOrNoLimit(degree, "max degree");
     }
 
-    protected static void checkCapacity(long capacity) {
+    public static void checkCapacity(long capacity) {
         checkPositiveOrNoLimit(capacity, "capacity");
     }
 
-    protected static void checkLimit(long limit) {
+    public static void checkLimit(long limit) {
         checkPositiveOrNoLimit(limit, "limit");
     }
 
-    protected static void checkPositiveOrNoLimit(long value, String name) {
+    public static void checkPositiveOrNoLimit(long value, String name) {
         E.checkArgument(value > 0 || value == NO_LIMIT,
                         "The %s parameter must be > 0 or == %s, but got: %s",
                         name, NO_LIMIT, value);
     }
 
-    protected static void checkCapacity(long capacity, long access,
-                                        String traverse) {
+    public static void checkCapacity(long capacity, long access,
+                                     String traverse) {
         if (capacity != NO_LIMIT && access > capacity) {
             throw new HugeException("Exceed capacity '%s' while finding %s",
                                     capacity, traverse);

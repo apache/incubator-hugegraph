@@ -29,6 +29,7 @@ import java.util.Set;
 import javax.ws.rs.core.MultivaluedHashMap;
 import javax.ws.rs.core.MultivaluedMap;
 
+import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
@@ -104,7 +105,7 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
         // Get similar nodes and counts
         Iterator<Edge> edges = this.edgesOfVertex(vertex.id(), direction,
                                                   labelId, degree);
-        Map<Id, MutableInteger> similars = new HashMap<>();
+        Map<Id, MutableInt> similars = new HashMap<>();
         MultivaluedMap<Id, Id> intermediaries = new MultivaluedHashMap<>();
         Set<Id> neighbors = new HashSet<>();
         while (edges.hasNext()) {
@@ -129,14 +130,14 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
                     intermediaries.add(node, target);
                 }
 
-                MutableInteger count = similars.get(node);
+                MutableInt count = similars.get(node);
                 if (count == null) {
-                    count = new MutableInteger(0);
+                    count = new MutableInt(0);
                     similars.put(node, count);
                     checkCapacity(capacity, ++this.accessed,
                                   "fusiform similarity");
                 }
-                count.increase();
+                count.increment();
             }
         }
         // Delete source vertex
@@ -148,8 +149,8 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
         // Match alpha
         double neighborNum = neighbors.size();
         Map<Id, Double> matchedAlpha = new HashMap<>();
-        for (Map.Entry<Id, MutableInteger> entry : similars.entrySet()) {
-            double score = entry.getValue().value() / neighborNum;
+        for (Map.Entry<Id, MutableInt> entry : similars.entrySet()) {
+            double score = entry.getValue().intValue() / neighborNum;
             if (score >= alpha) {
                 matchedAlpha.put(entry.getKey(), score);
             }
@@ -255,23 +256,6 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
         public Map<String, Object> toMap() {
             return ImmutableMap.of("id", this.id, "score", this.score,
                                    "intermediaries", this.intermediaries);
-        }
-    }
-
-    public static class MutableInteger {
-
-        private int count;
-
-        private MutableInteger(int initial) {
-            this.count = initial;
-        }
-
-        public void increase() {
-            this.count++;
-        }
-
-        public int value() {
-            return this.count;
         }
     }
 

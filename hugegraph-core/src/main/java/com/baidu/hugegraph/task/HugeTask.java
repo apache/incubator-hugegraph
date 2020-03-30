@@ -249,8 +249,7 @@ public class HugeTask<V> extends FutureTask<V> {
 
     public boolean fail(Throwable e) {
         E.checkNotNull(e, "exception");
-        if (!(this.cancelled() &&
-              HugeException.rootCause(e) instanceof InterruptedException)) {
+        if (!(this.cancelled() && HugeException.isInterrupted(e))) {
             LOG.warn("An exception occurred when running task: {}",
                      this.id(), e);
             // Update status to FAILED if exception occurred(not interrupted)

@@ -510,6 +510,12 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     public Iterator<Vertex> queryAdjacentVertices(Iterator<Edge> edges) {
+        if(true){
+            return new MapperIterator<>(edges, edge -> {
+                return ((HugeEdge) edge).otherVertex();
+            });
+        }
+
         return new BatchMapperIterator<>(this.batchSize, edges, batchEdges -> {
             List<Id> vertexIds = new ArrayList<>();
             for (Edge edge : batchEdges) {

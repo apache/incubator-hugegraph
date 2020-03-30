@@ -48,6 +48,8 @@ public final class JsonUtil {
     static {
         SimpleModule module = new SimpleModule();
 
+        module.addSerializer(RawJson.class, new RawJsonSerializer());
+
         module.addSerializer(Date.class, new DateSerializer());
         module.addDeserializer(Date.class, new DateDeserializer());
 
@@ -119,6 +121,43 @@ public final class JsonUtil {
             }
         }
         return object;
+    }
+
+    public static Object asJson(Object value) {
+        return new RawJson(toJson(value));
+    }
+
+    public static Object asJson(String value) {
+        return new RawJson(value);
+    }
+
+    private static class RawJson {
+
+        private final String value;
+
+        public RawJson(String value) {
+            this.value = value;
+        }
+
+        public String value() {
+            return this.value;
+        }
+    }
+
+    private static class RawJsonSerializer extends StdSerializer<RawJson> {
+
+        private static final long serialVersionUID = 3240301861031054251L;
+
+        public RawJsonSerializer() {
+            super(RawJson.class);
+        }
+
+        @Override
+        public void serialize(RawJson json, JsonGenerator generator,
+                              SerializerProvider provider)
+                              throws IOException {
+            generator.writeRaw(json.value());
+        }
     }
 
     private static class DateSerializer extends StdSerializer<Date> {
