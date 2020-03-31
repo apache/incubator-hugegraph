@@ -261,6 +261,13 @@ public class HugeTask<V> extends FutureTask<V> {
         return false;
     }
 
+    public void failSave(Throwable e) {
+        if (!this.fail(e)) {
+            // Can't update status, just set result to error message
+            this.result = e.toString();
+        }
+    }
+
     @Override
     protected void done() {
         try {

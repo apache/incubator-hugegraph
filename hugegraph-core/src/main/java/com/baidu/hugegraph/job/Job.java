@@ -32,6 +32,9 @@ public abstract class Job<T> extends TaskCallable<T> {
 
     private static final Logger LOG = Log.logger(HugeTask.class);
 
+    private static final String ERROR_MAX_LEN = "Failed to commit changes: " +
+                                                "The max length of bytes is";
+
     private volatile long lastSaveTime = System.currentTimeMillis();
     private volatile long saveInterval = 1000 * 30;
 
@@ -86,9 +89,14 @@ public abstract class Job<T> extends TaskCallable<T> {
             if (task.completed()) {
                 /*
                  * Failed to save task and the status is stable(can't be update)
-                 * just log the task. seems no need try again.
+                 * just log the task, and try again.
                  */
                 LOG.error("Failed to save task with error \"{}\": {}", e, task);
+                if (e.getMessage().contains(ERROR_MAX_LEN)) {
+                    task.failSave(e);
+                    this.scheduler().save(task);
+                    return;
+                }
             }
             throw e;
         }
