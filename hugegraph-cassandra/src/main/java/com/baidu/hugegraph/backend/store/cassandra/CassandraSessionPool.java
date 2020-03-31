@@ -258,5 +258,10 @@ public class CassandraSessionPool extends BackendSessionPool {
         public Metadata metadata() {
             return CassandraSessionPool.this.cluster.getMetadata();
         }
+
+        public int aggregateTimeout() {
+            HugeConfig conf = CassandraSessionPool.this.config();
+            return conf.get(CassandraOptions.AGGR_TIMEOUT);
+        }
     }
 }

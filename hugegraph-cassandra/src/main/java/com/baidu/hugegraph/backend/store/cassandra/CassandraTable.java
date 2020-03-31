@@ -26,7 +26,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -104,8 +103,8 @@ public abstract class CassandraTable
         Aggregate aggregate = query.aggregateNotNull();
         Iterator<Number> results = this.query(query, statement -> {
             // Set request timeout to a large value
-            // TODO read from conf
-            statement.setReadTimeoutMillis((int) TimeUnit.DAYS.toMillis(1L));
+            int timeout = session.aggregateTimeout();
+            statement.setReadTimeoutMillis(timeout * 1000);
             return session.query(statement);
         }, (q, rs) -> {
             Row row = rs.one();

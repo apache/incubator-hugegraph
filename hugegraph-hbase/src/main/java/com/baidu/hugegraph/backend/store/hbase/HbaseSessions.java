@@ -84,6 +84,7 @@ public class HbaseSessions extends BackendSessionPool {
 
     private static final String COPROCESSOR_AGGR =
             "org.apache.hadoop.hbase.coprocessor.AggregateImplementation";
+    private static final long SCANNER_CACHEING = 1000L;
 
     private final String namespace;
     private Connection hbase;
@@ -107,9 +108,9 @@ public class HbaseSessions extends BackendSessionPool {
     private AggregationClient aggregationClient() {
         Configuration hConfig = this.hbase.getConfiguration();
         hConfig = HBaseConfiguration.create(hConfig);
-        // TODO: read from conf
-        hConfig.setLong("hbase.rpc.timeout", 600000);
-        hConfig.setLong("hbase.client.scanner.caching", 1000);
+        long timeout = this.config().get(HbaseOptions.AGGR_TIMEOUT);
+        hConfig.setLong("hbase.rpc.timeout", timeout * 1000L);
+        hConfig.setLong("hbase.client.scanner.caching", SCANNER_CACHEING);
         return new AggregationClient(hConfig);
     }
 

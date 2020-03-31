@@ -89,4 +89,12 @@ public class HbaseOptions extends OptionHolder {
                     positiveInt(),
                     30L
             );
+
+    public static final ConfigOption<Long> AGGR_TIMEOUT =
+            new ConfigOption<>(
+                    "hbase.aggregation_timeout",
+                    "The timeout in seconds of waiting for aggregation.",
+                    positiveInt(),
+                    12 * 60 * 60L
+            );
 }
