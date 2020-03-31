@@ -23,7 +23,6 @@ import org.junit.Test;
 
 import com.baidu.hugegraph.backend.serializer.BinaryBackendEntry;
 import com.baidu.hugegraph.backend.serializer.BinaryScatterSerializer;
-import com.baidu.hugegraph.backend.serializer.BinarySerializer;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeVertex;
