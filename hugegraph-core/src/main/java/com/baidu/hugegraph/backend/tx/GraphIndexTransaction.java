@@ -1457,6 +1457,19 @@ public class GraphIndexTransaction extends AbstractTransaction {
                                         "and EDGE to remove left index, " +
                                         "but got: '%s'", element.type());
             }
+
+            // Check label is matched
+            Id label = query.condition(HugeKeys.LABEL);
+            if (!element.schemaLabel().id().equals(label)) {
+                String labelName = element.type().isVertex() ?
+                                   this.graph().vertexLabel(label).name() :
+                                   this.graph().edgeLabel(label).name();
+                E.checkState(false,
+                             "Found element %s with unexpected label '%s', " +
+                             "expected label '%s', query: %s",
+                             element, element.label(), labelName, query);
+            }
+
             long rCount = 0;
             long sCount = 0;
             for (ConditionQuery cq: ConditionQueryFlatten.flatten(query)) {
@@ -1484,6 +1497,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                     break;
                 }
             }
+
             E.checkState(queries != null,
                          "Can't construct left-index query for '%s'", query);
 

@@ -51,10 +51,10 @@ public abstract class IndexableTransaction extends AbstractTransaction {
     @Override
     protected void commit2Backend() {
         BackendMutation mutation = this.prepareCommit();
-        BackendMutation txMutation = this.indexTransaction().prepareCommit();
-        assert !mutation.isEmpty() || !txMutation.isEmpty();
+        BackendMutation idxMutation = this.indexTransaction().prepareCommit();
+        assert !mutation.isEmpty() || !idxMutation.isEmpty();
         // Commit graph/schema updates and index updates with graph/schema tx
-        this.commitMutation2Backend(mutation, txMutation);
+        this.commitMutation2Backend(mutation, idxMutation);
     }
 
     @Override

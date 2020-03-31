@@ -443,6 +443,14 @@ public class HugeGraph implements GremlinGraph {
         return pk;
     }
 
+    public VertexLabel vertexLabelOrNone(Id id) {
+        VertexLabel vl = this.schemaTransaction().getVertexLabel(id);
+        if (vl == null) {
+            vl = VertexLabel.undefined(this, id);
+        }
+        return vl;
+    }
+
     public VertexLabel vertexLabel(Id id) {
         VertexLabel vl = this.schemaTransaction().getVertexLabel(id);
         E.checkArgument(vl != null, "Undefined vertex label with id: '%s'", id);
@@ -453,6 +461,14 @@ public class HugeGraph implements GremlinGraph {
         VertexLabel vl = this.schemaTransaction().getVertexLabel(name);
         E.checkArgument(vl != null, "Undefined vertex label: '%s'", name);
         return vl;
+    }
+
+    public EdgeLabel edgeLabelOrNone(Id id) {
+        EdgeLabel el = this.schemaTransaction().getEdgeLabel(id);
+        if (el == null) {
+            el = EdgeLabel.undefined(this, id);
+        }
+        return el;
     }
 
     public EdgeLabel edgeLabel(Id id) {

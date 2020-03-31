@@ -34,8 +34,10 @@ import com.baidu.hugegraph.util.E;
 
 public class EdgeLabel extends SchemaLabel {
 
-    private Id sourceLabel;
-    private Id targetLabel;
+    public static final EdgeLabel NONE = new EdgeLabel(null, ZERO, UNDEF);
+
+    private Id sourceLabel = ZERO;
+    private Id targetLabel = ZERO;
     private Frequency frequency;
     private List<Id> sortKeys;
 
@@ -68,7 +70,7 @@ public class EdgeLabel extends SchemaLabel {
     }
 
     public void sourceLabel(Id id) {
-        E.checkArgument(this.sourceLabel == null,
+        E.checkArgument(this.sourceLabel == ZERO,
                         "Not allowed to set source label multi times " +
                         "of edge label '%s'", this.name());
         this.sourceLabel = id;
@@ -79,7 +81,7 @@ public class EdgeLabel extends SchemaLabel {
     }
 
     public void targetLabel(Id id) {
-        E.checkArgument(this.targetLabel == null,
+        E.checkArgument(this.targetLabel == ZERO,
                         "Not allowed to set target label multi times " +
                         "of edge label '%s'", this.name());
         this.targetLabel = id;
@@ -104,6 +106,10 @@ public class EdgeLabel extends SchemaLabel {
 
     public void sortKeys(Id... ids) {
         this.sortKeys.addAll(Arrays.asList(ids));
+    }
+
+    public static EdgeLabel undefined(HugeGraph graph, Id id) {
+        return new EdgeLabel(graph, id, UNDEF);
     }
 
     public interface Builder extends SchemaBuilder<EdgeLabel> {

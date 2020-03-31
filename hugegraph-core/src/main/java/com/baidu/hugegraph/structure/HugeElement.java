@@ -127,9 +127,8 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
 
     public Map<Id, Object> getPropertiesMap() {
         Map<Id, Object> props = new HashMap<>();
-        for (Map.Entry<Id, HugeProperty<?>> entry :
-             this.properties.entrySet()) {
-            props.put(entry.getKey(), entry.getValue().value());
+        for (Map.Entry<Id, HugeProperty<?>> e : this.properties.entrySet()) {
+            props.put(e.getKey(), e.getValue().value());
         }
         return props;
     }

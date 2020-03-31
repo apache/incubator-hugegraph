@@ -27,15 +27,11 @@ import java.util.Map;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.schema.builder.SchemaBuilder;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.IdStrategy;
 
 public class VertexLabel extends SchemaLabel {
-
-    private static final Id ZERO = IdGenerator.of(0L);
-    private static final String UNDEF = "~undefined";
 
     public static final VertexLabel NONE = new VertexLabel(null, ZERO, UNDEF);
 
@@ -73,12 +69,12 @@ public class VertexLabel extends SchemaLabel {
         this.primaryKeys.addAll(Arrays.asList(ids));
     }
 
-    public boolean undefined() {
-        return this.id() == ZERO && this.name() == UNDEF;
-    }
-
     public static VertexLabel undefined(HugeGraph graph) {
         return new VertexLabel(graph, ZERO, UNDEF);
+    }
+
+    public static VertexLabel undefined(HugeGraph graph, Id id) {
+        return new VertexLabel(graph, id, UNDEF);
     }
 
     public interface Builder extends SchemaBuilder<VertexLabel> {

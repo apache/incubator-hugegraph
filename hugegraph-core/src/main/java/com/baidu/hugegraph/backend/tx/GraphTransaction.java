@@ -115,6 +115,8 @@ public class GraphTransaction extends IndexableTransaction {
 
     private final boolean checkCustomVertexExist;
     private final boolean checkAdjacentVertexExist;
+    private final boolean lazyLoadAdjacentVertex;
+    private final int commitPartOfAdjacentEdges;
     private final int batchSize;
     private final int pageSize;
 
@@ -134,11 +136,22 @@ public class GraphTransaction extends IndexableTransaction {
              conf.get(CoreOptions.VERTEX_CHECK_CUSTOMIZED_ID_EXIST);
         this.checkAdjacentVertexExist =
              conf.get(CoreOptions.VERTEX_ADJACENT_VERTEX_EXIST);
+        this.lazyLoadAdjacentVertex =
+             conf.get(CoreOptions.VERTEX_ADJACENT_VERTEX_LAZY);
+        this.commitPartOfAdjacentEdges =
+             conf.get(CoreOptions.VERTEX_PART_EDGE_COMMIT_SIZE);
         this.batchSize = conf.get(CoreOptions.QUERY_BATCH_SIZE);
         this.pageSize = conf.get(CoreOptions.QUERY_PAGE_SIZE);
 
         this.verticesCapacity = conf.get(CoreOptions.VERTEX_TX_CAPACITY);
         this.edgesCapacity = conf.get(CoreOptions.EDGE_TX_CAPACITY);
+
+        E.checkArgument(this.commitPartOfAdjacentEdges < this.edgesCapacity,
+                        "Option value of %s(%s) must be < %s(%s)",
+                        CoreOptions.VERTEX_PART_EDGE_COMMIT_SIZE.name(),
+                        this.commitPartOfAdjacentEdges,
+                        CoreOptions.EDGE_TX_CAPACITY.name(),
+                        this.edgesCapacity);
     }
 
     @Override
@@ -286,6 +299,11 @@ public class GraphTransaction extends IndexableTransaction {
                     HugeEdge edge = vedges.next();
                     // NOTE: will change the input parameter
                     removedEdges.put(edge.id(), edge);
+                    // Commit first if enabled commit-part mode
+                    if (this.commitPartOfAdjacentEdges > 0 &&
+                        removedEdges.size() >= this.commitPartOfAdjacentEdges) {
+                        this.commitPartOfEdgeDeletions(removedEdges);
+                    }
                 }
             } finally {
                 CloseableIterator.closeIterator(vedges);
@@ -306,6 +324,11 @@ public class GraphTransaction extends IndexableTransaction {
             this.indexTx.updateLabelIndex(v, true);
         }
 
+        // Remove edges
+        this.prepareDeletions(removedEdges);
+    }
+
+    protected void prepareDeletions(Map<Id, HugeEdge> removedEdges) {
         // Remove edges
         for (HugeEdge e : removedEdges.values()) {
             this.checkAggregateProperty(e);
@@ -379,6 +402,24 @@ public class GraphTransaction extends IndexableTransaction {
                 }
             }
         }
+    }
+
+    private void commitPartOfEdgeDeletions(Map<Id, HugeEdge> removedEdges) {
+        assert this.commitPartOfAdjacentEdges > 0;
+
+        this.prepareDeletions(removedEdges);
+
+        BackendMutation mutation = this.mutation();
+        BackendMutation idxMutation = this.indexTransaction().mutation();
+
+        try {
+            this.commitMutation2Backend(mutation, idxMutation);
+        } finally {
+            mutation.clear();
+            idxMutation.clear();
+        }
+
+        removedEdges.clear();
     }
 
     @Override
@@ -510,7 +551,7 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     public Iterator<Vertex> queryAdjacentVertices(Iterator<Edge> edges) {
-        if(true){
+        if(this.lazyLoadAdjacentVertex){
             return new MapperIterator<>(edges, edge -> {
                 return ((HugeEdge) edge).otherVertex();
             });
@@ -601,7 +642,12 @@ public class GraphTransaction extends IndexableTransaction {
 
         // Filter unused or incorrect records
         results = new FilterIterator<>(results, vertex -> {
-            assert vertex.schemaLabel() != VertexLabel.NONE;
+            // TODO: Left vertex should to be auto removed via async task
+            if (vertex.schemaLabel().undefined()) {
+                LOG.warn("Left vertex is found: id={}, label={}, properties={}",
+                         vertex.id(), vertex.schemaLabel().id(),
+                         vertex.getPropertiesMap());
+            }
             // Filter hidden results
             if (!query.showHidden() && Graph.Hidden.isHidden(vertex.label())) {
                 return false;
@@ -755,6 +801,12 @@ public class GraphTransaction extends IndexableTransaction {
         boolean withDuplicatedEdge = false;
         Set<Id> returnedEdges = withDuplicatedEdge ? new HashSet<>() : null;
         results = new FilterIterator<>(results, edge -> {
+            // TODO: Left edge should to be auto removed via async task
+            if (edge.schemaLabel().undefined()) {
+                LOG.warn("Left edge is found: id={}, label={}, properties={}",
+                         edge.id(), edge.schemaLabel().id(),
+                         edge.getPropertiesMap());
+            }
             // Filter hidden results
             if (!query.showHidden() && Graph.Hidden.isHidden(edge.label())) {
                 return false;
@@ -1048,7 +1100,7 @@ public class GraphTransaction extends IndexableTransaction {
         if (total == 1) {
             /*
              * Supported query:
-             *  1.query just by edge label
+             *  1.query just by vertex label
              *  2.query just by PROPERTIES (like containsKey,containsValue)
              *  3.query with scan
              */
