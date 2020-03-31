@@ -421,6 +421,10 @@ public class GraphTransaction extends IndexableTransaction {
 
     @Override
     public Number queryNumber(Query query) {
+        E.checkArgument(!this.hasUpdates(),
+                        "It's not allowed to query number when " +
+                        "there are uncommitted records.");
+
         if (!(query instanceof ConditionQuery)) {
             return super.queryNumber(query);
         }

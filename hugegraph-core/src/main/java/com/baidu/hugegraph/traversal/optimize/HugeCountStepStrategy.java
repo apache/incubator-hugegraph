@@ -58,7 +58,7 @@ public final class HugeCountStepStrategy
     }
 
     @Override
-//    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     public void apply(Traversal.Admin<?, ?> traversal) {
         TraversalUtil.convAllHasSteps(traversal);
 

@@ -691,12 +691,16 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         // Query all with limit after delete
         graph.traversal().E().limit(14).drop().iterate();
-        Assert.assertEquals(4L, graph.traversal().E().count().next());
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            // Query count with uncommitted records
+            graph.traversal().E().count().next();
+        });
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             // Query with limit
             graph.traversal().E().limit(3).toList();
         });
         graph.tx().commit();
+        Assert.assertEquals(4L, graph.traversal().E().count().next());
         List<Edge> edges = graph.traversal().E().limit(3).toList();
         Assert.assertEquals(3, edges.size());
 

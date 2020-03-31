@@ -98,7 +98,7 @@ public abstract class AbstractTransaction implements Transaction {
         try {
             return this.store.queryNumber(squery);
         } finally {
-            this.afterRead(); // TODO: not complete the iteration currently
+            this.afterRead();
         }
     }
 

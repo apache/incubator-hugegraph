@@ -57,7 +57,9 @@ public final class HugeCountStep<S extends Element>
             throw FastNoSuchElementException.instance();
         }
         this.done = true;
+        @SuppressWarnings({ "unchecked", "rawtypes" })
+        Step<Long, Long> step = (Step) this;
         return this.getTraversal().getTraverserGenerator()
-                   .generate(this.originGraphStep.count(), (Step) this, 1L);
+                   .generate(this.originGraphStep.count(), step, 1L);
     }
 }
