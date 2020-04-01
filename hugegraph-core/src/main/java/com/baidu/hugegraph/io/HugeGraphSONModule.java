@@ -399,6 +399,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         public void serialize(HugeVertex vertex, JsonGenerator generator,
                               SerializerProvider provider)
                               throws IOException {
+            vertex.forceLoad();
             generator.writeStartObject();
 
             this.writeIdField("id", vertex.id(), generator);
@@ -423,6 +424,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         public void serialize(HugeEdge edge, JsonGenerator generator,
                               SerializerProvider provider)
                               throws IOException {
+            edge.forceLoad();
             generator.writeStartObject();
 
             // Write id, label, type

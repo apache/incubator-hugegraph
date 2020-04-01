@@ -1471,12 +1471,28 @@ public class EdgeCoreTest extends BaseCoreTest {
         List<Vertex> vertices = graph.traversal().V(james.id()).out().toList();
         Assert.assertEquals(1, vertices.size());
         HugeVertex adjacent = (HugeVertex) vertices.get(0);
-        Assert.assertTrue(adjacent.schemaLabel().undefined());
+        Assert.assertFalse(adjacent.schemaLabel().undefined());
+        adjacent.forceLoad(); // force load
+        Assert.assertTrue("label: " + adjacent.schemaLabel(),
+                          adjacent.schemaLabel().undefined());
         Assert.assertEquals("~undefined", adjacent.label());
 
         vertices = graph.traversal().V(james.id()).outE().otherV().toList();
         Assert.assertEquals(1, vertices.size());
         adjacent = (HugeVertex) vertices.get(0);
+        Assert.assertTrue(adjacent.propLoaded());
+        Assert.assertTrue(adjacent.schemaLabel().undefined());
+        adjacent.forceLoad();
+        Assert.assertTrue(adjacent.schemaLabel().undefined());
+        Assert.assertEquals("~undefined", adjacent.label());
+
+        graph.graphEventHub().notify(Events.CACHE, "clear", null).get();
+        vertices = graph.traversal().V(james.id()).outE().otherV().toList();
+        Assert.assertEquals(1, vertices.size());
+        adjacent = (HugeVertex) vertices.get(0);
+        Assert.assertFalse(adjacent.propLoaded());
+        Assert.assertFalse(adjacent.schemaLabel().undefined());
+        adjacent.forceLoad();
         Assert.assertTrue(adjacent.schemaLabel().undefined());
         Assert.assertEquals("~undefined", adjacent.label());
 
@@ -1484,7 +1500,7 @@ public class EdgeCoreTest extends BaseCoreTest {
                         .has("score", 3).otherV().toList();
         Assert.assertEquals(1, vertices.size());
         adjacent = (HugeVertex) vertices.get(0);
-        adjacent.properties();
+        adjacent.forceLoad();
         // NOTE: if not commit, adjacent.label() will return 'book'
         Assert.assertTrue(adjacent.schemaLabel().undefined());
         Assert.assertEquals("~undefined", adjacent.label());
@@ -1497,6 +1513,135 @@ public class EdgeCoreTest extends BaseCoreTest {
         Assert.assertTrue(adjacent.schemaLabel().undefined());
         Assert.assertEquals("~undefined", adjacent.label());
 
+        Whitebox.setInternalState(graph.graphTransaction(),
+                                  "checkAdjacentVertexExist", true);
+        try {
+            Assert.assertThrows(HugeException.class, () -> {
+                // read from cache
+                graph.traversal().V(james.id()).outE().has("score", 3)
+                                 .otherV().values().toList();
+            }, e -> {
+                Assert.assertContains("Vertex 'java' does not exist",
+                                      e.getMessage());
+            });
+        } finally {
+            Whitebox.setInternalState(graph.graphTransaction(),
+                                      "checkAdjacentVertexExist", false);
+        }
+
+        Whitebox.setInternalState(graph.graphTransaction(),
+                                  "checkAdjacentVertexExist", true);
+        graph.graphEventHub().notify(Events.CACHE, "clear", null).get();
+        try {
+            Assert.assertEquals(0, graph.traversal().V(java).toList().size());
+
+            Assert.assertThrows(HugeException.class, () -> {
+                graph.traversal().V(james.id()).out().values().toList();
+            }, e -> {
+                Assert.assertContains("Vertex 'java' does not exist",
+                                      e.getMessage());
+            });
+
+            Assert.assertThrows(HugeException.class, () -> {
+                graph.traversal().V(james.id()).outE().otherV()
+                                 .values().toList();
+            }, e -> {
+                Assert.assertContains("Vertex 'java' does not exist",
+                                      e.getMessage());
+            });
+
+            Assert.assertThrows(HugeException.class, () -> {
+                Vertex v = graph.traversal().V(james.id()).outE()
+                                .has("score", 3).otherV().next();
+                v.properties(); // throw
+            }, e -> {
+                Assert.assertContains("Vertex 'java' does not exist",
+                                      e.getMessage());
+            });
+
+            Assert.assertThrows(HugeException.class, () -> {
+                Vertex v = graph.traversal().V(james.id()).outE()
+                                .has("score", 3).otherV().next();
+                v.values(); // throw
+            }, e -> {
+                Assert.assertContains("Vertex 'java' does not exist",
+                                      e.getMessage());
+            });
+
+            Assert.assertThrows(HugeException.class, () -> {
+                Vertex v = graph.traversal().V(james.id()).outE()
+                                .has("score", 3).otherV().next();
+                ((HugeVertex) v).forceLoad(); // throw
+            }, e -> {
+                Assert.assertContains("Vertex 'java' does not exist",
+                                      e.getMessage());
+            });
+        } finally {
+            Whitebox.setInternalState(graph.graphTransaction(),
+                                      "checkAdjacentVertexExist", false);
+        }
+    }
+
+    @Test
+    public void testQueryVerticesOfEdgesWithoutVertexAndNoLazyLoad()
+                throws InterruptedException, ExecutionException {
+        HugeGraph graph = graph();
+
+        Vertex james = graph.addVertex(T.label, "author", "id", 1,
+                                       "name", "James Gosling", "age", 62,
+                                       "lived", "Canadian");
+        Vertex java = new HugeVertex(graph, IdGenerator.of("java"),
+                                     graph.vertexLabel("book"));
+
+        james.addEdge("authored", java, "score", 3);
+        graph.tx().commit();
+
+        Whitebox.setInternalState(graph.graphTransaction(),
+                                  "lazyLoadAdjacentVertex", false);
+        try {
+            List<Edge> edges = graph.traversal().V(james.id()).outE().toList();
+            Assert.assertEquals(1, edges.size());
+
+            Assert.assertEquals(0, graph.traversal().V(java).toList().size());
+
+            List<Vertex> vertices = graph.traversal().V(james.id())
+                                                     .out().toList();
+            Assert.assertEquals(1, vertices.size());
+            HugeVertex adjacent = (HugeVertex) vertices.get(0);
+            Assert.assertTrue("label: " + adjacent.schemaLabel(),
+                              adjacent.schemaLabel().undefined());
+            Assert.assertEquals("~undefined", adjacent.label());
+
+            vertices = graph.traversal().V(james.id()).outE().otherV().toList();
+            Assert.assertEquals(1, vertices.size());
+            adjacent = (HugeVertex) vertices.get(0);
+            Assert.assertTrue(adjacent.schemaLabel().undefined());
+            Assert.assertEquals("~undefined", adjacent.label());
+
+            vertices = graph.traversal().V(james.id()).outE()
+                            .has("score", 3).otherV().toList();
+            Assert.assertEquals(1, vertices.size());
+            adjacent = (HugeVertex) vertices.get(0);
+            // NOTE: if not load, adjacent.label() will return 'book'
+            Assert.assertEquals("book", adjacent.label());
+            adjacent.forceLoad();
+            Assert.assertTrue(adjacent.schemaLabel().undefined());
+            Assert.assertEquals("~undefined", adjacent.label());
+            Assert.assertFalse(adjacent.properties().hasNext());
+
+            vertices = graph.traversal().V(james.id()).outE()
+                            .has("score", 3).otherV().toList();
+            Assert.assertEquals(1, vertices.size());
+            adjacent = (HugeVertex) vertices.get(0);
+            Assert.assertTrue(adjacent.schemaLabel().undefined());
+            Assert.assertEquals("~undefined", adjacent.label());
+        } finally {
+            Whitebox.setInternalState(graph.graphTransaction(),
+                                      "lazyLoadAdjacentVertex", true);
+        }
+
+        Whitebox.setInternalState(graph.graphTransaction(),
+                                  "lazyLoadAdjacentVertex", false);
         Whitebox.setInternalState(graph.graphTransaction(),
                                   "checkAdjacentVertexExist", true);
         graph.graphEventHub().notify(Events.CACHE, "clear", null).get();
@@ -1535,6 +1680,8 @@ public class EdgeCoreTest extends BaseCoreTest {
                                       e.getMessage());
             });
         } finally {
+            Whitebox.setInternalState(graph.graphTransaction(),
+                                      "lazyLoadAdjacentVertex", true);
             Whitebox.setInternalState(graph.graphTransaction(),
                                       "checkAdjacentVertexExist", false);
         }
@@ -3456,15 +3603,28 @@ public class EdgeCoreTest extends BaseCoreTest {
         edges = graph.traversal().E().toList();
         Assert.assertEquals(txCap + 5, edges.size());
 
+        int old = Whitebox.getInternalState(graph.graphTransaction(),
+                                            "commitPartOfAdjacentEdges");
+        Whitebox.setInternalState(graph.graphTransaction(),
+                                  "commitPartOfAdjacentEdges", 0);
+        try {
+            // It will remove all edges of the vertex, but with error
+            guido.remove();
+
+            Assert.assertThrows(LimitExceedException.class, () -> {
+                graph.tx().commit();
+            }, (e) -> {
+                Assert.assertTrue(e.getMessage().contains(
+                                  "Edges size has reached tx capacity"));
+                graph.tx().rollback();
+            });
+        } finally {
+            Whitebox.setInternalState(graph.graphTransaction(),
+                                      "commitPartOfAdjacentEdges", old);
+        }
+
         // It will remove all edges of the vertex
         guido.remove();
-
-        Assert.assertThrows(LimitExceedException.class, () -> {
-            graph.tx().commit();
-        }, (e) -> {
-            Assert.assertTrue(e.getMessage().contains(
-                              "Edges size has reached tx capacity"));
-        });
 
         // Clear all
         graph.truncateBackend();

@@ -1579,6 +1579,12 @@ public class GraphTransaction extends IndexableTransaction {
         }
     }
 
+    public void checkAdjacentVertexExist(HugeVertex vertex) {
+        if (this.checkAdjacentVertexExist && vertex.schemaLabel().undefined()) {
+            throw new HugeException("Vertex '%s' does not exist", vertex.id());
+        }
+    }
+
     public void removeIndex(IndexLabel indexLabel) {
         // TODO: use event to replace direct call
         this.checkOwnerThread();

@@ -112,6 +112,10 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
         this.propLoaded = false;
     }
 
+    public void forceLoad() {
+        this.ensureFilledProperties(false);
+    }
+
     public void committed() {
         this.fresh = false;
     }
