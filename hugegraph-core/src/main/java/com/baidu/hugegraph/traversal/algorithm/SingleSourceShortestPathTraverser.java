@@ -20,14 +20,12 @@
 package com.baidu.hugegraph.traversal.algorithm;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.apache.tinkerpop.gremlin.structure.Edge;
 
@@ -36,6 +34,7 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.type.define.Directions;
+import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -182,19 +181,18 @@ public class SingleSourceShortestPathTraverser extends HugeTraverser {
                 }
             }
 
-            List<NodeWithWeight> sorted = this.findingNodes.values().stream()
-                                          .sorted(Comparator.comparing
-                                          (NodeWithWeight::weight))
-                                          .collect(Collectors.toList());
+            Map<Id, NodeWithWeight> sorted = CollectionUtil.sortByValue(
+                                             this.findingNodes, true);
             double minWeight = 0;
             Set<NodeWithWeight> newSources = new HashSet<>();
-            for (NodeWithWeight nw : sorted) {
+            for (Map.Entry<Id, NodeWithWeight> entry : sorted.entrySet()) {
+                Id id = entry.getKey();
+                NodeWithWeight nw = entry.getValue();
                 if (minWeight == 0) {
                     minWeight = nw.weight();
                 } else if (nw.weight() > minWeight) {
                     break;
                 }
-                Id id = nw.node().id();
                 // Move shortest paths from 'findingNodes' to 'foundNodes'
                 this.foundNodes.put(id, nw);
                 if (this.limit != NO_LIMIT &&
@@ -224,7 +222,7 @@ public class SingleSourceShortestPathTraverser extends HugeTraverser {
             double edgeWeight;
             if (this.weight == null ||
                 !edge.property(this.weight).isPresent()) {
-                edgeWeight = 1;
+                edgeWeight = 1.0;
             } else {
                 edgeWeight = edge.value(this.weight);
             }
@@ -248,7 +246,7 @@ public class SingleSourceShortestPathTraverser extends HugeTraverser {
         }
     }
 
-    public static class NodeWithWeight {
+    public static class NodeWithWeight implements Comparable<NodeWithWeight> {
 
         private final double weight;
         private final Node node;
@@ -273,6 +271,11 @@ public class SingleSourceShortestPathTraverser extends HugeTraverser {
         public Map<String, Object> toMap() {
             return ImmutableMap.of("weight", this.weight,
                                    "path", this.node().path());
+        }
+
+        @Override
+        public int compareTo(NodeWithWeight o) {
+            return Double.compare(this.weight, o.weight);
         }
     }
 

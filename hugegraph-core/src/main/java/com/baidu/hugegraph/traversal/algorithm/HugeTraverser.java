@@ -34,11 +34,11 @@ import javax.ws.rs.core.MultivaluedHashMap;
 import javax.ws.rs.core.MultivaluedMap;
 
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.collections.IteratorUtils;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
@@ -172,23 +172,22 @@ public class HugeTraverser {
         return all;
     }
 
-    @SuppressWarnings("unchecked")
-    public Set<Id> sameNeighbors(Id v1, Id v2, Directions direction,
+    public Set<Id> sameNeighbors(Id vertex, Id other, Directions direction,
                                  String label, long degree, long limit) {
-        E.checkNotNull(v1, "vertex id");
-        E.checkNotNull(v2, "vertex id");
+        E.checkNotNull(vertex, "vertex id");
+        E.checkNotNull(other, "the other vertex id");
         E.checkNotNull(direction, "direction");
         checkDegree(degree);
         checkLimit(limit);
 
         Id labelId = this.getEdgeLabelId(label);
 
-        List<Id> sourceNeighbors = IteratorUtils.toList(this.adjacentVertices(
-                                   v1, direction, labelId, degree));
-        List<Id> targetNeighbors = IteratorUtils.toList(this.adjacentVertices(
-                                   v2, direction, labelId, degree));
-        Set<Id> sameNeighbors = new HashSet<>(CollectionUtils.intersection(
-                                sourceNeighbors, targetNeighbors));
+        Set<Id> sourceNeighbors = IteratorUtils.set(this.adjacentVertices(
+                                  vertex, direction, labelId, degree));
+        Set<Id> targetNeighbors = IteratorUtils.set(this.adjacentVertices(
+                                  other, direction, labelId, degree));
+        Set<Id> sameNeighbors = (Set<Id>) CollectionUtil.intersect(
+                                sourceNeighbors, targetNeighbors);
         if (limit != NO_LIMIT) {
             int end = Math.min(sameNeighbors.size(), (int) limit);
             sameNeighbors = CollectionUtil.subSet(sameNeighbors, 0, end);
@@ -196,20 +195,19 @@ public class HugeTraverser {
         return sameNeighbors;
     }
 
-    @SuppressWarnings("unchecked")
-    public double jaccardSimilarity(Id v1, Id v2, Directions dir,
+    public double jaccardSimilarity(Id vertex, Id other, Directions dir,
                                     String label, long degree) {
-        E.checkNotNull(v1, "source vertex id");
-        E.checkNotNull(v2, "target vertex id");
+        E.checkNotNull(vertex, "vertex id");
+        E.checkNotNull(other, "the other vertex id");
         E.checkNotNull(dir, "direction");
         checkDegree(degree);
 
         Id labelId = this.getEdgeLabelId(label);
 
-        List<Id> sourceNeighbors = IteratorUtils.toList(this.adjacentVertices(
-                                   v1, dir, labelId, degree));
-        List<Id> targetNeighbors = IteratorUtils.toList(this.adjacentVertices(
-                                   v2, dir, labelId, degree));
+        Set<Id> sourceNeighbors = IteratorUtils.set(this.adjacentVertices(
+                                  vertex, dir, labelId, degree));
+        Set<Id> targetNeighbors = IteratorUtils.set(this.adjacentVertices(
+                                  other, dir, labelId, degree));
         int interNum = CollectionUtils.intersection(sourceNeighbors,
                                                     targetNeighbors).size();
         int unionNum = CollectionUtils.union(sourceNeighbors,

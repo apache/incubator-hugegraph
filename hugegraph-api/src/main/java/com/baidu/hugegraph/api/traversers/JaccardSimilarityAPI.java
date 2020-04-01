@@ -57,18 +57,18 @@ public class JaccardSimilarityAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String get(@Context GraphManager manager,
                       @PathParam("graph") String graph,
-                      @QueryParam("v1") String v1,
-                      @QueryParam("v2") String v2,
+                      @QueryParam("vertex") String vertex,
+                      @QueryParam("other") String other,
                       @QueryParam("direction") String direction,
                       @QueryParam("label") String edgeLabel,
                       @QueryParam("max_degree")
                       @DefaultValue(DEFAULT_DEGREE) long degree) {
         LOG.debug("Graph [{}] get jaccard similarity between '{}' and '{}' " +
                   "with direction {}, edge label {} and max degree '{}'",
-                  graph, v1, v2, direction, edgeLabel, degree);
+                  graph, vertex, other, direction, edgeLabel, degree);
 
-        Id sourceId = VertexAPI.checkAndParseVertexId(v1);
-        Id targetId = VertexAPI.checkAndParseVertexId(v2);
+        Id sourceId = VertexAPI.checkAndParseVertexId(vertex);
+        Id targetId = VertexAPI.checkAndParseVertexId(other);
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
 
         HugeGraph g = graph(manager, graph);
