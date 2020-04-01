@@ -47,12 +47,13 @@ import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.baidu.hugegraph.util.Log;
+import com.baidu.hugegraph.util.StringEncoding;
 
 public class HugeTask<V> extends FutureTask<V> {
 
     private static final Logger LOG = Log.logger(HugeTask.class);
 
-    // The max
+    // The vertex property max length, for task input and result
     private static final int MAX_PROPERTY_LENGTH = (int) (64 * Bytes.MB);
 
     private final TaskCallable<V> callable;
@@ -388,10 +389,10 @@ public class HugeTask<V> extends FutureTask<V> {
                                                    .collect(toOrderSet());
                 break;
             case P.INPUT:
-                this.input = (String) value;
+                this.input = StringEncoding.decode((byte[]) value);
                 break;
             case P.RESULT:
-                this.result = (String) value;
+                this.result = StringEncoding.decode((byte[]) value);
                 break;
             default:
                 throw new AssertionError("Unsupported key: " + key);
@@ -449,12 +450,12 @@ public class HugeTask<V> extends FutureTask<V> {
 
         if (this.input != null) {
             list.add(P.INPUT);
-            list.add(this.input);
+            list.add(StringEncoding.encode(this.input));
         }
 
         if (this.result != null) {
             list.add(P.RESULT);
-            list.add(this.result);
+            list.add(StringEncoding.encode(this.result));
         }
 
         return list.toArray();

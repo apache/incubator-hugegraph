@@ -438,7 +438,7 @@ public class TaskCoreTest extends BaseCoreTest {
             runGremlinJob(bigInput);
         }, e -> {
             Assert.assertContains("Task input size 67108933 exceeded " +
-                                  "limit 67107840 bytes", e.getMessage());
+                                  "limit 67108864 bytes", e.getMessage());
         });
     }
 
@@ -492,7 +492,7 @@ public class TaskCoreTest extends BaseCoreTest {
         scheduler.cancel(task4);
         Assert.assertEquals(TaskStatus.FAILED, task4.status());
         Assert.assertContains("LimitExceedException: Task result size " +
-                              "108000003 exceeded limit 67107840 bytes",
+                              "108000003 exceeded limit 67108864 bytes",
                               task4.result());
     }
 
