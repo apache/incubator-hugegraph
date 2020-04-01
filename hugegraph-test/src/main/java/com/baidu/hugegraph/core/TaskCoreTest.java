@@ -19,9 +19,12 @@
 
 package com.baidu.hugegraph.core;
 
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.TimeoutException;
 
+import org.apache.commons.lang3.StringUtils;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -429,16 +432,13 @@ public class TaskCoreTest extends BaseCoreTest {
         });
 
         // Test failure task with big input
-        char[] chars = new char[65536];
-        for (int i = 0; i < chars.length; i++) {
-            chars[i] = '8';
-        }
-        String bigInput = new String(chars);
+        int length = 65536 * 1024;
+        String bigInput = StringUtils.repeat('8', length);
         Assert.assertThrows(LimitExceedException.class, () -> {
             runGremlinJob(bigInput);
         }, e -> {
-            Assert.assertContains("Task input size 65605 exceeded " +
-                                  "limit 65535 bytes", e.getMessage());
+            Assert.assertContains("Task input size 67108933 exceeded " +
+                                  "limit 67107840 bytes", e.getMessage());
         });
     }
 
@@ -479,16 +479,21 @@ public class TaskCoreTest extends BaseCoreTest {
                               "has exceeded the max limit 10000",
                               task3.result());
 
-        // Cancel failure task with big results (task exceeded limit 64k)
-        String bigResults = "def big='123456789'; def l=[]; " +
-                            "for (i in 1..9000) l.add(big); l;";
+        // Cancel failure task with big results (task exceeded limit 64M)
+        String bigResults = "def big='123456789'; def ol=[]; def il=[]; " +
+                            "for (i in 1..9000) " +
+                            "   for (j in 1..1000) " +
+                                    "il.add(big); " +
+                                "ol.add(il); " +
+                            "ol;";
         HugeTask<Object> task4 = runGremlinJob(bigResults);
         scheduler.waitUntilTaskCompleted(task4.id(), 10);
         Assert.assertEquals(TaskStatus.FAILED, task4.status());
         scheduler.cancel(task4);
         Assert.assertEquals(TaskStatus.FAILED, task4.status());
-        Assert.assertContains("LimitExceedException: Task result size 108001 " +
-                              "exceeded limit 65535 bytes", task4.result());
+        Assert.assertContains("LimitExceedException: Task result size " +
+                              "108000003 exceeded limit 67107840 bytes",
+                              task4.result());
     }
 
     @Test

@@ -40,9 +40,9 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
-import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.baidu.hugegraph.exception.LimitExceedException;
 import com.baidu.hugegraph.type.define.SerialEnum;
+import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.JsonUtil;
@@ -52,7 +52,8 @@ public class HugeTask<V> extends FutureTask<V> {
 
     private static final Logger LOG = Log.logger(HugeTask.class);
 
-    private static final int MAX_PROPERTY_LENGTH = BytesBuffer.STRING_LEN_MAX;
+    // The max
+    private static final int MAX_PROPERTY_LENGTH = (int) (64 * Bytes.MB);
 
     private final TaskCallable<V> callable;
 
