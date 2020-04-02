@@ -19,9 +19,7 @@
 
 package com.baidu.hugegraph.core;
 
-import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
 import java.util.concurrent.TimeoutException;
 
 import org.apache.commons.lang3.StringUtils;
@@ -84,7 +82,7 @@ public class TaskCoreTest extends BaseCoreTest {
         };
 
         Id id = IdGenerator.of(88888);
-        HugeTask<?> task = new HugeTask<>(id, null, callable);
+        HugeTask<?> task = new HugeTask<>(graph, id, null, callable);
         task.type("test");
         task.name("test-task");
 
@@ -148,14 +146,14 @@ public class TaskCoreTest extends BaseCoreTest {
         };
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
-            new HugeTask<>(null, null, callable);
+            new HugeTask<>(graph, null, null, callable);
         }, e -> {
             Assert.assertContains("Task id can't be null", e.getMessage());
         });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             Id id = IdGenerator.of("88888");
-            new HugeTask<>(id, null, callable);
+            new HugeTask<>(graph, id, null, callable);
         }, e -> {
             Assert.assertContains("Invalid task id type, it must be number",
                                   e.getMessage());
@@ -163,12 +161,12 @@ public class TaskCoreTest extends BaseCoreTest {
 
         Assert.assertThrows(NullPointerException.class, () -> {
             Id id = IdGenerator.of(88888);
-            new HugeTask<>(id, null, null);
+            new HugeTask<>(graph, id, null, null);
         });
 
         Assert.assertThrows(IllegalStateException.class, () -> {
             Id id = IdGenerator.of(88888);
-            HugeTask<?> task2 = new HugeTask<>(id, null, callable);
+            HugeTask<?> task2 = new HugeTask<>(graph, id, null, callable);
             task2.name("test-task");
             scheduler.schedule(task2);
         }, e -> {
@@ -177,7 +175,7 @@ public class TaskCoreTest extends BaseCoreTest {
 
         Assert.assertThrows(IllegalStateException.class, () -> {
             Id id = IdGenerator.of(88888);
-            HugeTask<?> task2 = new HugeTask<>(id, null, callable);
+            HugeTask<?> task2 = new HugeTask<>(graph, id, null, callable);
             task2.type("test");
             scheduler.schedule(task2);
         }, e -> {
@@ -432,13 +430,13 @@ public class TaskCoreTest extends BaseCoreTest {
         });
 
         // Test failure task with big input
-        int length = 65536 * 1024;
+        int length = 16 * 1024 * 1024 + 1;
         String bigInput = StringUtils.repeat('8', length);
         Assert.assertThrows(LimitExceedException.class, () -> {
             runGremlinJob(bigInput);
         }, e -> {
-            Assert.assertContains("Task input size 67108933 exceeded " +
-                                  "limit 67108864 bytes", e.getMessage());
+            Assert.assertContains("Task input size 16777286 exceeded " +
+                                  "limit 16777216 bytes", e.getMessage());
         });
     }
 
@@ -480,8 +478,8 @@ public class TaskCoreTest extends BaseCoreTest {
                               task3.result());
 
         // Cancel failure task with big results (task exceeded limit 64M)
-        String bigResults = "def big='123456789'; def ol=[]; def il=[]; " +
-                            "for (i in 1..9000) " +
+        String bigResults = "def big='12345678'; def ol=[]; def il=[]; " +
+                            "for (i in 1..2000) " +
                             "   for (j in 1..1000) " +
                                     "il.add(big); " +
                                 "ol.add(il); " +
@@ -492,7 +490,7 @@ public class TaskCoreTest extends BaseCoreTest {
         scheduler.cancel(task4);
         Assert.assertEquals(TaskStatus.FAILED, task4.status());
         Assert.assertContains("LimitExceedException: Task result size " +
-                              "108000003 exceeded limit 67108864 bytes",
+                              "22000003 exceeded limit 16777216 bytes",
                               task4.result());
     }
 

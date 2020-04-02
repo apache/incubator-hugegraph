@@ -24,6 +24,7 @@ import static com.baidu.hugegraph.config.OptionChecker.disallowEmpty;
 import static com.baidu.hugegraph.config.OptionChecker.rangeInt;
 
 import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.util.Bytes;
 
 public class CoreOptions extends OptionHolder {
 
@@ -113,6 +114,22 @@ public class CoreOptions extends OptionHolder {
                     "such as when truncating or clearing the backend.",
                     rangeInt(0L, Long.MAX_VALUE),
                     10L
+            );
+
+    public static final ConfigOption<Long> TASK_INPUT_SIZE_LIMIT =
+            new ConfigOption<>(
+                    "task.input_size_limit",
+                    "The gremlin job input size limit in bytes.",
+                    rangeInt(0L, Bytes.GB),
+                    16 * Bytes.MB
+            );
+
+    public static final ConfigOption<Long> TASK_RESULT_SIZE_LIMIT =
+            new ConfigOption<>(
+                    "task.result_size_limit",
+                    "The gremlin job result size limit in bytes.",
+                    rangeInt(0L, Bytes.GB),
+                    16 * Bytes.MB
             );
 
     public static final ConfigOption<Long> CONNECTION_DETECT_INTERVAL =

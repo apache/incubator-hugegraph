@@ -68,7 +68,7 @@ public class MysqlTables {
             SMALL_TEXT, "VARCHAR(255)",
             MID_TEXT, "VARCHAR(1024)",
             LARGE_TEXT, "TEXT",
-            HUGE_TEXT, "LONGTEXT"
+            HUGE_TEXT, "MEDIUMTEXT"
     );
 
     public static class MysqlTableTemplate extends MysqlTable {

@@ -69,7 +69,8 @@ public class JobBuilder<T> {
         E.checkArgumentNotNull(this.name, "Job name can't be null");
         E.checkArgumentNotNull(this.job, "Job callable can't be null");
 
-        HugeTask<T> task = new HugeTask<>(this.genTaskId(), null, this.job);
+        HugeTask<T> task = new HugeTask<>(this.graph, this.genTaskId(),
+                                          null, this.job);
         task.type(this.job.type());
         task.name(this.name);
         if (this.input != null) {

@@ -38,11 +38,14 @@ import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
+import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
+import com.baidu.hugegraph.backend.serializer.BytesBuffer;
+import com.baidu.hugegraph.config.CoreOptions;
+import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.exception.LimitExceedException;
 import com.baidu.hugegraph.type.define.SerialEnum;
-import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.JsonUtil;
@@ -53,9 +56,7 @@ public class HugeTask<V> extends FutureTask<V> {
 
     private static final Logger LOG = Log.logger(HugeTask.class);
 
-    // The vertex property max length, for task input and result
-    private static final int MAX_PROPERTY_LENGTH = (int) (64 * Bytes.MB);
-
+    private transient final HugeGraph graph;
     private final TaskCallable<V> callable;
 
     private String type;
@@ -72,18 +73,22 @@ public class HugeTask<V> extends FutureTask<V> {
     private volatile String input;
     private volatile String result;
 
-    public HugeTask(Id id, Id parent, String callable, String input) {
-        this(id, parent, TaskCallable.fromClass(callable));
+    public HugeTask(HugeGraph graph, Id id, Id parent,
+                    String callable, String input) {
+        this(graph, id, parent, TaskCallable.fromClass(callable));
         this.input = input;
     }
 
-    public HugeTask(Id id, Id parent, TaskCallable<V> callable) {
+    public HugeTask(HugeGraph graph, Id id, Id parent,
+                    TaskCallable<V> callable) {
         super(callable);
 
+        E.checkArgumentNotNull(graph, "HugeGraph can't be null");
         E.checkArgumentNotNull(id, "Task id can't be null");
         E.checkArgument(id.number(), "Invalid task id type, it must be number");
 
         assert callable != null;
+        this.graph = graph;
         this.callable = callable;
         this.type = null;
         this.name = null;
@@ -182,7 +187,7 @@ public class HugeTask<V> extends FutureTask<V> {
     }
 
     public void input(String input) {
-        checkPropertySize(input, P.unhide(P.INPUT));
+        checkPropertySize(this.graph, input, P.unhide(P.INPUT));
         this.input = input;
     }
 
@@ -285,7 +290,7 @@ public class HugeTask<V> extends FutureTask<V> {
     @Override
     protected void set(V v) {
         String result = JsonUtil.toJson(v);
-        checkPropertySize(result, P.unhide(P.RESULT));
+        checkPropertySize(this.graph, result, P.unhide(P.RESULT));
         if (this.status(TaskStatus.SUCCESS) && v != null) {
             this.result = result;
         }
@@ -347,8 +352,8 @@ public class HugeTask<V> extends FutureTask<V> {
     }
 
     protected void checkProperties() {
-        checkPropertySize(this.input, P.unhide(P.INPUT));
-        checkPropertySize(this.result, P.unhide(P.RESULT));
+        checkPropertySize(this.graph, this.input, P.unhide(P.INPUT));
+        checkPropertySize(this.graph, this.result, P.unhide(P.RESULT));
     }
 
     protected void property(String key, Object value) {
@@ -389,10 +394,10 @@ public class HugeTask<V> extends FutureTask<V> {
                                                    .collect(toOrderSet());
                 break;
             case P.INPUT:
-                this.input = StringEncoding.decode((byte[]) value);
+                this.input = StringEncoding.decompress((byte[]) value);
                 break;
             case P.RESULT:
-                this.result = StringEncoding.decode((byte[]) value);
+                this.result = StringEncoding.decompress((byte[]) value);
                 break;
             default:
                 throw new AssertionError("Unsupported key: " + key);
@@ -450,12 +455,12 @@ public class HugeTask<V> extends FutureTask<V> {
 
         if (this.input != null) {
             list.add(P.INPUT);
-            list.add(StringEncoding.encode(this.input));
+            list.add(StringEncoding.compress(this.input));
         }
 
         if (this.result != null) {
             list.add(P.RESULT);
-            list.add(StringEncoding.encode(this.result));
+            list.add(StringEncoding.compress(this.result));
         }
 
         return list.toArray();
@@ -515,7 +520,9 @@ public class HugeTask<V> extends FutureTask<V> {
             callable = TaskCallable.empty(e);
         }
 
-        HugeTask<V> task = new HugeTask<>((Id) vertex.id(), null, callable);
+        HugeGraph graph = (HugeGraph) vertex.graph();
+        HugeTask<V> task = new HugeTask<>(graph, (Id) vertex.id(),
+                                          null, callable);
         for (Iterator<VertexProperty<Object>> iter = vertex.properties();
              iter.hasNext();) {
             VertexProperty<Object> prop = iter.next();
@@ -528,11 +535,24 @@ public class HugeTask<V> extends FutureTask<V> {
         return Collectors.toCollection(InsertionOrderUtil::newSet);
     }
 
-    private static void checkPropertySize(String property, String name) {
-        if (property != null && property.length() > MAX_PROPERTY_LENGTH) {
+    private static void checkPropertySize(HugeGraph graph, String property,
+                                          String name) {
+        if (property == null) {
+            return;
+        }
+
+        HugeConfig config = graph.configuration();
+        long maxLength = BytesBuffer.STRING_LEN_MAX;
+        if (name.equals(P.unhide(P.INPUT))) {
+            maxLength = config.get(CoreOptions.TASK_INPUT_SIZE_LIMIT);
+        } else if (name.equals(P.unhide(P.RESULT))) {
+            maxLength = config.get(CoreOptions.TASK_RESULT_SIZE_LIMIT);
+        }
+
+        if (property.length() > maxLength) {
             throw new LimitExceedException(
                       "Task %s size %s exceeded limit %s bytes",
-                      name, property.length(), MAX_PROPERTY_LENGTH);
+                      name, property.length(), maxLength);
         }
     }
 
