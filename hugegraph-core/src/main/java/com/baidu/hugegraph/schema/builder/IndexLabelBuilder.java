@@ -108,42 +108,46 @@ public class IndexLabelBuilder implements IndexLabel.Builder {
         HugeType type = HugeType.INDEX_LABEL;
         SchemaTransaction tx = this.transaction;
         SchemaElement.checkName(this.name, tx.graph().configuration());
-        IndexLabel indexLabel = tx.getIndexLabel(this.name);
-        if (indexLabel != null) {
-            if (this.checkExist) {
-                throw new ExistedException(type, this.name);
+
+        return tx.lockCheckAndCreateSchema(type, this.name, name -> {
+            IndexLabel indexLabel = tx.getIndexLabel(name);
+            if (indexLabel != null) {
+                if (this.checkExist) {
+                    throw new ExistedException(type, name);
+                }
+                return new IndexLabel.CreatedIndexLabel(indexLabel, null);
             }
-            return new IndexLabel.CreatedIndexLabel(indexLabel, null);
-        }
-        tx.checkIdIfRestoringMode(type, this.id);
+            tx.checkIdIfRestoringMode(type, this.id);
 
-        this.checkBaseType();
-        this.checkIndexType();
+            this.checkBaseType();
+            this.checkIndexType();
 
-        SchemaLabel schemaLabel = this.loadElement();
+            SchemaLabel schemaLabel = this.loadElement();
 
-        /*
-         * If new index label is prefix of existed index label, or has
-         * the same fields, fail to create new index label.
-         */
-        this.checkFields(schemaLabel.properties());
-        this.checkRepeatIndex(schemaLabel);
-        Userdata.check(this.userdata, Action.INSERT);
+            /*
+             * If new index label is prefix of existed index label, or has
+             * the same fields, fail to create new index label.
+             */
+            this.checkFields(schemaLabel.properties());
+            this.checkRepeatIndex(schemaLabel);
+            Userdata.check(this.userdata, Action.INSERT);
 
-        // Async delete index label which is prefix of the new index label
-        // TODO: use event to replace direct call
-        Set<Id> removeTasks = this.removeSubIndex(schemaLabel);
+            // Async delete index label which is prefix of the new index label
+            // TODO: use event to replace direct call
+            Set<Id> removeTasks = this.removeSubIndex(schemaLabel);
 
-        // Create index label (just schema)
-        indexLabel = this.build();
-        indexLabel.status(SchemaStatus.CREATING);
-        tx.addIndexLabel(schemaLabel, indexLabel);
+            // Create index label (just schema)
+            indexLabel = this.build();
+            assert indexLabel.name().equals(name);
+            indexLabel.status(SchemaStatus.CREATING);
+            tx.addIndexLabel(schemaLabel, indexLabel);
 
-        // Async rebuild index
-        Id rebuildTask = tx.rebuildIndex(indexLabel, removeTasks);
-        E.checkNotNull(rebuildTask, "rebuild-index task");
+            // Async rebuild index
+            Id rebuildTask = tx.rebuildIndex(indexLabel, removeTasks);
+            E.checkNotNull(rebuildTask, "rebuild-index task");
 
-        return new IndexLabel.CreatedIndexLabel(indexLabel, rebuildTask);
+            return new IndexLabel.CreatedIndexLabel(indexLabel, rebuildTask);
+        });
     }
 
     /**

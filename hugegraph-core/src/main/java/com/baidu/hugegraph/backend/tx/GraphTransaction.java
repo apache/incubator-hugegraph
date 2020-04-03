@@ -290,6 +290,9 @@ public class GraphTransaction extends IndexableTransaction {
                                     Map<Id, HugeEdge> removedEdges) {
         // Remove related edges of each vertex
         for (HugeVertex v : removedVertices.values()) {
+            if (!v.schemaLabel().existsLinkLabel()) {
+                continue;
+            }
             // Query all edges of the vertex and remove them
             Query query = constructEdgesQuery(v.id(), Directions.BOTH);
             Iterator<HugeEdge> vedges = this.queryEdgesFromBackend(query);
@@ -551,7 +554,7 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     public Iterator<Vertex> queryAdjacentVertices(Iterator<Edge> edges) {
-        if(this.lazyLoadAdjacentVertex){
+        if (this.lazyLoadAdjacentVertex){
             return new MapperIterator<>(edges, edge -> {
                 return ((HugeEdge) edge).otherVertex();
             });

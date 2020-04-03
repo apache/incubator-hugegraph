@@ -69,6 +69,16 @@ public class VertexLabel extends SchemaLabel {
         this.primaryKeys.addAll(Arrays.asList(ids));
     }
 
+    public boolean existsLinkLabel() {
+        List<EdgeLabel> edgeLabels = this.graph().schema().getEdgeLabels();
+        for (EdgeLabel edgeLabel : edgeLabels) {
+            if (edgeLabel.linkWithLabel(this.id())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public static VertexLabel undefined(HugeGraph graph) {
         return new VertexLabel(graph, ZERO, UNDEF);
     }
