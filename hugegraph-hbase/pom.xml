@@ -56,15 +56,31 @@
                 </exclusion>
                 <exclusion>
                     <groupId>com.sun.jersey</groupId>
-                    <artifactId>*</artifactId>
+                    <artifactId>jersey-core</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.sun.jersey</groupId>
+                    <artifactId>jersey-server</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.sun.jersey</groupId>
+                    <artifactId>jersey-json</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.sun.jersey</groupId>
+                    <artifactId>jersey-client</artifactId>
                 </exclusion>
                 <exclusion>
                     <groupId>com.sun.jersey.contribs</groupId>
-                    <artifactId>*</artifactId>
+                    <artifactId>jersey-guice</artifactId>
                 </exclusion>
                 <exclusion>
                     <groupId>javax.servlet</groupId>
-                    <artifactId>*</artifactId>
+                    <artifactId>servlet-api</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>javax.servlet.jsp</groupId>
+                    <artifactId>jsp-api</artifactId>
                 </exclusion>
                 <exclusion>
                     <groupId>com.fasterxml.jackson.core</groupId>
@@ -77,6 +93,10 @@
                 <exclusion>
                     <groupId>org.slf4j</groupId>
                     <artifactId>slf4j-log4j12</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>log4j</groupId>
+                    <artifactId>log4j</artifactId>
                 </exclusion>
                 <exclusion>
                     <groupId>commons-logging</groupId>
