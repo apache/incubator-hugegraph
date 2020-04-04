@@ -208,11 +208,10 @@ public class HugeTraverser {
                                   vertex, dir, labelId, degree));
         Set<Id> targetNeighbors = IteratorUtils.set(this.adjacentVertices(
                                   other, dir, labelId, degree));
-        int interNum = CollectionUtils.intersection(sourceNeighbors,
-                                                    targetNeighbors).size();
-        int unionNum = CollectionUtils.union(sourceNeighbors,
-                                             targetNeighbors).size();
-
+        int interNum = CollectionUtil.intersect(sourceNeighbors,
+                                                targetNeighbors).size();
+        int unionNum = CollectionUtil.union(sourceNeighbors,
+                                            targetNeighbors).size();
         return (double) interNum / unionNum;
     }
 

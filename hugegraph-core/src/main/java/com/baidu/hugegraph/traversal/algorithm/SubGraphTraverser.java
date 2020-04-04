@@ -19,8 +19,6 @@
 
 package com.baidu.hugegraph.traversal.algorithm;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -44,23 +42,23 @@ public class SubGraphTraverser extends HugeTraverser {
         super(graph);
     }
 
-    public Set<Path> rays(Id sourceV, Directions dir, String label,
-                          int depth, long degree, long capacity, long limit) {
+    public PathSet rays(Id sourceV, Directions dir, String label,
+                        int depth, long degree, long capacity, long limit) {
         return this.subGraphPaths(sourceV, dir, label, depth, degree,
                                   capacity, limit, false, false);
     }
 
-    public Set<Path> rings(Id sourceV, Directions dir, String label, int depth,
-                           boolean sourceInRing, long degree, long capacity,
-                           long limit) {
+    public PathSet rings(Id sourceV, Directions dir, String label, int depth,
+                         boolean sourceInRing, long degree, long capacity,
+                         long limit) {
         return this.subGraphPaths(sourceV, dir, label, depth, degree,
                                   capacity, limit, true, sourceInRing);
     }
 
-    private Set<Path> subGraphPaths(Id sourceV, Directions dir, String label,
-                                    int depth, long degree, long capacity,
-                                    long limit, boolean rings,
-                                    boolean sourceInRing) {
+    private PathSet subGraphPaths(Id sourceV, Directions dir, String label,
+                                  int depth, long degree, long capacity,
+                                  long limit, boolean rings,
+                                  boolean sourceInRing) {
         E.checkNotNull(sourceV, "source vertex id");
         E.checkNotNull(dir, "direction");
         checkPositive(depth, "max depth");
@@ -72,7 +70,7 @@ public class SubGraphTraverser extends HugeTraverser {
         Traverser traverser = new Traverser(sourceV, labelId, depth, degree,
                                             capacity, limit, rings,
                                             sourceInRing);
-        Set<Path> paths = new HashSet<>();
+        PathSet paths = new PathSet();
         while (true) {
             paths.addAll(traverser.forward(dir));
             if (--depth <= 0 || traverser.reachLimit() ||
@@ -130,8 +128,8 @@ public class SubGraphTraverser extends HugeTraverser {
         /**
          * Search forward from source
          */
-        public Set<Path> forward(Directions direction) {
-            Set<Path> paths = new HashSet<>();
+        public PathSet forward(Directions direction) {
+            PathSet paths = new PathSet();
             MultivaluedMap<Id, Node> newVertices = newMultivalueMap();
             Iterator<Edge> edges;
             // Traversal vertices of previous level
@@ -255,7 +253,11 @@ public class SubGraphTraverser extends HugeTraverser {
 
         @Override
         public int hashCode() {
-            return new HashSet<>(this.vertices()).hashCode();
+            int hashCode = 0;
+            for (Id id : this.vertices()) {
+                hashCode ^= id.hashCode();
+            }
+            return hashCode;
         }
 
         /**
@@ -271,10 +273,33 @@ public class SubGraphTraverser extends HugeTraverser {
             if (other == null || !(other instanceof RingPath)) {
                 return false;
             }
-            List<Id> reverse = new ArrayList<>(this.vertices());
-            Collections.reverse(reverse);
-            return this.vertices().equals(((Path) other).vertices()) ||
-                   reverse.equals(((Path) other).vertices());
+            List<Id> otherVertices = ((Path) other).vertices();
+            if (this.vertices().equals(otherVertices)) {
+                return true;
+            }
+            if (this.vertices().size() != otherVertices.size()) {
+                return false;
+            }
+            assert this.vertices().size() != otherVertices.size();
+            int size = this.vertices().size();
+            for (int i = 0; i < size; i++) {
+                if (!this.vertices().get(i).equals(
+                     otherVertices.get(size - i - 1))) {
+                    return false;
+                }
+            }
+            return true;
+        }
+    }
+
+    public static class PathSet extends HashSet<Path> {
+
+        public Set<Id> vertices() {
+            Set<Id> vertices = new HashSet<>();
+            for (Path path : this) {
+                vertices.addAll(path.vertices());
+            }
+            return vertices;
         }
     }
 }

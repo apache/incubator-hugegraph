@@ -99,10 +99,11 @@ public final class ApiVersion {
      * version 0.11:
      * [0.49] Issue-670: Support fusiform similarity API
      * [0.50] Issue-746: Support userdata for index label
+     * [0.51] Issue-929: Support 5 TP RESTful API
      */
 
     // The second parameter of Version.of() is for IDE running without JAR
-    public static final Version VERSION = Version.of(ApiVersion.class, "0.50");
+    public static final Version VERSION = Version.of(ApiVersion.class, "0.51");
 
     public static final void check() {
         // Check version of hugegraph-core. Firstly do check from version 0.3

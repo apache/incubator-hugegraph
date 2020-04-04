@@ -76,6 +76,7 @@ public class SingleSourceShortestPathTraverser extends HugeTraverser {
                                                long skipDegree, long capacity) {
         E.checkNotNull(sourceV, "source vertex id");
         E.checkNotNull(dir, "direction");
+        E.checkNotNull(weight, "weight property");
         checkDegree(degree);
         checkCapacity(capacity);
         checkSkipDegree(skipDegree, degree, capacity);
@@ -108,7 +109,7 @@ public class SingleSourceShortestPathTraverser extends HugeTraverser {
         if (skipDegree > 0L) {
             E.checkArgument(degree != NO_LIMIT && skipDegree >= degree,
                             "The skipped degree must be >= degree, " +
-                                    "but got skipped degree '%s' and degree '%s'",
+                            "but got skipped degree '%s' and degree '%s'",
                             skipDegree, degree);
         }
     }
@@ -168,8 +169,8 @@ public class SingleSourceShortestPathTraverser extends HugeTraverser {
                     double currentWeight = this.edgeWeight(edge);
                     double weight = currentWeight + node.weight();
                     NodeWithWeight nw = new NodeWithWeight(weight, target, node);
-                    if (!this.findingNodes.containsKey(target) ||
-                        weight < this.findingNodes.get(target).weight()) {
+                    node = this.findingNodes.get(target);
+                    if (node == null || weight < node.weight()) {
                         /*
                          * There are 2 scenarios to update finding nodes:
                          * 1. The 'target' found first time, add current path
@@ -187,14 +188,14 @@ public class SingleSourceShortestPathTraverser extends HugeTraverser {
             Set<NodeWithWeight> newSources = new HashSet<>();
             for (Map.Entry<Id, NodeWithWeight> entry : sorted.entrySet()) {
                 Id id = entry.getKey();
-                NodeWithWeight nw = entry.getValue();
+                NodeWithWeight wn = entry.getValue();
                 if (minWeight == 0) {
-                    minWeight = nw.weight();
-                } else if (nw.weight() > minWeight) {
+                    minWeight = wn.weight();
+                } else if (wn.weight() > minWeight) {
                     break;
                 }
                 // Move shortest paths from 'findingNodes' to 'foundNodes'
-                this.foundNodes.put(id, nw);
+                this.foundNodes.put(id, wn);
                 if (this.limit != NO_LIMIT &&
                     this.foundNodes.size() >= this.limit) {
                     this.done = true;
@@ -202,7 +203,7 @@ public class SingleSourceShortestPathTraverser extends HugeTraverser {
                 }
                 this.findingNodes.remove(id);
                 // Re-init 'sources'
-                newSources.add(nw);
+                newSources.add(wn);
             }
             this.sources = newSources;
             if (this.sources.isEmpty()) {
@@ -234,13 +235,15 @@ public class SingleSourceShortestPathTraverser extends HugeTraverser {
                 return edges;
             }
             List<Edge> edgeList = new ArrayList<>();
-            for (int i = 1; edges.hasNext(); i++) {
-                if (i <= this.degree) {
+            int count = 0;
+            while (edges.hasNext()) {
+                if (count < this.degree) {
                     edgeList.add(edges.next());
                 }
-                if (i >= this.skipDegree) {
+                if (count >= this.skipDegree) {
                     return QueryResults.emptyIterator();
                 }
+                count++;
             }
             return edgeList.iterator();
         }
@@ -274,8 +277,8 @@ public class SingleSourceShortestPathTraverser extends HugeTraverser {
         }
 
         @Override
-        public int compareTo(NodeWithWeight o) {
-            return Double.compare(this.weight, o.weight);
+        public int compareTo(NodeWithWeight other) {
+            return Double.compare(this.weight, other.weight);
         }
     }
 

@@ -39,8 +39,6 @@ import com.baidu.hugegraph.util.E;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
-import jdk.nashorn.internal.ir.annotations.Immutable;
-
 public class ShortestPathTraverser extends HugeTraverser {
 
     public ShortestPathTraverser(HugeGraph graph) {
@@ -76,7 +74,8 @@ public class ShortestPathTraverser extends HugeTraverser {
 
             if (!(paths = traverser.backward(false)).isEmpty() ||
                 --depth <= 0) {
-                Collections.reverse(paths.iterator().next());
+                List<Id> path = paths.iterator().next();
+                Collections.reverse(path);
                 break;
             }
             checkCapacity(traverser.capacity, traverser.size, "shortest path");

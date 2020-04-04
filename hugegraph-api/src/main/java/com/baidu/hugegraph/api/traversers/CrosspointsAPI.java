@@ -19,8 +19,6 @@
 
 package com.baidu.hugegraph.api.traversers;
 
-import java.util.Set;
-
 import javax.inject.Singleton;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
@@ -39,8 +37,8 @@ import com.baidu.hugegraph.api.graph.VertexAPI;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.RestServer;
-import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
 import com.baidu.hugegraph.traversal.algorithm.PathsTraverser;
+import com.baidu.hugegraph.traversal.algorithm.SubGraphTraverser;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
@@ -83,11 +81,11 @@ public class CrosspointsAPI extends API {
 
         HugeGraph g = graph(manager, graph);
         PathsTraverser traverser = new PathsTraverser(g);
-        Set<HugeTraverser.Path> paths = traverser.paths(sourceId, dir,
-                                                        targetId, dir,
-                                                        edgeLabel, depth,
-                                                        degree, capacity,
-                                                        limit);
+        SubGraphTraverser.PathSet paths = traverser.paths(sourceId, dir,
+                                                          targetId, dir,
+                                                          edgeLabel, depth,
+                                                          degree, capacity,
+                                                          limit);
         return manager.serializer(g).writePaths("crosspoints", paths, true);
     }
 }

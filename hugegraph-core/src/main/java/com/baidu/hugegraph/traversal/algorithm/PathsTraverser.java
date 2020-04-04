@@ -20,11 +20,9 @@
 package com.baidu.hugegraph.traversal.algorithm;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import javax.ws.rs.core.MultivaluedMap;
 
@@ -33,6 +31,7 @@ import org.apache.tinkerpop.gremlin.structure.Edge;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.structure.HugeEdge;
+import com.baidu.hugegraph.traversal.algorithm.SubGraphTraverser.PathSet;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
 import com.google.common.collect.ImmutableList;
@@ -43,9 +42,9 @@ public class PathsTraverser extends HugeTraverser {
         super(graph);
     }
 
-    public Set<Path> paths(Id sourceV, Directions sourceDir,
-                           Id targetV, Directions targetDir, String label,
-                           int depth, long degree, long capacity, long limit) {
+    public PathSet paths(Id sourceV, Directions sourceDir,
+                         Id targetV, Directions targetDir, String label,
+                         int depth, long degree, long capacity, long limit) {
         E.checkNotNull(sourceV, "source vertex id");
         E.checkNotNull(targetV, "target vertex id");
         E.checkNotNull(sourceDir, "source direction");
@@ -59,7 +58,7 @@ public class PathsTraverser extends HugeTraverser {
         checkCapacity(capacity);
         checkLimit(limit);
 
-        Set<Path> paths = new HashSet<>();
+        PathSet paths = new PathSet();
         if (sourceV.equals(targetV)) {
             paths.add(new Path(sourceV, ImmutableList.of(sourceV)));
         }
