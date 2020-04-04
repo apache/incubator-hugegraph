@@ -116,6 +116,7 @@ public class GraphTransaction extends IndexableTransaction {
     private final boolean checkCustomVertexExist;
     private final boolean checkAdjacentVertexExist;
     private final boolean lazyLoadAdjacentVertex;
+    private final boolean ignoreInvalidEntry;
     private final int commitPartOfAdjacentEdges;
     private final int batchSize;
     private final int pageSize;
@@ -140,6 +141,8 @@ public class GraphTransaction extends IndexableTransaction {
              conf.get(CoreOptions.VERTEX_ADJACENT_VERTEX_LAZY);
         this.commitPartOfAdjacentEdges =
              conf.get(CoreOptions.VERTEX_PART_EDGE_COMMIT_SIZE);
+        this.ignoreInvalidEntry =
+             conf.get(CoreOptions.QUERY_IGNORE_INVALID_DATA);
         this.batchSize = conf.get(CoreOptions.QUERY_BATCH_SIZE);
         this.pageSize = conf.get(CoreOptions.QUERY_PAGE_SIZE);
 
@@ -680,11 +683,8 @@ public class GraphTransaction extends IndexableTransaction {
         QueryResults results = this.query(query);
         Iterator<BackendEntry> entries = results.iterator();
 
-        Iterator<HugeVertex> vertices = new MapperIterator<>(entries, entry -> {
-            HugeVertex vertex = this.serializer.readVertex(graph(), entry);
-            assert vertex != null;
-            return vertex;
-        });
+        Iterator<HugeVertex> vertices = new MapperIterator<>(entries,
+                                                             this::parseEntry);
 
         if (!this.store().features().supportsQuerySortByInputIds()) {
             // There is no id in BackendEntry, so sort after deserialization
@@ -857,8 +857,10 @@ public class GraphTransaction extends IndexableTransaction {
 
         Iterator<HugeEdge> edges = new FlatMapperIterator<>(entries, entry -> {
             // Edges are in a vertex
-            HugeVertex vertex = this.serializer.readVertex(graph(), entry);
-            assert vertex != null;
+            HugeVertex vertex = this.parseEntry(entry);
+            if (vertex == null) {
+                return null;
+            }
             if (query.ids().size() == 1) {
                 assert vertex.getEdges().size() == 1;
             }
@@ -1579,6 +1581,20 @@ public class GraphTransaction extends IndexableTransaction {
         } else {
             this.addedProps.remove(property);
             this.addedProps.add(property);
+        }
+    }
+
+    private HugeVertex parseEntry(BackendEntry entry) {
+        try {
+            HugeVertex vertex = this.serializer.readVertex(graph(), entry);
+            assert vertex != null;
+            return vertex;
+        } catch (Throwable e) {
+            LOG.error("Failed to parse entry: {}", entry, e);
+            if (this.ignoreInvalidEntry) {
+                return null;
+            }
+            throw e;
         }
     }
 

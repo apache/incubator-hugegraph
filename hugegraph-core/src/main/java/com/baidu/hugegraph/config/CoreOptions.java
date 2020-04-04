@@ -168,6 +168,14 @@ public class CoreOptions extends OptionHolder {
                     5000
             );
 
+    public static final ConfigOption<Boolean> QUERY_IGNORE_INVALID_DATA =
+            new ConfigOption<>(
+                    "query.ignore_invalid_data",
+                    "Whether to ignore invalid data of vertex or edge.",
+                    disallowEmpty(),
+                    true
+            );
+
     public static final ConfigOption<Integer> QUERY_BATCH_SIZE =
             new ConfigOption<>(
                     "query.batch_size",
