@@ -28,13 +28,16 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiFunction;
 
 import org.apache.logging.log4j.util.Strings;
+import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.page.PageState;
+import com.baidu.hugegraph.backend.query.Aggregate;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
@@ -293,8 +296,31 @@ public abstract class MysqlTable
     }
 
     @Override
+    public Number queryNumber(Session session, Query query) {
+        Aggregate aggregate = query.aggregateNotNull();
+
+        Iterator<Number> results = this.query(session, query, (q, rs) -> {
+            try {
+                if (!rs.next()) {
+                    return IteratorUtils.of(aggregate.defaultValue());
+                }
+                return IteratorUtils.of(rs.getLong(1));
+            } catch (SQLException e) {
+                throw new BackendException(e);
+            }
+        });
+        return aggregate.reduce(results);
+    }
+
+    @Override
     public Iterator<BackendEntry> query(Session session, Query query) {
-        ExtendableIterator<BackendEntry> rs = new ExtendableIterator<>();
+        return this.query(session, query, this::results2Entries);
+    }
+
+    protected <R> Iterator<R> query(Session session, Query query,
+                                    BiFunction<Query, ResultSet, Iterator<R>>
+                                    parser) {
+        ExtendableIterator<R> rs = new ExtendableIterator<>();
 
         if (query.limit() == 0L && !query.nolimit()) {
             LOG.debug("Return empty result(limit=0) for query {}", query);
@@ -305,7 +331,7 @@ public abstract class MysqlTable
         try {
             for (StringBuilder selection : selections) {
                 ResultSet results = session.select(selection.toString());
-                rs.extend(this.results2Entries(query, results));
+                rs.extend(parser.apply(query, results));
             }
         } catch (SQLException e) {
             throw new BackendException("Failed to query [%s]", e, query);
@@ -316,9 +342,20 @@ public abstract class MysqlTable
     }
 
     protected List<StringBuilder> query2Select(String table, Query query) {
-        // Set table
+        // Build query
         StringBuilder select = new StringBuilder(64);
-        select.append("SELECT * FROM ").append(table);
+        select.append("SELECT ");
+
+        // Set aggregate
+        Aggregate aggregate = query.aggregate();
+        if (aggregate != null) {
+            select.append(aggregate.toString());
+        } else {
+            select.append("*");
+        }
+
+        // Set table
+        select.append(" FROM ").append(table);
 
         // Is query by id?
         List<StringBuilder> ids = this.queryId2Select(query, select);

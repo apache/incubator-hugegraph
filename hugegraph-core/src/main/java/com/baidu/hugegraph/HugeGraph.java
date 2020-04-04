@@ -64,6 +64,7 @@ import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.structure.HugeFeatures;
 import com.baidu.hugegraph.task.TaskManager;
 import com.baidu.hugegraph.task.TaskScheduler;
+import com.baidu.hugegraph.traversal.optimize.HugeCountStepStrategy;
 import com.baidu.hugegraph.traversal.optimize.HugeGraphStepStrategy;
 import com.baidu.hugegraph.traversal.optimize.HugeVertexStepStrategy;
 import com.baidu.hugegraph.type.define.GraphMode;
@@ -87,7 +88,8 @@ public class HugeGraph implements GremlinGraph {
                                         .getStrategies(Graph.class)
                                         .clone();
         strategies.addStrategies(HugeVertexStepStrategy.instance(),
-                                 HugeGraphStepStrategy.instance());
+                                 HugeGraphStepStrategy.instance(),
+                                 HugeCountStepStrategy.instance());
         TraversalStrategies.GlobalCache.registerStrategies(HugeGraph.class,
                                                            strategies);
 
@@ -429,6 +431,10 @@ public class HugeGraph implements GremlinGraph {
 
     public Iterator<Edge> adjacentEdges(Id vertexId) {
         return this.graphTransaction().queryEdgesByVertex(vertexId);
+    }
+
+    public Number queryNumber(Query query) {
+        return this.graphTransaction().queryNumber(query);
     }
 
     public PropertyKey propertyKey(Id id) {

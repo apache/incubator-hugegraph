@@ -118,6 +118,15 @@ public abstract class InMemoryDBStore
     }
 
     @Override
+    public Number queryNumber(Query query) {
+        InMemoryDBTable table = this.table(InMemoryDBTable.tableType(query));
+        Number result = table.queryNumber(null, query);
+        LOG.debug("[store {}] get result({}) for number query: {}",
+                  this.store, result, query);
+        return result;
+    }
+
+    @Override
     public void mutate(BackendMutation mutation) {
         for (Iterator<BackendAction> it = mutation.mutation(); it.hasNext();) {
             this.mutate(it.next());

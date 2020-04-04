@@ -272,6 +272,14 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
     }
 
     @Override
+    public Number queryNumber(Query query) {
+        this.checkOpened();
+
+        MysqlTable table = this.table(MysqlTable.tableType(query));
+        return table.queryNumber(this.sessions.session(), query);
+    }
+
+    @Override
     public void beginTx() {
         this.checkOpened();
 

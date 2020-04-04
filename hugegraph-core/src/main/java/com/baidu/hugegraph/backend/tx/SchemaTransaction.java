@@ -314,7 +314,7 @@ public class SchemaTransaction extends IndexableTransaction {
 
         ConditionQuery query = new ConditionQuery(type);
         query.eq(HugeKeys.NAME, name);
-        QueryResults results = this.indexTx.query(query);
+        QueryResults<BackendEntry> results = this.indexTx.query(query);
 
         this.afterRead();
 

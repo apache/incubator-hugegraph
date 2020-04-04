@@ -33,7 +33,7 @@ import org.apache.http.client.utils.URIBuilder;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.backend.BackendException;
-import com.baidu.hugegraph.backend.store.BackendSession;
+import com.baidu.hugegraph.backend.store.BackendSession.AbstractBackendSession;
 import com.baidu.hugegraph.backend.store.BackendSessionPool;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.util.Log;
@@ -259,7 +259,7 @@ public class MysqlSessions extends BackendSessionPool {
         return DriverManager.getConnection(url, username, password);
     }
 
-    public class Session extends BackendSession {
+    public class Session extends AbstractBackendSession {
 
         private Connection conn;
         private Map<String, PreparedStatement> statements;
@@ -427,7 +427,7 @@ public class MysqlSessions extends BackendSessionPool {
         }
 
         @Override
-        protected void reconnectIfNeeded() {
+        public void reconnectIfNeeded() {
             if (!this.opened) {
                 return;
             }
@@ -444,7 +444,7 @@ public class MysqlSessions extends BackendSessionPool {
         }
 
         @Override
-        protected void reset() {
+        public void reset() {
             // NOTE: this method may be called by other threads
             if (this.conn == null) {
                 return;

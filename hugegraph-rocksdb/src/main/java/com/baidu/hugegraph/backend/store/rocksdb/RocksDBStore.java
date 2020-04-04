@@ -386,6 +386,15 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
     }
 
     @Override
+    public Number queryNumber(Query query) {
+        this.checkOpened();
+
+        HugeType tableType = RocksDBTable.tableType(query);
+        RocksDBTable table = this.table(tableType);
+        return table.queryNumber(this.session(tableType), query);
+    }
+
+    @Override
     public synchronized void init() {
         this.checkDbOpened();
 

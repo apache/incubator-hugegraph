@@ -225,6 +225,15 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
     }
 
     @Override
+    public Number queryNumber(Query query) {
+        this.checkOpened();
+
+        Session session = this.sessions.session();
+        HbaseTable table = this.table(HbaseTable.tableType(query));
+        return table.queryNumber(session, query);
+    }
+
+    @Override
     public void init() {
         this.checkConnectionOpened();
 

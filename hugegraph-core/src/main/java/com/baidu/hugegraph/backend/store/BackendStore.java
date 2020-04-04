@@ -57,6 +57,7 @@ public interface BackendStore {
 
     // Query data
     public Iterator<BackendEntry> query(Query query);
+    public Number queryNumber(Query query);
 
     // Transaction
     public void beginTx();

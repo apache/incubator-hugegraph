@@ -26,6 +26,7 @@ import java.util.Set;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.query.Aggregate.AggregateFunc;
 import com.baidu.hugegraph.exception.LimitExceedException;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.type.HugeType;
@@ -58,6 +59,8 @@ public class Query implements Cloneable {
     private boolean showHidden;
     private boolean showDeleting;
 
+    private Aggregate aggregate;
+
     private Query originQuery;
 
     public Query(HugeType resultType) {
@@ -79,6 +82,8 @@ public class Query implements Cloneable {
 
         this.showHidden = false;
         this.showDeleting = false;
+
+        this.aggregate = null;
     }
 
     public void copyBasic(Query query) {
@@ -89,6 +94,7 @@ public class Query implements Cloneable {
         this.capacity = query.capacity();
         this.showHidden = query.showHidden();
         this.showDeleting = query.showDeleting();
+        this.aggregate = query.aggregate();
         if (query.orders != null) {
             this.orders(query.orders);
         }
@@ -310,6 +316,20 @@ public class Query implements Cloneable {
         }
     }
 
+    public Aggregate aggregate() {
+        return this.aggregate;
+    }
+
+    public Aggregate aggregateNotNull() {
+        E.checkArgument(this.aggregate != null,
+                        "The aggregate must be set for number query");
+        return this.aggregate;
+    }
+
+    public void aggregate(AggregateFunc func, String property) {
+        this.aggregate = new Aggregate(func, property);
+    }
+
     public boolean showHidden() {
         return this.showHidden;
     }
@@ -393,7 +413,13 @@ public class Query implements Cloneable {
         }
 
         StringBuilder sb = new StringBuilder(64);
-        sb.append("`Query for ").append(this.resultType);
+        sb.append("`Query ");
+        if (this.aggregate != null) {
+            sb.append(this.aggregate.toString());
+        } else {
+            sb.append('*');
+        }
+        sb.append(" from ").append(this.resultType);
         for (Map.Entry<String, Object> entry : pairs.entrySet()) {
             sb.append(' ').append(entry.getKey())
               .append(' ').append(entry.getValue()).append(',');

@@ -29,6 +29,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.query.Aggregate;
+import com.baidu.hugegraph.backend.query.Aggregate.AggregateFunc;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.IdPrefixQuery;
 import com.baidu.hugegraph.backend.query.IdRangeQuery;
@@ -108,6 +110,22 @@ public class InMemoryDBTable extends BackendTable<BackendSession,
         if (parent != null) {
             ((TextBackendEntry) parent).eliminate(entry);
         }
+    }
+
+    @Override
+    public Number queryNumber(BackendSession session, Query query) {
+        Aggregate aggregate = query.aggregateNotNull();
+        if (aggregate.func() != AggregateFunc.COUNT) {
+            throw new NotSupportException(aggregate.toString());
+        }
+
+        assert aggregate.func() == AggregateFunc.COUNT;
+        Iterator<BackendEntry> results = this.query(session, query);
+        long total = 0L;
+        while (results.hasNext()) {
+            total += this.sizeOfBackendEntry(results.next());
+        }
+        return total;
     }
 
     @Override
@@ -229,6 +247,10 @@ public class InMemoryDBTable extends BackendTable<BackendSession,
             entries.add(iterator.next());
         }
         return entries.iterator();
+    }
+
+    protected long sizeOfBackendEntry(BackendEntry entry) {
+        return 1L;
     }
 
     private static boolean matchCondition(BackendEntry item, Condition c) {

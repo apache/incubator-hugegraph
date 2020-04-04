@@ -42,6 +42,7 @@ public class CassandraMetrics implements BackendMetrics {
     private final String password;
 
     public CassandraMetrics(CassandraSessionPool sessions, HugeConfig conf) {
+        E.checkNotNull(conf, "config");
         E.checkArgumentNotNull(sessions,
                                "Cassandra sessions have not been initialized");
         this.cluster = sessions.cluster();
