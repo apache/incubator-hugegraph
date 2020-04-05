@@ -463,6 +463,10 @@ public class HugeGraph implements GremlinGraph {
         return vl;
     }
 
+    public boolean existsVertexLabel(String label) {
+        return this.schemaTransaction().getVertexLabel(label) != null;
+    }
+
     public EdgeLabel edgeLabelOrNone(Id id) {
         EdgeLabel el = this.schemaTransaction().getEdgeLabel(id);
         if (el == null) {
@@ -481,6 +485,10 @@ public class HugeGraph implements GremlinGraph {
         EdgeLabel el = this.schemaTransaction().getEdgeLabel(name);
         E.checkArgument(el != null, "Undefined edge label: '%s'", name);
         return el;
+    }
+
+    public boolean existsEdgeLabel(String label) {
+        return this.schemaTransaction().getEdgeLabel(label) != null;
     }
 
     public IndexLabel indexLabel(Id id) {
