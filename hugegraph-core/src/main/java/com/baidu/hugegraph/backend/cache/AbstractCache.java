@@ -24,17 +24,16 @@ import java.util.function.Function;
 
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.util.Log;
 
-public abstract class AbstractCache implements Cache {
+public abstract class AbstractCache<K, V> implements Cache<K, V> {
 
     public static final int MB = 1024 * 1024;
     public static final int DEFAULT_SIZE = 1 * MB;
     public static final int MAX_INIT_CAP = 100 * MB;
 
-    private static final Logger LOG = Log.logger(Cache.class);
+    protected static final Logger LOG = Log.logger(Cache.class);
 
     private volatile long hits = 0L;
     private volatile long miss = 0L;
@@ -43,33 +42,28 @@ public abstract class AbstractCache implements Cache {
     private volatile long expire = 0L;
 
     // NOTE: the count in number of items, not in bytes
-    private final int capacity;
-    private final int halfCapacity;
+    private final long capacity;
+    private final long halfCapacity;
 
     public AbstractCache() {
         this(DEFAULT_SIZE);
     }
 
-    public AbstractCache(int capacity) {
-        if (capacity < 0) {
-            capacity = 0;
+    public AbstractCache(long capacity) {
+        if (capacity < 0L) {
+            capacity = 0L;
         }
         this.capacity = capacity;
         this.halfCapacity = this.capacity >> 1;
-
-        int initialCapacity = capacity >= MB ? capacity >> 10 : 256;
-        if (initialCapacity > MAX_INIT_CAP) {
-            initialCapacity = MAX_INIT_CAP;
-        }
     }
 
     @Watched(prefix = "cache")
     @Override
-    public Object get(Id id) {
+    public V get(K id) {
         if (id == null) {
             return null;
         }
-        Object value = null;
+        V value = null;
         if (this.size() <= this.halfCapacity || this.containsKey(id)) {
             // Maybe the id removed by other threads and returned null value
             value = this.access(id);
@@ -93,11 +87,11 @@ public abstract class AbstractCache implements Cache {
 
     @Watched(prefix = "cache")
     @Override
-    public Object getOrFetch(Id id, Function<Id, Object> fetcher) {
+    public V getOrFetch(K id, Function<K, V> fetcher) {
         if (id == null) {
             return null;
         }
-        Object value = null;
+        V value = null;
         if (this.size() <= this.halfCapacity || this.containsKey(id)) {
             // Maybe the id removed by other threads and returned null value
             value = this.access(id);
@@ -124,7 +118,7 @@ public abstract class AbstractCache implements Cache {
 
     @Watched(prefix = "cache")
     @Override
-    public void update(Id id, Object value) {
+    public void update(K id, V value) {
         if (id == null || value == null || this.capacity <= 0) {
             return;
         }
@@ -133,7 +127,7 @@ public abstract class AbstractCache implements Cache {
 
     @Watched(prefix = "cache")
     @Override
-    public void updateIfAbsent(Id id, Object value) {
+    public void updateIfAbsent(K id, V value) {
         if (id == null || value == null ||
             this.capacity <= 0 || this.containsKey(id)) {
             return;
@@ -143,7 +137,7 @@ public abstract class AbstractCache implements Cache {
 
     @Watched(prefix = "cache")
     @Override
-    public void updateIfPresent(Id id, Object value) {
+    public void updateIfPresent(K id, V value) {
         if (id == null || value == null ||
             this.capacity <= 0 || !this.containsKey(id)) {
             return;
@@ -153,7 +147,7 @@ public abstract class AbstractCache implements Cache {
 
     @Watched(prefix = "cache")
     @Override
-    public void invalidate(Id id) {
+    public void invalidate(K id) {
         if (id == null || !this.containsKey(id)) {
             return;
         }
@@ -167,7 +161,7 @@ public abstract class AbstractCache implements Cache {
     }
 
     @Override
-    public long expire() {
+    public final long expire() {
         return this.expire;
     }
 
@@ -180,8 +174,8 @@ public abstract class AbstractCache implements Cache {
 
         int expireItems = 0;
         long current = now();
-        for (Iterator<CacheNode<Id, Object>> it = this.nodes(); it.hasNext();) {
-            CacheNode<Id, Object> node = it.next();
+        for (Iterator<CacheNode<K, V>> it = this.nodes(); it.hasNext();) {
+            CacheNode<K, V> node = it.next();
             if (current - node.time() > expireTime) {
                 // Remove item while iterating map (it must be ConcurrentMap)
                 this.remove(node.key());
@@ -197,29 +191,33 @@ public abstract class AbstractCache implements Cache {
     }
 
     @Override
-    public long capacity() {
-        return this.capacity;
-    }
-
-    @Override
-    public long hits() {
+    public final long hits() {
         return this.hits;
     }
 
     @Override
-    public long miss() {
+    public final long miss() {
         return this.miss;
     }
 
-    protected abstract Object access(Id id);
+    @Override
+    public final long capacity() {
+        return this.capacity;
+    }
 
-    protected abstract void write(Id id, Object value);
+    protected final long halfCapacity() {
+        return this.halfCapacity;
+    }
 
-    protected abstract void remove(Id id);
+    protected abstract V access(K id);
 
-    protected abstract boolean containsKey(Id id);
+    protected abstract void write(K id, V value);
 
-    protected abstract <K, V> Iterator<CacheNode<K, V>> nodes();
+    protected abstract void remove(K id);
+
+    protected abstract boolean containsKey(K id);
+
+    protected abstract Iterator<CacheNode<K, V>> nodes();
 
     protected static final long now() {
         return System.currentTimeMillis();
@@ -261,12 +259,12 @@ public abstract class AbstractCache implements Cache {
         }
 
         @Override
-        public boolean equals(Object obj) {
-            if (!(obj instanceof CacheNode)) {
+        public boolean equals(Object object) {
+            if (!(object instanceof CacheNode)) {
                 return false;
             }
             @SuppressWarnings("unchecked")
-            CacheNode<K, V> other = (CacheNode<K, V>) obj;
+            CacheNode<K, V> other = (CacheNode<K, V>) object;
             return this.key.equals(other.key());
         }
     }

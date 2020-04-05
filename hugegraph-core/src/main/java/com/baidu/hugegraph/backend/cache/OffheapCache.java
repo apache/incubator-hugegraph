@@ -45,16 +45,17 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
 
-public class OffheapCache extends AbstractCache {
+public class OffheapCache extends AbstractCache<Id, Object> {
 
     private final OHCache<Id, Value> cache;
     private final HugeGraph graph;
     private final AbstractSerializer serializer;
 
-    public OffheapCache(HugeGraph graph, int capacity) {
-        super(capacity);
+    public OffheapCache(HugeGraph graph, long capacityInBytes) {
+        // NOTE: capacity unit is bytes, the super capacity expect elements size
+        super(capacityInBytes);
         this.graph = graph;
-        this.cache = this.builder().capacity(capacity).build();
+        this.cache = this.builder().capacity(capacityInBytes).build();
         this.serializer = new BinarySerializer();
     }
 
@@ -118,7 +119,7 @@ public class OffheapCache extends AbstractCache {
     }
 
     @Override
-    protected <K, V> Iterator<CacheNode<K, V>> nodes() {
+    protected Iterator<CacheNode<Id, Object>> nodes() {
         // No needed to expire by timer, return none. use OHCache TTL instead
         return Collections.emptyIterator();
     }

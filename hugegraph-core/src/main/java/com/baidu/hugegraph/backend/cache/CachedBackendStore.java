@@ -38,7 +38,7 @@ import com.baidu.hugegraph.util.StringEncoding;
 public class CachedBackendStore implements BackendStore {
 
     private BackendStore store = null;
-    private Cache cache = null;
+    private Cache<Id, Object> cache = null;
 
     public CachedBackendStore(BackendStore store) {
         this.store = store;
@@ -217,7 +217,7 @@ public class CachedBackendStore implements BackendStore {
         @Override
         public long asLong() {
             // TODO: improve
-            return 0;
+            return 0L;
         }
 
         @Override

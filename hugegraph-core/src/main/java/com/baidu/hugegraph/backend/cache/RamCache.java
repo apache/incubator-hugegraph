@@ -19,39 +19,20 @@
 
 package com.baidu.hugegraph.backend.cache;
 
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.Lock;
 import java.util.function.Consumer;
-import java.util.function.Function;
-
-import org.slf4j.Logger;
 
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.concurrent.KeyLock;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.util.E;
-import com.baidu.hugegraph.util.Log;
 
-public class RamCache implements Cache {
-
-    public static final int MB = 1024 * 1024;
-    public static final int DEFAULT_SIZE = 1 * MB;
-    public static final int MAX_INIT_CAP = 100 * MB;
-
-    private static final Logger LOG = Log.logger(Cache.class);
-
-    private volatile long hits = 0L;
-    private volatile long miss = 0L;
-
-    // Default expire time(ms)
-    private volatile long expire = 0L;
-
-    // NOTE: the count in number of items, not in bytes
-    private final int capacity;
-    private final int halfCapacity;
+public class RamCache extends AbstractCache<Id, Object> {
 
     // Implement LRU cache
     private final ConcurrentMap<Id, LinkNode<Id, Object>> map;
@@ -63,28 +44,30 @@ public class RamCache implements Cache {
         this(DEFAULT_SIZE);
     }
 
-    public RamCache(int capacity) {
-        if (capacity < 0) {
-            capacity = 0;
-        }
-        this.keyLock = new KeyLock();
-        this.capacity = capacity;
-        this.halfCapacity = this.capacity >> 1;
+    public RamCache(long capacity) {
+        super(capacity);
 
-        int initialCapacity = capacity >= MB ? capacity >> 10 : 256;
+        this.keyLock = new KeyLock();
+
+        if (capacity < 0L) {
+            capacity = 0L;
+        }
+        long initialCapacity = capacity >= MB ? capacity >> 10 : 256;
         if (initialCapacity > MAX_INIT_CAP) {
             initialCapacity = MAX_INIT_CAP;
         }
 
-        this.map = new ConcurrentHashMap<>(initialCapacity);
+        this.map = new ConcurrentHashMap<>((int) initialCapacity);
         this.queue = new LinkedQueueNonBigLock<>();
     }
 
+    @Override
     @Watched(prefix = "ramcache")
-    private final Object access(Id id) {
+    protected final Object access(Id id) {
         assert id != null;
 
-        if (this.map.size() <= this.halfCapacity) {
+        long halfCapacity = this.halfCapacity();
+        if (this.map.size() <= halfCapacity) {
             LinkNode<Id, Object> node = this.map.get(id);
             if (node == null) {
                 return null;
@@ -101,7 +84,7 @@ public class RamCache implements Cache {
             }
 
             // NOTE: update the queue only if the size > capacity/2
-            if (this.map.size() > this.halfCapacity) {
+            if (this.map.size() > halfCapacity) {
                 // Move the node from mid to tail
                 if (this.queue.remove(node) == null) {
                     // The node may be removed by others through dequeue()
@@ -117,15 +100,17 @@ public class RamCache implements Cache {
         }
     }
 
+    @Override
     @Watched(prefix = "ramcache")
-    private final void write(Id id, Object value) {
+    protected final void write(Id id, Object value) {
         assert id != null;
-        assert this.capacity > 0;
+        long capacity = this.capacity();
+        assert capacity > 0;
 
         final Lock lock = this.keyLock.lock(id);
         try {
             // The cache is full
-            while (this.map.size() >= this.capacity) {
+            while (this.map.size() >= capacity) {
                 /*
                  * Remove the oldest from the queue
                  * NOTE: it maybe return null if someone else (that's other
@@ -148,7 +133,7 @@ public class RamCache implements Cache {
                 this.map.remove(removed.key());
                 if (LOG.isDebugEnabled()) {
                     LOG.debug("RamCache replaced '{}' with '{}' (capacity={})",
-                              removed.key(), id, this.capacity);
+                              removed.key(), id, capacity);
                 }
                 /*
                  * Release the object
@@ -171,8 +156,9 @@ public class RamCache implements Cache {
         }
     }
 
+    @Override
     @Watched(prefix = "ramcache")
-    private final void remove(Id id) {
+    protected final void remove(Id id) {
         if (id == null) {
             return;
         }
@@ -193,101 +179,17 @@ public class RamCache implements Cache {
         }
     }
 
-    @Watched(prefix = "ramcache")
     @Override
-    public Object get(Id id) {
-        if (id == null) {
-            return null;
-        }
-        Object value = null;
-        if (this.map.size() <= this.halfCapacity || this.map.containsKey(id)) {
-            // Maybe the id removed by other threads and returned null value
-            value = this.access(id);
-        }
-
-        if (value == null) {
-            ++this.miss;
-            if (LOG.isDebugEnabled()) {
-                LOG.debug("RamCache missed '{}' (miss={}, hits={})",
-                          id, this.miss, this.hits);
-            }
-        } else {
-            ++this.hits;
-            if (LOG.isDebugEnabled()) {
-                LOG.debug("RamCache cached '{}' (hits={}, miss={})",
-                          id, this.hits, this.miss);
-            }
-        }
-        return value;
+    protected boolean containsKey(Id id) {
+        return this.map.containsKey(id);
     }
 
-    @Watched(prefix = "ramcache")
     @Override
-    public Object getOrFetch(Id id, Function<Id, Object> fetcher) {
-        if (id == null) {
-            return null;
-        }
-        Object value = null;
-        if (this.map.size() <= this.halfCapacity || this.map.containsKey(id)) {
-            // Maybe the id removed by other threads and returned null value
-            value = this.access(id);
-        }
-
-        if (value == null) {
-            ++this.miss;
-            if (LOG.isDebugEnabled()) {
-                LOG.debug("RamCache missed '{}' (miss={}, hits={})",
-                          id, this.miss, this.hits);
-            }
-            // Do fetch and update the cache
-            value = fetcher.apply(id);
-            this.update(id, value);
-        } else {
-            ++this.hits;
-            if (LOG.isDebugEnabled()) {
-                LOG.debug("RamCache cached '{}' (hits={}, miss={})",
-                          id, this.hits, this.miss);
-            }
-        }
-        return value;
-    }
-
-    @Watched(prefix = "ramcache")
-    @Override
-    public void update(Id id, Object value) {
-        if (id == null || value == null || this.capacity <= 0) {
-            return;
-        }
-        this.write(id, value);
-    }
-
-    @Watched(prefix = "ramcache")
-    @Override
-    public void updateIfAbsent(Id id, Object value) {
-        if (id == null || value == null ||
-            this.capacity <= 0 || this.map.containsKey(id)) {
-            return;
-        }
-        this.write(id, value);
-    }
-
-    @Watched(prefix = "ramcache")
-    @Override
-    public void updateIfPresent(Id id, Object value) {
-        if (id == null || value == null ||
-            this.capacity <= 0 || !this.map.containsKey(id)) {
-            return;
-        }
-        this.write(id, value);
-    }
-
-    @Watched(prefix = "ramcache")
-    @Override
-    public void invalidate(Id id) {
-        if (id == null || !this.map.containsKey(id)) {
-            return;
-        }
-        this.remove(id);
+    protected Iterator<CacheNode<Id, Object>> nodes() {
+        Iterator<LinkNode<Id, Object>> iter = this.map.values().iterator();
+        @SuppressWarnings({ "unchecked", "rawtypes" })
+        Iterator<CacheNode<Id, Object>> iterSuper = (Iterator) iter;
+        return iterSuper;
     }
 
     @Watched(prefix = "ramcache")
@@ -302,51 +204,11 @@ public class RamCache implements Cache {
     @Override
     public void clear() {
         // TODO: synchronized
-        if (this.capacity <= 0 || this.map.isEmpty()) {
+        if (this.capacity() <= 0 || this.map.isEmpty()) {
             return;
         }
         this.map.clear();
         this.queue.clear();
-    }
-
-    @Override
-    public void expire(long seconds) {
-        // Convert the unit from seconds to milliseconds
-        this.expire = seconds * 1000;
-    }
-
-    @Override
-    public long expire() {
-        return this.expire;
-    }
-
-    @Override
-    public long tick() {
-        long expireTime = this.expire;
-        if (expireTime <= 0) {
-            return 0L;
-        }
-
-        int expireItems = 0;
-        long current = now();
-        for (LinkNode<Id, Object> node : this.map.values()) {
-            if (current - node.time() > expireTime) {
-                // Remove item while iterating map (it must be ConcurrentMap)
-                this.remove(node.key());
-                expireItems++;
-            }
-        }
-
-        if (expireItems > 0) {
-            LOG.debug("Cache expired {} items cost {}ms (size {}, expire {}ms)",
-                      expireItems, now() - current, this.size(), expireTime);
-        }
-        return expireItems;
-    }
-
-    @Override
-    public long capacity() {
-        return this.capacity;
     }
 
     @Override
@@ -355,60 +217,18 @@ public class RamCache implements Cache {
     }
 
     @Override
-    public long hits() {
-        return this.hits;
-    }
-
-    @Override
-    public long miss() {
-        return this.miss;
-    }
-
-    @Override
     public String toString() {
         return this.map.toString();
     }
 
-    private static final long now() {
-        return System.currentTimeMillis();
-    }
+    private static final class LinkNode<K, V> extends CacheNode<K, V> {
 
-    private static class LinkNode<K, V> {
-
-        private final K key;
-        private final V value;
-        private long time;
         private LinkNode<K, V> prev;
         private LinkNode<K, V> next;
 
         public LinkNode(K key, V value) {
-            assert key != null;
-            this.time = now();
-            this.key = key;
-            this.value = value;
+            super(key, value);
             this.prev = this.next = null;
-        }
-
-        public final K key() {
-            return this.key;
-        }
-
-        public final V value() {
-            return this.value;
-        }
-
-        public long time() {
-            return this.time;
-        }
-
-        @Override
-        public String toString() {
-            return this.key.toString();
-        }
-
-        @Override
-        public int hashCode() {
-            return this.key.hashCode();
         }
 
         @Override
@@ -418,7 +238,7 @@ public class RamCache implements Cache {
             }
             @SuppressWarnings("unchecked")
             LinkNode<K, V> other = (LinkNode<K, V>) obj;
-            return this.key.equals(other.key());
+            return this.key().equals(other.key());
         }
     }
 
@@ -661,7 +481,7 @@ public class RamCache implements Cache {
                     node.prev.next = node.next;
                     node.next.prev = node.prev;
 
-                    assert prev == node.prev : prev.key + "!=" + node.prev;
+                    assert prev == node.prev : prev.key() + "!=" + node.prev;
 
                     // Clear the links of `node`
                     node.prev = this.empty;

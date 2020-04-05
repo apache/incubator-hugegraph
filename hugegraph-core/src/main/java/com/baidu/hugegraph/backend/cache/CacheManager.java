@@ -29,6 +29,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.util.Log;
 
 public class CacheManager {
@@ -42,7 +43,7 @@ public class CacheManager {
     // Log if tick cost time > 1000ms
     private static final long LOG_TICK_COST_TIME = 1000L;
 
-    private final Map<String, Cache> caches;
+    private final Map<String, Cache<Id, Object>> caches;
     private final Timer timer;
 
     public static CacheManager instance() {
@@ -61,7 +62,8 @@ public class CacheManager {
             @Override
             public void run() {
                 try {
-                    for (Entry<String, Cache> entry : caches().entrySet()) {
+                    for (Entry<String, Cache<Id, Object>> entry :
+                         caches().entrySet()) {
                         this.tick(entry.getKey(), entry.getValue());
                     }
                 } catch (Throwable e) {
@@ -69,7 +71,7 @@ public class CacheManager {
                 }
             }
 
-            private void tick(String name, Cache cache) {
+            private void tick(String name, Cache<Id, Object> cache) {
                 long start = System.currentTimeMillis();
                 long items = cache.tick();
                 long cost = System.currentTimeMillis() - start;
@@ -88,24 +90,35 @@ public class CacheManager {
         return task;
     }
 
-    public Map<String, Cache> caches() {
+    public Map<String, Cache<Id, Object>> caches() {
         return Collections.unmodifiableMap(this.caches);
     }
 
-    public Cache cache(String name) {
+    public Cache<Id, Object> cache(String name) {
         return this.cache(name, RamCache.DEFAULT_SIZE);
     }
 
-    public Cache cache(String name, int capacity) {
+    public Cache<Id, Object> cache(String name, long capacity) {
         if (!this.caches.containsKey(name)) {
             this.caches.putIfAbsent(name, new RamCache(capacity));
         }
         return this.caches.get(name);
     }
 
-    public Cache offheapCache(HugeGraph graph, String name, int capacity) {
+    public Cache<Id, Object> offheapCache(HugeGraph graph,
+                                          String name, long capacity) {
         if (!this.caches.containsKey(name)) {
             this.caches.putIfAbsent(name, new OffheapCache(graph, capacity));
+        }
+        return this.caches.get(name);
+    }
+
+    public Cache<Id, Object> levelCache(HugeGraph graph, String name,
+                                        long capacity1, long capacity2) {
+        if (!this.caches.containsKey(name)) {
+            RamCache cache1 = new RamCache(capacity1);
+            OffheapCache cache2 = new OffheapCache(graph, capacity2);
+            this.caches.putIfAbsent(name, new LevelCache(cache1, cache2));
         }
         return this.caches.get(name);
     }

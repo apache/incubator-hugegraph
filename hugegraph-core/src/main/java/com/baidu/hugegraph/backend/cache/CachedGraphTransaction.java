@@ -51,9 +51,12 @@ import com.google.common.collect.ImmutableSet;
 public final class CachedGraphTransaction extends GraphTransaction {
 
     private final static int MAX_CACHE_EDGES_PER_QUERY = 100;
+    private final static float DEFAULT_LEVEL_RATIO = 0.001f;
+    private final static long AVG_VERTEX_ENTRY_SIZE = 40L;
+    private final static long AVG_EDGE_ENTRY_SIZE = 100L;
 
-    private final Cache verticesCache;
-    private final Cache edgesCache;
+    private final Cache<Id, Object> verticesCache;
+    private final Cache<Id, Object> edgesCache;
 
     private EventListener storeEventListener;
     private EventListener cacheEventListener;
@@ -63,13 +66,15 @@ public final class CachedGraphTransaction extends GraphTransaction {
 
         HugeConfig conf = graph.configuration();
 
-        int capacity = conf.get(CoreOptions.VERTEX_CACHE_CAPACITY);
+        long capacity = conf.get(CoreOptions.VERTEX_CACHE_CAPACITY);
         int expire = conf.get(CoreOptions.VERTEX_CACHE_EXPIRE);
-        this.verticesCache = this.cache("vertex", capacity, expire);
+        this.verticesCache = this.cache("vertex", capacity,
+                                        AVG_VERTEX_ENTRY_SIZE, expire);
 
         capacity = conf.get(CoreOptions.EDGE_CACHE_CAPACITY);
         expire = conf.get(CoreOptions.EDGE_CACHE_EXPIRE);
-        this.edgesCache = this.cache("edge", capacity, expire);
+        this.edgesCache = this.cache("edge", capacity,
+                                     AVG_EDGE_ENTRY_SIZE, expire);
 
         this.listenChanges();
     }
@@ -83,12 +88,14 @@ public final class CachedGraphTransaction extends GraphTransaction {
         }
     }
 
-    private Cache cache(String prefix, int capacity, long expire) {
-        String name = prefix + "-" + super.graph().name();
-        // TODO: support multi-layer cache and config
-//        Cache cache = CacheManager.instance().cache(name, capacity);
-        Cache cache = CacheManager.instance().offheapCache(super.graph(),
-                                                           name, capacity);
+    private Cache<Id, Object> cache(String prefix, long capacity,
+                                    long entrySize, long expire) {
+        HugeGraph graph = super.graph();
+        String name = prefix + "-" + graph.name();
+        long heapCapacity = (long) (DEFAULT_LEVEL_RATIO * capacity);
+        long bytesCapacity = capacity * entrySize;
+        Cache<Id, Object> cache = CacheManager.instance().levelCache(
+                                  graph, name, heapCapacity, bytesCapacity);
         cache.expire(expire);
         return cache;
     }
