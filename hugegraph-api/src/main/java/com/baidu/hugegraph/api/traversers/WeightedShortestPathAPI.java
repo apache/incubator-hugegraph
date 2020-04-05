@@ -19,6 +19,8 @@
 
 package com.baidu.hugegraph.api.traversers;
 
+import java.util.Iterator;
+
 import javax.inject.Singleton;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
@@ -28,6 +30,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 
+import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
@@ -35,21 +38,22 @@ import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.graph.EdgeAPI;
 import com.baidu.hugegraph.api.graph.VertexAPI;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.RestServer;
-import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
-import com.baidu.hugegraph.traversal.algorithm.PathsTraverser;
+import com.baidu.hugegraph.traversal.algorithm.SingleSourceShortestPathTraverser;
+import com.baidu.hugegraph.traversal.algorithm.SingleSourceShortestPathTraverser.NodeWithWeight;
 import com.baidu.hugegraph.type.define.Directions;
+import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
 
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPACITY;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PATHS_LIMIT;
 
-@Path("graphs/{graph}/traversers/paths")
+@Path("graphs/{graph}/traversers/weightedshortestpath")
 @Singleton
-public class PathsAPI extends API {
+public class WeightedShortestPathAPI extends API {
 
     private static final Logger LOG = Log.logger(RestServer.class);
 
@@ -62,29 +66,36 @@ public class PathsAPI extends API {
                       @QueryParam("target") String target,
                       @QueryParam("direction") String direction,
                       @QueryParam("label") String edgeLabel,
-                      @QueryParam("max_depth") int depth,
+                      @QueryParam("weight") String weight,
                       @QueryParam("max_degree")
                       @DefaultValue(DEFAULT_DEGREE) long degree,
+                      @QueryParam("skip_degree")
+                      @DefaultValue("0") long skipDegree,
                       @QueryParam("capacity")
                       @DefaultValue(DEFAULT_CAPACITY) long capacity,
-                      @QueryParam("limit")
-                      @DefaultValue(DEFAULT_PATHS_LIMIT) long limit) {
-        LOG.debug("Graph [{}] get paths from '{}', to '{}' with " +
-                  "direction {}, edge label {}, max depth '{}', " +
-                  "max degree '{}', capacity '{}' and limit '{}'",
-                  graph, source, target, direction, edgeLabel, depth,
-                  degree, capacity, limit);
+                      @QueryParam("with_vertex") boolean withVertex) {
+        LOG.debug("Graph [{}] get weighted shortest path between '{}' and " +
+                  "'{}' with direction {}, edge label {}, weight property {}, " +
+                  "max degree '{}', skip degree '{}', capacity '{}', " +
+                  "and with vertex '{}'",
+                  graph, source, target, direction, edgeLabel, weight, degree,
+                  skipDegree, capacity, withVertex);
 
         Id sourceId = VertexAPI.checkAndParseVertexId(source);
         Id targetId = VertexAPI.checkAndParseVertexId(target);
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
+        E.checkArgumentNotNull(weight, "The weight property can't be null");
 
         HugeGraph g = graph(manager, graph);
-        PathsTraverser traverser = new PathsTraverser(g);
-        HugeTraverser.PathSet paths = traverser.paths(sourceId, dir, targetId,
-                                                      dir.opposite(), edgeLabel,
-                                                      depth, degree, capacity,
-                                                      limit);
-        return manager.serializer(g).writePaths("paths", paths, false);
+        SingleSourceShortestPathTraverser traverser = new SingleSourceShortestPathTraverser(g);
+
+        NodeWithWeight path = traverser.weightedShortestPath(
+                              sourceId, targetId, dir, edgeLabel, weight,
+                              degree, skipDegree, capacity);
+        Iterator<Vertex> iterator = QueryResults.emptyIterator();
+        if (withVertex) {
+            iterator = g.vertices(path.node().path().toArray());
+        }
+        return manager.serializer(g).writeShortestPath(path, iterator);
     }
 }

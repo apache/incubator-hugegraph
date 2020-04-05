@@ -19,6 +19,12 @@
 
 package com.baidu.hugegraph.api.traversers;
 
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPACITY;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
+
+import java.util.List;
+import java.util.Set;
+
 import javax.inject.Singleton;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
@@ -37,19 +43,14 @@ import com.baidu.hugegraph.api.graph.VertexAPI;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.RestServer;
-import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
-import com.baidu.hugegraph.traversal.algorithm.PathsTraverser;
+import com.baidu.hugegraph.traversal.algorithm.ShortestPathTraverser;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
 
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPACITY;
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PATHS_LIMIT;
-
-@Path("graphs/{graph}/traversers/paths")
+@Path("graphs/{graph}/traversers/allshortestpaths")
 @Singleton
-public class PathsAPI extends API {
+public class AllShortestPathsAPI extends API {
 
     private static final Logger LOG = Log.logger(RestServer.class);
 
@@ -65,26 +66,27 @@ public class PathsAPI extends API {
                       @QueryParam("max_depth") int depth,
                       @QueryParam("max_degree")
                       @DefaultValue(DEFAULT_DEGREE) long degree,
+                      @QueryParam("skip_degree")
+                      @DefaultValue("0") long skipDegree,
                       @QueryParam("capacity")
-                      @DefaultValue(DEFAULT_CAPACITY) long capacity,
-                      @QueryParam("limit")
-                      @DefaultValue(DEFAULT_PATHS_LIMIT) long limit) {
-        LOG.debug("Graph [{}] get paths from '{}', to '{}' with " +
+                      @DefaultValue(DEFAULT_CAPACITY) long capacity) {
+        LOG.debug("Graph [{}] get shortest path from '{}', to '{}' with " +
                   "direction {}, edge label {}, max depth '{}', " +
-                  "max degree '{}', capacity '{}' and limit '{}'",
+                  "max degree '{}', skipped degree '{}' and capacity '{}'",
                   graph, source, target, direction, edgeLabel, depth,
-                  degree, capacity, limit);
+                  degree, skipDegree, capacity);
 
         Id sourceId = VertexAPI.checkAndParseVertexId(source);
         Id targetId = VertexAPI.checkAndParseVertexId(target);
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
 
         HugeGraph g = graph(manager, graph);
-        PathsTraverser traverser = new PathsTraverser(g);
-        HugeTraverser.PathSet paths = traverser.paths(sourceId, dir, targetId,
-                                                      dir.opposite(), edgeLabel,
-                                                      depth, degree, capacity,
-                                                      limit);
-        return manager.serializer(g).writePaths("paths", paths, false);
+
+        ShortestPathTraverser traverser = new ShortestPathTraverser(g);
+        Set<List<Id>> path = traverser.allShortestPaths(sourceId, targetId, dir,
+                                                        edgeLabel, depth,
+                                                        degree, skipDegree,
+                                                        capacity);
+        return manager.serializer(g).writeList("path", path);
     }
 }

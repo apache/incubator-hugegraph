@@ -19,8 +19,6 @@
 
 package com.baidu.hugegraph.api.traversers;
 
-import java.util.List;
-
 import javax.inject.Singleton;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
@@ -85,10 +83,9 @@ public class RingsAPI extends API {
         HugeGraph g = graph(manager, graph);
 
         SubGraphTraverser traverser = new SubGraphTraverser(g);
-        List<HugeTraverser.Path> paths = traverser.rings(source, dir, edgeLabel,
-                                                         depth, sourceInRing,
-                                                         degree, capacity,
-                                                         limit);
+        HugeTraverser.PathSet paths = traverser.rings(source, dir, edgeLabel,
+                                                      depth, sourceInRing,
+                                                      degree, capacity, limit);
         return manager.serializer(g).writePaths("rings", paths, false);
     }
 }

@@ -38,18 +38,17 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
-import com.baidu.hugegraph.traversal.algorithm.PathsTraverser;
 import com.baidu.hugegraph.type.define.Directions;
+import com.baidu.hugegraph.util.JsonUtil;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
+import com.google.common.collect.ImmutableMap;
 
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPACITY;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PATHS_LIMIT;
 
-@Path("graphs/{graph}/traversers/paths")
+@Path("graphs/{graph}/traversers/jaccardsimilarity")
 @Singleton
-public class PathsAPI extends API {
+public class JaccardSimilarityAPI extends API {
 
     private static final Logger LOG = Log.logger(RestServer.class);
 
@@ -58,33 +57,25 @@ public class PathsAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String get(@Context GraphManager manager,
                       @PathParam("graph") String graph,
-                      @QueryParam("source") String source,
-                      @QueryParam("target") String target,
+                      @QueryParam("vertex") String vertex,
+                      @QueryParam("other") String other,
                       @QueryParam("direction") String direction,
                       @QueryParam("label") String edgeLabel,
-                      @QueryParam("max_depth") int depth,
                       @QueryParam("max_degree")
-                      @DefaultValue(DEFAULT_DEGREE) long degree,
-                      @QueryParam("capacity")
-                      @DefaultValue(DEFAULT_CAPACITY) long capacity,
-                      @QueryParam("limit")
-                      @DefaultValue(DEFAULT_PATHS_LIMIT) long limit) {
-        LOG.debug("Graph [{}] get paths from '{}', to '{}' with " +
-                  "direction {}, edge label {}, max depth '{}', " +
-                  "max degree '{}', capacity '{}' and limit '{}'",
-                  graph, source, target, direction, edgeLabel, depth,
-                  degree, capacity, limit);
+                      @DefaultValue(DEFAULT_DEGREE) long degree) {
+        LOG.debug("Graph [{}] get jaccard similarity between '{}' and '{}' " +
+                  "with direction {}, edge label {} and max degree '{}'",
+                  graph, vertex, other, direction, edgeLabel, degree);
 
-        Id sourceId = VertexAPI.checkAndParseVertexId(source);
-        Id targetId = VertexAPI.checkAndParseVertexId(target);
+        Id sourceId = VertexAPI.checkAndParseVertexId(vertex);
+        Id targetId = VertexAPI.checkAndParseVertexId(other);
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
 
         HugeGraph g = graph(manager, graph);
-        PathsTraverser traverser = new PathsTraverser(g);
-        HugeTraverser.PathSet paths = traverser.paths(sourceId, dir, targetId,
-                                                      dir.opposite(), edgeLabel,
-                                                      depth, degree, capacity,
-                                                      limit);
-        return manager.serializer(g).writePaths("paths", paths, false);
+        HugeTraverser traverser = new HugeTraverser(g);
+        double similarity = traverser.jaccardSimilarity(sourceId, targetId, dir,
+                                                        edgeLabel, degree);
+        return JsonUtil.toJson(ImmutableMap.of("jaccard_similarity",
+                                               similarity));
     }
 }

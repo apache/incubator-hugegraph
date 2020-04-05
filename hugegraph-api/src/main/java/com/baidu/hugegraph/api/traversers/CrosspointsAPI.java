@@ -19,8 +19,6 @@
 
 package com.baidu.hugegraph.api.traversers;
 
-import java.util.Set;
-
 import javax.inject.Singleton;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
@@ -83,11 +81,9 @@ public class CrosspointsAPI extends API {
 
         HugeGraph g = graph(manager, graph);
         PathsTraverser traverser = new PathsTraverser(g);
-        Set<HugeTraverser.Path> paths = traverser.paths(sourceId, dir,
-                                                        targetId, dir,
-                                                        edgeLabel, depth,
-                                                        degree, capacity,
-                                                        limit);
+        HugeTraverser.PathSet paths = traverser.paths(sourceId, dir, targetId,
+                                                      dir, edgeLabel, depth,
+                                                      degree, capacity, limit);
         return manager.serializer(g).writePaths("crosspoints", paths, true);
     }
 }
