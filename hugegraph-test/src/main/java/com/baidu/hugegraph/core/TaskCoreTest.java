@@ -478,11 +478,11 @@ public class TaskCoreTest extends BaseCoreTest {
                               task3.result());
 
         // Cancel failure task with big results (task exceeded limit 64M)
-        String bigResults = "def big='12345678'; def ol=[]; def il=[]; " +
-                            "for (i in 1..2000) " +
-                            "   for (j in 1..1000) " +
-                                    "il.add(big); " +
-                                "ol.add(il); " +
+        String bigResults = "def big='12345678'; def ol=[]; def il=[];" +
+                            "for (i in 1..2000)" +
+                            "   for (j in 1..1000)" +
+                            "       il.add(big);" +
+                            "   ol.add(il);" +
                             "ol;";
         HugeTask<Object> task4 = runGremlinJob(bigResults);
         scheduler.waitUntilTaskCompleted(task4.id(), 10);

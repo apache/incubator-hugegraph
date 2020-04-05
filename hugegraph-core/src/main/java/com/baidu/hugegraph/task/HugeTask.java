@@ -541,15 +541,18 @@ public class HugeTask<V> extends FutureTask<V> {
             return;
         }
 
+        int propertyLength = property.length();
         HugeConfig config = graph.configuration();
         long maxLength = BytesBuffer.STRING_LEN_MAX;
         if (name.equals(P.unhide(P.INPUT))) {
+            propertyLength = StringEncoding.compress(property).length;
             maxLength = config.get(CoreOptions.TASK_INPUT_SIZE_LIMIT);
         } else if (name.equals(P.unhide(P.RESULT))) {
+            propertyLength = StringEncoding.compress(property).length;
             maxLength = config.get(CoreOptions.TASK_RESULT_SIZE_LIMIT);
         }
 
-        if (property.length() > maxLength) {
+        if (propertyLength > maxLength) {
             throw new LimitExceedException(
                       "Task %s size %s exceeded limit %s bytes",
                       name, property.length(), maxLength);

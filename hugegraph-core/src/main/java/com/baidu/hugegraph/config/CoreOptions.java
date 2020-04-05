@@ -119,7 +119,7 @@ public class CoreOptions extends OptionHolder {
     public static final ConfigOption<Long> TASK_INPUT_SIZE_LIMIT =
             new ConfigOption<>(
                     "task.input_size_limit",
-                    "The gremlin job input size limit in bytes.",
+                    "The job input size limit in bytes.",
                     rangeInt(0L, Bytes.GB),
                     16 * Bytes.MB
             );
@@ -127,7 +127,7 @@ public class CoreOptions extends OptionHolder {
     public static final ConfigOption<Long> TASK_RESULT_SIZE_LIMIT =
             new ConfigOption<>(
                     "task.result_size_limit",
-                    "The gremlin job result size limit in bytes.",
+                    "The job result size limit in bytes.",
                     rangeInt(0L, Bytes.GB),
                     16 * Bytes.MB
             );
