@@ -44,6 +44,7 @@ import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.traversal.algorithm.SingleSourceShortestPathTraverser;
 import com.baidu.hugegraph.traversal.algorithm.SingleSourceShortestPathTraverser.NodeWithWeight;
 import com.baidu.hugegraph.type.define.Directions;
+import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
 
@@ -83,6 +84,7 @@ public class WeightedShortestPathAPI extends API {
         Id sourceId = VertexAPI.checkAndParseVertexId(source);
         Id targetId = VertexAPI.checkAndParseVertexId(target);
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
+        E.checkArgumentNotNull(weight, "The weight property can't be null");
 
         HugeGraph g = graph(manager, graph);
         SingleSourceShortestPathTraverser traverser = new SingleSourceShortestPathTraverser(g);

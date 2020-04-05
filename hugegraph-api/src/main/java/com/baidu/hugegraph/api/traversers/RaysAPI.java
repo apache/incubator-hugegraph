@@ -37,6 +37,7 @@ import com.baidu.hugegraph.api.graph.VertexAPI;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.RestServer;
+import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
 import com.baidu.hugegraph.traversal.algorithm.SubGraphTraverser;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.Log;
@@ -79,9 +80,9 @@ public class RaysAPI extends API {
         HugeGraph g = graph(manager, graph);
 
         SubGraphTraverser traverser = new SubGraphTraverser(g);
-        SubGraphTraverser.PathSet paths = traverser.rays(source, dir, edgeLabel,
-                                                         depth, degree,
-                                                         capacity, limit);
+        HugeTraverser.PathSet paths = traverser.rays(source, dir, edgeLabel,
+                                                     depth, degree,
+                                                     capacity, limit);
         return manager.serializer(g).writePaths("rays", paths, false);
     }
 }

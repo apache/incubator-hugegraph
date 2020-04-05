@@ -501,4 +501,15 @@ public class HugeTraverser {
             return this.vertices.equals(((Path) other).vertices);
         }
     }
+
+    public static class PathSet extends HashSet<Path> {
+
+        public Set<Id> vertices() {
+            Set<Id> vertices = new HashSet<>();
+            for (Path path : this) {
+                vertices.addAll(path.vertices());
+            }
+            return vertices;
+        }
+    }
 }
