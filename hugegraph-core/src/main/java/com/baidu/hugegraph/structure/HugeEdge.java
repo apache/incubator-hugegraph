@@ -297,14 +297,14 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         List<Vertex> vertices = new ArrayList<>(2);
         switch (direction) {
             case OUT:
-                vertices.add(this.sourceVertex);
+                vertices.add(this.sourceVertex());
                 break;
             case IN:
-                vertices.add(this.targetVertex);
+                vertices.add(this.targetVertex());
                 break;
             case BOTH:
-                vertices.add(this.sourceVertex);
-                vertices.add(this.targetVertex);
+                vertices.add(this.sourceVertex());
+                vertices.add(this.targetVertex());
                 break;
             default:
                 throw new AssertionError("Unsupported direction: " + direction);
@@ -315,12 +315,12 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
 
     @Override
     public Vertex outVertex() {
-        return this.sourceVertex;
+        return this.sourceVertex();
     }
 
     @Override
     public Vertex inVertex() {
-        return this.targetVertex;
+        return this.targetVertex();
     }
 
     public void vertices(boolean isOutEdge,
@@ -351,10 +351,13 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     }
 
     public HugeVertex ownerVertex() {
-        return this.isOutEdge ? this.sourceVertex : this.targetVertex;
+        return this.isOutEdge ? this.sourceVertex() : this.targetVertex();
     }
 
     public HugeVertex sourceVertex() {
+        if (this.sourceVertex.schemaLabel().undefined()) {
+            this.sourceVertex.tx().checkAdjacentVertexExist(this.sourceVertex);
+        }
         return this.sourceVertex;
     }
 
@@ -363,6 +366,9 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     }
 
     public HugeVertex targetVertex() {
+        if (this.targetVertex.schemaLabel().undefined()) {
+            this.targetVertex.tx().checkAdjacentVertexExist(this.targetVertex);
+        }
         return this.targetVertex;
     }
 
@@ -390,18 +396,18 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     }
 
     public HugeVertex otherVertex(HugeVertex vertex) {
-        if (vertex == this.sourceVertex) {
-            return this.targetVertex;
+        if (vertex == this.sourceVertex()) {
+            return this.targetVertex();
         } else {
-            E.checkArgument(vertex == this.targetVertex,
+            E.checkArgument(vertex == this.targetVertex(),
                             "Invalid argument vertex '%s', must be in [%s, %s]",
-                            vertex, this.sourceVertex, this.targetVertex);
-            return this.sourceVertex;
+                            vertex, this.sourceVertex(), this.targetVertex());
+            return this.sourceVertex();
         }
     }
 
     public HugeVertex otherVertex() {
-        return this.isOutEdge ? this.targetVertex : this.sourceVertex;
+        return this.isOutEdge ? this.targetVertex() : this.sourceVertex();
     }
 
     /**

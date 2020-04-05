@@ -206,10 +206,10 @@ public class TextSerializer extends AbstractSerializer {
         String[] colParts = EdgeId.split(colName);
 
         HugeGraph graph = vertex.graph();
-        EdgeLabel label = graph.edgeLabel(readId(colParts[1]));
+        EdgeLabel label = graph.edgeLabelOrNone(readId(colParts[1]));
 
-        VertexLabel sourceLabel = graph.vertexLabel(label.sourceLabel());
-        VertexLabel targetLabel = graph.vertexLabel(label.targetLabel());
+        VertexLabel sourceLabel = graph.vertexLabelOrNone(label.sourceLabel());
+        VertexLabel targetLabel = graph.vertexLabelOrNone(label.targetLabel());
 
         Id otherVertexId = readEntryId(colParts[3]);
 
@@ -301,13 +301,13 @@ public class TextSerializer extends AbstractSerializer {
         TextBackendEntry entry = this.convertEntry(backendEntry);
         // Parse label
         String labelId = entry.column(this.formatSyspropName(HugeKeys.LABEL));
-        VertexLabel label = VertexLabel.NONE;
+        VertexLabel vertexLabel = VertexLabel.NONE;
         if (labelId != null) {
-            label = graph.vertexLabel(readId(labelId));
+            vertexLabel = graph.vertexLabelOrNone(readId(labelId));
         }
 
         Id id = IdUtil.readString(entry.id().asString());
-        HugeVertex vertex = new HugeVertex(graph, id, label);
+        HugeVertex vertex = new HugeVertex(graph, id, vertexLabel);
 
         // Parse all properties or edges of a Vertex
         for (String name : entry.columnNames()) {

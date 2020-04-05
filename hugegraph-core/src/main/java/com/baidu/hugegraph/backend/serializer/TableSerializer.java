@@ -168,9 +168,9 @@ public abstract class TableSerializer extends AbstractSerializer {
             vertex = new HugeVertex(graph, ownerId, null);
         }
 
-        EdgeLabel edgeLabel = graph.edgeLabel(this.toId(label));
-        VertexLabel srcLabel = graph.vertexLabel(edgeLabel.sourceLabel());
-        VertexLabel tgtLabel = graph.vertexLabel(edgeLabel.targetLabel());
+        EdgeLabel edgeLabel = graph.edgeLabelOrNone(this.toId(label));
+        VertexLabel srcLabel = graph.vertexLabelOrNone(edgeLabel.sourceLabel());
+        VertexLabel tgtLabel = graph.vertexLabelOrNone(edgeLabel.targetLabel());
 
         Id otherId = this.readId(otherVertexId);
         boolean isOutEdge = direction == Directions.OUT;
@@ -241,7 +241,7 @@ public abstract class TableSerializer extends AbstractSerializer {
 
         VertexLabel vertexLabel = VertexLabel.NONE;
         if (label != null) {
-            vertexLabel = graph.vertexLabel(this.toId(label));
+            vertexLabel = graph.vertexLabelOrNone(this.toId(label));
         }
         HugeVertex vertex = new HugeVertex(graph, id, vertexLabel);
 

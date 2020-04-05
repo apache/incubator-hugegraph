@@ -250,9 +250,9 @@ public class BinarySerializer extends AbstractSerializer {
         Id otherVertexId = buffer.readId();
 
         boolean isOutEdge = (type == HugeType.EDGE_OUT.code());
-        EdgeLabel edgeLabel = graph.edgeLabel(labelId);
-        VertexLabel srcLabel = graph.vertexLabel(edgeLabel.sourceLabel());
-        VertexLabel tgtLabel = graph.vertexLabel(edgeLabel.targetLabel());
+        EdgeLabel edgeLabel = graph.edgeLabelOrNone(labelId);
+        VertexLabel srcLabel = graph.vertexLabelOrNone(edgeLabel.sourceLabel());
+        VertexLabel tgtLabel = graph.vertexLabelOrNone(edgeLabel.targetLabel());
 
         HugeVertex otherVertex;
         if (isOutEdge) {
@@ -293,7 +293,7 @@ public class BinarySerializer extends AbstractSerializer {
         BytesBuffer buffer = BytesBuffer.wrap(value);
 
         // Parse vertex label
-        VertexLabel label = vertex.graph().vertexLabel(buffer.readId());
+        VertexLabel label = vertex.graph().vertexLabelOrNone(buffer.readId());
         vertex.vertexLabel(label);
 
         // Parse properties

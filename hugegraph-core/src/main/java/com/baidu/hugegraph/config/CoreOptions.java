@@ -151,6 +151,31 @@ public class CoreOptions extends OptionHolder {
                     false
             );
 
+    public static final ConfigOption<Boolean> VERTEX_ADJACENT_VERTEX_LAZY =
+            new ConfigOption<>(
+                    "vertex.lazy_load_adjacent_vertex",
+                    "Whether to lazy load adjacent vertices of edges",
+                    disallowEmpty(),
+                    true
+            );
+
+    public static final ConfigOption<Integer> VERTEX_PART_EDGE_COMMIT_SIZE =
+            new ConfigOption<>(
+                    "vertex.part_edge_commit_size",
+                    "Whether to enable the mode to commit part of edges of vertex, " +
+                    "enabled if commit size > 0, 0 meas disabled.",
+                    rangeInt(0, (int) Query.DEFAULT_CAPACITY),
+                    5000
+            );
+
+    public static final ConfigOption<Boolean> QUERY_IGNORE_INVALID_DATA =
+            new ConfigOption<>(
+                    "query.ignore_invalid_data",
+                    "Whether to ignore invalid data of vertex or edge.",
+                    disallowEmpty(),
+                    true
+            );
+
     public static final ConfigOption<Integer> QUERY_BATCH_SIZE =
             new ConfigOption<>(
                     "query.batch_size",

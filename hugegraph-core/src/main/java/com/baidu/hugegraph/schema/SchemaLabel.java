@@ -36,6 +36,9 @@ import com.baidu.hugegraph.util.E;
 public abstract class SchemaLabel extends SchemaElement
                                   implements Indexfiable, Propfiable {
 
+    protected static final Id ZERO = IdGenerator.of(0L);
+    protected static final String UNDEF = "~undefined";
+
     private final Set<Id> properties;
     private final Set<Id> nullableKeys;
     private final Set<Id> indexLabels;
@@ -106,6 +109,10 @@ public abstract class SchemaLabel extends SchemaElement
 
     public void enableLabelIndex(boolean enable) {
         this.enableLabelIndex = enable;
+    }
+
+    public boolean undefined() {
+        return this.name() == UNDEF;
     }
 
     public static Id getLabelId(HugeGraph graph, HugeType type, Object label) {

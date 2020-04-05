@@ -65,14 +65,15 @@ public class BinaryScatterSerializer extends BinarySerializer {
         // Parse label
         final byte[] VL = this.formatSyspropName(entry.id(), HugeKeys.LABEL);
         BackendColumn vl = entry.column(VL);
-        VertexLabel label = VertexLabel.NONE;
+        VertexLabel vertexLabel = VertexLabel.NONE;
         if (vl != null) {
-            label = graph.vertexLabel(BytesBuffer.wrap(vl.value).readId());
+            Id labelId = BytesBuffer.wrap(vl.value).readId();
+            vertexLabel = graph.vertexLabelOrNone(labelId);
         }
 
         // Parse id
         Id id = entry.id().origin();
-        HugeVertex vertex = new HugeVertex(graph, id, label);
+        HugeVertex vertex = new HugeVertex(graph, id, vertexLabel);
 
         // Parse all properties and edges of a Vertex
         for (BackendColumn col : entry.columns()) {

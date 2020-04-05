@@ -209,6 +209,10 @@ public class BackendMutation {
         return this.updates.size();
     }
 
+    public void clear() {
+        this.updates.clear();
+    }
+
     @Override
     public String toString() {
         return String.format("BackendMutation{mutations=%s}", this.updates);
@@ -285,6 +289,10 @@ public class BackendMutation {
                 }
             }
             return size;
+        }
+
+        public void clear() {
+            this.mutations.clear();
         }
     }
 }

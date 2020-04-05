@@ -24,6 +24,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Function;
 
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
@@ -262,6 +263,19 @@ public class SchemaTransaction extends IndexableTransaction {
     public void updateSchemaStatus(SchemaElement schema, SchemaStatus status) {
         schema.status(status);
         this.updateSchema(schema);
+    }
+
+    public <V> V lockCheckAndCreateSchema(HugeType type, String name,
+                                          Function<String, V> callback) {
+        String graph = this.graph().name();
+        LockUtil.Locks locks = new LockUtil.Locks(graph);
+        try {
+            locks.lockWrites(LockUtil.hugeType2Group(type),
+                             IdGenerator.of(name));
+            return callback.apply(name);
+        } finally {
+            locks.unlock();
+        }
     }
 
     protected void updateSchema(SchemaElement schema) {
