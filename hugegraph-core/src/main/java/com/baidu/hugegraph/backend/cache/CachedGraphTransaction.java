@@ -93,10 +93,11 @@ public final class CachedGraphTransaction extends GraphTransaction {
         HugeGraph graph = super.graph();
         String name = prefix + "-" + graph.name();
         long heapCapacity = (long) (DEFAULT_LEVEL_RATIO * capacity);
-        long bytesCapacity = capacity * entrySize;
         Cache<Id, Object> cache = CacheManager.instance().levelCache(
-                                  graph, name, heapCapacity, bytesCapacity);
-        cache.expire(expire);
+                                  graph, name, heapCapacity,
+                                  capacity, entrySize);
+        // Convert the unit from seconds to milliseconds
+        cache.expire(expire * 1000L);
         return cache;
     }
 

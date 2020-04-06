@@ -28,6 +28,8 @@ public interface Cache<K, V> {
 
     public Object getOrFetch(K id, Function<K, V> fetcher);
 
+    public boolean containsKey(K id);
+
     public void update(K id, V value);
 
     public void updateIfAbsent(K id, V value);

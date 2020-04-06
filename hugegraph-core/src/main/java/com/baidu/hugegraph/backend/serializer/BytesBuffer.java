@@ -533,6 +533,74 @@ public final class BytesBuffer {
         return values;
     }
 
+    public void writeProperty(DataType dataType, Object value) {
+        switch (dataType) {
+            case BOOLEAN:
+                this.writeVInt(((Boolean) value) ? 1 : 0);
+                break;
+            case BYTE:
+                this.writeVInt((Byte) value);
+                break;
+            case INT:
+                this.writeVInt((Integer) value);
+                break;
+            case FLOAT:
+                this.writeFloat((Float) value);
+                break;
+            case LONG:
+                this.writeVLong((Long) value);
+                break;
+            case DATE:
+                this.writeVLong(((Date) value).getTime());
+                break;
+            case DOUBLE:
+                this.writeDouble((Double) value);
+                break;
+            case TEXT:
+                this.writeString((String) value);
+                break;
+            case BLOB:
+                this.writeBigBytes((byte[]) value);
+                break;
+            case UUID:
+                UUID uuid = (UUID) value;
+                // Generally writeVLong(uuid) can't save space
+                this.writeLong(uuid.getMostSignificantBits());
+                this.writeLong(uuid.getLeastSignificantBits());
+                break;
+            default:
+                this.writeBytes(KryoUtil.toKryoWithType(value));
+                break;
+        }
+    }
+
+    public Object readProperty(DataType dataType) {
+        switch (dataType) {
+            case BOOLEAN:
+                return this.readVInt() == 1;
+            case BYTE:
+                return (byte) this.readVInt();
+            case INT:
+                return this.readVInt();
+            case FLOAT:
+                return this.readFloat();
+            case LONG:
+                return this.readVLong();
+            case DATE:
+                return new Date(this.readVLong());
+            case DOUBLE:
+                return this.readDouble();
+            case TEXT:
+                return this.readString();
+            case BLOB:
+                return this.readBigBytes();
+            case UUID:
+                return new UUID(this.readLong(), this.readLong());
+            default:
+                return KryoUtil.fromKryoWithType(this.readBytes());
+        }
+    }
+
     public BytesBuffer writeId(Id id) {
         return this.writeId(id, false);
     }
@@ -826,74 +894,5 @@ public final class BytesBuffer {
         byte[] bytes = new byte[len];
         System.arraycopy(this.array(), start, bytes, 0, len);
         return bytes;
-    }
-
-
-    private void writeProperty(DataType dataType, Object value) {
-        switch (dataType) {
-            case BOOLEAN:
-                this.writeVInt(((Boolean) value) ? 1 : 0);
-                break;
-            case BYTE:
-                this.writeVInt((Byte) value);
-                break;
-            case INT:
-                this.writeVInt((Integer) value);
-                break;
-            case FLOAT:
-                this.writeFloat((Float) value);
-                break;
-            case LONG:
-                this.writeVLong((Long) value);
-                break;
-            case DATE:
-                this.writeVLong(((Date) value).getTime());
-                break;
-            case DOUBLE:
-                this.writeDouble((Double) value);
-                break;
-            case TEXT:
-                this.writeString((String) value);
-                break;
-            case BLOB:
-                this.writeBigBytes((byte[]) value);
-                break;
-            case UUID:
-                UUID uuid = (UUID) value;
-                // Generally writeVLong(uuid) can't save space
-                this.writeLong(uuid.getMostSignificantBits());
-                this.writeLong(uuid.getLeastSignificantBits());
-                break;
-            default:
-                this.writeBytes(KryoUtil.toKryoWithType(value));
-                break;
-        }
-    }
-
-    private Object readProperty(DataType dataType) {
-        switch (dataType) {
-            case BOOLEAN:
-                return this.readVInt() == 1;
-            case BYTE:
-                return (byte) this.readVInt();
-            case INT:
-                return this.readVInt();
-            case FLOAT:
-                return this.readFloat();
-            case LONG:
-                return this.readVLong();
-            case DATE:
-                return new Date(this.readVLong());
-            case DOUBLE:
-                return this.readDouble();
-            case TEXT:
-                return this.readString();
-            case BLOB:
-                return this.readBigBytes();
-            case UUID:
-                return new UUID(this.readLong(), this.readLong());
-            default:
-                return KryoUtil.fromKryoWithType(this.readBytes());
-        }
     }
 }

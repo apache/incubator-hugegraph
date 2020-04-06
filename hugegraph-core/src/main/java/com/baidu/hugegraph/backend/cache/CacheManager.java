@@ -30,6 +30,7 @@ import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 
 public class CacheManager {
@@ -102,24 +103,36 @@ public class CacheManager {
         if (!this.caches.containsKey(name)) {
             this.caches.putIfAbsent(name, new RamCache(capacity));
         }
-        return this.caches.get(name);
+        Cache<Id, Object> cache = this.caches.get(name);
+        E.checkArgument(cache instanceof RamCache,
+                        "Invalid cache implement: %s", cache.getClass());
+        return cache;
     }
 
-    public Cache<Id, Object> offheapCache(HugeGraph graph,
-                                          String name, long capacity) {
+    public Cache<Id, Object> offheapCache(HugeGraph graph, String name,
+                                          long capacity, long avgElemSize) {
         if (!this.caches.containsKey(name)) {
-            this.caches.putIfAbsent(name, new OffheapCache(graph, capacity));
+            OffheapCache cache = new OffheapCache(graph, capacity, avgElemSize);
+            this.caches.putIfAbsent(name, cache);
         }
-        return this.caches.get(name);
+        Cache<Id, Object> cache = this.caches.get(name);
+        E.checkArgument(cache instanceof OffheapCache,
+                        "Invalid cache implement: %s", cache.getClass());
+        return cache;
     }
 
     public Cache<Id, Object> levelCache(HugeGraph graph, String name,
-                                        long capacity1, long capacity2) {
+                                        long capacity1, long capacity2,
+                                        long avgElemSize) {
         if (!this.caches.containsKey(name)) {
             RamCache cache1 = new RamCache(capacity1);
-            OffheapCache cache2 = new OffheapCache(graph, capacity2);
+            OffheapCache cache2 = new OffheapCache(graph, capacity2,
+                                                   avgElemSize);
             this.caches.putIfAbsent(name, new LevelCache(cache1, cache2));
         }
-        return this.caches.get(name);
+        Cache<Id, Object> cache = this.caches.get(name);
+        E.checkArgument(cache instanceof LevelCache,
+                        "Invalid cache implement: %s", cache.getClass());
+        return cache;
     }
 }

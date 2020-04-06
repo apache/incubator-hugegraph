@@ -44,7 +44,7 @@ public class CachedBackendStore implements BackendStore {
         this.store = store;
         this.cache = CacheManager.instance().cache("store-" + store());
         // Set expire 30s
-        this.cache.expire(30);
+        this.cache.expire(30 * 1000L);
     }
 
     @Override

@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.backend.cache;
 
 import java.nio.ByteBuffer;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -31,6 +32,7 @@ import org.caffinitas.ohc.Eviction;
 import org.caffinitas.ohc.OHCache;
 import org.caffinitas.ohc.OHCacheBuilder;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.serializer.AbstractSerializer;
@@ -42,6 +44,7 @@ import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumn;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
 
@@ -51,9 +54,13 @@ public class OffheapCache extends AbstractCache<Id, Object> {
     private final HugeGraph graph;
     private final AbstractSerializer serializer;
 
-    public OffheapCache(HugeGraph graph, long capacityInBytes) {
+    public OffheapCache(HugeGraph graph, long capacity, long avgEntryBytes) {
         // NOTE: capacity unit is bytes, the super capacity expect elements size
-        super(capacityInBytes);
+        super(capacity);
+        long capacityInBytes = capacity * (avgEntryBytes + 64L);
+        if (capacityInBytes <= 0L) {
+            capacityInBytes = 1L;
+        }
         this.graph = graph;
         this.cache = this.builder().capacity(capacityInBytes).build();
         this.serializer = new BinarySerializer();
@@ -88,6 +95,11 @@ public class OffheapCache extends AbstractCache<Id, Object> {
     }
 
     @Override
+    public boolean containsKey(Id id) {
+        return this.cache.containsKey(id);
+    }
+
+    @Override
     protected Object access(Id id) {
         Value value = this.cache.get(id);
         return value == null ? null : value.value();
@@ -97,25 +109,22 @@ public class OffheapCache extends AbstractCache<Id, Object> {
     protected void write(Id id, Object value) {
         long expireTime = this.expire();
         if (expireTime <= 0) {
-            this.cache.put(id, new Value(value));
+            boolean success = this.cache.put(id, new Value(value));
+            assert success;
         } else {
             expireTime += now();
             /*
              * Seems only the linked implementation support expiring entries,
              * the chunked implementation does not support it.
              */
-            this.cache.put(id, new Value(value), expireTime);
+            boolean success = this.cache.put(id, new Value(value), expireTime);
+            assert success;
         }
     }
 
     @Override
     protected void remove(Id id) {
         this.cache.remove(id);
-    }
-
-    @Override
-    protected boolean containsKey(Id id) {
-        return this.cache.containsKey(id);
     }
 
     @Override
@@ -184,7 +193,7 @@ public class OffheapCache extends AbstractCache<Id, Object> {
         }
 
         public Value(ByteBuffer input) {
-            this.value = this.deserialize(input);
+            this.value = this.deserialize(BytesBuffer.wrap(input));
         }
 
         public Object value() {
@@ -211,68 +220,164 @@ public class OffheapCache extends AbstractCache<Id, Object> {
         }
 
         private void serialize(Object element, BytesBuffer buffer) {
-            if (element instanceof List) {
-                @SuppressWarnings("unchecked")
-                List<Object> list = (List<Object>) element;
-                // Write list
-                buffer.write(0);
-                buffer.writeVInt(list.size());
-                for (Object i : list) {
-                    this.serialize(i, buffer);
-                }
-                return;
+            ValueType type = ValueType.valueOf(element);
+            buffer.write(type.code());
+            switch (type) {
+                case LIST:
+                    @SuppressWarnings("unchecked")
+                    Collection<Object> list = (Collection<Object>) element;
+                    serializeList(buffer, list);
+                    break;
+                case VERTEX:
+                case EDGE:
+                    serializeElement(buffer, type, element);
+                    break;
+                case UNKNOWN:
+                    throw unsupported(this.value);
+                default:
+                    buffer.writeProperty(type.dataType(), element);
+                    break;
+            }
+        }
+
+        private Object deserialize(BytesBuffer buffer) {
+            ValueType type = ValueType.valueOf(buffer.read());
+            switch (type) {
+                case LIST:
+                    return deserializeList(buffer);
+                case VERTEX:
+                case EDGE:
+                    return deserializeElement(type, buffer);
+                case UNKNOWN:
+                    throw unsupported(type);
+                default:
+                    return buffer.readProperty(type.dataType());
+            }
+        }
+
+        private void serializeList(BytesBuffer buffer,
+                                   Collection<Object> list) {
+            // Write list
+            buffer.writeVInt(list.size());
+            for (Object i : list) {
+                this.serialize(i, buffer);
+            }
+        }
+
+        private List<Object> deserializeList(BytesBuffer buffer) {
+            // Read list
+            int length = buffer.readVInt();
+            List<Object> list = InsertionOrderUtil.newList();
+            for (int i = 0; i < length; i++) {
+                list.add(this.deserialize(buffer));
+            }
+            return list;
+        }
+
+        private void serializeElement(BytesBuffer buffer,
+                                      ValueType type, Object value) {
+            E.checkNotNull(value, "serialize value");
+            BackendEntry entry;
+            if (type == ValueType.VERTEX) {
+                entry = serializer().writeVertex((HugeVertex) value);
+            } else if (type == ValueType.EDGE) {
+                entry = serializer().writeEdge((HugeEdge) value);
+            } else {
+                throw unsupported(type);
             }
 
-            BackendEntry entry = this.serialize(element);
-            BackendColumn column = oneColumn(entry);
-            buffer.write(entry.type().code());
+            assert entry.columnsSize() == 1;
+            BackendColumn column = entry.columns().iterator().next();
+
             buffer.writeBytes(column.name);
             buffer.writeBytes(column.value);
         }
 
-        private Object deserialize(ByteBuffer input) {
-            BytesBuffer buffer = BytesBuffer.wrap(input);
-            if (buffer.peek() == 0) {
-                // Read list
-                buffer.read();
-                int length = buffer.readVInt();
-                List<Object> list = InsertionOrderUtil.newList();
-                for (int i = 0; i < length; i++) {
-                    list.add(this.deserialize(input));
-                }
-                return list;
-            }
-            return this.deserialize(HugeType.fromCode(buffer.read()),
-                                    buffer.readBytes(), buffer.readBytes());
-        }
-
-        private BackendEntry serialize(Object value) {
-            BackendEntry entry;
-            if (value instanceof HugeVertex) {
-                entry = serializer().writeVertex((HugeVertex) value);
-            } else if (value instanceof HugeEdge) {
-                entry = serializer().writeEdge((HugeEdge) value);
-            } else {
-                throw new AssertionError("Invalid type of value: " + value);
-            }
-            assert entry.columnsSize() == 1;
-            return entry;
-        }
-
-        private Object deserialize(HugeType type, byte[] key, byte[] value) {
-            BinaryBackendEntry entry = new BinaryBackendEntry(type, key);
-            entry.column(key, value);
-            if (type.isVertex()) {
+        private Object deserializeElement(ValueType type, BytesBuffer buffer) {
+            byte[] key = buffer.readBytes();
+            byte[] value = buffer.readBytes();
+            BinaryBackendEntry entry;
+            if (type == ValueType.VERTEX) {
+                entry = new BinaryBackendEntry(HugeType.VERTEX, key);
+                entry.column(key, value);
                 return serializer().readVertex(graph(), entry);
-            } else if (type.isEdge()) {
+            } else if (type == ValueType.EDGE) {
+                entry = new BinaryBackendEntry(HugeType.EDGE, key);
+                entry.column(key, value);
                 return serializer().readEdge(graph(), entry);
             } else {
-                throw new AssertionError("Invalid type: " + type);
+                throw unsupported(type);
             }
         }
 
-        private BackendColumn oneColumn(BackendEntry entry) {
-            return entry.columns().iterator().next();
+        private HugeException unsupported(ValueType type) {
+            throw new HugeException(
+                      "Unsupported deserialize type: %s", type);
+        }
+
+        private HugeException unsupported(Object value) {
+            throw new HugeException(
+                      "Unsupported type of serialize value: '%s'(%s)",
+                      value, value.getClass());
+        }
+    }
+
+    private static enum ValueType {
+
+        UNKNOWN,
+        LIST,
+        VERTEX,
+        EDGE,
+        BYTES(DataType.BLOB),
+        STRING(DataType.TEXT),
+        INT(DataType.INT),
+        LONG(DataType.LONG),
+        FLOAT(DataType.FLOAT),
+        DOUBLE(DataType.DOUBLE),
+        DATE(DataType.DATE);
+
+        private DataType dataType;
+
+        private ValueType() {
+            this(DataType.UNKNOWN);
+        }
+
+        private ValueType(DataType dataType) {
+            this.dataType = dataType;
+        }
+
+        public int code() {
+            return this.ordinal();
+        }
+
+        public DataType dataType() {
+            return this.dataType;
+        }
+
+        public static ValueType valueOf(int index) {
+            ValueType[] values = values();
+            E.checkArgument(0 <= index && index < values.length,
+                            "Invalid ValueType index %s", index);
+            return values[index];
+        }
+
+        public static ValueType valueOf(Object object) {
+            E.checkNotNull(object, "object");
+            Class<? extends Object> clazz = object.getClass();
+            if (Collection.class.isAssignableFrom(clazz)) {
+                return ValueType.LIST;
+            } else if (clazz == HugeVertex.class) {
+                return ValueType.VERTEX;
+            } else if (clazz == HugeEdge.class) {
+                return ValueType.EDGE;
+            } else {
+                for (ValueType type : values()) {
+                    if (clazz == type.dataType().clazz()) {
+                        return type;
+                    }
+                }
+            }
+            return ValueType.UNKNOWN;
         }
     }
 }

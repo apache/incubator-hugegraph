@@ -155,9 +155,8 @@ public abstract class AbstractCache<K, V> implements Cache<K, V> {
     }
 
     @Override
-    public void expire(long seconds) {
-        // Convert the unit from seconds to milliseconds
-        this.expire = seconds * 1000;
+    public void expire(long ms) {
+        this.expire = ms;
     }
 
     @Override
@@ -214,8 +213,6 @@ public abstract class AbstractCache<K, V> implements Cache<K, V> {
     protected abstract void write(K id, V value);
 
     protected abstract void remove(K id);
-
-    protected abstract boolean containsKey(K id);
 
     protected abstract Iterator<CacheNode<K, V>> nodes();
 

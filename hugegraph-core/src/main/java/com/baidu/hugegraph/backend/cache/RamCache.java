@@ -180,16 +180,16 @@ public class RamCache extends AbstractCache<Id, Object> {
     }
 
     @Override
-    protected boolean containsKey(Id id) {
-        return this.map.containsKey(id);
-    }
-
-    @Override
     protected Iterator<CacheNode<Id, Object>> nodes() {
         Iterator<LinkNode<Id, Object>> iter = this.map.values().iterator();
         @SuppressWarnings({ "unchecked", "rawtypes" })
         Iterator<CacheNode<Id, Object>> iterSuper = (Iterator) iter;
         return iterSuper;
+    }
+
+    @Override
+    public boolean containsKey(Id id) {
+        return this.map.containsKey(id);
     }
 
     @Watched(prefix = "ramcache")
