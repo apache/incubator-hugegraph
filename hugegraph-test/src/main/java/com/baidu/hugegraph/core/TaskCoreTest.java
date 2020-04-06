@@ -20,9 +20,9 @@
 package com.baidu.hugegraph.core;
 
 import java.util.Iterator;
+import java.util.Random;
 import java.util.concurrent.TimeoutException;
 
-import org.apache.commons.lang3.StringUtils;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -430,13 +430,19 @@ public class TaskCoreTest extends BaseCoreTest {
         });
 
         // Test failure task with big input
-        int length = 16 * 1024 * 1024 + 1;
-        String bigInput = StringUtils.repeat('8', length);
+        int length = 32 * 1024 * 1024;
+        Random random = new Random();
+        StringBuilder sb = new StringBuilder(length);
+        for (int i = 0; i < length; i++) {
+            sb.append(random.nextInt(1000));
+        }
+        String bigInput = sb.toString();
         Assert.assertThrows(LimitExceedException.class, () -> {
             runGremlinJob(bigInput);
         }, e -> {
-            Assert.assertContains("Task input size 16777286 exceeded " +
-                                  "limit 16777216 bytes", e.getMessage());
+            Assert.assertContains("Task input size", e.getMessage());
+            Assert.assertContains("exceeded limit 16777216 bytes",
+                                  e.getMessage());
         });
     }
 
@@ -478,10 +484,10 @@ public class TaskCoreTest extends BaseCoreTest {
                               task3.result());
 
         // Cancel failure task with big results (task exceeded limit 64M)
-        String bigResults = "def big='12345678'; def ol=[]; def il=[];" +
-                            "for (i in 1..2000)" +
+        String bigResults = "def random = new Random(); def ol=[]; def il=[];" +
+                            "for (i in 1..6000)" +
                             "   for (j in 1..1000)" +
-                            "       il.add(big);" +
+                            "       il.add(random.nextInt(10000000));" +
                             "   ol.add(il);" +
                             "ol;";
         HugeTask<Object> task4 = runGremlinJob(bigResults);
@@ -489,9 +495,10 @@ public class TaskCoreTest extends BaseCoreTest {
         Assert.assertEquals(TaskStatus.FAILED, task4.status());
         scheduler.cancel(task4);
         Assert.assertEquals(TaskStatus.FAILED, task4.status());
-        Assert.assertContains("LimitExceedException: Task result size " +
-                              "22000003 exceeded limit 16777216 bytes",
-                              task4.result());
+        Assert.assertTrue(task4.result().contains(
+                          "LimitExceedException: Task result size"));
+        Assert.assertTrue(task4.result().endsWith(
+                          "exceeded limit 16777216 bytes"));
     }
 
     @Test
