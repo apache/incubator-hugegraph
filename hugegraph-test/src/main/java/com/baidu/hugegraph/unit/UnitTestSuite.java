@@ -41,6 +41,7 @@ import com.baidu.hugegraph.unit.core.QueryTest;
 import com.baidu.hugegraph.unit.core.RowLockTest;
 import com.baidu.hugegraph.unit.core.SecurityManagerTest;
 import com.baidu.hugegraph.unit.core.SerialEnumTest;
+import com.baidu.hugegraph.unit.core.TraversalUtilTest;
 import com.baidu.hugegraph.unit.id.IdTest;
 import com.baidu.hugegraph.unit.id.IdUtilTest;
 import com.baidu.hugegraph.unit.mysql.MysqlUtilTest;
@@ -87,6 +88,7 @@ import com.baidu.hugegraph.unit.util.VersionTest;
     SecurityManagerTest.class,
     ExceptionTest.class,
     BackendStoreSystemInfoTest.class,
+    TraversalUtilTest.class,
 
     /* serializer */
     BytesBufferTest.class,

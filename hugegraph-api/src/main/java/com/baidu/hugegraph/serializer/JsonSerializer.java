@@ -83,6 +83,10 @@ public class JsonSerializer implements Serializer {
 
     private String writeIterator(String label, Iterator<?> iter,
                                  boolean paging) {
+        // Early throw if needed
+        iter.hasNext();
+
+        // Serialize Iterator
         try (ByteArrayOutputStream out = new ByteArrayOutputStream(LBUF_SIZE)) {
             out.write("{".getBytes(API.CHARSET));
 
@@ -180,9 +184,7 @@ public class JsonSerializer implements Serializer {
         long id = cil.task() == null ? 0L : cil.task().asLong();
         return builder.append("{\"index_label\": ")
                       .append(this.writeIndexlabel(cil.indexLabel()))
-                      .append(", \"task_id\": ")
-                      .append(id)
-                      .append("}")
+                      .append(", \"task_id\": ").append(id).append("}")
                       .toString();
     }
 
