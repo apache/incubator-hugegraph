@@ -72,13 +72,13 @@ public abstract class AbstractCache<K, V> implements Cache<K, V> {
         if (value == null) {
             ++this.miss;
             if (LOG.isDebugEnabled()) {
-                LOG.debug("RamCache missed '{}' (miss={}, hits={})",
+                LOG.debug("Cache missed '{}' (miss={}, hits={})",
                           id, this.miss, this.hits);
             }
         } else {
             ++this.hits;
             if (LOG.isDebugEnabled()) {
-                LOG.debug("RamCache cached '{}' (hits={}, miss={})",
+                LOG.debug("Cache cached '{}' (hits={}, miss={})",
                           id, this.hits, this.miss);
             }
         }
@@ -100,7 +100,7 @@ public abstract class AbstractCache<K, V> implements Cache<K, V> {
         if (value == null) {
             ++this.miss;
             if (LOG.isDebugEnabled()) {
-                LOG.debug("RamCache missed '{}' (miss={}, hits={})",
+                LOG.debug("Cache missed '{}' (miss={}, hits={})",
                           id, this.miss, this.hits);
             }
             // Do fetch and update the cache
@@ -109,7 +109,7 @@ public abstract class AbstractCache<K, V> implements Cache<K, V> {
         } else {
             ++this.hits;
             if (LOG.isDebugEnabled()) {
-                LOG.debug("RamCache cached '{}' (hits={}, miss={})",
+                LOG.debug("Cache cached '{}' (hits={}, miss={})",
                           id, this.hits, this.miss);
             }
         }

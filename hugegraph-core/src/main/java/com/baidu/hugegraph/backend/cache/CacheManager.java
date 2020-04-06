@@ -44,7 +44,7 @@ public class CacheManager {
     // Log if tick cost time > 1000ms
     private static final long LOG_TICK_COST_TIME = 1000L;
 
-    private final Map<String, Cache<Id, Object>> caches;
+    private final Map<String, Cache<Id, ?>> caches;
     private final Timer timer;
 
     public static CacheManager instance() {
@@ -91,46 +91,51 @@ public class CacheManager {
         return task;
     }
 
-    public Map<String, Cache<Id, Object>> caches() {
-        return Collections.unmodifiableMap(this.caches);
+    public <V> Map<String, Cache<Id, V>> caches() {
+        @SuppressWarnings({ "rawtypes", "unchecked" })
+        Map<String, Cache<Id, V>> caches = (Map) this.caches;
+        return Collections.unmodifiableMap(caches);
     }
 
-    public Cache<Id, Object> cache(String name) {
+    public <V> Cache<Id, V> cache(String name) {
         return this.cache(name, RamCache.DEFAULT_SIZE);
     }
 
-    public Cache<Id, Object> cache(String name, long capacity) {
+    public <V> Cache<Id, V> cache(String name, long capacity) {
         if (!this.caches.containsKey(name)) {
             this.caches.putIfAbsent(name, new RamCache(capacity));
         }
-        Cache<Id, Object> cache = this.caches.get(name);
+        @SuppressWarnings("unchecked")
+        Cache<Id, V> cache = (Cache<Id, V>) this.caches.get(name);
         E.checkArgument(cache instanceof RamCache,
                         "Invalid cache implement: %s", cache.getClass());
         return cache;
     }
 
-    public Cache<Id, Object> offheapCache(HugeGraph graph, String name,
-                                          long capacity, long avgElemSize) {
+    public <V> Cache<Id, V> offheapCache(HugeGraph graph, String name,
+                                         long capacity, long avgElemSize) {
         if (!this.caches.containsKey(name)) {
             OffheapCache cache = new OffheapCache(graph, capacity, avgElemSize);
             this.caches.putIfAbsent(name, cache);
         }
-        Cache<Id, Object> cache = this.caches.get(name);
+        @SuppressWarnings("unchecked")
+        Cache<Id, V> cache = (Cache<Id, V>) this.caches.get(name);
         E.checkArgument(cache instanceof OffheapCache,
                         "Invalid cache implement: %s", cache.getClass());
         return cache;
     }
 
-    public Cache<Id, Object> levelCache(HugeGraph graph, String name,
-                                        long capacity1, long capacity2,
-                                        long avgElemSize) {
+    public <V> Cache<Id, V> levelCache(HugeGraph graph, String name,
+                                       long capacity1, long capacity2,
+                                       long avgElemSize) {
         if (!this.caches.containsKey(name)) {
             RamCache cache1 = new RamCache(capacity1);
             OffheapCache cache2 = new OffheapCache(graph, capacity2,
                                                    avgElemSize);
             this.caches.putIfAbsent(name, new LevelCache(cache1, cache2));
         }
-        Cache<Id, Object> cache = this.caches.get(name);
+        @SuppressWarnings("unchecked")
+        Cache<Id, V> cache = (Cache<Id, V>) this.caches.get(name);
         E.checkArgument(cache instanceof LevelCache,
                         "Invalid cache implement: %s", cache.getClass());
         return cache;

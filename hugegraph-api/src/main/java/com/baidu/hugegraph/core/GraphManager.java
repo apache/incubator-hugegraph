@@ -236,7 +236,9 @@ public final class GraphManager {
         });
 
         // Add metrics for caches
-        Map<String, Cache> caches = CacheManager.instance().caches();
+        @SuppressWarnings({ "rawtypes", "unchecked" })
+        Map<String, Cache<?, ?>> caches = (Map) CacheManager.instance()
+                                                            .caches();
         registerCacheMetrics(caches);
         final AtomicInteger lastCachesSize = new AtomicInteger(caches.size());
         MetricsUtil.registerGauge(Cache.class, "instances", () -> {
@@ -258,11 +260,11 @@ public final class GraphManager {
         });
     }
 
-    private static void registerCacheMetrics(Map<String, Cache> caches) {
+    private static void registerCacheMetrics(Map<String, Cache<?, ?>> caches) {
         Set<String> names = MetricManager.INSTANCE.getRegistry().getNames();
-        for (Map.Entry<String, Cache> entry : caches.entrySet()) {
+        for (Map.Entry<String, Cache<?, ?>> entry : caches.entrySet()) {
             String key = entry.getKey();
-            Cache cache = entry.getValue();
+            Cache<?, ?> cache = entry.getValue();
 
             String hits = String.format("%s.%s", key, "hits");
             String miss = String.format("%s.%s", key, "miss");
