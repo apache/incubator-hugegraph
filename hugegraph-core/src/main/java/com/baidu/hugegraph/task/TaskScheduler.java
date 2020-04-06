@@ -525,8 +525,8 @@ public class TaskScheduler {
             props.add(createPropertyKey(P.CREATE, DataType.DATE));
             props.add(createPropertyKey(P.UPDATE, DataType.DATE));
             props.add(createPropertyKey(P.RETRIES, DataType.INT));
-            props.add(createPropertyKey(P.INPUT));
-            props.add(createPropertyKey(P.RESULT));
+            props.add(createPropertyKey(P.INPUT, DataType.BLOB));
+            props.add(createPropertyKey(P.RESULT, DataType.BLOB));
             props.add(createPropertyKey(P.DEPENDENCIES, DataType.LONG,
                                         Cardinality.SET));
 

@@ -74,7 +74,6 @@ public class ServerOptions extends OptionHolder {
                     64
             );
 
-
     public static final ConfigOption<Integer> REQUEST_TIMEOUT =
             new ConfigOption<>(
                     "restserver.request_timeout",

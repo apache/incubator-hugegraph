@@ -568,7 +568,7 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     public Iterator<Vertex> queryAdjacentVertices(Iterator<Edge> edges) {
-        if (this.lazyLoadAdjacentVertex){
+        if (this.lazyLoadAdjacentVertex) {
             return new MapperIterator<>(edges, edge -> {
                 return ((HugeEdge) edge).otherVertex();
             });

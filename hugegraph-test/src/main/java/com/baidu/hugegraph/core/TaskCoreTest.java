@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.core;
 
 import java.util.Iterator;
+import java.util.Random;
 import java.util.concurrent.TimeoutException;
 
 import org.junit.Before;
@@ -81,7 +82,7 @@ public class TaskCoreTest extends BaseCoreTest {
         };
 
         Id id = IdGenerator.of(88888);
-        HugeTask<?> task = new HugeTask<>(id, null, callable);
+        HugeTask<?> task = new HugeTask<>(graph, id, null, callable);
         task.type("test");
         task.name("test-task");
 
@@ -145,14 +146,14 @@ public class TaskCoreTest extends BaseCoreTest {
         };
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
-            new HugeTask<>(null, null, callable);
+            new HugeTask<>(graph, null, null, callable);
         }, e -> {
             Assert.assertContains("Task id can't be null", e.getMessage());
         });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             Id id = IdGenerator.of("88888");
-            new HugeTask<>(id, null, callable);
+            new HugeTask<>(graph, id, null, callable);
         }, e -> {
             Assert.assertContains("Invalid task id type, it must be number",
                                   e.getMessage());
@@ -160,12 +161,12 @@ public class TaskCoreTest extends BaseCoreTest {
 
         Assert.assertThrows(NullPointerException.class, () -> {
             Id id = IdGenerator.of(88888);
-            new HugeTask<>(id, null, null);
+            new HugeTask<>(graph, id, null, null);
         });
 
         Assert.assertThrows(IllegalStateException.class, () -> {
             Id id = IdGenerator.of(88888);
-            HugeTask<?> task2 = new HugeTask<>(id, null, callable);
+            HugeTask<?> task2 = new HugeTask<>(graph, id, null, callable);
             task2.name("test-task");
             scheduler.schedule(task2);
         }, e -> {
@@ -174,7 +175,7 @@ public class TaskCoreTest extends BaseCoreTest {
 
         Assert.assertThrows(IllegalStateException.class, () -> {
             Id id = IdGenerator.of(88888);
-            HugeTask<?> task2 = new HugeTask<>(id, null, callable);
+            HugeTask<?> task2 = new HugeTask<>(graph, id, null, callable);
             task2.type("test");
             scheduler.schedule(task2);
         }, e -> {
@@ -429,16 +430,19 @@ public class TaskCoreTest extends BaseCoreTest {
         });
 
         // Test failure task with big input
-        char[] chars = new char[65536];
-        for (int i = 0; i < chars.length; i++) {
-            chars[i] = '8';
+        int length = 32 * 1024 * 1024;
+        Random random = new Random();
+        StringBuilder sb = new StringBuilder(length);
+        for (int i = 0; i < length; i++) {
+            sb.append(random.nextInt(1000));
         }
-        String bigInput = new String(chars);
+        String bigInput = sb.toString();
         Assert.assertThrows(LimitExceedException.class, () -> {
             runGremlinJob(bigInput);
         }, e -> {
-            Assert.assertContains("Task input size 65605 exceeded " +
-                                  "limit 65535 bytes", e.getMessage());
+            Assert.assertContains("Task input size", e.getMessage());
+            Assert.assertContains("exceeded limit 16777216 bytes",
+                                  e.getMessage());
         });
     }
 
@@ -479,16 +483,22 @@ public class TaskCoreTest extends BaseCoreTest {
                               "has exceeded the max limit 10000",
                               task3.result());
 
-        // Cancel failure task with big results (task exceeded limit 64k)
-        String bigResults = "def big='123456789'; def l=[]; " +
-                            "for (i in 1..9000) l.add(big); l;";
+        // Cancel failure task with big results (task exceeded limit 64M)
+        String bigResults = "def random = new Random(); def ol=[]; def il=[];" +
+                            "for (i in 1..6000)" +
+                            "   for (j in 1..1000)" +
+                            "       il.add(random.nextInt(10000000));" +
+                            "   ol.add(il);" +
+                            "ol;";
         HugeTask<Object> task4 = runGremlinJob(bigResults);
         scheduler.waitUntilTaskCompleted(task4.id(), 10);
         Assert.assertEquals(TaskStatus.FAILED, task4.status());
         scheduler.cancel(task4);
         Assert.assertEquals(TaskStatus.FAILED, task4.status());
-        Assert.assertContains("LimitExceedException: Task result size 108001 " +
-                              "exceeded limit 65535 bytes", task4.result());
+        Assert.assertTrue(task4.result().contains(
+                          "LimitExceedException: Task result size"));
+        Assert.assertTrue(task4.result().endsWith(
+                          "exceeded limit 16777216 bytes"));
     }
 
     @Test

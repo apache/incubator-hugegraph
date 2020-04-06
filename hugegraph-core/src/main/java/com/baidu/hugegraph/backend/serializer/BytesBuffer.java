@@ -51,6 +51,7 @@ public final class BytesBuffer {
     public static final int CHAR_LEN = Character.BYTES;
     public static final int FLOAT_LEN = Float.BYTES;
     public static final int DOUBLE_LEN = Double.BYTES;
+    public static final int BLOB_LEN = 4;
 
     public static final int UINT8_MAX = ((byte) -1) & 0xff;
     public static final int UINT16_MAX = ((short) -1) & 0xffff;
@@ -63,6 +64,7 @@ public final class BytesBuffer {
 
     public static final byte STRING_ENDING_BYTE = (byte) 0xff;
     public static final int STRING_LEN_MAX = UINT16_MAX;
+    public static final long BLOB_LEN_MAX = 1 * Bytes.GB;
 
     // The value must be in range [8, ID_LEN_MAX]
     public static final int INDEX_HASH_ID_THRESHOLD = 32;
@@ -276,6 +278,23 @@ public final class BytesBuffer {
     }
 
     public byte[] readBytes() {
+        int length = this.readVInt();
+        assert length >= 0;
+        byte[] bytes = this.read(length);
+        return bytes;
+    }
+
+    public BytesBuffer writeBigBytes(byte[] bytes) {
+        E.checkArgument(bytes.length <= BLOB_LEN_MAX,
+                        "The max length of bytes is %s, but got %s",
+                        BLOB_LEN_MAX, bytes.length);
+        require(BLOB_LEN + bytes.length);
+        this.writeVInt(bytes.length);
+        this.write(bytes);
+        return this;
+    }
+
+    public byte[] readBigBytes() {
         int length = this.readVInt();
         assert length >= 0;
         byte[] bytes = this.read(length);
@@ -819,7 +838,7 @@ public final class BytesBuffer {
                 this.writeString((String) value);
                 break;
             case BLOB:
-                this.writeBytes((byte[]) value);
+                this.writeBigBytes((byte[]) value);
                 break;
             case UUID:
                 UUID uuid = (UUID) value;
@@ -852,7 +871,7 @@ public final class BytesBuffer {
             case TEXT:
                 return this.readString();
             case BLOB:
-                return this.readBytes();
+                return this.readBigBytes();
             case UUID:
                 return new UUID(this.readLong(), this.readLong());
             default:

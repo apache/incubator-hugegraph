@@ -52,7 +52,8 @@ public class TaskExample {
     public static void testTask(HugeGraph graph) throws InterruptedException {
         Id id = IdGenerator.of(8);
         String callable = "com.baidu.hugegraph.example.TaskExample$TestTask";
-        HugeTask<?> task = new HugeTask<>(id, null, callable, "test-parameter");
+        HugeTask<?> task = new HugeTask<>(graph, id, null,
+                                          callable, "test-parameter");
         task.type("type-1");
         task.name("test-task");
 
