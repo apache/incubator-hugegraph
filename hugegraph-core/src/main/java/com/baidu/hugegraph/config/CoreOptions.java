@@ -238,12 +238,12 @@ public class CoreOptions extends OptionHolder {
                     ".*\\s+$|~.*"
             );
 
-    public static final ConfigOption<Integer> SCHEMA_CACHE_CAPACITY =
+    public static final ConfigOption<Long> SCHEMA_CACHE_CAPACITY =
             new ConfigOption<>(
                     "schema.cache_capacity",
                     "The max cache size(items) of schema cache.",
-                    rangeInt(0, Integer.MAX_VALUE),
-                    100000
+                    rangeInt(0L, Long.MAX_VALUE),
+                    10000L
             );
 
     public static final ConfigOption<Boolean> SCHEMA_SYNC_DELETION =
@@ -254,12 +254,12 @@ public class CoreOptions extends OptionHolder {
                     false
             );
 
-    public static final ConfigOption<Integer> VERTEX_CACHE_CAPACITY =
+    public static final ConfigOption<Long> VERTEX_CACHE_CAPACITY =
             new ConfigOption<>(
                     "vertex.cache_capacity",
                     "The max cache size(items) of vertex cache.",
-                    rangeInt(0, Integer.MAX_VALUE),
-                    (1000 * 1000 * 10)
+                    rangeInt(0L, Long.MAX_VALUE),
+                    (1000 * 1000 * 10L)
             );
 
     public static final ConfigOption<Integer> VERTEX_CACHE_EXPIRE =
@@ -270,12 +270,12 @@ public class CoreOptions extends OptionHolder {
                     (60 * 10)
             );
 
-    public static final ConfigOption<Integer> EDGE_CACHE_CAPACITY =
+    public static final ConfigOption<Long> EDGE_CACHE_CAPACITY =
             new ConfigOption<>(
                     "edge.cache_capacity",
                     "The max cache size(items) of edge cache.",
-                    rangeInt(0, Integer.MAX_VALUE),
-                    (1000 * 1000 * 1)
+                    rangeInt(0L, Long.MAX_VALUE),
+                    (1000 * 1000 * 1L)
             );
 
     public static final ConfigOption<Integer> EDGE_CACHE_EXPIRE =

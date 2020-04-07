@@ -76,6 +76,7 @@ public final class BytesBuffer {
     public static final int BUF_PROPERTY = 64;
 
     private ByteBuffer buffer;
+    private final boolean resize;
 
     public BytesBuffer() {
         this(DEFAULT_CAPACITY);
@@ -86,11 +87,13 @@ public final class BytesBuffer {
                         "Capacity exceeds max buffer capacity: %s",
                         MAX_BUFFER_CAPACITY);
         this.buffer = ByteBuffer.allocate(capacity);
+        this.resize = true;
     }
 
     public BytesBuffer(ByteBuffer buffer) {
         E.checkNotNull(buffer, "buffer");
         this.buffer = buffer;
+        this.resize = false;
     }
 
     public static BytesBuffer allocate(int capacity) {
@@ -124,11 +127,16 @@ public final class BytesBuffer {
 
     public byte[] bytes() {
         byte[] bytes = this.buffer.array();
-        if (this.buffer.position() == bytes.length) {
+        int position = this.buffer.position();
+        if (position == bytes.length) {
             return bytes;
         } else {
-            return Arrays.copyOf(bytes, this.buffer.position());
+            return Arrays.copyOf(bytes, position);
         }
+    }
+
+    public int position() {
+        return this.buffer.position();
     }
 
     public BytesBuffer copyFrom(BytesBuffer other) {
@@ -144,6 +152,8 @@ public final class BytesBuffer {
         if (this.buffer.limit() - this.buffer.position() >= size) {
             return;
         }
+        // Can't resize for wrapped buffer since will change the origin ref
+        E.checkState(this.resize, "Can't resize for wrapped buffer");
 
         // Extra capacity as buffer
         int newcapacity = size + this.buffer.limit() + DEFAULT_CAPACITY;
@@ -523,6 +533,74 @@ public final class BytesBuffer {
         return values;
     }
 
+    public void writeProperty(DataType dataType, Object value) {
+        switch (dataType) {
+            case BOOLEAN:
+                this.writeVInt(((Boolean) value) ? 1 : 0);
+                break;
+            case BYTE:
+                this.writeVInt((Byte) value);
+                break;
+            case INT:
+                this.writeVInt((Integer) value);
+                break;
+            case FLOAT:
+                this.writeFloat((Float) value);
+                break;
+            case LONG:
+                this.writeVLong((Long) value);
+                break;
+            case DATE:
+                this.writeVLong(((Date) value).getTime());
+                break;
+            case DOUBLE:
+                this.writeDouble((Double) value);
+                break;
+            case TEXT:
+                this.writeString((String) value);
+                break;
+            case BLOB:
+                this.writeBigBytes((byte[]) value);
+                break;
+            case UUID:
+                UUID uuid = (UUID) value;
+                // Generally writeVLong(uuid) can't save space
+                this.writeLong(uuid.getMostSignificantBits());
+                this.writeLong(uuid.getLeastSignificantBits());
+                break;
+            default:
+                this.writeBytes(KryoUtil.toKryoWithType(value));
+                break;
+        }
+    }
+
+    public Object readProperty(DataType dataType) {
+        switch (dataType) {
+            case BOOLEAN:
+                return this.readVInt() == 1;
+            case BYTE:
+                return (byte) this.readVInt();
+            case INT:
+                return this.readVInt();
+            case FLOAT:
+                return this.readFloat();
+            case LONG:
+                return this.readVLong();
+            case DATE:
+                return new Date(this.readVLong());
+            case DOUBLE:
+                return this.readDouble();
+            case TEXT:
+                return this.readString();
+            case BLOB:
+                return this.readBigBytes();
+            case UUID:
+                return new UUID(this.readLong(), this.readLong());
+            default:
+                return KryoUtil.fromKryoWithType(this.readBytes());
+        }
+    }
+
     public BytesBuffer writeId(Id id) {
         return this.writeId(id, false);
     }
@@ -664,9 +742,17 @@ public final class BytesBuffer {
         return new BinaryId(this.bytes(), null);
     }
 
-    public BinaryId parseId() {
+    public BinaryId parseId(HugeType type) {
+        if (type.isIndex()) {
+            return this.readIndexId(type);
+        }
         // Parse id from bytes
         int start = this.buffer.position();
+        /*
+         * Since edge id in edges table doesn't prefix with leading 0x7e,
+         * so readId() will return the source vertex id instead of edge id,
+         * can't call: type.isEdge() ? this.readEdgeId() : this.readId();
+         */
         Id id = this.readId();
         int end = this.buffer.position();
         int len = end - start;
@@ -808,74 +894,5 @@ public final class BytesBuffer {
         byte[] bytes = new byte[len];
         System.arraycopy(this.array(), start, bytes, 0, len);
         return bytes;
-    }
-
-
-    private void writeProperty(DataType dataType, Object value) {
-        switch (dataType) {
-            case BOOLEAN:
-                this.writeVInt(((Boolean) value) ? 1 : 0);
-                break;
-            case BYTE:
-                this.writeVInt((Byte) value);
-                break;
-            case INT:
-                this.writeVInt((Integer) value);
-                break;
-            case FLOAT:
-                this.writeFloat((Float) value);
-                break;
-            case LONG:
-                this.writeVLong((Long) value);
-                break;
-            case DATE:
-                this.writeVLong(((Date) value).getTime());
-                break;
-            case DOUBLE:
-                this.writeDouble((Double) value);
-                break;
-            case TEXT:
-                this.writeString((String) value);
-                break;
-            case BLOB:
-                this.writeBigBytes((byte[]) value);
-                break;
-            case UUID:
-                UUID uuid = (UUID) value;
-                // Generally writeVLong(uuid) can't save space
-                this.writeLong(uuid.getMostSignificantBits());
-                this.writeLong(uuid.getLeastSignificantBits());
-                break;
-            default:
-                this.writeBytes(KryoUtil.toKryoWithType(value));
-                break;
-        }
-    }
-
-    private Object readProperty(DataType dataType) {
-        switch (dataType) {
-            case BOOLEAN:
-                return this.readVInt() == 1;
-            case BYTE:
-                return (byte) this.readVInt();
-            case INT:
-                return this.readVInt();
-            case FLOAT:
-                return this.readFloat();
-            case LONG:
-                return this.readVLong();
-            case DATE:
-                return new Date(this.readVLong());
-            case DOUBLE:
-                return this.readDouble();
-            case TEXT:
-                return this.readString();
-            case BLOB:
-                return this.readBigBytes();
-            case UUID:
-                return new UUID(this.readLong(), this.readLong());
-            default:
-                return KryoUtil.fromKryoWithType(this.readBytes());
-        }
     }
 }

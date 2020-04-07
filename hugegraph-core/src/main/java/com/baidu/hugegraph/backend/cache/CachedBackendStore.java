@@ -38,13 +38,13 @@ import com.baidu.hugegraph.util.StringEncoding;
 public class CachedBackendStore implements BackendStore {
 
     private BackendStore store = null;
-    private Cache cache = null;
+    private Cache<Id, Object> cache = null;
 
     public CachedBackendStore(BackendStore store) {
         this.store = store;
         this.cache = CacheManager.instance().cache("store-" + store());
         // Set expire 30s
-        this.cache.expire(30);
+        this.cache.expire(30 * 1000L);
     }
 
     @Override
@@ -217,7 +217,7 @@ public class CachedBackendStore implements BackendStore {
         @Override
         public long asLong() {
             // TODO: improve
-            return 0;
+            return 0L;
         }
 
         @Override

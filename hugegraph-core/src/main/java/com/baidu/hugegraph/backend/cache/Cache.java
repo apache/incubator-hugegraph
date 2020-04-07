@@ -22,23 +22,23 @@ package com.baidu.hugegraph.backend.cache;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import com.baidu.hugegraph.backend.id.Id;
+public interface Cache<K, V> {
 
-public interface Cache {
+    public Object get(K id);
 
-    public Object get(Id id);
+    public Object getOrFetch(K id, Function<K, V> fetcher);
 
-    public Object getOrFetch(Id id, Function<Id, Object> fetcher);
+    public boolean containsKey(K id);
 
-    public void update(Id id, Object value);
+    public void update(K id, V value);
 
-    public void updateIfAbsent(Id id, Object value);
+    public void updateIfAbsent(K id, V value);
 
-    public void updateIfPresent(Id id, Object value);
+    public void updateIfPresent(K id, V value);
 
-    public void invalidate(Id id);
+    public void invalidate(K id);
 
-    public void traverse(Consumer<Object> consumer);
+    public void traverse(Consumer<V> consumer);
 
     public void clear();
 

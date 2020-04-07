@@ -56,6 +56,12 @@
         </dependency>
 
         <dependency>
+            <groupId>org.caffinitas.ohc</groupId>
+            <artifactId>ohc-core</artifactId>
+            <version>0.7.0</version>
+        </dependency>
+
+        <dependency>
             <groupId>org.apdplat</groupId>
             <artifactId>word</artifactId>
             <version>1.3</version>
