@@ -315,12 +315,6 @@ public class HugeTraverser {
         return SchemaLabel.getLabelId(this.graph, HugeType.EDGE, label);
     }
 
-    public static void checkPositive(int value, String name) {
-        E.checkArgument(value > 0,
-                        "The %s parameter must be > 0, but got '%s'",
-                        name, value);
-    }
-
     public static void checkDegree(long degree) {
         checkPositiveOrNoLimit(degree, "max degree");
     }
@@ -333,9 +327,27 @@ public class HugeTraverser {
         checkPositiveOrNoLimit(limit, "limit");
     }
 
+    public static void checkPositive(long value, String name) {
+        E.checkArgument(value > 0,
+                        "The %s parameter must be > 0, but got %s",
+                        name, value);
+    }
+
     public static void checkPositiveOrNoLimit(long value, String name) {
-        E.checkArgument(value > 0 || value == NO_LIMIT,
+        E.checkArgument(value > 0L || value == NO_LIMIT,
                         "The %s parameter must be > 0 or == %s, but got: %s",
+                        name, NO_LIMIT, value);
+    }
+
+    public static void checkNonNegative(long value, String name) {
+        E.checkArgument(value >= 0L,
+                        "The %s parameter must be >= 0, but got: %s",
+                        name, value);
+    }
+
+    public static void checkNonNegativeOrNoLimit(long value, String name) {
+        E.checkArgument(value >= 0L || value == NO_LIMIT,
+                        "The %s parameter must be >= 0 or == %s, but got: %s",
                         name, NO_LIMIT, value);
     }
 
@@ -459,8 +471,14 @@ public class HugeTraverser {
 
     public static class Path {
 
+        public static final Path EMPTY_PATH = new Path(ImmutableList.of());
+
         private Id crosspoint;
         private List<Id> vertices;
+
+        public Path(List<Id> vertices) {
+            this(null, vertices);
+        }
 
         public Path(Id crosspoint, List<Id> vertices) {
             this.crosspoint = crosspoint;
@@ -510,6 +528,8 @@ public class HugeTraverser {
     }
 
     public static class PathSet extends HashSet<Path> {
+
+        private static final long serialVersionUID = -8237531948776524872L;
 
         public Set<Id> vertices() {
             Set<Id> vertices = new HashSet<>();

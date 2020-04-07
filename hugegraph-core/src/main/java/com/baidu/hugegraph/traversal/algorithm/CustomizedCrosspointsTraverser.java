@@ -111,7 +111,7 @@ public class CustomizedCrosspointsTraverser extends HugeTraverser {
             assert stepNum == 0;
             for (List<Node> nodes : newVertices.values()) {
                 for (Node n : nodes) {
-                    paths.add(new Path(null, n.path()));
+                    paths.add(new Path(n.path()));
                 }
             }
         }

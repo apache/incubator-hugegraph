@@ -21,11 +21,9 @@ package com.baidu.hugegraph.traversal.algorithm;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
@@ -37,7 +35,6 @@ import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 
 public class ShortestPathTraverser extends HugeTraverser {
 
@@ -45,9 +42,9 @@ public class ShortestPathTraverser extends HugeTraverser {
         super(graph);
     }
 
-    public List<Id> shortestPath(Id sourceV, Id targetV, Directions dir,
-                                 String label, int depth, long degree,
-                                 long skipDegree, long capacity) {
+    public Path shortestPath(Id sourceV, Id targetV, Directions dir,
+                             String label, int depth, long degree,
+                             long skipDegree, long capacity) {
         E.checkNotNull(sourceV, "source vertex id");
         E.checkNotNull(targetV, "target vertex id");
         E.checkNotNull(dir, "direction");
@@ -57,13 +54,13 @@ public class ShortestPathTraverser extends HugeTraverser {
         checkSkipDegree(skipDegree, degree, capacity);
 
         if (sourceV.equals(targetV)) {
-            return ImmutableList.of(sourceV);
+            return new Path(ImmutableList.of(sourceV));
         }
 
         Id labelId = this.getEdgeLabelId(label);
         Traverser traverser = new Traverser(sourceV, targetV, dir, labelId,
                                             degree, skipDegree, capacity);
-        Set<List<Id>> paths;
+        PathSet paths;
         while (true) {
             // Found, reach max depth or reach capacity, stop searching
             if (!(paths = traverser.forward(false)).isEmpty() ||
@@ -74,19 +71,18 @@ public class ShortestPathTraverser extends HugeTraverser {
 
             if (!(paths = traverser.backward(false)).isEmpty() ||
                 --depth <= 0) {
-                List<Id> path = paths.iterator().next();
-                Collections.reverse(path);
+                Path path = paths.iterator().next();
+                Collections.reverse(path.vertices());
                 break;
             }
             checkCapacity(traverser.capacity, traverser.size, "shortest path");
         }
-        return paths.iterator().next();
+        return paths.isEmpty() ? Path.EMPTY_PATH : paths.iterator().next();
     }
 
-    public Set<List<Id>> allShortestPaths(Id sourceV, Id targetV,
-                                          Directions dir, String label,
-                                          int depth, long degree,
-                                          long skipDegree, long capacity) {
+    public PathSet allShortestPaths(Id sourceV, Id targetV, Directions dir,
+                                    String label, int depth, long degree,
+                                    long skipDegree, long capacity) {
         E.checkNotNull(sourceV, "source vertex id");
         E.checkNotNull(targetV, "target vertex id");
         E.checkNotNull(dir, "direction");
@@ -95,14 +91,15 @@ public class ShortestPathTraverser extends HugeTraverser {
         checkCapacity(capacity);
         checkSkipDegree(skipDegree, degree, capacity);
 
+        PathSet paths = new PathSet();
         if (sourceV.equals(targetV)) {
-            return ImmutableSet.of(ImmutableList.of(sourceV));
+            paths.add(new Path(ImmutableList.of(sourceV)));
+            return paths;
         }
 
         Id labelId = this.getEdgeLabelId(label);
         Traverser traverser = new Traverser(sourceV, targetV, dir, labelId,
                                             degree, skipDegree, capacity);
-        Set<List<Id>> paths;
         while (true) {
             // Found, reach max depth or reach capacity, stop searching
             if (!(paths = traverser.forward(true)).isEmpty() ||
@@ -113,8 +110,8 @@ public class ShortestPathTraverser extends HugeTraverser {
 
             if (!(paths = traverser.backward(true)).isEmpty() ||
                 --depth <= 0) {
-                for (List<Id> path : paths) {
-                    Collections.reverse(path);
+                for (Path path : paths) {
+                    Collections.reverse(path.vertices());
                 }
                 break;
             }
@@ -170,8 +167,8 @@ public class ShortestPathTraverser extends HugeTraverser {
         /**
          * Search forward from source
          */
-        public Set<List<Id>> forward(boolean all) {
-            Set<List<Id>> paths = new HashSet<>();
+        public PathSet forward(boolean all) {
+            PathSet paths = new PathSet();
             Map<Id, Node> newVertices = newMap();
             long degree = this.skipDegree > 0L ? this.skipDegree : this.degree;
             // Traversal vertices of previous level
@@ -188,7 +185,8 @@ public class ShortestPathTraverser extends HugeTraverser {
                         if (this.superNode(target, this.direction)) {
                             continue;
                         }
-                        paths.add(v.joinPath(this.targets.get(target)));
+                        paths.add(new Path(
+                                  v.joinPath(this.targets.get(target))));
                         if (!all) {
                             return paths;
                         }
@@ -218,8 +216,8 @@ public class ShortestPathTraverser extends HugeTraverser {
         /**
          * Search backward from target
          */
-        public Set<List<Id>> backward(boolean all) {
-            Set<List<Id>> paths = new HashSet<>();
+        public PathSet backward(boolean all) {
+            PathSet paths = new PathSet();
             Map<Id, Node> newVertices = newMap();
             long degree = this.skipDegree > 0L ? this.skipDegree : this.degree;
             Directions opposite = this.direction.opposite();
@@ -237,7 +235,8 @@ public class ShortestPathTraverser extends HugeTraverser {
                         if (this.superNode(target, opposite)) {
                             continue;
                         }
-                        paths.add(v.joinPath(this.sources.get(target)));
+                        paths.add(new Path(
+                                  v.joinPath(this.sources.get(target))));
                         if (!all) {
                             return paths;
                         }

@@ -130,9 +130,9 @@ public class CustomizePathsTraverser extends HugeTraverser {
             for (Node n : nodes) {
                 if (sorted) {
                     WeightNode wn = (WeightNode) n;
-                    paths.add(new WeightPath(null, wn.path(), wn.weights()));
+                    paths.add(new WeightPath(wn.path(), wn.weights()));
                 } else {
-                    paths.add(new Path(null, n.path()));
+                    paths.add(new Path(n.path()));
                 }
             }
         }
@@ -191,6 +191,13 @@ public class CustomizePathsTraverser extends HugeTraverser {
 
         private List<Double> weights;
         private double totalWeight;
+
+        public WeightPath(List<Id> vertices,
+                          List<Double> weights) {
+            super(vertices);
+            this.weights = weights;
+            this.calcTotalWeight();
+        }
 
         public WeightPath(Id crosspoint, List<Id> vertices,
                           List<Double> weights) {
