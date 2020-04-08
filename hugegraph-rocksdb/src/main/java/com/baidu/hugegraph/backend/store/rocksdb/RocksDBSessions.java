@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.backend.store.rocksdb;
 
 import java.util.Set;
+import java.util.List;
 
 import org.rocksdb.RocksDBException;
 
@@ -40,7 +41,7 @@ public abstract class RocksDBSessions extends BackendSessionPool {
     public abstract void dropTable(String table) throws RocksDBException;
     public abstract boolean existsTable(String table);
 
-    public abstract String property(String property);
+    public abstract List<String> property(String property);
 
     public abstract RocksDBSessions copy(HugeConfig config,
                                          String database, String store);

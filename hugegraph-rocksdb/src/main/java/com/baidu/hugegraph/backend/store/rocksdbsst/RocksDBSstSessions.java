@@ -119,7 +119,7 @@ public class RocksDBSstSessions extends RocksDBSessions {
     }
 
     @Override
-    public String property(String property) {
+    public List<String> property(String property) {
         throw new NotSupportException("RocksDBSstStore property()");
     }
 
