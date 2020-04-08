@@ -42,7 +42,7 @@ import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.traversal.algorithm.SingleSourceShortestPathTraverser;
-import com.baidu.hugegraph.traversal.algorithm.SingleSourceShortestPathTraverser.ShortestPaths;
+import com.baidu.hugegraph.traversal.algorithm.SingleSourceShortestPathTraverser.WeightedPaths;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
@@ -87,13 +87,13 @@ public class SingleSourceShortestPathAPI extends API {
         HugeGraph g = graph(manager, graph);
         SingleSourceShortestPathTraverser traverser =
                 new SingleSourceShortestPathTraverser(g);
-        ShortestPaths paths = traverser.singleSourceShortestPaths(
+        WeightedPaths paths = traverser.singleSourceShortestPaths(
                               sourceId, dir, edgeLabel, weight,
                               degree, skipDegree, capacity, limit);
         Iterator<Vertex> iterator = QueryResults.emptyIterator();
         if (withVertex) {
             iterator = g.vertices(paths.vertices().toArray());
         }
-        return manager.serializer(g).writeShortestPaths(paths, iterator);
+        return manager.serializer(g).writeWeightedPaths(paths, iterator);
     }
 }

@@ -45,7 +45,7 @@ public class SingleSourceShortestPathTraverser extends HugeTraverser {
         super(graph);
     }
 
-    public ShortestPaths singleSourceShortestPaths(Id sourceV, Directions dir,
+    public WeightedPaths singleSourceShortestPaths(Id sourceV, Directions dir,
                                                    String label, String weight,
                                                    long degree, long skipDegree,
                                                    long capacity, long limit) {
@@ -116,8 +116,8 @@ public class SingleSourceShortestPathTraverser extends HugeTraverser {
 
     private class Traverser {
 
-        private ShortestPaths findingNodes = new ShortestPaths();
-        private ShortestPaths foundNodes = new ShortestPaths();
+        private WeightedPaths findingNodes = new WeightedPaths();
+        private WeightedPaths foundNodes = new WeightedPaths();
         private Set<NodeWithWeight> sources;
         private Id source;
         private final Directions direction;
@@ -169,8 +169,8 @@ public class SingleSourceShortestPathTraverser extends HugeTraverser {
                     double currentWeight = this.edgeWeight(edge);
                     double weight = currentWeight + node.weight();
                     NodeWithWeight nw = new NodeWithWeight(weight, target, node);
-                    node = this.findingNodes.get(target);
-                    if (node == null || weight < node.weight()) {
+                    NodeWithWeight exist = this.findingNodes.get(target);
+                    if (exist == null || weight < exist.weight()) {
                         /*
                          * There are 2 scenarios to update finding nodes:
                          * 1. The 'target' found first time, add current path
@@ -215,7 +215,7 @@ public class SingleSourceShortestPathTraverser extends HugeTraverser {
             return this.done;
         }
 
-        public ShortestPaths shortestPaths() {
+        public WeightedPaths shortestPaths() {
             return this.foundNodes;
         }
 
@@ -273,7 +273,7 @@ public class SingleSourceShortestPathTraverser extends HugeTraverser {
 
         public Map<String, Object> toMap() {
             return ImmutableMap.of("weight", this.weight,
-                                   "path", this.node().path());
+                                   "vertices", this.node().path());
         }
 
         @Override
@@ -282,7 +282,9 @@ public class SingleSourceShortestPathTraverser extends HugeTraverser {
         }
     }
 
-    public static class ShortestPaths extends HashMap<Id, NodeWithWeight> {
+    public static class WeightedPaths extends HashMap<Id, NodeWithWeight> {
+
+        private static final long serialVersionUID = -313873642177730993L;
 
         public Set<Id> vertices() {
             Set<Id> vertices = new HashSet<>();

@@ -78,6 +78,6 @@ public class SameNeighborsAPI extends API {
         HugeTraverser traverser = new HugeTraverser(g);
         Set<Id> neighbors = traverser.sameNeighbors(sourceId, targetId, dir,
                                                     edgeLabel, degree, limit);
-        return manager.serializer(g).writeList("vertices", neighbors);
+        return manager.serializer(g).writeList("same_neighbors", neighbors);
     }
 }
