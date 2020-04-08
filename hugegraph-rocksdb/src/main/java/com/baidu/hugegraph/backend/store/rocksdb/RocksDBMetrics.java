@@ -27,14 +27,18 @@ import org.apache.commons.io.FileUtils;
 import com.baidu.hugegraph.backend.store.BackendMetrics;
 import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
+import org.rocksdb.RocksDB;
 
 public class RocksDBMetrics implements BackendMetrics {
 
     public static final String BLOCK_CACHE = "rocksdb.block-cache-usage";
+    public static final String BLOCK_CACHE_PINNED = "rocksdb.block-cache-pinned-usage";
     public static final String INDEX_FILTER =
                                "rocksdb.estimate-table-readers-mem";
     public static final String MEM_TABLE = "rocksdb.cur-size-all-mem-tables";
-
+    public static final String ALL_MEM_TABLE = "rocksdb.size-all-mem-tables";
+    public static final String BLOCK_CACHE_CAPACITY = "rocksdb.block-cache-capacity";
+    public static final String MEM_TABLE_FLUSH_PENDINF = "rocksdb.mem-table-flush-pending";
     public static final String DISK_USAGE = "rocksdb.disk-usage";
 
     private final List<RocksDBSessions> dbs;
@@ -53,16 +57,31 @@ public class RocksDBMetrics implements BackendMetrics {
         // NOTE: the unit of rocksdb mem property is bytes
         metrics.put(MEM_USED, this.getMemUsed() / Bytes.MB);
         metrics.put(MEM_UNIT, "MB");
+
+        putMetrics(metrics, BLOCK_CACHE);
+        putMetrics(metrics, BLOCK_CACHE_PINNED);
+        putMetrics(metrics, BLOCK_CACHE_CAPACITY);
+        putMetrics(metrics, INDEX_FILTER);
+        putMetrics(metrics, ALL_MEM_TABLE);
+        putMetrics(metrics, MEM_TABLE);
+        putMetrics(metrics, MEM_TABLE_FLUSH_PENDINF);
+
         String size = FileUtils.byteCountToDisplaySize(this.getDataSize());
         metrics.put(DATA_SIZE, size);
+
         return metrics;
+    }
+
+    private void putMetrics(Map<String, Object> metrics, String key) {
+        metrics.put(key, this.sum(this.session, key) / Bytes.MB);
     }
 
     private double getMemUsed() {
         double blockCache = this.sum(this.session, BLOCK_CACHE);
         double indexFilter = this.sum(this.session, INDEX_FILTER);
         double memtable = this.sum(this.session, MEM_TABLE);
-        return blockCache + indexFilter + memtable;
+        double blockCachePinned = this.sum(this.session, BLOCK_CACHE_PINNED);
+        return blockCache + indexFilter + memtable + blockCachePinned;
     }
 
     private long getDataSize() {
@@ -72,7 +91,10 @@ public class RocksDBMetrics implements BackendMetrics {
     private double sum(RocksDBSessions.Session session, String property) {
         double total = 0;
         for (RocksDBSessions db : this.dbs) {
-            total += Double.parseDouble(db.property(property));
+            List<String> values = db.property(property);
+            for(String value : values) {
+                total += Double.parseDouble(value);
+            }
             for (String table : db.openedTables()) {
                 total += Double.parseDouble(session.property(table, property));
             }
@@ -83,7 +105,10 @@ public class RocksDBMetrics implements BackendMetrics {
     private double sum(String property) {
         double total = 0;
         for (RocksDBSessions db : this.dbs) {
-            total += Double.parseDouble(db.property(property));
+            List<String> values = db.property(property);
+            for(String value : values) {
+                total += Double.parseDouble(value);
+            }
         }
         return total;
     }

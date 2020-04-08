@@ -207,13 +207,19 @@ public class RocksDBStdSessions extends RocksDBSessions {
     }
 
     @Override
-    public String property(String property) {
+    public List<String> property(String property) {
         try {
             if (property.equals(RocksDBMetrics.DISK_USAGE)) {
-                return String.valueOf(this.sstFileManager.getTotalSize());
+                long size = this.sstFileManager.getTotalSize();
+                return ImmutableList.of(String.valueOf(size));
             }
-            return rocksdb().getProperty(property);
-        } catch (RocksDBException e) {
+            List<String> values = new ArrayList<>();
+            for (String table : this.openedTables()) {
+                CFHandle cf = cf(table);
+                values.add(rocksdb().getProperty(cf.get(), property));
+            }
+            return values;
+        } catch(RocksDBException | UnsupportedOperationException e) {
             throw new BackendException(e);
         }
     }
