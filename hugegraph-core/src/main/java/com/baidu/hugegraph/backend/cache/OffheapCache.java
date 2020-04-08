@@ -45,10 +45,13 @@ import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.DataType;
+import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
 
 public class OffheapCache extends AbstractCache<Id, Object> {
+
+    private final static long VALUE_SIZE_TO_SKIP = 100 * Bytes.KB;
 
     private final OHCache<Id, Value> cache;
     private final HugeGraph graph;
@@ -106,20 +109,28 @@ public class OffheapCache extends AbstractCache<Id, Object> {
     }
 
     @Override
-    protected void write(Id id, Object value) {
+    protected boolean write(Id id, Object value) {
+        Value serializedValue = new Value(value);
+        int serializedSize = serializedValue.serializedSize();
+        if (serializedSize > VALUE_SIZE_TO_SKIP) {
+            LOG.info("Skip to cache '{}' due to value size {} > limit {}",
+                      id, serializedSize, VALUE_SIZE_TO_SKIP);
+            return false;
+        }
         long expireTime = this.expire();
+        boolean success;
         if (expireTime <= 0) {
-            boolean success = this.cache.put(id, new Value(value));
-            assert success;
+             success = this.cache.put(id, serializedValue);
         } else {
             expireTime += now();
             /*
              * Seems only the linked implementation support expiring entries,
              * the chunked implementation does not support it.
              */
-            boolean success = this.cache.put(id, new Value(value), expireTime);
-            assert success;
+            success = this.cache.put(id, serializedValue, expireTime);
         }
+        assert success;
+        return success;
     }
 
     @Override
@@ -290,12 +301,12 @@ public class OffheapCache extends AbstractCache<Id, Object> {
             BackendColumn column = entry.columns().iterator().next();
 
             buffer.writeBytes(column.name);
-            buffer.writeBytes(column.value);
+            buffer.writeBigBytes(column.value);
         }
 
         private Object deserializeElement(ValueType type, BytesBuffer buffer) {
             byte[] key = buffer.readBytes();
-            byte[] value = buffer.readBytes();
+            byte[] value = buffer.readBigBytes();
             BinaryBackendEntry entry;
             if (type == ValueType.VERTEX) {
                 entry = new BinaryBackendEntry(HugeType.VERTEX, key);

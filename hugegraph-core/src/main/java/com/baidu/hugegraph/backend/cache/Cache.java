@@ -30,11 +30,11 @@ public interface Cache<K, V> {
 
     public boolean containsKey(K id);
 
-    public void update(K id, V value);
+    public boolean update(K id, V value);
 
-    public void updateIfAbsent(K id, V value);
+    public boolean updateIfAbsent(K id, V value);
 
-    public void updateIfPresent(K id, V value);
+    public boolean updateIfPresent(K id, V value);
 
     public void invalidate(K id);
 

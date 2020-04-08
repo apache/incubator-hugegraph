@@ -102,7 +102,7 @@ public class RamCache extends AbstractCache<Id, Object> {
 
     @Override
     @Watched(prefix = "ramcache")
-    protected final void write(Id id, Object value) {
+    protected final boolean write(Id id, Object value) {
         assert id != null;
         long capacity = this.capacity();
         assert capacity > 0;
@@ -151,6 +151,7 @@ public class RamCache extends AbstractCache<Id, Object> {
 
             // Add the new item to tail of the queue, then map it
             this.map.put(id, this.queue.enqueue(id, value));
+            return true;
         } finally {
             lock.unlock();
         }

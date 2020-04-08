@@ -118,31 +118,31 @@ public abstract class AbstractCache<K, V> implements Cache<K, V> {
 
     @Watched(prefix = "cache")
     @Override
-    public void update(K id, V value) {
+    public boolean update(K id, V value) {
         if (id == null || value == null || this.capacity <= 0) {
-            return;
+            return false;
         }
-        this.write(id, value);
+        return this.write(id, value);
     }
 
     @Watched(prefix = "cache")
     @Override
-    public void updateIfAbsent(K id, V value) {
+    public boolean updateIfAbsent(K id, V value) {
         if (id == null || value == null ||
             this.capacity <= 0 || this.containsKey(id)) {
-            return;
+            return false;
         }
-        this.write(id, value);
+        return this.write(id, value);
     }
 
     @Watched(prefix = "cache")
     @Override
-    public void updateIfPresent(K id, V value) {
+    public boolean updateIfPresent(K id, V value) {
         if (id == null || value == null ||
             this.capacity <= 0 || !this.containsKey(id)) {
-            return;
+            return false;
         }
-        this.write(id, value);
+        return this.write(id, value);
     }
 
     @Watched(prefix = "cache")
@@ -210,7 +210,7 @@ public abstract class AbstractCache<K, V> implements Cache<K, V> {
 
     protected abstract V access(K id);
 
-    protected abstract void write(K id, V value);
+    protected abstract boolean write(K id, V value);
 
     protected abstract void remove(K id);
 
