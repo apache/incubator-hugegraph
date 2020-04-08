@@ -26,7 +26,6 @@ import javax.ws.rs.core.Response;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.baidu.hugegraph.schema.IndexLabel;
 import com.google.common.collect.ImmutableMap;
 
 public class IndexLabelApiTest extends BaseApiTest {
@@ -73,9 +72,8 @@ public class IndexLabelApiTest extends BaseApiTest {
                 + "\"max\": 100"
                 + "}"
                 + "}";
-        System.out.println(indexLabel);
         Map<String, Object> params = ImmutableMap.of("action", "append");
-        r = client().put(path + "personByAge", indexLabel, params);
+        r = client().put(path, "personByAge", indexLabel, params);
         assertResponseStatus(200, r);
     }
 
@@ -102,7 +100,7 @@ public class IndexLabelApiTest extends BaseApiTest {
                 + "}"
                 + "}";
         Map<String, Object> params = ImmutableMap.of("action", "eliminate");
-        r = client().put(path + "personByAge", indexLabel, params);
+        r = client().put(path, "personByAge", indexLabel, params);
         assertResponseStatus(200, r);
     }
 

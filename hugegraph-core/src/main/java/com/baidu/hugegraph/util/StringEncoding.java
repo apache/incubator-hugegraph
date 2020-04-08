@@ -106,7 +106,7 @@ public final class StringEncoding {
         BytesBuffer buf = BytesBuffer.allocate(value.length * 2);
         try (ByteArrayInputStream bis = new ByteArrayInputStream(value);
              GZIPInputStream in = new GZIPInputStream(bis)) {
-            byte[] bytes = new byte[64];
+            byte[] bytes = new byte[value.length];
             int len;
             while ((len = in.read(bytes)) > 0) {
                 buf.write(bytes, 0, len);

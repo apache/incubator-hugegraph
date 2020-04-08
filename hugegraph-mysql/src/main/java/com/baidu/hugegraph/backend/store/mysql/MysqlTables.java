@@ -34,6 +34,7 @@ import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.id.IdUtil;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.store.BackendEntry;
+import com.baidu.hugegraph.backend.store.BackendEntryIterator;
 import com.baidu.hugegraph.backend.store.TableDefine;
 import com.baidu.hugegraph.backend.store.mysql.MysqlSessions.Session;
 import com.baidu.hugegraph.type.HugeType;
@@ -53,6 +54,8 @@ public class MysqlTables {
     public static final String SMALL_TEXT = "SMALL_TEXT";
     public static final String MID_TEXT = "MID_TEXT";
     public static final String LARGE_TEXT = "LARGE_TEXT";
+    // Just used for task input and result
+    public static final String HUGE_TEXT = "HUGE_TEXT";
 
     private static final String DATATYPE_PK = INT;
     private static final String DATATYPE_SL = INT; // VL/EL
@@ -64,7 +67,8 @@ public class MysqlTables {
     private static final Map<String, String> TYPES_MAPPING = ImmutableMap.of(
             SMALL_TEXT, "VARCHAR(255)",
             MID_TEXT, "VARCHAR(1024)",
-            LARGE_TEXT, "TEXT"
+            LARGE_TEXT, "TEXT",
+            HUGE_TEXT, "MEDIUMTEXT"
     );
 
     public static class MysqlTableTemplate extends MysqlTable {
@@ -249,7 +253,7 @@ public class MysqlTables {
             this.define = new TableDefine(typesMapping);
             this.define.column(HugeKeys.ID, SMALL_TEXT);
             this.define.column(HugeKeys.LABEL, DATATYPE_SL);
-            this.define.column(HugeKeys.PROPERTIES, LARGE_JSON);
+            this.define.column(HugeKeys.PROPERTIES, HUGE_TEXT);
             this.define.keys(HugeKeys.ID);
         }
     }
@@ -354,7 +358,8 @@ public class MysqlTables {
             E.checkState(next != null && next.type().isEdge(),
                          "The next entry must be EDGE");
 
-            if (current != null) {
+            long maxSize = BackendEntryIterator.INLINE_BATCH_SIZE;
+            if (current != null && current.subRows().size() < maxSize) {
                 Id nextVertexId = IdGenerator.of(
                                   next.<String>column(HugeKeys.OWNER_VERTEX));
                 if (current.id().equals(nextVertexId)) {

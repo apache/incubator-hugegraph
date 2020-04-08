@@ -23,9 +23,9 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
 import com.baidu.hugegraph.unit.cache.CacheManagerTest;
+import com.baidu.hugegraph.unit.cache.CacheTest;
 import com.baidu.hugegraph.unit.cache.CachedGraphTransactionTest;
 import com.baidu.hugegraph.unit.cache.CachedSchemaTransactionTest;
-import com.baidu.hugegraph.unit.cache.RamCacheTest;
 import com.baidu.hugegraph.unit.cassandra.CassandraTest;
 import com.baidu.hugegraph.unit.core.AnalyzerTest;
 import com.baidu.hugegraph.unit.core.BackendMutationTest;
@@ -41,6 +41,7 @@ import com.baidu.hugegraph.unit.core.QueryTest;
 import com.baidu.hugegraph.unit.core.RowLockTest;
 import com.baidu.hugegraph.unit.core.SecurityManagerTest;
 import com.baidu.hugegraph.unit.core.SerialEnumTest;
+import com.baidu.hugegraph.unit.core.TraversalUtilTest;
 import com.baidu.hugegraph.unit.id.IdTest;
 import com.baidu.hugegraph.unit.id.IdUtilTest;
 import com.baidu.hugegraph.unit.mysql.MysqlUtilTest;
@@ -48,7 +49,8 @@ import com.baidu.hugegraph.unit.mysql.WhereBuilderTest;
 import com.baidu.hugegraph.unit.rocksdb.RocksDBCountersTest;
 import com.baidu.hugegraph.unit.rocksdb.RocksDBSessionsTest;
 import com.baidu.hugegraph.unit.serializer.BinaryBackendEntryTest;
-import com.baidu.hugegraph.unit.serializer.BinaryInlineSerializerTest;
+import com.baidu.hugegraph.unit.serializer.BinaryScatterSerializerTest;
+import com.baidu.hugegraph.unit.serializer.BinarySerializerTest;
 import com.baidu.hugegraph.unit.serializer.BytesBufferTest;
 import com.baidu.hugegraph.unit.serializer.SerializerFactoryTest;
 import com.baidu.hugegraph.unit.serializer.TableBackendEntryTest;
@@ -60,7 +62,9 @@ import com.baidu.hugegraph.unit.util.VersionTest;
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
     /* cache */
-    RamCacheTest.class,
+    CacheTest.RamCacheTest.class,
+    CacheTest.OffheapCacheTest.class,
+    CacheTest.LevelCacheTest.class,
     CachedSchemaTransactionTest.class,
     CachedGraphTransactionTest.class,
     CacheManagerTest.class,
@@ -86,6 +90,7 @@ import com.baidu.hugegraph.unit.util.VersionTest;
     SecurityManagerTest.class,
     ExceptionTest.class,
     BackendStoreSystemInfoTest.class,
+    TraversalUtilTest.class,
 
     /* serializer */
     BytesBufferTest.class,
@@ -93,7 +98,8 @@ import com.baidu.hugegraph.unit.util.VersionTest;
     TextBackendEntryTest.class,
     TableBackendEntryTest.class,
     BinaryBackendEntryTest.class,
-    BinaryInlineSerializerTest.class,
+    BinarySerializerTest.class,
+    BinaryScatterSerializerTest.class,
 
     /* cassandra */
     CassandraTest.class,

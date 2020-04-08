@@ -41,11 +41,7 @@ public class HugeFactory {
     public static synchronized HugeGraph open(Configuration config) {
         HugeConfig conf = new HugeConfig(config);
         String name = conf.get(CoreOptions.STORE);
-        E.checkArgument(name.matches(NAME_REGEX),
-                        "Invalid graph name '%s', valid graph name is up to " +
-                        "48 alpha-numeric characters and underscores " +
-                        "and only letters are supported as first letter. " +
-                        "Note: letter is case insensitive");
+        checkGraphName(name, "graph config(like hugegraph.properties)");
         name = name.toLowerCase();
         HugeGraph graph = graphs.get(name);
         if (graph == null || graph.closed()) {
@@ -66,6 +62,15 @@ public class HugeFactory {
 
     public static HugeGraph open(URL url) {
         return open(getRemoteConfig(url));
+    }
+
+    public static void checkGraphName(String name, String configFile) {
+        E.checkArgument(name.matches(NAME_REGEX),
+                        "Invalid graph name '%s' in %s, " +
+                        "valid graph name is up to 48 alpha-numeric " +
+                        "characters and underscores and only letters are " +
+                        "supported as first letter. " +
+                        "Note: letter is case insensitive", name, configFile);
     }
 
     private static PropertiesConfiguration getLocalConfig(String path) {

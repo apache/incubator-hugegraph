@@ -25,6 +25,8 @@ public interface BackendMetrics {
 
     public String BACKEND = "backend";
 
+    public String NODES = "nodes";
+
     // Memory related metrics
     public String MEM_USED = "mem_used";
     public String MEM_COMMITED = "mem_commited";

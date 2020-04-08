@@ -31,7 +31,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
 
-import org.apache.commons.collections.IteratorUtils;
 import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
@@ -41,6 +40,7 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.page.PageInfo;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
+import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.event.EventListener;
@@ -48,7 +48,6 @@ import com.baidu.hugegraph.exception.ConnectionException;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.iterator.MapperIterator;
-import com.baidu.hugegraph.iterator.WrappedIterator;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaManager;
@@ -164,10 +163,13 @@ public class TaskScheduler {
 
     public <V> Future<?> restore(HugeTask<V> task) {
         E.checkArgumentNotNull(task, "Task can't be null");
-        E.checkArgument(!task.isDone(),
-                        "No need to restore task '%s', it has been completed",
-                        task.id());
+        E.checkArgument(!this.tasks.containsKey(task.id()),
+                        "Task '%s' is already in the queue", task.id());
+        E.checkArgument(!task.isDone() && !task.completed(),
+                        "No need to restore completed task '%s' with status %s",
+                        task.id(), task.status());
         task.status(TaskStatus.RESTORING);
+        task.retry();
         return this.submitTask(task);
     }
 
@@ -182,27 +184,50 @@ public class TaskScheduler {
         E.checkArgument(size <= MAX_PENDING_TASKS,
                         "Pending tasks size %s has exceeded the max limit %s",
                         size, MAX_PENDING_TASKS);
+        this.initTaskCallable(task);
         this.tasks.put(task.id(), task);
-        task.callable().scheduler(this);
-        task.callable().task(task);
         return this.taskExecutor.submit(task);
     }
 
-    public <V> void cancel(HugeTask<V> task) {
+    private <V> void initTaskCallable(HugeTask<V> task) {
+        if (this.tasks.containsKey(task.id())) {
+            // Assume initialized
+            return;
+        }
+        TaskCallable<V> callable = task.callable();
+        callable.scheduler(this);
+        callable.task(task);
+    }
+
+    public <V> boolean cancel(HugeTask<V> task) {
         E.checkArgumentNotNull(task, "Task can't be null");
+        boolean cancelled = false;
         if (!task.completed()) {
-            task.cancel(true);
+            /*
+             * Task may be loaded from backend store and not initialized. like:
+             * A task is completed but failed to save in the last step,
+             * resulting in the status of the task not being updated to storage,
+             * the task is not in memory, so it's not initialized when canceled.
+             */
+            this.initTaskCallable(task);
+
+            cancelled = task.cancel(true);
             this.remove(task.id());
         }
+        assert task.completed();
+        return cancelled;
     }
 
     protected void remove(Id id) {
         HugeTask<?> task = this.tasks.remove(id);
-        assert task == null || task.completed();
+        assert task == null || task.completed() || task.isCancelled();
     }
 
     public <V> void save(HugeTask<V> task) {
         E.checkArgumentNotNull(task, "Task can't be null");
+        // Check property size
+        task.checkProperties();
+        // Do save
         this.call(() -> {
             // Construct vertex from task
             HugeVertex vertex = this.tx().constructVertex(task);
@@ -262,13 +287,12 @@ public class TaskScheduler {
 
     public <V> HugeTask<V> findTask(Id id) {
         HugeTask<V> result =  this.call(() -> {
-            HugeTask<V> task = null;
             Iterator<Vertex> vertices = this.tx().queryVertices(id);
-            if (vertices.hasNext()) {
-                task = HugeTask.fromVertex(vertices.next());
-                assert !vertices.hasNext();
+            Vertex vertex = QueryResults.one(vertices);
+            if (vertex == null) {
+                return null;
             }
-            return task;
+            return HugeTask.fromVertex(vertex);
         });
         if (result == null) {
             throw new NotFoundException("Can't find task with id '%s'", id);
@@ -307,17 +331,16 @@ public class TaskScheduler {
             this.remove(id);
         }
         return this.call(() -> {
-            HugeTask<V> result = null;
             Iterator<Vertex> vertices = this.tx().queryVertices(id);
-            if (vertices.hasNext()) {
-                HugeVertex vertex = (HugeVertex) vertices.next();
-                result = HugeTask.fromVertex(vertex);
-                E.checkState(result.completed(),
-                             "Can't delete incomplete task '%s' in status %s",
-                             id, result.status());
-                this.tx().removeVertex(vertex);
-                assert !vertices.hasNext();
+            HugeVertex vertex = (HugeVertex) QueryResults.one(vertices);
+            if (vertex == null) {
+                return null;
             }
+            HugeTask<V> result = HugeTask.fromVertex(vertex);
+            E.checkState(result.completed(),
+                         "Can't delete incomplete task '%s' in status %s",
+                         id, result.status());
+            this.tx().removeVertex(vertex);
             return result;
         });
     }
@@ -325,8 +348,17 @@ public class TaskScheduler {
     public <V> HugeTask<V> waitUntilTaskCompleted(Id id, long seconds)
                                                   throws TimeoutException {
         long passes = seconds * 1000 / QUERY_INTERVAL;
+        HugeTask<V> task = null;
         for (long pass = 0;; pass++) {
-            HugeTask<V> task = this.task(id);
+            try {
+                task = this.task(id);
+            } catch (NotFoundException e) {
+                if (task != null && task.completed()) {
+                    assert task.id().asLong() < 0L : task.id();
+                    return task;
+                }
+                throw e;
+            }
             if (task.completed()) {
                 return task;
             }
@@ -392,7 +424,7 @@ public class TaskScheduler {
             Iterator<HugeTask<V>> tasks =
                     new MapperIterator<>(vertices, HugeTask::fromVertex);
             // Convert iterator to list to avoid across thread tx accessed
-            return new ListIterator<>(tasks);
+            return QueryResults.toList(tasks);
         });
     }
 
@@ -403,7 +435,7 @@ public class TaskScheduler {
             Iterator<HugeTask<V>> tasks =
                     new MapperIterator<>(vertices, HugeTask::fromVertex);
             // Convert iterator to list to avoid across thread tx accessed
-            return new ListIterator<>(tasks);
+            return QueryResults.toList(tasks);
         });
     }
 
@@ -415,8 +447,9 @@ public class TaskScheduler {
         // Ensure all db operations are executed in dbExecutor thread(s)
         try {
             return this.dbExecutor.submit(callable).get();
-        } catch (Exception e) {
-            throw new HugeException("Failed to update/query TaskStore", e);
+        } catch (Throwable e) {
+            throw new HugeException("Failed to update/query TaskStore: %s",
+                                    e, e.toString());
         }
     }
 
@@ -447,13 +480,13 @@ public class TaskScheduler {
         private void deleteIndex(HugeVertex vertex) {
             // Delete the old record if exist
             Iterator<Vertex> old = this.queryVertices(vertex.id());
-            if (old.hasNext()) {
-                HugeVertex oldV = (HugeVertex) old.next();
-                assert !old.hasNext();
-                if (this.indexValueChanged(oldV, vertex)) {
-                    // Only delete vertex index if index value changed
-                    this.indexTransaction().updateVertexIndex(oldV, true);
-                }
+            HugeVertex oldV = (HugeVertex) QueryResults.one(old);
+            if (oldV == null) {
+                return;
+            }
+            if (this.indexValueChanged(oldV, vertex)) {
+                // Only delete vertex index if index value changed
+                this.indexTransaction().updateVertexIndex(oldV, true);
             }
         }
 
@@ -492,8 +525,8 @@ public class TaskScheduler {
             props.add(createPropertyKey(P.CREATE, DataType.DATE));
             props.add(createPropertyKey(P.UPDATE, DataType.DATE));
             props.add(createPropertyKey(P.RETRIES, DataType.INT));
-            props.add(createPropertyKey(P.INPUT));
-            props.add(createPropertyKey(P.RESULT));
+            props.add(createPropertyKey(P.INPUT, DataType.BLOB));
+            props.add(createPropertyKey(P.RESULT, DataType.BLOB));
             props.add(createPropertyKey(P.DEPENDENCIES, DataType.LONG,
                                         Cardinality.SET));
 
@@ -530,35 +563,6 @@ public class TaskScheduler {
                                           .build();
             graph.schemaTransaction().addIndexLabel(label, indexLabel);
             return indexLabel;
-        }
-    }
-
-    // TODO: move to common module
-    private static class ListIterator<V> extends WrappedIterator<V> {
-
-        private final Iterator<V> origin;
-        private final Iterator<V> iterator;
-
-        public ListIterator(Iterator<V> origin) {
-            this.origin = origin;
-            @SuppressWarnings("unchecked")
-            List<V> results = IteratorUtils.toList(origin);
-            this.iterator = results.iterator();
-        }
-
-        @Override
-        protected boolean fetch() {
-            assert this.current == none();
-            if (!this.iterator.hasNext()) {
-                return false;
-            }
-            this.current = this.iterator.next();
-            return true;
-        }
-
-        @Override
-        protected Iterator<?> originIterator() {
-            return this.origin;
         }
     }
 }

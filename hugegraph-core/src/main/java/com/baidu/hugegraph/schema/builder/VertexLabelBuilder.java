@@ -108,23 +108,27 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
         HugeType type = HugeType.VERTEX_LABEL;
         SchemaTransaction tx = this.transaction;
         SchemaElement.checkName(this.name, tx.graph().configuration());
-        VertexLabel vertexLabel = tx.getVertexLabel(this.name);
-        if (vertexLabel != null) {
-            if (this.checkExist) {
-                throw new ExistedException(type, this.name);
+
+        return tx.lockCheckAndCreateSchema(type, this.name, name -> {
+            VertexLabel vertexLabel = tx.getVertexLabel(name);
+            if (vertexLabel != null) {
+                if (this.checkExist) {
+                    throw new ExistedException(type, name);
+                }
+                return vertexLabel;
             }
+            tx.checkIdIfRestoringMode(type, this.id);
+
+            this.checkProperties(Action.INSERT);
+            this.checkIdStrategy();
+            this.checkNullableKeys(Action.INSERT);
+            Userdata.check(this.userdata, Action.INSERT);
+
+            vertexLabel = this.build();
+            assert vertexLabel.name().equals(name);
+            tx.addVertexLabel(vertexLabel);
             return vertexLabel;
-        }
-        tx.checkIdIfRestoringMode(type, this.id);
-
-        this.checkProperties(Action.INSERT);
-        this.checkIdStrategy();
-        this.checkNullableKeys(Action.INSERT);
-        Userdata.check(this.userdata, Action.INSERT);
-
-        vertexLabel = this.build();
-        tx.addVertexLabel(vertexLabel);
-        return vertexLabel;
+        });
     }
 
     @Override

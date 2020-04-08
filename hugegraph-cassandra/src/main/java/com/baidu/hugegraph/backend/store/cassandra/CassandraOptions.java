@@ -19,13 +19,14 @@
 
 package com.baidu.hugegraph.backend.store.cassandra;
 
+import static com.baidu.hugegraph.config.OptionChecker.allowValues;
+import static com.baidu.hugegraph.config.OptionChecker.disallowEmpty;
+import static com.baidu.hugegraph.config.OptionChecker.positiveInt;
+import static com.baidu.hugegraph.config.OptionChecker.rangeInt;
+
 import com.baidu.hugegraph.config.ConfigListOption;
 import com.baidu.hugegraph.config.ConfigOption;
 import com.baidu.hugegraph.config.OptionHolder;
-
-import static com.baidu.hugegraph.config.OptionChecker.allowValues;
-import static com.baidu.hugegraph.config.OptionChecker.disallowEmpty;
-import static com.baidu.hugegraph.config.OptionChecker.rangeInt;
 
 public class CassandraOptions extends OptionHolder {
 
@@ -122,5 +123,13 @@ public class CassandraOptions extends OptionHolder {
                     "The port of JMX API service for cassandra",
                     rangeInt(1, 65535),
                     7199
+            );
+
+    public static final ConfigOption<Integer> AGGR_TIMEOUT =
+            new ConfigOption<>(
+                    "cassandra.aggregation_timeout",
+                    "The timeout in seconds of waiting for aggregation.",
+                    positiveInt(),
+                    12 * 60 * 60
             );
 }

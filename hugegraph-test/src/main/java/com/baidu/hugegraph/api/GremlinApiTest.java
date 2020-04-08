@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.api;
 
+import java.util.List;
 import java.util.Map;
 
 import javax.ws.rs.core.Response;
@@ -67,8 +68,8 @@ public class GremlinApiTest extends BaseApiTest {
                 + "schema.propertyKey('price').asInt().ifNotExist().create();"
                 + "person=schema.vertexLabel('person').properties('name','age','city').useCustomizeUuidId().ifNotExist().create();"
                 + "knows=schema.edgeLabel('knows').sourceLabel('person').targetLabel('person').properties('date').ifNotExist().create();"
-                + "marko=hugegraph.addVertex(T.id, '835e1153928149578691cf79258e90eb', T.label,'person','name','marko','age',29,'city','135e1153928149578691cf79258e90eb');"
-                + "vadas=hugegraph.addVertex(T.id, '935e1153928149578691cf79258e90eb', T.label,'person','name','vadas','age',27,'city','235e1153928149578691cf79258e90eb');"
+                + "marko=hugegraph.addVertex(T.id,'835e1153928149578691cf79258e90eb',T.label,'person','name','marko','age',29,'city','135e1153928149578691cf79258e90eb');"
+                + "vadas=hugegraph.addVertex(T.id,'935e1153928149578691cf79258e90eb',T.label,'person','name','vadas','age',27,'city','235e1153928149578691cf79258e90eb');"
                 + "marko.addEdge('knows',vadas,'date','20160110');";
         String body = String.format(bodyTemplate, script);
         assertResponseStatus(200, client().post(path, body));
@@ -172,5 +173,21 @@ public class GremlinApiTest extends BaseApiTest {
                 + "\"language\":\"gremlin-groovy\","
                 + "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
         assertResponseStatus(200, client().post(path, body));
+    }
+
+    @Test
+    public void testFileSerialize() {
+        String body = "{"
+                + "\"gremlin\":\"File file = new File('test.text')\","
+                + "\"bindings\":{},"
+                + "\"language\":\"gremlin-groovy\","
+                + "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
+        Response r = client().post(path, body);
+        String content = r.readEntity(String.class);
+        Assert.assertTrue(content, r.getStatus() == 200);
+        Map<?, ?> result = assertJsonContains(content, "result");
+        @SuppressWarnings("unchecked")
+        Map data = ((List<Map>) assertMapContains(result, "data")).get(0);
+        Assert.assertEquals("test.text", data.get("file"));
     }
 }

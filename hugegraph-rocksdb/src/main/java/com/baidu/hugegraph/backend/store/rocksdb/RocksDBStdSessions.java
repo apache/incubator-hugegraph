@@ -455,6 +455,18 @@ public class RocksDBStdSessions extends RocksDBSessions {
             mcf.setTargetFileSizeMultiplier(
                     conf.get(RocksDBOptions.TARGET_FILE_SIZE_MULTIPLIER));
 
+            mcf.setLevel0FileNumCompactionTrigger(
+                    conf.get(RocksDBOptions.LEVEL0_COMPACTION_TRIGGER));
+            mcf.setLevel0SlowdownWritesTrigger(
+                    conf.get(RocksDBOptions.LEVEL0_SLOWDOWN_WRITES_TRIGGER));
+            mcf.setLevel0StopWritesTrigger(
+                    conf.get(RocksDBOptions.LEVEL0_STOP_WRITES_TRIGGER));
+
+            mcf.setSoftPendingCompactionBytesLimit(
+                    conf.get(RocksDBOptions.SOFT_PENDING_COMPACTION_LIMIT));
+            mcf.setHardPendingCompactionBytesLimit(
+                    conf.get(RocksDBOptions.HARD_PENDING_COMPACTION_LIMIT));
+
             boolean bulkload = conf.get(RocksDBOptions.BULKLOAD_MODE);
             if (bulkload) {
                 // Disable automatic compaction

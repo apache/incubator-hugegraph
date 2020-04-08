@@ -32,6 +32,8 @@ import org.apache.tinkerpop.gremlin.process.traversal.TraversalStrategy;
 import org.apache.tinkerpop.gremlin.process.traversal.util.DefaultTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.util.TraversalSourceFactory;
 
+import com.baidu.hugegraph.HugeException;
+
 /**
  * ScriptTraversal encapsulates a {@link ScriptEngine} and a script which is compiled into a {@link Traversal} at {@link Admin#applyStrategies()}.
  * This is useful for serializing traversals as the compilation can happen on the remote end where the traversal will ultimately be processed.
@@ -107,7 +109,7 @@ public final class HugeScriptTraversal<S, E> extends DefaultTraversal<S, E> {
             }
             super.applyStrategies();
         } catch (ScriptException e) {
-            throw new IllegalStateException(e.getMessage(), e);
+            throw new HugeException(e.getMessage(), e);
         }
     }
 }

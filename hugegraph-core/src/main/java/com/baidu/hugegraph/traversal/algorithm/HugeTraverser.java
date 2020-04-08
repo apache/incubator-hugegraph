@@ -38,6 +38,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
@@ -171,6 +172,49 @@ public class HugeTraverser {
         return all;
     }
 
+    public Set<Id> sameNeighbors(Id vertex, Id other, Directions direction,
+                                 String label, long degree, long limit) {
+        E.checkNotNull(vertex, "vertex id");
+        E.checkNotNull(other, "the other vertex id");
+        E.checkNotNull(direction, "direction");
+        checkDegree(degree);
+        checkLimit(limit);
+
+        Id labelId = this.getEdgeLabelId(label);
+
+        Set<Id> sourceNeighbors = IteratorUtils.set(this.adjacentVertices(
+                                  vertex, direction, labelId, degree));
+        Set<Id> targetNeighbors = IteratorUtils.set(this.adjacentVertices(
+                                  other, direction, labelId, degree));
+        Set<Id> sameNeighbors = (Set<Id>) CollectionUtil.intersect(
+                                sourceNeighbors, targetNeighbors);
+        if (limit != NO_LIMIT) {
+            int end = Math.min(sameNeighbors.size(), (int) limit);
+            sameNeighbors = CollectionUtil.subSet(sameNeighbors, 0, end);
+        }
+        return sameNeighbors;
+    }
+
+    public double jaccardSimilarity(Id vertex, Id other, Directions dir,
+                                    String label, long degree) {
+        E.checkNotNull(vertex, "vertex id");
+        E.checkNotNull(other, "the other vertex id");
+        E.checkNotNull(dir, "direction");
+        checkDegree(degree);
+
+        Id labelId = this.getEdgeLabelId(label);
+
+        Set<Id> sourceNeighbors = IteratorUtils.set(this.adjacentVertices(
+                                  vertex, dir, labelId, degree));
+        Set<Id> targetNeighbors = IteratorUtils.set(this.adjacentVertices(
+                                  other, dir, labelId, degree));
+        int interNum = CollectionUtil.intersect(sourceNeighbors,
+                                                targetNeighbors).size();
+        int unionNum = CollectionUtil.union(sourceNeighbors,
+                                            targetNeighbors).size();
+        return (double) interNum / unionNum;
+    }
+
     private Set<Id> adjacentVertices(Set<Id> vertices, Directions dir,
                                      Id label, Set<Id> excluded,
                                      long degree, long limit) {
@@ -257,6 +301,13 @@ public class HugeTraverser {
         return g.limit(limit);
     }
 
+    protected Object getVertexLabelId(Object label) {
+        if (label == null) {
+            return null;
+        }
+        return SchemaLabel.getLabelId(this.graph, HugeType.VERTEX, label);
+    }
+
     protected Id getEdgeLabelId(Object label) {
         if (label == null) {
             return null;
@@ -264,32 +315,32 @@ public class HugeTraverser {
         return SchemaLabel.getLabelId(this.graph, HugeType.EDGE, label);
     }
 
-    protected static void checkPositive(int value, String name) {
+    public static void checkPositive(int value, String name) {
         E.checkArgument(value > 0,
                         "The %s parameter must be > 0, but got '%s'",
                         name, value);
     }
 
-    protected static void checkDegree(long degree) {
+    public static void checkDegree(long degree) {
         checkPositiveOrNoLimit(degree, "max degree");
     }
 
-    protected static void checkCapacity(long capacity) {
+    public static void checkCapacity(long capacity) {
         checkPositiveOrNoLimit(capacity, "capacity");
     }
 
-    protected static void checkLimit(long limit) {
+    public static void checkLimit(long limit) {
         checkPositiveOrNoLimit(limit, "limit");
     }
 
-    protected static void checkPositiveOrNoLimit(long value, String name) {
+    public static void checkPositiveOrNoLimit(long value, String name) {
         E.checkArgument(value > 0 || value == NO_LIMIT,
                         "The %s parameter must be > 0 or == %s, but got: %s",
                         name, NO_LIMIT, value);
     }
 
-    protected static void checkCapacity(long capacity, long access,
-                                        String traverse) {
+    public static void checkCapacity(long capacity, long access,
+                                     String traverse) {
         if (capacity != NO_LIMIT && access > capacity) {
             throw new HugeException("Exceed capacity '%s' while finding %s",
                                     capacity, traverse);
@@ -455,6 +506,17 @@ public class HugeTraverser {
                 return false;
             }
             return this.vertices.equals(((Path) other).vertices);
+        }
+    }
+
+    public static class PathSet extends HashSet<Path> {
+
+        public Set<Id> vertices() {
+            Set<Id> vertices = new HashSet<>();
+            for (Path path : this) {
+                vertices.addAll(path.vertices());
+            }
+            return vertices;
         }
     }
 }

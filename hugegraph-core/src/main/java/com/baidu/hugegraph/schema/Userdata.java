@@ -29,7 +29,7 @@ public class Userdata extends HashMap<String, Object> {
 
     private static final long serialVersionUID = -1235451175617197049L;
 
-    public static final String CREATE_TIME = "create_time";
+    public static final String CREATE_TIME = "~create_time";
 
     public static void check(Userdata userdata, Action action) {
         if (userdata == null) {

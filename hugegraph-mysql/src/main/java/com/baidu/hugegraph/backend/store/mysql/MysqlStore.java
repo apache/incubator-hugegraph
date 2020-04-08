@@ -71,7 +71,15 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
         this.sessions = null;
         this.tables = new ConcurrentHashMap<>();
 
+        this.registerMetaHandlers();
         LOG.debug("Store loaded: {}", store);
+    }
+
+    private void registerMetaHandlers() {
+        this.registerMetaHandler("metrics", (session, meta, args) -> {
+            MysqlMetrics metrics = new MysqlMetrics();
+            return metrics.getMetrics();
+        });
     }
 
     protected void registerTableManager(HugeType type, MysqlTable table) {
@@ -261,6 +269,14 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
 
         MysqlTable table = this.table(MysqlTable.tableType(query));
         return table.query(this.sessions.session(), query);
+    }
+
+    @Override
+    public Number queryNumber(Query query) {
+        this.checkOpened();
+
+        MysqlTable table = this.table(MysqlTable.tableType(query));
+        return table.queryNumber(this.sessions.session(), query);
     }
 
     @Override

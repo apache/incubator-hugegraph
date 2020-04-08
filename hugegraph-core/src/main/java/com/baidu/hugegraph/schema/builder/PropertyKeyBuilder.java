@@ -80,21 +80,25 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
         HugeType type = HugeType.PROPERTY_KEY;
         SchemaTransaction tx = this.transaction;
         SchemaElement.checkName(this.name, tx.graph().configuration());
-        PropertyKey propertyKey = tx.getPropertyKey(this.name);
-        if (propertyKey != null) {
-            if (this.checkExist) {
-                throw new ExistedException(type, this.name);
+
+        return tx.lockCheckAndCreateSchema(type, this.name, name -> {
+            PropertyKey propertyKey = tx.getPropertyKey(name);
+            if (propertyKey != null) {
+                if (this.checkExist) {
+                    throw new ExistedException(type, name);
+                }
+                return propertyKey;
             }
+            tx.checkIdIfRestoringMode(type, this.id);
+
+            Userdata.check(this.userdata, Action.INSERT);
+            this.checkAggregateType();
+
+            propertyKey = this.build();
+            assert propertyKey.name().equals(name);
+            tx.addPropertyKey(propertyKey);
             return propertyKey;
-        }
-        tx.checkIdIfRestoringMode(type, this.id);
-
-        Userdata.check(this.userdata, Action.INSERT);
-        this.checkAggregateType();
-
-        propertyKey = this.build();
-        tx.addPropertyKey(propertyKey);
-        return propertyKey;
+        });
     }
 
     @Override

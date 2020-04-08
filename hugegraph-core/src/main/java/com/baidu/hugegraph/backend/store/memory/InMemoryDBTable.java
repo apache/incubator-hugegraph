@@ -29,6 +29,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.query.Aggregate;
+import com.baidu.hugegraph.backend.query.Aggregate.AggregateFunc;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.IdPrefixQuery;
 import com.baidu.hugegraph.backend.query.IdRangeQuery;
@@ -111,6 +113,22 @@ public class InMemoryDBTable extends BackendTable<BackendSession,
     }
 
     @Override
+    public Number queryNumber(BackendSession session, Query query) {
+        Aggregate aggregate = query.aggregateNotNull();
+        if (aggregate.func() != AggregateFunc.COUNT) {
+            throw new NotSupportException(aggregate.toString());
+        }
+
+        assert aggregate.func() == AggregateFunc.COUNT;
+        Iterator<BackendEntry> results = this.query(session, query);
+        long total = 0L;
+        while (results.hasNext()) {
+            total += this.sizeOfBackendEntry(results.next());
+        }
+        return total;
+    }
+
+    @Override
     public Iterator<BackendEntry> query(BackendSession session, Query query) {
         if (query.paging()) {
             throw new NotSupportException("paging by InMemoryDBStore");
@@ -142,13 +160,17 @@ public class InMemoryDBTable extends BackendTable<BackendSession,
 
         Iterator<BackendEntry> iterator = rs.values().iterator();
 
-        if (query.offset() >= rs.size()) {
+        long offset = query.offset() - query.actualOffset();
+        if (offset >= rs.size()) {
+            query.skipOffset(rs.size());
             return QueryResults.emptyIterator();
         }
-        iterator = this.skipOffset(iterator, query.offset());
+        if (offset > 0L) {
+            query.skipOffset(offset);
+            iterator = this.skipOffset(iterator, offset);
+        }
 
-        if (query.limit() != Query.NO_LIMIT &&
-            query.offset() + query.limit() < rs.size()) {
+        if (!query.nolimit() && query.total() < rs.size()) {
             iterator = this.dropTails(iterator, query.limit());
         }
         return iterator;
@@ -225,6 +247,10 @@ public class InMemoryDBTable extends BackendTable<BackendSession,
             entries.add(iterator.next());
         }
         return entries.iterator();
+    }
+
+    protected long sizeOfBackendEntry(BackendEntry entry) {
+        return 1L;
     }
 
     private static boolean matchCondition(BackendEntry item, Condition c) {

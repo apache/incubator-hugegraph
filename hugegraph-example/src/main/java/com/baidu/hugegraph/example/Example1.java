@@ -300,7 +300,6 @@ public class Example1 {
 
         // query vertex by condition (filter by property name)
         ConditionQuery q = new ConditionQuery(HugeType.VERTEX);
-        q.query(IdGenerator.of(authorId));
         PropertyKey age = graph.propertyKey("age");
         q.key(HugeKeys.PROPERTIES, age.id());
         if (graph.graphTransaction().store().features()
@@ -345,16 +344,29 @@ public class Example1 {
         q.eq(HugeKeys.LABEL, authored.id());
         q.eq(HugeKeys.SORT_VALUES, "");
         q.eq(HugeKeys.OTHER_VERTEX, IdGenerator.of(book1Id));
-        // NOTE: query edge by has-key just supported by Cassandra
-        // q.hasKey(HugeKeys.PROPERTIES, "contribution");
 
         Iterator<Edge> edges2 = graph.edges(q);
         assert edges2.hasNext();
-        System.out.println(">>>> queryEdges(contribution): " +
+        System.out.println(">>>> queryEdges(id-condition): " +
                            edges2.hasNext());
         while (edges2.hasNext()) {
-            System.out.println(">>>> queryEdges(contribution): " +
+            System.out.println(">>>> queryEdges(id-condition): " +
                                edges2.next());
+        }
+
+        // NOTE: query edge by has-key just supported by Cassandra
+        if (graph.graphTransaction().store().features()
+                 .supportsQueryWithContainsKey()) {
+            PropertyKey contribution = graph.propertyKey("contribution");
+            q.key(HugeKeys.PROPERTIES, contribution.id());
+            Iterator<Edge> edges3 = graph.edges(q);
+            assert edges3.hasNext();
+            System.out.println(">>>> queryEdges(contribution): " +
+                               edges3.hasNext());
+            while (edges3.hasNext()) {
+                System.out.println(">>>> queryEdges(contribution): " +
+                                   edges3.next());
+            }
         }
 
         // query by vertex label

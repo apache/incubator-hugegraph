@@ -42,6 +42,7 @@ import javax.ws.rs.core.Context;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
@@ -60,7 +61,9 @@ import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.structure.HugeVertex;
+import com.baidu.hugegraph.traversal.optimize.QueryHolder;
 import com.baidu.hugegraph.traversal.optimize.Text;
+import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.util.E;
@@ -218,6 +221,8 @@ public class VertexAPI extends BatchAPI {
                        @PathParam("graph") String graph,
                        @QueryParam("label") String label,
                        @QueryParam("properties") String properties,
+                       @QueryParam("keep_start_p")
+                       @DefaultValue("false") boolean keepStartP,
                        @QueryParam("offset") @DefaultValue("0") long offset,
                        @QueryParam("page") String page,
                        @QueryParam("limit") @DefaultValue("100") long limit) {
@@ -239,6 +244,15 @@ public class VertexAPI extends BatchAPI {
             traversal = traversal.hasLabel(label);
         }
 
+        // Convert relational operator like P.gt()/P.lt()
+        for (Map.Entry<String, Object> prop : props.entrySet()) {
+            Object value = prop.getValue();
+            if (!keepStartP && value instanceof String &&
+                ((String) value).startsWith(TraversalUtil.P_CALL)) {
+                prop.setValue(TraversalUtil.parsePredicate((String) value));
+            }
+        }
+
         for (Map.Entry<String, Object> entry : props.entrySet()) {
             traversal = traversal.has(entry.getKey(), entry.getValue());
         }
@@ -246,7 +260,8 @@ public class VertexAPI extends BatchAPI {
         if (page == null) {
             traversal = traversal.range(offset, offset + limit);
         } else {
-            traversal = traversal.has("~page", page).limit(limit);
+            traversal = traversal.has(QueryHolder.SYSPROP_PAGE, page)
+                                 .limit(limit);
         }
 
         return manager.serializer(g).writeVertices(traversal, page != null);
@@ -282,9 +297,13 @@ public class VertexAPI extends BatchAPI {
         // TODO: add removeVertex(id) to improve
         commit(g, () -> {
             Iterator<Vertex> iter = g.vertices(id);
-            E.checkArgument(iter.hasNext(),
-                            "No such vertex with id: '%s'", idValue);
-            iter.next().remove();
+            try {
+                E.checkArgument(iter.hasNext(),
+                                "No such vertex with id: '%s'", idValue);
+                iter.next().remove();
+            } finally {
+                CloseableIterator.closeIterator(iter);
+            }
         });
     }
 

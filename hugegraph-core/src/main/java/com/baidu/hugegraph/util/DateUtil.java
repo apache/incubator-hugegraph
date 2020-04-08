@@ -56,7 +56,7 @@ public final class DateUtil {
             }
         }
         throw new IllegalArgumentException(String.format(
-                  "Expect date formats are: %s, but got '%s'",
+                  "Expected date format is: %s, but got '%s'",
                   VALID_DFS.values(), value));
     }
 

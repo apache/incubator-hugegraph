@@ -37,6 +37,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSo
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import org.junit.Assume;
 import org.junit.Before;
@@ -47,9 +48,11 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.Id.IdType;
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.id.SnowflakeIdGenerator;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.page.PageInfo;
+import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
@@ -495,6 +498,14 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testAddVertexWithPrimaryValuesEmpty() {
+        HugeGraph graph = graph();
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.addVertex(T.label, "book", "name", "");
+        });
+    }
+
+    @Test
     public void testAddVertexWithoutVertexLabel() {
         HugeGraph graph = graph();
         Assert.assertThrows(IllegalArgumentException.class, () -> {
@@ -897,12 +908,16 @@ public class VertexCoreTest extends BaseCoreTest {
 
         // Query all with limit after delete
         graph.traversal().V().limit(6).drop().iterate();
-        Assert.assertEquals(4L, graph.traversal().V().count().next());
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            // Query count with uncommitted records
+            graph.traversal().V().count().next();
+        });
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             // Query with limit
             graph.traversal().V().limit(3).toList();
         });
         graph.tx().commit();
+        Assert.assertEquals(4L, graph.traversal().V().count().next());
         List<Vertex> vertices = graph.traversal().V().limit(3).toList();
         Assert.assertEquals(3, vertices.size());
 
@@ -923,6 +938,7 @@ public class VertexCoreTest extends BaseCoreTest {
         Iterator<Vertex> iter = graph.graphTransaction().queryVertices(query);
         List<Vertex> vertices = IteratorUtils.list(iter);
         Assert.assertEquals(1, vertices.size());
+        CloseableIterator.closeIterator(iter);
     }
 
     @Test
@@ -1053,7 +1069,7 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testSplicingId() {
+    public void testQueryWithSplicingId() {
         HugeGraph graph = graph();
         init10Vertices();
         List<Vertex> vertices = graph.traversal().V().toList();
@@ -1079,6 +1095,18 @@ public class VertexCoreTest extends BaseCoreTest {
         assertContains(vertices,
                        T.label, "author", "id", 1, "name", "James Gosling",
                        "age", 62, "lived", "Canadian");
+
+        vertices = graph.traversal().V().hasId(id).toList();
+        Assert.assertEquals(1, vertices.size());
+        assertContains(vertices,
+                       T.label, "author", "id", 1, "name", "James Gosling",
+                       "age", 62, "lived", "Canadian");
+
+        vertices = graph.traversal().V().has(T.id, id).toList();
+        Assert.assertEquals(1, vertices.size());
+        assertContains(vertices,
+                       T.label, "author", "id", 1, "name", "James Gosling",
+                       "age", 62, "lived", "Canadian");
     }
 
     @Test
@@ -1091,6 +1119,65 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertTrue(graph.traversal().V(id).toList().isEmpty());
         Assert.assertThrows(NoSuchElementException.class, () -> {
             graph.traversal().V(id).next();
+        });
+    }
+
+    @Test
+    public void testQueryByInvalidSysprop() {
+        HugeGraph graph = graph();
+        init10Vertices();
+
+        List<Vertex> vertices = graph.traversal().V().hasLabel("author")
+                                                     .has("id", 1).toList();
+        Assert.assertEquals(1, vertices.size());
+        Vertex vertex = vertices.get(0);
+        Id author = graph.vertexLabel(vertex.label()).id();
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.traversal().V().hasLabel("author").has("ID", 1).toList();
+        }, e -> {
+            Assert.assertContains("Undefined property key: 'ID'",
+                                  e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.traversal().V().hasLabel("author").has("NAME", "n1").toList();
+        }, e -> {
+            Assert.assertContains("Undefined property key: 'NAME'",
+                                  e.getMessage());
+        });
+
+        Assert.assertThrows(HugeException.class, () -> {
+            ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
+            query.eq(HugeKeys.LABEL, author);
+            query.query((Id) vertex.id());
+            graph.vertices(query).hasNext();
+        }, e -> {
+            Assert.assertContains("Not supported querying by id and conditions",
+                                  e.getMessage());
+        });
+
+        Assert.assertThrows(HugeException.class, () -> {
+            ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
+            query.eq(HugeKeys.LABEL, author);
+            query.eq(HugeKeys.NAME, "n1");
+            graph.vertices(query).hasNext();
+        }, e -> {
+            Assert.assertContains("Not supported querying vertices by",
+                                  e.getMessage());
+            Assert.assertContains("NAME == n1", e.getMessage());
+        });
+
+        Assert.assertThrows(HugeException.class, () -> {
+            ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
+            query.eq(HugeKeys.LABEL, author);
+            query.eq(HugeKeys.NAME, "n2");
+            query.query(Condition.eq(IdGenerator.of("fake"), "n3"));
+            graph.vertices(query).hasNext();
+        }, e -> {
+            Assert.assertContains("Can't do index query with [LABEL ==",
+                                  e.getMessage());
+            Assert.assertContains("NAME == n2", e.getMessage());
         });
     }
 
@@ -1167,7 +1254,8 @@ public class VertexCoreTest extends BaseCoreTest {
 
         // Query vertex by primary-values
         List<Vertex> vertices = graph.traversal().V()
-                                     .hasLabel("author").has("id", 1).toList();
+                                     .hasLabel("author")
+                                     .has("id", 1).toList();
         Assert.assertEquals(1, vertices.size());
         assertContains(vertices,
                        T.label, "author", "id", 1, "name", "James Gosling",
@@ -1212,6 +1300,15 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertEquals(1, vertices.size());
         assertContains(vertices,
                        T.label, "language", "name", "python", "dynamic", true);
+
+        // Query vertex by condition (does contain the property name?)
+        q = new ConditionQuery(HugeType.VERTEX);
+        q.key(HugeKeys.PROPERTIES, dynamic.id());
+        vertices = ImmutableList.copyOf(graph.vertices(q));
+
+        Assert.assertEquals(1, vertices.size());
+        assertContains(vertices,
+                       T.label, "language", "name", "python", "dynamic", true);
     }
 
     @Test
@@ -1223,7 +1320,8 @@ public class VertexCoreTest extends BaseCoreTest {
         init10Vertices();
 
         List<Vertex> vertices = graph.traversal().V()
-                                     .hasLabel("language").hasKey("dynamic")
+                                     .hasLabel("language")
+                                     .hasKey("dynamic")
                                      .toList();
         Assert.assertEquals(1, vertices.size());
         assertContains(vertices,
@@ -1284,7 +1382,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph.traversal().V().hasLabel("language")
-                 .hasValue("python", true).toList();
+                 .hasValue("python", "java").toList();
         });
     }
 
@@ -2500,6 +2598,29 @@ public class VertexCoreTest extends BaseCoreTest {
         assertContains(vertices,
                        T.label, "author", "id", 5, "name", "James",
                        "age", 62, "lived", "San Francisco Bay Area");
+
+        vertices = graph.traversal().V().hasLabel("author")
+                                    .has("lived", Text.contains("Bay Area"))
+                                    .limit(1)
+                                    .toList();
+        Assert.assertEquals(1, vertices.size());
+        Assert.assertEquals("James", vertices.get(0).value("name"));
+
+        vertices = graph.traversal().V().hasLabel("author")
+                                    .has("lived", Text.contains("Bay Area"))
+                                    .skip(1)
+                                    .toList();
+        Assert.assertEquals(3, vertices.size());
+        Assert.assertEquals("Tom", vertices.get(0).value("name"));
+        Assert.assertEquals("Jason", vertices.get(1).value("name"));
+        Assert.assertEquals("Dim", vertices.get(2).value("name"));
+
+        vertices = graph.traversal().V().hasLabel("author")
+                                    .has("lived", Text.contains("Bay Area"))
+                                    .skip(2).limit(1)
+                                    .toList();
+        Assert.assertEquals(1, vertices.size());
+        Assert.assertEquals("Jason", vertices.get(0).value("name"));
     }
 
     @Test
@@ -2577,7 +2698,8 @@ public class VertexCoreTest extends BaseCoreTest {
                  .and(P.lt(29).or(P.eq(35)).or(P.gt(45)))
                 ).values("name").toList();
 
-        Assert.assertEquals(4, vertices.size());
+        // There is duplicate results with OR condition
+        Assert.assertEquals(5, vertices.size());
 
         Set<String> names = ImmutableSet.of("Hebe", "James",
                                             "Tom Cat", "Lisa");
@@ -3384,6 +3506,46 @@ public class VertexCoreTest extends BaseCoreTest {
                    .has("age", P.between(10, 30))
                    .toList();
         });
+    }
+
+    @Test
+    public void testQueryCount() {
+        HugeGraph graph = graph();
+
+        graph.schema().indexLabel("livedByAuthor").onV("author")
+             .secondary().by("lived").create();
+        graph.schema().indexLabel("ageByAuthor").onV("author")
+             .range().by("age").create();
+
+        init10Vertices();
+
+        GraphTraversalSource g = graph.traversal();
+
+        Assert.assertEquals(10L, g.V().count().next());
+
+        Assert.assertEquals(2L, g.V().hasLabel("author").count().next());
+        Assert.assertEquals(3L, g.V().hasLabel("language").count().next());
+        Assert.assertEquals(5L, g.V().hasLabel("book").count().next());
+        Assert.assertEquals(8L, g.V().hasLabel("book", "language")
+                                     .count().next());
+
+        Assert.assertEquals(1L, g.V().hasLabel("author")
+                                     .has("lived", "California")
+                                     .count().next());
+        Assert.assertEquals(1L, g.V().hasLabel("author")
+                                     .has("age", 61).count().next());
+        Assert.assertEquals(2L, g.V().hasLabel("author")
+                                     .has("age", P.gte(61)).count().next());
+        Assert.assertEquals(1L, g.V().hasLabel("author")
+                                     .has("age", P.lt(62)).count().next());
+
+        Assert.assertEquals(10L, g.V().count().min().next());
+        Assert.assertEquals(5L, g.V().hasLabel("book").count().max().next());
+
+        Assert.assertEquals(2L, g.V().hasLabel("author")
+                                     .values("age").count().next());
+        Assert.assertEquals(8L, g.V().hasLabel("author")
+                                     .values().count().next());
     }
 
     @Test
@@ -4814,6 +4976,36 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertFalse(vertex.property("lived").isPresent());
     }
 
+    @Test
+    public void testOverrideVertex() {
+        HugeGraph graph = graph();
+
+        graph.addVertex(T.label, "person", "name", "marko",
+                        "age", 18, "city", "Beijing");
+        graph.tx().commit();
+        Vertex vertex = vertex("person", "name", "marko");
+        Assert.assertTrue(vertex.property("age").isPresent());
+        Assert.assertEquals(18, vertex.value("age"));
+        Assert.assertTrue(vertex.property("city").isPresent());
+        Assert.assertEquals("Beijing", vertex.value("city"));
+
+        graph.addVertex(T.label, "person", "name", "marko", "city", "Wuhan");
+        graph.tx().commit();
+        vertex = vertex("person", "name", "marko");
+        Assert.assertFalse(vertex.property("age").isPresent());
+        Assert.assertTrue(vertex.property("city").isPresent());
+        Assert.assertEquals("Wuhan", vertex.value("city"));
+
+        graph.addVertex(T.label, "person", "name", "marko",
+                        "age", 19, "city", "Shanghai");
+        graph.tx().commit();
+        vertex = vertex("person", "name", "marko");
+        Assert.assertTrue(vertex.property("age").isPresent());
+        Assert.assertEquals(19, vertex.value("age"));
+        Assert.assertTrue(vertex.property("city").isPresent());
+        Assert.assertEquals("Shanghai", vertex.value("city"));
+    }
+
     @SuppressWarnings("unchecked")
     @Test
     public void testScanVertex() {
@@ -4862,6 +5054,7 @@ public class VertexCoreTest extends BaseCoreTest {
                 vertices.add(vertex);
             }
             page = PageInfo.pageInfo(iterator);
+            CloseableIterator.closeIterator(iterator);
         }
         Assert.assertEquals(10, vertices.size());
     }
@@ -5055,6 +5248,7 @@ public class VertexCoreTest extends BaseCoreTest {
                                                    .has("~page", "").limit(10);
         Assert.assertEquals(10, IteratorUtils.count(iter));
         String page = TraversalUtil.page(iter);
+        CloseableIterator.closeIterator(iter);
 
         List<Vertex> vertices;
 
@@ -5122,6 +5316,7 @@ public class VertexCoreTest extends BaseCoreTest {
             pageAll.addAll(vertices);
 
             page = TraversalUtil.page(iter);
+            CloseableIterator.closeIterator(iter);
         }
         Assert.assertEquals(100, pageAll.size());
         Assert.assertTrue(all.containsAll(pageAll));
@@ -5189,6 +5384,7 @@ public class VertexCoreTest extends BaseCoreTest {
             GraphTraversal<Vertex, Vertex> iter;
             iter = g.V().has("~page", "").limit(capacity);
             Assert.assertEquals(10, IteratorUtils.count(iter));
+            CloseableIterator.closeIterator(iter);
 
             Assert.assertThrows(IllegalArgumentException.class, () -> {
                 /*
@@ -5220,15 +5416,19 @@ public class VertexCoreTest extends BaseCoreTest {
             GraphTraversal<Vertex, Vertex> iter;
             iter = g.V().has("~page", "").limit(-1);
             Assert.assertEquals(34, IteratorUtils.count(iter));
+            CloseableIterator.closeIterator(iter);
 
             iter = g.V().has("~page", "").limit(20);
             Assert.assertEquals(20, IteratorUtils.count(iter));
+            CloseableIterator.closeIterator(iter);
 
             iter = g.V().has("age", 30).has("~page", "").limit(-1);
             Assert.assertEquals(18, IteratorUtils.count(iter));
+            CloseableIterator.closeIterator(iter);
 
             iter = g.V().has("age", 30).has("~page", "").limit(10);
             Assert.assertEquals(10, IteratorUtils.count(iter));
+            CloseableIterator.closeIterator(iter);
         } finally {
             Query.defaultCapacity(old);
         }
@@ -5800,14 +6000,14 @@ public class VertexCoreTest extends BaseCoreTest {
                                        .has("city", "Beijing").toList();
         Assert.assertEquals(3, vertices.size());
 
-        List<Vertex> vertices1 = graph().traversal().V()
-                                        .has("city", "Beijing")
-                                        .range(0, 2).toList();
+        Set<Vertex> vertices1 = graph().traversal().V()
+                                       .has("city", "Beijing")
+                                       .range(0, 2).toSet();
         Assert.assertEquals(2, vertices1.size());
 
-        List<Vertex> vertices2 = graph().traversal().V()
-                                        .has("city", "Beijing")
-                                        .range(2, 3).toList();
+        Set<Vertex> vertices2 = graph().traversal().V()
+                                       .has("city", "Beijing")
+                                       .range(2, 3).toSet();
         Assert.assertEquals(1, vertices2.size());
 
         vertices1.addAll(vertices2);
@@ -5823,13 +6023,13 @@ public class VertexCoreTest extends BaseCoreTest {
         List<Vertex> vertices = graph().traversal().V()
                                        .has("age", P.between(5, 22)).toList();
         Assert.assertEquals(4, vertices.size());
-        List<Vertex> vertices1 = graph().traversal().V()
-                                        .has("age", P.between(5, 22))
-                                        .range(0, 3).toList();
+        Set<Vertex> vertices1 = graph().traversal().V()
+                                       .has("age", P.between(5, 22))
+                                       .range(0, 3).toSet();
         Assert.assertEquals(3, vertices1.size());
-        List<Vertex> vertices2 = graph().traversal().V()
-                                        .has("age", P.between(5, 22))
-                                        .range(3, 4).toList();
+        Set<Vertex> vertices2 = graph().traversal().V()
+                                       .has("age", P.between(5, 22))
+                                       .range(3, 4).toSet();
         Assert.assertEquals(1, vertices2.size());
 
         vertices1.addAll(vertices2);
@@ -5845,19 +6045,19 @@ public class VertexCoreTest extends BaseCoreTest {
                                        .toList();
         Assert.assertEquals(5, vertices.size());
 
-        List<Vertex> vertices1 = graph().traversal().V()
-                                        .hasLabel("person")
-                                        .range(0, 3).toList();
+        Set<Vertex> vertices1 = graph().traversal().V()
+                                       .hasLabel("person")
+                                       .range(0, 3).toSet();
         Assert.assertEquals(3, vertices1.size());
 
-        List<Vertex> vertices2 = graph().traversal().V()
-                                        .hasLabel("person")
-                                        .range(3, 5).toList();
+        Set<Vertex> vertices2 = graph().traversal().V()
+                                       .hasLabel("person")
+                                       .range(3, 5).toSet();
         Assert.assertEquals(2, vertices2.size());
 
-        List<Vertex> vertices3 = graph().traversal().V()
-                                        .hasLabel("person")
-                                        .limit(4).toList();
+        Set<Vertex> vertices3 = graph().traversal().V()
+                                       .hasLabel("person")
+                                       .limit(4).toSet();
         Assert.assertEquals(4, vertices3.size());
 
         vertices1.addAll(vertices2);
@@ -6002,8 +6202,7 @@ public class VertexCoreTest extends BaseCoreTest {
                                  .toList();
         Assert.assertEquals(0, vertices.size());
 
-        vertices = g.V().hasLabel("person").hasLabel("person")
-                    .toList();
+        vertices = g.V().hasLabel("person").hasLabel("person").toList();
         Assert.assertEquals(5, vertices.size());
 
         vertices = g.V().hasLabel("person", "computer").hasLabel("person")
@@ -6233,8 +6432,8 @@ public class VertexCoreTest extends BaseCoreTest {
 
     private Vertex vertex(String label, String pkName, Object pkValue) {
         List<Vertex> vertices = graph().traversal().V()
-                                .hasLabel(label).has(pkName, pkValue)
-                                .toList();
+                                       .hasLabel(label).has(pkName, pkValue)
+                                       .toList();
         Assert.assertTrue(vertices.size() <= 1);
         return vertices.size() == 1 ? vertices.get(0) : null;
     }

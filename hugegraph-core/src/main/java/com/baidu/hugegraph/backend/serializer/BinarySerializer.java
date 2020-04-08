@@ -22,6 +22,7 @@ package com.baidu.hugegraph.backend.serializer;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.lang.NotImplementedException;
 
@@ -91,7 +92,13 @@ public class BinarySerializer extends AbstractSerializer {
     }
 
     @Override
-    public BinaryBackendEntry newBackendEntry(HugeType type, Id id) {
+    protected BinaryBackendEntry newBackendEntry(HugeType type, Id id) {
+        if (type.isEdge()) {
+            E.checkState(id instanceof BinaryId,
+                         "Expect a BinaryId for BackendEntry with edge id");
+            return new BinaryBackendEntry(type, (BinaryId) id);
+        }
+
         BytesBuffer buffer = BytesBuffer.allocate(1 + id.length());
         byte[] idBytes = type.isIndex() ?
                          buffer.writeIndexId(id, type).bytes() :
@@ -106,7 +113,7 @@ public class BinarySerializer extends AbstractSerializer {
     protected final BinaryBackendEntry newBackendEntry(HugeEdge edge) {
         BinaryId id = new BinaryId(formatEdgeName(edge),
                                    edge.idWithDirection());
-        return new BinaryBackendEntry(edge.type(), id);
+        return newBackendEntry(edge.type(), id);
     }
 
     protected final BinaryBackendEntry newBackendEntry(SchemaElement elem) {
@@ -229,16 +236,6 @@ public class BinarySerializer extends AbstractSerializer {
         return buffer.bytes();
     }
 
-    protected BackendColumn formatEdge(HugeEdge edge) {
-        byte[] name;
-        if (this.keyWithIdPrefix) {
-            name = this.formatEdgeName(edge);
-        } else {
-            name = EMPTY_BYTES;
-        }
-        return BackendColumn.of(name, this.formatEdgeValue(edge));
-    }
-
     protected void parseEdge(BackendColumn col, HugeVertex vertex,
                              HugeGraph graph) {
         // owner-vertex + dir + edge-label + sort-values + other-vertex
@@ -254,9 +251,9 @@ public class BinarySerializer extends AbstractSerializer {
         Id otherVertexId = buffer.readId();
 
         boolean isOutEdge = (type == HugeType.EDGE_OUT.code());
-        EdgeLabel edgeLabel = graph.edgeLabel(labelId);
-        VertexLabel srcLabel = graph.vertexLabel(edgeLabel.sourceLabel());
-        VertexLabel tgtLabel = graph.vertexLabel(edgeLabel.targetLabel());
+        EdgeLabel edgeLabel = graph.edgeLabelOrNone(labelId);
+        VertexLabel srcLabel = graph.vertexLabelOrNone(edgeLabel.sourceLabel());
+        VertexLabel tgtLabel = graph.vertexLabelOrNone(edgeLabel.targetLabel());
 
         HugeVertex otherVertex;
         if (isOutEdge) {
@@ -292,6 +289,18 @@ public class BinarySerializer extends AbstractSerializer {
         this.parseProperties(buffer, edge);
     }
 
+
+    protected void parseVertex(byte[] value, HugeVertex vertex) {
+        BytesBuffer buffer = BytesBuffer.wrap(value);
+
+        // Parse vertex label
+        VertexLabel label = vertex.graph().vertexLabelOrNone(buffer.readId());
+        vertex.vertexLabel(label);
+
+        // Parse properties
+        this.parseProperties(buffer, vertex);
+    }
+
     protected void parseColumn(BackendColumn col, HugeVertex vertex) {
         BytesBuffer buffer = BytesBuffer.wrap(col.name);
         Id id = this.keyWithIdPrefix ? buffer.readId() : vertex.id();
@@ -325,7 +334,7 @@ public class BinarySerializer extends AbstractSerializer {
             int idLen = 1 + elemId.length();
             buffer = BytesBuffer.allocate(idLen);
             // Write element-id
-            buffer.writeId(elemId, true);
+            buffer.writeId(elemId);
         } else {
             Id indexId = index.id();
             HugeType type = index.type();
@@ -367,23 +376,25 @@ public class BinarySerializer extends AbstractSerializer {
             return entry;
         }
 
-        // Write vertex label
-        entry.column(this.formatLabel(vertex));
+        int propsCount = vertex.getProperties().size();
+        BytesBuffer buffer = BytesBuffer.allocate(8 + 16 * propsCount);
 
-        // Write all properties of a Vertex
-        for (HugeProperty<?> prop : vertex.getProperties().values()) {
-            entry.column(this.formatProperty(prop));
-        }
+        // Write vertex label
+        buffer.writeId(vertex.schemaLabel().id());
+
+        // Write all properties of the vertex
+        this.formatProperties(vertex.getProperties().values(), buffer);
+
+        // Fill column
+        byte[] name = this.keyWithIdPrefix ? entry.id().asBytes() : EMPTY_BYTES;
+        entry.column(name, buffer.bytes());
 
         return entry;
     }
 
     @Override
     public BackendEntry writeVertexProperty(HugeVertexProperty<?> prop) {
-        BinaryBackendEntry entry = newBackendEntry(prop.element());
-        entry.column(this.formatProperty(prop));
-        entry.subId(IdGenerator.of(prop.key()));
-        return entry;
+        throw new NotImplementedException("Unsupported writeVertexProperty()");
     }
 
     @Override
@@ -393,21 +404,23 @@ public class BinarySerializer extends AbstractSerializer {
         }
         BinaryBackendEntry entry = this.convertEntry(bytesEntry);
 
-        // Parse label
-        final byte[] VL = this.formatSyspropName(entry.id(), HugeKeys.LABEL);
-        BackendColumn vl = entry.column(VL);
-        VertexLabel label = VertexLabel.NONE;
-        if (vl != null) {
-            label = graph.vertexLabel(BytesBuffer.wrap(vl.value).readId());
-        }
-
         // Parse id
         Id id = entry.id().origin();
-        HugeVertex vertex = new HugeVertex(graph, id, label);
+        Id vid = id.edge() ? ((EdgeId) id).ownerVertexId() : id;
+        HugeVertex vertex = new HugeVertex(graph, vid, VertexLabel.NONE);
 
         // Parse all properties and edges of a Vertex
         for (BackendColumn col : entry.columns()) {
-            this.parseColumn(col, vertex);
+            if (entry.type().isEdge()) {
+                // NOTE: the entry id type is vertex even if entry type is edge
+                // Parse vertex edges
+                this.parseColumn(col, vertex);
+            } else {
+                assert entry.type().isVertex();
+                // Parse vertex properties
+                assert entry.columnsSize() == 1 : entry.columnsSize();
+                this.parseVertex(col.value, vertex);
+            }
         }
 
         return vertex;
@@ -416,7 +429,10 @@ public class BinarySerializer extends AbstractSerializer {
     @Override
     public BackendEntry writeEdge(HugeEdge edge) {
         BinaryBackendEntry entry = newBackendEntry(edge);
-        entry.column(this.formatEdge(edge));
+        byte[] name = this.keyWithIdPrefix ?
+                      this.formatEdgeName(edge) : EMPTY_BYTES;
+        byte[] value = this.formatEdgeValue(edge);
+        entry.column(name, value);
         return entry;
     }
 
@@ -428,7 +444,11 @@ public class BinarySerializer extends AbstractSerializer {
 
     @Override
     public HugeEdge readEdge(HugeGraph graph, BackendEntry bytesEntry) {
-        throw new NotImplementedException("Unsupported readEdge()");
+        HugeVertex vertex = this.readVertex(graph, bytesEntry);
+        Set<HugeEdge> edges = vertex.getEdges();
+        E.checkState(edges.size() == 1,
+                     "Expect one edge in vertex, but got %s", edges.size());
+        return edges.iterator().next();
     }
 
     @Override
@@ -474,7 +494,7 @@ public class BinarySerializer extends AbstractSerializer {
         if (!index.type().isRangeIndex()) {
             fieldValues = query.condition(HugeKeys.FIELD_VALUES);
             if (!index.fieldValues().equals(fieldValues)) {
-                // Update field-values for hashed index-id
+                // Update field-values for hashed or encoded index-id
                 index.fieldValues(fieldValues);
             }
         }

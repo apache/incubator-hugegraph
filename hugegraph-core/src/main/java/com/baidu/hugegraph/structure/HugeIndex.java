@@ -142,20 +142,26 @@ public class HugeIndex implements GraphType {
         return formatIndexId(type, indexLabel, HashUtil.hash(value));
     }
 
-    public static Id formatIndexId(HugeType type, Id indexLabel,
+    public static Id formatIndexId(HugeType type, Id indexLabelId,
                                    Object fieldValues) {
         if (type.isStringIndex()) {
-            String v = fieldValues == null ? "" : fieldValues.toString();
+            String value = "";
+            if (fieldValues instanceof Id) {
+                value = IdGenerator.asStoredString((Id) fieldValues);
+            } else if (fieldValues != null) {
+                value = fieldValues.toString();
+            }
             /*
              * Modify order between index label and field-values to put the
              * index label in front(hugegraph-1317)
              */
-            return SplicingIdGenerator.splicing(indexLabel.asString(), v);
+            String strIndexLabelId = IdGenerator.asStoredString(indexLabelId);
+            return SplicingIdGenerator.splicing(strIndexLabelId, value);
         } else {
             assert type.isRangeIndex();
             int length = type.isRange4Index() ? 4 : 8;
             BytesBuffer buffer = BytesBuffer.allocate(4 + length);
-            buffer.writeInt(SchemaElement.schemaId(indexLabel));
+            buffer.writeInt(SchemaElement.schemaId(indexLabelId));
             if (fieldValues != null) {
                 E.checkState(fieldValues instanceof Number,
                              "Field value of range index must be number:" +
@@ -175,7 +181,7 @@ public class HugeIndex implements GraphType {
             Id idObject = IdGenerator.of(id, IdType.STRING);
             String[] parts = SplicingIdGenerator.parse(idObject);
             E.checkState(parts.length == 2, "Invalid secondary index id");
-            Id label = SchemaElement.schemaId(parts[0]);
+            Id label = IdGenerator.ofStoredString(parts[0], IdType.LONG);
             indexLabel = IndexLabel.label(graph, label);
             values = parts[1];
         } else {

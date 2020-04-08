@@ -37,7 +37,9 @@ import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
+import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
@@ -45,9 +47,10 @@ import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
-import com.baidu.hugegraph.backend.page.IdHolder;
+import com.baidu.hugegraph.backend.page.IdHolderList;
 import com.baidu.hugegraph.backend.page.PageInfo;
 import com.baidu.hugegraph.backend.page.QueryList;
+import com.baidu.hugegraph.backend.query.Aggregate;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.ConditionQueryFlatten;
@@ -61,9 +64,11 @@ import com.baidu.hugegraph.backend.tx.GraphIndexTransaction.OptimizedType;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.exception.LimitExceedException;
+import com.baidu.hugegraph.iterator.BatchMapperIterator;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.iterator.FilterIterator;
 import com.baidu.hugegraph.iterator.FlatMapperIterator;
+import com.baidu.hugegraph.iterator.ListIterator;
 import com.baidu.hugegraph.iterator.MapperIterator;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.EdgeLabel;
@@ -90,8 +95,7 @@ import com.google.common.collect.ImmutableList;
 
 public class GraphTransaction extends IndexableTransaction {
 
-    public static final int COMMIT_BATCH = 500;
-    private final int pageSize;
+    public static final int COMMIT_BATCH = (int) Query.COMMIT_BATCH;
 
     private final GraphIndexTransaction indexTx;
 
@@ -111,7 +115,13 @@ public class GraphTransaction extends IndexableTransaction {
 
     private LockUtil.LocksTable locksTable;
 
-    private final boolean checkVertexExist;
+    private final boolean checkCustomVertexExist;
+    private final boolean checkAdjacentVertexExist;
+    private final boolean lazyLoadAdjacentVertex;
+    private final boolean ignoreInvalidEntry;
+    private final int commitPartOfAdjacentEdges;
+    private final int batchSize;
+    private final int pageSize;
 
     private final int verticesCapacity;
     private final int edgesCapacity;
@@ -122,13 +132,31 @@ public class GraphTransaction extends IndexableTransaction {
         this.indexTx = new GraphIndexTransaction(graph, store);
         assert !this.indexTx.autoCommit();
 
+        this.locksTable = new LockUtil.LocksTable(graph.name());
+
         final HugeConfig conf = graph.configuration();
-        this.checkVertexExist = conf.get(
-                                CoreOptions.VERTEX_CHECK_CUSTOMIZED_ID_EXIST);
+        this.checkCustomVertexExist =
+             conf.get(CoreOptions.VERTEX_CHECK_CUSTOMIZED_ID_EXIST);
+        this.checkAdjacentVertexExist =
+             conf.get(CoreOptions.VERTEX_ADJACENT_VERTEX_EXIST);
+        this.lazyLoadAdjacentVertex =
+             conf.get(CoreOptions.VERTEX_ADJACENT_VERTEX_LAZY);
+        this.commitPartOfAdjacentEdges =
+             conf.get(CoreOptions.VERTEX_PART_EDGE_COMMIT_SIZE);
+        this.ignoreInvalidEntry =
+             conf.get(CoreOptions.QUERY_IGNORE_INVALID_DATA);
+        this.batchSize = conf.get(CoreOptions.QUERY_BATCH_SIZE);
+        this.pageSize = conf.get(CoreOptions.QUERY_PAGE_SIZE);
+
         this.verticesCapacity = conf.get(CoreOptions.VERTEX_TX_CAPACITY);
         this.edgesCapacity = conf.get(CoreOptions.EDGE_TX_CAPACITY);
-        this.pageSize = conf.get(CoreOptions.QUERY_PAGE_SIZE);
-        this.locksTable = new LockUtil.LocksTable(graph.name());
+
+        E.checkArgument(this.commitPartOfAdjacentEdges < this.edgesCapacity,
+                        "Option value of %s(%s) must be < %s(%s)",
+                        CoreOptions.VERTEX_PART_EDGE_COMMIT_SIZE.name(),
+                        this.commitPartOfAdjacentEdges,
+                        CoreOptions.EDGE_TX_CAPACITY.name(),
+                        this.edgesCapacity);
     }
 
     @Override
@@ -227,7 +255,7 @@ public class GraphTransaction extends IndexableTransaction {
 
     protected void prepareAdditions(Map<Id, HugeVertex> addedVertices,
                                     Map<Id, HugeEdge> addedEdges) {
-        if (this.checkVertexExist) {
+        if (this.checkCustomVertexExist) {
             this.checkVertexExistIfCustomizedId(addedVertices);
         }
         // Do vertex update
@@ -267,14 +295,26 @@ public class GraphTransaction extends IndexableTransaction {
                                     Map<Id, HugeEdge> removedEdges) {
         // Remove related edges of each vertex
         for (HugeVertex v : removedVertices.values()) {
+            if (!v.schemaLabel().existsLinkLabel()) {
+                continue;
+            }
             // Query all edges of the vertex and remove them
             Query query = constructEdgesQuery(v.id(), Directions.BOTH);
             Iterator<HugeEdge> vedges = this.queryEdgesFromBackend(query);
-            while (vedges.hasNext()) {
-                this.checkTxEdgesCapacity();
-                HugeEdge edge = vedges.next();
-                // NOTE: will change the input parameter
-                removedEdges.put(edge.id(), edge);
+            try {
+                while (vedges.hasNext()) {
+                    this.checkTxEdgesCapacity();
+                    HugeEdge edge = vedges.next();
+                    // NOTE: will change the input parameter
+                    removedEdges.put(edge.id(), edge);
+                    // Commit first if enabled commit-part mode
+                    if (this.commitPartOfAdjacentEdges > 0 &&
+                        removedEdges.size() >= this.commitPartOfAdjacentEdges) {
+                        this.commitPartOfEdgeDeletions(removedEdges);
+                    }
+                }
+            } finally {
+                CloseableIterator.closeIterator(vedges);
             }
         }
 
@@ -292,6 +332,11 @@ public class GraphTransaction extends IndexableTransaction {
             this.indexTx.updateLabelIndex(v, true);
         }
 
+        // Remove edges
+        this.prepareDeletions(removedEdges);
+    }
+
+    protected void prepareDeletions(Map<Id, HugeEdge> removedEdges) {
         // Remove edges
         for (HugeEdge e : removedEdges.values()) {
             this.checkAggregateProperty(e);
@@ -367,6 +412,24 @@ public class GraphTransaction extends IndexableTransaction {
         }
     }
 
+    private void commitPartOfEdgeDeletions(Map<Id, HugeEdge> removedEdges) {
+        assert this.commitPartOfAdjacentEdges > 0;
+
+        this.prepareDeletions(removedEdges);
+
+        BackendMutation mutation = this.mutation();
+        BackendMutation idxMutation = this.indexTransaction().mutation();
+
+        try {
+            this.commitMutation2Backend(mutation, idxMutation);
+        } finally {
+            mutation.clear();
+            idxMutation.clear();
+        }
+
+        removedEdges.clear();
+    }
+
     @Override
     public void commit() throws BackendException {
         try {
@@ -390,28 +453,40 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     @Override
-    public QueryResults query(Query query) {
+    public QueryResults<BackendEntry> query(Query query) {
         if (!(query instanceof ConditionQuery)) {
+            LOG.debug("Query{final:{}}", query);
             return super.query(query);
         }
 
-        QueryList queries = new QueryList(this.graph(), query, super::query);
-        for (ConditionQuery cq: ConditionQueryFlatten.flatten(
-                                (ConditionQuery) query)) {
-            Query q = this.optimizeQuery(cq);
-            /*
-             * NOTE: There are two possibilities for this query:
-             * 1.sysprop-query, which would not be empty.
-             * 2.index-query result(ids after optimization), which may be empty.
-             */
-            if (q == null) {
-                queries.add(this.indexQuery(cq));
-            } else if (!q.empty()) {
-                queries.add(q);
-            }
+        QueryList<BackendEntry> queries = this.optimizeQueries(query,
+                                                               super::query);
+        LOG.debug("{}", queries);
+        return queries.empty() ? QueryResults.empty() :
+                                 queries.fetch(this.pageSize);
+    }
+
+    @Override
+    public Number queryNumber(Query query) {
+        E.checkArgument(!this.hasUpdates(),
+                        "It's not allowed to query number when " +
+                        "there are uncommitted records.");
+
+        if (!(query instanceof ConditionQuery)) {
+            return super.queryNumber(query);
         }
 
-        return !queries.empty() ? queries.fetch() : QueryResults.empty();
+        QueryList<Number> queries = this.optimizeQueries(query, q -> {
+            boolean indexQuery = q.getClass() == IdQuery.class;
+            Number result = indexQuery ? q.ids().size() : super.queryNumber(q);
+            return new QueryResults<>(IteratorUtils.of(result), q);
+        });
+
+        QueryResults<Number> results = queries.empty() ?
+                                       QueryResults.empty() :
+                                       queries.fetch(this.pageSize);
+        Aggregate aggregate = query.aggregateNotNull();
+        return aggregate.reduce(results.iterator());
     }
 
     @Watched(prefix = "graph")
@@ -493,20 +568,36 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     public Iterator<Vertex> queryAdjacentVertices(Iterator<Edge> edges) {
-        if (!edges.hasNext()) {
-            return QueryResults.emptyIterator();
+        if (this.lazyLoadAdjacentVertex) {
+            return new MapperIterator<>(edges, edge -> {
+                return ((HugeEdge) edge).otherVertex();
+            });
         }
 
-        List<Id> vertexIds = new ArrayList<>();
-        while (edges.hasNext()) {
-            HugeEdge edge = (HugeEdge) edges.next();
-            vertexIds.add(edge.otherVertex().id());
-        }
+        return new BatchMapperIterator<>(this.batchSize, edges, batchEdges -> {
+            List<Id> vertexIds = new ArrayList<>();
+            for (Edge edge : batchEdges) {
+                vertexIds.add(((HugeEdge) edge).otherVertex().id());
+            }
+            assert vertexIds.size() > 0;
+            return this.queryAdjacentVertices(vertexIds.toArray());
+        });
+    }
 
-        return this.queryVertices(vertexIds.toArray());
+    public Iterator<Vertex> queryAdjacentVertices(Object... vertexIds) {
+        return this.queryVertices(vertexIds, true,
+                                  this.checkAdjacentVertexExist);
     }
 
     public Iterator<Vertex> queryVertices(Object... vertexIds) {
+        return this.queryVertices(vertexIds, false, false);
+    }
+
+    protected Iterator<Vertex> queryVertices(Object[] vertexIds,
+                                             boolean adjacentVertex,
+                                             boolean checkMustExist) {
+        Query.checkForceCapacity(vertexIds.length);
+
         // NOTE: allowed duplicated vertices if query by duplicated ids
         List<Id> ids = InsertionOrderUtil.newList();
         Map<Id, HugeVertex> vertices = new HashMap<>(vertexIds.length);
@@ -531,20 +622,26 @@ public class GraphTransaction extends IndexableTransaction {
 
         if (!query.empty()) {
             // Query from backend store
-            if (vertices.isEmpty() && query.ids().size() == ids.size()) {
-                // Sort at the lower layer and return directly
-                Iterator<HugeVertex> it = this.queryVerticesFromBackend(query);
-                @SuppressWarnings({ "unchecked", "rawtypes" })
-                Iterator<Vertex> r = (Iterator) it;
-                return r;
-            }
             query.mustSortByInput(false);
             Iterator<HugeVertex> it = this.queryVerticesFromBackend(query);
             QueryResults.fillMap(it, vertices);
         }
 
         return new MapperIterator<>(ids.iterator(), id -> {
-            return vertices.get(id);
+            HugeVertex vertex = vertices.get(id);
+            if (vertex == null) {
+                if (checkMustExist) {
+                    throw new HugeException("Vertex '%s' does not exist", id);
+                } else if (adjacentVertex) {
+                    assert !checkMustExist;
+                    // Return undefined if adjacentVertex but !checkMustExist
+                    vertex = HugeVertex.undefined(this.graph(), id);
+                } else {
+                    // Return null
+                    assert vertex == null;
+                }
+            }
+            return vertex;
         });
     }
 
@@ -554,8 +651,7 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     public Iterator<Vertex> queryVertices(Query query) {
-        E.checkArgument(this.removedVertices.isEmpty() ||
-                        query.limit() == Query.NO_LIMIT,
+        E.checkArgument(this.removedVertices.isEmpty() || query.nolimit(),
                         "It's not allowed to query with limit when " +
                         "there are uncommitted delete records.");
 
@@ -563,7 +659,12 @@ public class GraphTransaction extends IndexableTransaction {
 
         // Filter unused or incorrect records
         results = new FilterIterator<>(results, vertex -> {
-            assert vertex.schemaLabel() != VertexLabel.NONE;
+            // TODO: Left vertex should to be auto removed via async task
+            if (vertex.schemaLabel().undefined()) {
+                LOG.warn("Left vertex is found: id={}, label={}, properties={}",
+                         vertex.id(), vertex.schemaLabel().id(),
+                         vertex.getPropertiesMap());
+            }
             // Filter hidden results
             if (!query.showHidden() && Graph.Hidden.isHidden(vertex.label())) {
                 return false;
@@ -590,14 +691,11 @@ public class GraphTransaction extends IndexableTransaction {
     protected Iterator<HugeVertex> queryVerticesFromBackend(Query query) {
         assert query.resultType().isVertex();
 
-        QueryResults results = this.query(query);
+        QueryResults<BackendEntry> results = this.query(query);
         Iterator<BackendEntry> entries = results.iterator();
 
-        Iterator<HugeVertex> vertices = new MapperIterator<>(entries, entry -> {
-            HugeVertex vertex = this.serializer.readVertex(graph(), entry);
-            assert vertex != null;
-            return vertex;
-        });
+        Iterator<HugeVertex> vertices = new MapperIterator<>(entries,
+                                                             this::parseEntry);
 
         if (!this.store().features().supportsQuerySortByInputIds()) {
             // There is no id in BackendEntry, so sort after deserialization
@@ -654,6 +752,8 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     public Iterator<Edge> queryEdges(Object... edgeIds) {
+        Query.checkForceCapacity(edgeIds.length);
+
         // NOTE: allowed duplicated edges if query by duplicated ids
         List<Id> ids = InsertionOrderUtil.newList();
         Map<Id, HugeEdge> edges = new HashMap<>(edgeIds.length);
@@ -679,12 +779,16 @@ public class GraphTransaction extends IndexableTransaction {
         if (!query.empty()) {
             // Query from backend store
             if (edges.isEmpty() && query.ids().size() == ids.size()) {
-                // Sort at the lower layer and return directly
+                /*
+                 * Sort at the lower layer and return directly if there is no
+                 * local vertex and duplicated id.
+                 */
                 Iterator<HugeEdge> it = this.queryEdgesFromBackend(query);
                 @SuppressWarnings({ "unchecked", "rawtypes" })
                 Iterator<Edge> r = (Iterator) it;
                 return r;
             }
+
             query.mustSortByInput(false);
             Iterator<HugeEdge> it = this.queryEdgesFromBackend(query);
             QueryResults.fillMap(it, edges);
@@ -701,8 +805,7 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     public Iterator<Edge> queryEdges(Query query) {
-        E.checkArgument(this.removedEdges.isEmpty() ||
-                        query.limit() == Query.NO_LIMIT,
+        E.checkArgument(this.removedEdges.isEmpty() || query.nolimit(),
                         "It's not allowed to query with limit when " +
                         "there are uncommitted delete records.");
 
@@ -712,6 +815,12 @@ public class GraphTransaction extends IndexableTransaction {
         boolean withDuplicatedEdge = false;
         Set<Id> returnedEdges = withDuplicatedEdge ? new HashSet<>() : null;
         results = new FilterIterator<>(results, edge -> {
+            // TODO: Left edge should to be auto removed via async task
+            if (edge.schemaLabel().undefined()) {
+                LOG.warn("Left edge is found: id={}, label={}, properties={}",
+                         edge.id(), edge.schemaLabel().id(),
+                         edge.getPropertiesMap());
+            }
             // Filter hidden results
             if (!query.showHidden() && Graph.Hidden.isHidden(edge.label())) {
                 return false;
@@ -754,18 +863,23 @@ public class GraphTransaction extends IndexableTransaction {
     protected Iterator<HugeEdge> queryEdgesFromBackend(Query query) {
         assert query.resultType().isEdge();
 
-        QueryResults results = this.query(query);
+        QueryResults<BackendEntry> results = this.query(query);
         Iterator<BackendEntry> entries = results.iterator();
 
         Iterator<HugeEdge> edges = new FlatMapperIterator<>(entries, entry -> {
             // Edges are in a vertex
-            HugeVertex vertex = this.serializer.readVertex(graph(), entry);
-            assert vertex != null;
+            HugeVertex vertex = this.parseEntry(entry);
+            if (vertex == null) {
+                return null;
+            }
             if (query.ids().size() == 1) {
                 assert vertex.getEdges().size() == 1;
             }
-            // Copy to avoid ConcurrentModificationException when removing edge
-            return ImmutableList.copyOf(vertex.getEdges()).iterator();
+            /*
+             * Copy to avoid ConcurrentModificationException when removing edge
+             * because HugeEdge.remove() will update edges in owner vertex
+             */
+            return new ListIterator<>(ImmutableList.copyOf(vertex.getEdges()));
         });
 
         if (!this.store().features().supportsQuerySortByInputIds()) {
@@ -995,13 +1109,51 @@ public class GraphTransaction extends IndexableTransaction {
         return false;
     }
 
-    public static void verifyEdgesConditionQuery(ConditionQuery query) {
+    private static void verifyVerticesConditionQuery(ConditionQuery query) {
+        assert query.resultType().isVertex();
+
+        int total = query.conditions().size();
+        if (total == 1) {
+            /*
+             * Supported query:
+             *  1.query just by vertex label
+             *  2.query just by PROPERTIES (like containsKey,containsValue)
+             *  3.query with scan
+             */
+            if (query.containsCondition(HugeKeys.LABEL) ||
+                query.containsCondition(HugeKeys.PROPERTIES) ||
+                query.containsScanCondition()) {
+                return;
+            }
+        }
+
+        int matched = 0;
+        if (query.containsCondition(HugeKeys.PROPERTIES)) {
+            matched++;
+            if (query.containsCondition(HugeKeys.LABEL)) {
+                matched++;
+            }
+        }
+
+        if (matched != total) {
+            throw new HugeException("Not supported querying vertices by %s",
+                                    query.conditions());
+        }
+    }
+
+    private static void verifyEdgesConditionQuery(ConditionQuery query) {
         assert query.resultType().isEdge();
 
         int total = query.conditions().size();
         if (total == 1) {
-            // Supported: 1.query just by edge label, 2.query with scan
+            /*
+             * Supported query:
+             *  1.query just by edge label
+             *  2.query just by PROPERTIES (like containsKey,containsValue)
+             *  3.query with scan
+             */
             if (query.containsCondition(HugeKeys.LABEL) ||
+                query.containsCondition(HugeKeys.PROPERTIES) ||
                 query.containsScanCondition()) {
                 return;
             }
@@ -1015,28 +1167,48 @@ public class GraphTransaction extends IndexableTransaction {
             }
             matched++;
         }
+        int count = matched;
+
+        if (query.containsCondition(HugeKeys.PROPERTIES)) {
+            matched++;
+            if (count < 3 && query.containsCondition(HugeKeys.LABEL)) {
+                matched++;
+            }
+        }
+
         if (matched != total) {
-            throw new BackendException(
+            throw new HugeException(
                       "Not supported querying edges by %s, expect %s",
-                      query.conditions(), EdgeId.KEYS[matched]);
+                      query.conditions(), EdgeId.KEYS[count]);
         }
     }
 
-    private void checkAggregateProperty(HugeElement element) {
-        E.checkArgument(element.getAggregateProperties().isEmpty() ||
-                        this.store().features().supportsAggregateProperty(),
-                        "The %s store does not support aggregate property",
-                        this.store().provider().type());
-    }
-
-    private void checkAggregateProperty(HugeProperty<?> property) {
-        E.checkArgument(!property.isAggregateType() ||
-                        this.store().features().supportsAggregateProperty(),
-                        "The %s store does not support aggregate property",
-                        this.store().provider().type());
+    private <R> QueryList<R> optimizeQueries(Query query,
+                                             QueryResults.Fetcher<R> fetcher) {
+        QueryList<R> queries = new QueryList<>(query, fetcher);
+        for (ConditionQuery cq: ConditionQueryFlatten.flatten(
+                                (ConditionQuery) query)) {
+            Query q = this.optimizeQuery(cq);
+            /*
+             * NOTE: There are two possibilities for this query:
+             * 1.sysprop-query, which would not be empty.
+             * 2.index-query result(ids after optimization), which may be empty.
+             */
+            if (q == null) {
+                queries.add(this.indexQuery(cq), this.batchSize);
+            } else if (!q.empty()) {
+                queries.add(q);
+            }
+        }
+        return queries;
     }
 
     private Query optimizeQuery(ConditionQuery query) {
+        if (!query.ids().isEmpty()) {
+            throw new HugeException(
+                      "Not supported querying by id and conditions: %s", query);
+        }
+
         Id label = (Id) query.condition(HugeKeys.LABEL);
 
         // Optimize vertex query
@@ -1091,12 +1263,18 @@ public class GraphTransaction extends IndexableTransaction {
          * but we don't support query edges only by direction/target-vertex.
          */
         if (query.allSysprop()) {
-            if (query.resultType().isEdge()) {
+            if (query.resultType().isVertex()) {
+                verifyVerticesConditionQuery(query);
+            } else if (query.resultType().isEdge()) {
                 verifyEdgesConditionQuery(query);
             }
-            // Query by label & store supports feature or not query by label
+            /*
+             * Just support:
+             *  1.not query by label
+             *  2.or query by label and store supports this feature
+             */
             boolean byLabel = (label != null && query.conditions().size() == 1);
-            if (this.store().features().supportsQueryByLabel() || !byLabel) {
+            if (!byLabel || this.store().features().supportsQueryByLabel()) {
                 return query;
             }
         }
@@ -1104,7 +1282,7 @@ public class GraphTransaction extends IndexableTransaction {
         return null;
     }
 
-    private List<IdHolder> indexQuery(ConditionQuery query) {
+    private IdHolderList indexQuery(ConditionQuery query) {
         /*
          * Optimize by index-query
          * It will return a list of id (maybe empty) if success,
@@ -1194,6 +1372,20 @@ public class GraphTransaction extends IndexableTransaction {
         }
     }
 
+    private void checkAggregateProperty(HugeElement element) {
+        E.checkArgument(element.getAggregateProperties().isEmpty() ||
+                        this.store().features().supportsAggregateProperty(),
+                        "The %s store does not support aggregate property",
+                        this.store().provider().type());
+    }
+
+    private void checkAggregateProperty(HugeProperty<?> property) {
+        E.checkArgument(!property.isAggregateType() ||
+                        this.store().features().supportsAggregateProperty(),
+                        "The %s store does not support aggregate property",
+                        this.store().provider().type());
+    }
+
     private void checkNonnullProperty(HugeVertex vertex) {
         Set<Id> keys = vertex.getProperties().keySet();
         VertexLabel vertexLabel = vertex.schemaLabel();
@@ -1226,7 +1418,10 @@ public class GraphTransaction extends IndexableTransaction {
         }
         IdQuery idQuery = new IdQuery(HugeType.VERTEX, ids);
         Iterator<HugeVertex> results = this.queryVerticesFromBackend(idQuery);
-        if (results.hasNext()) {
+        try {
+            if (!results.hasNext()) {
+                return;
+            }
             HugeVertex existedVertex = results.next();
             HugeVertex newVertex = vertices.get(existedVertex.id());
             if (!existedVertex.label().equals(newVertex.label())) {
@@ -1237,6 +1432,8 @@ public class GraphTransaction extends IndexableTransaction {
                           newVertex.id(), newVertex.label(),
                           existedVertex.label());
             }
+        } finally {
+            CloseableIterator.closeIterator(results);
         }
     }
 
@@ -1418,6 +1615,26 @@ public class GraphTransaction extends IndexableTransaction {
         }
     }
 
+    private HugeVertex parseEntry(BackendEntry entry) {
+        try {
+            HugeVertex vertex = this.serializer.readVertex(graph(), entry);
+            assert vertex != null;
+            return vertex;
+        } catch (Throwable e) {
+            LOG.error("Failed to parse entry: {}", entry, e);
+            if (this.ignoreInvalidEntry) {
+                return null;
+            }
+            throw e;
+        }
+    }
+
+    public void checkAdjacentVertexExist(HugeVertex vertex) {
+        if (this.checkAdjacentVertexExist && vertex.schemaLabel().undefined()) {
+            throw new HugeException("Vertex '%s' does not exist", vertex.id());
+        }
+    }
+
     public void removeIndex(IndexLabel indexLabel) {
         // TODO: use event to replace direct call
         this.checkOwnerThread();
@@ -1438,7 +1655,7 @@ public class GraphTransaction extends IndexableTransaction {
 
     public void removeVertices(VertexLabel vertexLabel) {
         if (this.hasUpdates()) {
-            throw new BackendException("There are still changes to commit");
+            throw new HugeException("There are still changes to commit");
         }
 
         boolean autoCommit = this.autoCommit();
@@ -1461,7 +1678,7 @@ public class GraphTransaction extends IndexableTransaction {
 
     public void removeEdges(EdgeLabel edgeLabel) {
         if (this.hasUpdates()) {
-            throw new BackendException("There are still changes to commit");
+            throw new HugeException("There are still changes to commit");
         }
 
         boolean autoCommit = this.autoCommit();
@@ -1506,9 +1723,8 @@ public class GraphTransaction extends IndexableTransaction {
                                      Consumer<T> consumer, boolean deleting) {
         HugeType type = label.type() == HugeType.VERTEX_LABEL ?
                         HugeType.VERTEX : HugeType.EDGE;
-        Query query = label.enableLabelIndex() ?
-                      new ConditionQuery(type) :
-                      new Query(type);
+        Query query = label.enableLabelIndex() ? new ConditionQuery(type) :
+                                                 new Query(type);
         query.capacity(Query.NO_CAPACITY);
         query.limit(Query.NO_LIMIT);
         if (this.store().features().supportsQueryByPage()) {
@@ -1520,19 +1736,24 @@ public class GraphTransaction extends IndexableTransaction {
         query.showDeleting(deleting);
 
         if (label.enableLabelIndex()) {
-            // Support label index, query by label index
+            // Support label index, query by label index by paging
             ((ConditionQuery) query).eq(HugeKeys.LABEL, label.id());
             Iterator<T> iter = fetcher.apply(query);
-            while (iter.hasNext()) {
-                consumer.accept(iter.next());
-                /*
-                 * Commit per batch to avoid too much data in single commit,
-                 * especially for Cassandra backend
-                 */
-                this.commitIfGtSize(GraphTransaction.COMMIT_BATCH);
+            try {
+                // Fetch by paging automatically
+                while (iter.hasNext()) {
+                    consumer.accept(iter.next());
+                    /*
+                     * Commit per batch to avoid too much data in single commit,
+                     * especially for Cassandra backend
+                     */
+                    this.commitIfGtSize(GraphTransaction.COMMIT_BATCH);
+                }
+                // Commit changes if exists
+                this.commit();
+            } finally {
+                CloseableIterator.closeIterator(iter);
             }
-            // Commit changes if exists
-            this.commit();
         } else {
             // Not support label index, query all and filter by label
             if (query.paging()) {
@@ -1541,23 +1762,27 @@ public class GraphTransaction extends IndexableTransaction {
             String page = null;
             do {
                 Iterator<T> iter = fetcher.apply(query);
-                while (iter.hasNext()) {
-                    T e = iter.next();
-                    SchemaLabel elemLabel = ((HugeElement) e).schemaLabel();
-                    if (label.equals(elemLabel)) {
-                        consumer.accept(e);
-                        /*
-                         * Commit per batch to avoid too much data in single
-                         * commit, especially for Cassandra backend
-                         */
-                        this.commitIfGtSize(GraphTransaction.COMMIT_BATCH);
+                try {
+                    while (iter.hasNext()) {
+                        T e = iter.next();
+                        SchemaLabel elemLabel = ((HugeElement) e).schemaLabel();
+                        if (label.equals(elemLabel)) {
+                            consumer.accept(e);
+                            /*
+                             * Commit per batch to avoid too much data in single
+                             * commit, especially for Cassandra backend
+                             */
+                            this.commitIfGtSize(GraphTransaction.COMMIT_BATCH);
+                        }
                     }
-                }
-                // Commit changes of every page before next page query
-                this.commit();
-                if (query.paging()) {
-                    page = PageInfo.pageState(iter).toString();
-                    query.page(page);
+                    // Commit changes of every page before next page query
+                    this.commit();
+                    if (query.paging()) {
+                        page = PageInfo.pageState(iter).toString();
+                        query.page(page);
+                    }
+                } finally {
+                    CloseableIterator.closeIterator(iter);
                 }
             } while (page != null);
         }

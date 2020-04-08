@@ -41,8 +41,8 @@ import com.google.common.collect.ImmutableSet;
 
 public final class CachedSchemaTransaction extends SchemaTransaction {
 
-    private final Cache idCache;
-    private final Cache nameCache;
+    private final Cache<Id, Object> idCache;
+    private final Cache<Id, Object> nameCache;
 
     private EventListener storeEventListener;
     private EventListener cacheEventListener;
@@ -69,11 +69,11 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
         }
     }
 
-    private Cache cache(String prefix) {
+    private Cache<Id, Object> cache(String prefix) {
         HugeConfig conf = super.graph().configuration();
 
         final String name = prefix + "-" + super.graph().name();
-        final int capacity = conf.get(CoreOptions.SCHEMA_CACHE_CAPACITY);
+        final long capacity = conf.get(CoreOptions.SCHEMA_CACHE_CAPACITY);
         // NOTE: must disable schema cache-expire due to getAllSchema()
         return CacheManager.instance().cache(name, capacity);
     }

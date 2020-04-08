@@ -44,6 +44,7 @@ import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.id.SnowflakeIdGenerator;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
@@ -115,6 +116,8 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
                              "Primary values must not be empty " +
                              "(has properties %s)", hasProperties());
                 this.name = SplicingIdGenerator.concatValues(propValues);
+                E.checkArgument(!this.name.isEmpty(),
+                                "The value of primary key can't be empty");
             }
         }
         return this.name;
@@ -185,7 +188,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
     @Override
     public String label() {
-        return this.label.name();
+        return this.schemaLabel().name();
     }
 
     public void vertexLabel(VertexLabel label) {
@@ -454,14 +457,18 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
             return true;
         }
 
-        Iterator<Vertex> vertices = tx().queryVertices(this.id());
-        boolean exist = vertices.hasNext();
-        if (!exist && !throwIfNotExist) {
+        // NOTE: only adjacent vertex will reach here
+        Iterator<Vertex> vertices = tx().queryAdjacentVertices(this.id());
+        HugeVertex vertex = (HugeVertex) QueryResults.one(vertices);
+        if (vertex == null && !throwIfNotExist) {
             return false;
         }
-        E.checkState(exist, "Vertex '%s' does not exist", this.id);
-        this.copyProperties((HugeVertex) vertices.next());
-        assert exist;
+        E.checkState(vertex != null, "Vertex '%s' does not exist", this.id);
+        if (vertex.schemaLabel().undefined()) {
+            // Update label to undefined
+            this.label = vertex.schemaLabel();
+        }
+        this.copyProperties(vertex);
         return true;
     }
 
@@ -567,5 +574,10 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
     public static final Id getIdValue(Object idValue) {
         return HugeElement.getIdValue(idValue);
+    }
+
+    public static HugeVertex undefined(HugeGraph graph, Id id) {
+        VertexLabel label = VertexLabel.undefined(graph);
+        return new HugeVertex(graph, id, label);
     }
 }

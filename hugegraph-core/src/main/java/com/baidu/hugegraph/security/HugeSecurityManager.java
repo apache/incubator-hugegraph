@@ -64,17 +64,32 @@ public class HugeSecurityManager extends SecurityManager {
             "file.encoding" // PostgreSQL
     );
 
+    private static final Map<String, Set<String>> ASYNC_TASKS = ImmutableMap.of(
+            // Fixed https://github.com/hugegraph/hugegraph/pull/892#issue-387202362
+            "com.baidu.hugegraph.backend.tx.SchemaTransaction",
+            ImmutableSet.of("removeVertexLabel", "removeEdgeLabel",
+                            "removeIndexLabel", "rebuildIndex"),
+            "com.baidu.hugegraph.backend.tx.GraphIndexTransaction",
+            ImmutableSet.of("asyncRemoveIndexLeft")
+    );
+
     private static final Map<String, Set<String>> BACKEND_SOCKET = ImmutableMap.of(
+            // Fixed #758
             "com.baidu.hugegraph.backend.store.mysql.MysqlStore",
             ImmutableSet.of("open", "init", "clear", "opened", "initialized")
     );
 
     private static final Map<String, Set<String>> BACKEND_THREAD = ImmutableMap.of(
+            // Fixed #758
             "com.baidu.hugegraph.backend.store.cassandra.CassandraStore",
-            ImmutableSet.of("open", "opened", "init")
+            ImmutableSet.of("open", "opened", "init"),
+            // Fixed https://github.com/hugegraph/hugegraph/pull/892#issuecomment-598545072
+            "com.datastax.driver.core.AbstractSession",
+            ImmutableSet.of("execute")
     );
 
     private static final Set<String> HBASE_CLASSES = ImmutableSet.of(
+            // Fixed #758
             "com.baidu.hugegraph.backend.store.hbase.HbaseStore",
             "com.baidu.hugegraph.backend.store.hbase.HbaseStore$HbaseSchemaStore",
             "com.baidu.hugegraph.backend.store.hbase.HbaseStore$HbaseGraphStore",
@@ -120,8 +135,8 @@ public class HugeSecurityManager extends SecurityManager {
     @Override
     public void checkAccess(Thread thread) {
         if (callFromGremlin() && !callFromCaffeine() &&
-            !callFromBackendThread() && !callFromEventHubNotify() &&
-            !callFromBackendHbase()) {
+            !callFromAsyncTasks() && !callFromEventHubNotify() &&
+            !callFromBackendThread() && !callFromBackendHbase()) {
             throw newSecurityException(
                   "Not allowed to access thread via Gremlin");
         }
@@ -131,8 +146,8 @@ public class HugeSecurityManager extends SecurityManager {
     @Override
     public void checkAccess(ThreadGroup threadGroup) {
         if (callFromGremlin() && !callFromCaffeine() &&
-            !callFromBackendThread() && !callFromEventHubNotify() &&
-            !callFromBackendHbase()) {
+            !callFromAsyncTasks() && !callFromEventHubNotify() &&
+            !callFromBackendThread() && !callFromBackendHbase()) {
             throw newSecurityException(
                   "Not allowed to access thread group via Gremlin");
         }
@@ -391,6 +406,11 @@ public class HugeSecurityManager extends SecurityManager {
         // Fixed issue #758
         // notify() will create thread when submit task to executor
         return callFromMethod("com.baidu.hugegraph.event.EventHub", "notify");
+    }
+
+    private static boolean callFromAsyncTasks() {
+        // Async tasks will create thread when submitted to executor
+        return callFromMethods(ASYNC_TASKS);
     }
 
     private static boolean callFromBackendHbase() {

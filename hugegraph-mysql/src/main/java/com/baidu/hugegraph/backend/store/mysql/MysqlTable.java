@@ -28,13 +28,16 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiFunction;
 
 import org.apache.logging.log4j.util.Strings;
+import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.page.PageState;
+import com.baidu.hugegraph.backend.query.Aggregate;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
@@ -293,10 +296,33 @@ public abstract class MysqlTable
     }
 
     @Override
-    public Iterator<BackendEntry> query(Session session, Query query) {
-        ExtendableIterator<BackendEntry> rs = new ExtendableIterator<>();
+    public Number queryNumber(Session session, Query query) {
+        Aggregate aggregate = query.aggregateNotNull();
 
-        if (query.limit() == 0 && query.limit() != Query.NO_LIMIT) {
+        Iterator<Number> results = this.query(session, query, (q, rs) -> {
+            try {
+                if (!rs.next()) {
+                    return IteratorUtils.of(aggregate.defaultValue());
+                }
+                return IteratorUtils.of(rs.getLong(1));
+            } catch (SQLException e) {
+                throw new BackendException(e);
+            }
+        });
+        return aggregate.reduce(results);
+    }
+
+    @Override
+    public Iterator<BackendEntry> query(Session session, Query query) {
+        return this.query(session, query, this::results2Entries);
+    }
+
+    protected <R> Iterator<R> query(Session session, Query query,
+                                    BiFunction<Query, ResultSet, Iterator<R>>
+                                    parser) {
+        ExtendableIterator<R> rs = new ExtendableIterator<>();
+
+        if (query.limit() == 0L && !query.nolimit()) {
             LOG.debug("Return empty result(limit=0) for query {}", query);
             return rs;
         }
@@ -305,7 +331,7 @@ public abstract class MysqlTable
         try {
             for (StringBuilder selection : selections) {
                 ResultSet results = session.select(selection.toString());
-                rs.extend(this.results2Entries(query, results));
+                rs.extend(parser.apply(query, results));
             }
         } catch (SQLException e) {
             throw new BackendException("Failed to query [%s]", e, query);
@@ -316,9 +342,20 @@ public abstract class MysqlTable
     }
 
     protected List<StringBuilder> query2Select(String table, Query query) {
-        // Set table
+        // Build query
         StringBuilder select = new StringBuilder(64);
-        select.append("SELECT * FROM ").append(table);
+        select.append("SELECT ");
+
+        // Set aggregate
+        Aggregate aggregate = query.aggregate();
+        if (aggregate != null) {
+            select.append(aggregate.toString());
+        } else {
+            select.append("*");
+        }
+
+        // Set table
+        select.append(" FROM ").append(table);
 
         // Is query by id?
         List<StringBuilder> ids = this.queryId2Select(query, select);
@@ -344,7 +381,7 @@ public abstract class MysqlTable
             }
             if (query.paging()) {
                 this.wrapPage(selection, query);
-            } else if (query.limit() != Query.NO_LIMIT || query.offset() > 0) {
+            } else if (!query.nolimit() || query.offset() > 0) {
                 this.wrapOffset(selection, query);
             }
         }
@@ -512,7 +549,7 @@ public abstract class MysqlTable
 
         select.append(this.orderByKeys());
 
-        if (query.limit() != Query.NO_LIMIT) {
+        if (!query.nolimit()) {
             // Fetch `limit + 1` rows for judging whether reached the last page
             select.append(" limit ");
             select.append(query.limit() + 1);
@@ -533,6 +570,8 @@ public abstract class MysqlTable
         select.append(" offset ");
         select.append(query.offset());
         select.append(";");
+
+        query.skipOffset(query.offset());
     }
 
     protected Iterator<BackendEntry> results2Entries(Query query,

@@ -784,7 +784,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
         graph().tx().commit();
 
         List<Vertex> vertex = graph().traversal().V().hasLabel("person")
-                              .has("city", "Beijing").toList();
+                                     .has("city", "Beijing").toList();
         Assert.assertNotNull(vertex);
         Assert.assertEquals(2, vertex.size());
 
@@ -852,7 +852,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
         }, e -> {
             Assert.assertTrue(
                    e.getMessage().startsWith("Don't accept query by label") &&
-                   e.getMessage().endsWith("it disables label index"));
+                   e.getMessage().endsWith("label index is disabled"));
         });
 
         // Query by property index is ok
@@ -880,7 +880,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
         }, e -> {
             Assert.assertTrue(
                    e.getMessage().startsWith("Don't accept query by label") &&
-                   e.getMessage().endsWith("it disables label index"));
+                   e.getMessage().endsWith("label index is disabled"));
         });
 
         // Query by property index is ok

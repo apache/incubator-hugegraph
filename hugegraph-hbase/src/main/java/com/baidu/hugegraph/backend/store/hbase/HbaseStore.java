@@ -24,10 +24,9 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 import org.apache.hadoop.hbase.NamespaceExistException;
@@ -73,6 +72,16 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
         this.namespace = namespace;
         this.store = store;
         this.sessions = null;
+
+        this.registerMetaHandlers();
+        LOG.debug("Store loaded: {}", store);
+    }
+
+    private void registerMetaHandlers() {
+        this.registerMetaHandler("metrics", (session, meta, args) -> {
+            HbaseMetrics metrics = new HbaseMetrics(this.sessions);
+            return metrics.getMetrics();
+        });
     }
 
     protected void registerTableManager(HugeType type, HbaseTable table) {
@@ -216,6 +225,15 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
     }
 
     @Override
+    public Number queryNumber(Query query) {
+        this.checkOpened();
+
+        Session session = this.sessions.session();
+        HbaseTable table = this.table(HbaseTable.tableType(query));
+        return table.queryNumber(session, query);
+    }
+
+    @Override
     public void init() {
         this.checkConnectionOpened();
 
@@ -226,7 +244,7 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
             // Ignore due to both schema & graph store would create namespace
         } catch (IOException e) {
             throw new BackendException(
-                      "Failed to create namespace '%s' for '%s'",
+                      "Failed to create namespace '%s' for '%s' store",
                       e, this.namespace, this.store);
         }
 
@@ -238,7 +256,7 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
                 continue;
             } catch (IOException e) {
                 throw new BackendException(
-                          "Failed to create table '%s' for '%s'",
+                          "Failed to create table '%s' for '%s' store",
                           e, table, this.store);
             }
         }
@@ -267,11 +285,11 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
                 try {
                     this.sessions.dropTable(table);
                 } catch (TableNotFoundException e) {
-                    LOG.warn("The table '{}' for '{}' does not exist " +
+                    LOG.warn("The table '{}' of '{}' store does not exist " +
                              "when trying to drop", table, this.store);
                 } catch (IOException e) {
                     throw new BackendException(
-                              "Failed to drop table '%s' for '%s'",
+                              "Failed to drop table '%s' of '%s' store",
                               e, table, this.store);
                 }
             }
@@ -286,7 +304,7 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
                               this.namespace, e);
                 } else {
                     throw new BackendException(
-                              "Failed to drop namespace '%s' for '%s'",
+                              "Failed to drop namespace '%s' of '%s' store",
                               e, this.namespace, this.store);
                 }
             }
@@ -318,29 +336,66 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
     public void truncate() {
         this.checkOpened();
 
+        // Total time may cost 3 * TRUNCATE_TIMEOUT, due to there are 3 stores
+        long timeout = this.sessions.config().get(HbaseOptions.TRUNCATE_TIMEOUT);
+        long start = System.currentTimeMillis();
+
+        BiFunction<String, Future<Void>, Void> wait = (table, future) -> {
+            long elapsed = System.currentTimeMillis() - start;
+            long remainingTime = timeout - elapsed / 1000L;
+            try {
+                return future.get(remainingTime, TimeUnit.SECONDS);
+            } catch (Exception e) {
+                throw new BackendException(
+                          "Error when truncating table '%s' of '%s' store: %s",
+                          table, this.store, e.toString());
+            }
+        };
+
         // Truncate tables
         List<String> tables = this.tableNames();
         Map<String, Future<Void>> futures = new HashMap<>(tables.size());
-        String currentTable = null;
+
         try {
+            // Disable tables async
             for (String table : tables) {
-                currentTable = table;
-                futures.put(table, this.sessions.truncateTable(table));
+                futures.put(table, this.sessions.disableTableAsync(table));
             }
-            long timeout = this.sessions.config()
-                                        .get(HbaseOptions.TRUNCATE_TIMEOUT);
             for (Map.Entry<String, Future<Void>> entry : futures.entrySet()) {
-                currentTable = entry.getKey();
-                entry.getValue().get(timeout, TimeUnit.SECONDS);
+                wait.apply(entry.getKey(), entry.getValue());
             }
-        } catch (IOException | InterruptedException |
-                 ExecutionException | TimeoutException e) {
+        } catch (Exception e) {
+            this.enableTables();
             throw new BackendException(
-                      "Failed to truncate table '%s' for '%s'",
-                      e, currentTable, this.store);
+                      "Failed to disable table for '%s' store", e, this.store);
+        }
+
+        try {
+            // Truncate tables async
+            for (String table : tables) {
+                futures.put(table, this.sessions.truncateTableAsync(table));
+            }
+            for (Map.Entry<String, Future<Void>> entry : futures.entrySet()) {
+                wait.apply(entry.getKey(), entry.getValue());
+            }
+        } catch (Exception e) {
+            this.enableTables();
+            throw new BackendException(
+                      "Failed to truncate table for '%s' store", e, this.store);
         }
 
         LOG.debug("Store truncated: {}", this.store);
+    }
+
+    private void enableTables() {
+        for (String table : this.tableNames()) {
+            try {
+                this.sessions.enableTable(table);
+            } catch (Exception e) {
+                LOG.warn("Failed to enable table '{}' of '{}' store",
+                         table, this.store, e);
+            }
+        }
     }
 
     @Override

@@ -112,6 +112,10 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
         this.propLoaded = false;
     }
 
+    public void forceLoad() {
+        this.ensureFilledProperties(false);
+    }
+
     public void committed() {
         this.fresh = false;
     }
@@ -122,14 +126,13 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
 
     public Map<Id, HugeProperty<?>> getFilledProperties() {
         this.ensureFilledProperties(true);
-        return Collections.unmodifiableMap(this.properties);
+        return this.getProperties();
     }
 
     public Map<Id, Object> getPropertiesMap() {
         Map<Id, Object> props = new HashMap<>();
-        for (Map.Entry<Id, HugeProperty<?>> entry :
-             this.properties.entrySet()) {
-            props.put(entry.getKey(), entry.getValue().value());
+        for (Map.Entry<Id, HugeProperty<?>> e : this.properties.entrySet()) {
+            props.put(e.getKey(), e.getValue().value());
         }
         return props;
     }

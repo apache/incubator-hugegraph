@@ -21,6 +21,8 @@ package com.baidu.hugegraph.backend.tx;
 
 import java.util.Iterator;
 
+import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
+
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.IdQuery;
@@ -67,7 +69,7 @@ public class SchemaIndexTransaction extends AbstractTransaction {
 
     @Watched(prefix = "index")
     @Override
-    public QueryResults query(Query query) {
+    public QueryResults<BackendEntry> query(Query query) {
         if (query instanceof ConditionQuery) {
             ConditionQuery q = (ConditionQuery) query;
             if (q.allSysprop() && q.conditions().size() == 1 &&
@@ -79,7 +81,7 @@ public class SchemaIndexTransaction extends AbstractTransaction {
     }
 
     @Watched(prefix = "index")
-    private QueryResults queryByName(ConditionQuery query) {
+    private QueryResults<BackendEntry> queryByName(ConditionQuery query) {
         if (!this.needIndexForName()) {
             return super.query(query);
         }
@@ -93,16 +95,23 @@ public class SchemaIndexTransaction extends AbstractTransaction {
         indexQuery.eq(HugeKeys.FIELD_VALUES, name);
         indexQuery.eq(HugeKeys.INDEX_LABEL_ID, il.id());
 
-        Iterator<BackendEntry> entries = super.query(indexQuery).iterator();
         IdQuery idQuery = new IdQuery(query.resultType(), query);
-        while (entries.hasNext()) {
-            HugeIndex index = this.serializer.readIndex(graph(), indexQuery,
-                                                        entries.next());
-            idQuery.query(index.elementIds());
+        Iterator<BackendEntry> entries = super.query(indexQuery).iterator();
+        try {
+            while (entries.hasNext()) {
+                HugeIndex index = this.serializer.readIndex(graph(), indexQuery,
+                                                            entries.next());
+                idQuery.query(index.elementIds());
+                Query.checkForceCapacity(idQuery.ids().size());
+            }
+        } finally {
+            CloseableIterator.closeIterator(entries);
         }
+
         if (idQuery.ids().isEmpty()) {
             return QueryResults.empty();
         }
+
         assert idQuery.ids().size() == 1 : idQuery.ids();
         return super.query(idQuery);
     }

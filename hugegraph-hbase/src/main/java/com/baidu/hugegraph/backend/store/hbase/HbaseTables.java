@@ -168,7 +168,7 @@ public class HbaseTables {
 
     public static class IndexTable extends HbaseTable {
 
-        private static final int INDEX_DELETE_BATCH = 1000;
+        private static final long INDEX_DELETE_BATCH = Query.COMMIT_BATCH;
 
         public IndexTable(String table) {
             super(table);
@@ -195,7 +195,7 @@ public class HbaseTables {
              * Only delete index by label will come here
              * Regular index delete will call eliminate()
              */
-            int count = 0;
+            long count = 0L;
             for (BackendColumn column : entry.columns()) {
                 session.commit();
                 // Prefix query index label related indexes
@@ -205,18 +205,18 @@ public class HbaseTables {
                     // Commit once reaching batch size
                     if (++count >= INDEX_DELETE_BATCH) {
                         session.commit();
-                        count = 0;
+                        count = 0L;
                     }
                 }
             }
-            if (count > 0) {
+            if (count > 0L) {
                 session.commit();
             }
         }
 
         @Override
-        protected BackendEntryIterator newEntryIterator(RowIterator rows,
-                                                        Query query) {
+        protected BackendEntryIterator newEntryIterator(Query query,
+                                                        RowIterator rows) {
             return new BinaryEntryIterator<>(rows, query, (entry, row) -> {
                 assert row.size() == 1;
                 BackendColumn col = BackendColumn.of(row.getRow(), row.value());
@@ -224,15 +224,6 @@ public class HbaseTables {
                 entry.columns(col);
                 return entry;
             });
-        }
-    }
-
-    public static class SecondaryIndex extends IndexTable {
-
-        public static final String TABLE = HugeType.SECONDARY_INDEX.string();
-
-        public SecondaryIndex(String store) {
-            super(joinTableName(store, TABLE));
         }
     }
 
@@ -250,6 +241,15 @@ public class HbaseTables {
         public static final String TABLE = HugeType.EDGE_LABEL_INDEX.string();
 
         public EdgeLabelIndex(String store) {
+            super(joinTableName(store, TABLE));
+        }
+    }
+
+    public static class SecondaryIndex extends IndexTable {
+
+        public static final String TABLE = HugeType.SECONDARY_INDEX.string();
+
+        public SecondaryIndex(String store) {
             super(joinTableName(store, TABLE));
         }
     }

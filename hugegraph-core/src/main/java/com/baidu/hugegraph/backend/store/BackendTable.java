@@ -107,6 +107,8 @@ public abstract class BackendTable<Session extends BackendSession, Entry> {
 
     public abstract Iterator<BackendEntry> query(Session session, Query query);
 
+    public abstract Number queryNumber(Session session, Query query);
+
     public abstract void insert(Session session, Entry entry);
 
     public abstract void delete(Session session, Entry entry);

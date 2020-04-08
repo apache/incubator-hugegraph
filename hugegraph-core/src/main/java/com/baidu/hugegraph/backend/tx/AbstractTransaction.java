@@ -19,8 +19,6 @@
 
 package com.baidu.hugegraph.backend.tx;
 
-import java.util.Iterator;
-
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
@@ -88,7 +86,24 @@ public abstract class AbstractTransaction implements Transaction {
     }
 
     @Watched(prefix = "tx")
-    public QueryResults query(Query query) {
+    public Number queryNumber(Query query) {
+        LOG.debug("Transaction queryNumber: {}", query);
+
+        E.checkArgument(query.aggregate() != null,
+                        "The aggregate must be set for number query: %s",
+                        query);
+        Query squery = this.serializer.writeQuery(query);
+
+        this.beforeRead();
+        try {
+            return this.store.queryNumber(squery);
+        } finally {
+            this.afterRead();
+        }
+    }
+
+    @Watched(prefix = "tx")
+    public QueryResults<BackendEntry> query(Query query) {
         LOG.debug("Transaction query: {}", query);
         /*
          * NOTE: it's dangerous if an IdQuery/ConditionQuery is empty
@@ -102,7 +117,7 @@ public abstract class AbstractTransaction implements Transaction {
 
         this.beforeRead();
         try {
-            return new QueryResults(this.store.query(squery), query);
+            return new QueryResults<>(this.store.query(squery), query);
         } finally {
             this.afterRead(); // TODO: not complete the iteration currently
         }
@@ -110,14 +125,8 @@ public abstract class AbstractTransaction implements Transaction {
 
     @Watched(prefix = "tx")
     public BackendEntry query(HugeType type, Id id) {
-        IdQuery q = new IdQuery(type, id);
-        Iterator<BackendEntry> results = this.query(q).iterator();
-        if (results.hasNext()) {
-            BackendEntry entry = results.next();
-            assert !results.hasNext();
-            return entry;
-        }
-        return null;
+        IdQuery idQuery = new IdQuery(type, id);
+        return this.query(idQuery).one();
     }
 
     public BackendEntry get(HugeType type, Id id) {
@@ -296,9 +305,13 @@ public abstract class AbstractTransaction implements Transaction {
             } catch (Throwable e2) {
                 LOG.error("Failed to rollback changes:\n {}", mutation, e2);
             }
-            // Rethrow the commit exception
+            /*
+             * Rethrow the commit exception
+             * The e.getMessage maybe too long to see key information,
+             * therefore use e.getCause
+             */
             throw new BackendException(
-                      "Failed to commit changes: %s", e1.getMessage());
+                      "Failed to commit changes: %s", e1.getCause());
         }
     }
 

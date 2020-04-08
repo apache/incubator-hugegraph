@@ -28,6 +28,9 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
 
+import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 
 public class CacheManager {
@@ -41,7 +44,7 @@ public class CacheManager {
     // Log if tick cost time > 1000ms
     private static final long LOG_TICK_COST_TIME = 1000L;
 
-    private final Map<String, Cache> caches;
+    private final Map<String, Cache<Id, ?>> caches;
     private final Timer timer;
 
     public static CacheManager instance() {
@@ -60,7 +63,8 @@ public class CacheManager {
             @Override
             public void run() {
                 try {
-                    for (Entry<String, Cache> entry : caches().entrySet()) {
+                    for (Entry<String, Cache<Id, Object>> entry :
+                         caches().entrySet()) {
                         this.tick(entry.getKey(), entry.getValue());
                     }
                 } catch (Throwable e) {
@@ -68,7 +72,7 @@ public class CacheManager {
                 }
             }
 
-            private void tick(String name, Cache cache) {
+            private void tick(String name, Cache<Id, Object> cache) {
                 long start = System.currentTimeMillis();
                 long items = cache.tick();
                 long cost = System.currentTimeMillis() - start;
@@ -87,18 +91,53 @@ public class CacheManager {
         return task;
     }
 
-    public Map<String, Cache> caches() {
-        return Collections.unmodifiableMap(this.caches);
+    public <V> Map<String, Cache<Id, V>> caches() {
+        @SuppressWarnings({ "rawtypes", "unchecked" })
+        Map<String, Cache<Id, V>> caches = (Map) this.caches;
+        return Collections.unmodifiableMap(caches);
     }
 
-    public Cache cache(String name) {
+    public <V> Cache<Id, V> cache(String name) {
         return this.cache(name, RamCache.DEFAULT_SIZE);
     }
 
-    public Cache cache(String name, int capacity) {
+    public <V> Cache<Id, V> cache(String name, long capacity) {
         if (!this.caches.containsKey(name)) {
             this.caches.putIfAbsent(name, new RamCache(capacity));
         }
-        return this.caches.get(name);
+        @SuppressWarnings("unchecked")
+        Cache<Id, V> cache = (Cache<Id, V>) this.caches.get(name);
+        E.checkArgument(cache instanceof RamCache,
+                        "Invalid cache implement: %s", cache.getClass());
+        return cache;
+    }
+
+    public <V> Cache<Id, V> offheapCache(HugeGraph graph, String name,
+                                         long capacity, long avgElemSize) {
+        if (!this.caches.containsKey(name)) {
+            OffheapCache cache = new OffheapCache(graph, capacity, avgElemSize);
+            this.caches.putIfAbsent(name, cache);
+        }
+        @SuppressWarnings("unchecked")
+        Cache<Id, V> cache = (Cache<Id, V>) this.caches.get(name);
+        E.checkArgument(cache instanceof OffheapCache,
+                        "Invalid cache implement: %s", cache.getClass());
+        return cache;
+    }
+
+    public <V> Cache<Id, V> levelCache(HugeGraph graph, String name,
+                                       long capacity1, long capacity2,
+                                       long avgElemSize) {
+        if (!this.caches.containsKey(name)) {
+            RamCache cache1 = new RamCache(capacity1);
+            OffheapCache cache2 = new OffheapCache(graph, capacity2,
+                                                   avgElemSize);
+            this.caches.putIfAbsent(name, new LevelCache(cache1, cache2));
+        }
+        @SuppressWarnings("unchecked")
+        Cache<Id, V> cache = (Cache<Id, V>) this.caches.get(name);
+        E.checkArgument(cache instanceof LevelCache,
+                        "Invalid cache implement: %s", cache.getClass());
+        return cache;
     }
 }

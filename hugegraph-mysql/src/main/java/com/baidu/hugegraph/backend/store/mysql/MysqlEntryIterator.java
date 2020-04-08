@@ -101,15 +101,15 @@ public class MysqlEntryIterator extends BackendEntryIterator {
     }
 
     @Override
+    protected void skipOffset() {
+        // pass
+    }
+
+    @Override
     protected final long sizeOf(BackendEntry entry) {
         MysqlBackendEntry e = (MysqlBackendEntry) entry;
         int subRowsSize = e.subRows().size();
         return subRowsSize > 0 ? subRowsSize : 1L;
-    }
-
-    @Override
-    protected final long offset() {
-        return 0L;
     }
 
     @Override

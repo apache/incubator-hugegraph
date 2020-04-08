@@ -26,6 +26,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import javax.ws.rs.QueryParam;
+
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
@@ -42,6 +44,8 @@ import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.traversal.algorithm.CustomizedCrosspointsTraverser.CrosspointsPaths;
 import com.baidu.hugegraph.traversal.algorithm.FusiformSimilarityTraverser.SimilarsMap;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
+import com.baidu.hugegraph.traversal.algorithm.SingleSourceShortestPathTraverser.NodeWithWeight;
+import com.baidu.hugegraph.traversal.algorithm.SingleSourceShortestPathTraverser.ShortestPaths;
 import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.google.common.collect.ImmutableList;
@@ -79,6 +83,10 @@ public class JsonSerializer implements Serializer {
 
     private String writeIterator(String label, Iterator<?> iter,
                                  boolean paging) {
+        // Early throw if needed
+        iter.hasNext();
+
+        // Serialize Iterator
         try (ByteArrayOutputStream out = new ByteArrayOutputStream(LBUF_SIZE)) {
             out.write("{".getBytes(API.CHARSET));
 
@@ -176,9 +184,7 @@ public class JsonSerializer implements Serializer {
         long id = cil.task() == null ? 0L : cil.task().asLong();
         return builder.append("{\"index_label\": ")
                       .append(this.writeIndexlabel(cil.indexLabel()))
-                      .append(", \"task_id\": ")
-                      .append(id)
-                      .append("}")
+                      .append(", \"task_id\": ").append(id).append("}")
                       .toString();
     }
 
@@ -244,6 +250,20 @@ public class JsonSerializer implements Serializer {
     public String writeSimilars(SimilarsMap similars,
                                 Iterator<Vertex> vertices) {
         return JsonUtil.toJson(ImmutableMap.of("similars", similars.toMap(),
+                                               "vertices", vertices));
+    }
+
+    @Override
+    public String writeShortestPath(NodeWithWeight path,
+                                    Iterator<Vertex> vertices) {
+        return JsonUtil.toJson(ImmutableMap.of("shortest_path", path.toMap(),
+                                               "vertices", vertices));
+    }
+
+    @Override
+    public String writeShortestPaths(ShortestPaths paths,
+                                     Iterator<Vertex> vertices) {
+        return JsonUtil.toJson(ImmutableMap.of("shortest_paths", paths.toMap(),
                                                "vertices", vertices));
     }
 }

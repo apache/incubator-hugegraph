@@ -114,28 +114,32 @@ public class EdgeLabelBuilder implements EdgeLabel.Builder {
         HugeType type = HugeType.EDGE_LABEL;
         SchemaTransaction tx = this.transaction;
         SchemaElement.checkName(this.name, tx.graph().configuration());
-        EdgeLabel edgeLabel = tx.getEdgeLabel(this.name);
-        if (edgeLabel != null) {
-            if (this.checkExist) {
-                throw new ExistedException(type, this.name);
+
+        return tx.lockCheckAndCreateSchema(type, this.name, name -> {
+            EdgeLabel edgeLabel = tx.getEdgeLabel(name);
+            if (edgeLabel != null) {
+                if (this.checkExist) {
+                    throw new ExistedException(type, name);
+                }
+                return edgeLabel;
             }
+            tx.checkIdIfRestoringMode(type, this.id);
+
+            if (this.frequency == Frequency.DEFAULT) {
+                this.frequency = Frequency.SINGLE;
+            }
+            // These methods will check params and fill to member variables
+            this.checkRelation();
+            this.checkProperties(Action.INSERT);
+            this.checkSortKeys();
+            this.checkNullableKeys(Action.INSERT);
+            Userdata.check(this.userdata, Action.INSERT);
+
+            edgeLabel = this.build();
+            assert edgeLabel.name().equals(name);
+            tx.addEdgeLabel(edgeLabel);
             return edgeLabel;
-        }
-        tx.checkIdIfRestoringMode(type, this.id);
-
-        if (this.frequency == Frequency.DEFAULT) {
-            this.frequency = Frequency.SINGLE;
-        }
-        // These methods will check params and fill to member variables
-        this.checkRelation();
-        this.checkProperties(Action.INSERT);
-        this.checkSortKeys();
-        this.checkNullableKeys(Action.INSERT);
-        Userdata.check(this.userdata, Action.INSERT);
-
-        edgeLabel = this.build();
-        tx.addEdgeLabel(edgeLabel);
-        return edgeLabel;
+        });
     }
 
     @Override

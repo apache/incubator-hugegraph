@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 
 import org.apache.tinkerpop.gremlin.process.traversal.Order;
@@ -40,19 +41,23 @@ import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.page.PageInfo;
+import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
+import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.Shard;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.config.CoreOptions;
@@ -71,6 +76,7 @@ import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.util.Events;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
@@ -535,6 +541,42 @@ public class EdgeCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testOverrideEdge() {
+        HugeGraph graph = graph();
+        Vertex marko = graph().addVertex(T.label, "author", "id", 1,
+                                         "name", "marko", "age", 28,
+                                         "lived", "Beijing");
+        Vertex java = graph().addVertex(T.label, "book",
+                                        "name", "Java in action");
+
+        Object edgeId = marko.addEdge("authored", java,
+                                      "contribution", "2010-01-01", "score", 99)
+                             .id();
+        graph.tx().commit();
+        Edge edge = graph.edges(edgeId).next();
+        Assert.assertTrue(edge.property("contribution").isPresent());
+        Assert.assertEquals("2010-01-01", edge.value("contribution"));
+        Assert.assertTrue(edge.property("score").isPresent());
+        Assert.assertEquals(99, edge.value("score"));
+
+        marko.addEdge("authored", java, "score", 100).id();
+        graph.tx().commit();
+        edge = graph.edges(edgeId).next();
+        Assert.assertFalse(edge.property("contribution").isPresent());
+        Assert.assertTrue(edge.property("score").isPresent());
+        Assert.assertEquals(100, edge.value("score"));
+
+        marko.addEdge("authored", java, "contribution", "2011-01-01",
+                      "score", 101).id();
+        graph.tx().commit();
+        edge = graph.edges(edgeId).next();
+        Assert.assertTrue(edge.property("contribution").isPresent());
+        Assert.assertEquals("2011-01-01", edge.value("contribution"));
+        Assert.assertTrue(edge.property("score").isPresent());
+        Assert.assertEquals(101, edge.value("score"));
+    }
+
+    @Test
     public void testQueryAllEdges() {
         HugeGraph graph = graph();
         init18Edges();
@@ -642,18 +684,23 @@ public class EdgeCoreTest extends BaseCoreTest {
         Assert.assertEquals(10, edges.size());
     }
 
+    @Test
     public void testQueryAllWithLimitAfterDelete() {
         HugeGraph graph = graph();
         init18Edges();
 
         // Query all with limit after delete
         graph.traversal().E().limit(14).drop().iterate();
-        Assert.assertEquals(4L, graph.traversal().V().count().next());
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            // Query count with uncommitted records
+            graph.traversal().E().count().next();
+        });
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             // Query with limit
-            graph.traversal().V().limit(3).toList();
+            graph.traversal().E().limit(3).toList();
         });
         graph.tx().commit();
+        Assert.assertEquals(4L, graph.traversal().E().count().next());
         List<Edge> edges = graph.traversal().E().limit(3).toList();
         Assert.assertEquals(3, edges.size());
 
@@ -965,6 +1012,65 @@ public class EdgeCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testQueryEdgesByInvalidSysprop() {
+        HugeGraph graph = graph();
+        init18Edges();
+
+        List<Edge> edges = graph.traversal().E().hasLabel("know").toList();
+        Assert.assertEquals(1, edges.size());
+        HugeEdge edge = (HugeEdge) edges.get(0);
+        Id id = edge.id();
+        Id know = edge.schemaLabel().id();
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.traversal().E().hasLabel("know").has("ID", id).toList();
+        }, e -> {
+            Assert.assertContains("Undefined property key: 'ID'",
+                                  e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.traversal().E().hasLabel("know").has("NAME", "n1").toList();
+        }, e -> {
+            Assert.assertContains("Undefined property key: 'NAME'",
+                                  e.getMessage());
+        });
+
+        Assert.assertThrows(HugeException.class, () -> {
+            ConditionQuery query = new ConditionQuery(HugeType.EDGE);
+            query.eq(HugeKeys.LABEL, know);
+            query.query(id);
+            graph.edges(query).hasNext();
+        }, e -> {
+            Assert.assertContains("Not supported querying by id and conditions",
+                                  e.getMessage());
+        });
+
+        Assert.assertThrows(HugeException.class, () -> {
+            ConditionQuery query = new ConditionQuery(HugeType.EDGE);
+            query.eq(HugeKeys.LABEL, know);
+            query.eq(HugeKeys.NAME, "n1");
+            graph.edges(query).hasNext();
+        }, e -> {
+            Assert.assertContains("Not supported querying edges by",
+                                  e.getMessage());
+            Assert.assertContains("NAME == n1", e.getMessage());
+        });
+
+        Assert.assertThrows(HugeException.class, () -> {
+            ConditionQuery query = new ConditionQuery(HugeType.EDGE);
+            query.eq(HugeKeys.LABEL, know);
+            query.eq(HugeKeys.NAME, "n2");
+            query.query(Condition.eq(IdGenerator.of("fake"), "n3"));
+            graph.edges(query).hasNext();
+        }, e -> {
+            Assert.assertContains("Can't do index query with [LABEL ==",
+                                  e.getMessage());
+            Assert.assertContains("NAME == n2", e.getMessage());
+        });
+    }
+
+    @Test
     public void testQueryEdgesByLabel() {
         HugeGraph graph = graph();
         init18Edges();
@@ -1018,8 +1124,68 @@ public class EdgeCoreTest extends BaseCoreTest {
         ConditionQuery q = new ConditionQuery(HugeType.EDGE);
         q.eq(HugeKeys.DIRECTION, Direction.OUT);
 
-        Assert.assertThrows(BackendException.class, () -> {
+        Assert.assertThrows(HugeException.class, () -> {
             graph.edges(q);
+        });
+    }
+
+    @Test
+    public void testQueryEdgesByHasKey() {
+        HugeGraph graph = graph();
+        BackendFeatures features = graph.graphTransaction().store().features();
+        Assume.assumeTrue("Not support CONTAINS_KEY query",
+                          features.supportsQueryWithContainsKey());
+        init18Edges();
+
+        List<Edge> edges = graph.traversal().E()
+                                .hasLabel("authored").hasKey("score")
+                                .toList();
+        Assert.assertEquals(1, edges.size());
+        Assert.assertEquals(3, edges.get(0).value("score"));
+
+        edges = graph.traversal().E().hasKey("score").toList();
+        Assert.assertEquals(5, edges.size());
+    }
+
+    @Test
+    public void testQueryEdgesByHasKeys() {
+        HugeGraph graph = graph();
+        init18Edges();
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.traversal().E().hasLabel("authored")
+                 .hasKey("score", "time").toList();
+        });
+    }
+
+    @Test
+    public void testQueryEdgesByHasValue() {
+        HugeGraph graph = graph();
+        BackendFeatures features = graph.graphTransaction().store().features();
+        Assume.assumeTrue("Not support CONTAINS query",
+                          features.supportsQueryWithContains());
+        init18Edges();
+
+        List<Edge> edges = graph.traversal().E()
+                                .hasLabel("look").hasValue(3)
+                                .toList();
+        Assert.assertEquals(2, edges.size());
+        Assert.assertEquals(3, edges.get(0).value("score"));
+        Assert.assertEquals(3, edges.get(1).value("score"));
+
+        // TODO: Seems Cassandra Bug if contains null value #862
+        //edges = graph.traversal().E().hasValue(3).toList();
+        //Assert.assertEquals(3, edges.size());
+    }
+
+    @Test
+    public void testQueryEdgesByHasValues() {
+        HugeGraph graph = graph();
+        init18Edges();
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.traversal().E().hasLabel("look")
+                 .hasValue(3, "2017-5-1").toList();
         });
     }
 
@@ -1286,6 +1452,244 @@ public class EdgeCoreTest extends BaseCoreTest {
         Assert.assertTrue(edge.otherVertex().getProperties().isEmpty());
         Assert.assertEquals(1, edge.otherVertex().getFilledProperties().size());
         Assert.assertEquals(1, edge.otherVertex().getProperties().size());
+    }
+
+    @Test
+    public void testQueryVerticesOfEdgesWithoutVertex()
+                throws InterruptedException, ExecutionException {
+        HugeGraph graph = graph();
+
+        Vertex james = graph.addVertex(T.label, "author", "id", 1,
+                                       "name", "James Gosling", "age", 62,
+                                       "lived", "Canadian");
+        Vertex java = new HugeVertex(graph, IdGenerator.of("java"),
+                                     graph.vertexLabel("book"));
+
+        james.addEdge("authored", java, "score", 3);
+        graph.tx().commit();
+
+        List<Edge> edges = graph.traversal().V(james.id()).outE().toList();
+        Assert.assertEquals(1, edges.size());
+
+        Assert.assertEquals(0, graph.traversal().V(java).toList().size());
+
+        List<Vertex> vertices = graph.traversal().V(james.id()).out().toList();
+        Assert.assertEquals(1, vertices.size());
+        HugeVertex adjacent = (HugeVertex) vertices.get(0);
+        Assert.assertFalse(adjacent.schemaLabel().undefined());
+        adjacent.forceLoad(); // force load
+        Assert.assertTrue("label: " + adjacent.schemaLabel(),
+                          adjacent.schemaLabel().undefined());
+        Assert.assertEquals("~undefined", adjacent.label());
+
+        vertices = graph.traversal().V(james.id()).outE().otherV().toList();
+        Assert.assertEquals(1, vertices.size());
+        adjacent = (HugeVertex) vertices.get(0);
+        Assert.assertTrue(adjacent.propLoaded());
+        Assert.assertTrue(adjacent.schemaLabel().undefined());
+        adjacent.forceLoad();
+        Assert.assertTrue(adjacent.schemaLabel().undefined());
+        Assert.assertEquals("~undefined", adjacent.label());
+
+        graph.graphEventHub().notify(Events.CACHE, "clear", null).get();
+        vertices = graph.traversal().V(james.id()).outE().otherV().toList();
+        Assert.assertEquals(1, vertices.size());
+        adjacent = (HugeVertex) vertices.get(0);
+        Assert.assertFalse(adjacent.propLoaded());
+        Assert.assertFalse(adjacent.schemaLabel().undefined());
+        adjacent.forceLoad();
+        Assert.assertTrue(adjacent.schemaLabel().undefined());
+        Assert.assertEquals("~undefined", adjacent.label());
+
+        vertices = graph.traversal().V(james.id()).outE()
+                        .has("score", 3).otherV().toList();
+        Assert.assertEquals(1, vertices.size());
+        adjacent = (HugeVertex) vertices.get(0);
+        adjacent.forceLoad();
+        // NOTE: if not commit, adjacent.label() will return 'book'
+        Assert.assertTrue(adjacent.schemaLabel().undefined());
+        Assert.assertEquals("~undefined", adjacent.label());
+        Assert.assertFalse(adjacent.properties().hasNext());
+
+        vertices = graph.traversal().V(james.id()).outE()
+                        .has("score", 3).otherV().toList();
+        Assert.assertEquals(1, vertices.size());
+        adjacent = (HugeVertex) vertices.get(0);
+        Assert.assertTrue(adjacent.schemaLabel().undefined());
+        Assert.assertEquals("~undefined", adjacent.label());
+
+        Whitebox.setInternalState(graph.graphTransaction(),
+                                  "checkAdjacentVertexExist", true);
+        try {
+            Assert.assertThrows(HugeException.class, () -> {
+                // read from cache
+                graph.traversal().V(james.id()).outE().has("score", 3)
+                                 .otherV().values().toList();
+            }, e -> {
+                Assert.assertContains("Vertex 'java' does not exist",
+                                      e.getMessage());
+            });
+        } finally {
+            Whitebox.setInternalState(graph.graphTransaction(),
+                                      "checkAdjacentVertexExist", false);
+        }
+
+        Whitebox.setInternalState(graph.graphTransaction(),
+                                  "checkAdjacentVertexExist", true);
+        graph.graphEventHub().notify(Events.CACHE, "clear", null).get();
+        try {
+            Assert.assertEquals(0, graph.traversal().V(java).toList().size());
+
+            Assert.assertThrows(HugeException.class, () -> {
+                graph.traversal().V(james.id()).out().values().toList();
+            }, e -> {
+                Assert.assertContains("Vertex 'java' does not exist",
+                                      e.getMessage());
+            });
+
+            Assert.assertThrows(HugeException.class, () -> {
+                graph.traversal().V(james.id()).outE().otherV()
+                                 .values().toList();
+            }, e -> {
+                Assert.assertContains("Vertex 'java' does not exist",
+                                      e.getMessage());
+            });
+
+            Assert.assertThrows(HugeException.class, () -> {
+                Vertex v = graph.traversal().V(james.id()).outE()
+                                .has("score", 3).otherV().next();
+                v.properties(); // throw
+            }, e -> {
+                Assert.assertContains("Vertex 'java' does not exist",
+                                      e.getMessage());
+            });
+
+            Assert.assertThrows(HugeException.class, () -> {
+                Vertex v = graph.traversal().V(james.id()).outE()
+                                .has("score", 3).otherV().next();
+                v.values(); // throw
+            }, e -> {
+                Assert.assertContains("Vertex 'java' does not exist",
+                                      e.getMessage());
+            });
+
+            Assert.assertThrows(HugeException.class, () -> {
+                Vertex v = graph.traversal().V(james.id()).outE()
+                                .has("score", 3).otherV().next();
+                ((HugeVertex) v).forceLoad(); // throw
+            }, e -> {
+                Assert.assertContains("Vertex 'java' does not exist",
+                                      e.getMessage());
+            });
+        } finally {
+            Whitebox.setInternalState(graph.graphTransaction(),
+                                      "checkAdjacentVertexExist", false);
+        }
+    }
+
+    @Test
+    public void testQueryVerticesOfEdgesWithoutVertexAndNoLazyLoad()
+                throws InterruptedException, ExecutionException {
+        HugeGraph graph = graph();
+
+        Vertex james = graph.addVertex(T.label, "author", "id", 1,
+                                       "name", "James Gosling", "age", 62,
+                                       "lived", "Canadian");
+        Vertex java = new HugeVertex(graph, IdGenerator.of("java"),
+                                     graph.vertexLabel("book"));
+
+        james.addEdge("authored", java, "score", 3);
+        graph.tx().commit();
+
+        Whitebox.setInternalState(graph.graphTransaction(),
+                                  "lazyLoadAdjacentVertex", false);
+        try {
+            List<Edge> edges = graph.traversal().V(james.id()).outE().toList();
+            Assert.assertEquals(1, edges.size());
+
+            Assert.assertEquals(0, graph.traversal().V(java).toList().size());
+
+            List<Vertex> vertices = graph.traversal().V(james.id())
+                                                     .out().toList();
+            Assert.assertEquals(1, vertices.size());
+            HugeVertex adjacent = (HugeVertex) vertices.get(0);
+            Assert.assertTrue("label: " + adjacent.schemaLabel(),
+                              adjacent.schemaLabel().undefined());
+            Assert.assertEquals("~undefined", adjacent.label());
+
+            vertices = graph.traversal().V(james.id()).outE().otherV().toList();
+            Assert.assertEquals(1, vertices.size());
+            adjacent = (HugeVertex) vertices.get(0);
+            Assert.assertTrue(adjacent.schemaLabel().undefined());
+            Assert.assertEquals("~undefined", adjacent.label());
+
+            vertices = graph.traversal().V(james.id()).outE()
+                            .has("score", 3).otherV().toList();
+            Assert.assertEquals(1, vertices.size());
+            adjacent = (HugeVertex) vertices.get(0);
+            // NOTE: if not load, adjacent.label() will return 'book'
+            Assert.assertEquals("book", adjacent.label());
+            adjacent.forceLoad();
+            Assert.assertTrue(adjacent.schemaLabel().undefined());
+            Assert.assertEquals("~undefined", adjacent.label());
+            Assert.assertFalse(adjacent.properties().hasNext());
+
+            vertices = graph.traversal().V(james.id()).outE()
+                            .has("score", 3).otherV().toList();
+            Assert.assertEquals(1, vertices.size());
+            adjacent = (HugeVertex) vertices.get(0);
+            Assert.assertTrue(adjacent.schemaLabel().undefined());
+            Assert.assertEquals("~undefined", adjacent.label());
+        } finally {
+            Whitebox.setInternalState(graph.graphTransaction(),
+                                      "lazyLoadAdjacentVertex", true);
+        }
+
+        Whitebox.setInternalState(graph.graphTransaction(),
+                                  "lazyLoadAdjacentVertex", false);
+        Whitebox.setInternalState(graph.graphTransaction(),
+                                  "checkAdjacentVertexExist", true);
+        graph.graphEventHub().notify(Events.CACHE, "clear", null).get();
+        try {
+            Assert.assertEquals(0, graph.traversal().V(java).toList().size());
+
+            Assert.assertThrows(HugeException.class, () -> {
+                graph.traversal().V(james.id()).out().toList();
+            }, e -> {
+                Assert.assertContains("Vertex 'java' does not exist",
+                                      e.getMessage());
+            });
+
+            Assert.assertThrows(HugeException.class, () -> {
+                graph.traversal().V(james.id()).outE().otherV().toList();
+            }, e -> {
+                Assert.assertContains("Vertex 'java' does not exist",
+                                      e.getMessage());
+            });
+
+            Assert.assertThrows(HugeException.class, () -> {
+                Vertex v = graph.traversal().V(james.id()).outE()
+                                .has("score", 3).otherV().next();
+                v.properties(); // throw
+            }, e -> {
+                Assert.assertContains("Vertex 'java' does not exist",
+                                      e.getMessage());
+            });
+
+            Assert.assertThrows(HugeException.class, () -> {
+                Vertex v = graph.traversal().V(james.id()).outE()
+                                .has("score", 3).otherV().next();
+                v.values(); // throw
+            }, e -> {
+                Assert.assertContains("Vertex 'java' does not exist",
+                                      e.getMessage());
+            });
+        } finally {
+            Whitebox.setInternalState(graph.graphTransaction(),
+                                      "lazyLoadAdjacentVertex", true);
+            Whitebox.setInternalState(graph.graphTransaction(),
+                                      "checkAdjacentVertexExist", false);
+        }
     }
 
     @Test
@@ -2939,6 +3343,7 @@ public class EdgeCoreTest extends BaseCoreTest {
                 edges.add(iterator.next());
             }
             page = PageInfo.pageInfo(iterator);
+            CloseableIterator.closeIterator(iterator);
         }
         Assert.assertEquals(18, edges.size());
     }
@@ -3001,6 +3406,48 @@ public class EdgeCoreTest extends BaseCoreTest {
             count++;
         }
         Assert.assertEquals(2, count);
+    }
+
+    @Test
+    public void testQueryCount() {
+        HugeGraph graph = graph();
+
+        graph.schema().indexLabel("lookByTime").onE("look")
+             .secondary().by("time").create();
+        graph.schema().indexLabel("lookByScore").onE("look")
+             .range().by("score").create();
+
+        init18Edges();
+
+        GraphTraversalSource g = graph.traversal();
+
+        Assert.assertEquals(18L, g.E().count().next());
+
+        Assert.assertEquals(2L, g.E().hasLabel("created").count().next());
+        Assert.assertEquals(1L, g.E().hasLabel("know").count().next());
+        Assert.assertEquals(3L, g.E().hasLabel("authored").count().next());
+        Assert.assertEquals(7L, g.E().hasLabel("look").count().next());
+        Assert.assertEquals(4L, g.E().hasLabel("friend").count().next());
+        Assert.assertEquals(1L, g.E().hasLabel("follow").count().next());
+        Assert.assertEquals(11L, g.E().hasLabel("look", "friend")
+                                      .count().next());
+
+        Assert.assertEquals(5L, g.E().hasLabel("look")
+                                     .has("time", "2017-5-27").count().next());
+        Assert.assertEquals(2L, g.E().hasLabel("look")
+                                     .has("score", 3).count().next());
+        Assert.assertEquals(3L, g.E().hasLabel("look")
+                                     .has("score", P.gte(3)).count().next());
+        Assert.assertEquals(1L, g.E().hasLabel("look")
+                                     .has("score", P.lt(3)).count().next());
+
+        Assert.assertEquals(18L, g.E().count().min().next());
+        Assert.assertEquals(7L, g.E().hasLabel("look").count().max().next());
+
+        Assert.assertEquals(4L, g.E().hasLabel("look")
+                                     .values("score").count().next());
+        Assert.assertEquals(11L, g.E().hasLabel("look")
+                                      .values().count().next());
     }
 
     @Test
@@ -3203,15 +3650,28 @@ public class EdgeCoreTest extends BaseCoreTest {
         edges = graph.traversal().E().toList();
         Assert.assertEquals(txCap + 5, edges.size());
 
+        int old = Whitebox.getInternalState(graph.graphTransaction(),
+                                            "commitPartOfAdjacentEdges");
+        Whitebox.setInternalState(graph.graphTransaction(),
+                                  "commitPartOfAdjacentEdges", 0);
+        try {
+            // It will remove all edges of the vertex, but with error
+            guido.remove();
+
+            Assert.assertThrows(LimitExceedException.class, () -> {
+                graph.tx().commit();
+            }, (e) -> {
+                Assert.assertTrue(e.getMessage().contains(
+                                  "Edges size has reached tx capacity"));
+                graph.tx().rollback();
+            });
+        } finally {
+            Whitebox.setInternalState(graph.graphTransaction(),
+                                      "commitPartOfAdjacentEdges", old);
+        }
+
         // It will remove all edges of the vertex
         guido.remove();
-
-        Assert.assertThrows(LimitExceedException.class, () -> {
-            graph.tx().commit();
-        }, (e) -> {
-            Assert.assertTrue(e.getMessage().contains(
-                              "Edges size has reached tx capacity"));
-        });
 
         // Clear all
         graph.truncateBackend();
@@ -4609,10 +5069,10 @@ public class EdgeCoreTest extends BaseCoreTest {
 
     private Vertex vertex(String label, String pkName, Object pkValue) {
         List<Vertex> vertices = graph().traversal().V()
-                                .hasLabel(label)
-                                .has(pkName, pkValue).toList();
-        Assert.assertEquals(1, vertices.size());
-        return vertices.get(0);
+                                       .hasLabel(label).has(pkName, pkValue)
+                                       .toList();
+        Assert.assertTrue(vertices.size() <= 1);
+        return vertices.size() == 1 ? vertices.get(0) : null;
     }
 
     private static void assertContains(

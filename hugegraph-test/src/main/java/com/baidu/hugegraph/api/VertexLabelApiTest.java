@@ -70,7 +70,7 @@ public class VertexLabelApiTest extends BaseApiTest {
                 + "\"nullable_keys\":[\"lang\"]"
                 + "}";
         Map<String, Object> params = ImmutableMap.of("action", "append");
-        r = client().put(path + "person", vertexLabel, params);
+        r = client().put(path, "person", vertexLabel, params);
         assertResponseStatus(200, r);
     }
 

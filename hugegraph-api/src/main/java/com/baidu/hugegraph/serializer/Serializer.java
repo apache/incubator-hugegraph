@@ -34,6 +34,8 @@ import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.traversal.algorithm.CustomizedCrosspointsTraverser.CrosspointsPaths;
 import com.baidu.hugegraph.traversal.algorithm.FusiformSimilarityTraverser.SimilarsMap;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
+import com.baidu.hugegraph.traversal.algorithm.SingleSourceShortestPathTraverser.NodeWithWeight;
+import com.baidu.hugegraph.traversal.algorithm.SingleSourceShortestPathTraverser.ShortestPaths;
 
 public interface Serializer {
 
@@ -81,4 +83,10 @@ public interface Serializer {
 
     public String writeSimilars(SimilarsMap similars,
                                 Iterator<Vertex> vertices);
+
+    public String writeShortestPath(NodeWithWeight path,
+                                    Iterator<Vertex> vertices);
+
+    public String writeShortestPaths(ShortestPaths paths,
+                                     Iterator<Vertex> vertices);
 }

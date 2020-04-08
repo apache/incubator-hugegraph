@@ -24,10 +24,7 @@ import java.nio.charset.CharacterCodingException;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CodingErrorAction;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import javax.inject.Singleton;
@@ -45,14 +42,12 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.define.Checkable;
-import com.baidu.hugegraph.job.Job;
+import com.baidu.hugegraph.job.GremlinJob;
 import com.baidu.hugegraph.job.JobBuilder;
 import com.baidu.hugegraph.metrics.MetricsUtil;
 import com.baidu.hugegraph.server.RestServer;
-import com.baidu.hugegraph.traversal.optimize.HugeScriptTraversal;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.baidu.hugegraph.util.Log;
@@ -93,77 +88,7 @@ public class GremlinAPI extends API {
         return ImmutableMap.of("task_id", builder.schedule().id());
     }
 
-    public static class GremlinJob extends Job<Object> {
-
-        public static final String TASK_TYPE = "gremlin";
-        public static final String TASK_BIND_NAME = "gremlinJob";
-        public static final int TASK_RESULTS_MAX_SIZE = 10000;
-
-        @Override
-        public String type() {
-            return TASK_TYPE;
-        }
-
-        @Override
-        public Object execute() throws Exception {
-            GremlinRequest input = GremlinRequest.fromJson(this.task().input());
-            input.binding(TASK_BIND_NAME, new GremlinJobProxy());
-
-            HugeScriptTraversal<?, ?> st;
-            st = new HugeScriptTraversal<>(this.graph().traversal(),
-                                           input.language(), input.gremlin(),
-                                           input.bindings(), input.aliases());
-            List<Object> results = new ArrayList<>();
-            long capacity = Query.defaultCapacity(Query.NO_CAPACITY);
-            try {
-                while (st.hasNext()) {
-                    Object result = st.next();
-                    results.add(result);
-                    checkResultsSize(results);
-                    Thread.yield();
-                }
-            } finally {
-                Query.defaultCapacity(capacity);
-                st.close();
-                this.graph().tx().commit();
-            }
-
-            Object result = st.result();
-            if (result != null) {
-                checkResultsSize(result);
-                return result;
-            } else {
-                return results;
-            }
-        }
-
-        private void checkResultsSize(Object results) {
-            int size = 0;
-            if (results instanceof Collection) {
-                size = ((Collection<?>) results).size();
-            }
-            E.checkState(size <= TASK_RESULTS_MAX_SIZE,
-                         "Job results size %s has exceeded the max limit %s",
-                         size, TASK_RESULTS_MAX_SIZE);
-        }
-
-        /**
-         * Used by gremlin script
-         */
-        @SuppressWarnings("unused")
-        private class GremlinJobProxy {
-
-            public void setMinSaveInterval(long seconds) {
-                GremlinJob.this.setMinSaveInterval(seconds);
-            }
-
-            public void updateProgress(int progress) {
-                GremlinJob.this.updateProgress(progress);
-            }
-        }
-    }
-
-    private static class GremlinRequest implements Checkable {
+    public static class GremlinRequest implements Checkable {
 
         // See org.apache.tinkerpop.gremlin.server.channel.HttpChannelizer
         @JsonProperty
@@ -264,10 +189,12 @@ public class GremlinAPI extends API {
             Map<String, Object> map = JsonUtil.fromJson(json, Map.class);
             String gremlin = (String) map.get("gremlin");
             @SuppressWarnings("unchecked")
-            Map<String, Object> bindings = (Map<String, Object>) map.get("bindings");
+            Map<String, Object> bindings = (Map<String, Object>)
+                                           map.get("bindings");
             String language = (String) map.get("language");
             @SuppressWarnings("unchecked")
-            Map<String, String> aliases = (Map<String, String>) map.get("aliases");
+            Map<String, String> aliases = (Map<String, String>)
+                                          map.get("aliases");
 
             GremlinRequest request = new GremlinRequest();
             request.gremlin(gremlin);

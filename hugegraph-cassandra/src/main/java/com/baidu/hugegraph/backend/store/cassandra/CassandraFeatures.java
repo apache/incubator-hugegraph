@@ -92,7 +92,7 @@ public class CassandraFeatures implements BackendFeatures {
 
     @Override
     public boolean supportsMergeVertexProperty() {
-        return true;
+        return false;
     }
 
     @Override

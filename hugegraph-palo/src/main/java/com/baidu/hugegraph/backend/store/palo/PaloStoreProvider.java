@@ -60,6 +60,8 @@ public class PaloStoreProvider extends MysqlStoreProvider {
          * [1.4] #633: support unique index
          * [1.5] #661: reduce the storage of vertex/edge id
          * [1.6] #746: support userdata for indexlabel
+         * [1.7] #894: asStoredString() encoding is changed to signed B64
+         *             instead of sortable B64
          */
         return "1.6";
     }

@@ -24,6 +24,7 @@ import static com.baidu.hugegraph.config.OptionChecker.disallowEmpty;
 import static com.baidu.hugegraph.config.OptionChecker.rangeInt;
 
 import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.util.Bytes;
 
 public class CoreOptions extends OptionHolder {
 
@@ -115,6 +116,22 @@ public class CoreOptions extends OptionHolder {
                     10L
             );
 
+    public static final ConfigOption<Long> TASK_INPUT_SIZE_LIMIT =
+            new ConfigOption<>(
+                    "task.input_size_limit",
+                    "The job input size limit in bytes.",
+                    rangeInt(0L, Bytes.GB),
+                    16 * Bytes.MB
+            );
+
+    public static final ConfigOption<Long> TASK_RESULT_SIZE_LIMIT =
+            new ConfigOption<>(
+                    "task.result_size_limit",
+                    "The job result size limit in bytes.",
+                    rangeInt(0L, Bytes.GB),
+                    16 * Bytes.MB
+            );
+
     public static final ConfigOption<Long> CONNECTION_DETECT_INTERVAL =
             new ConfigOption<>(
                     "store.connection_detect_interval",
@@ -140,7 +157,56 @@ public class CoreOptions extends OptionHolder {
                     "Whether to check the vertices exist for those using " +
                     "customized id strategy",
                     disallowEmpty(),
+                    false
+            );
+
+    public static final ConfigOption<Boolean> VERTEX_ADJACENT_VERTEX_EXIST =
+            new ConfigOption<>(
+                    "vertex.check_adjacent_vertex_exist",
+                    "Whether to check the adjacent vertices of edges exist",
+                    disallowEmpty(),
+                    false
+            );
+
+    public static final ConfigOption<Boolean> VERTEX_ADJACENT_VERTEX_LAZY =
+            new ConfigOption<>(
+                    "vertex.lazy_load_adjacent_vertex",
+                    "Whether to lazy load adjacent vertices of edges",
+                    disallowEmpty(),
                     true
+            );
+
+    public static final ConfigOption<Integer> VERTEX_PART_EDGE_COMMIT_SIZE =
+            new ConfigOption<>(
+                    "vertex.part_edge_commit_size",
+                    "Whether to enable the mode to commit part of edges of vertex, " +
+                    "enabled if commit size > 0, 0 meas disabled.",
+                    rangeInt(0, (int) Query.DEFAULT_CAPACITY),
+                    5000
+            );
+
+    public static final ConfigOption<Boolean> QUERY_IGNORE_INVALID_DATA =
+            new ConfigOption<>(
+                    "query.ignore_invalid_data",
+                    "Whether to ignore invalid data of vertex or edge.",
+                    disallowEmpty(),
+                    true
+            );
+
+    public static final ConfigOption<Integer> QUERY_BATCH_SIZE =
+            new ConfigOption<>(
+                    "query.batch_size",
+                    "The size of each batch when querying by batch.",
+                    rangeInt(1, (int) Query.DEFAULT_CAPACITY),
+                    1000
+            );
+
+    public static final ConfigOption<Integer> QUERY_PAGE_SIZE =
+            new ConfigOption<>(
+                    "query.page_size",
+                    "The size of each page when querying by paging.",
+                    rangeInt(1, (int) Query.DEFAULT_CAPACITY),
+                    500
             );
 
     public static final ConfigOption<Integer> VERTEX_TX_CAPACITY =
@@ -172,12 +238,12 @@ public class CoreOptions extends OptionHolder {
                     ".*\\s+$|~.*"
             );
 
-    public static final ConfigOption<Integer> SCHEMA_CACHE_CAPACITY =
+    public static final ConfigOption<Long> SCHEMA_CACHE_CAPACITY =
             new ConfigOption<>(
                     "schema.cache_capacity",
                     "The max cache size(items) of schema cache.",
-                    rangeInt(0, Integer.MAX_VALUE),
-                    100000
+                    rangeInt(0L, Long.MAX_VALUE),
+                    10000L
             );
 
     public static final ConfigOption<Boolean> SCHEMA_SYNC_DELETION =
@@ -188,12 +254,12 @@ public class CoreOptions extends OptionHolder {
                     false
             );
 
-    public static final ConfigOption<Integer> VERTEX_CACHE_CAPACITY =
+    public static final ConfigOption<Long> VERTEX_CACHE_CAPACITY =
             new ConfigOption<>(
                     "vertex.cache_capacity",
                     "The max cache size(items) of vertex cache.",
-                    rangeInt(0, Integer.MAX_VALUE),
-                    (1000 * 1000 * 10)
+                    rangeInt(0L, Long.MAX_VALUE),
+                    (1000 * 1000 * 10L)
             );
 
     public static final ConfigOption<Integer> VERTEX_CACHE_EXPIRE =
@@ -204,12 +270,12 @@ public class CoreOptions extends OptionHolder {
                     (60 * 10)
             );
 
-    public static final ConfigOption<Integer> EDGE_CACHE_CAPACITY =
+    public static final ConfigOption<Long> EDGE_CACHE_CAPACITY =
             new ConfigOption<>(
                     "edge.cache_capacity",
                     "The max cache size(items) of edge cache.",
-                    rangeInt(0, Integer.MAX_VALUE),
-                    (1000 * 1000 * 1)
+                    rangeInt(0L, Long.MAX_VALUE),
+                    (1000 * 1000 * 1L)
             );
 
     public static final ConfigOption<Integer> EDGE_CACHE_EXPIRE =
@@ -218,14 +284,6 @@ public class CoreOptions extends OptionHolder {
                     "The expire time in seconds of edge cache.",
                     rangeInt(0, Integer.MAX_VALUE),
                     (60 * 10)
-            );
-
-    public static final ConfigOption<Integer> QUERY_PAGE_SIZE =
-            new ConfigOption<>(
-                    "query.page_size",
-                    "The size of each page when query using paging.",
-                    rangeInt(1, (int) Query.DEFAULT_CAPACITY),
-                    500
             );
 
     public static final ConfigOption<Long> SNOWFLAKE_WORKER_ID =

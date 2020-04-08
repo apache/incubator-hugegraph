@@ -89,7 +89,8 @@ public abstract class CassandraStore
 
     private void registerMetaHandlers() {
         this.registerMetaHandler("metrics", (session, meta, args) -> {
-            CassandraMetrics metrics = new CassandraMetrics(cluster(), this.conf);
+            CassandraMetrics metrics = new CassandraMetrics(this.sessions,
+                                                            this.conf);
             return metrics.getMetrics();
         });
     }
@@ -249,6 +250,14 @@ public abstract class CassandraStore
 
         CassandraTable table = this.table(CassandraTable.tableType(query));
         return table.query(this.sessions.session(), query);
+    }
+
+    @Override
+    public Number queryNumber(Query query) {
+        this.checkOpened();
+
+        CassandraTable table = this.table(CassandraTable.tableType(query));
+        return table.queryNumber(this.sessions.session(), query);
     }
 
     @Override

@@ -93,8 +93,17 @@ public final class IdPrefixQuery extends Query {
 
     @Override
     public String toString() {
-        return String.format("%s where id prefix with %s and start with %s(%s)",
-                             super.toString(), this.prefix, this.start,
-                             this.inclusiveStart ? "inclusive" : "exclusive");
+        StringBuilder sb = new StringBuilder(super.toString());
+        assert sb.length() > 0;
+        sb.deleteCharAt(sb.length() - 1); // Remove the last "`"
+        sb.append(" id prefix with ").append(this.prefix);
+        if (this.start != this.prefix) {
+            sb.append(" and start with ").append(this.start)
+              .append("(")
+              .append(this.inclusiveStart ? "inclusive" : "exclusive")
+              .append(")");
+        }
+        sb.append("`");
+        return sb.toString();
     }
 }

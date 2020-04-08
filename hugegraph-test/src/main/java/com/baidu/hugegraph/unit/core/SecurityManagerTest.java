@@ -40,8 +40,8 @@ import org.junit.Test;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
-import com.baidu.hugegraph.api.job.GremlinAPI;
 import com.baidu.hugegraph.config.HugeConfig;
+import com.baidu.hugegraph.job.GremlinJob;
 import com.baidu.hugegraph.job.JobBuilder;
 import com.baidu.hugegraph.security.HugeSecurityManager;
 import com.baidu.hugegraph.task.HugeTask;
@@ -154,6 +154,12 @@ public class SecurityManagerTest {
         new File("").delete();
         result = runGremlinJob("new File(\"\").delete()");
         assertError(result, "Not allowed to delete file via Gremlin");
+
+        // get absolute path
+        new File("").getAbsolutePath();
+        result = runGremlinJob("new File(\"\").getAbsolutePath()");
+        assertError(result, "Not allowed to access " +
+                    "system property(user.dir) via Gremlin");
     }
 
     @Test
@@ -299,7 +305,7 @@ public class SecurityManagerTest {
         input.put("aliases", ImmutableMap.of());
         builder.name("test-gremlin-job")
                .input(JsonUtil.toJson(input))
-               .job(new GremlinAPI.GremlinJob());
+               .job(new GremlinJob());
         HugeTask<?> task = builder.schedule();
         try {
             graph.taskScheduler().waitUntilTaskCompleted(task.id(), 10);

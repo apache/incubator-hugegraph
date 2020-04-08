@@ -27,7 +27,6 @@ import org.apache.tinkerpop.gremlin.structure.Graph;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.type.Namifiable;
@@ -59,6 +58,8 @@ public abstract class SchemaElement implements Namifiable, Typifiable,
     }
 
     public HugeGraph graph() {
+        E.checkState(this.graph != null,
+                     "Graph is null of schema '%s'", this.name);
         return this.graph;
     }
 
@@ -147,10 +148,6 @@ public abstract class SchemaElement implements Namifiable, Typifiable,
     @Override
     public String toString() {
         return String.format("%s(id=%s)", this.name, this.id);
-    }
-
-    public static Id schemaId(String id) {
-        return IdGenerator.of(Long.parseLong(id));
     }
 
     public static int schemaId(Id id) {
