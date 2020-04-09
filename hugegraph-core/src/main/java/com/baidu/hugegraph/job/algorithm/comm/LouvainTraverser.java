@@ -19,6 +19,8 @@
 
 package com.baidu.hugegraph.job.algorithm.comm;
 
+import static com.baidu.hugegraph.job.algorithm.AbstractAlgorithm.C_LABEL;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -62,29 +64,28 @@ public class LouvainTraverser extends AlgoTraverser {
     public static final String C_WEIGHT = "c_weight";
     public static final String C_MEMBERS = "c_members";
 
-    public static final String C_LABEL = LpaAlgorithm.Traverser.C_LABEL;
-
     private static final long LIMIT = AbstractAlgorithm.MAX_QUERY_LIMIT;
+    private static final int MAX_COMM_SIZE = 1000000;
 
     private static final Logger LOG = Log.logger(LouvainTraverser.class);
 
     private final GraphTraversalSource g;
-    private final long m;
     private final String sourceLabel;
     private final String sourceCLabel;
     private final long degree;
     private final Cache cache;
 
+    private long m;
     private String passLabel;
 
     public LouvainTraverser(Job<Object> job,  long degree,
                             String sourceLabel, String sourceCLabel) {
         super(job);
         this.g = this.graph().traversal();
-        this.m = this.g.E().count().next();
         this.sourceLabel = sourceLabel;
         this.sourceCLabel = sourceCLabel;
         this.degree = degree;
+        this.m = 1L;
         this.passLabel = "";
 
         this.cache = new Cache();
@@ -122,6 +123,8 @@ public class LouvainTraverser extends AlgoTraverser {
               .ifNotExist().create();
         schema.propertyKey(C_WEIGHT).asFloat()
               .ifNotExist().create();
+
+        this.m = this.g.E().count().next();
     }
 
     private void defineSchemaOfPassN(int pass) {
@@ -369,6 +372,11 @@ public class LouvainTraverser extends AlgoTraverser {
             for (Pair<Community, MutableInt> nbc : nbCommunities(pass, nbs)) {
                 // △Q = (Ki_in - Ki * Etot / m) / 2m
                 Community otherC = nbc.getLeft();
+                if (otherC.size() > MAX_COMM_SIZE) {
+                    LOG.info("Skip community {} due to its size > {}",
+                             otherC, MAX_COMM_SIZE);
+                    continue;
+                }
                 // weight between c and otherC
                 double kiin = nbc.getRight().floatValue();
                 // weight of otherC
@@ -415,6 +423,7 @@ public class LouvainTraverser extends AlgoTraverser {
             List<String> members = new ArrayList<>(vertices.size());
             Map<Id, MutableInt> cedges = new HashMap<>(vertices.size());
             for (Id v : vertices) {
+                this.updateProgress(++this.progress);
                 members.add(v.toString());
                 // collect edges between this community and other communities
                 List<Edge> neighbors = neighbors(v);
@@ -618,6 +627,10 @@ public class LouvainTraverser extends AlgoTraverser {
 
         public boolean empty() {
             return this.size <= 0;
+        }
+
+        public int size() {
+            return this.size;
         }
 
         public void add(LouvainTraverser t, Vertex v, List<Edge> nbs) {

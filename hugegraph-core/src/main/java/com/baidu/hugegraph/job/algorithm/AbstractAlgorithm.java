@@ -84,6 +84,7 @@ public abstract class AbstractAlgorithm implements Algorithm {
     public static final String KEY_CLEAR = "clear";
     public static final String KEY_CAPACITY = "capacity";
     public static final String KEY_LIMIT = "limit";
+    public static final String KEY_ALPHA = "alpha";
 
     public static final long DEFAULT_CAPACITY = 10000000L;
     public static final long DEFAULT_LIMIT = 100L;
@@ -92,6 +93,9 @@ public abstract class AbstractAlgorithm implements Algorithm {
     public static final long DEFAULT_TIMES = 20L;
     public static final long DEFAULT_STABLE_TIMES= 3L;
     public static final double DEFAULT_PRECISION = 1.0 / 1000;
+    public static final double DEFAULT_ALPHA = 0.5D;
+
+    public static final String C_LABEL = "c_label";
 
     @Override
     public void checkParameters(Map<String, Object> parameters) {
@@ -117,6 +121,21 @@ public abstract class AbstractAlgorithm implements Algorithm {
     protected static Directions direction(Map<String, Object> parameters) {
         Object direction = parameter(parameters, KEY_DIRECTION);
         return parseDirection(direction);
+    }
+
+    protected static double alpha(Map<String, Object> parameters) {
+        if (!parameters.containsKey(KEY_ALPHA)) {
+            return DEFAULT_ALPHA;
+        }
+        double alpha = parameterDouble(parameters, KEY_ALPHA);
+        checkAlpha(alpha);
+        return alpha;
+    }
+
+    public static void checkAlpha(double alpha) {
+        E.checkArgument(alpha > 0 && alpha <= 1.0,
+                        "The alpha of must be in range (0, 1], but got %s",
+                        alpha);
     }
 
     protected static long top(Map<String, Object> parameters) {
@@ -281,10 +300,15 @@ public abstract class AbstractAlgorithm implements Algorithm {
             return this.graph().vertices(query);
         }
 
+        protected Iterator<Vertex> vertices(Object label, Object clabel,
+                                            long limit) {
+            return vertices(label, C_LABEL, clabel, limit);
+        }
+
         protected Iterator<Vertex> vertices(Object label, String key,
                                             Object value, long limit) {
             Iterator<Vertex> vertices = this.vertices(label, limit);
-            if (key != null) {
+            if (value != null) {
                 vertices = filter(vertices, key, value);
             }
            return vertices;
@@ -486,6 +510,11 @@ public abstract class AbstractAlgorithm implements Algorithm {
 
         public void appendRaw(String key, String rawJson) {
             this.appendString(key).append(':');
+            this.json.append(rawJson).append(',');
+            this.checkSizeLimit();
+        }
+
+        public void appendRaw(String rawJson) {
             this.json.append(rawJson).append(',');
             this.checkSizeLimit();
         }

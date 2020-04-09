@@ -27,11 +27,8 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import com.baidu.hugegraph.job.Job;
 import com.baidu.hugegraph.job.algorithm.AbstractAlgorithm;
-import com.baidu.hugegraph.job.algorithm.comm.LpaAlgorithm;
 
 public abstract class AbstractCentAlgorithm extends AbstractAlgorithm {
-
-    protected static final String C_LABEL = LpaAlgorithm.Traverser.C_LABEL;
 
     @Override
     public String category() {

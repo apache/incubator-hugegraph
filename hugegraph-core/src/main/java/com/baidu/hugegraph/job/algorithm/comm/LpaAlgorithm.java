@@ -79,7 +79,6 @@ public class LpaAlgorithm extends AbstractCommAlgorithm {
 
     public static class Traverser extends AlgoTraverser {
 
-        public static final String C_LABEL = "c_label";
         private static final long LIMIT = MAX_QUERY_LIMIT;
 
         private final Random R = new Random();
