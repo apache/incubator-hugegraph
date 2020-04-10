@@ -72,9 +72,12 @@ public class KCoreAlgorithm extends AbstractCommAlgorithm {
         Traverser traverser = new Traverser(job);
         return traverser.kcore(sourceLabel(parameters),
                                sourceCLabel(parameters),
-                               direction(parameters), edgeLabel(parameters),
-                               k(parameters), alpha(parameters),
-                               degree(parameters), merged(parameters));
+                               direction(parameters),
+                               edgeLabel(parameters),
+                               k(parameters),
+                               alpha(parameters),
+                               degree(parameters),
+                               merged(parameters));
     }
 
     protected static int k(Map<String, Object> parameters) {
@@ -139,7 +142,6 @@ public class KCoreAlgorithm extends AbstractCommAlgorithm {
             return kcoresJson.asJson();
         }
 
-        @SuppressWarnings("unchecked")
         private static void mergeKcores(Set<Set<Id>> kcores, Set<Id> kcore) {
             boolean merged = false;
             /*
@@ -173,7 +175,7 @@ public class KCoreAlgorithm extends AbstractCommAlgorithm {
         public Set<Id> kcore(Iterator<Vertex> vertices, Directions direction,
                              EdgeLabel label, int k, double alpha,
                              long degree) {
-            int minNeighbors = (int) Math.floor(1 / alpha * k);
+            int minNeighbors = (int) Math.floor(1.0 / alpha * k);
             SimilarsMap map = fusiformSimilarity(vertices, direction, label,
                                                  minNeighbors, alpha, k - 1,
                                                  0, null, 1, degree,
