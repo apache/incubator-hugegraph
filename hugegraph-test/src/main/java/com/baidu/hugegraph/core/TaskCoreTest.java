@@ -473,14 +473,14 @@ public class TaskCoreTest extends BaseCoreTest {
         Assert.assertEquals("3", task2.result());
 
         // Cancel failure task with big results (job size exceeded limit)
-        String bigList = "def l=[]; for (i in 1..10001) l.add(i); l;";
+        String bigList = "def l=[]; for (i in 1..800001) l.add(i); l;";
         HugeTask<Object> task3 = runGremlinJob(bigList);
         scheduler.waitUntilTaskCompleted(task3.id(), 10);
         Assert.assertEquals(TaskStatus.FAILED, task3.status());
         scheduler.cancel(task3);
         Assert.assertEquals(TaskStatus.FAILED, task3.status());
-        Assert.assertContains("LimitExceedException: Job results size 10001 " +
-                              "has exceeded the max limit 10000",
+        Assert.assertContains("LimitExceedException: Job results size 800001 " +
+                              "has exceeded the max limit 800000",
                               task3.result());
 
         // Cancel failure task with big results (task exceeded limit 64M)
