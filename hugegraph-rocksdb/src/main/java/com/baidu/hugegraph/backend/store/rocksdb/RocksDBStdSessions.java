@@ -214,9 +214,10 @@ public class RocksDBStdSessions extends RocksDBSessions {
                 return ImmutableList.of(String.valueOf(size));
             }
             List<String> values = new ArrayList<>();
-            for (String table : this.openedTables()) {
-                CFHandle cf = cf(table);
-                values.add(rocksdb().getProperty(cf.get(), property));
+            for (String cf : this.openedTables()) {
+                try (CFHandle cfh = cf(cf)) {
+                    values.add(rocksdb().getProperty(cfh.get(), property));
+                }
             }
             return values;
         } catch(RocksDBException | UnsupportedOperationException e) {

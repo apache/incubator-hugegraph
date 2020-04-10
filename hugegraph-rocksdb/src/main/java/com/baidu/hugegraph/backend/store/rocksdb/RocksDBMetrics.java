@@ -27,14 +27,12 @@ import org.apache.commons.io.FileUtils;
 import com.baidu.hugegraph.backend.store.BackendMetrics;
 import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
-import org.rocksdb.RocksDB;
 
 public class RocksDBMetrics implements BackendMetrics {
 
     public static final String BLOCK_CACHE = "rocksdb.block-cache-usage";
     public static final String BLOCK_CACHE_PINNED = "rocksdb.block-cache-pinned-usage";
-    public static final String INDEX_FILTER =
-                               "rocksdb.estimate-table-readers-mem";
+    public static final String INDEX_FILTER = "rocksdb.estimate-table-readers-mem";
     public static final String MEM_TABLE = "rocksdb.cur-size-all-mem-tables";
     public static final String ALL_MEM_TABLE = "rocksdb.size-all-mem-tables";
     public static final String BLOCK_CACHE_CAPACITY = "rocksdb.block-cache-capacity";
