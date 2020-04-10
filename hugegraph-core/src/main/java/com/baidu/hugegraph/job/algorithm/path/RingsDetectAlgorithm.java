@@ -63,9 +63,12 @@ public class RingsDetectAlgorithm extends AbstractAlgorithm {
         Traverser traverser = new Traverser(job);
         return traverser.rings(sourceLabel(parameters),
                                sourceCLabel(parameters),
-                               direction(parameters), edgeLabel(parameters),
-                               depth(parameters), degree(parameters),
-                               capacity(parameters), limit(parameters));
+                               direction(parameters),
+                               edgeLabel(parameters),
+                               depth(parameters),
+                               degree(parameters),
+                               capacity(parameters),
+                               limit(parameters));
     }
 
     public static class Traverser extends AlgoTraverser {
@@ -89,8 +92,7 @@ public class RingsDetectAlgorithm extends AbstractAlgorithm {
                 this.updateProgress(++this.progress);
                 Id source = ((HugeVertex) vertices.next()).id();
                 PathSet rings = traverser.rings(source, dir, label, depth,
-                                                true, degree,
-                                                capacity, limit);
+                                                true, degree, capacity, limit);
                 for (Path ring : rings) {
                     Id min = null;
                     for (Id id : ring.vertices()) {

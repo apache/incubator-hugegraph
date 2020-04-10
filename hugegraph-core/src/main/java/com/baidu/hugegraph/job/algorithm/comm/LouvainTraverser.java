@@ -65,7 +65,7 @@ public class LouvainTraverser extends AlgoTraverser {
     public static final String C_MEMBERS = "c_members";
 
     private static final long LIMIT = AbstractAlgorithm.MAX_QUERY_LIMIT;
-    private static final int MAX_COMM_SIZE = 1000000;
+    private static final int MAX_COMM_SIZE = 100000; // 10w
 
     private static final Logger LOG = Log.logger(LouvainTraverser.class);
 
@@ -372,9 +372,9 @@ public class LouvainTraverser extends AlgoTraverser {
             for (Pair<Community, MutableInt> nbc : nbCommunities(pass, nbs)) {
                 // △Q = (Ki_in - Ki * Etot / m) / 2m
                 Community otherC = nbc.getLeft();
-                if (otherC.size() > MAX_COMM_SIZE) {
-                    LOG.info("Skip community {} due to its size > {}",
-                             otherC, MAX_COMM_SIZE);
+                if (otherC.size() >= MAX_COMM_SIZE) {
+                    LOG.info("Skip community {} for {} due to its size >= {}",
+                             otherC.cid, v, MAX_COMM_SIZE);
                     continue;
                 }
                 // weight between c and otherC
