@@ -82,15 +82,20 @@ public class SubGraphTraverser extends HugeTraverser {
     }
 
     private static boolean hasMultiEdges(List<Edge> edges, Id target) {
-        int count = 0;
+        boolean hasOutEdge = false;
+        boolean hasInEdge = false;
         for (Edge edge : edges) {
             if (((HugeEdge) edge).id().otherVertexId().equals(target)) {
-                if (++count > 1) {
+                if (((HugeEdge) edge).direction() == Directions.OUT) {
+                    hasOutEdge = true;
+                } else {
+                    hasInEdge = true;
+                }
+                if (hasOutEdge && hasInEdge) {
                     return true;
                 }
             }
         }
-        assert count == 1;
         return false;
     }
 
@@ -220,7 +225,7 @@ public class SubGraphTraverser extends HugeTraverser {
             // Re-init sources
             this.sources = newVertices;
 
-            if (!rings && --this.depth <= 0) {
+            if (!this.rings && --this.depth <= 0) {
                 for (List<Node> list : newVertices.values()) {
                     for (Node n : list) {
                         paths.add(new Path(n.path()));
@@ -270,21 +275,22 @@ public class SubGraphTraverser extends HugeTraverser {
          */
         @Override
         public boolean equals(Object other) {
-            if (other == null || !(other instanceof RingPath)) {
+            if (!(other instanceof RingPath)) {
                 return false;
             }
+            List<Id> vertices = this.vertices();
             List<Id> otherVertices = ((Path) other).vertices();
-            if (this.vertices().equals(otherVertices)) {
+
+            if (vertices.equals(otherVertices)) {
                 return true;
             }
-            if (this.vertices().size() != otherVertices.size()) {
+            if (vertices.size() != otherVertices.size()) {
                 return false;
             }
-            assert this.vertices().size() != otherVertices.size();
-            int size = this.vertices().size();
-            for (int i = 0; i < size; i++) {
-                if (!this.vertices().get(i).equals(
-                     otherVertices.get(size - i - 1))) {
+            assert vertices.size() == otherVertices.size();
+            for (int i = 0, size = vertices.size(); i < size; i++) {
+                int j = size - i - 1;
+                if (!vertices.get(i).equals(otherVertices.get(j))) {
                     return false;
                 }
             }
