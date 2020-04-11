@@ -60,7 +60,7 @@ public abstract class AbstractCache<K, V> implements Cache<K, V> {
     @Watched(prefix = "cache")
     @Override
     public V get(K id) {
-        if (id == null) {
+        if (id == null || this.capacity <= 0L) {
             return null;
         }
         V value = null;
@@ -88,7 +88,7 @@ public abstract class AbstractCache<K, V> implements Cache<K, V> {
     @Watched(prefix = "cache")
     @Override
     public V getOrFetch(K id, Function<K, V> fetcher) {
-        if (id == null) {
+        if (id == null || this.capacity <= 0L) {
             return null;
         }
         V value = null;
@@ -119,7 +119,7 @@ public abstract class AbstractCache<K, V> implements Cache<K, V> {
     @Watched(prefix = "cache")
     @Override
     public boolean update(K id, V value) {
-        if (id == null || value == null || this.capacity <= 0) {
+        if (id == null || value == null || this.capacity <= 0L) {
             return false;
         }
         return this.write(id, value);
@@ -129,7 +129,7 @@ public abstract class AbstractCache<K, V> implements Cache<K, V> {
     @Override
     public boolean updateIfAbsent(K id, V value) {
         if (id == null || value == null ||
-            this.capacity <= 0 || this.containsKey(id)) {
+            this.capacity <= 0L || this.containsKey(id)) {
             return false;
         }
         return this.write(id, value);
@@ -139,7 +139,7 @@ public abstract class AbstractCache<K, V> implements Cache<K, V> {
     @Override
     public boolean updateIfPresent(K id, V value) {
         if (id == null || value == null ||
-            this.capacity <= 0 || !this.containsKey(id)) {
+            this.capacity <= 0L || !this.containsKey(id)) {
             return false;
         }
         return this.write(id, value);
@@ -148,7 +148,7 @@ public abstract class AbstractCache<K, V> implements Cache<K, V> {
     @Watched(prefix = "cache")
     @Override
     public void invalidate(K id) {
-        if (id == null || !this.containsKey(id)) {
+        if (id == null || this.capacity <= 0L || !this.containsKey(id)) {
             return;
         }
         this.remove(id);
