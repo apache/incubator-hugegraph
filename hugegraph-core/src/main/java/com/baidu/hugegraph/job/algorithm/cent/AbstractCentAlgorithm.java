@@ -66,7 +66,7 @@ public abstract class AbstractCentAlgorithm extends AbstractAlgorithm {
             t = t.filter(it -> {
                 this.updateProgress(++this.progress);
                 return sourceCLabel == null ? true :
-                       match(it.get(), C_LABEL, sourceCLabel);
+                       match(it.get(), sourceCLabel);
             });
 
             if (sourceSample > 0L) {

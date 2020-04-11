@@ -344,7 +344,14 @@ public abstract class AbstractAlgorithm implements Algorithm {
             });
         }
 
-        protected static boolean match(Element elem, String key, Object value) {
+        protected boolean match(Element elem, Object clabel) {
+            return match(elem, C_LABEL, clabel);
+        }
+
+        protected boolean match(Element elem, String key, Object value) {
+            // check property key exists
+            this.graph().propertyKey(key);
+            // return true if property value exists & equals to specified value
             Property<Object> p = elem.property(key);
             return p.isPresent() && Objects.equal(p.value(), value);
         }
@@ -375,7 +382,8 @@ public abstract class AbstractAlgorithm implements Algorithm {
             try {
                 return callback.call();
             } catch (Exception e) {
-                throw new HugeException("Failed to execute algorithm", e);
+                throw new HugeException("Failed to execute algorithm: %s",
+                                        e, e.getMessage());
             } finally {
                 Query.defaultCapacity(capacity);
                 try {
