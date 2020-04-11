@@ -35,6 +35,7 @@ import com.baidu.hugegraph.job.Job;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.define.Directions;
+import com.baidu.hugegraph.util.E;
 import com.google.common.collect.ImmutableMap;
 
 public class LpaAlgorithm extends AbstractCommAlgorithm {
@@ -122,9 +123,9 @@ public class LpaAlgorithm extends AbstractCommAlgorithm {
         }
 
         public Object showCommunity(String clabel) {
+            E.checkNotNull(clabel, "clabel");
             // all vertices with specified c-label
-            Iterator<Vertex> vertices = this.vertices(LIMIT);
-            vertices = filter(vertices, C_LABEL, clabel);
+            Iterator<Vertex> vertices = this.vertices(null, clabel, LIMIT);
 
             JsonMap json = new JsonMap();
             json.startList();

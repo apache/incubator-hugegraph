@@ -19,8 +19,6 @@
 
 package com.baidu.hugegraph.job.algorithm.comm;
 
-import static com.baidu.hugegraph.job.algorithm.AbstractAlgorithm.C_LABEL;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -237,8 +235,7 @@ public class LouvainTraverser extends AlgoTraverser {
             }
         }
         // skip the vertex with unmatched clabel
-        if (this.sourceCLabel != null &&
-            !match(v, C_LABEL, this.sourceCLabel)) {
+        if (this.sourceCLabel != null && !match(v, this.sourceCLabel)) {
             return true;
         }
         return false;
