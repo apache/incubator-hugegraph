@@ -34,7 +34,7 @@ public class GremlinJob extends Job<Object> {
 
     public static final String TASK_TYPE = "gremlin";
     public static final String TASK_BIND_NAME = "gremlinJob";
-    public static final int TASK_RESULTS_MAX_SIZE = 10000;
+    public static final int TASK_RESULTS_MAX_SIZE = (int) Query.DEFAULT_CAPACITY;
 
     @Override
     public String type() {

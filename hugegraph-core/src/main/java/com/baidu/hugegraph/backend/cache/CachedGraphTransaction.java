@@ -50,6 +50,7 @@ import com.google.common.collect.ImmutableSet;
 
 public final class CachedGraphTransaction extends GraphTransaction {
 
+    private final static int MAX_CACHE_PROPS_PER_VERTEX = 10000;
     private final static int MAX_CACHE_EDGES_PER_QUERY = 100;
     private final static float DEFAULT_LEVEL_RATIO = 0.001f;
     private final static long AVG_VERTEX_ENTRY_SIZE = 40L;
@@ -191,6 +192,10 @@ public final class CachedGraphTransaction extends GraphTransaction {
             // Generally there are not too much data with id query
             ListIterator<HugeVertex> listIterator = QueryResults.toList(rs);
             for (HugeVertex vertex : listIterator.list()) {
+                if (vertex.sizeOfProperties() > MAX_CACHE_PROPS_PER_VERTEX) {
+                    // Skip large vertex
+                    continue;
+                }
                 this.verticesCache.update(vertex.id(), vertex);
             }
             results.extend(listIterator);
@@ -223,6 +228,7 @@ public final class CachedGraphTransaction extends GraphTransaction {
             if (edges.size() == 0) {
                 this.edgesCache.update(cacheKey, Collections.emptyList());
             } else if (edges.size() <= MAX_CACHE_EDGES_PER_QUERY) {
+                // Skip large query
                 this.edgesCache.update(cacheKey, edges);
             }
             return listIterator;
@@ -241,6 +247,11 @@ public final class CachedGraphTransaction extends GraphTransaction {
             // Update vertex cache
             for (HugeVertex vertex : changes) {
                 vertex = vertex.resetTx();
+                if (vertex.sizeOfProperties() > MAX_CACHE_PROPS_PER_VERTEX) {
+                    // Skip large vertex
+                    this.verticesCache.invalidate(vertex.id());
+                    continue;
+                }
                 this.verticesCache.updateIfPresent(vertex.id(), vertex);
             }
         } finally {
