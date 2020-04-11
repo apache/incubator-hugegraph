@@ -189,9 +189,7 @@ public class BinarySerializer extends AbstractSerializer {
                 throw new BackendException(
                           "Invalid value of non-single property: %s", value);
             }
-            for (Object v : (Collection<?>) value) {
-                owner.addProperty(pkey, v);
-            }
+            owner.addProperty(pkey, value);
         }
     }
 
