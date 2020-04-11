@@ -192,7 +192,7 @@ public final class CachedGraphTransaction extends GraphTransaction {
             // Generally there are not too much data with id query
             ListIterator<HugeVertex> listIterator = QueryResults.toList(rs);
             for (HugeVertex vertex : listIterator.list()) {
-                if (vertex.sizeOfProperties() > MAX_CACHE_PROPS_PER_VERTEX) {
+                if (vertex.sizeOfSubProperties() > MAX_CACHE_PROPS_PER_VERTEX) {
                     // Skip large vertex
                     continue;
                 }
@@ -247,7 +247,7 @@ public final class CachedGraphTransaction extends GraphTransaction {
             // Update vertex cache
             for (HugeVertex vertex : changes) {
                 vertex = vertex.resetTx();
-                if (vertex.sizeOfProperties() > MAX_CACHE_PROPS_PER_VERTEX) {
+                if (vertex.sizeOfSubProperties() > MAX_CACHE_PROPS_PER_VERTEX) {
                     // Skip large vertex
                     this.verticesCache.invalidate(vertex.id());
                     continue;

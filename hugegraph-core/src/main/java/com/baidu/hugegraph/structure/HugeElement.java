@@ -173,6 +173,18 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
         return this.properties.size();
     }
 
+    public int sizeOfSubProperties() {
+        int size = 0;
+        for (HugeProperty<?> p : this.properties.values()) {
+            size++;
+            if (p.propertyKey().cardinality() != Cardinality.SINGLE &&
+                p.value() instanceof Collection) {
+                size += ((Collection<?>) p.value()).size();
+            }
+        }
+        return size;
+    }
+
     @Watched(prefix = "element")
     public <V> HugeProperty<?> setProperty(HugeProperty<V> prop) {
         if (this.properties == EMPTY) {
