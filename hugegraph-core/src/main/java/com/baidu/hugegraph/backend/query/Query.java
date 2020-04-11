@@ -412,7 +412,7 @@ public class Query implements Cloneable {
             pairs.put("order by", this.orders());
         }
 
-        StringBuilder sb = new StringBuilder(64);
+        StringBuilder sb = new StringBuilder(128);
         sb.append("`Query ");
         if (this.aggregate != null) {
             sb.append(this.aggregate.toString());
