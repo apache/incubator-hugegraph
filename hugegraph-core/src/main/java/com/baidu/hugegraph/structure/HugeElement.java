@@ -24,6 +24,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -254,10 +255,18 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
 
         Collection<V> values;
         if (pkey.cardinality() == Cardinality.SET) {
-            values = CollectionUtil.toSet(value);
+            if (value instanceof Set) {
+                values = (Set<V>) value;
+            } else {
+                values = CollectionUtil.toSet(value);
+            }
         } else {
             assert pkey.cardinality() == Cardinality.LIST;
-            values = CollectionUtil.toList(value);
+            if (value instanceof List) {
+                values = (List<V>) value;
+            } else {
+                values = CollectionUtil.toList(value);
+            }
         }
         property.value().addAll(pkey.validValueOrThrow(values));
 

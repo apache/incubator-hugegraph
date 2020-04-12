@@ -217,11 +217,13 @@ public class PropertyKey extends SchemaElement implements Propfiable {
 
     public <V> V validValueOrThrow(V value) {
         V validValue = this.validValue(value);
-        E.checkArgument(validValue != null,
-                        "Invalid property value '%s' for key '%s', " +
-                        "expect a value of type %s, actual type %s",
-                        value, this.name(), this.clazz(),
-                        value.getClass().getSimpleName());
+        if (validValue == null) {
+            E.checkArgument(validValue != null,
+                            "Invalid property value '%s' for key '%s', " +
+                            "expect a value of type %s, actual type %s",
+                            value, this.name(), this.clazz(),
+                            value.getClass().getSimpleName());
+        }
         return validValue;
     }
 
