@@ -177,7 +177,18 @@ public class EdgeId implements Id {
 
     @Override
     public int hashCode() {
-        return this.asString().hashCode();
+        if (this.directed) {
+            return this.ownerVertexId.hashCode() ^
+                   this.direction.hashCode() ^
+                   this.edgeLabelId.hashCode() ^
+                   this.sortValues.hashCode() ^
+                   this.otherVertexId.hashCode();
+        } else {
+            return this.sourceVertexId().hashCode() ^
+                   this.edgeLabelId.hashCode() ^
+                   this.sortValues.hashCode() ^
+                   this.targetVertexId().hashCode();
+        }
     }
 
     @Override
@@ -186,7 +197,18 @@ public class EdgeId implements Id {
             return false;
         }
         EdgeId other = (EdgeId) object;
-        return this.asString().equals(other.asString());
+        if (this.directed) {
+            return this.ownerVertexId.equals(other.ownerVertexId) &&
+                   this.direction == other.direction &&
+                   this.edgeLabelId.equals(other.edgeLabelId) &&
+                   this.sortValues.equals(other.sortValues) &&
+                   this.otherVertexId.equals(other.otherVertexId);
+        } else {
+            return this.sourceVertexId().equals(other.sourceVertexId()) &&
+                   this.edgeLabelId.equals(other.edgeLabelId) &&
+                   this.sortValues.equals(other.sortValues) &&
+                   this.targetVertexId().equals(other.targetVertexId());
+        }
     }
 
     @Override
