@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.config;
 
 import static com.baidu.hugegraph.backend.tx.GraphTransaction.COMMIT_BATCH;
+import static com.baidu.hugegraph.config.OptionChecker.allowValues;
 import static com.baidu.hugegraph.config.OptionChecker.disallowEmpty;
 import static com.baidu.hugegraph.config.OptionChecker.rangeInt;
 
@@ -254,6 +255,14 @@ public class CoreOptions extends OptionHolder {
                     false
             );
 
+    public static final ConfigOption<String> VERTEX_CACHE_TYPE =
+            new ConfigOption<>(
+                    "vertex.cache_type",
+                    "The type of vertex cache, allowed values are [l1, l2].",
+                    allowValues("l1", "l2"),
+                    "l1"
+            );
+
     public static final ConfigOption<Long> VERTEX_CACHE_CAPACITY =
             new ConfigOption<>(
                     "vertex.cache_capacity",
@@ -268,6 +277,14 @@ public class CoreOptions extends OptionHolder {
                     "The expire time in seconds of vertex cache.",
                     rangeInt(0, Integer.MAX_VALUE),
                     (60 * 10)
+            );
+
+    public static final ConfigOption<String> EDGE_CACHE_TYPE =
+            new ConfigOption<>(
+                    "edge.cache_type",
+                    "The type of edge cache, allowed values are [l1, l2].",
+                    allowValues("l1", "l2"),
+                    "l1"
             );
 
     public static final ConfigOption<Long> EDGE_CACHE_CAPACITY =
