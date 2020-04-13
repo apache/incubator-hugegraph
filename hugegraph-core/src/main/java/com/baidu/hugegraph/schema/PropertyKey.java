@@ -135,6 +135,16 @@ public class PropertyKey extends SchemaElement implements Propfiable {
 
     @SuppressWarnings("unchecked")
     public <T> T newValue() {
+        switch (this.cardinality) {
+            case SET:
+                return (T) new LinkedHashSet<>();
+            case LIST:
+                return (T) new ArrayList<>();
+            default:
+                // pass
+                break;
+        }
+
         try {
             return (T) this.implementClazz().newInstance();
         } catch (Exception e) {
@@ -242,15 +252,16 @@ public class PropertyKey extends SchemaElement implements Propfiable {
         if (!(value instanceof Collection)) {
             validValue = this.convSingleValue(value);
         } else {
-            if (value instanceof Set) {
-                validValues = new HashSet<>();
+            Collection<T> collection = (Collection<T>) value;
+            if (collection instanceof Set) {
+                validValues = new HashSet<>(collection.size());
             } else {
-                E.checkArgument(value instanceof List,
+                E.checkArgument(collection instanceof List,
                                 "Property value must be Single, Set, List, " +
                                 "but got %s", value);
-                validValues = new ArrayList<>();
+                validValues = new ArrayList<>(collection.size());
             }
-            for (T element : (Collection<T>) value) {
+            for (T element : collection) {
                 element = this.convSingleValue(element);
                 if (element == null) {
                     return null;

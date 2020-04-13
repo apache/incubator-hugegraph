@@ -201,7 +201,7 @@ public abstract class IdGenerator {
         @Override
         public String asString() {
             // TODO: encode with base64
-            return String.valueOf(this.id);
+            return Long.toString(this.id);
         }
 
         @Override

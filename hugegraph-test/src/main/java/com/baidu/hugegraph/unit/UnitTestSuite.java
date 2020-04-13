@@ -34,7 +34,6 @@ import com.baidu.hugegraph.unit.core.ConditionQueryFlattenTest;
 import com.baidu.hugegraph.unit.core.ConditionTest;
 import com.baidu.hugegraph.unit.core.DataTypeTest;
 import com.baidu.hugegraph.unit.core.DirectionsTest;
-import com.baidu.hugegraph.unit.core.EdgeIdTest;
 import com.baidu.hugegraph.unit.core.ExceptionTest;
 import com.baidu.hugegraph.unit.core.LocksTableTest;
 import com.baidu.hugegraph.unit.core.QueryTest;
@@ -42,6 +41,7 @@ import com.baidu.hugegraph.unit.core.RowLockTest;
 import com.baidu.hugegraph.unit.core.SecurityManagerTest;
 import com.baidu.hugegraph.unit.core.SerialEnumTest;
 import com.baidu.hugegraph.unit.core.TraversalUtilTest;
+import com.baidu.hugegraph.unit.id.EdgeIdTest;
 import com.baidu.hugegraph.unit.id.IdTest;
 import com.baidu.hugegraph.unit.id.IdUtilTest;
 import com.baidu.hugegraph.unit.mysql.MysqlUtilTest;
@@ -76,13 +76,13 @@ import com.baidu.hugegraph.unit.util.VersionTest;
 
     /* id */
     IdTest.class,
+    EdgeIdTest.class,
     IdUtilTest.class,
 
     /* core */
     LocksTableTest.class,
     RowLockTest.class,
     AnalyzerTest.class,
-    EdgeIdTest.class,
     BackendMutationTest.class,
     ConditionTest.class,
     ConditionQueryFlattenTest.class,
