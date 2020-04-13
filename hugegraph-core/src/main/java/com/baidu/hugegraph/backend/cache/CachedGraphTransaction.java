@@ -39,6 +39,7 @@ import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.event.EventListener;
+import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.iterator.ListIterator;
 import com.baidu.hugegraph.schema.IndexLabel;
@@ -67,14 +68,16 @@ public final class CachedGraphTransaction extends GraphTransaction {
 
         HugeConfig conf = graph.configuration();
 
+        String type = conf.get(CoreOptions.VERTEX_CACHE_TYPE);
         long capacity = conf.get(CoreOptions.VERTEX_CACHE_CAPACITY);
         int expire = conf.get(CoreOptions.VERTEX_CACHE_EXPIRE);
-        this.verticesCache = this.cache("vertex", capacity,
+        this.verticesCache = this.cache("vertex", type, capacity,
                                         AVG_VERTEX_ENTRY_SIZE, expire);
 
+        type = conf.get(CoreOptions.EDGE_CACHE_TYPE);
         capacity = conf.get(CoreOptions.EDGE_CACHE_CAPACITY);
         expire = conf.get(CoreOptions.EDGE_CACHE_EXPIRE);
-        this.edgesCache = this.cache("edge", capacity,
+        this.edgesCache = this.cache("edge", type, capacity,
                                      AVG_EDGE_ENTRY_SIZE, expire);
 
         this.listenChanges();
@@ -89,14 +92,24 @@ public final class CachedGraphTransaction extends GraphTransaction {
         }
     }
 
-    private Cache<Id, Object> cache(String prefix, long capacity,
+    private Cache<Id, Object> cache(String prefix, String type, long capacity,
                                     long entrySize, long expire) {
         HugeGraph graph = super.graph();
         String name = prefix + "-" + graph.name();
-        long heapCapacity = (long) (DEFAULT_LEVEL_RATIO * capacity);
-        Cache<Id, Object> cache = CacheManager.instance().levelCache(
-                                  graph, name, heapCapacity,
-                                  capacity, entrySize);
+        Cache<Id, Object> cache;
+        switch (type) {
+            case "l1":
+                cache = CacheManager.instance().cache(name, capacity);
+                break;
+            case "l2":
+                long heapCapacity = (long) (DEFAULT_LEVEL_RATIO * capacity);
+                cache = CacheManager.instance().levelCache(graph, name,
+                                                           heapCapacity,
+                                                           capacity, entrySize);
+                break;
+            default:
+                throw new NotSupportException("cache type '%s'", type);
+        }
         // Convert the unit from seconds to milliseconds
         cache.expire(expire * 1000L);
         return cache;
