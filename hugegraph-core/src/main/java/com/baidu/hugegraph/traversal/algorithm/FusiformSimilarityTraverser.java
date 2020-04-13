@@ -49,7 +49,7 @@ import com.google.common.collect.ImmutableSet;
 
 public class FusiformSimilarityTraverser extends HugeTraverser {
 
-    private long accessed = 0;
+    private long accessed = 0L;
 
     public FusiformSimilarityTraverser(HugeGraph graph) {
         super(graph);
@@ -86,6 +86,7 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
                 break;
             }
         }
+        this.reset();
         return results;
     }
 
@@ -225,6 +226,10 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
             neighborCount = neighbors.size();
         }
         return neighborCount >= minNeighbors;
+    }
+
+    private void reset() {
+        this.accessed = 0L;
     }
 
     public static class Similar {
