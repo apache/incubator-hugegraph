@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.backend.store.hbase;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collection;
 
@@ -125,7 +126,9 @@ public class HbaseTables {
             E.checkArgument(col.name.length == 0,
                             "Expect empty column name, " +
                             "please ensure hbase serializer is used");
-            long expiredTime = BytesBuffer.wrap(col.value).readVLong();
+            BytesBuffer bf = BytesBuffer.wrap(col.value);
+            bf.readId();
+            long expiredTime = bf.readVLong();
             if (expiredTime == 0) {
                 session.put(this.table(), CF, entry.id().asBytes(),
                             entry.columns());
