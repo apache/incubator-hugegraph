@@ -129,7 +129,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
         // Update label index if backend store not supports label-query
         HugeIndex index = new HugeIndex(IndexLabel.label(element.type()));
-        index.fieldValues(element.schemaLabel().id().asLong());
+        index.fieldValues(element.schemaLabel().id());
         index.elementIds(element.id(), element.expiredTime());
 
         if (removed) {

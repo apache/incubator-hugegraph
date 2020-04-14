@@ -219,8 +219,8 @@ public class BinarySerializer extends AbstractSerializer {
         buffer.writeVLong(expiredTime);
     }
 
-    protected void parseExpiredTime(BytesBuffer buffer, HugeEdge edge) {
-        edge.expiredTime(buffer.readVLong());
+    protected void parseExpiredTime(BytesBuffer buffer, HugeElement element) {
+        element.expiredTime(buffer.readVLong());
     }
 
     protected byte[] formatEdgeName(HugeEdge edge) {
@@ -306,6 +306,9 @@ public class BinarySerializer extends AbstractSerializer {
         // Parse vertex label
         VertexLabel label = vertex.graph().vertexLabelOrNone(buffer.readId());
         vertex.vertexLabel(label);
+
+        // Parse edge expired time
+        this.parseExpiredTime(buffer, vertex);
 
         // Parse properties
         this.parseProperties(buffer, vertex);
@@ -397,6 +400,9 @@ public class BinarySerializer extends AbstractSerializer {
 
         // Write vertex label
         buffer.writeId(vertex.schemaLabel().id());
+
+        // Write edge expired time
+        this.formatExpiredTime(vertex.expiredTime(), buffer);
 
         // Write all properties of the vertex
         this.formatProperties(vertex.getProperties().values(), buffer);
@@ -921,6 +927,8 @@ public class BinarySerializer extends AbstractSerializer {
             writeIds(HugeKeys.INDEX_LABELS, schema.indexLabels());
             writeBool(HugeKeys.ENABLE_LABEL_INDEX, schema.enableLabelIndex());
             writeEnum(HugeKeys.STATUS, schema.status());
+            writeLong(HugeKeys.TTL, schema.ttl());
+            writeId(HugeKeys.TTL_START_TIME, schema.ttlStartTime());
             writeUserdata(schema);
             return this.entry;
         }
@@ -941,6 +949,8 @@ public class BinarySerializer extends AbstractSerializer {
             vertexLabel.indexLabels(readIds(HugeKeys.INDEX_LABELS));
             vertexLabel.enableLabelIndex(readBool(HugeKeys.ENABLE_LABEL_INDEX));
             vertexLabel.status(readEnum(HugeKeys.STATUS, SchemaStatus.class));
+            vertexLabel.ttl(readLong(HugeKeys.TTL));
+            vertexLabel.ttlStartTime(readId(HugeKeys.TTL_START_TIME));
             readUserdata(vertexLabel);
             return vertexLabel;
         }
@@ -983,7 +993,6 @@ public class BinarySerializer extends AbstractSerializer {
             edgeLabel.ttl(readLong(HugeKeys.TTL));
             edgeLabel.ttlStartTime(readId(HugeKeys.TTL_START_TIME));
             readUserdata(edgeLabel);
-
             return edgeLabel;
         }
 
