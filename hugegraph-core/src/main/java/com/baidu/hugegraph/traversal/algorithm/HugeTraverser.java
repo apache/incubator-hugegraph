@@ -371,17 +371,19 @@ public class HugeTraverser {
         return new MultivaluedHashMap<>();
     }
 
-    public static <V extends Comparable<? super V>> Map<Id, V> topN(
-                  Map<Id, V> ranks, boolean sorted, long limit) {
+    public static <K, V extends Comparable<? super V>> Map<K, V> topN(
+                                                                 Map<K, V> map,
+                                                                 boolean sorted,
+                                                                 long limit) {
         if (sorted) {
-            ranks = CollectionUtil.sortByValue(ranks, false);
+            map = CollectionUtil.sortByValue(map, false);
         }
         if (limit == NO_LIMIT) {
-            return ranks;
+            return map;
         }
-        Map<Id, V> results = InsertionOrderUtil.newMap();
+        Map<K, V> results = InsertionOrderUtil.newMap();
         long count = 0;
-        for (Map.Entry<Id, V> entry : ranks.entrySet()) {
+        for (Map.Entry<K, V> entry : map.entrySet()) {
             results.put(entry.getKey(), entry.getValue());
             if (++count >= limit) {
                 break;
