@@ -142,6 +142,8 @@ public class CassandraTables {
                     .put(HugeKeys.ENABLE_LABEL_INDEX, DataType.cboolean())
                     .put(HugeKeys.USER_DATA, TYPE_UD)
                     .put(HugeKeys.STATUS, DataType.tinyint())
+                    .put(HugeKeys.TTL, TYPE_TTL)
+                    .put(HugeKeys.TTL_START_TIME, TYPE_PK)
                     .build();
 
             this.createTable(session, pkeys, ckeys, columns);
@@ -261,11 +263,33 @@ public class CassandraTables {
             ImmutableMap<HugeKeys, DataType> ckeys = ImmutableMap.of();
             ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of(
                     HugeKeys.LABEL, TYPE_SL,
-                    HugeKeys.PROPERTIES, DataType.map(TYPE_PK, TYPE_PROP)
+                    HugeKeys.PROPERTIES, DataType.map(TYPE_PK, TYPE_PROP),
+                    HugeKeys.EXPIRED_TIME, TYPE_EXPIRED_TIME
             );
 
             this.createTable(session, pkeys, ckeys, columns);
             this.createIndex(session, LABEL_INDEX, HugeKeys.LABEL);
+        }
+
+        @Override
+        public void insert(CassandraSessionPool.Session session,
+                           CassandraBackendEntry.Row entry) {
+            Insert insert = this.buildInsert(entry);
+            session.add(setTtl(insert, entry));
+        }
+
+        @Override
+        public void append(CassandraSessionPool.Session session,
+                           CassandraBackendEntry.Row entry) {
+            Update append = this.buildAppend(entry);
+            session.add(setTtl(append, entry));
+        }
+
+        @Override
+        public void eliminate(CassandraSessionPool.Session session,
+                              CassandraBackendEntry.Row entry) {
+            Update append = this.buildEliminate(entry);
+            session.add(setTtl(append, entry));
         }
     }
 

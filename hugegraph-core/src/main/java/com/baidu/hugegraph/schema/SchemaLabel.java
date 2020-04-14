@@ -36,7 +36,6 @@ import com.baidu.hugegraph.util.E;
 public abstract class SchemaLabel extends SchemaElement
                                   implements Indexfiable, Propfiable {
 
-    protected static final Id ZERO = IdGenerator.of(0L);
     protected static final String UNDEF = "~undefined";
 
     private final Set<Id> properties;

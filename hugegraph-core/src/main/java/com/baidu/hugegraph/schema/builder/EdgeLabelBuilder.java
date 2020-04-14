@@ -475,7 +475,8 @@ public class EdgeLabelBuilder extends AbstractBuilder
         }
         VertexLabel source = this.transaction.getVertexLabel(this.sourceLabel);
         VertexLabel target = this.transaction.getVertexLabel(this.targetLabel);
-        E.checkArgument(this.ttl <= source.ttl() && this.ttl <= target.ttl(),
+        E.checkArgument((source.ttl() == 0L || this.ttl <= source.ttl()) &&
+                        (target.ttl() == 0L || this.ttl <= target.ttl()),
                         "The ttl(%s) of edge label '%s' should less than " +
                         "ttl(%s) of source label '%s' and ttl(%s) of target " +
                         "label '%s'", this.ttl, this.name,

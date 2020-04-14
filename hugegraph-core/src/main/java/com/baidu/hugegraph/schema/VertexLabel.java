@@ -31,6 +31,8 @@ import com.baidu.hugegraph.schema.builder.SchemaBuilder;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.IdStrategy;
 
+import static com.baidu.hugegraph.backend.id.IdGenerator.ZERO;
+
 public class VertexLabel extends SchemaLabel {
 
     private static final String UNDEF = "~undefined";

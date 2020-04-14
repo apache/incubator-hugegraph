@@ -214,6 +214,7 @@ public abstract class TableSerializer extends AbstractSerializer {
         TableBackendEntry entry = newBackendEntry(vertex);
         entry.column(HugeKeys.ID, this.writeId(vertex.id()));
         entry.column(HugeKeys.LABEL, vertex.schemaLabel().id().asLong());
+        entry.column(HugeKeys.EXPIRED_TIME, vertex.expiredTime());
         // Add all properties of a Vertex
         this.formatProperties(vertex, entry.row());
         return entry;
@@ -226,6 +227,7 @@ public abstract class TableSerializer extends AbstractSerializer {
         entry.subId(IdGenerator.of(prop.key()));
         entry.column(HugeKeys.ID, this.writeId(vertex.id()));
         entry.column(HugeKeys.LABEL, vertex.schemaLabel().id().asLong());
+        entry.column(HugeKeys.EXPIRED_TIME, vertex.expiredTime());
 
         this.formatProperty(prop, entry.row());
         return entry;
@@ -243,6 +245,7 @@ public abstract class TableSerializer extends AbstractSerializer {
 
         Id id = this.readId(entry.column(HugeKeys.ID));
         Number label = entry.column(HugeKeys.LABEL);
+        Number expiredTime = entry.column(HugeKeys.EXPIRED_TIME);
 
         VertexLabel vertexLabel = VertexLabel.NONE;
         if (label != null) {
@@ -255,6 +258,10 @@ public abstract class TableSerializer extends AbstractSerializer {
         // Parse all edges of a Vertex
         for (TableBackendEntry.Row edge : entry.subRows()) {
             this.parseEdge(edge, vertex, graph);
+        }
+        // The expired time is null when this is fake vertex of edge
+        if (expiredTime != null) {
+            vertex.expiredTime(expiredTime.longValue());
         }
         return vertex;
     }
@@ -423,6 +430,9 @@ public abstract class TableSerializer extends AbstractSerializer {
         this.writeEnableLabelIndex(vertexLabel, entry);
         this.writeUserdata(vertexLabel, entry);
         entry.column(HugeKeys.STATUS, vertexLabel.status().code());
+        entry.column(HugeKeys.TTL, vertexLabel.ttl());
+        entry.column(HugeKeys.TTL_START_TIME,
+                     vertexLabel.ttlStartTime().asLong());
         return entry;
     }
 
@@ -484,6 +494,8 @@ public abstract class TableSerializer extends AbstractSerializer {
         Object nullableKeys = entry.column(HugeKeys.NULLABLE_KEYS);
         Object indexLabels = entry.column(HugeKeys.INDEX_LABELS);
         Number status = entry.column(HugeKeys.STATUS);
+        Number ttl = entry.column(HugeKeys.TTL);
+        Number ttlStartTime = entry.column(HugeKeys.TTL_START_TIME);
 
         VertexLabel vertexLabel = new VertexLabel(graph, this.toId(id), name);
         vertexLabel.idStrategy(SerialEnum.fromCode(IdStrategy.class,
@@ -496,6 +508,8 @@ public abstract class TableSerializer extends AbstractSerializer {
         this.readUserdata(vertexLabel, entry);
         vertexLabel.status(SerialEnum.fromCode(SchemaStatus.class,
                                                status.byteValue()));
+        vertexLabel.ttl(ttl.longValue());
+        vertexLabel.ttlStartTime(this.toId(ttlStartTime));
         return vertexLabel;
     }
 
