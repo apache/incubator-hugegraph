@@ -457,6 +457,12 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
             return true;
         }
 
+        // Skip query if there is no any property key in schema
+        if (this.schemaLabel().properties().isEmpty()) {
+            this.propLoaded = true;
+            return true;
+        }
+
         // NOTE: only adjacent vertex will reach here
         Iterator<Vertex> vertices = tx().queryAdjacentVertices(this.id());
         HugeVertex vertex = (HugeVertex) QueryResults.one(vertices);

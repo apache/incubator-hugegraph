@@ -224,6 +224,13 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
             return true;
         }
 
+        // Skip query if there is no any property key in schema
+        if (this.schemaLabel().properties().isEmpty()) {
+            this.propLoaded = true;
+            return true;
+        }
+
+        // Seems there is no scene to be here
         Iterator<Edge> edges = tx().queryEdges(this.id());
         Edge edge = QueryResults.one(edges);
         if (edge == null && !throwIfNotExist) {
