@@ -31,6 +31,7 @@ import org.apache.tinkerpop.gremlin.structure.Column;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import com.baidu.hugegraph.job.Job;
+import com.baidu.hugegraph.type.define.Directions;
 
 public class BetweenessCentralityAlgorithm extends AbstractCentAlgorithm {
 
@@ -42,7 +43,9 @@ public class BetweenessCentralityAlgorithm extends AbstractCentAlgorithm {
     @Override
     public Object call(Job<Object> job, Map<String, Object> parameters) {
         Traverser traverser = new Traverser(job);
-        return traverser.betweenessCentrality(depth(parameters),
+        return traverser.betweenessCentrality(direction(parameters),
+                                              edgeLabel(parameters),
+                                              depth(parameters),
                                               degree(parameters),
                                               sample(parameters),
                                               sourceLabel(parameters),
@@ -57,7 +60,9 @@ public class BetweenessCentralityAlgorithm extends AbstractCentAlgorithm {
             super(job);
         }
 
-        public Object betweenessCentrality(int depth,
+        public Object betweenessCentrality(Directions direction,
+                                           String label,
+                                           int depth,
                                            long degree,
                                            long sample,
                                            String sourceLabel,
@@ -71,7 +76,8 @@ public class BetweenessCentralityAlgorithm extends AbstractCentAlgorithm {
             GraphTraversal<Vertex, Vertex> t = constructSource(sourceLabel,
                                                                sourceSample,
                                                                sourceCLabel);
-            t = constructPath(t, degree, sample, sourceLabel, sourceCLabel);
+            t = constructPath(t, direction, label, degree, sample,
+                              sourceLabel, sourceCLabel);
             t = t.emit().until(__.loops().is(P.gte(depth)));
             t = filterNonShortestPath(t);
 

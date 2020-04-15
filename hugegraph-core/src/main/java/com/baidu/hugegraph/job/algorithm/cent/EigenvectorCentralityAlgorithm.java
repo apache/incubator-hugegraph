@@ -30,6 +30,7 @@ import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import com.baidu.hugegraph.job.Job;
+import com.baidu.hugegraph.type.define.Directions;
 
 public class EigenvectorCentralityAlgorithm extends AbstractCentAlgorithm {
 
@@ -44,7 +45,9 @@ public class EigenvectorCentralityAlgorithm extends AbstractCentAlgorithm {
     @Override
     public Object call(Job<Object> job, Map<String, Object> parameters) {
         Traverser traverser = new Traverser(job);
-        return traverser.eigenvectorCentrality(depth(parameters),
+        return traverser.eigenvectorCentrality(direction(parameters),
+                                               edgeLabel(parameters),
+                                               depth(parameters),
                                                degree(parameters),
                                                sample(parameters),
                                                sourceLabel(parameters),
@@ -59,7 +62,9 @@ public class EigenvectorCentralityAlgorithm extends AbstractCentAlgorithm {
             super(job);
         }
 
-        public Object eigenvectorCentrality(int depth,
+        public Object eigenvectorCentrality(Directions direction,
+                                            String label,
+                                            int depth,
                                             long degree,
                                             long sample,
                                             String sourceLabel,
@@ -83,7 +88,8 @@ public class EigenvectorCentralityAlgorithm extends AbstractCentAlgorithm {
             GraphTraversal<Vertex, Vertex> t = constructSource(sourceLabel,
                                                                sourceSample,
                                                                sourceCLabel);
-            GraphTraversal<?, Vertex> unit = constructPathUnit(degree, sample,
+            GraphTraversal<?, Vertex> unit = constructPathUnit(direction, label,
+                                                               degree, sample,
                                                                sourceLabel,
                                                                sourceCLabel);
             t = t.repeat(__.groupCount("m").by(T.id)

@@ -22,9 +22,9 @@ package com.baidu.hugegraph.job.algorithm.cent;
 import java.util.Iterator;
 import java.util.Map;
 
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.job.Job;
@@ -41,6 +41,7 @@ public class DegreeCentralityAlgorithm extends AbstractCentAlgorithm {
     @Override
     public void checkParameters(Map<String, Object> parameters) {
         direction(parameters);
+        edgeLabel(parameters);
         top(parameters);
     }
 
@@ -48,6 +49,7 @@ public class DegreeCentralityAlgorithm extends AbstractCentAlgorithm {
     public Object call(Job<Object> job, Map<String, Object> parameters) {
         Traverser traverser = new Traverser(job);
         return traverser.degreeCentrality(direction(parameters),
+                                          edgeLabel(parameters),
                                           top(parameters));
     }
 
@@ -57,9 +59,11 @@ public class DegreeCentralityAlgorithm extends AbstractCentAlgorithm {
             super(job);
         }
 
-        public Object degreeCentrality(Directions direction, long topN) {
+        public Object degreeCentrality(Directions direction,
+                                       String label,
+                                       long topN) {
             if (direction == null || direction == Directions.BOTH) {
-                return degreeCentrality(topN);
+                return degreeCentrality(label, topN);
             }
             assert direction == Directions.OUT || direction == Directions.IN;
             assert topN >= 0L;
@@ -69,6 +73,7 @@ public class DegreeCentralityAlgorithm extends AbstractCentAlgorithm {
             JsonMap degrees = new JsonMap();
             TopMap<Id> tops = new TopMap<>(topN);
             Id vertex = null;
+            Id labelId = this.getEdgeLabelId(label);
             long degree = 0L;
             long total = 0L;
 
@@ -77,12 +82,20 @@ public class DegreeCentralityAlgorithm extends AbstractCentAlgorithm {
                 HugeEdge edge = (HugeEdge) edges.next();
                 this.updateProgress(++total);
 
+                Id schemaLabel = edge.schemaLabel().id();
+                if (labelId != null && !labelId.equals(schemaLabel)) {
+                    continue;
+                }
+
                 Id source = edge.ownerVertex().id();
                 if (source.equals(vertex)) {
+                    // edges belong to same source vertex
                     degree++;
                     continue;
                 }
+
                 if (vertex != null) {
+                    // next vertex found
                     if (topN <= 0L) {
                         degrees.append(vertex, degree);
                     } else {
@@ -107,25 +120,26 @@ public class DegreeCentralityAlgorithm extends AbstractCentAlgorithm {
             return degrees.asJson();
         }
 
-        protected Object degreeCentrality(long topN) {
+        protected Object degreeCentrality(String label, long topN) {
             assert topN >= 0L;
             long total = 0L;
             JsonMap degrees = new JsonMap();
             TopMap<Id> tops = new TopMap<>(topN);
 
-            GraphTraversalSource traversal = this.graph().traversal();
             Iterator<Vertex> vertices = this.vertices();
 
             degrees.startObject();
             while (vertices.hasNext()) {
-                Vertex source = vertices.next();
+                Id source = (Id) vertices.next().id();
                 this.updateProgress(++total);
 
-                Long degree = traversal.V(source).bothE().count().next();
-                if (topN <= 0L) {
-                    degrees.append(source.id(), degree);
-                } else {
-                    tops.put((Id) source.id(), degree);
+                long degree = this.degree(source, label);
+                if (degree > 0L) {
+                    if (topN <= 0L) {
+                        degrees.append(source, degree);
+                    } else {
+                        tops.put(source, degree);
+                    }
                 }
             }
 
@@ -135,6 +149,13 @@ public class DegreeCentralityAlgorithm extends AbstractCentAlgorithm {
             degrees.endObject();
 
             return degrees.asJson();
+        }
+
+        private long degree(Id source, String label) {
+            Id labelId = this.getEdgeLabelId(label);
+            Iterator<Edge> edges = this.edgesOfVertex(source, Directions.BOTH,
+                                                      labelId, NO_LIMIT);
+            return IteratorUtils.count(edges);
         }
     }
 }

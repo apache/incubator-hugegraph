@@ -49,6 +49,7 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.Bytes;
+import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
 
@@ -119,6 +120,9 @@ public abstract class AbstractAlgorithm implements Algorithm {
     }
 
     protected static Directions direction(Map<String, Object> parameters) {
+        if (!parameters.containsKey(KEY_DIRECTION)) {
+            return Directions.BOTH;
+        }
         Object direction = parameter(parameters, KEY_DIRECTION);
         return parseDirection(direction);
     }
@@ -437,7 +441,11 @@ public abstract class AbstractAlgorithm implements Algorithm {
         }
 
         public Set<Map.Entry<K, MutableLong>> entrySet() {
-            this.shrinkIfNeeded(this.topN);
+            if (this.tops.size() <= this.topN) {
+                this.tops = CollectionUtil.sortByValue(this.tops, false);
+            } else {
+                this.shrinkIfNeeded(this.topN);
+            }
             return this.tops.entrySet();
         }
 
