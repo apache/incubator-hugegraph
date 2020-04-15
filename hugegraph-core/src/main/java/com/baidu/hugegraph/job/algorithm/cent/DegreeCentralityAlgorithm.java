@@ -67,7 +67,7 @@ public class DegreeCentralityAlgorithm extends AbstractCentAlgorithm {
             Iterator<Edge> edges = this.edges(direction);
 
             JsonMap degrees = new JsonMap();
-            TopMap tops = new TopMap(topN);
+            TopMap<Id> tops = new TopMap<>(topN);
             Id vertex = null;
             long degree = 0L;
             long total = 0L;
@@ -111,7 +111,7 @@ public class DegreeCentralityAlgorithm extends AbstractCentAlgorithm {
             assert topN >= 0L;
             long total = 0L;
             JsonMap degrees = new JsonMap();
-            TopMap tops = new TopMap(topN);
+            TopMap<Id> tops = new TopMap<>(topN);
 
             GraphTraversalSource traversal = this.graph().traversal();
             Iterator<Vertex> vertices = this.vertices();

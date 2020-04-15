@@ -82,26 +82,13 @@ public class ClosenessCentralityAlgorithm extends AbstractCentAlgorithm {
                                                                sourceCLabel);
             t = constructPath(t, degree, sample, sourceLabel, sourceCLabel);
             t = t.emit().until(__.loops().is(P.gte(depth)));
-
-            @SuppressWarnings({ "unchecked", "deprecation" })
-            GraphTraversal<Vertex, Vertex> tf = t.filter(
-                    __.project("x","y","z")
-                           .by(__.select(Pop.first, "v").id())
-                           .by(__.select(Pop.last, "v").id())
-                           .by(__.select(Pop.all, "v").count(Scope.local))
-                      .as("triple")
-                      .coalesce(__.select("x","y").as("a")
-                                  .select("triples").unfold().as("t")
-                                  .select("x","y").where(P.eq("a")).select("t"),
-                                __.store("triples"))
-                      .select("z").as("length")
-                      .select("triple").select("z").where(P.eq("length")));
+            t = filterNonShortestPath(t);
 
             GraphTraversal<Vertex, ?> tg;
-            tg = tf.group().by(__.select(Pop.first, "v").id())
-                           .by(__.select(Pop.all, "v").count(Scope.local)
-                                 .sack(Operator.div).sack().sum())
-                           .order(Scope.local).by(Column.values, Order.desc);
+            tg = t.group().by(__.select(Pop.first, "v").id())
+                          .by(__.select(Pop.all, "v").count(Scope.local)
+                                .sack(Operator.div).sack().sum())
+                          .order(Scope.local).by(Column.values, Order.desc);
             GraphTraversal<Vertex, ?> tLimit = topN <= 0L ? tg :
                                                tg.limit(Scope.local, topN);
 
