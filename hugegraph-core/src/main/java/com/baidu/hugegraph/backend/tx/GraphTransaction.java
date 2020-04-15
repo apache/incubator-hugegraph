@@ -60,6 +60,7 @@ import com.baidu.hugegraph.backend.query.ConditionQueryFlatten;
 import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.query.QueryResults;
+import com.baidu.hugegraph.backend.serializer.AbstractSerializer;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
@@ -964,10 +965,11 @@ public class GraphTransaction extends IndexableTransaction {
             return new ListIterator<>(ImmutableList.copyOf(vertex.getEdges()));
         });
 
-        long now = DateUtil.now().getTime();
         if (!this.store().features().supportsTtl() && !query.showExpired()) {
+            long now = DateUtil.now().getTime();
             edges = new FilterIterator<>(edges, edge -> {
-                if (0L < edge.expiredTime() && edge.expiredTime() < now) {
+                long expiredTime = edge.expiredTime();
+                if (0L < expiredTime && expiredTime < now) {
                     asyncDeleteExpiredObject(this.graph(), edge);
                     return false;
                 }
@@ -1619,10 +1621,11 @@ public class GraphTransaction extends IndexableTransaction {
                                    this.addedEdges, this.removedEdges,
                                    this.updatedEdges);
         // Filter edges with ttl
-        long now = DateUtil.now().getTime();
         if (!query.showExpired()) {
+            long now = DateUtil.now().getTime();
             edges = new FilterIterator<>(edges, edge -> {
-                return edge.expiredTime() == 0L || edge.expiredTime() >= now;
+                long expiredTime = edge.expiredTime();
+                return expiredTime == 0L || expiredTime >= now;
             });
         }
         if (removingVertices.isEmpty()) {
@@ -1906,7 +1909,7 @@ public class GraphTransaction extends IndexableTransaction {
                       jobCounter.jobs(), MAX_JOBS, object);
             return;
         }
-        jobCounter.jobIncrement();
+        jobCounter.increment();
         EphemeralJob job = newEphemeralJob(jobCounter, object);
         jobCounter.clear(object);
         HugeTask<?> task;
@@ -1916,7 +1919,7 @@ public class GraphTransaction extends IndexableTransaction {
                                       .job(job)
                                       .schedule();
         } catch (Throwable e) {
-            jobCounter.jobDecrement();
+            jobCounter.decrement();
             if (e.getMessage().contains("Pending tasks size") &&
                 e.getMessage().contains("has exceeded the max limit")) {
                 // Reach tasks limit, just ignore it
@@ -1973,7 +1976,7 @@ public class GraphTransaction extends IndexableTransaction {
                          this.elements);
                 throw e;
             } finally {
-                JOB_COUNTERS.jobCounter(graph).jobDecrement();
+                JOB_COUNTERS.jobCounter(graph).decrement();
             }
             return null;
         }
@@ -2002,30 +2005,7 @@ public class GraphTransaction extends IndexableTransaction {
             GraphTransaction tx = graph.graphTransaction();
             try {
                 for (HugeIndex index : this.indexes) {
-                    /*
-                     * Delete expired element(if exist) of the index,
-                     * otherwise just delete expired index only
-                     */
-                    HugeType type = index.indexLabel().queryType().isVertex()?
-                                    HugeType.VERTEX : HugeType.EDGE;
-                    IdQuery query = new IdQuery(type);
-                    query.query(index.elementId());
-                    query.showExpired(true);
-                    Iterator<?> elements = type.isVertex() ?
-                                           tx.queryVertices(query) :
-                                           tx.queryEdges(query);
-                    if (elements.hasNext()) {
-                        HugeElement element = (HugeElement) elements.next();
-                        if (element.expiredTime() == index.expiredTime()) {
-                            element.remove();
-                        } else {
-                            tx.indexTx.doEliminate(
-                            graph.serializer().writeIndex(index));
-                        }
-                    } else {
-                        tx.indexTx.doEliminate(
-                        graph.serializer().writeIndex(index));
-                    }
+                    this.deleteExpiredIndex(graph, index);
                 }
                 tx.commit();
             } catch (Exception e) {
@@ -2033,9 +2013,36 @@ public class GraphTransaction extends IndexableTransaction {
                 LOG.warn("Failed to delete expired indexes: {}", this.indexes);
                 throw e;
             } finally {
-                JOB_COUNTERS.jobCounter(graph).jobDecrement();
+                JOB_COUNTERS.jobCounter(graph).decrement();
             }
             return null;
+        }
+
+        /*
+         * Delete expired element(if exist) of the index,
+         * otherwise just delete expired index only
+         */
+        private void deleteExpiredIndex(HugeGraph graph, HugeIndex index) {
+            GraphTransaction tx = graph.graphTransaction();
+            AbstractSerializer serializer = graph.serializer();
+            HugeType type = index.indexLabel().queryType().isVertex()?
+                            HugeType.VERTEX : HugeType.EDGE;
+            IdQuery query = new IdQuery(type);
+            query.query(index.elementId());
+            query.showExpired(true);
+            Iterator<?> elements = type.isVertex() ?
+                                   tx.queryVertices(query) :
+                                   tx.queryEdges(query);
+            if (elements.hasNext()) {
+                HugeElement element = (HugeElement) elements.next();
+                if (element.expiredTime() == index.expiredTime()) {
+                    element.remove();
+                } else {
+                    tx.indexTx.doEliminate(serializer.writeIndex(index));
+                }
+            } else {
+                tx.indexTx.doEliminate(serializer.writeIndex(index));
+            }
         }
     }
 
@@ -2072,11 +2079,11 @@ public class GraphTransaction extends IndexableTransaction {
             return this.jobs.get();
         }
 
-        public void jobDecrement() {
+        public void decrement() {
             this.jobs.decrementAndGet();
         }
 
-        public void jobIncrement() {
+        public void increment() {
             this.jobs.incrementAndGet();
         }
 

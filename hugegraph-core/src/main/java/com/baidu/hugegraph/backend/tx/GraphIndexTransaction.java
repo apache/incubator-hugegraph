@@ -584,8 +584,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
     private void removeExpiredIndexIfNeeded(HugeIndex index,
                                             boolean showExpired) {
-        if (graph().graphTransaction().store().features().supportsTtl() ||
-            showExpired) {
+        if (this.store().features().supportsTtl() || showExpired) {
             return;
         }
         for (HugeIndex.IdWithExpiredTime id : index.expiredElementIds()) {

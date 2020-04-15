@@ -240,37 +240,35 @@ public final class CachedGraphTransaction extends GraphTransaction {
 
         Id cacheKey = new QueryId(query);
         Object value = this.edgesCache.get(cacheKey);
-        Collection<HugeEdge> edges;
+        Collection<HugeEdge> edges = (Collection<HugeEdge>) value;
         if (value != null) {
-            edges = (Collection<HugeEdge>) value;
-        } else {
-            Iterator<HugeEdge> rs = super.queryEdgesFromBackend(query);
-            /*
-             * Iterator can't be cached, caching list instead
-             * Generally there are not too much data with id query
-             */
-            edges = QueryResults.toList(rs).list();
-        }
-        if (edges.size() == 0) {
-            this.edgesCache.update(cacheKey, Collections.emptyList());
-        } else {
             long now = DateUtil.now().getTime();
-            List<HugeEdge> survivedEdges = new ArrayList<>();
             for (HugeEdge edge : edges) {
                 if (0L < edge.expiredTime() && edge.expiredTime() < now) {
-                    GraphTransaction.asyncDeleteExpiredObject(graph(), edge);
-                } else {
-                    survivedEdges.add(edge);
+                    this.edgesCache.invalidate(cacheKey);
+                    value = null;
                 }
             }
-            if (survivedEdges.size() < edges.size()) {
-                edges = survivedEdges;
-            }
-            if (edges.size() <= MAX_CACHE_EDGES_PER_QUERY) {
-                this.edgesCache.update(cacheKey, edges);
-            }
         }
-        return edges.iterator();
+
+        if (value != null) {
+            return edges.iterator();
+        }
+
+        Iterator<HugeEdge> rs = super.queryEdgesFromBackend(query);
+        /*
+         * Iterator can't be cached, caching list instead
+         * Generally there are not too much data with id query
+         */
+        ListIterator<HugeEdge> listIterator = QueryResults.toList(rs);
+        edges = listIterator.list();
+        if (edges.size() == 0) {
+            this.edgesCache.update(cacheKey, Collections.emptyList());
+        } else if (edges.size() <= MAX_CACHE_EDGES_PER_QUERY) {
+            this.edgesCache.update(cacheKey, edges);
+        }
+
+        return listIterator;
     }
 
     @Override

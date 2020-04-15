@@ -94,7 +94,7 @@ public class HugeIndex implements GraphType, Cloneable {
         return this.indexLabel;
     }
 
-    public IdWithExpiredTime element() {
+    public IdWithExpiredTime elementIdWithExpiredTime() {
         E.checkState(this.elementIds.size() == 1,
                      "Expect one element id, actual %s",
                      this.elementIds.size());
@@ -102,7 +102,7 @@ public class HugeIndex implements GraphType, Cloneable {
     }
 
     public Id elementId() {
-        return this.element().id();
+        return this.elementIdWithExpiredTime().id();
     }
 
     public Set<Id> elementIds() {
@@ -139,7 +139,7 @@ public class HugeIndex implements GraphType, Cloneable {
     }
 
     public long expiredTime() {
-        return this.element().expiredTime();
+        return this.elementIdWithExpiredTime().expiredTime();
     }
 
     @Override
