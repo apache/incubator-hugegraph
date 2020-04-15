@@ -27,12 +27,14 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tinkerpop.gremlin.process.traversal.Pop;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
+import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.job.Job;
 import com.baidu.hugegraph.job.algorithm.AbstractAlgorithm;
 import com.baidu.hugegraph.structure.HugeElement;
+import com.baidu.hugegraph.type.define.Directions;
 
 public abstract class AbstractCentAlgorithm extends AbstractAlgorithm {
 
@@ -46,6 +48,8 @@ public abstract class AbstractCentAlgorithm extends AbstractAlgorithm {
         depth(parameters);
         degree(parameters);
         sample(parameters);
+        direction(parameters);
+        edgeLabel(parameters);
         sourceSample(parameters);
         sourceLabel(parameters);
         sourceCLabel(parameters);
@@ -83,9 +87,11 @@ public abstract class AbstractCentAlgorithm extends AbstractAlgorithm {
         }
 
         protected GraphTraversal<Vertex, Vertex> constructPath(
-                  GraphTraversal<Vertex, Vertex> t, long degree,
-                  long sample, String sourceLabel, String sourceCLabel) {
-            GraphTraversal<?, Vertex> unit = constructPathUnit(degree, sample,
+                  GraphTraversal<Vertex, Vertex> t, Directions dir,
+                  String label, long degree, long sample,
+                  String sourceLabel, String sourceCLabel) {
+            GraphTraversal<?, Vertex> unit = constructPathUnit(dir, label,
+                                                               degree, sample,
                                                                sourceLabel,
                                                                sourceCLabel);
             t = t.as("v").repeat(__.local(unit).simplePath().as("v"));
@@ -94,10 +100,21 @@ public abstract class AbstractCentAlgorithm extends AbstractAlgorithm {
         }
 
         protected GraphTraversal<Vertex, Vertex> constructPathUnit(
+                                                 Directions dir, String label,
                                                  long degree, long sample,
                                                  String sourceLabel,
                                                  String sourceCLabel) {
-            GraphTraversal<Vertex, Vertex> unit = __.both();
+            if (dir == null) {
+                dir = Directions.BOTH;
+            }
+            Direction direction = dir.direction();
+
+            String[] labels = {};
+            if (label != null) {
+                labels = new String[]{label};
+            }
+
+            GraphTraversal<Vertex, Vertex> unit = __.to(direction, labels);
             if (sourceLabel != null) {
                 unit = unit.hasLabel(sourceLabel);
             }
