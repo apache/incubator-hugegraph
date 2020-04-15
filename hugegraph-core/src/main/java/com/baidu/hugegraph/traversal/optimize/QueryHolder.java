@@ -51,8 +51,7 @@ public interface QueryHolder extends HasContainerHolder, Metadatable {
     }
 
     public default long setRange(long start, long end) {
-        this.queryInfo().range(start, end);
-        return this.queryInfo().limit();
+        return this.queryInfo().range(start, end);
     }
 
     public default void setPage(String page) {
