@@ -174,7 +174,7 @@ public class Query implements Cloneable {
      * @param start the range start, include it
      * @param end   the range end, exclude it
      */
-    public void range(long start, long end) {
+    public long range(long start, long end) {
         // Update offset
         long offset = this.offset();
         start = Math.max(start, offset);
@@ -194,6 +194,7 @@ public class Query implements Cloneable {
             // Keep the origin limit
             assert this.limit() <= Query.NO_LIMIT;
         }
+        return this.limit;
     }
 
     public String page() {
