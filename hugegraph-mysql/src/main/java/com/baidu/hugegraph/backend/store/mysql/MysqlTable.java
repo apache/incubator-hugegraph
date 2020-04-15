@@ -401,13 +401,19 @@ public abstract class MysqlTable
         }
         // Set page, order-by and limit
         for (StringBuilder selection : selections) {
-            if (!query.orders().isEmpty()) {
+            boolean hasOrder = !query.orders().isEmpty();
+            if (hasOrder) {
                 this.wrapOrderBy(selection, query);
             }
             if (query.paging()) {
                 this.wrapPage(selection, query);
-            } else if (!query.nolimit() || query.offset() > 0) {
-                this.wrapOffset(selection, query);
+            } else {
+                if (aggregate == null && !hasOrder) {
+                    select.append(this.orderByKeys());
+                }
+                if (!query.nolimit() || query.offset() > 0) {
+                    this.wrapOffset(selection, query);
+                }
             }
         }
 
