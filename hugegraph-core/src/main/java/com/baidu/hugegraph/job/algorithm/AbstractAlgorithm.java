@@ -401,10 +401,10 @@ public abstract class AbstractAlgorithm implements Algorithm {
         }
     }
 
-    public static final class TopMap {
+    public static final class TopMap<K> {
 
         private final long topN;
-        private Map<Id, MutableLong> tops;
+        private Map<K, MutableLong> tops;
 
         public TopMap(long topN) {
             this.topN = topN;
@@ -415,11 +415,20 @@ public abstract class AbstractAlgorithm implements Algorithm {
             return this.tops.size();
         }
 
-        public void put(Id key, long value) {
-            this.put(key, Long.valueOf(value));
+        public MutableLong get(K key) {
+            return this.tops.get(key);
         }
 
-        public void put(Id key, Long value) {
+        public void add(K key, long value) {
+            MutableLong mlong = this.tops.get(key);
+            if (mlong == null) {
+                mlong = new MutableLong(value);
+                this.tops.put(key, mlong);
+            }
+            mlong.add(value);
+        }
+
+        public void put(K key, long value) {
             this.tops.put(key, new MutableLong(value));
             // keep 2x buffer
             if (this.tops.size() > this.topN * 2) {
@@ -427,7 +436,7 @@ public abstract class AbstractAlgorithm implements Algorithm {
             }
         }
 
-        public Set<Map.Entry<Id, MutableLong>> entrySet() {
+        public Set<Map.Entry<K, MutableLong>> entrySet() {
             this.shrinkIfNeeded(this.topN);
             return this.tops.entrySet();
         }

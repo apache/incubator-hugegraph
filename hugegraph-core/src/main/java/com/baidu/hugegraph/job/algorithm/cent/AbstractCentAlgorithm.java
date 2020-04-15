@@ -19,14 +19,20 @@
 
 package com.baidu.hugegraph.job.algorithm.cent;
 
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang3.tuple.Pair;
+import org.apache.tinkerpop.gremlin.process.traversal.Pop;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
+import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.job.Job;
 import com.baidu.hugegraph.job.algorithm.AbstractAlgorithm;
+import com.baidu.hugegraph.structure.HugeElement;
 
 public abstract class AbstractCentAlgorithm extends AbstractAlgorithm {
 
@@ -105,6 +111,29 @@ public abstract class AbstractCentAlgorithm extends AbstractAlgorithm {
                 unit = unit.sample((int) sample);
             }
             return unit;
+        }
+
+        protected GraphTraversal<Vertex, Vertex> filterNonShortestPath(
+                                                 GraphTraversal<Vertex, Vertex>
+                                                 t) {
+            long size = this.graph().traversal().V().limit(MAX_QUERY_LIMIT)
+                                                    .count().next();
+            Map<Pair<Id, Id>, Integer> triples = new HashMap<>((int) size);
+            return t.filter(it -> {
+                Id start = it.<HugeElement>path(Pop.first, "v").id();
+                Id end = it.<HugeElement>path(Pop.last, "v").id();
+                int len = it.<List<?>>path(Pop.all, "v").size();
+                Pair<Id, Id> key = Pair.of(start, end);
+                Integer shortest = triples.get(key);
+                if (shortest != null && shortest != len) {
+                    // ignore non shortest path
+                    return false;
+                }
+                if (shortest == null) {
+                    triples.put(key, len);
+                }
+                return true;
+            });
         }
     }
 }
