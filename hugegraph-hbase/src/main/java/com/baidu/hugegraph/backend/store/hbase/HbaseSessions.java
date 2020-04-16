@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.backend.store.hbase;
 
 import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -492,6 +493,9 @@ public class HbaseSessions extends BackendSessionPool {
                 try (Table table = table(action.getKey())) {
                     table.batch(rows, results);
                     checkBatchResults(results, rows);
+                } catch (InterruptedIOException e) {
+                    throw new BackendException(
+                              "Failed to commit, maybe it is timed out", e);
                 } catch (Throwable e) {
                     // TODO: Mark and delete committed records
                     throw new BackendException("Failed to commit, " +

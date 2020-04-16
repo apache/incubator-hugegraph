@@ -413,7 +413,10 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
 
     @Override
     public void rollbackTx() {
-        // pass
+        this.checkOpened();
+        Session session = this.sessions.session();
+
+        session.rollback();
     }
 
     private final void checkConnectionOpened() {
