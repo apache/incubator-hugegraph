@@ -405,7 +405,7 @@ public class TextSerializer extends AbstractSerializer {
                          formatSyspropName(HugeKeys.ELEMENT_IDS));
 
         IndexLabel indexLabel = IndexLabel.label(graph, readId(indexLabelId));
-        HugeIndex index = new HugeIndex(indexLabel);
+        HugeIndex index = new HugeIndex(graph, indexLabel);
         index.fieldValues(JsonUtil.fromJson(indexValues, Object.class));
         for (IdWithExpiredTime elemId : readElementIds(elemIds)) {
             long expiredTime = elemId.expiredTime();

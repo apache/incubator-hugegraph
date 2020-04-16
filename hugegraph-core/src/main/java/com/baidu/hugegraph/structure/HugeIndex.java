@@ -46,10 +46,13 @@ public class HugeIndex implements GraphType, Cloneable {
     private Object fieldValues;
     private IndexLabel indexLabel;
     private Set<IdWithExpiredTime> elementIds;
+    private HugeGraph graph;
 
-    public HugeIndex(IndexLabel indexLabel) {
+    public HugeIndex(HugeGraph graph, IndexLabel indexLabel) {
+        E.checkNotNull(graph, "graph");
         E.checkNotNull(indexLabel, "label");
         E.checkNotNull(indexLabel.id(), "label id");
+        this.graph = graph;
         this.indexLabel = indexLabel;
         this.elementIds = new LinkedHashSet<>();
         this.fieldValues = null;
@@ -68,6 +71,10 @@ public class HugeIndex implements GraphType, Cloneable {
             return HugeType.EDGE_LABEL_INDEX;
         }
         return this.indexLabel.indexType().type();
+    }
+
+    public HugeGraph graph() {
+        return this.graph;
     }
 
     public Id id() {
@@ -239,7 +246,7 @@ public class HugeIndex implements GraphType, Cloneable {
                              dataType.clazz() : DataType.LONG.clazz();
             values = bytes2number(buffer.read(id.length - labelLength), clazz);
         }
-        HugeIndex index = new HugeIndex(indexLabel);
+        HugeIndex index = new HugeIndex(graph, indexLabel);
         index.fieldValues(values);
         return index;
     }

@@ -35,7 +35,6 @@ import com.baidu.hugegraph.backend.store.BackendEntryIterator;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
-import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.E;
 import com.datastax.driver.core.DataType;
 import com.datastax.driver.core.ResultSet;
@@ -848,9 +847,10 @@ public class CassandraTables {
 
     private static Statement setTtl(BuiltStatement statement,
                                     CassandraBackendEntry.Row entry) {
-        int ttl = ttl(entry);
-        if (ttl != 0) {
-            Using usingTtl = QueryBuilder.ttl(ttl);
+        long ttl = entry.ttl();
+        if (ttl != 0L) {
+            int calcTtl = (int) Math.ceil((double) ttl / 1000);
+            Using usingTtl = QueryBuilder.ttl(calcTtl);
             if (statement instanceof Insert) {
                 ((Insert) statement).using(usingTtl);
             } else {
@@ -859,16 +859,5 @@ public class CassandraTables {
             }
         }
         return statement;
-    }
-
-    private static int ttl(CassandraBackendEntry.Row entry) {
-        long expired = entry.column(HugeKeys.EXPIRED_TIME);
-        if (expired > 0L) {
-            int ttl = (int) (expired - DateUtil.now().getTime()) / 1000;
-            if (ttl > 0) {
-                return ttl;
-            }
-        }
-        return 0;
     }
 }

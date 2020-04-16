@@ -20,9 +20,7 @@
 package com.baidu.hugegraph.backend.store.hbase;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.Arrays;
-import java.util.Collection;
 
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellScanner;
@@ -34,15 +32,12 @@ import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.BinaryBackendEntry;
 import com.baidu.hugegraph.backend.serializer.BinaryEntryIterator;
 import com.baidu.hugegraph.backend.serializer.BinarySerializer;
-import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumn;
 import com.baidu.hugegraph.backend.store.BackendEntryIterator;
 import com.baidu.hugegraph.backend.store.hbase.HbaseSessions.RowIterator;
 import com.baidu.hugegraph.backend.store.hbase.HbaseSessions.Session;
 import com.baidu.hugegraph.type.HugeType;
-import com.baidu.hugegraph.util.DateUtil;
-import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.NumericUtil;
 
 public class HbaseTables {
@@ -120,23 +115,11 @@ public class HbaseTables {
 
         @Override
         public void insert(Session session, BackendEntry entry) {
-            Collection<BackendColumn> columns = entry.columns();
-            assert columns.size() == 1;
-            BackendColumn col = columns.iterator().next();
-            E.checkArgument(col.name.length == 0,
-                            "Expect empty column name, " +
-                            "please ensure hbase serializer is used");
-            BytesBuffer bf = BytesBuffer.wrap(col.value);
-            bf.readId();
-            long expiredTime = bf.readVLong();
-            if (expiredTime == 0) {
+            long ttl = entry.ttl();
+            if (ttl == 0) {
                 session.put(this.table(), CF, entry.id().asBytes(),
                             entry.columns());
             } else {
-                long ttl = expiredTime - DateUtil.now().getTime();
-                if (ttl <= 0) {
-                    return;
-                }
                 session.put(this.table(), CF, entry.id().asBytes(),
                             entry.columns(), ttl);
             }
@@ -166,21 +149,11 @@ public class HbaseTables {
 
         @Override
         public void insert(Session session, BackendEntry entry) {
-            Collection<BackendColumn> columns = entry.columns();
-            assert columns.size() == 1;
-            BackendColumn col = columns.iterator().next();
-            E.checkArgument(col.name.length == 0,
-                            "Expect empty column name, " +
-                            "please ensure hbase serializer is used");
-            long expiredTime = BytesBuffer.wrap(col.value).readVLong();
-            if (expiredTime == 0) {
+            long ttl = entry.ttl();
+            if (ttl == 0) {
                 session.put(this.table(), CF, entry.id().asBytes(),
                             entry.columns());
             } else {
-                long ttl = expiredTime - DateUtil.now().getTime();
-                if (ttl <= 0) {
-                    return;
-                }
                 session.put(this.table(), CF, entry.id().asBytes(),
                             entry.columns(), ttl);
             }
@@ -224,17 +197,11 @@ public class HbaseTables {
         public void insert(Session session, BackendEntry entry) {
             assert entry.columns().size() == 1;
             BackendColumn col = entry.columns().iterator().next();
-            BytesBuffer buffer = BytesBuffer.wrap(col.name);
-            buffer.readIndexId(this.type());
-            long expiredTime = buffer.readVLong();
-            if (expiredTime == 0) {
+            long ttl = entry.ttl();
+            if (ttl == 0) {
                 session.put(this.table(), CF, col.name,
                             BinarySerializer.EMPTY_BYTES, col.value);
             } else {
-                long ttl = expiredTime - DateUtil.now().getTime();
-                if (ttl <= 0) {
-                    return;
-                }
                 session.put(this.table(), CF, col.name,
                             BinarySerializer.EMPTY_BYTES, col.value, ttl);
             }

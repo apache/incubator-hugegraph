@@ -401,7 +401,7 @@ public class BinarySerializer extends AbstractSerializer {
         // Write vertex label
         buffer.writeId(vertex.schemaLabel().id());
 
-        // Write edge expired time
+        // Write vertex expired time
         this.formatExpiredTime(vertex.expiredTime(), buffer);
 
         // Write all properties of the vertex
@@ -410,6 +410,10 @@ public class BinarySerializer extends AbstractSerializer {
         // Fill column
         byte[] name = this.keyWithIdPrefix ? entry.id().asBytes() : EMPTY_BYTES;
         entry.column(name, buffer.bytes());
+        long expiredTime = vertex.expiredTime();
+        if (expiredTime != 0L) {
+            entry.ttl(expiredTime - vertex.graph().now());
+        }
 
         return entry;
     }
@@ -455,6 +459,11 @@ public class BinarySerializer extends AbstractSerializer {
                       this.formatEdgeName(edge) : EMPTY_BYTES;
         byte[] value = this.formatEdgeValue(edge);
         entry.column(name, value);
+        long expiredTime = edge.expiredTime();
+        if (expiredTime != 0L) {
+            entry.ttl(expiredTime - edge.graph().now());
+        }
+
         return entry;
     }
 
@@ -496,6 +505,10 @@ public class BinarySerializer extends AbstractSerializer {
             entry = newBackendEntry(type, id);
             entry.column(this.formatIndexName(index), value);
             entry.subId(index.elementId());
+            long expiredTime = index.expiredTime();
+            if (expiredTime != 0L) {
+                entry.ttl(expiredTime - index.graph().now());
+            }
         }
         return entry;
     }

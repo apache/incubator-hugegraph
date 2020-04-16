@@ -128,7 +128,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
         }
 
         // Update label index if backend store not supports label-query
-        HugeIndex index = new HugeIndex(IndexLabel.label(element.type()));
+        HugeIndex index = new HugeIndex(this.graph(),
+                                        IndexLabel.label(element.type()));
         index.fieldValues(element.schemaLabel().id());
         index.elementIds(element.id(), element.expiredTime());
 
@@ -281,7 +282,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
     private void updateIndex(IndexLabel indexLabel, Object propValue,
                              Id elementId, long expiredTime, boolean removed) {
-        HugeIndex index = new HugeIndex(indexLabel);
+        HugeIndex index = new HugeIndex(this.graph(), indexLabel);
         index.fieldValues(propValue);
         index.elementIds(elementId, expiredTime);
 
@@ -300,7 +301,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
     private boolean hasEliminateInTx(IndexLabel indexLabel, Object value,
                                      Id elementId) {
-        HugeIndex index = new HugeIndex(indexLabel);
+        HugeIndex index = new HugeIndex(this.graph(), indexLabel);
         index.fieldValues(value);
         index.elementIds(elementId);
         BackendEntry entry = this.serializer.writeIndex(index);
@@ -1312,7 +1313,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
     }
 
     public void removeIndex(IndexLabel indexLabel) {
-        HugeIndex index = new HugeIndex(indexLabel);
+        HugeIndex index = new HugeIndex(this.graph(), indexLabel);
         this.doRemove(this.serializer.writeIndex(index));
     }
 

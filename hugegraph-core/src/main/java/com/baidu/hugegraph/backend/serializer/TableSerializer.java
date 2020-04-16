@@ -34,7 +34,6 @@ import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
-import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -138,6 +137,10 @@ public abstract class TableSerializer extends AbstractSerializer {
     protected TableBackendEntry.Row formatEdge(HugeEdge edge) {
         EdgeId id = edge.idWithDirection();
         TableBackendEntry.Row row = new TableBackendEntry.Row(edge.type(), id);
+        long expiredTime = edge.expiredTime();
+        if (expiredTime != 0L) {
+            row.ttl(expiredTime - edge.graph().now());
+        }
         // Id: ownerVertex + direction + edge-label + sortValues + otherVertex
         row.column(HugeKeys.OWNER_VERTEX, this.writeId(id.ownerVertexId()));
         row.column(HugeKeys.DIRECTION, id.directionCode());
@@ -212,6 +215,10 @@ public abstract class TableSerializer extends AbstractSerializer {
     @Override
     public BackendEntry writeVertex(HugeVertex vertex) {
         TableBackendEntry entry = newBackendEntry(vertex);
+        long expiredTime = vertex.expiredTime();
+        if (expiredTime != 0L) {
+            entry.ttl(expiredTime - vertex.graph().now());
+        }
         entry.column(HugeKeys.ID, this.writeId(vertex.id()));
         entry.column(HugeKeys.LABEL, vertex.schemaLabel().id().asLong());
         entry.column(HugeKeys.EXPIRED_TIME, vertex.expiredTime());
@@ -224,6 +231,10 @@ public abstract class TableSerializer extends AbstractSerializer {
     public BackendEntry writeVertexProperty(HugeVertexProperty<?> prop) {
         HugeVertex vertex = prop.element();
         TableBackendEntry entry = newBackendEntry(vertex);
+        long expiredTime = vertex.expiredTime();
+        if (expiredTime != 0L) {
+            entry.ttl(expiredTime - vertex.graph().now());
+        }
         entry.subId(IdGenerator.of(prop.key()));
         entry.column(HugeKeys.ID, this.writeId(vertex.id()));
         entry.column(HugeKeys.LABEL, vertex.schemaLabel().id().asLong());
@@ -276,6 +287,10 @@ public abstract class TableSerializer extends AbstractSerializer {
         HugeEdge edge = prop.element();
         EdgeId id = edge.idWithDirection();
         TableBackendEntry.Row row = new TableBackendEntry.Row(edge.type(), id);
+        long expiredTime = edge.expiredTime();
+        if (expiredTime != 0L) {
+            row.ttl(expiredTime - edge.graph().now());
+        }
         // Id: ownerVertex + direction + edge-label + sortValues + otherVertex
         row.column(HugeKeys.OWNER_VERTEX, this.writeId(id.ownerVertexId()));
         row.column(HugeKeys.DIRECTION, id.directionCode());
@@ -318,6 +333,10 @@ public abstract class TableSerializer extends AbstractSerializer {
             entry.column(HugeKeys.ELEMENT_IDS, this.writeId(index.elementId()));
             entry.column(HugeKeys.EXPIRED_TIME, index.expiredTime());
             entry.subId(index.elementId());
+            long expiredTime = index.expiredTime();
+            if (expiredTime != 0L) {
+                entry.ttl(expiredTime - index.graph().now());
+            }
         }
         return entry;
     }
@@ -338,7 +357,7 @@ public abstract class TableSerializer extends AbstractSerializer {
         Number expiredTime = entry.column(HugeKeys.EXPIRED_TIME);
 
         IndexLabel indexLabel = graph.indexLabel(this.toId(indexLabelId));
-        HugeIndex index = new HugeIndex(indexLabel);
+        HugeIndex index = new HugeIndex(graph, indexLabel);
         index.fieldValues(indexValues);
         for (Object elemId : elemIds) {
             index.elementIds(this.readId(elemId), expiredTime.longValue());

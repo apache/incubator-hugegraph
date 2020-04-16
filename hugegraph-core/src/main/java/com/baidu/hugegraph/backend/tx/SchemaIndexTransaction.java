@@ -52,7 +52,7 @@ public class SchemaIndexTransaction extends AbstractTransaction {
 
         IndexLabel indexLabel = IndexLabel.label(element.type());
         // Update name index if backend store not supports name-query
-        HugeIndex index = new HugeIndex(indexLabel);
+        HugeIndex index = new HugeIndex(this.graph(), indexLabel);
         index.fieldValues(element.name());
         index.elementIds(element.id());
 

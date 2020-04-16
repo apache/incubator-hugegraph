@@ -69,6 +69,11 @@ public class TextBackendEntry implements BackendEntry, Cloneable {
         return this.subId;
     }
 
+    @Override
+    public long ttl() {
+        return 0L;
+    }
+
     public void subId(Id subId) {
         this.subId = subId;
     }
