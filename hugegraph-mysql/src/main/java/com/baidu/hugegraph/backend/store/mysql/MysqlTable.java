@@ -188,22 +188,9 @@ public abstract class MysqlTable
         return this.insertTemplate;
     }
 
-    protected String buildDeleteTemplate(List<HugeKeys> idNames,
-                                         MysqlBackendEntry.Row entry) {
-        Long expiredTime = entry.column(HugeKeys.EXPIRED_TIME);
-        boolean updateCache;
-        if (expiredTime == null || expiredTime == 0L) {
-            updateCache = true;
-            if (this.deleteTemplate != null) {
-                return this.deleteTemplate;
-            }
-        } else {
-            updateCache = false;
-            /*
-             * Set delete with ttl condition to avoid mistaken deletion of
-             * non-expired elements
-             */
-            idNames.add(HugeKeys.EXPIRED_TIME);
+    protected String buildDeleteTemplate(List<HugeKeys> idNames) {
+        if (this.deleteTemplate != null) {
+            return this.deleteTemplate;
         }
 
         StringBuilder delete = new StringBuilder();
@@ -214,12 +201,8 @@ public abstract class MysqlTable
         where.and(formatKeys(idNames), "=");
         delete.append(where.build());
 
-        if (updateCache) {
-            this.deleteTemplate = delete.toString();
-            return this.deleteTemplate;
-        } else {
-            return delete.toString();
-        }
+        this.deleteTemplate = delete.toString();
+        return this.deleteTemplate;
     }
 
     protected String buildDeleteTemplateWithoutCache(List<HugeKeys> idNames) {
@@ -283,8 +266,8 @@ public abstract class MysqlTable
 
     @Override
     public void delete(Session session, MysqlBackendEntry.Row entry) {
-        List<HugeKeys> idNames = new ArrayList<>(this.idColumnName());
-        String template = this.buildDeleteTemplate(idNames, entry);
+        List<HugeKeys> idNames = this.idColumnName();
+        String template = this.buildDeleteTemplate(idNames);
         PreparedStatement deleteStmt;
         try {
             deleteStmt = session.prepareStatement(template);

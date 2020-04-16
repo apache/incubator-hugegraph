@@ -28,8 +28,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -60,7 +58,6 @@ import com.baidu.hugegraph.backend.query.ConditionQueryFlatten;
 import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.query.QueryResults;
-import com.baidu.hugegraph.backend.serializer.AbstractSerializer;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
@@ -76,6 +73,10 @@ import com.baidu.hugegraph.iterator.ListIterator;
 import com.baidu.hugegraph.iterator.MapperIterator;
 import com.baidu.hugegraph.job.EphemeralJob;
 import com.baidu.hugegraph.job.EphemeralJobBuilder;
+import com.baidu.hugegraph.job.system.DeleteExpiredElementJob;
+import com.baidu.hugegraph.job.system.DeleteExpiredIndexJob;
+import com.baidu.hugegraph.job.system.JobCounters;
+import com.baidu.hugegraph.job.system.JobCounters.JobCounter;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
@@ -1760,6 +1761,15 @@ public class GraphTransaction extends IndexableTransaction {
         this.indexTx.updateIndex(ilId, element, removed);
     }
 
+    public void removeIndex(HugeIndex index) {
+        // TODO: use event to replace direct call
+        this.checkOwnerThread();
+
+        this.beforeWrite();
+        this.indexTx.doEliminate(this.serializer.writeIndex(index));
+        this.afterWrite();
+    }
+
     public void removeVertices(VertexLabel vertexLabel) {
         if (this.hasUpdate()) {
             throw new HugeException("There are still changes to commit");
@@ -1899,7 +1909,7 @@ public class GraphTransaction extends IndexableTransaction {
     public static void asyncDeleteExpiredObject(HugeGraph graph,
                                                 Object object) {
         E.checkArgumentNotNull(object, "The object can't be null");
-        JobCounter jobCounter = JOB_COUNTERS.jobCounter(graph);
+        JobCounters.JobCounter jobCounter = JOB_COUNTERS.jobCounter(graph);
         if (!jobCounter.addAndTriggerDelete(object)) {
             return;
         }
@@ -1927,8 +1937,10 @@ public class GraphTransaction extends IndexableTransaction {
             }
             throw e;
         }
-        // If TASK_SYNC_DELETION is true, wait async thread done before
-        // continue. This is used when running tests.
+        /*
+         * If TASK_SYNC_DELETION is true, wait async thread done before
+         * continue. This is used when running tests.
+         */
         if (graph.configuration().get(CoreOptions.TASK_SYNC_DELETION)) {
             task.syncWait();
         }
@@ -1941,199 +1953,6 @@ public class GraphTransaction extends IndexableTransaction {
         } else {
             assert object instanceof HugeIndex;
             return new DeleteExpiredIndexJob(jobCounter.indexes());
-        }
-    }
-
-    public static class DeleteExpiredElementJob extends EphemeralJob<Object> {
-
-        private static final String JOB_TYPE = "delete_expired_edge";
-
-        private Set<HugeElement> elements;
-
-        private DeleteExpiredElementJob(Set<HugeElement> elements) {
-            E.checkArgument(elements != null && !elements.isEmpty(),
-                            "The element can't be null or empty");
-            this.elements = elements;
-        }
-
-        @Override
-        public String type() {
-            return JOB_TYPE;
-        }
-
-        @Override
-        public Object execute() throws Exception {
-            HugeGraph graph = this.graph();
-            GraphTransaction tx = graph.graphTransaction();
-            try {
-                for (HugeElement element : this.elements) {
-                    element.remove();
-                }
-                tx.commit();
-            } catch (Exception e) {
-                tx.rollback();
-                LOG.warn("Failed to delete expired elements: {}",
-                         this.elements);
-                throw e;
-            } finally {
-                JOB_COUNTERS.jobCounter(graph).decrement();
-            }
-            return null;
-        }
-    }
-
-    public static class DeleteExpiredIndexJob extends EphemeralJob<Object> {
-
-        private static final String JOB_TYPE = "delete_expired_index";
-
-        private Set<HugeIndex> indexes;
-
-        private DeleteExpiredIndexJob(Set<HugeIndex> indexes) {
-            E.checkArgument(indexes != null && !indexes.isEmpty(),
-                            "The indexes can't be null or empty");
-            this.indexes = indexes;
-        }
-
-        @Override
-        public String type() {
-            return JOB_TYPE;
-        }
-
-        @Override
-        public Object execute() throws Exception {
-            HugeGraph graph = this.graph();
-            GraphTransaction tx = graph.graphTransaction();
-            try {
-                for (HugeIndex index : this.indexes) {
-                    this.deleteExpiredIndex(graph, index);
-                }
-                tx.commit();
-            } catch (Exception e) {
-                tx.rollback();
-                LOG.warn("Failed to delete expired indexes: {}", this.indexes);
-                throw e;
-            } finally {
-                JOB_COUNTERS.jobCounter(graph).decrement();
-            }
-            return null;
-        }
-
-        /*
-         * Delete expired element(if exist) of the index,
-         * otherwise just delete expired index only
-         */
-        private void deleteExpiredIndex(HugeGraph graph, HugeIndex index) {
-            GraphTransaction tx = graph.graphTransaction();
-            AbstractSerializer serializer = graph.serializer();
-            HugeType type = index.indexLabel().queryType().isVertex()?
-                            HugeType.VERTEX : HugeType.EDGE;
-            IdQuery query = new IdQuery(type);
-            query.query(index.elementId());
-            query.showExpired(true);
-            Iterator<?> elements = type.isVertex() ?
-                                   tx.queryVertices(query) :
-                                   tx.queryEdges(query);
-            if (elements.hasNext()) {
-                HugeElement element = (HugeElement) elements.next();
-                if (element.expiredTime() == index.expiredTime()) {
-                    element.remove();
-                } else {
-                    tx.indexTx.doEliminate(serializer.writeIndex(index));
-                }
-            } else {
-                tx.indexTx.doEliminate(serializer.writeIndex(index));
-            }
-        }
-    }
-
-    private static class JobCounters {
-
-        private ConcurrentHashMap<String, JobCounter> jobCounters =
-                new ConcurrentHashMap<>();
-
-        private JobCounter jobCounter(HugeGraph g) {
-            int batch = g.configuration().get(CoreOptions.EXPIRED_DELETE_BATCH);
-            String graph = g.name();
-            if (!this.jobCounters.containsKey(graph)) {
-                this.jobCounters.putIfAbsent(graph, new JobCounter(batch));
-            }
-            return this.jobCounters.get(graph);
-        }
-    }
-
-    private static class JobCounter {
-
-        private AtomicInteger jobs;
-        private Set<HugeElement> elements;
-        private Set<HugeIndex> indexes;
-        private int batchSize;
-
-        public JobCounter(int batchSize) {
-            this.jobs = new AtomicInteger(0);
-            this.elements = ConcurrentHashMap.newKeySet();
-            this.indexes = ConcurrentHashMap.newKeySet();
-            this.batchSize = batchSize;
-        }
-
-        public int jobs() {
-            return this.jobs.get();
-        }
-
-        public void decrement() {
-            this.jobs.decrementAndGet();
-        }
-
-        public void increment() {
-            this.jobs.incrementAndGet();
-        }
-
-        public Set<HugeElement> edges() {
-            return this.elements;
-        }
-
-        public Set<HugeIndex> indexes() {
-            return this.indexes;
-        }
-
-        public void clear(Object object) {
-            if (object instanceof HugeElement) {
-                this.elements = ConcurrentHashMap.newKeySet();
-            } else {
-                assert object instanceof HugeIndex;
-                this.indexes = ConcurrentHashMap.newKeySet();
-            }
-        }
-
-        public boolean addAndTriggerDelete(Object object) {
-            return object instanceof HugeElement ?
-                   addElementAndTriggerDelete((HugeElement) object) :
-                   addIndexAndTriggerDelete((HugeIndex) object);
-        }
-
-        /**
-         * Try to add element in collection waiting to be deleted
-         * @param element
-         * @return true if should create a new delete job, false otherwise
-         */
-        public boolean addElementAndTriggerDelete(HugeElement element) {
-            if (this.elements.size() >= this.batchSize) {
-                return true;
-            }
-            this.elements.add(element);
-            return this.elements.size() >= this.batchSize;
-        }
-
-        /**
-         * Try to add edge in collection waiting to be deleted
-         * @param index
-         * @return true if should create a new delete job, false otherwise
-         */
-        public boolean addIndexAndTriggerDelete(HugeIndex index) {
-            if (this.indexes.size() >= this.batchSize) {
-                return true;
-            }
-            this.indexes.add(index);
-            return this.indexes.size() >= this.batchSize;
         }
     }
 }
