@@ -216,6 +216,18 @@ public class HugeGraphAuthProxy implements GremlinGraph {
     }
 
     @Override
+    public Number queryNumber(Query query) {
+        if (query.resultType().isVertex()) {
+            this.verifyPermissionAction(HugePermission.VERTEX_READ);
+        } else {
+            assert query.resultType().isEdge();
+            this.verifyPermissionAction(HugePermission.EDGE_READ);
+        }
+        return this.hugegraph.queryNumber(query);
+
+    }
+
+    @Override
     public Transaction tx() {
         // Can't verifyPermission() here, will be called by rollbackAll()
         return this.tx;

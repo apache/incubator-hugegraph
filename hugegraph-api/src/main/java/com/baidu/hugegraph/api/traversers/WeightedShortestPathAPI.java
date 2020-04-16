@@ -19,6 +19,9 @@
 
 package com.baidu.hugegraph.api.traversers;
 
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPACITY;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
+
 import java.util.Iterator;
 
 import javax.inject.Singleton;
@@ -47,9 +50,6 @@ import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
-
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPACITY;
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
 
 @Path("graphs/{graph}/traversers/weightedshortestpath")
 @Singleton
@@ -86,7 +86,7 @@ public class WeightedShortestPathAPI extends API {
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
         E.checkArgumentNotNull(weight, "The weight property can't be null");
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph4path(manager, graph);
         SingleSourceShortestPathTraverser traverser = new SingleSourceShortestPathTraverser(g);
 
         NodeWithWeight path = traverser.weightedShortestPath(

@@ -19,6 +19,8 @@
 
 package com.baidu.hugegraph.api.traversers;
 
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
+
 import javax.inject.Singleton;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
@@ -43,8 +45,6 @@ import com.baidu.hugegraph.util.JsonUtil;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
 import com.google.common.collect.ImmutableMap;
-
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
 
 @Path("graphs/{graph}/traversers/jaccardsimilarity")
 @Singleton
@@ -71,7 +71,7 @@ public class JaccardSimilarityAPI extends API {
         Id targetId = VertexAPI.checkAndParseVertexId(other);
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph4path(manager, graph);
         HugeTraverser traverser = new HugeTraverser(g);
         double similarity = traverser.jaccardSimilarity(sourceId, targetId, dir,
                                                         edgeLabel, degree);

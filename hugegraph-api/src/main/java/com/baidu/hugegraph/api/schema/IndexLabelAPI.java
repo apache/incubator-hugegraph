@@ -100,7 +100,7 @@ public class IndexLabelAPI extends API {
         // Parse action parameter
         boolean append = checkAndParseAction(action);
 
-        HugeGraph g = graph(manager, graph);
+        GremlinGraph g = graph(manager, graph);
         IndexLabel.Builder builder = jsonIndexLabel.convert2Builder(g);
         IndexLabel IndexLabel = append ? builder.append() : builder.eliminate();
         return manager.serializer(g).writeIndexlabel(mapIndexLabel(IndexLabel));
