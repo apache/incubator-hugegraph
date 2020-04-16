@@ -320,7 +320,7 @@ public class InMemoryDBTable extends BackendTable<BackendSession,
         return false;
     }
 
-    private class InMemoryShardSpliter extends ShardSpliter {
+    private class InMemoryShardSpliter extends ShardSpliter<BackendSession> {
 
         public InMemoryShardSpliter(String table) {
             super(table);

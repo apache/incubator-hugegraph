@@ -46,7 +46,6 @@ import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.HugeType;
-import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.Events;
 import com.google.common.collect.ImmutableSet;
 

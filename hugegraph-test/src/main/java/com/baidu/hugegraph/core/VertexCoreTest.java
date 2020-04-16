@@ -951,10 +951,12 @@ public class VertexCoreTest extends BaseCoreTest {
 
         Vertex vertex1 = graph().addVertex(T.label, "fan", "name", "Baby1",
                                            "age", 3, "city", "Beijing");
+        @SuppressWarnings("unused")
         Vertex vertex2 = graph().addVertex(T.label, "fan", "name", "Baby2",
                                            "age", 4, "city", "Beijing");
         Vertex vertex3 = graph().addVertex(T.label, "fan", "name", "Baby3",
                                            "age", 5, "city", "Beijing");
+        @SuppressWarnings("unused")
         Vertex vertex4 = graph().addVertex(T.label, "fan", "name", "Baby4",
                                            "age", 6, "city", "Beijing");
         Vertex vertex5 = graph().addVertex(T.label, "fan", "name", "Baby5",
@@ -1011,10 +1013,12 @@ public class VertexCoreTest extends BaseCoreTest {
 
         Vertex vertex1 = graph().addVertex(T.label, "fan", "name", "Baby1",
                                            "age", 3, "city", "Beijing");
+        @SuppressWarnings("unused")
         Vertex vertex2 = graph().addVertex(T.label, "fan", "name", "Baby2",
                                            "age", 4, "city", "Beijing");
         Vertex vertex3 = graph().addVertex(T.label, "fan", "name", "Baby3",
                                            "age", 5, "city", "Beijing");
+        @SuppressWarnings("unused")
         Vertex vertex4 = graph().addVertex(T.label, "fan", "name", "Baby4",
                                            "age", 6, "city", "Beijing");
         Vertex vertex5 = graph().addVertex(T.label, "fan", "name", "Baby5",
@@ -1192,10 +1196,12 @@ public class VertexCoreTest extends BaseCoreTest {
 
         Vertex vertex1 = graph().addVertex(T.label, "fan", "name", "Baby1",
                                            "age", 3, "city", "Beijing");
+        @SuppressWarnings("unused")
         Vertex vertex2 = graph().addVertex(T.label, "fan", "name", "Baby2",
                                            "age", 5, "city", "Beijing");
         Vertex vertex3 = graph().addVertex(T.label, "fan", "name", "Baby3",
                                            "age", 7, "city", "Beijing");
+        @SuppressWarnings("unused")
         Vertex vertex4 = graph().addVertex(T.label, "fan", "name", "Baby4",
                                            "age", 9, "city", "Beijing");
         Vertex vertex5 = graph().addVertex(T.label, "fan", "name", "Baby5",
@@ -1232,10 +1238,12 @@ public class VertexCoreTest extends BaseCoreTest {
         // Override
         Vertex vertex6 = graph().addVertex(T.label, "fan", "name", "Baby6",
                                            "age", 4, "city", "Beijing");
+        @SuppressWarnings("unused")
         Vertex vertex7 = graph().addVertex(T.label, "fan", "name", "Baby7",
                                            "age", 6, "city", "Beijing");
         Vertex vertex8 = graph().addVertex(T.label, "fan", "name", "Baby8",
                                            "age", 8, "city", "Beijing");
+        @SuppressWarnings("unused")
         Vertex vertex9 = graph().addVertex(T.label, "fan", "name", "Baby9",
                                            "age", 10, "city", "Beijing");
         Vertex vertex10 = graph().addVertex(T.label, "fan", "name", "Baby10",
@@ -1302,10 +1310,12 @@ public class VertexCoreTest extends BaseCoreTest {
 
         Vertex vertex1 = graph().addVertex(T.label, "fan", "name", "Baby1",
                                            "age", 1, "city", "Beijing");
+        @SuppressWarnings("unused")
         Vertex vertex2 = graph().addVertex(T.label, "fan", "name", "Baby2",
                                            "age", 3, "city", "Beijing");
         Vertex vertex3 = graph().addVertex(T.label, "fan", "name", "Baby3",
                                            "age", 5, "city", "Beijing");
+        @SuppressWarnings("unused")
         Vertex vertex4 = graph().addVertex(T.label, "fan", "name", "Baby4",
                                            "age", 7, "city", "Beijing");
         Vertex vertex5 = graph().addVertex(T.label, "fan", "name", "Baby5",
@@ -1353,10 +1363,12 @@ public class VertexCoreTest extends BaseCoreTest {
 
         Vertex vertex7 = graph().addVertex(T.label, "fan", "name", "Baby7",
                                            "age", 2, "city", "Beijing");
+        @SuppressWarnings("unused")
         Vertex vertex8 = graph().addVertex(T.label, "fan", "name", "Baby8",
                                            "age", 4, "city", "Beijing");
         Vertex vertex9 = graph().addVertex(T.label, "fan", "name", "Baby9",
                                            "age", 6, "city", "Beijing");
+        @SuppressWarnings("unused")
         Vertex vertex10 = graph().addVertex(T.label, "fan",
                                             "name", "Baby10", "age", 8,
                                             "city", "Beijing");
