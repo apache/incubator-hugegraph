@@ -35,6 +35,7 @@ import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Events;
 import com.baidu.hugegraph.util.JsonUtil;
+import com.baidu.hugegraph.util.StringEncoding;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
@@ -122,7 +123,8 @@ public class UserManager {
             assert users.size() == 1;
             user = users.get(0);
         }
-        if (user != null && user.password().equals(password)) {
+        if (user != null &&
+            StringEncoding.checkPassword(password, user.password())) {
             return user;
         }
         return null;

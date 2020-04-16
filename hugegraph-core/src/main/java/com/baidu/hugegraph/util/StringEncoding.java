@@ -25,6 +25,8 @@ import java.util.UUID;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
+import org.mindrot.jbcrypt.BCrypt;
+
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
@@ -130,6 +132,15 @@ public final class StringEncoding {
         } catch (IOException e) {
             throw new BackendException("Failed to decompress: %s", e, value);
         }
+    }
+
+    public static String hashPassword(String password) {
+        return BCrypt.hashpw(password, BCrypt.gensalt(4));
+    }
+
+    public static boolean checkPassword(String candidatePassword,
+                                        String dbPassword) {
+        return BCrypt.checkpw(candidatePassword, dbPassword);
     }
 
     public static String sha256(String string) {

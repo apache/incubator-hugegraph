@@ -28,7 +28,6 @@ import com.baidu.hugegraph.GremlinGraph;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.util.E;
-import com.baidu.hugegraph.util.StringEncoding;
 
 public class StandardAuthenticator implements HugeAuthenticator {
 
@@ -61,7 +60,7 @@ public class StandardAuthenticator implements HugeAuthenticator {
         E.checkArgumentNotNull(password,
                                "The password parameter can't be null");
 
-        String role = this.matchUser(username, StringEncoding.sha256(password));
+        String role = this.matchUser(username, password);
         if (role == null) {
             role = ROLE_NONE;
         } else if (username.equals(User.USER_ADMIN)) {
