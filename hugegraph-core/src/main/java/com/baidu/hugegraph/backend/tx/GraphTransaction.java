@@ -667,7 +667,7 @@ public class GraphTransaction extends IndexableTransaction {
         List<Id> ids = InsertionOrderUtil.newList();
         Map<Id, HugeVertex> vertices = new HashMap<>(vertexIds.length);
 
-        long now = DateUtil.now().getTime();
+        long now = this.graph().now();
         IdQuery query = new IdQuery(HugeType.VERTEX);
         for (Object vertexId : vertexIds) {
             HugeVertex vertex;
@@ -766,7 +766,7 @@ public class GraphTransaction extends IndexableTransaction {
         Iterator<HugeVertex> vertices = new MapperIterator<>(entries,
                                                              this::parseEntry);
 
-        long now = DateUtil.now().getTime();
+        long now = this.graph().now();
         if (!this.store().features().supportsTtl() && !query.showExpired()) {
             vertices = new FilterIterator<>(vertices, vertex -> {
                 if (0L < vertex.expiredTime() && vertex.expiredTime() < now) {
@@ -838,7 +838,7 @@ public class GraphTransaction extends IndexableTransaction {
         List<Id> ids = InsertionOrderUtil.newList();
         Map<Id, HugeEdge> edges = new HashMap<>(edgeIds.length);
 
-        long now = DateUtil.now().getTime();
+        long now = this.graph().now();
         IdQuery query = new IdQuery(HugeType.EDGE);
         for (Object edgeId : edgeIds) {
             HugeEdge edge;
@@ -967,7 +967,7 @@ public class GraphTransaction extends IndexableTransaction {
         });
 
         if (!this.store().features().supportsTtl() && !query.showExpired()) {
-            long now = DateUtil.now().getTime();
+            long now = this.graph().now();
             edges = new FilterIterator<>(edges, edge -> {
                 long expiredTime = edge.expiredTime();
                 if (0L < expiredTime && expiredTime < now) {
@@ -1601,7 +1601,7 @@ public class GraphTransaction extends IndexableTransaction {
                                        this.addedVertices, this.removedVertices,
                                        this.updatedVertices);
         // Filter edges with ttl
-        long now = DateUtil.now().getTime();
+        long now = this.graph().now();
         if (!query.showExpired()) {
             vertices = new FilterIterator<>(vertices, vertex -> {
                 return vertex.expiredTime() == 0L ||
@@ -1623,7 +1623,7 @@ public class GraphTransaction extends IndexableTransaction {
                                    this.updatedEdges);
         // Filter edges with ttl
         if (!query.showExpired()) {
-            long now = DateUtil.now().getTime();
+            long now = this.graph().now();
             edges = new FilterIterator<>(edges, edge -> {
                 long expiredTime = edge.expiredTime();
                 return expiredTime == 0L || expiredTime >= now;

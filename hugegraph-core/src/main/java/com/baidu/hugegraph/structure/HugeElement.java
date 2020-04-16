@@ -130,7 +130,7 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
         if (label.ttl() == 0L) {
             return;
         }
-        long now = DateUtil.now().getTime();
+        long now = this.graph.now();
         if (label.ttlStartTime() == IdGenerator.ZERO) {
             this.expiredTime(now + label.ttl());
             return;
