@@ -25,7 +25,6 @@ import java.util.Map;
 import java.util.function.Function;
 
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
@@ -33,6 +32,7 @@ import com.baidu.hugegraph.auth.SchemaDefine.Entity;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
+import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.exception.NotFoundException;
@@ -109,29 +109,28 @@ public class EntityManager<T extends Entity> {
     }
 
     public List<T> list(List<Id> ids) {
-        return this.query(ids);
+        return toList(this.queryById(ids));
     }
 
     public List<T> list(long limit) {
-        return this.query(ImmutableMap.of(), limit);
+        return toList(this.queryEntity(this.label, ImmutableMap.of(), limit));
     }
 
     protected List<T> query(String key, Object value, long limit) {
-        return this.query(ImmutableMap.of(key, value), limit);
+        Map<String, Object> conditions = ImmutableMap.of(key, value);
+        return toList(this.queryEntity(this.label, conditions, limit));
     }
 
-    private List<T> query(Map<String, Object> conditions, long limit) {
-        Iterator<Vertex> vertices = this.queryEntity(this.label,
-                                                     conditions, limit);
+    protected List<T> toList(Iterator<Vertex> vertices) {
+        Iterator<T> iter = new MapperIterator<>(vertices, this.deser);
         // Convert iterator to list to avoid across thread tx accessed
-        return IteratorUtils.list(new MapperIterator<>(vertices, this.deser));
+        return (List<T>) QueryResults.toList(iter).list();
     }
 
-    private List<T> query(List<Id> ids) {
+    private Iterator<Vertex> queryById(List<Id> ids) {
         Object[] idArray = ids.toArray(new Id[ids.size()]);
         Iterator<Vertex> vertices = this.tx().queryVertices(idArray);
-        // Convert iterator to list to avoid across thread tx accessed
-        return IteratorUtils.list(new MapperIterator<>(vertices, this.deser));
+        return vertices;
     }
 
     private Iterator<Vertex> queryEntity(String label,

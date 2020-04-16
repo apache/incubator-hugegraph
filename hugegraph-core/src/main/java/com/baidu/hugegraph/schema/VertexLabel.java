@@ -70,7 +70,8 @@ public class VertexLabel extends SchemaLabel {
     }
 
     public boolean existsLinkLabel() {
-        List<EdgeLabel> edgeLabels = this.graph().schema().getEdgeLabels();
+        List<EdgeLabel> edgeLabels = this.graph().schemaTransaction()
+                                                 .getEdgeLabels();
         for (EdgeLabel edgeLabel : edgeLabels) {
             if (edgeLabel.linkWithLabel(this.id())) {
                 return true;

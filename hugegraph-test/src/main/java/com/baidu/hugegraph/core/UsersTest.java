@@ -40,6 +40,7 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.testutil.Assert;
+import com.baidu.hugegraph.util.StringEncoding;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
@@ -59,6 +60,9 @@ public class UsersTest extends BaseCoreTest {
         for (HugeTarget target : userManager.listAllTargets(-1)) {
             userManager.deleteTarget(target.id());
         }
+
+        Assert.assertEquals(0, userManager.listAllAccess(-1).size());
+        Assert.assertEquals(0, userManager.listAllBelong(-1).size());
     }
 
     @Test
@@ -187,7 +191,8 @@ public class UsersTest extends BaseCoreTest {
         HugeGraph graph = graph();
         UserManager userManager = graph.userManager();
 
-        userManager.createUser(makeUser("tom", "pass1"));
+        String password = StringEncoding.hashPassword("pass1");
+        userManager.createUser(makeUser("tom", password));
 
         Assert.assertNotNull(userManager.matchUser("tom", "pass1"));
         Assert.assertNull(userManager.matchUser("tom", "pass2"));

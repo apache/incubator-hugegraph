@@ -25,7 +25,6 @@ import java.util.Map;
 import java.util.function.Function;
 
 import org.apache.tinkerpop.gremlin.structure.Edge;
-import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
@@ -33,6 +32,7 @@ import com.baidu.hugegraph.auth.SchemaDefine.Relationship;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
+import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.exception.NotFoundException;
@@ -112,19 +112,20 @@ public class RelationshipManager<T extends Relationship> {
     }
 
     public List<T> list(List<Id> ids) {
-        return this.query(ids);
+        return toList(this.queryById(ids));
     }
 
     public List<T> list(long limit) {
-        return this.query(ImmutableMap.of(), limit);
+        Iterator<Edge> edges = this.queryRelationship(null, null, this.label,
+                                                      ImmutableMap.of(), limit);
+        return toList(edges);
     }
 
     public List<T> list(Id source, Directions direction,
                         String label, long limit) {
         Iterator<Edge> edges = this.queryRelationship(source, direction, label,
                                                       ImmutableMap.of(), limit);
-        // Convert iterator to list to avoid across thread tx accessed
-        return IteratorUtils.list(new MapperIterator<>(edges, this.deser));
+        return toList(edges);
     }
 
     public List<T> list(Id source, Directions direction, String label,
@@ -132,22 +133,19 @@ public class RelationshipManager<T extends Relationship> {
         Map<String, Object> conditions = ImmutableMap.of(key, value);
         Iterator<Edge> edges = this.queryRelationship(source, direction, label,
                                                       conditions, limit);
-        // Convert iterator to list to avoid across thread tx accessed
-        return IteratorUtils.list(new MapperIterator<>(edges, this.deser));
+        return toList(edges);
     }
 
-    private List<T> query(Map<String, Object> conditions, long limit) {
-        Iterator<Edge> edges = this.queryRelationship(null, null, this.label,
-                                                      conditions, limit);
+    protected List<T> toList(Iterator<Edge> edges) {
+        Iterator<T> iter = new MapperIterator<>(edges, this.deser);
         // Convert iterator to list to avoid across thread tx accessed
-        return IteratorUtils.list(new MapperIterator<>(edges, this.deser));
+        return (List<T>) QueryResults.toList(iter).list();
     }
 
-    private List<T> query(List<Id> ids) {
+    private Iterator<Edge> queryById(List<Id> ids) {
         Object[] idArray = ids.toArray(new Id[ids.size()]);
         Iterator<Edge> edges = this.tx().queryEdges(idArray);
-        // Convert iterator to list to avoid across thread tx accessed
-        return IteratorUtils.list(new MapperIterator<>(edges, this.deser));
+        return edges;
     }
 
     private Iterator<Edge> queryRelationship(Id source,
