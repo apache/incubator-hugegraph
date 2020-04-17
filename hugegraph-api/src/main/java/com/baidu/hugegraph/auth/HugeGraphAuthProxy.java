@@ -80,7 +80,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
     private static final Logger LOG = Log.logger(HugeGraph.class);
 
-    private final HugeGraph hugegraph; // TODO: protect
+    private final HugeGraph hugegraph;
     private final Transaction tx;
     private final TaskScheduler taskScheduler;
 
