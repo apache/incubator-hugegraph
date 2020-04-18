@@ -309,7 +309,7 @@ public class HugeTask<V> extends FutureTask<V> {
     protected void set(V v) {
         String result = JsonUtil.toJson(v);
         checkPropertySize(result, P.RESULT);
-        if (this.status(TaskStatus.SUCCESS) && v != null) {
+        if (this.status(TaskStatus.SUCCESS)) {
             this.result = result;
         }
         // Will call done() and may cause to save to store

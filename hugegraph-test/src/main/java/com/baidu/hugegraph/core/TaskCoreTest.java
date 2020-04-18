@@ -230,7 +230,7 @@ public class TaskCoreTest extends BaseCoreTest {
         TaskScheduler scheduler = graph.taskScheduler();
 
         GremlinRequest request = new GremlinRequest();
-        request.gremlin("3 + 5");
+        request.gremlin("sleep(100); 3 + 5");
 
         JobBuilder<Object> builder = JobBuilder.of(graph);
         builder.name("test-job-gremlin")
