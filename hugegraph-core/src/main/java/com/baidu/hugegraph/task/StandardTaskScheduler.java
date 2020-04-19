@@ -256,9 +256,9 @@ public class StandardTaskScheduler implements TaskScheduler {
         this.call(() -> {
             // Construct vertex from task
             HugeVertex vertex = this.tx().constructVertex(task);
-            // Delete index of old vertex
+            // Delete index of old vertex to avoid stale index
             this.tx().deleteIndex(vertex);
-            // Add or update task info in backend store, stale index might exist
+            // Add or update task info to backend store
             return this.tx().addVertex(vertex);
         });
     }
@@ -513,13 +513,6 @@ public class StandardTaskScheduler implements TaskScheduler {
             return this.constructVertex(false, task.asArray());
         }
 
-        public boolean indexValueChanged(Vertex oldV, HugeVertex newV) {
-            if (!oldV.value(P.STATUS).equals(newV.value(P.STATUS))) {
-                return true;
-            }
-            return false;
-        }
-
         public void deleteIndex(HugeVertex vertex) {
             // Delete the old record if exist
             Iterator<Vertex> old = this.queryVertices(vertex.id());
@@ -527,11 +520,16 @@ public class StandardTaskScheduler implements TaskScheduler {
             if (oldV == null) {
                 return;
             }
-            if (this.indexValueChanged(oldV, vertex)) {
-                // Only delete vertex if index value changed else override
-                // TODO: just delete index instead of removing old vertex
-                this.removeVertex(oldV);
+            this.deleteIndexIfNeeded(oldV, vertex);
+        }
+
+        private boolean deleteIndexIfNeeded(HugeVertex oldV, HugeVertex newV) {
+            if (!oldV.value(P.STATUS).equals(newV.value(P.STATUS))) {
+                // Only delete vertex if index value changed else override it
+                this.updateIndex(this.indexLabel(P.STATUS).id(), oldV, true);
+                return true;
             }
+            return false;
         }
 
         public void initSchema() {
@@ -554,7 +552,7 @@ public class StandardTaskScheduler implements TaskScheduler {
             this.params().schemaTransaction().addVertexLabel(label);
 
             // Create index
-            this.createIndex(label, P.STATUS);
+            this.createIndexLabel(label, P.STATUS);
         }
 
         private boolean existVertexLabel(String label) {
@@ -603,7 +601,7 @@ public class StandardTaskScheduler implements TaskScheduler {
             return name;
         }
 
-        private IndexLabel createIndex(VertexLabel label, String field) {
+        private IndexLabel createIndexLabel(VertexLabel label, String field) {
             HugeGraph graph = this.graph();
             SchemaManager schema = graph.schema();
             String name = Hidden.hide("task-index-by-" + field);
@@ -613,6 +611,12 @@ public class StandardTaskScheduler implements TaskScheduler {
                                           .build();
             this.params().schemaTransaction().addIndexLabel(label, indexLabel);
             return indexLabel;
+        }
+
+        private IndexLabel indexLabel(String field) {
+            String name = Hidden.hide("task-index-by-" + field);
+            HugeGraph graph = this.graph();
+            return graph.indexLabel(name);
         }
     }
 }

@@ -199,6 +199,10 @@ public class GraphTransaction extends IndexableTransaction {
         return this.verticesInTxSize() + this.edgesInTxSize();
     }
 
+    public boolean checkAdjacentVertexExist() {
+        return this.checkAdjacentVertexExist;
+    }
+
     @Override
     protected void reset() {
         super.reset();
@@ -1678,10 +1682,9 @@ public class GraphTransaction extends IndexableTransaction {
         }
     }
 
-    public boolean checkAdjacentVertexExist() {
-        return this.checkAdjacentVertexExist;
-    }
-
+    /*
+     * TODO: set these methods to protected
+     */
     public void removeIndex(IndexLabel indexLabel) {
         // TODO: use event to replace direct call
         this.checkOwnerThread();
@@ -1691,13 +1694,11 @@ public class GraphTransaction extends IndexableTransaction {
         this.afterWrite();
     }
 
-    public void updateIndex(Id ilId, HugeElement element) {
+    public void updateIndex(Id ilId, HugeElement element, boolean removed) {
         // TODO: use event to replace direct call
         this.checkOwnerThread();
 
-        this.beforeWrite();
-        this.indexTx.updateIndex(ilId, element, false);
-        this.afterWrite();
+        this.indexTx.updateIndex(ilId, element, removed);
     }
 
     public void removeVertices(VertexLabel vertexLabel) {

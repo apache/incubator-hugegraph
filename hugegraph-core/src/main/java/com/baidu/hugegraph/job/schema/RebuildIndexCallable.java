@@ -90,7 +90,7 @@ public class RebuildIndexCallable extends SchemaCallable {
 
         Consumer<?> indexUpdater = (elem) -> {
             for (Id id : indexLabelIds) {
-                graphTx.updateIndex(id, (HugeElement) elem);
+                graphTx.updateIndex(id, (HugeElement) elem, false);
             }
         };
 
