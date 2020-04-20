@@ -62,7 +62,7 @@ public class PaloStoreProvider extends MysqlStoreProvider {
          * [1.6] #746: support userdata for indexlabel
          * [1.7] #894: asStoredString() encoding is changed to signed B64
          *             instead of sortable B64
-         * [1.8] #295: support ttl
+         * [1.8] #295: support ttl for vertex and edge
          */
         return "1.8";
     }

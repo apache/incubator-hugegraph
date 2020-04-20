@@ -116,7 +116,7 @@ public class HbaseTables {
         @Override
         public void insert(Session session, BackendEntry entry) {
             long ttl = entry.ttl();
-            if (ttl == 0) {
+            if (ttl == 0L) {
                 session.put(this.table(), CF, entry.id().asBytes(),
                             entry.columns());
             } else {
@@ -150,7 +150,7 @@ public class HbaseTables {
         @Override
         public void insert(Session session, BackendEntry entry) {
             long ttl = entry.ttl();
-            if (ttl == 0) {
+            if (ttl == 0L) {
                 session.put(this.table(), CF, entry.id().asBytes(),
                             entry.columns());
             } else {
@@ -198,7 +198,7 @@ public class HbaseTables {
             assert entry.columns().size() == 1;
             BackendColumn col = entry.columns().iterator().next();
             long ttl = entry.ttl();
-            if (ttl == 0) {
+            if (ttl == 0L) {
                 session.put(this.table(), CF, col.name,
                             BinarySerializer.EMPTY_BYTES, col.value);
             } else {

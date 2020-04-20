@@ -51,7 +51,6 @@ import com.baidu.hugegraph.type.Idfiable;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.CollectionUtil;
-import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.E;
 import com.google.common.collect.ImmutableMap;
 
@@ -143,7 +142,7 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
         long expired = date.getTime() + label.ttl();
         E.checkArgument(expired > now,
                         "The expired time '%s' of '%s' is prior to now: %s",
-                        new Date(expired), this, DateUtil.now());
+                        new Date(expired), this, now);
         this.expiredTime(expired);
     }
 
@@ -153,6 +152,21 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
 
     public void expiredTime(long expiredTime) {
         this.expiredTime = expiredTime;
+    }
+
+    public boolean expired() {
+        return 0L < this.expiredTime && this.expiredTime < this.graph.now();
+    }
+
+    public long ttl() {
+        if (this.expiredTime == 0L || this.expiredTime < this.graph.now()) {
+            return 0L;
+        }
+        return this.expiredTime - this.graph.now();
+    }
+
+    public boolean hasTtl() {
+        return this.schemaLabel().ttl() > 0L;
     }
 
     public Map<Id, HugeProperty<?>> getProperties() {

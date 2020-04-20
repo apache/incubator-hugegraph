@@ -283,13 +283,6 @@ public class CassandraTables {
             Update append = this.buildAppend(entry);
             session.add(setTtl(append, entry));
         }
-
-        @Override
-        public void eliminate(CassandraSessionPool.Session session,
-                              CassandraBackendEntry.Row entry) {
-            Update append = this.buildEliminate(entry);
-            session.add(setTtl(append, entry));
-        }
     }
 
     public static class Edge extends CassandraTable {
@@ -355,13 +348,6 @@ public class CassandraTables {
         public void append(CassandraSessionPool.Session session,
                            CassandraBackendEntry.Row entry) {
             Update update = this.buildAppend(entry);
-            session.add(setTtl(update, entry));
-        }
-
-        @Override
-        public void eliminate(CassandraSessionPool.Session session,
-                              CassandraBackendEntry.Row entry) {
-            Update update = this.buildEliminate(entry);
             session.add(setTtl(update, entry));
         }
 
@@ -849,7 +835,7 @@ public class CassandraTables {
                                     CassandraBackendEntry.Row entry) {
         long ttl = entry.ttl();
         if (ttl != 0L) {
-            int calcTtl = (int) Math.ceil((double) ttl / 1000);
+            int calcTtl = (int) Math.ceil(ttl / 1000D);
             Using usingTtl = QueryBuilder.ttl(calcTtl);
             if (statement instanceof Insert) {
                 ((Insert) statement).using(usingTtl);

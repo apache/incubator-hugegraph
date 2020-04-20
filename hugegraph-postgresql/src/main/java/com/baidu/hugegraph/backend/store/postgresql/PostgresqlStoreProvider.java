@@ -63,7 +63,7 @@ public class PostgresqlStoreProvider extends MysqlStoreProvider {
          * [1.5] #746: support userdata for indexlabel
          * [1.6] #894: asStoredString() encoding is changed to signed B64
          *             instead of sortable B64
-         * [1.7] #295: support ttl
+         * [1.7] #295: support ttl for vertex and edge
          */
         return "1.7";
     }

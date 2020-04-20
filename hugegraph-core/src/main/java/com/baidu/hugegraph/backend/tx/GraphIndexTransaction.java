@@ -68,6 +68,7 @@ import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.iterator.Metadatable;
 import com.baidu.hugegraph.job.EphemeralJob;
 import com.baidu.hugegraph.job.EphemeralJobBuilder;
+import com.baidu.hugegraph.job.system.DeleteExpiredJob;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -588,12 +589,11 @@ public class GraphIndexTransaction extends AbstractTransaction {
         if (this.store().features().supportsTtl() || showExpired) {
             return;
         }
-        long now = this.graph().now();
-        for (HugeIndex.IdWithExpiredTime id : index.expiredElementIds(now)) {
+        for (HugeIndex.IdWithExpiredTime id : index.expiredElementIds()) {
             HugeIndex removeIndex = index.clone();
             removeIndex.resetElementIds();
             removeIndex.elementIds(id.id(), id.expiredTime());
-            GraphTransaction.asyncDeleteExpiredObject(graph(), removeIndex);
+            DeleteExpiredJob.asyncDeleteExpiredObject(graph(), removeIndex);
         }
     }
 

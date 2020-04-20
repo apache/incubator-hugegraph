@@ -71,12 +71,7 @@ import com.baidu.hugegraph.iterator.FilterIterator;
 import com.baidu.hugegraph.iterator.FlatMapperIterator;
 import com.baidu.hugegraph.iterator.ListIterator;
 import com.baidu.hugegraph.iterator.MapperIterator;
-import com.baidu.hugegraph.job.EphemeralJob;
-import com.baidu.hugegraph.job.EphemeralJobBuilder;
-import com.baidu.hugegraph.job.system.DeleteExpiredElementJob;
-import com.baidu.hugegraph.job.system.DeleteExpiredIndexJob;
-import com.baidu.hugegraph.job.system.JobCounters;
-import com.baidu.hugegraph.job.system.JobCounters.JobCounter;
+import com.baidu.hugegraph.job.system.DeleteExpiredJob;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
@@ -91,14 +86,12 @@ import com.baidu.hugegraph.structure.HugeIndex;
 import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.structure.HugeVertexProperty;
-import com.baidu.hugegraph.task.HugeTask;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Action;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.type.define.SchemaStatus;
-import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.LockUtil;
@@ -107,8 +100,6 @@ import com.google.common.collect.ImmutableList;
 public class GraphTransaction extends IndexableTransaction {
 
     public static final int COMMIT_BATCH = (int) Query.COMMIT_BATCH;
-    private static final int MAX_JOBS = 1000;
-    private static final JobCounters JOB_COUNTERS = new JobCounters();
 
     private final GraphIndexTransaction indexTx;
 
@@ -667,7 +658,6 @@ public class GraphTransaction extends IndexableTransaction {
         List<Id> ids = InsertionOrderUtil.newList();
         Map<Id, HugeVertex> vertices = new HashMap<>(vertexIds.length);
 
-        long now = this.graph().now();
         IdQuery query = new IdQuery(HugeType.VERTEX);
         for (Object vertexId : vertexIds) {
             HugeVertex vertex;
@@ -677,7 +667,7 @@ public class GraphTransaction extends IndexableTransaction {
                 continue;
             } else if ((vertex = this.addedVertices.get(id)) != null ||
                        (vertex = this.updatedVertices.get(id)) != null) {
-                if (0L < vertex.expiredTime() && vertex.expiredTime() < now) {
+                if (vertex.expired()) {
                     continue;
                 }
                 // Found from local tx
@@ -766,11 +756,11 @@ public class GraphTransaction extends IndexableTransaction {
         Iterator<HugeVertex> vertices = new MapperIterator<>(entries,
                                                              this::parseEntry);
 
-        long now = this.graph().now();
         if (!this.store().features().supportsTtl() && !query.showExpired()) {
             vertices = new FilterIterator<>(vertices, vertex -> {
-                if (0L < vertex.expiredTime() && vertex.expiredTime() < now) {
-                    asyncDeleteExpiredObject(this.graph(), vertex);
+                if (vertex.expired()) {
+                    DeleteExpiredJob.asyncDeleteExpiredObject(this.graph(),
+                                                              vertex);
                     return false;
                 }
                 return true;
@@ -838,7 +828,6 @@ public class GraphTransaction extends IndexableTransaction {
         List<Id> ids = InsertionOrderUtil.newList();
         Map<Id, HugeEdge> edges = new HashMap<>(edgeIds.length);
 
-        long now = this.graph().now();
         IdQuery query = new IdQuery(HugeType.EDGE);
         for (Object edgeId : edgeIds) {
             HugeEdge edge;
@@ -848,7 +837,7 @@ public class GraphTransaction extends IndexableTransaction {
                 continue;
             } else if ((edge = this.addedEdges.get(id)) != null ||
                        (edge = this.updatedEdges.get(id)) != null) {
-                if (0L < edge.expiredTime() && edge.expiredTime() < now) {
+                if (edge.expired()) {
                     continue;
                 }
                 // Found from local tx
@@ -967,11 +956,10 @@ public class GraphTransaction extends IndexableTransaction {
         });
 
         if (!this.store().features().supportsTtl() && !query.showExpired()) {
-            long now = this.graph().now();
             edges = new FilterIterator<>(edges, edge -> {
-                long expiredTime = edge.expiredTime();
-                if (0L < expiredTime && expiredTime < now) {
-                    asyncDeleteExpiredObject(this.graph(), edge);
+                if (edge.expired()) {
+                    DeleteExpiredJob.asyncDeleteExpiredObject(this.graph(),
+                                                              edge);
                     return false;
                 }
                 return true;
@@ -1600,12 +1588,10 @@ public class GraphTransaction extends IndexableTransaction {
                                        (q, v) -> q.test(v) ? v : null,
                                        this.addedVertices, this.removedVertices,
                                        this.updatedVertices);
-        // Filter edges with ttl
-        long now = this.graph().now();
+        // Filter vertices with ttl
         if (!query.showExpired()) {
             vertices = new FilterIterator<>(vertices, vertex -> {
-                return vertex.expiredTime() == 0L ||
-                       vertex.expiredTime() >= now;
+                return !vertex.expired();
             });
         }
         return vertices;
@@ -1623,10 +1609,8 @@ public class GraphTransaction extends IndexableTransaction {
                                    this.updatedEdges);
         // Filter edges with ttl
         if (!query.showExpired()) {
-            long now = this.graph().now();
             edges = new FilterIterator<>(edges, edge -> {
-                long expiredTime = edge.expiredTime();
-                return expiredTime == 0L || expiredTime >= now;
+                return !edge.expired();
             });
         }
         if (removingVertices.isEmpty()) {
@@ -1903,56 +1887,6 @@ public class GraphTransaction extends IndexableTransaction {
                     CloseableIterator.closeIterator(iter);
                 }
             } while (page != null);
-        }
-    }
-
-    public static void asyncDeleteExpiredObject(HugeGraph graph,
-                                                Object object) {
-        E.checkArgumentNotNull(object, "The object can't be null");
-        JobCounters.JobCounter jobCounter = JOB_COUNTERS.jobCounter(graph);
-        if (!jobCounter.addAndTriggerDelete(object)) {
-            return;
-        }
-        if (jobCounter.jobs() >= MAX_JOBS) {
-            LOG.debug("Pending delete expired objects jobs size {} has " +
-                      "reached the limit {}, abandon {}",
-                      jobCounter.jobs(), MAX_JOBS, object);
-            return;
-        }
-        jobCounter.increment();
-        EphemeralJob job = newEphemeralJob(jobCounter, object);
-        jobCounter.clear(object);
-        HugeTask<?> task;
-        try {
-            task = EphemeralJobBuilder.of(graph)
-                                      .name("delete_expired_object")
-                                      .job(job)
-                                      .schedule();
-        } catch (Throwable e) {
-            jobCounter.decrement();
-            if (e.getMessage().contains("Pending tasks size") &&
-                e.getMessage().contains("has exceeded the max limit")) {
-                // Reach tasks limit, just ignore it
-                return;
-            }
-            throw e;
-        }
-        /*
-         * If TASK_SYNC_DELETION is true, wait async thread done before
-         * continue. This is used when running tests.
-         */
-        if (graph.configuration().get(CoreOptions.TASK_SYNC_DELETION)) {
-            task.syncWait();
-        }
-    }
-
-    public static EphemeralJob newEphemeralJob(JobCounter jobCounter,
-                                               Object object) {
-        if (object instanceof HugeElement) {
-            return new DeleteExpiredElementJob(jobCounter.edges());
-        } else {
-            assert object instanceof HugeIndex;
-            return new DeleteExpiredIndexJob(jobCounter.indexes());
         }
     }
 }

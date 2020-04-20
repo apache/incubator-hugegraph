@@ -24,15 +24,13 @@ import java.util.Set;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.query.IdQuery;
-import com.baidu.hugegraph.backend.serializer.AbstractSerializer;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
-import com.baidu.hugegraph.job.EphemeralJob;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.structure.HugeIndex;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 
-public class DeleteExpiredIndexJob extends EphemeralJob<Object> {
+public class DeleteExpiredIndexJob extends DeleteExpiredJob<Object> {
 
     private static final String JOB_TYPE = "delete_expired_index";
 
@@ -74,7 +72,6 @@ public class DeleteExpiredIndexJob extends EphemeralJob<Object> {
      */
     private void deleteExpiredIndex(HugeGraph graph, HugeIndex index) {
         GraphTransaction tx = graph.graphTransaction();
-        AbstractSerializer serializer = graph.serializer();
         HugeType type = index.indexLabel().queryType().isVertex()?
                         HugeType.VERTEX : HugeType.EDGE;
         IdQuery query = new IdQuery(type);

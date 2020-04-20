@@ -180,19 +180,14 @@ public final class CachedGraphTransaction extends GraphTransaction {
     }
 
     private Iterator<HugeVertex> queryVerticesByIds(IdQuery query) {
-        long now = this.graph().now();
         IdQuery newQuery = new IdQuery(HugeType.VERTEX, query);
         List<HugeVertex> vertices = new ArrayList<>();
         for (Id vertexId : query.ids()) {
             HugeVertex vertex = (HugeVertex) this.verticesCache.get(vertexId);
-            if (vertex == null) {
+            if (vertex == null || vertex.expired()) {
                 newQuery.query(vertexId);
             } else {
-                if (0L < vertex.expiredTime() && vertex.expiredTime() < now) {
-                    GraphTransaction.asyncDeleteExpiredObject(graph(), vertex);
-                } else {
-                    vertices.add(vertex);
-                }
+                vertices.add(vertex);
             }
         }
 
@@ -209,22 +204,14 @@ public final class CachedGraphTransaction extends GraphTransaction {
             Iterator<HugeVertex> rs = super.queryVerticesFromBackend(newQuery);
             // Generally there are not too much data with id query
             ListIterator<HugeVertex> listIterator = QueryResults.toList(rs);
-            List<HugeVertex> survivedVertices = new ArrayList<>();
-            Collection<HugeVertex> backendVertices = listIterator.list();
-            for (HugeVertex vertex : backendVertices) {
-                if (0L < vertex.expiredTime() && vertex.expiredTime() < now) {
-                    GraphTransaction.asyncDeleteExpiredObject(graph(), vertex);
-                } else {
-                    survivedVertices.add(vertex);
-                    int propSize = vertex.sizeOfSubProperties();
-                    if (propSize > MAX_CACHE_PROPS_PER_VERTEX) {
-                        // Skip large vertex
-                        continue;
-                    }
-                    this.verticesCache.update(vertex.id(), vertex);
+            for (HugeVertex vertex : listIterator.list()) {
+                if (vertex.sizeOfSubProperties() > MAX_CACHE_PROPS_PER_VERTEX) {
+                    // Skip large vertex
+                    continue;
                 }
+                this.verticesCache.update(vertex.id(), vertex);
             }
-            results.extend(survivedVertices.iterator());
+            results.extend(listIterator);
         }
 
         return results;
@@ -242,9 +229,8 @@ public final class CachedGraphTransaction extends GraphTransaction {
         Object value = this.edgesCache.get(cacheKey);
         Collection<HugeEdge> edges = (Collection<HugeEdge>) value;
         if (value != null) {
-            long now = this.graph().now();
             for (HugeEdge edge : edges) {
-                if (0L < edge.expiredTime() && edge.expiredTime() < now) {
+                if (edge.expired()) {
                     this.edgesCache.invalidate(cacheKey);
                     value = null;
                 }

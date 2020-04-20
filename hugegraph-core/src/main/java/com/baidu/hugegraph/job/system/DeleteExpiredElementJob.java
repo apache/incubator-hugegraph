@@ -23,11 +23,10 @@ import java.util.Set;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
-import com.baidu.hugegraph.job.EphemeralJob;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.util.E;
 
-public class DeleteExpiredElementJob extends EphemeralJob<Object> {
+public class DeleteExpiredElementJob extends DeleteExpiredJob<Object> {
 
     private static final String JOB_TYPE = "delete_expired_element";
 

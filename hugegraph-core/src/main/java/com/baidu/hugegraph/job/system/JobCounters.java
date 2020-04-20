@@ -42,7 +42,7 @@ public class JobCounters {
         return this.jobCounters.get(graph);
     }
 
-    public class JobCounter {
+    public static class JobCounter {
 
         private AtomicInteger jobs;
         private Set<HugeElement> elements;

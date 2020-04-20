@@ -19,17 +19,9 @@
 
 package com.baidu.hugegraph.job;
 
-import org.slf4j.Logger;
-
-import com.baidu.hugegraph.job.system.JobCounters;
 import com.baidu.hugegraph.task.TaskCallable.SysTaskCallable;
-import com.baidu.hugegraph.util.Log;
 
 public abstract class EphemeralJob<V> extends SysTaskCallable<V> {
-
-    protected static final Logger LOG = Log.logger(EphemeralJob.class);
-
-    public static final JobCounters JOB_COUNTERS = new JobCounters();
 
     public abstract String type();
 

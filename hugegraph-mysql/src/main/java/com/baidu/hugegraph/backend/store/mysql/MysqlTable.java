@@ -397,7 +397,7 @@ public abstract class MysqlTable
                 if (aggregate == null && !hasOrder) {
                     select.append(this.orderByKeys());
                 }
-                if (!query.nolimit() || query.offset() > 0) {
+                if (!query.nolimit() || query.offset() > 0L) {
                     this.wrapOffset(selection, query);
                 }
             }

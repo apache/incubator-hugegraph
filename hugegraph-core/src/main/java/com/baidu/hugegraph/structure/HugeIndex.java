@@ -35,7 +35,6 @@ import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.DataType;
-import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.HashUtil;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
@@ -43,10 +42,10 @@ import com.baidu.hugegraph.util.NumericUtil;
 
 public class HugeIndex implements GraphType, Cloneable {
 
+    private final HugeGraph graph;
     private Object fieldValues;
     private IndexLabel indexLabel;
     private Set<IdWithExpiredTime> elementIds;
-    private HugeGraph graph;
 
     public HugeIndex(HugeGraph graph, IndexLabel indexLabel) {
         E.checkNotNull(graph, "graph");
@@ -120,7 +119,8 @@ public class HugeIndex implements GraphType, Cloneable {
         return Collections.unmodifiableSet(ids);
     }
 
-    public Set<IdWithExpiredTime> expiredElementIds(long now) {
+    public Set<IdWithExpiredTime> expiredElementIds() {
+        long now = this.graph.now();
         Set<IdWithExpiredTime> expired = InsertionOrderUtil.newSet(
                                          this.elementIds.size());
         for (IdWithExpiredTime id : this.elementIds) {
@@ -146,6 +146,14 @@ public class HugeIndex implements GraphType, Cloneable {
 
     public long expiredTime() {
         return this.elementIdWithExpiredTime().expiredTime();
+    }
+
+    public boolean hasTtl() {
+        return this.indexLabel().ttl() > 0L;
+    }
+
+    public long ttl() {
+        return this.expiredTime() - this.graph.now();
     }
 
     @Override
