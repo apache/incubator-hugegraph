@@ -452,6 +452,14 @@ public class HbaseSessions extends BackendSessionPool {
             }
         }
 
+        public Connection hbase() {
+            return HbaseSessions.this.hbase();
+        }
+
+        public String namespace() {
+            return HbaseSessions.this.namespace;
+        }
+
         @Override
         public void open() {
             this.opened = true;

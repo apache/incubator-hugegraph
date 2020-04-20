@@ -172,7 +172,7 @@ public abstract class BackendTable<Session extends BackendSession, Entry> {
             return String.valueOf(position);
         }
 
-        public final byte[] position(String position) {
+        public byte[] position(String position) {
             int value = Long.valueOf(position).intValue();
             return NumericUtil.intToBytes(value);
         }

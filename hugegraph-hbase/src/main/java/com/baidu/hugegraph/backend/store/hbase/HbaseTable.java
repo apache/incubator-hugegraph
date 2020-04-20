@@ -20,14 +20,25 @@
 package com.baidu.hugegraph.backend.store.hbase;
 
 import java.io.IOException;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellScanner;
 import org.apache.hadoop.hbase.CellUtil;
+import org.apache.hadoop.hbase.RegionMetrics;
+import org.apache.hadoop.hbase.ServerName;
+import org.apache.hadoop.hbase.Size;
+import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.Admin;
+import org.apache.hadoop.hbase.client.RegionInfo;
 import org.apache.hadoop.hbase.client.Result;
 import org.slf4j.Logger;
 
@@ -276,8 +287,94 @@ public class HbaseTable extends BackendTable<Session, BackendEntry> {
 
     private static class HbaseShardSpliter extends ShardSpliter<Session> {
 
+        private static final byte[] EMPTY = new byte[0];
+        private static final byte[] START = new byte[]{0x0};
+        private static final byte[] END = new byte[]{
+                -1, -1, -1, -1, -1, -1, -1, -1,
+                -1, -1, -1, -1, -1, -1, -1, -1};
+        private static final String END_STRING = "-1";
+
         public HbaseShardSpliter(String table) {
             super(table);
+        }
+
+        @Override
+        public List<Shard> getSplits(Session session, long splitSize) {
+            List<Shard> shards = new ArrayList<>();
+            String namespace = session.namespace();
+            String table = this.table();
+
+            // Calc data size for each region
+            Map<String, Double> regionSizes = regionSizes(session, namespace,
+                                                          table);
+            // Get token range of each region
+            Map<String, Range> regionRanges = regionRanges(session, namespace,
+                                                           table);
+            // Split regions to shards
+            for (Map.Entry<String, Double> rs : regionSizes.entrySet()) {
+                String region = rs.getKey();
+                double size = rs.getValue();
+                Range range = regionRanges.get(region);
+                int count = calcSplitCount(size, splitSize);
+                shards.addAll(range.splitEven(count));
+            }
+            return shards;
+        }
+
+        private static Map<String, Double> regionSizes(Session session,
+                                                       String namespace,
+                                                       String table) {
+            Map<String, Double> regionSizes = new HashMap<>();
+            try (Admin admin = session.hbase().getAdmin()) {
+                TableName tableName = TableName.valueOf(namespace, table);
+                for (ServerName serverName : admin.getRegionServers()) {
+                    List<RegionMetrics> metrics = admin.getRegionMetrics(
+                                                  serverName, tableName);
+                    for (RegionMetrics metric : metrics) {
+                        double size = metric.getStoreFileSize()
+                                            .get(Size.Unit.BYTE);
+                        size += metric.getMemStoreSize().get(Size.Unit.BYTE);
+                        regionSizes.put(metric.getNameAsString(), size);
+                    }
+                }
+            } catch (Throwable e) {
+                throw new BackendException(String.format(
+                          "Failed to get region sizes of %s(%s)",
+                          table, namespace), e);
+            }
+            return regionSizes;
+        }
+
+        private static Map<String, Range> regionRanges(Session session,
+                                                       String namespace,
+                                                       String table) {
+            Map<String, Range> regionRanges = new HashMap<>();
+            TableName tableName = TableName.valueOf(namespace, table);
+            try (Admin admin = session.hbase().getAdmin()) {
+                for (RegionInfo regionInfo : admin.getRegions(tableName)) {
+                    byte[] start = regionInfo.getStartKey();
+                    byte[] end = regionInfo.getEndKey();
+                    regionRanges.put(regionInfo.getRegionNameAsString(),
+                                     new Range(start, end));
+                }
+            } catch (Throwable e) {
+                throw new BackendException(String.format(
+                          "Failed to get region ranges of %s(%s)",
+                          table, namespace), e);
+            }
+            return regionRanges;
+        }
+
+        private static int calcSplitCount(double totalSize, long splitSize) {
+            return (int) Math.ceil(totalSize / splitSize);
+        }
+
+        @Override
+        public byte[] position(String position) {
+            if (END_STRING.equals(position)) {
+                return END;
+            }
+            return new BigInteger(position).toByteArray();
         }
 
         @Override
@@ -293,6 +390,91 @@ public class HbaseTable extends BackendTable<Session, BackendEntry> {
         public long estimateNumKeys(Session session) {
             // TODO: improve
             return 100000L;
+        }
+
+        private static class Range {
+
+            private byte[] startKey;
+            private byte[] endKey;
+
+            private Range(byte[] startKey, byte[] endKey) {
+                this.startKey = Arrays.equals(EMPTY, startKey) ?
+                                START : startKey;
+                this.endKey = Arrays.equals(EMPTY, endKey) ? END : endKey;
+            }
+
+            private List<Shard> splitEven(int count) {
+                byte[] startBytes, endBytes;
+                boolean startChanged = false;
+                boolean endChanged = false;
+                int length;
+                if (this.startKey.length < this.endKey.length) {
+                    length = this.endKey.length;
+                    startBytes = new byte[length];
+                    System.arraycopy(this.startKey, 0, startBytes, 0,
+                                     this.startKey.length);
+                    endBytes = this.endKey;
+                    startChanged = true;
+                } else if (this.startKey.length > this.endKey.length) {
+                    length = this.startKey.length;
+                    endBytes = new byte[length];
+                    System.arraycopy(this.endKey, 0, endBytes, 0,
+                                     this.endKey.length);
+                    startBytes = this.startKey;
+                    endChanged = true;
+                } else {
+                    assert this.startKey.length == this.endKey.length;
+                    length = this.startKey.length;
+                    startBytes = this.startKey;
+                    endBytes = this.endKey;
+                }
+
+                BigInteger start = new BigInteger(1, startBytes);
+                BigInteger end = new BigInteger(1, endBytes);
+                if (count <= 1) {
+                    return ImmutableList.of(constructShard(start, end, length));
+                }
+                assert count > 1;
+                BigInteger each = end.subtract(start)
+                                     .divide(BigInteger.valueOf(count));
+                BigInteger offset = start;
+                BigInteger last = offset;
+                List<Shard> shards = new ArrayList<>(count);
+                while (offset.compareTo(end) < 0) {
+                    offset = offset.add(each);
+                    if (offset.compareTo(end) > 0) {
+                        offset = end;
+                    }
+                    if (startChanged) {
+                        last = new BigInteger(this.startKey);
+                        startChanged = false;
+                    }
+                    if (endChanged && offset.equals(end)) {
+                        offset = new BigInteger(this.endKey);
+                    }
+                    shards.add(constructShard(last, offset, length));
+                    last = offset;
+                }
+                return shards;
+            }
+
+            private static Shard constructShard(BigInteger start,
+                                                BigInteger end, int length) {
+                String low = big2String(start, length);
+                String high = big2String(end, length);
+                return new Shard(low, high, 0);
+            }
+
+            private static String big2String(BigInteger big, int length) {
+                byte[] array = big.toByteArray();
+                int bigLen = array.length;
+                if (bigLen <= length) {
+                    return big.toString();
+                }
+                byte[] target = new byte[length];
+                System.arraycopy(array, bigLen - length, target, 0, length);
+                return new BigInteger(target).toString();
+            }
         }
     }
 }
