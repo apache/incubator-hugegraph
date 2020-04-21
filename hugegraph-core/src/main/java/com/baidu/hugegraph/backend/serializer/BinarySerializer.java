@@ -316,7 +316,7 @@ public class BinarySerializer extends AbstractSerializer {
         // Parse properties
         this.parseProperties(buffer, vertex);
 
-        // Parse edge expired time if needed
+        // Parse vertex expired time if needed
         if (vertex.hasTtl()) {
             this.parseExpiredTime(buffer, vertex);
         }
@@ -350,33 +350,26 @@ public class BinarySerializer extends AbstractSerializer {
 
     protected byte[] formatIndexName(HugeIndex index) {
         BytesBuffer buffer;
+        Id elemId = index.elementId();
         if (!this.indexWithIdPrefix) {
-            Id elemId = index.elementId();
             int idLen = 1 + elemId.length();
             buffer = BytesBuffer.allocate(idLen);
-            // Write element-id
-            buffer.writeId(elemId);
-            // Write expiredTime if needed
-            if (index.hasTtl()) {
-                buffer.writeVLong(index.expiredTime());
-            }
         } else {
             Id indexId = index.id();
             HugeType type = index.type();
             if (!type.isNumericIndex() && indexIdLengthExceedLimit(indexId)) {
                 indexId = index.hashId();
             }
-            Id elemId = index.elementId();
             int idLen = 1 + elemId.length() + 1 + indexId.length();
             buffer = BytesBuffer.allocate(idLen);
             // Write index-id
             buffer.writeIndexId(indexId, type);
-            // Write element-id
-            buffer.writeId(elemId);
-            // Write expiredTime if needed
-            if (index.hasTtl()) {
-                buffer.writeVLong(index.expiredTime());
-            }
+        }
+        // Write element-id
+        buffer.writeId(elemId);
+        // Write expired time if needed
+        if (index.hasTtl()) {
+            buffer.writeVLong(index.expiredTime());
         }
 
         return buffer.bytes();
@@ -394,11 +387,9 @@ public class BinarySerializer extends AbstractSerializer {
             if (this.indexWithIdPrefix) {
                 buffer.readIndexId(index.type());
             }
-            if (index.hasTtl()) {
-                index.elementIds(buffer.readId(), buffer.readVLong());
-            } else {
-                index.elementIds(buffer.readId(), 0L);
-            }
+            Id elemId = buffer.readId();
+            long expiredTime = index.hasTtl() ? buffer.readVLong() : 0L;
+            index.elementIds(elemId, expiredTime);
         }
     }
 
@@ -427,6 +418,7 @@ public class BinarySerializer extends AbstractSerializer {
         // Fill column
         byte[] name = this.keyWithIdPrefix ? entry.id().asBytes() : EMPTY_BYTES;
         entry.column(name, buffer.bytes());
+
         if (vertex.hasTtl()) {
             entry.ttl(vertex.ttl());
         }
@@ -475,6 +467,7 @@ public class BinarySerializer extends AbstractSerializer {
                       this.formatEdgeName(edge) : EMPTY_BYTES;
         byte[] value = this.formatEdgeValue(edge);
         entry.column(name, value);
+
         if (edge.hasTtl()) {
             entry.ttl(edge.ttl());
         }
@@ -520,6 +513,7 @@ public class BinarySerializer extends AbstractSerializer {
             entry = newBackendEntry(type, id);
             entry.column(this.formatIndexName(index), value);
             entry.subId(index.elementId());
+
             if (index.hasTtl()) {
                 entry.ttl(index.ttl());
             }
