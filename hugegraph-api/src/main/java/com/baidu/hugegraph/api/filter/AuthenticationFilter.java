@@ -39,17 +39,24 @@ import javax.xml.bind.DatatypeConverter;
 
 import org.apache.tinkerpop.gremlin.server.auth.AuthenticationException;
 import org.glassfish.grizzly.utils.Charsets;
+import org.slf4j.Logger;
 
+import com.baidu.hugegraph.auth.HugeAuthenticator;
+import com.baidu.hugegraph.auth.HugeAuthenticator.RoleAction;
+import com.baidu.hugegraph.auth.HugeAuthenticator.RolePerm;
 import com.baidu.hugegraph.auth.HugeAuthenticator.User;
-import com.baidu.hugegraph.auth.StandardAuthenticator;
 import com.baidu.hugegraph.core.GraphManager;
+import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.Log;
 import com.google.common.collect.ImmutableMap;
 
 @Provider
 @PreMatching
 @Priority(Priorities.AUTHENTICATION)
 public class AuthenticationFilter implements ContainerRequestFilter {
+
+    private static final Logger LOG = Log.logger(RestServer.class);
 
     @Context
     private javax.inject.Provider<GraphManager> managerProvider;
@@ -98,8 +105,8 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         // Validate the extracted credentials
         try {
             return manager.authenticate(ImmutableMap.of(
-                           StandardAuthenticator.KEY_USERNAME, username,
-                           StandardAuthenticator.KEY_PASSWORD, password));
+                           HugeAuthenticator.KEY_USERNAME, username,
+                           HugeAuthenticator.KEY_PASSWORD, password));
         } catch (AuthenticationException e) {
             String msg = String.format("Authentication failed for user '%s'",
                                        username);
@@ -135,17 +142,22 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         }
 
         @Override
-        public boolean isUserInRole(String role) {
-            if (role.equals(StandardAuthenticator.ROLE_DYNAMIC)) {
-                // Let the resource itself dynamically determine
-                return true;
-            } else if (role.startsWith(StandardAuthenticator.ROLE_OWNER)) {
-                // Role format like: "$owner=name"
-                String[] owner = role.split("=", 2);
-                E.checkState(owner.length == 2, "Bad role format: '%s'", role);
-                role = this.getPathParameter(owner[1]);
+        public boolean isUserInRole(String required) {
+            boolean valid;
+            if (required.equals(HugeAuthenticator.ROLE_DYNAMIC)) {
+                // Let the resource itself determine dynamically
+                valid = true;
+            } else if (required.startsWith(HugeAuthenticator.ROLE_OWNER)) {
+                valid = this.matchPermission(required);
+            } else {
+                valid = RolePerm.match(this.user.role(), required);
             }
-            return role.equals(this.user.role());
+
+            if (!valid && LOG.isDebugEnabled()) {
+                LOG.debug("Permission denied to {}, expect permission '{}'",
+                          this.user, required);
+            }
+            return valid;
         }
 
         @Override
@@ -156,6 +168,18 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         @Override
         public String getAuthenticationScheme() {
             return SecurityContext.BASIC_AUTH;
+        }
+
+        private boolean matchPermission(String required) {
+            // Permission format like: "$owner=name $action=vertex-write"
+            RoleAction roleAction = RoleAction.fromPermission(required);
+            RolePerm rolePerm = RolePerm.fromJson(this.role());
+
+            String owner = this.getPathParameter(roleAction.owner());
+            if (!rolePerm.matchOwner(owner)) {
+                return false;
+            }
+            return rolePerm.matchPermission(owner, roleAction.actions());
         }
 
         private String getPathParameter(String key) {

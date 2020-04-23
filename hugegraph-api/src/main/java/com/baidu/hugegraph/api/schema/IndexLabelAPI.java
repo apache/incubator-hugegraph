@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import javax.annotation.security.RolesAllowed;
 import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -38,7 +39,7 @@ import javax.ws.rs.core.Context;
 import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.GremlinGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.backend.id.Id;
@@ -66,13 +67,14 @@ public class IndexLabelAPI extends API {
     @Status(Status.ACCEPTED)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin", "$owner=graph $action=schema_write"})
     public String create(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          JsonIndexLabel jsonIndexLabel) {
         LOG.debug("Graph [{}] create index label: {}", graph, jsonIndexLabel);
         checkCreatingBody(jsonIndexLabel);
 
-        HugeGraph g = graph(manager, graph);
+        GremlinGraph g = graph(manager, graph);
         IndexLabel.Builder builder = jsonIndexLabel.convert2Builder(g);
         IndexLabel.CreatedIndexLabel il = builder.createWithTask();
         il.indexLabel(mapIndexLabel(il.indexLabel()));
@@ -98,7 +100,7 @@ public class IndexLabelAPI extends API {
         // Parse action parameter
         boolean append = checkAndParseAction(action);
 
-        HugeGraph g = graph(manager, graph);
+        GremlinGraph g = graph(manager, graph);
         IndexLabel.Builder builder = jsonIndexLabel.convert2Builder(g);
         IndexLabel IndexLabel = append ? builder.append() : builder.eliminate();
         return manager.serializer(g).writeIndexlabel(mapIndexLabel(IndexLabel));
@@ -107,6 +109,7 @@ public class IndexLabelAPI extends API {
     @GET
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin", "$owner=graph $action=schema_read"})
     public String list(@Context GraphManager manager,
                        @PathParam("graph") String graph,
                        @QueryParam("names") List<String> names) {
@@ -117,7 +120,7 @@ public class IndexLabelAPI extends API {
             LOG.debug("Graph [{}] get index labels by names {}", graph, names);
         }
 
-        HugeGraph g = graph(manager, graph);
+        GremlinGraph g = graph(manager, graph);
         List<IndexLabel> labels;
         if (listAll) {
             labels = g.schema().getIndexLabels();
@@ -134,12 +137,13 @@ public class IndexLabelAPI extends API {
     @Timed
     @Path("{name}")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin", "$owner=graph $action=schema_read"})
     public String get(@Context GraphManager manager,
                       @PathParam("graph") String graph,
                       @PathParam("name") String name) {
         LOG.debug("Graph [{}] get index label by name '{}'", graph, name);
 
-        HugeGraph g = graph(manager, graph);
+        GremlinGraph g = graph(manager, graph);
         IndexLabel indexLabel = g.schema().getIndexLabel(name);
         return manager.serializer(g).writeIndexlabel(mapIndexLabel(indexLabel));
     }
@@ -150,12 +154,13 @@ public class IndexLabelAPI extends API {
     @Status(Status.ACCEPTED)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin", "$owner=graph $action=schema_delete"})
     public Map<String, Id> delete(@Context GraphManager manager,
                                   @PathParam("graph") String graph,
                                   @PathParam("name") String name) {
         LOG.debug("Graph [{}] remove index label by name '{}'", graph, name);
 
-        HugeGraph g = graph(manager, graph);
+        GremlinGraph g = graph(manager, graph);
         // Throw 404 if not exists
         g.schema().getIndexLabel(name);
         return ImmutableMap.of("task_id",
@@ -237,7 +242,7 @@ public class IndexLabelAPI extends API {
                             this.name);
         }
 
-        private IndexLabel.Builder convert2Builder(HugeGraph g) {
+        private IndexLabel.Builder convert2Builder(GremlinGraph g) {
             IndexLabel.Builder builder = g.schema().indexLabel(this.name);
             if (this.id != 0) {
                 E.checkArgument(this.id > 0,

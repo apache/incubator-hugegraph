@@ -19,6 +19,13 @@
 
 package com.baidu.hugegraph.api.traversers;
 
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPACITY;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PATHS_LIMIT;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_SAMPLE;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_WEIGHT;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.NO_LIMIT;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -54,13 +61,6 @@ import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPACITY;
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PATHS_LIMIT;
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_SAMPLE;
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_WEIGHT;
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.NO_LIMIT;
-
 @Path("graphs/{graph}/traversers/customizedpaths")
 @Singleton
 public class CustomizedPathsAPI extends API {
@@ -89,7 +89,7 @@ public class CustomizedPathsAPI extends API {
                   request.sortBy, request.capacity, request.limit,
                   request.withVertex);
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph4path(manager, graph);
         Iterator<Vertex> sources = request.sources.sourcesVertices(g);
         List<CustomizePathsTraverser.Step> steps = step(g, request);
         boolean sorted = request.sortBy != SortBy.NONE;
@@ -188,9 +188,11 @@ public class CustomizedPathsAPI extends API {
             E.checkArgument(this.sample > 0 || this.sample == NO_LIMIT,
                             "The sample must be > 0, but got: %s",
                             this.sample);
-            E.checkArgument(this.degree == NO_LIMIT || this.degree >= sample,
+            E.checkArgument(this.degree == NO_LIMIT ||
+                            this.degree >= this.sample,
                             "Degree must be greater than or equal to sample," +
-                            " but got degree %s and sample %s", degree, sample);
+                            " but got degree %s and sample %s",
+                            this.degree, this.sample);
             Map<Id, String> labelIds = new HashMap<>();
             if (this.labels != null) {
                 for (String label : this.labels) {

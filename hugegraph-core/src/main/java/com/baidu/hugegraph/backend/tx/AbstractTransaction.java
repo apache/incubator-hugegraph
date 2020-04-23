@@ -154,7 +154,7 @@ public abstract class AbstractTransaction implements Transaction {
             return;
         }
 
-        if (!this.hasUpdates()) {
+        if (!this.hasUpdate()) {
             LOG.debug("Transaction has no data to commit({})", store());
             return;
         }
@@ -201,7 +201,7 @@ public abstract class AbstractTransaction implements Transaction {
     @Watched(prefix = "tx")
     @Override
     public void close() {
-        if (this.hasUpdates()) {
+        if (this.hasUpdate()) {
             throw new BackendException("There are still changes to commit");
         }
         if (this.closed) {
@@ -217,8 +217,12 @@ public abstract class AbstractTransaction implements Transaction {
         return this.autoCommit;
     }
 
-    public boolean hasUpdates() {
+    public boolean hasUpdate() {
         return !this.mutation.isEmpty();
+    }
+
+    public boolean hasUpdate(HugeType type, Action action) {
+        return this.mutation.contains(type, action);
     }
 
     public int mutationSize() {
@@ -274,7 +278,7 @@ public abstract class AbstractTransaction implements Transaction {
     }
 
     protected void beforeRead() {
-        if (this.autoCommit() && this.hasUpdates()) {
+        if (this.autoCommit() && this.hasUpdate()) {
             this.commitOrRollback();
         }
     }
@@ -283,8 +287,14 @@ public abstract class AbstractTransaction implements Transaction {
         // pass
     }
 
+    protected void checkOwnerThread() {
+        if (Thread.currentThread() != this.ownerThread) {
+            throw new BackendException("Can't operate a tx in other threads");
+        }
+    }
+
     @Watched(prefix = "tx")
-    protected void commitOrRollback() {
+    public void commitOrRollback() {
         LOG.debug("Transaction commitOrRollback()");
         this.checkOwnerThread();
 
@@ -312,12 +322,6 @@ public abstract class AbstractTransaction implements Transaction {
              */
             throw new BackendException(
                       "Failed to commit changes: %s", e1.getCause());
-        }
-    }
-
-    protected void checkOwnerThread() {
-        if (Thread.currentThread() != this.ownerThread) {
-            throw new BackendException("Can't operate a tx in other threads");
         }
     }
 

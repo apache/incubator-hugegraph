@@ -341,7 +341,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
         query.checkFlattened();
 
         // NOTE: Currently we can't support filter changes in memory
-        if (this.hasUpdates()) {
+        if (this.hasUpdate()) {
             throw new HugeException("Can't do index query when " +
                                     "there are changes in transaction");
         }

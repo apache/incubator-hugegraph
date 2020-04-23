@@ -39,6 +39,8 @@ import org.slf4j.Logger;
 
 import com.baidu.hugegraph.analyzer.Analyzer;
 import com.baidu.hugegraph.analyzer.AnalyzerFactory;
+import com.baidu.hugegraph.auth.HugeUser;
+import com.baidu.hugegraph.auth.UserManager;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.cache.CachedGraphTransaction;
 import com.baidu.hugegraph.backend.cache.CachedSchemaTransaction;
@@ -67,6 +69,7 @@ import com.baidu.hugegraph.task.TaskScheduler;
 import com.baidu.hugegraph.traversal.optimize.HugeCountStepStrategy;
 import com.baidu.hugegraph.traversal.optimize.HugeGraphStepStrategy;
 import com.baidu.hugegraph.traversal.optimize.HugeVertexStepStrategy;
+import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.GraphMode;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.LockUtil;
@@ -83,15 +86,7 @@ public class HugeGraph implements GremlinGraph {
     private static final Logger LOG = Log.logger(HugeGraph.class);
 
     static {
-        TraversalStrategies strategies = null;
-        strategies = TraversalStrategies.GlobalCache
-                                        .getStrategies(Graph.class)
-                                        .clone();
-        strategies.addStrategies(HugeVertexStepStrategy.instance(),
-                                 HugeGraphStepStrategy.instance(),
-                                 HugeCountStepStrategy.instance());
-        TraversalStrategies.GlobalCache.registerStrategies(HugeGraph.class,
-                                                           strategies);
+        HugeGraph.registerTraversalStrategies(HugeGraph.class);
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             LOG.info("HugeGraph is shutting down");
@@ -111,6 +106,7 @@ public class HugeGraph implements GremlinGraph {
     private final EventHub indexEventHub;
     private final RateLimiter rateLimiter;
     private final TaskManager taskManager;
+    private final UserManager userManager;
 
     private final HugeFeatures features;
 
@@ -143,7 +139,7 @@ public class HugeGraph implements GremlinGraph {
             this.storeProvider = this.loadStoreProvider();
         } catch (BackendException e) {
             LockUtil.destroy(this.name);
-            String message = "Failed to init backend store";
+            String message = "Failed to load backend store provider";
             LOG.error("{}: {}", message, e.getMessage());
             throw new HugeException(message);
         }
@@ -152,12 +148,23 @@ public class HugeGraph implements GremlinGraph {
 
         this.taskManager.addScheduler(this);
 
+        this.userManager = new UserManager(this);
         this.variables = null;
     }
 
     @Override
     public String name() {
         return this.name;
+    }
+
+    @Override
+    public HugeGraph hugegraph() {
+        return this;
+    }
+
+    @Override
+    public HugeGraph hugegraph(String permission) {
+        return this;
     }
 
     @Override
@@ -176,6 +183,7 @@ public class HugeGraph implements GremlinGraph {
         return this.closed;
     }
 
+    @Override
     public GraphMode mode() {
         return this.mode;
     }
@@ -378,6 +386,11 @@ public class HugeGraph implements GremlinGraph {
     }
 
     @Override
+    public <R> R metadata(HugeType type, String meta, Object... args) {
+        return this.graphTransaction().metadata(type, meta, args);
+    }
+
+    @Override
     public Vertex addVertex(Object... keyValues) {
         return this.graphTransaction().addVertex(keyValues);
     }
@@ -409,6 +422,7 @@ public class HugeGraph implements GremlinGraph {
         return this.graphTransaction().queryVertices(objects);
     }
 
+    @Override
     public Iterator<Vertex> vertices(Query query) {
         return this.graphTransaction().queryVertices(query);
     }
@@ -421,28 +435,34 @@ public class HugeGraph implements GremlinGraph {
         return this.graphTransaction().queryEdges(objects);
     }
 
+    @Override
     public Iterator<Edge> edges(Query query) {
         return this.graphTransaction().queryEdges(query);
     }
 
+    @Override
     public Iterator<Vertex> adjacentVertices(Iterator<Edge> edges) {
         return this.graphTransaction().queryAdjacentVertices(edges);
     }
 
+    @Override
     public Iterator<Edge> adjacentEdges(Id vertexId) {
         return this.graphTransaction().queryEdgesByVertex(vertexId);
     }
 
+    @Override
     public Number queryNumber(Query query) {
         return this.graphTransaction().queryNumber(query);
     }
 
+    @Override
     public PropertyKey propertyKey(Id id) {
         PropertyKey pk = this.schemaTransaction().getPropertyKey(id);
         E.checkArgument(pk != null, "Undefined property key with id: '%s'", id);
         return pk;
     }
 
+    @Override
     public PropertyKey propertyKey(String name) {
         PropertyKey pk = this.schemaTransaction().getPropertyKey(name);
         E.checkArgument(pk != null, "Undefined property key: '%s'", name);
@@ -457,12 +477,14 @@ public class HugeGraph implements GremlinGraph {
         return vl;
     }
 
+    @Override
     public VertexLabel vertexLabel(Id id) {
         VertexLabel vl = this.schemaTransaction().getVertexLabel(id);
         E.checkArgument(vl != null, "Undefined vertex label with id: '%s'", id);
         return vl;
     }
 
+    @Override
     public VertexLabel vertexLabel(String name) {
         VertexLabel vl = this.schemaTransaction().getVertexLabel(name);
         E.checkArgument(vl != null, "Undefined vertex label: '%s'", name);
@@ -481,12 +503,14 @@ public class HugeGraph implements GremlinGraph {
         return el;
     }
 
+    @Override
     public EdgeLabel edgeLabel(Id id) {
         EdgeLabel el = this.schemaTransaction().getEdgeLabel(id);
         E.checkArgument(el != null, "Undefined edge label with id: '%s'", id);
         return el;
     }
 
+    @Override
     public EdgeLabel edgeLabel(String name) {
         EdgeLabel el = this.schemaTransaction().getEdgeLabel(name);
         E.checkArgument(el != null, "Undefined edge label: '%s'", name);
@@ -497,12 +521,14 @@ public class HugeGraph implements GremlinGraph {
         return this.schemaTransaction().getEdgeLabel(label) != null;
     }
 
+    @Override
     public IndexLabel indexLabel(Id id) {
         IndexLabel il = this.schemaTransaction().getIndexLabel(id);
         E.checkArgument(il != null, "Undefined index label with id: '%s'", id);
         return il;
     }
 
+    @Override
     public IndexLabel indexLabel(String name) {
         IndexLabel il = this.schemaTransaction().getIndexLabel(name);
         E.checkArgument(il != null, "Undefined index label: '%s'", name);
@@ -521,6 +547,7 @@ public class HugeGraph implements GremlinGraph {
         }
 
         LOG.info("Close graph {}", this);
+        this.userManager.close();
         this.taskManager.closeScheduler(this);
         try {
             this.closeTx();
@@ -556,8 +583,23 @@ public class HugeGraph implements GremlinGraph {
             this.variables = new HugeVariables(this);
         }
         // Ensure variables() work after variables schema was cleared
-        this.variables.initSchema();
+        this.variables.initSchemaIfNeeded();
         return this.variables;
+    }
+
+    @Override
+    public String matchUser(String username, String password) {
+        HugeUser user = this.userManager.matchUser(username, password);
+        if (user == null) {
+            return null;
+        }
+        return this.userManager.roleAction(user);
+    }
+
+    @Override
+    public UserManager userManager() {
+        // this.userManager.initSchemaIfNeeded();
+        return this.userManager;
     }
 
     @Override
@@ -631,6 +673,18 @@ public class HugeGraph implements GremlinGraph {
             ids[i] = vertexLabel.id();
         }
         return ids;
+    }
+
+    public static void registerTraversalStrategies(Class<?> clazz) {
+        TraversalStrategies strategies = null;
+        strategies = TraversalStrategies.GlobalCache
+                                        .getStrategies(Graph.class)
+                                        .clone();
+        strategies.addStrategies(HugeVertexStepStrategy.instance(),
+                                 HugeGraphStepStrategy.instance(),
+                                 HugeCountStepStrategy.instance());
+        TraversalStrategies.GlobalCache.registerStrategies(HugeGraph.class,
+                                                           strategies);
     }
 
     /**

@@ -19,6 +19,11 @@
 
 package com.baidu.hugegraph.api.traversers;
 
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPACITY;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PATHS_LIMIT;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.NO_LIMIT;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -53,11 +58,6 @@ import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPACITY;
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PATHS_LIMIT;
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.NO_LIMIT;
-
 @Path("graphs/{graph}/traversers/customizedcrosspoints")
 @Singleton
 public class CustomizedCrosspointsAPI extends API {
@@ -86,7 +86,7 @@ public class CustomizedCrosspointsAPI extends API {
                   request.pathPatterns, request.withPath, request.withVertex,
                   request.capacity, request.limit);
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph4path(manager, graph);
         Iterator<Vertex> sources = request.sources.sourcesVertices(g);
         List<CustomizedCrosspointsTraverser.PathPattern> patterns;
         patterns = pathPatterns(g, request);

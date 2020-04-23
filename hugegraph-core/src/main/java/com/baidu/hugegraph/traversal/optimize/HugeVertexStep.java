@@ -34,12 +34,13 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.GremlinGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
+import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.Log;
 
@@ -83,7 +84,7 @@ public final class HugeVertexStep<E extends Element>
     }
 
     private Iterator<Vertex> vertices(Traverser.Admin<Vertex> traverser) {
-        HugeGraph graph = (HugeGraph) traverser.get().graph();
+        GremlinGraph graph = TraversalUtil.getGraph(this);
         Vertex vertex = traverser.get();
 
         Iterator<Edge> edges = this.edges(traverser);
@@ -104,7 +105,7 @@ public final class HugeVertexStep<E extends Element>
     }
 
     private Iterator<Edge> edges(Traverser.Admin<Vertex> traverser) {
-        HugeGraph graph = (HugeGraph) traverser.get().graph();
+        GremlinGraph graph = TraversalUtil.getGraph(this);
         List<HasContainer> conditions = this.hasContainers;
 
         // Query for edge with conditions(else conditions for vertex)
@@ -113,16 +114,14 @@ public final class HugeVertexStep<E extends Element>
 
         Id vertex = (Id) traverser.get().id();
         Directions direction = Directions.convert(this.getDirection());
-        String[] edgeLabels = this.getEdgeLabels();
+        Id[] edgeLabels = this.getEdgeLabelIds(graph);
 
         LOG.debug("HugeVertexStep.edges(): vertex={}, direction={}, " +
                   "edgeLabels={}, has={}",
                   vertex, direction, edgeLabels, this.hasContainers);
 
-        Id[] edgeLabelIds = graph.mapElName2Id(edgeLabels);
-
         ConditionQuery query = GraphTransaction.constructEdgesQuery(
-                               vertex, direction, edgeLabelIds);
+                               vertex, direction, edgeLabels);
         // Query by sort-keys
         if (withEdgeCond && edgeLabels.length > 0) {
             TraversalUtil.fillConditionQuery(conditions, query, graph);
@@ -150,6 +149,16 @@ public final class HugeVertexStep<E extends Element>
             return TraversalUtil.filterResult(conditions, edges);
         }
         return edges;
+    }
+
+    private Id[] getEdgeLabelIds(GremlinGraph graph) {
+        String[] edgeLabels = this.getEdgeLabels();
+        Id[] ids = new Id[edgeLabels.length];
+        for (int i = 0; i < edgeLabels.length; i++) {
+            EdgeLabel edgeLabel = graph.edgeLabel(edgeLabels[i]);
+            ids[i] = edgeLabel.id();
+        }
+        return ids;
     }
 
     @Override

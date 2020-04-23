@@ -31,7 +31,7 @@ import javax.ws.rs.core.Context;
 
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.GremlinGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.backend.id.Id;
@@ -51,13 +51,13 @@ public class RebuildAPI extends API {
     @Path("vertexlabels/{name}")
     @Status(Status.ACCEPTED)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=graph"})
+    @RolesAllowed({"admin", "$owner=graph $action=index_rebuild"})
     public Map<String, Id> vertexLabelRebuild(@Context GraphManager manager,
                                               @PathParam("graph") String graph,
                                               @PathParam("name") String name) {
         LOG.debug("Graph [{}] rebuild vertex label: {}", graph, name);
 
-        HugeGraph g = graph(manager, graph);
+        GremlinGraph g = graph(manager, graph);
         return ImmutableMap.of("task_id",
                                g.schema().vertexLabel(name).rebuildIndex());
     }
@@ -67,13 +67,13 @@ public class RebuildAPI extends API {
     @Path("edgelabels/{name}")
     @Status(Status.ACCEPTED)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=graph"})
+    @RolesAllowed({"admin", "$owner=graph $action=index_rebuild"})
     public Map<String, Id> edgeLabelRebuild(@Context GraphManager manager,
                                             @PathParam("graph") String graph,
                                             @PathParam("name") String name) {
         LOG.debug("Graph [{}] rebuild edge label: {}", graph, name);
 
-        HugeGraph g = graph(manager, graph);
+        GremlinGraph g = graph(manager, graph);
         return ImmutableMap.of("task_id",
                                g.schema().edgeLabel(name).rebuildIndex());
     }
@@ -83,13 +83,13 @@ public class RebuildAPI extends API {
     @Path("indexlabels/{name}")
     @Status(Status.ACCEPTED)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=graph"})
+    @RolesAllowed({"admin", "$owner=graph $action=index_rebuild"})
     public Map<String, Id> indexLabelRebuild(@Context GraphManager manager,
                                              @PathParam("graph") String graph,
                                              @PathParam("name") String name) {
         LOG.debug("Graph [{}] rebuild index label: {}", graph, name);
 
-        HugeGraph g = graph(manager, graph);
+        GremlinGraph g = graph(manager, graph);
         return ImmutableMap.of("task_id",
                                g.schema().indexLabel(name).rebuild());
     }

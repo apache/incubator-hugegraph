@@ -56,7 +56,8 @@ public class GremlinAPI extends API {
             MetricsUtil.registerHistogram(GremlinAPI.class, "gremlin-output");
 
     private static final Set<String> FORBIDDEN_REQUEST_EXCEPTIONS =
-            ImmutableSet.of("java.lang.SecurityException");
+            ImmutableSet.of("java.lang.SecurityException",
+                            "javax.ws.rs.ForbiddenException");
     private static final Set<String> BAD_REQUEST_EXCEPTIONS = ImmutableSet.of(
             "java.lang.IllegalArgumentException",
             "java.util.concurrent.TimeoutException",

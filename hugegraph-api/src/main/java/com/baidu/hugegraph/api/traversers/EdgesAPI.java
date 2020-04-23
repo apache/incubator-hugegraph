@@ -19,6 +19,8 @@
 
 package com.baidu.hugegraph.api.traversers;
 
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PAGE_LIMIT;
+
 import java.util.Iterator;
 import java.util.List;
 
@@ -34,7 +36,7 @@ import javax.ws.rs.core.Context;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.GremlinGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.CompressInterceptor.Compress;
 import com.baidu.hugegraph.backend.id.Id;
@@ -47,8 +49,6 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
-
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PAGE_LIMIT;
 
 @Path("graphs/{graph}/traversers/edges")
 @Singleton
@@ -70,10 +70,10 @@ public class EdgesAPI extends API {
 
         Object[] ids = new Id[stringIds.size()];
         for (int i = 0; i < ids.length; i++) {
-            ids[i] = HugeEdge.getIdValue(stringIds.get(i));
+            ids[i] = HugeEdge.getIdValue(stringIds.get(i), false);
         }
 
-        HugeGraph g = graph(manager, graph);
+        GremlinGraph g = graph(manager, graph);
 
         Iterator<Edge> edges = g.edges(ids);
         return manager.serializer(g).writeEdges(edges, false);
@@ -90,9 +90,8 @@ public class EdgesAPI extends API {
         LOG.debug("Graph [{}] get vertex shards with split size '{}'",
                   graph, splitSize);
 
-        HugeGraph g = graph(manager, graph);
-        List<Shard> shards = g.graphTransaction()
-                              .metadata(HugeType.EDGE_OUT, "splits", splitSize);
+        GremlinGraph g = graph(manager, graph);
+        List<Shard> shards = g.metadata(HugeType.EDGE_OUT, "splits", splitSize);
         return manager.serializer(g).writeList("shards", shards);
     }
 
@@ -111,7 +110,7 @@ public class EdgesAPI extends API {
         LOG.debug("Graph [{}] query edges by shard(start: {}, end: {}, " +
                   "page: {}) ", graph, start, end, page);
 
-        HugeGraph g = graph(manager, graph);
+        GremlinGraph g = graph(manager, graph);
 
         ConditionQuery query = new ConditionQuery(HugeType.EDGE_OUT);
         query.scan(start, end);
