@@ -184,8 +184,11 @@ public final class CachedGraphTransaction extends GraphTransaction {
         List<HugeVertex> vertices = new ArrayList<>();
         for (Id vertexId : query.ids()) {
             HugeVertex vertex = (HugeVertex) this.verticesCache.get(vertexId);
-            if (vertex == null || vertex.expired()) {
+            if (vertex == null) {
                 newQuery.query(vertexId);
+            } else if (vertex.expired()) {
+                newQuery.query(vertexId);
+                this.verticesCache.invalidate(vertexId);
             } else {
                 vertices.add(vertex);
             }
