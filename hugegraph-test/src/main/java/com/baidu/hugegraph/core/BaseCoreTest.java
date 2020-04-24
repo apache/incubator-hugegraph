@@ -26,8 +26,10 @@ import org.junit.Before;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.schema.SchemaManager;
+import com.baidu.hugegraph.testutil.Whitebox;
 import com.baidu.hugegraph.util.Log;
 
 public class BaseCoreTest {
@@ -101,6 +103,10 @@ public class BaseCoreTest {
     }
 
     protected BackendFeatures storeFeatures() {
-        return graph().graphTransaction().store().features();
+        return graph().backendStoreFeatures();
+    }
+
+    protected HugeGraphParams params() {
+        return Whitebox.getInternalState(graph(), "params");
     }
 }

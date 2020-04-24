@@ -71,7 +71,7 @@ public class SchemaCoreTest extends BaseCoreTest {
 
     protected void assertNotContainsPk(Collection<Id> ids, String... keys) {
         for (String key : keys) {
-            Assert.assertNull(graph().schemaTransaction().getPropertyKey(key));
+            Assert.assertNull(graph().existsPropertyKey(key));
         }
     }
 
@@ -84,7 +84,7 @@ public class SchemaCoreTest extends BaseCoreTest {
 
     protected void assertNotContainsIl(Collection<Id> ids, String... labels) {
         for (String label : labels) {
-            Assert.assertNull(graph().schemaTransaction().getIndexLabel(label));
+            Assert.assertFalse(graph().existsIndexLabel(label));
         }
     }
 

@@ -61,7 +61,8 @@ import com.baidu.hugegraph.util.InsertionOrderUtil;
 
 public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
-    protected GraphTransaction tx;
+    private GraphTransaction tx;
+
     protected VertexLabel label;
     protected String name;
     protected Set<HugeEdge> edges;
@@ -74,9 +75,10 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
     public HugeVertex(final HugeGraph graph, Id id, VertexLabel label) {
         super(graph, id);
+
+        this.tx = null;
         this.vertexLabel(label);
         this.edges = InsertionOrderUtil.newSet();
-        this.tx = null;
         this.name = null;
         if (this.id != null) {
             if (label.idStrategy() == IdStrategy.CUSTOMIZE_UUID) {
@@ -121,21 +123,6 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
             }
         }
         return this.name;
-    }
-
-    @Override
-    protected GraphTransaction tx() {
-        GraphTransaction tx = this.tx;
-        if (tx == null) {
-            tx = super.graph().graphTransaction();
-        }
-        E.checkNotNull(tx, "transaction");
-        return tx;
-    }
-
-    public HugeVertex resetTx() {
-        this.tx = null;
-        return this;
     }
 
     public void assignId(Id id) {
@@ -246,6 +233,23 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     @Watched(prefix = "vertex")
     @Override
     public HugeEdge addEdge(String label, Vertex vertex, Object... keyValues) {
+        HugeVertex targetVertex = (HugeVertex) vertex;
+
+        HugeEdge edge = this.constructEdge(label, targetVertex, keyValues);
+
+        // Attach edge to vertex
+        this.addOutEdge(edge);
+        targetVertex.addInEdge(edge.switchOwner());
+
+        if (this.fresh()) {
+            return this.tx().addEdge(edge);
+        } else {
+            return (HugeEdge) this.graph().addEdge(edge);
+        }
+    }
+
+    public HugeEdge constructEdge(String label, HugeVertex vertex,
+                                  Object... keyValues) {
         ElementKeys elemKeys = HugeElement.classifyKeys(keyValues);
         // Check id (must be null)
         if (elemKeys.id() != null) {
@@ -257,7 +261,6 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         E.checkArgumentNotNull(vertex, "Target vertex can't be null");
         E.checkArgument(vertex instanceof HugeVertex,
                         "Target vertex must be an instance of HugeVertex");
-        HugeVertex targetVertex = (HugeVertex) vertex;
 
         // Check label
         E.checkArgument(label != null && !label.isEmpty(),
@@ -265,7 +268,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         EdgeLabel edgeLabel = this.graph().edgeLabel(label);
         // Check link
         E.checkArgument(edgeLabel.checkLinkEqual(this.schemaLabel().id(),
-                        ((HugeVertex) vertex).schemaLabel().id()),
+                        vertex.schemaLabel().id()),
                         "Undefined link of edge label '%s': '%s' -> '%s'",
                         label, this.label(), vertex.label());
         // Check sortKeys
@@ -290,7 +293,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
                             this.graph().mapPkId2Name(missed));
         }
 
-        HugeEdge edge = new HugeEdge(this, id, edgeLabel, targetVertex);
+        HugeEdge edge = new HugeEdge(this, id, edgeLabel, vertex);
 
         // Set properties
         ElementHelper.attachProperties(edge, keyValues);
@@ -300,11 +303,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
             edge.assignId();
         }
 
-        // Attach edge to vertex
-        this.addOutEdge(edge);
-        targetVertex.addInEdge(edge.switchOwner());
-
-        return this.tx().addEdge(edge);
+        return edge;
     }
 
     /**
@@ -369,7 +368,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         Id[] edgeLabelIds = this.graph().mapElName2Id(edgeLabels);
         Query query = GraphTransaction.constructEdgesQuery(this.id(), direction,
                                                            edgeLabelIds);
-        return this.tx().queryEdges(query);
+        return this.graph().edges(query);
     }
 
     @Watched(prefix = "vertex")
@@ -377,14 +376,25 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     public Iterator<Vertex> vertices(Direction direction,
                                      String... edgeLabels) {
         Iterator<Edge> edges = this.edges(direction, edgeLabels);
-        return this.tx().queryAdjacentVertices(edges);
+        return this.graph().adjacentVertices(edges);
     }
 
     @Watched(prefix = "vertex")
     @Override
     public void remove() {
         this.removed = true;
-        this.tx().removeVertex(this);
+        /*
+         * Call by tx or by graph to remove vertex,
+         * call by tx if the vertex is new because the context is dependent
+         */
+        GraphTransaction tx = this.tx();
+        if (tx != null) {
+            assert this.fresh();
+            tx.removeVertex(this);
+        } else {
+            assert !this.fresh();
+            this.graph().removeVertex(this);
+        }
     }
 
     @Watched(prefix = "vertex")
@@ -433,6 +443,21 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         return (VertexProperty<V>) this.addProperty(propertyKey, value, true);
     }
 
+    @Override
+    public void committed() {
+        super.committed();
+        this.tx = null;
+    }
+
+    @Override
+    protected GraphTransaction tx() {
+        if (this.fresh()) {
+            E.checkNotNull(this.tx, "tx");
+            return this.tx;
+        }
+        return null;
+    }
+
     @Watched(prefix = "vertex")
     @Override
     protected <V> HugeVertexProperty<V> newProperty(PropertyKey pkey, V val) {
@@ -445,8 +470,19 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
                                         HugeProperty<V> prop) {
         if (prop != null) {
             assert prop instanceof HugeVertexProperty;
-            // Use tx to update property (should update cache even if it's new)
-            this.tx().addVertexProperty((HugeVertexProperty<V>) prop);
+            /*
+             * Call tx or graph to update property,
+             * call by tx if the vertex is new because the context is dependent
+             * (should update cache even if it's new)
+             */
+            GraphTransaction tx = this.tx();
+            if (tx != null) {
+                assert this.fresh();
+                tx.addVertexProperty((HugeVertexProperty<V>) prop);
+            } else {
+                assert !this.fresh();
+                this.graph().addVertexProperty((HugeVertexProperty<V>) prop);
+            }
         }
     }
 
@@ -464,7 +500,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         }
 
         // NOTE: only adjacent vertex will reach here
-        Iterator<Vertex> vertices = tx().queryAdjacentVertices(this.id());
+        Iterator<Vertex> vertices = this.graph().adjacentVertex(this.id());
         HugeVertex vertex = (HugeVertex) QueryResults.one(vertices);
         if (vertex == null && !throwIfNotExist) {
             return false;
@@ -499,12 +535,13 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
             }
         } else {
             for (String key : keys) {
-                PropertyKey propertyKey = this.graph().schemaTransaction()
-                                              .getPropertyKey(key);
-                if (propertyKey == null) {
+                Id pkeyId;
+                try {
+                    pkeyId = this.graph().propertyKey(key).id();
+                } catch (IllegalArgumentException ignored) {
                     continue;
                 }
-                HugeProperty<?> prop = this.getProperty(propertyKey.id());
+                HugeProperty<?> prop = this.getProperty(pkeyId);
                 if (prop == null) {
                     // Not found
                     continue;

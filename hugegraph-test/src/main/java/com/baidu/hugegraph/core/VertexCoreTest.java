@@ -55,7 +55,6 @@ import com.baidu.hugegraph.backend.page.PageInfo;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
-import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.Shard;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.exception.LimitExceedException;
@@ -838,7 +837,7 @@ public class VertexCoreTest extends BaseCoreTest {
     @Test
     public void testAddVertexWithTx() {
         HugeGraph graph = graph();
-        GraphTransaction tx = graph.openTransaction();
+        GraphTransaction tx = params().openTransaction();
 
         tx.addVertex(T.label, "book", "name", "java-4");
         tx.addVertex(T.label, "book", "name", "java-5");
@@ -935,7 +934,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
         Query query = new Query(HugeType.VERTEX);
         query.limit(1);
-        Iterator<Vertex> iter = graph.graphTransaction().queryVertices(query);
+        Iterator<Vertex> iter = graph.vertices(query);
         List<Vertex> vertices = IteratorUtils.list(iter);
         Assert.assertEquals(1, vertices.size());
         CloseableIterator.closeIterator(iter);
@@ -1284,9 +1283,8 @@ public class VertexCoreTest extends BaseCoreTest {
     @Test
     public void testQueryFilterByPropName() {
         HugeGraph graph = graph();
-        BackendFeatures features = graph.graphTransaction().store().features();
         Assume.assumeTrue("Not support CONTAINS_KEY query",
-                          features.supportsQueryWithContainsKey());
+                          storeFeatures().supportsQueryWithContainsKey());
         init10Vertices();
 
         VertexLabel language = graph.vertexLabel("language");
@@ -1314,9 +1312,8 @@ public class VertexCoreTest extends BaseCoreTest {
     @Test
     public void testQueryByHasKey() {
         HugeGraph graph = graph();
-        BackendFeatures features = graph.graphTransaction().store().features();
         Assume.assumeTrue("Not support CONTAINS_KEY query",
-                          features.supportsQueryWithContainsKey());
+                          storeFeatures().supportsQueryWithContainsKey());
         init10Vertices();
 
         List<Vertex> vertices = graph.traversal().V()
@@ -1354,9 +1351,8 @@ public class VertexCoreTest extends BaseCoreTest {
     @Test
     public void testQueryByHasValue() {
         HugeGraph graph = graph();
-        BackendFeatures features = graph.graphTransaction().store().features();
         Assume.assumeTrue("Not support CONTAINS query",
-                          features.supportsQueryWithContains());
+                          storeFeatures().supportsQueryWithContains());
         init10Vertices();
 
         List<Vertex> vertices = graph.traversal().V()
@@ -2816,7 +2812,7 @@ public class VertexCoreTest extends BaseCoreTest {
                                              .toList();
                 size.set(vertices.size());
             } finally {
-                 graph.closeTx();
+                 params().closeTx();
             }
         });
         t.start();
@@ -3750,7 +3746,7 @@ public class VertexCoreTest extends BaseCoreTest {
     @Test
     public void testRemoveVertexAfterAddVertexWithTx() {
         HugeGraph graph = graph();
-        GraphTransaction tx = graph.openTransaction();
+        GraphTransaction tx = params().openTransaction();
 
         Vertex java1 = tx.addVertex(T.label, "book", "name", "java-1");
         tx.addVertex(T.label, "book", "name", "java-2");
@@ -5019,8 +5015,7 @@ public class VertexCoreTest extends BaseCoreTest {
         List<Vertex> vertices = new LinkedList<>();
 
         long splitSize = 1 * 1024 * 1024;
-        Object splits = graph.graphTransaction()
-                             .metadata(HugeType.VERTEX, "splits", splitSize);
+        Object splits = graph.metadata(HugeType.VERTEX, "splits", splitSize);
         for (Shard split : (List<Shard>) splits) {
             ConditionQuery q = new ConditionQuery(HugeType.VERTEX);
             q.scan(split.start(), split.end());
@@ -5069,8 +5064,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
         long splitSize = 1 * 1024 * 1024 - 1;
         Assert.assertThrows(IllegalArgumentException.class, () -> {
-            graph.graphTransaction()
-                 .metadata(HugeType.VERTEX, "splits", splitSize);
+            graph.metadata(HugeType.VERTEX, "splits", splitSize);
         });
     }
 
@@ -5084,8 +5078,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
         String splitSize = "123456";
         Assert.assertThrows(ClassCastException.class, () -> {
-            graph.graphTransaction()
-                 .metadata(HugeType.VERTEX, "splits", splitSize);
+            graph.metadata(HugeType.VERTEX, "splits", splitSize);
         });
     }
 
@@ -5098,13 +5091,12 @@ public class VertexCoreTest extends BaseCoreTest {
         init10Vertices();
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
-            graph.graphTransaction().metadata(HugeType.VERTEX, "splits");
+            graph.metadata(HugeType.VERTEX, "splits");
         });
 
         long splitSize = 1 * 1024 * 1024;
         Assert.assertThrows(IllegalArgumentException.class, () -> {
-            graph.graphTransaction().metadata(HugeType.VERTEX, "splits",
-                                              splitSize, "invalid-arg");
+            graph.metadata(HugeType.VERTEX, "splits", splitSize, "invalid-arg");
         });
     }
 

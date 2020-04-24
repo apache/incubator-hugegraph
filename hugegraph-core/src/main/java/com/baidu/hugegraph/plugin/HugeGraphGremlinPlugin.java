@@ -34,7 +34,7 @@ import com.google.common.reflect.ClassPath;
 
 public class HugeGraphGremlinPlugin extends AbstractGremlinPlugin {
 
-    private static final String PACKAGE = "com.baidu.hugegraph";
+    private static final String PACKAGE = "com.baidu.hugegraph.type.define";
     private static final String NAME = "com.baidu.hugegraph";
 
     private static final HugeGraphGremlinPlugin instance;

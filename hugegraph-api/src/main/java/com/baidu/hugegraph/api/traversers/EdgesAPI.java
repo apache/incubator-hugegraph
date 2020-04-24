@@ -36,7 +36,7 @@ import javax.ws.rs.core.Context;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.GremlinGraph;
+import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.CompressInterceptor.Compress;
 import com.baidu.hugegraph.backend.id.Id;
@@ -73,7 +73,7 @@ public class EdgesAPI extends API {
             ids[i] = HugeEdge.getIdValue(stringIds.get(i), false);
         }
 
-        GremlinGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
 
         Iterator<Edge> edges = g.edges(ids);
         return manager.serializer(g).writeEdges(edges, false);
@@ -90,7 +90,7 @@ public class EdgesAPI extends API {
         LOG.debug("Graph [{}] get vertex shards with split size '{}'",
                   graph, splitSize);
 
-        GremlinGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
         List<Shard> shards = g.metadata(HugeType.EDGE_OUT, "splits", splitSize);
         return manager.serializer(g).writeList("shards", shards);
     }
@@ -110,7 +110,7 @@ public class EdgesAPI extends API {
         LOG.debug("Graph [{}] query edges by shard(start: {}, end: {}, " +
                   "page: {}) ", graph, start, end, page);
 
-        GremlinGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graph);
 
         ConditionQuery query = new ConditionQuery(HugeType.EDGE_OUT);
         query.scan(start, end);

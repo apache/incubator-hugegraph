@@ -23,7 +23,9 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.cache.CachedSchemaTransaction;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
@@ -38,11 +40,14 @@ import com.google.common.collect.ImmutableMap;
 public class CachedSchemaTransactionTest extends BaseUnitTest {
 
     private CachedSchemaTransaction cache;
+    private HugeGraphParams params;
 
     @Before
     public void setup() {
-        HugeGraph graph = new HugeGraph(FakeObjects.newConfig());
-        this.cache = new CachedSchemaTransaction(graph, graph.loadSchemaStore());
+        HugeGraph graph = HugeFactory.open(FakeObjects.newConfig());
+        this.params = Whitebox.getInternalState(graph, "params");
+        this.cache = new CachedSchemaTransaction(this.params,
+                                                 this.params.loadSchemaStore());
     }
 
     @After
@@ -79,8 +84,7 @@ public class CachedSchemaTransactionTest extends BaseUnitTest {
         Assert.assertEquals(IdGenerator.of(2),
                             cache.getPropertyKey("fake-pk-2").id());
 
-        cache.graph().schemaEventHub()
-             .notify(Events.CACHE, "clear", null).get();
+        this.params.schemaEventHub().notify(Events.CACHE, "clear", null).get();
 
         Assert.assertEquals(0L, Whitebox.invoke(cache, "idCache", "size"));
         Assert.assertEquals(0L, Whitebox.invoke(cache, "nameCache", "size"));
@@ -126,8 +130,7 @@ public class CachedSchemaTransactionTest extends BaseUnitTest {
                                        new Class[]{HugeType.class, Id.class},
                                        "generateId", HugeType.PROPERTY_KEY,
                                        IdGenerator.of(1));
-        cache.graph().schemaEventHub()
-             .notify(Events.CACHE, "invalid", key).get();
+        this.params.schemaEventHub().notify(Events.CACHE, "invalid", key).get();
 
         Assert.assertEquals(1L, Whitebox.invoke(cache, "idCache", "size"));
         Assert.assertEquals(1L, Whitebox.invoke(cache, "nameCache", "size"));
@@ -154,15 +157,13 @@ public class CachedSchemaTransactionTest extends BaseUnitTest {
         cache.addPropertyKey(objects.newPropertyKey(IdGenerator.of(1),
                                                     "fake-pk-1"));
 
-        cache.graph().schemaEventHub()
-             .notify(Events.CACHE, "clear", null).get();
+        this.params.schemaEventHub().notify(Events.CACHE, "clear", null).get();
         Assert.assertEquals("fake-pk-1",
                             cache.getPropertyKey(IdGenerator.of(1)).name());
         Assert.assertEquals(IdGenerator.of(1),
                             cache.getPropertyKey("fake-pk-1").id());
 
-        cache.graph().schemaEventHub()
-             .notify(Events.CACHE, "clear", null).get();
+        this.params.schemaEventHub().notify(Events.CACHE, "clear", null).get();
         Assert.assertEquals(IdGenerator.of(1),
                             cache.getPropertyKey("fake-pk-1").id());
         Assert.assertEquals("fake-pk-1",

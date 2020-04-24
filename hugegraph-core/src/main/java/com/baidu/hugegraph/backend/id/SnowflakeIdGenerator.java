@@ -26,9 +26,11 @@ import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.structure.HugeVertex;
+import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.baidu.hugegraph.util.TimeUtil;
 
@@ -42,19 +44,28 @@ public class SnowflakeIdGenerator extends IdGenerator {
     private final boolean forceString;
     private final IdWorker idWorker;
 
-    public static SnowflakeIdGenerator instance(HugeGraph graph) {
-        String graphname = graph.name();
-        SnowflakeIdGenerator generator = INSTANCES.get(graphname);
+    public static SnowflakeIdGenerator init(HugeGraphParams graph) {
+        String graphName = graph.name();
+        SnowflakeIdGenerator generator = INSTANCES.get(graphName);
         if (generator == null) {
             synchronized (INSTANCES) {
-                if (!INSTANCES.containsKey(graphname)) {
+                if (!INSTANCES.containsKey(graphName)) {
                     HugeConfig conf = graph.configuration();
-                    INSTANCES.put(graphname, new SnowflakeIdGenerator(conf));
+                    INSTANCES.put(graphName, new SnowflakeIdGenerator(conf));
                 }
-                generator = INSTANCES.get(graphname);
+                generator = INSTANCES.get(graphName);
                 assert generator != null;
             }
         }
+        return generator;
+    }
+
+    public static SnowflakeIdGenerator instance(HugeGraph graph) {
+        String graphName = graph.name();
+        SnowflakeIdGenerator generator = INSTANCES.get(graphName);
+        E.checkState(generator != null,
+                     "SnowflakeIdGenerator of graph '%s' is not initialized",
+                     graphName);
         return generator;
     }
 

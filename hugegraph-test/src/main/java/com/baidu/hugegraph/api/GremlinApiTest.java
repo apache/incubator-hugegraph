@@ -186,7 +186,7 @@ public class GremlinApiTest extends BaseApiTest {
         String content = r.readEntity(String.class);
         Assert.assertTrue(content, r.getStatus() == 200);
         Map<?, ?> result = assertJsonContains(content, "result");
-        @SuppressWarnings("unchecked")
+        @SuppressWarnings({ "unchecked", "rawtypes" })
         Map data = ((List<Map>) assertMapContains(result, "data")).get(0);
         Assert.assertEquals("test.text", data.get("file"));
     }

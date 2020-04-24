@@ -23,7 +23,7 @@ import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.util.Log;
 
@@ -39,7 +39,7 @@ public class PerfExample3 extends PerfExampleBase {
         tester.test(args);
 
         // Stop daemon thread
-        HugeGraph.shutdown(30L);
+        HugeFactory.shutdown(30L);
     }
 
     @Override

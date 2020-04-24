@@ -91,7 +91,7 @@ public class ExampleUtil {
 
     public static void waitAllTaskDone(HugeGraph graph) {
         TaskScheduler scheduler = graph.taskScheduler();
-        Iterator<HugeTask<Object>> tasks = scheduler.findAllTask(-1L, null);
+        Iterator<HugeTask<Object>> tasks = scheduler.tasks(null, -1L, null);
         while (tasks.hasNext()) {
             try {
                 scheduler.waitUntilTaskCompleted(tasks.next().id(), 20L);

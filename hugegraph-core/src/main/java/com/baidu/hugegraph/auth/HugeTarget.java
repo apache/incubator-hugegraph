@@ -29,7 +29,7 @@ import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
-import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.auth.SchemaDefine.Entity;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.schema.VertexLabel;
@@ -153,7 +153,7 @@ public class HugeTarget extends Entity {
         return fromVertex(vertex, target);
     }
 
-    public static Schema schema(HugeGraph graph) {
+    public static Schema schema(HugeGraphParams graph) {
         return new Schema(graph);
     }
 
@@ -180,27 +180,25 @@ public class HugeTarget extends Entity {
 
     public static final class Schema extends SchemaDefine {
 
-        public Schema(HugeGraph graph) {
+        public Schema(HugeGraphParams graph) {
             super(graph, P.TARGET);
         }
 
         @Override
         public void initSchemaIfNeeded() {
-            VertexLabel label = this.graph.schemaTransaction()
-                                          .getVertexLabel(this.label);
-            if (label != null) {
+            if (this.existVertexLabel(this.label)) {
                 return;
             }
 
             String[] properties = this.initProperties();
 
             // Create vertex label
-            label = this.graph.schema().vertexLabel(this.label)
-                              .properties(properties)
-                              .usePrimaryKeyId()
-                              .primaryKeys(P.NAME)
-                              .enableLabelIndex(true)
-                              .build();
+            VertexLabel label = this.schema().vertexLabel(this.label)
+                                    .properties(properties)
+                                    .usePrimaryKeyId()
+                                    .primaryKeys(P.NAME)
+                                    .enableLabelIndex(true)
+                                    .build();
             this.graph.schemaTransaction().addVertexLabel(label);
 
             // Create index

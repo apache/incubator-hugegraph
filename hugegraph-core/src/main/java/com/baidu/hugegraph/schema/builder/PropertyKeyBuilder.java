@@ -29,7 +29,6 @@ import com.baidu.hugegraph.exception.ExistedException;
 import com.baidu.hugegraph.exception.NotAllowException;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.PropertyKey;
-import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.Userdata;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Action;
@@ -79,7 +78,7 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
     public PropertyKey create() {
         HugeType type = HugeType.PROPERTY_KEY;
         SchemaTransaction tx = this.transaction;
-        SchemaElement.checkName(this.name, tx.graph().configuration());
+        tx.checkSchemaName(this.name);
 
         return tx.lockCheckAndCreateSchema(type, this.name, name -> {
             PropertyKey propertyKey = tx.getPropertyKey(name);

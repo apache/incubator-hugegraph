@@ -57,7 +57,6 @@ import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
-import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.Shard;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.config.CoreOptions;
@@ -549,8 +548,8 @@ public class EdgeCoreTest extends BaseCoreTest {
                                         "name", "Java in action");
 
         Object edgeId = marko.addEdge("authored", java,
-                                      "contribution", "2010-01-01", "score", 99)
-                             .id();
+                                      "contribution", "2010-01-01",
+                                      "score", 99).id();
         graph.tx().commit();
         Edge edge = graph.edges(edgeId).next();
         Assert.assertTrue(edge.property("contribution").isPresent());
@@ -717,7 +716,7 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         Query query = new Query(HugeType.EDGE);
         query.limit(1);
-        Iterator<Edge> iter = graph.graphTransaction().queryEdges(query);
+        Iterator<Edge> iter = graph.edges(query);
         List<Edge> edges = IteratorUtils.list(iter);
         Assert.assertEquals(1, edges.size());
     }
@@ -1130,9 +1129,8 @@ public class EdgeCoreTest extends BaseCoreTest {
     @Test
     public void testQueryEdgesByHasKey() {
         HugeGraph graph = graph();
-        BackendFeatures features = graph.graphTransaction().store().features();
         Assume.assumeTrue("Not support CONTAINS_KEY query",
-                          features.supportsQueryWithContainsKey());
+                          storeFeatures().supportsQueryWithContainsKey());
         init18Edges();
 
         List<Edge> edges = graph.traversal().E()
@@ -1159,9 +1157,8 @@ public class EdgeCoreTest extends BaseCoreTest {
     @Test
     public void testQueryEdgesByHasValue() {
         HugeGraph graph = graph();
-        BackendFeatures features = graph.graphTransaction().store().features();
         Assume.assumeTrue("Not support CONTAINS query",
-                          features.supportsQueryWithContains());
+                          storeFeatures().supportsQueryWithContains());
         init18Edges();
 
         List<Edge> edges = graph.traversal().E()
@@ -1489,7 +1486,7 @@ public class EdgeCoreTest extends BaseCoreTest {
         Assert.assertTrue(adjacent.schemaLabel().undefined());
         Assert.assertEquals("~undefined", adjacent.label());
 
-        graph.graphEventHub().notify(Events.CACHE, "clear", null).get();
+        params().graphEventHub().notify(Events.CACHE, "clear", null).get();
         vertices = graph.traversal().V(james.id()).outE().otherV().toList();
         Assert.assertEquals(1, vertices.size());
         adjacent = (HugeVertex) vertices.get(0);
@@ -1516,7 +1513,7 @@ public class EdgeCoreTest extends BaseCoreTest {
         Assert.assertTrue(adjacent.schemaLabel().undefined());
         Assert.assertEquals("~undefined", adjacent.label());
 
-        Whitebox.setInternalState(graph.graphTransaction(),
+        Whitebox.setInternalState(params().graphTransaction(),
                                   "checkAdjacentVertexExist", true);
         try {
             Assert.assertThrows(HugeException.class, () -> {
@@ -1528,13 +1525,13 @@ public class EdgeCoreTest extends BaseCoreTest {
                                       e.getMessage());
             });
         } finally {
-            Whitebox.setInternalState(graph.graphTransaction(),
+            Whitebox.setInternalState(params().graphTransaction(),
                                       "checkAdjacentVertexExist", false);
         }
 
-        Whitebox.setInternalState(graph.graphTransaction(),
+        Whitebox.setInternalState(params().graphTransaction(),
                                   "checkAdjacentVertexExist", true);
-        graph.graphEventHub().notify(Events.CACHE, "clear", null).get();
+        params().graphEventHub().notify(Events.CACHE, "clear", null).get();
         try {
             Assert.assertEquals(0, graph.traversal().V(java).toList().size());
 
@@ -1580,7 +1577,7 @@ public class EdgeCoreTest extends BaseCoreTest {
                                       e.getMessage());
             });
         } finally {
-            Whitebox.setInternalState(graph.graphTransaction(),
+            Whitebox.setInternalState(params().graphTransaction(),
                                       "checkAdjacentVertexExist", false);
         }
     }
@@ -1599,7 +1596,7 @@ public class EdgeCoreTest extends BaseCoreTest {
         james.addEdge("authored", java, "score", 3);
         graph.tx().commit();
 
-        Whitebox.setInternalState(graph.graphTransaction(),
+        Whitebox.setInternalState(params().graphTransaction(),
                                   "lazyLoadAdjacentVertex", false);
         try {
             List<Edge> edges = graph.traversal().V(james.id()).outE().toList();
@@ -1639,15 +1636,15 @@ public class EdgeCoreTest extends BaseCoreTest {
             Assert.assertTrue(adjacent.schemaLabel().undefined());
             Assert.assertEquals("~undefined", adjacent.label());
         } finally {
-            Whitebox.setInternalState(graph.graphTransaction(),
+            Whitebox.setInternalState(params().graphTransaction(),
                                       "lazyLoadAdjacentVertex", true);
         }
 
-        Whitebox.setInternalState(graph.graphTransaction(),
+        Whitebox.setInternalState(params().graphTransaction(),
                                   "lazyLoadAdjacentVertex", false);
-        Whitebox.setInternalState(graph.graphTransaction(),
+        Whitebox.setInternalState(params().graphTransaction(),
                                   "checkAdjacentVertexExist", true);
-        graph.graphEventHub().notify(Events.CACHE, "clear", null).get();
+        params().graphEventHub().notify(Events.CACHE, "clear", null).get();
         try {
             Assert.assertEquals(0, graph.traversal().V(java).toList().size());
 
@@ -1683,9 +1680,9 @@ public class EdgeCoreTest extends BaseCoreTest {
                                       e.getMessage());
             });
         } finally {
-            Whitebox.setInternalState(graph.graphTransaction(),
+            Whitebox.setInternalState(params().graphTransaction(),
                                       "lazyLoadAdjacentVertex", true);
-            Whitebox.setInternalState(graph.graphTransaction(),
+            Whitebox.setInternalState(params().graphTransaction(),
                                       "checkAdjacentVertexExist", false);
         }
     }
@@ -3308,8 +3305,7 @@ public class EdgeCoreTest extends BaseCoreTest {
         Set<Edge> edges = new HashSet<>();
 
         long splitSize = 1 * 1024 * 1024;
-        Object splits = graph.graphTransaction()
-                             .metadata(HugeType.EDGE_OUT, "splits", splitSize);
+        Object splits = graph.metadata(HugeType.EDGE_OUT, "splits", splitSize);
         for (Shard split : (List<Shard>) splits) {
             ConditionQuery q = new ConditionQuery(HugeType.EDGE);
             q.scan(split.start(), split.end());
@@ -3633,7 +3629,7 @@ public class EdgeCoreTest extends BaseCoreTest {
         assertContains(edges, "authored", james, java3);
 
         // Add large amount of edges
-        txCap = graph.configuration().get(CoreOptions.EDGE_TX_CAPACITY);
+        txCap = params().configuration().get(CoreOptions.EDGE_TX_CAPACITY);
         assert txCap / TX_BATCH > 0 && txCap % TX_BATCH == 0;
         for (int i = 0; i < txCap / TX_BATCH; i++) {
             for (int j = 0; j < TX_BATCH; j++) {
@@ -3648,9 +3644,9 @@ public class EdgeCoreTest extends BaseCoreTest {
         edges = graph.traversal().E().toList();
         Assert.assertEquals(txCap + 5, edges.size());
 
-        int old = Whitebox.getInternalState(graph.graphTransaction(),
+        int old = Whitebox.getInternalState(params().graphTransaction(),
                                             "commitPartOfAdjacentEdges");
-        Whitebox.setInternalState(graph.graphTransaction(),
+        Whitebox.setInternalState(params().graphTransaction(),
                                   "commitPartOfAdjacentEdges", 0);
         try {
             // It will remove all edges of the vertex, but with error
@@ -3664,7 +3660,7 @@ public class EdgeCoreTest extends BaseCoreTest {
                 graph.tx().rollback();
             });
         } finally {
-            Whitebox.setInternalState(graph.graphTransaction(),
+            Whitebox.setInternalState(params().graphTransaction(),
                                       "commitPartOfAdjacentEdges", old);
         }
 
@@ -3678,7 +3674,7 @@ public class EdgeCoreTest extends BaseCoreTest {
     @Test
     public void testRemoveEdgeAfterAddEdgeWithTx() {
         HugeGraph graph = graph();
-        GraphTransaction tx = graph.openTransaction();
+        GraphTransaction tx = params().openTransaction();
 
         Vertex james = tx.addVertex(T.label, "author", "id", 1,
                                     "name", "James Gosling", "age", 62,
@@ -3702,14 +3698,14 @@ public class EdgeCoreTest extends BaseCoreTest {
     @Test
     public void testRemoveVertexAfterAddEdgesWithTx() {
         HugeGraph graph = graph();
-        GraphTransaction tx = graph.openTransaction();
+        GraphTransaction tx = params().openTransaction();
 
         Vertex james = tx.addVertex(T.label, "author", "id", 1,
                                     "name", "James Gosling", "age", 62,
                                     "lived", "Canadian");
-        Vertex guido =  tx.addVertex(T.label, "author", "id", 2,
-                                     "name", "Guido van Rossum", "age", 61,
-                                     "lived", "California");
+        Vertex guido = tx.addVertex(T.label, "author", "id", 2,
+                                    "name", "Guido van Rossum", "age", 61,
+                                    "lived", "California");
 
         Vertex java = tx.addVertex(T.label, "language", "name", "java");
         Vertex python = tx.addVertex(T.label, "language", "name", "python",

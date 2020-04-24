@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.collections.map.MultiValueMap;
-import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.tree.ConfigurationNode;
 import org.apache.tinkerpop.gremlin.util.config.YamlConfiguration;
 import org.slf4j.Logger;
@@ -58,8 +57,7 @@ public class InitStore {
         exceptions.put("InvalidQueryException", "unconfigured table");
     }
 
-    public static void main(String[] args)
-                       throws ConfigurationException, InterruptedException {
+    public static void main(String[] args) throws Exception {
         E.checkArgument(args.length == 1,
                         "Init store only accept one config file.");
         E.checkArgument(args[0].endsWith(".yaml"),
@@ -92,14 +90,14 @@ public class InitStore {
             initGraph(configPath);
         }
 
-        HugeGraph.shutdown(30L);
+        HugeFactory.shutdown(30L);
     }
 
-    private static void initGraph(String config) throws InterruptedException {
+    private static void initGraph(String config) throws Exception {
         LOG.info("Init graph with config file: {}", config);
         HugeGraph graph = HugeFactory.open(config);
 
-        BackendStoreSystemInfo sysInfo = new BackendStoreSystemInfo(graph);
+        BackendStoreSystemInfo sysInfo = graph.backendStoreSystemInfo();
         try {
             if (sysInfo.exists()) {
                 LOG.info("Skip init-store due to the backend store of '{}' " +

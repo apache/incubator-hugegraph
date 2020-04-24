@@ -52,7 +52,7 @@ public class HugeEdgeProperty<V> extends HugeProperty<V> {
         E.checkArgument(edgeLabel.nullableKeys().contains(
                         this.propertyKey().id()),
                         "Can't remove non-null edge property '%s'", this);
-        this.owner.tx().removeEdgeProperty(this);
+        this.owner.graph().removeEdgeProperty(this);
     }
 
     @Override

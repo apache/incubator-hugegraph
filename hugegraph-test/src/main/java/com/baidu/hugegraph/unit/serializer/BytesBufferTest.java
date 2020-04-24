@@ -109,9 +109,15 @@ public class BytesBufferTest extends BaseUnitTest {
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             BytesBuffer.allocate(0).writeId(IdGenerator.of(genString(129)));
+        }, e -> {
+            Assert.assertContains("Id max length is 128, but got 129",
+                                  e.getMessage());
         });
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             BytesBuffer.allocate(0).writeId(IdGenerator.of(genString(130)));
+        }, e -> {
+            Assert.assertContains("Id max length is 128, but got 130",
+                                  e.getMessage());
         });
     }
 
@@ -144,6 +150,9 @@ public class BytesBufferTest extends BaseUnitTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             BytesBuffer.allocate(0).writeId(IdGenerator.of(genString(32769)),
                                             true);
+        }, e -> {
+            Assert.assertContains("Big id max length is 32768, but got 32769",
+                                  e.getMessage());
         });
     }
 
