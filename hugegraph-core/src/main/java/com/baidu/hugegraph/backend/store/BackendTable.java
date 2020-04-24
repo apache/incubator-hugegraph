@@ -122,10 +122,10 @@ public abstract class BackendTable<Session extends BackendSession, Entry> {
     public static abstract class ShardSpliter<Session extends BackendSession> {
 
         // The min shard size should >= 1M to prevent too many number of shards
-        private static final int MIN_SHARD_SIZE = (int) Bytes.MB;
+        protected static final int MIN_SHARD_SIZE = (int) Bytes.MB;
 
         // We assume the size of each key-value is 100 bytes
-        private static final int ESTIMATE_BYTES_PER_KV = 100;
+        protected static final int ESTIMATE_BYTES_PER_KV = 100;
 
         private final String table;
 
@@ -151,15 +151,16 @@ public abstract class BackendTable<Session extends BackendSession, Entry> {
             if (count <= 0) {
                 count = 1;
             }
-            double each = BytesBuffer.UINT32_MAX / count;
+            long maxKey = this.maxKey();
+            double each = maxKey / count;
 
             long offset = 0L;
             String last = this.position(offset);
             List<Shard> splits = new ArrayList<>((int) count);
-            while (offset < BytesBuffer.UINT32_MAX) {
+            while (offset < maxKey) {
                 offset += each;
-                if (offset > BytesBuffer.UINT32_MAX) {
-                    offset = BytesBuffer.UINT32_MAX;
+                if (offset > maxKey) {
+                    offset = maxKey;
                 }
                 String current = this.position(offset);
                 splits.add(new Shard(last, current, 0L));
@@ -175,6 +176,10 @@ public abstract class BackendTable<Session extends BackendSession, Entry> {
         public byte[] position(String position) {
             int value = Long.valueOf(position).intValue();
             return NumericUtil.intToBytes(value);
+        }
+
+        protected long maxKey() {
+            return BytesBuffer.UINT32_MAX;
         }
 
         protected abstract long estimateDataSize(Session session);

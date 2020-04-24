@@ -94,7 +94,6 @@ public class WhereBuilder {
      * Concat as: key1 op ? and key2 op ?...
      * @param keys the keys to be concatted with value
      * @param operator the operator to link every key and value pair
-     * @param value the value to be concatted with every key
      * @return WhereBuilder
      */
     public WhereBuilder and(List<String> keys, String operator) {
@@ -246,6 +245,24 @@ public class WhereBuilder {
             }
         }
         this.builder.append(")");
+        return this;
+    }
+
+    public WhereBuilder gte(String key, Object value) {
+        this.builder.append(" ")
+                    .append(key)
+                    .append(" >= ")
+                    .append(value)
+                    .append(" ");
+        return this;
+    }
+
+    public WhereBuilder lt(String key, Object value) {
+        this.builder.append(" ")
+                    .append(key)
+                    .append(" < ")
+                    .append(value)
+                    .append(" ");
         return this;
     }
 
