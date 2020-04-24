@@ -43,6 +43,8 @@ public class HugeUser extends Entity {
     private String phone;
     private String email;
     private String avatar;
+    // This field is just for cache
+    private Object role;
 
     public HugeUser(String name) {
         this(null, name);
@@ -55,6 +57,7 @@ public class HugeUser extends Entity {
     public HugeUser(Id id, String name) {
         this.id = id;
         this.name = name;
+        this.role = null;
     }
 
     @Override
@@ -96,6 +99,14 @@ public class HugeUser extends Entity {
 
     public void avatar(String avatar) {
         this.avatar = avatar;
+    }
+
+    public Object role() {
+        return this.role;
+    }
+
+    public void role(Object role) {
+        this.role = role;
     }
 
     @Override

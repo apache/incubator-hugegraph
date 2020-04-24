@@ -30,6 +30,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import javax.ws.rs.ForbiddenException;
 
@@ -37,6 +38,7 @@ import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
 import org.apache.tinkerpop.gremlin.process.traversal.TraversalStrategies;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.Transaction;
@@ -55,12 +57,16 @@ import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.exception.NotSupportException;
+import com.baidu.hugegraph.iterator.FilterIterator;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.schema.VertexLabel;
+import com.baidu.hugegraph.structure.HugeEdge;
+import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.structure.HugeFeatures;
+import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.task.HugeTask;
 import com.baidu.hugegraph.task.TaskManager;
 import com.baidu.hugegraph.task.TaskScheduler;
@@ -237,68 +243,80 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
     @Override
     public Vertex addVertex(Object... keyValues) {
-        this.verifyPermissionAction(HugePermission.VERTEX_WRITE);
-        return this.hugegraph.addVertex(keyValues);
+        return verifyRessPermissionAction(HugePermission.VERTEX_WRITE, () -> {
+            return (HugeVertex) this.hugegraph.addVertex(keyValues);
+        });
     }
 
     @Override
     public void removeVertex(Vertex vertex) {
-        this.verifyPermissionAction(HugePermission.VERTEX_DELETE);
+        verifyRessPermissionAction(HugePermission.VERTEX_DELETE, vertex);
         this.hugegraph.removeVertex(vertex);
     }
 
     @Override
     public <V> void addVertexProperty(VertexProperty<V> property) {
-        this.verifyPermissionAction(HugePermission.VERTEX_WRITE);
+        verifyRessPermissionAction(HugePermission.VERTEX_WRITE,
+                                   property.element());
         this.hugegraph.addVertexProperty(property);
     }
 
     @Override
     public <V> void removeVertexProperty(VertexProperty<V> property) {
-        this.verifyPermissionAction(HugePermission.VERTEX_WRITE);
+        verifyRessPermissionAction(HugePermission.VERTEX_WRITE,
+                                   property.element());
         this.hugegraph.removeVertexProperty(property);
     }
 
     @Override
     public Edge addEdge(Edge edge) {
-        this.verifyPermissionAction(HugePermission.EDGE_WRITE);
-        return this.hugegraph.addEdge(edge);
+        return verifyRessPermissionAction(HugePermission.EDGE_WRITE, () -> {
+            return (HugeEdge) this.hugegraph.addEdge(edge);
+        });
     }
 
     @Override
     public void removeEdge(Edge edge) {
-        this.verifyPermissionAction(HugePermission.EDGE_DELETE);
+        verifyRessPermissionAction(HugePermission.EDGE_DELETE, edge);
         this.hugegraph.addEdge(edge);
     }
 
     @Override
     public <V> void addEdgeProperty(Property<V> property) {
-        this.verifyPermissionAction(HugePermission.EDGE_WRITE);
+        verifyRessPermissionAction(HugePermission.EDGE_WRITE,
+                                   property.element());
         this.hugegraph.addEdgeProperty(property);
     }
 
     @Override
     public <V> void removeEdgeProperty(Property<V> property) {
-        this.verifyPermissionAction(HugePermission.EDGE_WRITE);
+        verifyRessPermissionAction(HugePermission.EDGE_WRITE,
+                                   property.element());
         this.hugegraph.removeEdgeProperty(property);
     }
 
     @Override
     public Iterator<Vertex> vertices(Query query) {
-        this.verifyPermissionAction(HugePermission.VERTEX_READ);
-        return this.hugegraph.vertices(query);
+        return verifyRessPermissionAction(HugePermission.VERTEX_READ,
+                                          this.hugegraph.vertices(query));
     }
 
     @Override
     public Iterator<Vertex> vertices(Object... objects) {
-        this.verifyPermissionAction(HugePermission.VERTEX_READ);
-        return this.hugegraph.vertices(objects);
+        return verifyRessPermissionAction(HugePermission.VERTEX_READ,
+                                          this.hugegraph.vertices(objects));
     }
 
     @Override
     public Iterator<Vertex> adjacentVertex(Object id) {
-        this.verifyPermissionAction(HugePermission.VERTEX_READ);
-        return this.hugegraph.adjacentVertex(id);
+        return verifyRessPermissionAction(HugePermission.VERTEX_READ,
+                                          this.hugegraph.adjacentVertex(id));
+    }
+
+    @Override
+    public Iterator<Vertex> adjacentVertices(Iterator<Edge> edges) {
+        Iterator<Vertex> vertices = this.hugegraph.adjacentVertices(edges);
+        return verifyRessPermissionAction(HugePermission.VERTEX_READ, vertices);
     }
 
     @Override
@@ -309,26 +327,20 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
     @Override
     public Iterator<Edge> edges(Query query) {
-        this.verifyPermissionAction(HugePermission.EDGE_READ);
-        return this.hugegraph.edges(query);
+        return verifyRessPermissionAction(HugePermission.EDGE_READ,
+                                          this.hugegraph.edges(query));
     }
 
     @Override
     public Iterator<Edge> edges(Object... objects) {
-        this.verifyPermissionAction(HugePermission.EDGE_READ);
-        return this.hugegraph.edges(objects);
-    }
-
-    @Override
-    public Iterator<Vertex> adjacentVertices(Iterator<Edge> edges) {
-        this.verifyPermissionAction(HugePermission.VERTEX_READ);
-        return this.hugegraph.adjacentVertices(edges);
+        return verifyRessPermissionAction(HugePermission.EDGE_READ,
+                                          this.hugegraph.edges(objects));
     }
 
     @Override
     public Iterator<Edge> adjacentEdges(Id vertexId) {
-        this.verifyPermissionAction(HugePermission.EDGE_READ);
-        return this.hugegraph.adjacentEdges(vertexId);
+        Iterator<Edge> edges = this.hugegraph.adjacentEdges(vertexId);
+        return verifyRessPermissionAction(HugePermission.EDGE_READ, edges);
     }
 
     @Override
@@ -455,7 +467,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     @Override
-    public String matchUser(String username, String password) {
+    public Object matchUser(String username, String password) {
         // Can't verifyPermission() here, login first
         Context context = setContext(Context.schema(this.hugegraph.name()));
         try {
@@ -500,30 +512,73 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         verifyPermission(owner);
     }
 
-    private void verifyPermissionAction(HugePermission permission) {
-        this.verifyPermissionAction(permission.string());
+    private void verifyPermissionAction(HugePermission actionPerm) {
+        this.verifyPermissionAction(actionPerm.string());
     }
 
     private void verifyPermissionAction(String action) {
-        verifyPermissionAction(this.hugegraph.name(), action);
+        String owner = this.hugegraph.name();
+        verifyPermission(RoleAction.roleFor(owner, action));
     }
 
-    private static void verifyPermissionAction(String owner, String action) {
-        verifyPermission(RoleAction.ownerFor(owner, action));
-    }
-
-    private static void verifyPermission(String permission) {
+    private static void verifyPermission(String action) {
         Context context = getContext();
         E.checkState(context != null,
                      "Missing authentication context " +
-                     "when accessing a Graph with permission control");
-        String role = context.user().role();
+                     "when accessing a graph with permission control");
+        Object role = context.user().role();
         if (LOG.isDebugEnabled()) {
-            LOG.debug("Verify permission '{}' for role '{}'", permission, role);
+            LOG.debug("Verify permission '{}' for role '{}'", action, role);
         }
-        if (!RolePerm.match(role, permission)) {
-            throw new ForbiddenException("Permission denied: " + permission);
+        if (!RolePerm.match(role, action)) {
+            throw new ForbiddenException("Permission denied: " + action);
         }
+    }
+
+    private static void verifyRessPermissionAction(HugePermission actionPerm,
+                                                   Element elem) {
+        verifyRessPermissionAction(actionPerm, true, () -> elem);
+    }
+
+    private static <V extends HugeElement> V verifyRessPermissionAction(
+                                             HugePermission actionPerm,
+                                             Supplier<V> elementFetcher) {
+        return verifyRessPermissionAction(actionPerm, true, elementFetcher);
+    }
+
+    private <V extends Element> Iterator<V> verifyRessPermissionAction(
+                                            HugePermission actionPerm,
+                                            Iterator<V> elems) {
+        return new FilterIterator<>(elems, elem -> {
+            V r = verifyRessPermissionAction(actionPerm, false, () -> elem);
+            return r != null;
+        });
+    }
+
+    private static <V extends Element> V verifyRessPermissionAction(
+                                         HugePermission actionPerm,
+                                         boolean throwIfNoPermission,
+                                         Supplier<V> elementFetcher) {
+        // TODO: call verifyPermissionAction(action) first
+        Context context = getContext();
+        E.checkState(context != null,
+                     "Missing authentication context " +
+                     "when verifying resource permission");
+        Object role = context.user().role();
+        V element = elementFetcher.get();
+        String action = actionPerm.string();
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Verify permission '{}' for role '{}' with element {}",
+                      action, role, element);
+        }
+        if (!RolePerm.match(role, action, (HugeElement) element)) {
+            if (throwIfNoPermission) {
+                throw new ForbiddenException("Permission denied: " + action);
+            } else {
+                element = null;
+            }
+        }
+        return element;
     }
 
     class TransactionProxy implements Transaction {

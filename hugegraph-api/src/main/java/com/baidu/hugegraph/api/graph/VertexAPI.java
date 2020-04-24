@@ -84,7 +84,7 @@ public class VertexAPI extends BatchAPI {
     @Status(Status.CREATED)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=graph $action=vertex_write"})
+    @RolesAllowed({"admin", "$owner=$graph $action=vertex_write"})
     public String create(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          JsonVertex jsonVertex) {
@@ -104,7 +104,7 @@ public class VertexAPI extends BatchAPI {
     @Status(Status.CREATED)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=graph $action=vertex_write"})
+    @RolesAllowed({"admin", "$owner=$graph $action=vertex_write"})
     public List<String> create(@Context HugeConfig config,
                                @Context GraphManager manager,
                                @PathParam("graph") String graph,
@@ -136,7 +136,7 @@ public class VertexAPI extends BatchAPI {
     @Path("batch")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=graph $action=vertex_write"})
+    @RolesAllowed({"admin", "$owner=$graph $action=vertex_write"})
     public String update(@Context HugeConfig config,
                          @Context GraphManager manager,
                          @PathParam("graph") String graph,
@@ -188,7 +188,7 @@ public class VertexAPI extends BatchAPI {
     @Path("{id}")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=graph $action=vertex_write"})
+    @RolesAllowed({"admin", "$owner=$graph $action=vertex_write"})
     public String update(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          @PathParam("id") String idValue,
@@ -222,7 +222,7 @@ public class VertexAPI extends BatchAPI {
     @Timed
     @Compress
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=graph $action=vertex_read"})
+    @RolesAllowed({"admin", "$owner=$graph $action=vertex_read"})
     public String list(@Context GraphManager manager,
                        @PathParam("graph") String graph,
                        @QueryParam("label") String label,
@@ -243,7 +243,7 @@ public class VertexAPI extends BatchAPI {
                             "and offset together");
         }
 
-        HugeGraph g = graph4vertex(manager, graph);
+        HugeGraph g = graph(manager, graph);
 
         GraphTraversal<Vertex, Vertex> traversal = g.traversal().V();
         if (label != null) {
@@ -277,7 +277,7 @@ public class VertexAPI extends BatchAPI {
     @Timed
     @Path("{id}")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=graph $action=vertex_read"})
+    @RolesAllowed({"admin", "$owner=$graph $action=vertex_read"})
     public String get(@Context GraphManager manager,
                       @PathParam("graph") String graph,
                       @PathParam("id") String idValue) {
@@ -294,7 +294,7 @@ public class VertexAPI extends BatchAPI {
     @Timed
     @Path("{id}")
     @Consumes(APPLICATION_JSON)
-    @RolesAllowed({"admin", "$owner=graph $action=vertex_delete"})
+    @RolesAllowed({"admin", "$owner=$graph $action=vertex_delete"})
     public void delete(@Context GraphManager manager,
                        @PathParam("graph") String graph,
                        @PathParam("id") String idValue) {

@@ -67,7 +67,7 @@ public class IndexLabelAPI extends API {
     @Status(Status.ACCEPTED)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=graph $action=schema_write"})
+    @RolesAllowed({"admin", "$owner=$graph $action=schema_write"})
     public String create(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          JsonIndexLabel jsonIndexLabel) {
@@ -109,7 +109,7 @@ public class IndexLabelAPI extends API {
     @GET
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=graph $action=schema_read"})
+    @RolesAllowed({"admin", "$owner=$graph $action=schema_read"})
     public String list(@Context GraphManager manager,
                        @PathParam("graph") String graph,
                        @QueryParam("names") List<String> names) {
@@ -137,7 +137,7 @@ public class IndexLabelAPI extends API {
     @Timed
     @Path("{name}")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=graph $action=schema_read"})
+    @RolesAllowed({"admin", "$owner=$graph $action=schema_read"})
     public String get(@Context GraphManager manager,
                       @PathParam("graph") String graph,
                       @PathParam("name") String name) {
@@ -154,7 +154,7 @@ public class IndexLabelAPI extends API {
     @Status(Status.ACCEPTED)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=graph $action=schema_delete"})
+    @RolesAllowed({"admin", "$owner=$graph $action=schema_delete"})
     public Map<String, Id> delete(@Context GraphManager manager,
                                   @PathParam("graph") String graph,
                                   @PathParam("name") String name) {

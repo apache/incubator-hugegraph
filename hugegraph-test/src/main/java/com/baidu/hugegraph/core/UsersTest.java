@@ -24,7 +24,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.hbase.thirdparty.com.google.common.collect.ImmutableMap;
 import org.junit.After;
 import org.junit.Test;
 
@@ -40,8 +39,10 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.testutil.Assert;
+import com.baidu.hugegraph.util.JsonUtil;
 import com.baidu.hugegraph.util.StringEncoding;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 public class UsersTest extends BaseCoreTest {
@@ -418,12 +419,39 @@ public class UsersTest extends BaseCoreTest {
         Assert.assertEquals("127.0.0.1:8080", target.url());
         Assert.assertEquals(target.create(), target.update());
 
-        Assert.assertEquals(ImmutableMap.of("target_name", "graph1",
-                                            "target_url", "127.0.0.1:8080",
-                                            "target_create", target.create(),
-                                            "target_update", target.update(),
-                                            "id", target.id()),
-                            target.asMap());
+        HashMap<String, Object> expected = new HashMap<>();
+        expected.putAll(ImmutableMap.of("target_name", "graph1",
+                                        "target_graph", "graph1",
+                                        "target_url", "127.0.0.1:8080",
+                                        "target_create", target.create(),
+                                        "target_update", target.update()));
+        expected.put("id", target.id());
+        Assert.assertEquals(expected, target.asMap());
+    }
+
+    @Test
+    public void testCreateTargetWithRess() {
+        HugeGraph graph = graph();
+        UserManager userManager = graph.userManager();
+
+        String ress = "[{\"type\": \"VERTEX\", \"label\": \"person\", " +
+                      "\"properties\":{\"city\": \"Beijing\"}}, " +
+                      "{\"type\": \"EDGE\", \"label\": \"transfer\"}]";
+        HugeTarget target = new HugeTarget("graph1", "127.0.0.1:8080");
+        target.resources(ress);
+        Id id = userManager.createTarget(target);
+
+        target = userManager.getTarget(id);
+        Assert.assertEquals("graph1", target.name());
+        Assert.assertEquals("127.0.0.1:8080", target.url());
+        Assert.assertEquals(target.create(), target.update());
+
+        String expect = "[{\"type\":\"VERTEX\",\"label\":\"person\"," +
+                        "\"properties\":{\"city\":\"Beijing\"}}," +
+                        "{\"type\":\"EDGE\",\"label\":\"transfer\"," +
+                        "\"properties\":null}]";
+        Assert.assertEquals(expect, JsonUtil.toJson(target.asMap()
+                                                    .get("target_resources")));
     }
 
     @Test

@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.function.Consumer;
 
+import javax.ws.rs.ForbiddenException;
 import javax.ws.rs.NotFoundException;
 import javax.ws.rs.NotSupportedException;
 import javax.ws.rs.core.MediaType;
@@ -79,16 +80,6 @@ public class API {
         return g;
     }
 
-    public static HugeGraph graph4vertex(GraphManager manager, String graph) {
-        String permission = HugePermission.VERTEX_READ.string();
-        return graph(manager, graph).hugegraph(permission);
-    }
-
-    public static HugeGraph graph4edge(GraphManager manager, String graph) {
-        String permission = HugePermission.EDGE_READ.string();
-        return graph(manager, graph).hugegraph(permission);
-    }
-
     public static HugeGraph graph4path(GraphManager manager, String graph) {
         String permission = HugePermission.PATH_READ.string();
         return graph(manager, graph).hugegraph(permission);
@@ -115,7 +106,8 @@ public class API {
             g.tx().commit();
             succeedMeter.mark();
             return result;
-        } catch (IllegalArgumentException | NotFoundException e) {
+        } catch (IllegalArgumentException | NotFoundException |
+                 ForbiddenException e) {
             illegalArgErrorMeter.mark();
             rollback.accept(null);
             throw e;

@@ -42,7 +42,7 @@ public class StandardAuthenticator implements HugeAuthenticator {
         this.graph = (HugeGraph) GraphFactory.open(graphPath);
     }
 
-    protected String matchUser(String username, String password) {
+    protected Object matchUser(String username, String password) {
         E.checkState(this.graph != null, "Must setup Authenticator first");
         return this.graph.matchUser(username, password);
     }
@@ -54,13 +54,13 @@ public class StandardAuthenticator implements HugeAuthenticator {
      * @return String No permission if return ROLE_NONE else return a role
      */
     @Override
-    public String authenticate(final String username, final String password) {
+    public Object authenticate(final String username, final String password) {
         E.checkArgumentNotNull(username,
                                "The username parameter can't be null");
         E.checkArgumentNotNull(password,
                                "The password parameter can't be null");
 
-        String role = this.matchUser(username, password);
+        Object role = this.matchUser(username, password);
         if (role == null) {
             role = ROLE_NONE;
         } else if (username.equals(USER_ADMIN)) {

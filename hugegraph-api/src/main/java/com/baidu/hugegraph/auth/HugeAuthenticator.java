@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -34,13 +35,14 @@ import org.apache.tinkerpop.shaded.jackson.annotation.JsonProperty;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.auth.HugeGraphAuthProxy.Context;
+import com.baidu.hugegraph.auth.HugeTarget.HugeResource;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.OptionSpace;
 import com.baidu.hugegraph.config.ServerOptions;
+import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 
 public interface HugeAuthenticator extends Authenticator {
 
@@ -57,16 +59,18 @@ public interface HugeAuthenticator extends Authenticator {
     public static final String USER_ANONY =
                                AuthenticatedUser.ANONYMOUS_USERNAME;
 
+    public static final String VAR_PREFIX = "$";
+
     public static final String ROLE_NONE = "";
     public static final String ROLE_ADMIN = USER_ADMIN;
-    public static final String ROLE_OWNER = "$owner";
-    public static final String ROLE_DYNAMIC = "$dynamic";
+    public static final String ROLE_OWNER = VAR_PREFIX + "owner";
+    public static final String ROLE_DYNAMIC = VAR_PREFIX + "dynamic";
 
-    public static final String ACTION = "$action";
+    public static final String ACTION = VAR_PREFIX + "action";
 
     public void setup(HugeConfig config);
 
-    public String authenticate(String username, String password);
+    public Object authenticate(String username, String password);
 
     @Override
     public default void setup(final Map<String, Object> config) {
@@ -90,7 +94,7 @@ public interface HugeAuthenticator extends Authenticator {
             String password = credentials.get(KEY_PASSWORD);
 
             // Currently we just use config tokens to authenticate
-            String role = this.authenticate(username, password);
+            Object role = this.authenticate(username, password);
             if (!verifyRole(role)) {
                 // Throw if not certified
                 String message = "Incorrect username or password";
@@ -115,8 +119,8 @@ public interface HugeAuthenticator extends Authenticator {
         return true;
     }
 
-    public default boolean verifyRole(String role) {
-        if (role == ROLE_NONE || role == null || role.isEmpty()) {
+    public default boolean verifyRole(Object role) {
+        if (role == ROLE_NONE || role == null || role.equals("")) {
             return false;
         } else {
             return true;
@@ -149,10 +153,10 @@ public interface HugeAuthenticator extends Authenticator {
         public static final User ADMIN = new User(USER_ADMIN, ROLE_ADMIN);
         public static final User ANONYMOUS = new User(USER_ANONY, ROLE_ADMIN);
 
-        private final String role;
-        private String client;
+        private final Object role;
+        private String client; // peer
 
-        public User(String username, String role) {
+        public User(String username, Object role) {
             super(username);
             E.checkNotNull(username, "username");
             E.checkNotNull(role, "role");
@@ -164,7 +168,7 @@ public interface HugeAuthenticator extends Authenticator {
             return this.getName();
         }
 
-        public String role() {
+        public Object role() {
             return this.role;
         }
 
@@ -230,10 +234,16 @@ public interface HugeAuthenticator extends Authenticator {
     public static class RolePerm {
 
         @JsonProperty("owners")
-        private Map<String, Set<String>> owners;
+        private Map<String, Map<String, Object>> owners;
+
+        private static final String ANY = HugeResource.ANY;
 
         public RolePerm() {
-            this.owners = new HashMap<>();
+            this(new HashMap<>());
+        }
+
+        public RolePerm(Map<String, Map<String, Object>> owners) {
+            this.owners = owners;
         }
 
         public Set<String> owners() {
@@ -241,7 +251,7 @@ public interface HugeAuthenticator extends Authenticator {
         }
 
         public RolePerm owner(String owner, HugePermission perm) {
-            this.owners.put(owner, ImmutableSet.of(perm.string()));
+            this.owners.put(owner, ImmutableMap.of(perm.string(), ANY));
             return this;
         }
 
@@ -261,11 +271,11 @@ public interface HugeAuthenticator extends Authenticator {
             if (owner == null) {
                 return true;
             }
-            Set<String> permissions = this.owners.get(owner);
+            Map<String, Object> permissions = this.owners.get(owner);
             if (permissions == null) {
                 return false;
             }
-            if (permissions.containsAll(actions)) {
+            if (permissions.keySet().containsAll(actions)) {
                 // All actions are matched (string equal)
                 return true;
             }
@@ -278,28 +288,73 @@ public interface HugeAuthenticator extends Authenticator {
             return true;
         }
 
-        private boolean matchAction(Set<String> permissions, String required) {
-            if (required == null || permissions.contains(required)) {
-                return true;
+        public boolean matchResource(String required, HugeElement element) {
+            E.checkNotNull(element, "element");
+            String owner = element.graph().name();
+            Map<String, Object> permissions = this.owners.get(owner);
+            if (permissions == null) {
+                return false;
             }
-            for (String permission : permissions) {
-                // Regular match
-                if (required.matches(permission)) {
+            Object permission = matchedAction(permissions, required);
+            if (permission == null) {
+                // Deny all if no specified permission
+                return false;
+            }
+            List<HugeResource> ress;
+            if (permission instanceof List) {
+                @SuppressWarnings("unchecked")
+                List<HugeResource> list = (List<HugeResource>) permission;
+                ress = list;
+            } else {
+                ress = HugeResource.parseResources(permission.toString());
+            }
+            for (HugeResource res : ress) {
+                if (res.filter(element)) {
                     return true;
                 }
             }
             return false;
         }
 
-        public static RolePerm fromJson(String json) {
-            return JsonUtil.fromJson(json, RolePerm.class);
+        private boolean matchAction(Map<String, Object> permissions,
+                                    String required) {
+            if (required == null || permissions.containsKey(required)) {
+                return true;
+            }
+            return matchedAction(permissions, required) != null;
+        }
+
+        private Object matchedAction(Map<String, Object> permissions,
+                                     String required) {
+            Object matched = permissions.get(required);
+            if (matched != null) {
+                return matched;
+            }
+            for (Map.Entry<String, Object> entry : permissions.entrySet()) {
+                String permission = entry.getKey();
+                // Regular match
+                if (required.matches(permission)) {
+                    return entry.getValue();
+                }
+            }
+            return null;
+        }
+
+        public static RolePerm fromJson(Object role) {
+            if (role instanceof Map) {
+                @SuppressWarnings({ "unchecked", "rawtypes" })
+                Map<String, Map<String, Object>> map = (Map) role;
+                return new RolePerm(map);
+            } else {
+                return JsonUtil.fromJson(role.toString(), RolePerm.class);
+            }
         }
 
         public static RolePerm ownerFor(String owner, HugePermission perm) {
             return new RolePerm().owner(owner, perm);
         }
 
-        public static boolean match(String role, String required) {
+        public static boolean match(Object role, String required) {
             if (role.equals(ROLE_ADMIN)) {
                 return true;
             }
@@ -314,6 +369,15 @@ public interface HugeAuthenticator extends Authenticator {
             RoleAction roleAction = RoleAction.fromPermission(required);
             return rolePerm.matchPermission(roleAction.owner(),
                                             roleAction.actions());
+        }
+
+        public static boolean match(Object role, String action,
+                                    HugeElement element) {
+            if (role.equals(ROLE_ADMIN)) {
+                return true;
+            }
+            RolePerm rolePerm = RolePerm.fromJson(role);
+            return rolePerm.matchResource(action, element);
         }
     }
 
@@ -352,11 +416,11 @@ public interface HugeAuthenticator extends Authenticator {
             return JsonUtil.toJson(this);
         }
 
-        public static String ownerFor(String owner) {
+        public static String roleFor(String owner) {
             return ROLE_OWNER + "=" + owner;
         }
 
-        public static String ownerFor(String owner, String action) {
+        public static String roleFor(String owner, String action) {
             return ROLE_OWNER + "=" + owner + " " + ACTION + "=" + action;
         }
 
@@ -365,7 +429,7 @@ public interface HugeAuthenticator extends Authenticator {
         }
 
         public static RoleAction fromPermission(String permission) {
-            // Permission format like: "$owner=graph1 $action=vertex-write"
+            // Permission format like: "$owner=$graph1 $action=vertex-write"
             RoleAction roleAction = new RoleAction();
             String[] ownerAndAction = permission.split(" ");
             String[] ownerKV = ownerAndAction[0].split("=", 2);

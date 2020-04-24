@@ -689,7 +689,7 @@ public final class TraversalUtil {
         return null;
     }
 
-    public static P<?> parsePredicate(String predicate) {
+    public static P<Object> parsePredicate(String predicate) {
         /*
          * Extract P from json string like {"properties": {"age": "P.gt(18)"}}
          * the `predicate` may actually be like "P.gt(18)"

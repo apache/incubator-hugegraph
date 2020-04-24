@@ -123,7 +123,7 @@ public interface HugeGraph extends Graph {
     @Override
     public HugeFeatures features();
 
-    public String matchUser(String username, String password);
+    public Object matchUser(String username, String password);
 
     public UserManager userManager();
     public TaskScheduler taskScheduler();

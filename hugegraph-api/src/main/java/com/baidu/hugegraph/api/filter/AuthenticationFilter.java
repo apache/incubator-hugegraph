@@ -147,7 +147,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
             return this.user.username();
         }
 
-        public String role() {
+        public Object role() {
             return this.user.role();
         }
 
@@ -187,11 +187,16 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         }
 
         private boolean matchPermission(String required) {
-            // Permission format like: "$owner=name $action=vertex-write"
+            // Permission format like: "$owner=$graph $action=vertex-write"
             RoleAction roleAction = RoleAction.fromPermission(required);
             RolePerm rolePerm = RolePerm.fromJson(this.role());
 
-            String owner = this.getPathParameter(roleAction.owner());
+            String owner = roleAction.owner();
+            if (owner.startsWith(HugeAuthenticator.VAR_PREFIX)) {
+                assert owner.length() > HugeAuthenticator.VAR_PREFIX.length();
+                owner = owner.substring(HugeAuthenticator.VAR_PREFIX.length());
+                owner = this.getPathParameter(owner);
+            }
             if (!rolePerm.matchOwner(owner)) {
                 return false;
             }
@@ -209,7 +214,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
             @Override
             public String getName() {
-                return Authorizer.this.user.role();
+                return Authorizer.this.user.getName();
             }
 
             @Override

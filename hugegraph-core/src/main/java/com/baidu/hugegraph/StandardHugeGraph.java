@@ -640,7 +640,7 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
-    public String matchUser(String username, String password) {
+    public Object matchUser(String username, String password) {
         HugeUser user = this.userManager.matchUser(username, password);
         if (user == null) {
             return null;
