@@ -20,7 +20,6 @@
 package com.baidu.hugegraph.auth;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,8 +32,6 @@ import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.auth.SchemaDefine.Relationship;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.schema.EdgeLabel;
-import com.baidu.hugegraph.type.define.DataType;
-import com.baidu.hugegraph.util.E;
 
 public class HugeBelong extends Relationship {
 
@@ -88,29 +85,23 @@ public class HugeBelong extends Relationship {
     }
 
     @Override
-    protected void property(String key, Object value) {
-        E.checkNotNull(key, "property key");
+    protected boolean property(String key, Object value) {
+        if (super.property(key, value)) {
+            return true;
+        }
         switch (key) {
             case P.DESCRIPTION:
                 this.description = (String) value;
                 break;
-            case P.CREATE:
-                this.create = (Date) value;
-                break;
-            case P.UPDATE:
-                this.update = (Date) value;
-                break;
             default:
                 throw new AssertionError("Unsupported key: " + key);
         }
+        return true;
     }
 
     @Override
     protected Object[] asArray() {
-        E.checkState(this.create != null, "Belong create can't be null");
-        E.checkState(this.update != null, "Belong update can't be null");
-
-        List<Object> list = new ArrayList<>(8);
+        List<Object> list = new ArrayList<>(10);
 
         list.add(T.label);
         list.add(P.BELONG);
@@ -120,20 +111,11 @@ public class HugeBelong extends Relationship {
             list.add(this.description);
         }
 
-        list.add(P.CREATE);
-        list.add(this.create);
-
-        list.add(P.UPDATE);
-        list.add(this.update);
-
-        return list.toArray();
+        return super.asArray(list);
     }
 
     @Override
     public Map<String, Object> asMap() {
-        E.checkState(this.create != null, "Belong create can't be null");
-        E.checkState(this.update != null, "Belong update can't be null");
-
         Map<String, Object> map = new HashMap<>();
 
         map.put(Hidden.unHide(P.USER), this.user);
@@ -142,10 +124,8 @@ public class HugeBelong extends Relationship {
         if (this.description != null) {
             map.put(Hidden.unHide(P.DESCRIPTION), this.description);
         }
-        map.put(Hidden.unHide(P.CREATE), this.create);
-        map.put(Hidden.unHide(P.UPDATE), this.update);
 
-        return map;
+        return super.asMap(map);
     }
 
     public static <V> HugeBelong fromEdge(Edge edge) {
@@ -168,8 +148,6 @@ public class HugeBelong extends Relationship {
         public static final String GROUP = HugeGroup.P.GROUP;
 
         public static final String DESCRIPTION = "~belong_description";
-        public static final String CREATE = "~belong_create";
-        public static final String UPDATE = "~belong_update";
 
         public static String unhide(String key) {
             final String prefix = Hidden.hide("belong_");
@@ -209,10 +187,8 @@ public class HugeBelong extends Relationship {
             List<String> props = new ArrayList<>();
 
             props.add(createPropertyKey(P.DESCRIPTION));
-            props.add(createPropertyKey(P.CREATE, DataType.DATE));
-            props.add(createPropertyKey(P.UPDATE, DataType.DATE));
 
-            return props.toArray(new String[0]);
+            return super.initProperties(props);
         }
     }
 }

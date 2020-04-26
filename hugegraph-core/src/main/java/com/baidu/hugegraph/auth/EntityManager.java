@@ -27,6 +27,7 @@ import java.util.function.Function;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import com.baidu.hugegraph.HugeException;
+import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.auth.SchemaDefine.Entity;
 import com.baidu.hugegraph.backend.id.Id;
@@ -63,6 +64,10 @@ public class EntityManager<T extends Entity> {
 
     private GraphTransaction tx() {
         return this.graph.systemTransaction();
+    }
+
+    private HugeGraph graph() {
+        return this.graph.graph();
     }
 
     public Id add(T entity) {
@@ -132,11 +137,10 @@ public class EntityManager<T extends Entity> {
                                          Map<String, Object> conditions,
                                          long limit) {
         ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
-        VertexLabel vl = SchemaDefine.vertexLabel(this.graph, label);
+        VertexLabel vl = this.graph().vertexLabel(label);
         query.eq(HugeKeys.LABEL, vl.id());
         for (Map.Entry<String, Object> entry : conditions.entrySet()) {
-            PropertyKey pkey = SchemaDefine.propertyKey(this.graph,
-                                                        entry.getKey());
+            PropertyKey pkey = this.graph().propertyKey(entry.getKey());
             query.query(Condition.eq(pkey.id(), entry.getValue()));
         }
         query.showHidden(true);
@@ -156,7 +160,7 @@ public class EntityManager<T extends Entity> {
     }
 
     private HugeVertex constructVertex(Entity entity) {
-        if (!SchemaDefine.existVertexLabel(this.graph, entity.label())) {
+        if (!this.graph().existsVertexLabel(entity.label())) {
             throw new HugeException("Schema is missing for %s '%s'",
                                     entity.label(), entity.id());
         }

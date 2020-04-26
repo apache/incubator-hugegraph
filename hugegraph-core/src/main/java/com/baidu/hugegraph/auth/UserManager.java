@@ -211,10 +211,6 @@ public class UserManager {
         return this.targets.list(limit);
     }
 
-    public Id createBelong(Id user, Id group) {
-        return this.createBelong(new HugeBelong(user, group));
-    }
-
     public Id createBelong(HugeBelong belong) {
         this.invalidCache();
         return this.belong.add(belong);
@@ -250,10 +246,6 @@ public class UserManager {
     public List<HugeBelong> listBelongByGroup(Id group, long limit) {
         return this.belong.list(group, Directions.IN,
                                 HugeBelong.P.BELONG, limit);
-    }
-
-    public Id createAccess(Id group, Id target, HugePermission permission) {
-        return this.createAccess(new HugeAccess(group, target, permission));
     }
 
     public Id createAccess(HugeAccess access) {

@@ -20,7 +20,6 @@
 package com.baidu.hugegraph.auth;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,7 +39,6 @@ import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
 import com.baidu.hugegraph.type.HugeType;
-import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
 
@@ -121,8 +119,10 @@ public class HugeTarget extends Entity {
     }
 
     @Override
-    protected void property(String key, Object value) {
-        E.checkNotNull(key, "property key");
+    protected boolean property(String key, Object value) {
+        if (super.property(key, value)) {
+            return true;
+        }
         switch (key) {
             case P.NAME:
                 this.name = (String) value;
@@ -136,25 +136,18 @@ public class HugeTarget extends Entity {
             case P.RESS:
                 this.resources = HugeResource.parseResources((String) value);
                 break;
-            case P.CREATE:
-                this.create = (Date) value;
-                break;
-            case P.UPDATE:
-                this.update = (Date) value;
-                break;
             default:
                 throw new AssertionError("Unsupported key: " + key);
         }
+        return true;
     }
 
     @Override
     protected Object[] asArray() {
         E.checkState(this.name != null, "Target name can't be null");
         E.checkState(this.url != null, "Target url can't be null");
-        E.checkState(this.create != null, "Target create can't be null");
-        E.checkState(this.update != null, "Target update can't be null");
 
-        List<Object> list = new ArrayList<>(10);
+        List<Object> list = new ArrayList<>(16);
 
         list.add(T.label);
         list.add(P.TARGET);
@@ -173,21 +166,13 @@ public class HugeTarget extends Entity {
             list.add(JsonUtil.toJson(this.resources));
         }
 
-        list.add(P.CREATE);
-        list.add(this.create);
-
-        list.add(P.UPDATE);
-        list.add(this.update);
-
-        return list.toArray();
+        return super.asArray(list);
     }
 
     @Override
     public Map<String, Object> asMap() {
         E.checkState(this.name != null, "Target name can't be null");
         E.checkState(this.url != null, "Target url can't be null");
-        E.checkState(this.create != null, "Target create can't be null");
-        E.checkState(this.update != null, "Target update can't be null");
 
         Map<String, Object> map = new HashMap<>();
 
@@ -204,10 +189,7 @@ public class HugeTarget extends Entity {
             map.put(Hidden.unHide(P.RESS), this.resources);
         }
 
-        map.put(Hidden.unHide(P.CREATE), this.create);
-        map.put(Hidden.unHide(P.UPDATE), this.update);
-
-        return map;
+        return super.asMap(map);
     }
 
     public static HugeTarget fromVertex(Vertex vertex) {
@@ -230,8 +212,6 @@ public class HugeTarget extends Entity {
         public static final String GRAPH = "~target_graph";
         public static final String URL = "~target_url";
         public static final String RESS = "~target_resources";
-        public static final String CREATE = "~target_create";
-        public static final String UPDATE = "~target_update";
 
         public static String unhide(String key) {
             final String prefix = Hidden.hide("target_");
@@ -265,9 +245,6 @@ public class HugeTarget extends Entity {
                                     .enableLabelIndex(true)
                                     .build();
             this.graph.schemaTransaction().addVertexLabel(label);
-
-            // Create index
-            this.createRangeIndex(label, P.UPDATE);
         }
 
         private String[] initProperties() {
@@ -277,10 +254,8 @@ public class HugeTarget extends Entity {
             props.add(createPropertyKey(P.GRAPH));
             props.add(createPropertyKey(P.URL));
             props.add(createPropertyKey(P.RESS));
-            props.add(createPropertyKey(P.CREATE, DataType.DATE));
-            props.add(createPropertyKey(P.UPDATE, DataType.DATE));
 
-            return props.toArray(new String[0]);
+            return super.initProperties(props);
         }
     }
 
