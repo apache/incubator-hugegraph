@@ -34,11 +34,12 @@ import org.apache.tinkerpop.shaded.jackson.core.type.TypeReference;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.auth.SchemaDefine.Entity;
+import com.baidu.hugegraph.auth.SchemaDefine.ResourceType;
+import com.baidu.hugegraph.auth.SchemaDefine.UserElement;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
-import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
 
@@ -73,6 +74,11 @@ public class HugeTarget extends Entity {
         this.graph = graph;
         this.url = url;
         this.resources = resources;
+    }
+
+    @Override
+    public ResourceType type() {
+        return ResourceType.TARGET;
     }
 
     @Override
@@ -264,7 +270,7 @@ public class HugeTarget extends Entity {
         public static final String ANY = "*";
 
         @JsonProperty("type")
-        private HugeType type;
+        private ResourceType type;
 
         @JsonProperty("label")
         private String label;
@@ -276,20 +282,38 @@ public class HugeTarget extends Entity {
             // pass
         }
 
-        public HugeResource(HugeType type, String label,
+        public HugeResource(ResourceType type, String label,
                             Map<String, String> properties) {
             this.type = type;
             this.label = label;
             this.properties = properties;
         }
 
+        public boolean filter(UserElement element) {
+            if (this.type == null || this.type == ResourceType.NONE) {
+                return false;
+            }
+            if (this.type != ResourceType.ROOT && this.type != element.type()) {
+                return false;
+            }
+            return true;
+        }
+
         public boolean filter(HugeElement element) {
-            if ( this.type != null) {
-                if (this.type.isEdge()) {
-                    if (!element.type().isEdge()) {
-                        return false;
-                    }
-                } else if (this.type != element.type()) {
+            if (this.type == null || this.type == ResourceType.NONE) {
+                return false;
+            }
+
+            if (this.type == ResourceType.EDGE) {
+                if (!element.type().isEdge()) {
+                    return false;
+                }
+            } else if (this.type == ResourceType.VERTEX) {
+                if (!element.type().isVertex()) {
+                    return false;
+                }
+            } else {
+                if (this.type != ResourceType.ALL) {
                     return false;
                 }
             }
@@ -297,6 +321,7 @@ public class HugeTarget extends Entity {
             if (this.label != null && !this.label.equals(element.label())) {
                 return false;
             }
+
             if (this.properties == null) {
                 return true;
             }

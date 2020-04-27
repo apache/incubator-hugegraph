@@ -30,6 +30,7 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.auth.SchemaDefine.Entity;
+import com.baidu.hugegraph.auth.SchemaDefine.ResourceType;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.util.E;
@@ -51,6 +52,11 @@ public class HugeGroup extends Entity {
         this.id = id;
         this.name = name;
         this.description = null;
+    }
+
+    @Override
+    public ResourceType type() {
+        return ResourceType.USER_GROUP;
     }
 
     @Override

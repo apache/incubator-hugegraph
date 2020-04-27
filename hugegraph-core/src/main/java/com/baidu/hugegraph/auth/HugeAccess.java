@@ -30,6 +30,7 @@ import org.apache.tinkerpop.gremlin.structure.T;
 
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.auth.SchemaDefine.Relationship;
+import com.baidu.hugegraph.auth.SchemaDefine.ResourceType;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.type.define.DataType;
@@ -49,6 +50,11 @@ public class HugeAccess extends Relationship {
         this.group = group;
         this.target = target;
         this.permission = permission;
+    }
+
+    @Override
+    public ResourceType type() {
+        return ResourceType.GRANT;
     }
 
     @Override

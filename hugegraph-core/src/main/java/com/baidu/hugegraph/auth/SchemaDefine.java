@@ -84,6 +84,17 @@ public abstract class SchemaDefine {
         return name;
     }
 
+    protected String[] initProperties(List<String> props) {
+        String label = this.label;
+        props.add(createPropertyKey(hideField(label, UserElement.CREATE),
+                                    DataType.DATE));
+        props.add(createPropertyKey(hideField(label, UserElement.UPDATE),
+                                    DataType.DATE));
+        props.add(createPropertyKey(hideField(label, UserElement.CREATOR)));
+
+        return props.toArray(new String[0]);
+    }
+
     protected IndexLabel createRangeIndex(VertexLabel label, String field) {
         SchemaManager schema = this.schema();
         String name = Hidden.hide(label + "-index-by-" + field);
@@ -103,7 +114,7 @@ public abstract class SchemaDefine {
         return Hidden.unHide(label) + "_" + key;
     }
 
-    public static abstract class Element {
+    public static abstract class UserElement {
 
         protected static final String CREATE = "create";
         protected static final String UPDATE = "update";
@@ -114,7 +125,7 @@ public abstract class SchemaDefine {
         protected Date update;
         protected String creator;
 
-        public Element() {
+        public UserElement() {
             this.create = new Date();
             this.update = this.create;
         }
@@ -207,14 +218,17 @@ public abstract class SchemaDefine {
             return list.toArray();
         }
 
+        public abstract ResourceType type();
+
         public abstract String label();
 
         public abstract Map<String, Object> asMap();
 
         protected abstract Object[] asArray();
+
     }
 
-    public static abstract class Entity extends Element {
+    public static abstract class Entity extends UserElement {
 
         public static <T extends Entity> T fromVertex(Vertex vertex, T entity) {
             E.checkArgument(vertex.label().equals(entity.label()),
@@ -230,7 +244,7 @@ public abstract class SchemaDefine {
         }
     }
 
-    public static abstract class Relationship extends Element {
+    public static abstract class Relationship extends UserElement {
 
         public abstract String sourceLabel();
         public abstract String targetLabel();
@@ -253,13 +267,22 @@ public abstract class SchemaDefine {
         }
     }
 
-    protected String[] initProperties(List<String> props) {
-        props.add(createPropertyKey(hideField(this.label, Element.CREATE),
-                                    DataType.DATE));
-        props.add(createPropertyKey(hideField(this.label, Element.UPDATE),
-                                    DataType.DATE));
-        props.add(createPropertyKey(hideField(this.label, Element.CREATOR)));
+    public static enum ResourceType {
 
-        return props.toArray(new String[0]);
+        NONE,
+
+        VERTEX,
+
+        EDGE,
+
+        ALL,
+
+        GRANT,
+
+        USER_GROUP,
+
+        TARGET,
+
+        ROOT;
     }
 }
