@@ -127,6 +127,8 @@ public abstract class BackendTable<Session extends BackendSession, Entry> {
         // We assume the size of each key-value is 100 bytes
         protected static final int ESTIMATE_BYTES_PER_KV = 100;
 
+        public static final String END = "-1";
+
         private final String table;
 
         public ShardSpliter(String table) {
@@ -160,7 +162,8 @@ public abstract class BackendTable<Session extends BackendSession, Entry> {
             while (offset < maxKey) {
                 offset += each;
                 if (offset > maxKey) {
-                    offset = maxKey;
+                    splits.add(new Shard(last, END, 0L));
+                    break;
                 }
                 String current = this.position(offset);
                 splits.add(new Shard(last, current, 0L));
@@ -174,6 +177,9 @@ public abstract class BackendTable<Session extends BackendSession, Entry> {
         }
 
         public byte[] position(String position) {
+            if (END.equals(position)) {
+                return null;
+            }
             int value = Long.valueOf(position).intValue();
             return NumericUtil.intToBytes(value);
         }

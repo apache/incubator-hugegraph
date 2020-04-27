@@ -694,7 +694,6 @@ public abstract class MysqlTable
                 "0123456789=?ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
                 "abcdefghijklmnopqrstuvwxyz";
         private static final int COUNT = 64;
-        public static final String END = "-1";
 
         public MysqlShardSpliter(String table) {
             super(table);
