@@ -87,6 +87,14 @@ public class MysqlEntryIterator extends BackendEntryIterator {
     }
 
     @Override
+    protected void reduce2limit(BackendEntry entry) {
+        MysqlBackendEntry e = (MysqlBackendEntry) entry;
+        int size = e.subRows().size();
+        // Remove last paging row
+        e.subRows().remove(size - 1);
+    }
+
+    @Override
     protected PageState pageState() {
         byte[] position;
         // There is no latest or no next page
