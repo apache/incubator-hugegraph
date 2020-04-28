@@ -299,6 +299,9 @@ public class HbaseTable extends BackendTable<Session, BackendEntry> {
 
         @Override
         public List<Shard> getSplits(Session session, long splitSize) {
+            E.checkArgument(splitSize >= MIN_SHARD_SIZE,
+                            "The split-size must be >= %s bytes, but got %s",
+                            MIN_SHARD_SIZE, splitSize);
             List<Shard> shards = new ArrayList<>();
             String namespace = session.namespace();
             String table = this.table();

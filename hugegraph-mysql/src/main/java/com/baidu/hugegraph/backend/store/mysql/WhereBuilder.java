@@ -252,7 +252,7 @@ public class WhereBuilder {
         this.builder.append(" ")
                     .append(key)
                     .append(" >= ")
-                    .append(value)
+                    .append(wrapStringIfNeeded(value))
                     .append(" ");
         return this;
     }
@@ -261,7 +261,7 @@ public class WhereBuilder {
         this.builder.append(" ")
                     .append(key)
                     .append(" < ")
-                    .append(value)
+                    .append(wrapStringIfNeeded(value))
                     .append(" ");
         return this;
     }

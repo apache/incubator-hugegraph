@@ -55,6 +55,7 @@ import com.baidu.hugegraph.backend.page.PageInfo;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.backend.store.BackendTable;
 import com.baidu.hugegraph.backend.store.Shard;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.exception.LimitExceedException;
@@ -5930,10 +5931,19 @@ public class VertexCoreTest extends BaseCoreTest {
         init10Vertices();
 
         List<Vertex> vertices = new LinkedList<>();
-
         ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
-        query.scan(String.valueOf(Long.MIN_VALUE),
-                   String.valueOf(Long.MAX_VALUE));
+
+        String backend = graph.backend();
+        if (backend.equals("hbase")) {
+            query.scan("00", BackendTable.ShardSpliter.END);
+        } else if (backend.equals("mysql") || backend.equals("postgresql")) {
+            query.scan(BackendTable.ShardSpliter.END,
+                       BackendTable.ShardSpliter.END);
+        } else {
+            query.scan(String.valueOf(Long.MIN_VALUE),
+                       String.valueOf(Long.MAX_VALUE));
+        }
+
         query.limit(1);
         String page = PageInfo.PAGE_NONE;
         while (page != null) {

@@ -435,6 +435,20 @@ public abstract class MysqlTable
         Condition.Relation scan = query.relations().iterator().next();
         Shard shard = (Shard) scan.value();
 
+        String page = query.page();
+        if (MysqlShardSpliter.END.equals(shard.start()) &&
+            MysqlShardSpliter.END.equals(shard.end()) &&
+            (page == null || page.isEmpty())) {
+            select.append(this.orderByKeys());
+            if (!query.nolimit()) {
+                // Fetch `limit + 1` rows for judging whether reached the last page
+                select.append(" limit ");
+                select.append(query.limit() + 1);
+            }
+            select.append(";");
+            return select;
+        }
+
         // < end
         HugeKeys partitionKey = this.idColumnName().get(0);
         WhereBuilder where = this.newWhereBuilder();
@@ -446,18 +460,19 @@ public abstract class MysqlTable
         }
         select.append(where.build());
 
-        String page = query.page();
         if (page != null && !page.isEmpty()) {
             // >= page
             wrapPage(select, query, prefixAnd);
         } else {
             // >= start
-            if (prefixAnd) {
-                select.append(" AND ");
+            if (!MysqlShardSpliter.END.equals(shard.start())) {
+                if (prefixAnd) {
+                    select.append(" AND ");
+                }
+                where = this.newWhereBuilder(false);
+                where.gte(formatKey(partitionKey), shard.start());
+                select.append(where.build());
             }
-            where = this.newWhereBuilder(false);
-            where.gte(formatKey(partitionKey), shard.start());
-            select.append(where.build());
 
             select.append(this.orderByKeys());
 
@@ -704,14 +719,12 @@ public abstract class MysqlTable
                             "The split-size must be >= %s bytes, but got %s",
                             MIN_SHARD_SIZE, splitSize);
             List<Shard> splits = new ArrayList<>(COUNT);
-            for (int i = 0; i < COUNT; i++) {
-                if (i == COUNT - 1) {
-                    splits.add(new Shard(BASE64.substring(i, i + 1), END, 0));
-                } else {
-                    splits.add(new Shard(BASE64.substring(i, i + 1),
-                                         BASE64.substring(i + 1, i + 2), 0));
-                }
+            splits.add(new Shard(END, BASE64.substring(0, 1), 0));
+            for (int i = 0; i < COUNT - 1; i++) {
+                splits.add(new Shard(BASE64.substring(i, i + 1),
+                                     BASE64.substring(i + 1, i + 2), 0));
             }
+            splits.add(new Shard(BASE64.substring(COUNT - 1, COUNT), END, 0));
             return splits;
         }
 
