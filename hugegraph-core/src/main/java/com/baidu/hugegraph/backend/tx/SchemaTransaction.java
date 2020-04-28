@@ -24,7 +24,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
-import java.util.function.Function;
 
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
@@ -41,7 +40,6 @@ import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.config.CoreOptions;
-import com.baidu.hugegraph.exception.ExistedException;
 import com.baidu.hugegraph.exception.NotAllowException;
 import com.baidu.hugegraph.job.JobBuilder;
 import com.baidu.hugegraph.job.schema.EdgeLabelRemoveCallable;
@@ -269,17 +267,9 @@ public class SchemaTransaction extends IndexableTransaction {
         this.updateSchema(schema);
     }
 
-    public <V> V lockCheckAndCreateSchema(HugeType type, String name,
-                                          Function<String, V> callback) {
-        String graph = this.graph().name();
-        LockUtil.Locks locks = new LockUtil.Locks(graph);
-        try {
-            locks.lockWrites(LockUtil.hugeType2Group(type),
-                             IdGenerator.of(name));
-            return callback.apply(name);
-        } finally {
-            locks.unlock();
-        }
+    @Watched(prefix = "schema")
+    public boolean existsSchemaId(HugeType type, Id id) {
+        return this.getSchema(type, id) != null;
     }
 
     protected void updateSchema(SchemaElement schema) {
@@ -410,6 +400,15 @@ public class SchemaTransaction extends IndexableTransaction {
         }
     }
 
+    public long taskWaitTimeout() {
+        return this.params().configuration().get(CoreOptions.TASK_WAIT_TIMEOUT);
+    }
+
+    public boolean syncDelete() {
+        return this.params().configuration()
+                            .get( CoreOptions.SCHEMA_SYNC_DELETION);
+    }
+
     public void checkSchemaName(String name) {
         String illegalReg = this.params().configuration()
                                 .get(CoreOptions.SCHEMA_ILLEGAL_NAME_REGEX);
@@ -426,15 +425,6 @@ public class SchemaTransaction extends IndexableTransaction {
             E.checkArgument(name.indexOf(c) == -1,
                             "The name can't contain character '%s'.", c);
         }
-    }
-
-    public long taskWaitTimeout() {
-        return this.params().configuration().get(CoreOptions.TASK_WAIT_TIMEOUT);
-    }
-
-    public boolean syncDelete() {
-        return this.params().configuration()
-                            .get( CoreOptions.SCHEMA_SYNC_DELETION);
     }
 
     @Watched(prefix = "schema")
@@ -488,18 +478,6 @@ public class SchemaTransaction extends IndexableTransaction {
         LOG.debug("SchemaTransaction get next system id");
         Id id = this.store().nextId(HugeType.SYS_SCHEMA);
         return IdGenerator.of(-id.asLong());
-    }
-
-    @Watched(prefix = "schema")
-    public void checkIdIfRestoringMode(HugeType type, Id id) {
-        if (this.graph().mode() == GraphMode.RESTORING) {
-            E.checkArgument(id != null,
-                            "Must provide schema id if in RESTORING mode");
-            SchemaElement element = this.getSchema(type, id);
-            if (element != null) {
-                throw new ExistedException(type.readableName() + " id", id);
-            }
-        }
     }
 
     private static void setCreateTimeIfNeeded(SchemaElement schema) {

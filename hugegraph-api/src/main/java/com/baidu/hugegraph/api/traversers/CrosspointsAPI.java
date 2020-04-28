@@ -79,7 +79,7 @@ public class CrosspointsAPI extends API {
         Id targetId = VertexAPI.checkAndParseVertexId(target);
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
 
-        HugeGraph g = graph4path(manager, graph);
+        HugeGraph g = graph(manager, graph);
         PathsTraverser traverser = new PathsTraverser(g);
         HugeTraverser.PathSet paths = traverser.paths(sourceId, dir, targetId,
                                                       dir, edgeLabel, depth,

@@ -21,13 +21,11 @@ package com.baidu.hugegraph.auth;
 
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import com.baidu.hugegraph.HugeGraphParams;
-import com.baidu.hugegraph.auth.HugeTarget.HugeResource;
+import com.baidu.hugegraph.auth.HugeResource.RolePermission;
 import com.baidu.hugegraph.auth.HugeUser.P;
 import com.baidu.hugegraph.backend.cache.Cache;
 import com.baidu.hugegraph.backend.cache.CacheManager;
@@ -108,6 +106,15 @@ public class UserManager {
     public boolean close() {
         this.unlistenChanges();
         return true;
+    }
+
+    public void initSchemaIfNeeded() {
+        this.invalidCache();
+        HugeUser.schema(this.graph).initSchemaIfNeeded();
+        HugeGroup.schema(this.graph).initSchemaIfNeeded();
+        HugeTarget.schema(this.graph).initSchemaIfNeeded();
+        HugeBelong.schema(this.graph).initSchemaIfNeeded();
+        HugeAccess.schema(this.graph).initSchemaIfNeeded();
     }
 
     private void invalidCache() {
@@ -296,7 +303,7 @@ public class UserManager {
         return null;
     }
 
-    public Object roleAction(HugeUser user) {
+    public RolePermission roleAction(HugeUser user) {
         if (user.role() != null) {
             // Return cached role (40ms => 10ms)
             return user.role();
@@ -308,33 +315,14 @@ public class UserManager {
             accesses.addAll(this.listAccessByGroup(belong.target(), -1));
         }
 
-        Map<String, Map<String, List<HugeResource>>> owners = new HashMap<>();
+        // Mapping of: graph -> action -> resource
+        RolePermission role = new RolePermission();
         for (HugeAccess access : accesses) {
-            String accessPerm = access.permission().string();
+            HugePermission accessPerm = access.permission();
             HugeTarget target = this.getTarget(access.target());
-            String graph = target.graph();
-            Map<String, List<HugeResource>> permissions = owners.get(graph);
-            if (permissions == null) {
-                permissions = new HashMap<>();
-                owners.put(graph, permissions);
-            }
-            List<HugeResource> resources = permissions.get(accessPerm);
-            if (resources == null) {
-                resources = new ArrayList<>();
-                permissions.put(accessPerm, resources);
-            }
-            resources.addAll(target.resources());
+            role.add(target.graph(), accessPerm, target.resources());
         }
-        user.role(owners);
-        return owners;
-    }
-
-    public void initSchemaIfNeeded() {
-        this.invalidCache();
-        HugeUser.schema(this.graph).initSchemaIfNeeded();
-        HugeGroup.schema(this.graph).initSchemaIfNeeded();
-        HugeTarget.schema(this.graph).initSchemaIfNeeded();
-        HugeBelong.schema(this.graph).initSchemaIfNeeded();
-        HugeAccess.schema(this.graph).initSchemaIfNeeded();
+        user.role(role);
+        return role;
     }
 }

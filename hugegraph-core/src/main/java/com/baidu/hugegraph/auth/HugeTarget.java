@@ -25,21 +25,15 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
-import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.tinkerpop.shaded.jackson.annotation.JsonProperty;
-import org.apache.tinkerpop.shaded.jackson.core.type.TypeReference;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraphParams;
+import com.baidu.hugegraph.auth.ResourceObject.ResourceType;
 import com.baidu.hugegraph.auth.SchemaDefine.Entity;
-import com.baidu.hugegraph.auth.SchemaDefine.ResourceType;
-import com.baidu.hugegraph.auth.SchemaDefine.UserElement;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.schema.VertexLabel;
-import com.baidu.hugegraph.structure.HugeElement;
-import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
 
@@ -262,105 +256,6 @@ public class HugeTarget extends Entity {
             props.add(createPropertyKey(P.RESS));
 
             return super.initProperties(props);
-        }
-    }
-
-    public static class HugeResource {
-
-        public static final String ANY = "*";
-
-        @JsonProperty("type")
-        private ResourceType type;
-
-        @JsonProperty("label")
-        private String label;
-
-        @JsonProperty("properties")
-        private Map<String, String> properties; // value can be predicate
-
-        public HugeResource() {
-            // pass
-        }
-
-        public HugeResource(ResourceType type, String label,
-                            Map<String, String> properties) {
-            this.type = type;
-            this.label = label;
-            this.properties = properties;
-        }
-
-        public boolean filter(UserElement element) {
-            if (this.type == null || this.type == ResourceType.NONE) {
-                return false;
-            }
-            if (this.type != ResourceType.ROOT && this.type != element.type()) {
-                return false;
-            }
-            return true;
-        }
-
-        public boolean filter(HugeElement element) {
-            if (this.type == null || this.type == ResourceType.NONE) {
-                return false;
-            }
-
-            if (this.type == ResourceType.EDGE) {
-                if (!element.type().isEdge()) {
-                    return false;
-                }
-            } else if (this.type == ResourceType.VERTEX) {
-                if (!element.type().isVertex()) {
-                    return false;
-                }
-            } else {
-                if (this.type != ResourceType.ALL) {
-                    return false;
-                }
-            }
-
-            if (this.label != null && !this.label.equals(element.label())) {
-                return false;
-            }
-
-            if (this.properties == null) {
-                return true;
-            }
-            for (Map.Entry<String, String> entry : this.properties.entrySet()) {
-                String propName = entry.getKey();
-                String expected = entry.getValue();
-                if (propName.equals(ANY) && expected.equals(ANY)) {
-                    return true;
-                }
-                Property<Object> prop = element.property(propName);
-                if (!prop.isPresent()) {
-                    return false;
-                }
-                Object actual = prop.value();
-                if (expected.startsWith(TraversalUtil.P_CALL)) {
-                    if (!TraversalUtil.parsePredicate(expected).test(actual)) {
-                        return false;
-                    }
-                } else {
-                    if (!expected.equals(actual)) {
-                        return false;
-                    }
-                }
-            }
-            return true;
-        }
-
-        @Override
-        public String toString() {
-            return JsonUtil.toJson(this);
-        }
-
-        public static HugeResource parseResource(String resource) {
-            return JsonUtil.fromJson(resource, HugeResource.class);
-        }
-
-        public static List<HugeResource> parseResources(String resources) {
-            TypeReference<?> typeRef = new TypeReference<List<HugeResource>>() {};
-            return JsonUtil.fromJson(resources, typeRef);
         }
     }
 }

@@ -80,7 +80,7 @@ public class KoutAPI extends API {
         Id sourceId = VertexAPI.checkAndParseVertexId(source);
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
 
-        HugeGraph g = graph4path(manager, graph);
+        HugeGraph g = graph(manager, graph);
 
         HugeTraverser traverser = new HugeTraverser(g);
         Set<Id> ids = traverser.kout(sourceId, dir, edgeLabel, depth,

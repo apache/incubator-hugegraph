@@ -75,7 +75,7 @@ public class KneighborAPI extends API {
         Id source = VertexAPI.checkAndParseVertexId(sourceV);
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
 
-        HugeGraph g = graph4path(manager, graph);
+        HugeGraph g = graph(manager, graph);
 
         HugeTraverser traverser = new HugeTraverser(g);
         Set<Id> ids = traverser.kneighbor(source, dir, edgeLabel, depth,

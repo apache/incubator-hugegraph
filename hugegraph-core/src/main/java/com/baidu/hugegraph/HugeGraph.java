@@ -31,6 +31,7 @@ import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 
+import com.baidu.hugegraph.auth.HugeResource.RolePermission;
 import com.baidu.hugegraph.auth.UserManager;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
@@ -40,6 +41,7 @@ import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaElement;
+import com.baidu.hugegraph.schema.SchemaLabel;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.structure.HugeFeatures;
@@ -56,27 +58,39 @@ import com.baidu.hugegraph.type.define.GraphMode;
 public interface HugeGraph extends Graph {
 
     public HugeGraph hugegraph();
-    public HugeGraph hugegraph(String permission);
 
     public SchemaManager schema();
 
     public Id getNextId(HugeType type);
 
+    public void addPropertyKey(PropertyKey key);
+    public void removePropertyKey(Id key);
+    public Collection<PropertyKey> propertyKeys();
     public PropertyKey propertyKey(String key);
     public PropertyKey propertyKey(Id key);
     public boolean existsPropertyKey(String key);
 
+    public void addVertexLabel(VertexLabel vertexLabel);
+    public Id removeVertexLabel(Id label);
+    public Collection<VertexLabel> vertexLabels();
     public VertexLabel vertexLabel(String label);
     public VertexLabel vertexLabel(Id label);
     public VertexLabel vertexLabelOrNone(Id id);
     public boolean existsVertexLabel(String label);
     public boolean existsLinkLabel(Id vertexLabel);
 
+    public void addEdgeLabel(EdgeLabel edgeLabel);
+    public Id removeEdgeLabel(Id label);
+    public Collection<EdgeLabel> edgeLabels();
     public EdgeLabel edgeLabel(String label);
     public EdgeLabel edgeLabel(Id label);
     public EdgeLabel edgeLabelOrNone(Id label);
     public boolean existsEdgeLabel(String label);
 
+    public void addIndexLabel(SchemaLabel schemaLabel, IndexLabel indexLabel);
+    public Id removeIndexLabel(Id label);
+    public Id rebuildIndex(SchemaElement schema);
+    public Collection<IndexLabel> indexLabels();
     public IndexLabel indexLabel(String label);
     public IndexLabel indexLabel(Id id);
     public boolean existsIndexLabel(String label);
@@ -88,6 +102,7 @@ public interface HugeGraph extends Graph {
     public <V> void removeVertexProperty(VertexProperty<V> property);
 
     public Edge addEdge(Edge edge);
+    public void canAddEdge(Edge edge);
     public void removeEdge(Edge edge);
     public <V> void addEdgeProperty(Property<V> property);
     public <V> void removeEdgeProperty(Property<V> property);
@@ -123,7 +138,7 @@ public interface HugeGraph extends Graph {
     @Override
     public HugeFeatures features();
 
-    public Object matchUser(String username, String password);
+    public RolePermission matchUser(String username, String password);
 
     public UserManager userManager();
     public TaskScheduler taskScheduler();

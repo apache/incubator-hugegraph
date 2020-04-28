@@ -86,7 +86,7 @@ public class CustomizedCrosspointsAPI extends API {
                   request.pathPatterns, request.withPath, request.withVertex,
                   request.capacity, request.limit);
 
-        HugeGraph g = graph4path(manager, graph);
+        HugeGraph g = graph(manager, graph);
         Iterator<Vertex> sources = request.sources.sourcesVertices(g);
         List<CustomizedCrosspointsTraverser.PathPattern> patterns;
         patterns = pathPatterns(g, request);

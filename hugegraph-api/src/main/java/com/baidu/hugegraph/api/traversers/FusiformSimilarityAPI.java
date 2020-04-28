@@ -96,7 +96,7 @@ public class FusiformSimilarityAPI extends API {
                   request.minNeighbors, request.alpha, request.minSimilars,
                   request.groupProperty, request.minGroups);
 
-        HugeGraph g = graph4path(manager, graph);
+        HugeGraph g = graph(manager, graph);
         Iterator<Vertex> sources = request.sources.sourcesVertices(g);
         E.checkArgument(sources != null && sources.hasNext(),
                         "The source vertices can't be empty");

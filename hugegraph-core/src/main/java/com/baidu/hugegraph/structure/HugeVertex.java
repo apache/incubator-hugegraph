@@ -242,6 +242,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         targetVertex.addInEdge(edge.switchOwner());
 
         if (this.fresh()) {
+            this.graph().canAddEdge(edge);
             return this.tx().addEdge(edge);
         } else {
             return (HugeEdge) this.graph().addEdge(edge);

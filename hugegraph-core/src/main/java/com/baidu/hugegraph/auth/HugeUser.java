@@ -29,8 +29,9 @@ import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import com.baidu.hugegraph.HugeGraphParams;
+import com.baidu.hugegraph.auth.HugeResource.RolePermission;
+import com.baidu.hugegraph.auth.ResourceObject.ResourceType;
 import com.baidu.hugegraph.auth.SchemaDefine.Entity;
-import com.baidu.hugegraph.auth.SchemaDefine.ResourceType;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.util.E;
@@ -43,7 +44,7 @@ public class HugeUser extends Entity {
     private String email;
     private String avatar;
     // This field is just for cache
-    private Object role;
+    private RolePermission role;
 
     public HugeUser(String name) {
         this(null, name);
@@ -105,11 +106,11 @@ public class HugeUser extends Entity {
         this.avatar = avatar;
     }
 
-    public Object role() {
+    public RolePermission role() {
         return this.role;
     }
 
-    public void role(Object role) {
+    public void role(RolePermission role) {
         this.role = role;
     }
 

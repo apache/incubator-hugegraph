@@ -23,53 +23,14 @@ import com.baidu.hugegraph.type.define.SerialEnum;
 
 public enum HugePermission implements SerialEnum {
 
-    // general
-    ANY(0),
-    SCHEMA_ANY(1),
-    VERTEX_ANY(2),
-    EDGE_ANY(3),
-    JOB_ANY(4),
+    NONE(0x00),
 
-    READ(15),
-    WRITE(16),
-    DELETE(17),
+    READ(0x01),
+    WRITE(0x02),
+    DELETE(0x04),
+    EXECUTE(0x08),
 
-    // global
-    GREMLIN(20),
-    JOB_GREMLIN(21),
-
-    TASK_READ(31),
-    TASK_WRITE(32),
-    TASK_DELETE(33),
-
-    META_READ(34),
-    META_WRITE(35),
-
-    // schema
-    SCHEMA_READ(50),
-    SCHEMA_WRITE(51),
-    SCHEMA_DELETE(52),
-
-    // vertex
-    VERTEX_READ(100),
-    VERTEX_WRITE(101),
-    VERTEX_DELETE(102),
-
-    // edge
-    EDGE_READ(150),
-    EDGE_WRITE(151),
-    EDGE_DELETE(152),
-
-    // path
-    PATH_READ(200),
-
-    // variables
-    VAR_READ(210),
-    VAR_WRITE(211),
-    VAR_DELETE(212),
-
-    // index
-    JOB_INDEX_REBUILD(220);
+    ALL(0x7f);
 
     private final byte code;
 
@@ -89,18 +50,14 @@ public enum HugePermission implements SerialEnum {
 
     public String string() {
         String string = this.name().toLowerCase();
-        if (0 <= this.code && this.code < 15) {
-            int offset = string.indexOf('_');
-            if (offset >= 0) {
-                string = string.substring(0, offset);
-            } else {
-                string = "";
-            }
-            string += ".*";
-        } else if (15 <= this.code && this.code < 20) {
-            string = ".*" + string;
-        }
         return string;
+    }
+
+    public boolean match(HugePermission other) {
+        if ((this.code & other.code) != 0) {
+            return true;
+        }
+        return false;
     }
 
     public static HugePermission fromCode(byte code) {

@@ -1093,14 +1093,14 @@ public class UsersTest extends BaseCoreTest {
         return target;
     }
 
-    private HugeBelong makeBelong(Id user, Id group) {
+    private static HugeBelong makeBelong(Id user, Id group) {
         HugeBelong belong = new HugeBelong(user, group);
         belong.creator("admin");
         return belong;
     }
 
-    private HugeAccess makeAccess(Id group, Id target,
-                                  HugePermission permission) {
+    private static HugeAccess makeAccess(Id group, Id target,
+                                         HugePermission permission) {
         HugeAccess access = new HugeAccess(group, target, permission);
         access.creator("admin");
         return access;

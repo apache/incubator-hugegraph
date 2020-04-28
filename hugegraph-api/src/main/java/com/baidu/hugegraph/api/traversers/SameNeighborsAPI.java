@@ -74,7 +74,7 @@ public class SameNeighborsAPI extends API {
         Id targetId = VertexAPI.checkAndParseVertexId(other);
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
 
-        HugeGraph g = graph4path(manager, graph);
+        HugeGraph g = graph(manager, graph);
         HugeTraverser traverser = new HugeTraverser(g);
         Set<Id> neighbors = traverser.sameNeighbors(sourceId, targetId, dir,
                                                     edgeLabel, degree, limit);

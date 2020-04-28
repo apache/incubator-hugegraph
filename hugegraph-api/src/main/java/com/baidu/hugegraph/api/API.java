@@ -35,7 +35,6 @@ import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
-import com.baidu.hugegraph.auth.HugePermission;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.define.Checkable;
 import com.baidu.hugegraph.metrics.MetricsUtil;
@@ -78,11 +77,6 @@ public class API {
                       "Graph '%s' does not exist",  graph));
         }
         return g;
-    }
-
-    public static HugeGraph graph4path(GraphManager manager, String graph) {
-        String permission = HugePermission.PATH_READ.string();
-        return graph(manager, graph).hugegraph(permission);
     }
 
     public static HugeGraph graph4admin(GraphManager manager, String graph) {

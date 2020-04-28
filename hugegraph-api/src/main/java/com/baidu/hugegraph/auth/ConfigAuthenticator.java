@@ -26,6 +26,7 @@ import java.util.Map;
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.tinkerpop.gremlin.groovy.jsr223.dsl.credential.CredentialGraphTokens;
 
+import com.baidu.hugegraph.auth.HugeResource.RolePermission;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.util.E;
@@ -56,16 +57,17 @@ public class ConfigAuthenticator implements HugeAuthenticator {
      * @return String No permission if return ROLE_NONE else return a role
      */
     @Override
-    public String authenticate(final String username, final String password) {
+    public RolePermission authenticate(final String username,
+                                       final String password) {
         E.checkArgumentNotNull(username,
                                "The username parameter can't be null");
         E.checkArgumentNotNull(password,
                                "The password parameter can't be null");
 
-        String role;
+        RolePermission role;
         if (password.equals(this.tokens.get(username))) {
-            // Return user name as role
-            role = RolePerm.ownerFor(username, HugePermission.ANY).toString();
+            // Return role with all permission, set user name as owner graph
+            role = RolePermission.all(username);
         } else {
             role = ROLE_NONE;
         }

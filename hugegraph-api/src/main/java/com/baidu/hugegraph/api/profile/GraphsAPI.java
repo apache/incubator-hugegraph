@@ -42,7 +42,6 @@ import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
-import com.baidu.hugegraph.auth.HugeAuthenticator;
 import com.baidu.hugegraph.auth.HugeAuthenticator.RoleAction;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.core.GraphManager;
@@ -68,18 +67,15 @@ public class GraphsAPI extends API {
     public Object list(@Context GraphManager manager,
                        @Context SecurityContext sc) {
         Set<String> graphs = manager.graphs();
-        if (!sc.isUserInRole(HugeAuthenticator.ROLE_ADMIN)) {
-            // Filter by user role
-            Set<String> newGraphs = new HashSet<>();
-            for (String graph : graphs) {
-                String role = RoleAction.roleFor(graph);
-                if (sc.isUserInRole(role)) {
-                    newGraphs.add(graph);
-                }
+        // Filter by user role
+        Set<String> filterGraphs = new HashSet<>();
+        for (String graph : graphs) {
+            String role = RoleAction.roleFor(graph);
+            if (sc.isUserInRole(role)) {
+                filterGraphs.add(graph);
             }
-            graphs = newGraphs;
         }
-        return ImmutableMap.of("graphs", graphs);
+        return ImmutableMap.of("graphs", filterGraphs);
     }
 
     @GET
