@@ -613,34 +613,6 @@ public class EdgeCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testAddEdgeWithTtlNotCommitTx() {
-        Vertex baby = graph().addVertex(T.label, "person", "name", "Baby",
-                                        "age", 3, "city", "Beijing");
-        Vertex java = graph().addVertex(T.label, "book",
-                                        "name", "Java in action");
-        Edge edge = baby.addEdge("read", java, "place", "library of school",
-                                 "date", "2019-12-23 12:00:00");
-        graph().tx().commit();
-
-        Iterator<Edge> edges = graph().edges(edge);
-        Assert.assertTrue(edges.hasNext());
-        Assert.assertEquals(edge, edges.next());
-
-        try {
-            Thread.sleep(3100L);
-        } catch (InterruptedException e) {
-            // Ignore
-        }
-        edges = graph().edges(edge);
-        Assert.assertTrue(edges.hasNext());
-
-        graph().tx().commit();
-
-        edges = graph().edges(edge);
-        Assert.assertFalse(edges.hasNext());
-    }
-
-    @Test
     public void testAddEdgeWithTtlAndTtlStartTime() {
         Vertex baby = graph().addVertex(T.label, "person", "name", "Baby",
                                         "age", 3, "city", "Beijing");

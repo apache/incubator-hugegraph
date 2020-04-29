@@ -887,30 +887,6 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testAddVertexWithTtlNotCommitTx() {
-        Vertex vertex = graph().addVertex(T.label, "fan", "name", "Baby",
-                                          "age", 3, "city", "Beijing");
-        graph().tx().commit();
-
-        Iterator<Vertex> vertices = graph().vertices(vertex);
-        Assert.assertTrue(vertices.hasNext());
-        Assert.assertEquals(vertex, vertices.next());
-
-        try {
-            Thread.sleep(3100L);
-        } catch (InterruptedException e) {
-            // Ignore
-        }
-        vertices = graph().vertices(vertex);
-        Assert.assertTrue(vertices.hasNext());
-
-        graph().tx().commit();
-
-        vertices = graph().vertices(vertex);
-        Assert.assertFalse(vertices.hasNext());
-    }
-
-    @Test
     public void testAddVertexWithTtlAndTtlStartTime() {
         Vertex vertex = graph().addVertex(
                         T.label, "follower", "name",
