@@ -875,6 +875,7 @@ public class VertexCoreTest extends BaseCoreTest {
         Iterator<Vertex> vertices = graph().vertices(vertex);
         Assert.assertTrue(vertices.hasNext());
         Assert.assertEquals(vertex, vertices.next());
+        graph().tx().commit();
 
         try {
             Thread.sleep(3100L);
@@ -886,11 +887,9 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testAddVertexWithTtlAndTtlStartTime() {
-        Vertex vertex = graph().addVertex(
-                        T.label, "follower", "name",
-                        "Baby", "age", 3, "city", "Beijing",
-                        "birth", DateUtil.now().getTime() - 1000);
+    public void testAddVertexWithTtlNotCommitTx() {
+        Vertex vertex = graph().addVertex(T.label, "fan", "name", "Baby",
+                                          "age", 3, "city", "Beijing");
         graph().tx().commit();
 
         Iterator<Vertex> vertices = graph().vertices(vertex);
@@ -898,16 +897,44 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertEquals(vertex, vertices.next());
 
         try {
-            Thread.sleep(1000L);
+            Thread.sleep(3100L);
+        } catch (InterruptedException e) {
+            // Ignore
+        }
+        vertices = graph().vertices(vertex);
+        Assert.assertTrue(vertices.hasNext());
+
+        graph().tx().commit();
+
+        vertices = graph().vertices(vertex);
+        Assert.assertFalse(vertices.hasNext());
+    }
+
+    @Test
+    public void testAddVertexWithTtlAndTtlStartTime() {
+        Vertex vertex = graph().addVertex(
+                        T.label, "follower", "name",
+                        "Baby", "age", 3, "city", "Beijing",
+                        "birth", DateUtil.now().getTime() - 1000L);
+        graph().tx().commit();
+
+        Iterator<Vertex> vertices = graph().vertices(vertex);
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertEquals(vertex, vertices.next());
+        graph().tx().commit();
+
+        try {
+            Thread.sleep(1100L);
         } catch (InterruptedException e) {
             // Ignore
         }
         vertices = graph().vertices(vertex);
         Assert.assertTrue(vertices.hasNext());
         Assert.assertEquals(vertex, vertices.next());
+        graph().tx().commit();
 
         try {
-            Thread.sleep(1000L);
+            Thread.sleep(1100L);
         } catch (InterruptedException e) {
             // Ignore
         }
@@ -928,9 +955,10 @@ public class VertexCoreTest extends BaseCoreTest {
                                            .has("city", "Beijing");
         Assert.assertTrue(vertices.hasNext());
         Assert.assertEquals(vertex, vertices.next());
+        graph().tx().commit();
 
         try {
-            Thread.sleep(3000L);
+            Thread.sleep(3100L);
         } catch (InterruptedException e) {
             // Ignore
         }
@@ -975,9 +1003,10 @@ public class VertexCoreTest extends BaseCoreTest {
         vertices = graph().traversal().V().has("age", P.lte(4));
         Assert.assertTrue(vertices.hasNext());
         Assert.assertEquals(2, IteratorUtils.count(vertices));
+        graph().tx().commit();
 
         try {
-            Thread.sleep(3000L);
+            Thread.sleep(3100L);
         } catch (InterruptedException e) {
             // Ignore
         }
@@ -1046,9 +1075,10 @@ public class VertexCoreTest extends BaseCoreTest {
                           .has("age", P.lte(4));
         Assert.assertTrue(vertices.hasNext());
         Assert.assertEquals(2, IteratorUtils.count(vertices));
+        graph().tx().commit();
 
         try {
-            Thread.sleep(3000L);
+            Thread.sleep(3100L);
         } catch (InterruptedException e) {
             // Ignore
         }
@@ -1090,9 +1120,10 @@ public class VertexCoreTest extends BaseCoreTest {
                                     "city", Text.contains("Haidian"));
         Assert.assertTrue(vertices.hasNext());
         Assert.assertEquals(vertex, vertices.next());
+        graph().tx().commit();
 
         try {
-            Thread.sleep(3000L);
+            Thread.sleep(3100L);
         } catch (InterruptedException e) {
             // Ignore
         }
@@ -1118,7 +1149,7 @@ public class VertexCoreTest extends BaseCoreTest {
         });
 
         try {
-            Thread.sleep(3000L);
+            Thread.sleep(3100L);
         } catch (InterruptedException e) {
             // Ignore
         }
@@ -1141,9 +1172,10 @@ public class VertexCoreTest extends BaseCoreTest {
                                            .has("city", "Beijing");
         Assert.assertTrue(vertices.hasNext());
         Assert.assertEquals(vertex, vertices.next());
+        graph().tx().commit();
 
         try {
-            Thread.sleep(3000L);
+            Thread.sleep(3100L);
         } catch (InterruptedException e) {
             // Ignore
         }
@@ -1161,9 +1193,10 @@ public class VertexCoreTest extends BaseCoreTest {
         vertices = graph().traversal().V().has("city", "Shanghai");
         Assert.assertTrue(vertices.hasNext());
         Assert.assertEquals(vertex, vertices.next());
+        graph().tx().commit();
 
         try {
-            Thread.sleep(3000L);
+            Thread.sleep(3100L);
         } catch (InterruptedException e) {
             // Ignore
         }
@@ -1211,9 +1244,10 @@ public class VertexCoreTest extends BaseCoreTest {
         vertices = graph().traversal().V().has("age", P.lte(5));
         Assert.assertTrue(vertices.hasNext());
         Assert.assertEquals(2, IteratorUtils.count(vertices));
+        graph().tx().commit();
 
         try {
-            Thread.sleep(3000L);
+            Thread.sleep(3100L);
         } catch (InterruptedException e) {
             // Ignore
         }
@@ -1256,9 +1290,10 @@ public class VertexCoreTest extends BaseCoreTest {
         vertices = graph().traversal().V().has("age", P.lte(6));
         Assert.assertTrue(vertices.hasNext());
         Assert.assertEquals(2, IteratorUtils.count(vertices));
+        graph().tx().commit();
 
         try {
-            Thread.sleep(3000L);
+            Thread.sleep(3100L);
         } catch (InterruptedException e) {
             // Ignore
         }
@@ -1331,9 +1366,10 @@ public class VertexCoreTest extends BaseCoreTest {
                           .has("age", P.lte(3));
         Assert.assertTrue(vertices.hasNext());
         Assert.assertEquals(2, IteratorUtils.count(vertices));
+        graph().tx().commit();
 
         try {
-            Thread.sleep(3000L);
+            Thread.sleep(3100L);
         } catch (InterruptedException e) {
             // Ignore
         }
@@ -1391,9 +1427,10 @@ public class VertexCoreTest extends BaseCoreTest {
                           .has("age", P.lte(4));
         Assert.assertTrue(vertices.hasNext());
         Assert.assertEquals(2, IteratorUtils.count(vertices));
+        graph().tx().commit();
 
         try {
-            Thread.sleep(3000L);
+            Thread.sleep(3100L);
         } catch (InterruptedException e) {
             // Ignore
         }
@@ -1443,9 +1480,10 @@ public class VertexCoreTest extends BaseCoreTest {
                                     "city", Text.contains("Haidian"));
         Assert.assertTrue(vertices.hasNext());
         Assert.assertEquals(vertex, vertices.next());
+        graph().tx().commit();
 
         try {
-            Thread.sleep(3000L);
+            Thread.sleep(3100L);
         } catch (InterruptedException e) {
             // Ignore
         }
@@ -1463,9 +1501,10 @@ public class VertexCoreTest extends BaseCoreTest {
                                                Text.contains("Pudong"));
         Assert.assertTrue(vertices.hasNext());
         Assert.assertEquals(vertex, vertices.next());
+        graph().tx().commit();
 
         try {
-            Thread.sleep(3000L);
+            Thread.sleep(3100L);
         } catch (InterruptedException e) {
             // Ignore
         }
@@ -1492,9 +1531,10 @@ public class VertexCoreTest extends BaseCoreTest {
         vertices = graph().vertices(vertex2);
         Assert.assertTrue(vertices.hasNext());
         Assert.assertEquals(vertex2, vertices.next());
+        graph().tx().commit();
 
         try {
-            Thread.sleep(3000L);
+            Thread.sleep(3100L);
         } catch (InterruptedException e) {
             // Ignore
         }
@@ -1523,9 +1563,10 @@ public class VertexCoreTest extends BaseCoreTest {
                                            .has("city", "Beijing");
         Assert.assertTrue(vertices.hasNext());
         Assert.assertEquals(2, IteratorUtils.count(vertices));
+        graph().tx().commit();
 
         try {
-            Thread.sleep(3000L);
+            Thread.sleep(3100L);
         } catch (InterruptedException e) {
             // Ignore
         }
@@ -1583,9 +1624,10 @@ public class VertexCoreTest extends BaseCoreTest {
         vertices = graph().traversal().V().has("age", P.lte(4));
         Assert.assertTrue(vertices.hasNext());
         Assert.assertEquals(4, IteratorUtils.count(vertices));
+        graph().tx().commit();
 
         try {
-            Thread.sleep(3000L);
+            Thread.sleep(3100L);
         } catch (InterruptedException e) {
             // Ignore
         }
@@ -1668,9 +1710,10 @@ public class VertexCoreTest extends BaseCoreTest {
                           .has("age", P.lte(4));
         Assert.assertTrue(vertices.hasNext());
         Assert.assertEquals(4, IteratorUtils.count(vertices));
+        graph().tx().commit();
 
         try {
-            Thread.sleep(3000L);
+            Thread.sleep(3100L);
         } catch (InterruptedException e) {
             // Ignore
         }
@@ -1716,9 +1759,10 @@ public class VertexCoreTest extends BaseCoreTest {
                                     "city", Text.contains("Haidian"));
         Assert.assertTrue(vertices.hasNext());
         Assert.assertEquals(2, IteratorUtils.count(vertices));
+        graph().tx().commit();
 
         try {
-            Thread.sleep(3000L);
+            Thread.sleep(3100L);
         } catch (InterruptedException e) {
             // Ignore
         }

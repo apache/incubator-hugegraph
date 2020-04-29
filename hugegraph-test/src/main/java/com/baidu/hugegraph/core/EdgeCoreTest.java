@@ -601,6 +601,7 @@ public class EdgeCoreTest extends BaseCoreTest {
         Iterator<Edge> edges = graph().edges(edge);
         Assert.assertTrue(edges.hasNext());
         Assert.assertEquals(edge, edges.next());
+        graph().tx().commit();
 
         try {
             Thread.sleep(3100L);
@@ -612,13 +613,13 @@ public class EdgeCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testAddEdgeWithTtlAndTtlStartTime() {
+    public void testAddEdgeWithTtlNotCommitTx() {
         Vertex baby = graph().addVertex(T.label, "person", "name", "Baby",
                                         "age", 3, "city", "Beijing");
         Vertex java = graph().addVertex(T.label, "book",
                                         "name", "Java in action");
-        Edge edge = baby.addEdge("borrow", java, "place", "library of school",
-                                 "date", DateUtil.now().getTime() - 1000);
+        Edge edge = baby.addEdge("read", java, "place", "library of school",
+                                 "date", "2019-12-23 12:00:00");
         graph().tx().commit();
 
         Iterator<Edge> edges = graph().edges(edge);
@@ -626,16 +627,47 @@ public class EdgeCoreTest extends BaseCoreTest {
         Assert.assertEquals(edge, edges.next());
 
         try {
-            Thread.sleep(1000L);
+            Thread.sleep(3100L);
         } catch (InterruptedException e) {
             // Ignore
         }
         edges = graph().edges(edge);
         Assert.assertTrue(edges.hasNext());
+
+        graph().tx().commit();
+
+        edges = graph().edges(edge);
+        Assert.assertFalse(edges.hasNext());
+    }
+
+    @Test
+    public void testAddEdgeWithTtlAndTtlStartTime() {
+        Vertex baby = graph().addVertex(T.label, "person", "name", "Baby",
+                                        "age", 3, "city", "Beijing");
+        Vertex java = graph().addVertex(T.label, "book",
+                                        "name", "Java in action");
+        Edge edge = baby.addEdge("borrow", java, "place", "library of school",
+                                 "date", DateUtil.now().getTime() - 1000L);
+        graph().tx().commit();
+
+        Iterator<Edge> edges = graph().edges(edge);
+        Assert.assertTrue(edges.hasNext());
         Assert.assertEquals(edge, edges.next());
+        graph().tx().commit();
 
         try {
-            Thread.sleep(1000L);
+            Thread.sleep(1100L);
+        } catch (InterruptedException e) {
+            // Ignore
+        }
+
+        edges = graph().edges(edge);
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(edge, edges.next());
+        graph().tx().commit();
+
+        try {
+            Thread.sleep(1100L);
         } catch (InterruptedException e) {
             // Ignore
         }
@@ -660,9 +692,10 @@ public class EdgeCoreTest extends BaseCoreTest {
                                       .has("place", "library of school");
         Assert.assertTrue(edges.hasNext());
         Assert.assertEquals(edge, edges.next());
+        graph().tx().commit();
 
         try {
-            Thread.sleep(3000L);
+            Thread.sleep(3100L);
         } catch (InterruptedException e) {
             // Ignore
         }
@@ -719,9 +752,10 @@ public class EdgeCoreTest extends BaseCoreTest {
                        .has("date", P.lte("2019-12-23 13:00:00"));
         Assert.assertTrue(edges.hasNext());
         Assert.assertEquals(2, IteratorUtils.count(edges));
+        graph().tx().commit();
 
         try {
-            Thread.sleep(3000L);
+            Thread.sleep(3100L);
         } catch (InterruptedException e) {
             // Ignore
         }
@@ -801,9 +835,10 @@ public class EdgeCoreTest extends BaseCoreTest {
                        .has("date", P.lte("2019-12-23 13:00:00"));
         Assert.assertTrue(edges.hasNext());
         Assert.assertEquals(2, IteratorUtils.count(edges));
+        graph().tx().commit();
 
         try {
-            Thread.sleep(3000L);
+            Thread.sleep(3100L);
         } catch (InterruptedException e) {
             // Ignore
         }
@@ -849,9 +884,10 @@ public class EdgeCoreTest extends BaseCoreTest {
                                       .has("place", Text.contains("library"));
         Assert.assertTrue(edges.hasNext());
         Assert.assertEquals(edge, edges.next());
+        graph().tx().commit();
 
         try {
-            Thread.sleep(3000L);
+            Thread.sleep(3100L);
         } catch (InterruptedException e) {
             // Ignore
         }
@@ -880,7 +916,7 @@ public class EdgeCoreTest extends BaseCoreTest {
         });
 
         try {
-            Thread.sleep(3000L);
+            Thread.sleep(3100L);
         } catch (InterruptedException e) {
             // Ignore
         }
@@ -907,9 +943,10 @@ public class EdgeCoreTest extends BaseCoreTest {
                                       .has("place", "library of school");
         Assert.assertTrue(edges.hasNext());
         Assert.assertEquals(edge, edges.next());
+        graph().tx().commit();
 
         try {
-            Thread.sleep(3000L);
+            Thread.sleep(3100L);
         } catch (InterruptedException e) {
             // Ignore
         }
@@ -926,9 +963,10 @@ public class EdgeCoreTest extends BaseCoreTest {
         edges = graph().traversal().E().has("place", "home");
         Assert.assertTrue(edges.hasNext());
         Assert.assertEquals(edge, edges.next());
+        graph().tx().commit();
 
         try {
-            Thread.sleep(3000L);
+            Thread.sleep(3100L);
         } catch (InterruptedException e) {
             // Ignore
         }
@@ -988,9 +1026,10 @@ public class EdgeCoreTest extends BaseCoreTest {
                        .has("date", P.lte("2019-12-23 13:00:00"));
         Assert.assertTrue(edges.hasNext());
         Assert.assertEquals(2, IteratorUtils.count(edges));
+        graph().tx().commit();
 
         try {
-            Thread.sleep(3000L);
+            Thread.sleep(3100L);
         } catch (InterruptedException e) {
             // Ignore
         }
@@ -1035,9 +1074,10 @@ public class EdgeCoreTest extends BaseCoreTest {
                        .has("date", P.lte("2019-12-23 13:01:00"));
         Assert.assertTrue(edges.hasNext());
         Assert.assertEquals(2, IteratorUtils.count(edges));
+        graph().tx().commit();
 
         try {
-            Thread.sleep(3000L);
+            Thread.sleep(3100L);
         } catch (InterruptedException e) {
             // Ignore
         }
@@ -1121,9 +1161,10 @@ public class EdgeCoreTest extends BaseCoreTest {
                        .has("date", P.lte("2019-12-23 13:00:00"));
         Assert.assertTrue(edges.hasNext());
         Assert.assertEquals(2, IteratorUtils.count(edges));
+        graph().tx().commit();
 
         try {
-            Thread.sleep(3000L);
+            Thread.sleep(3100L);
         } catch (InterruptedException e) {
             // Ignore
         }
@@ -1180,9 +1221,10 @@ public class EdgeCoreTest extends BaseCoreTest {
                        .has("date", P.lte("2019-12-23 13:01:00"));
         Assert.assertTrue(edges.hasNext());
         Assert.assertEquals(2, IteratorUtils.count(edges));
+        graph().tx().commit();
 
         try {
-            Thread.sleep(3000L);
+            Thread.sleep(3100L);
         } catch (InterruptedException e) {
             // Ignore
         }
@@ -1236,9 +1278,10 @@ public class EdgeCoreTest extends BaseCoreTest {
                                       .has("place", Text.contains("school"));
         Assert.assertTrue(edges.hasNext());
         Assert.assertEquals(edge, edges.next());
+        graph().tx().commit();
 
         try {
-            Thread.sleep(3000L);
+            Thread.sleep(3100L);
         } catch (InterruptedException e) {
             // Ignore
         }
@@ -1254,9 +1297,10 @@ public class EdgeCoreTest extends BaseCoreTest {
         edges = graph().traversal().E().has("place", Text.contains("city"));
         Assert.assertTrue(edges.hasNext());
         Assert.assertEquals(edge, edges.next());
+        graph().tx().commit();
 
         try {
-            Thread.sleep(3000L);
+            Thread.sleep(3100L);
         } catch (InterruptedException e) {
             // Ignore
         }
@@ -1288,9 +1332,10 @@ public class EdgeCoreTest extends BaseCoreTest {
         edges = graph().edges(edge2);
         Assert.assertTrue(edges.hasNext());
         Assert.assertEquals(edge2, edges.next());
+        graph().tx().commit();
 
         try {
-            Thread.sleep(3000L);
+            Thread.sleep(3100L);
         } catch (InterruptedException e) {
             // Ignore
         }
@@ -1325,9 +1370,10 @@ public class EdgeCoreTest extends BaseCoreTest {
                                       .has("place", "library of school");
         Assert.assertTrue(edges.hasNext());
         Assert.assertEquals(2, IteratorUtils.count(edges));
+        graph().tx().commit();
 
         try {
-            Thread.sleep(3000L);
+            Thread.sleep(3100L);
         } catch (InterruptedException e) {
             // Ignore
         }
@@ -1402,9 +1448,10 @@ public class EdgeCoreTest extends BaseCoreTest {
                        .has("date", P.lte("2019-12-23 13:00:00"));
         Assert.assertTrue(edges.hasNext());
         Assert.assertEquals(4, IteratorUtils.count(edges));
+        graph().tx().commit();
 
         try {
-            Thread.sleep(3000L);
+            Thread.sleep(3100L);
         } catch (InterruptedException e) {
             // Ignore
         }
@@ -1505,9 +1552,10 @@ public class EdgeCoreTest extends BaseCoreTest {
                        .has("date", P.lte("2019-12-23 13:00:00"));
         Assert.assertTrue(edges.hasNext());
         Assert.assertEquals(4, IteratorUtils.count(edges));
+        graph().tx().commit();
 
         try {
-            Thread.sleep(3000L);
+            Thread.sleep(3100L);
         } catch (InterruptedException e) {
             // Ignore
         }
@@ -1559,9 +1607,10 @@ public class EdgeCoreTest extends BaseCoreTest {
                                       .has("place", Text.contains("library"));
         Assert.assertTrue(edges.hasNext());
         Assert.assertEquals(2, IteratorUtils.count(edges));
+        graph().tx().commit();
 
         try {
-            Thread.sleep(3000L);
+            Thread.sleep(3100L);
         } catch (InterruptedException e) {
             // Ignore
         }
