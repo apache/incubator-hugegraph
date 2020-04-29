@@ -877,7 +877,7 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertEquals(vertex, vertices.next());
 
         try {
-            Thread.sleep(3000L);
+            Thread.sleep(3100L);
         } catch (InterruptedException e) {
             // Ignore
         }

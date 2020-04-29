@@ -603,7 +603,7 @@ public class EdgeCoreTest extends BaseCoreTest {
         Assert.assertEquals(edge, edges.next());
 
         try {
-            Thread.sleep(3000L);
+            Thread.sleep(3100L);
         } catch (InterruptedException e) {
             // Ignore
         }
