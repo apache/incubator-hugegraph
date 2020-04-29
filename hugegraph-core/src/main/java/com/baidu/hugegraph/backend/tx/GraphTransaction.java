@@ -759,7 +759,7 @@ public class GraphTransaction extends IndexableTransaction {
         if (!this.store().features().supportsTtl() && !query.showExpired()) {
             vertices = new FilterIterator<>(vertices, vertex -> {
                 if (vertex.expired()) {
-                    DeleteExpiredJob.asyncDeleteExpiredObject(this.graph(),
+                    DeleteExpiredJob.asyncDeleteExpiredObject(this.params(),
                                                               vertex);
                     return false;
                 }
@@ -958,7 +958,7 @@ public class GraphTransaction extends IndexableTransaction {
         if (!this.store().features().supportsTtl() && !query.showExpired()) {
             edges = new FilterIterator<>(edges, edge -> {
                 if (edge.expired()) {
-                    DeleteExpiredJob.asyncDeleteExpiredObject(this.graph(),
+                    DeleteExpiredJob.asyncDeleteExpiredObject(this.params(),
                                                               edge);
                     return false;
                 }

@@ -21,7 +21,7 @@ package com.baidu.hugegraph.job.system;
 
 import java.util.Set;
 
-import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.util.E;
@@ -45,7 +45,7 @@ public class DeleteExpiredElementJob extends DeleteExpiredJob<Object> {
 
     @Override
     public Object execute() throws Exception {
-        HugeGraph graph = this.graph();
+        HugeGraphParams graph = this.params();
         GraphTransaction tx = graph.graphTransaction();
         try {
             for (HugeElement element : this.elements) {

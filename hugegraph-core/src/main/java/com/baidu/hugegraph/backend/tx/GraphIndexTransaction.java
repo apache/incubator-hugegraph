@@ -593,7 +593,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
             HugeIndex removeIndex = index.clone();
             removeIndex.resetElementIds();
             removeIndex.elementIds(id.id(), id.expiredTime());
-            DeleteExpiredJob.asyncDeleteExpiredObject(graph(), removeIndex);
+            DeleteExpiredJob.asyncDeleteExpiredObject(this.params(),
+                                                      removeIndex);
         }
     }
 

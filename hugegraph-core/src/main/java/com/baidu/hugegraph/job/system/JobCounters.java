@@ -23,7 +23,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.structure.HugeIndex;
@@ -33,7 +33,7 @@ public class JobCounters {
     private ConcurrentHashMap<String, JobCounter> jobCounters =
                                                   new ConcurrentHashMap<>();
 
-    public JobCounter jobCounter(HugeGraph g) {
+    public JobCounter jobCounter(HugeGraphParams g) {
         int batch = g.configuration().get(CoreOptions.EXPIRED_DELETE_BATCH);
         String graph = g.name();
         if (!this.jobCounters.containsKey(graph)) {

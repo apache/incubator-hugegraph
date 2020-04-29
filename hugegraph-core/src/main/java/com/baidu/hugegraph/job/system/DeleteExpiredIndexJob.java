@@ -22,7 +22,7 @@ package com.baidu.hugegraph.job.system;
 import java.util.Iterator;
 import java.util.Set;
 
-import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.structure.HugeElement;
@@ -49,7 +49,7 @@ public class DeleteExpiredIndexJob extends DeleteExpiredJob<Object> {
 
     @Override
     public Object execute() throws Exception {
-        HugeGraph graph = this.graph();
+        HugeGraphParams graph = this.params();
         GraphTransaction tx = graph.graphTransaction();
         try {
             for (HugeIndex index : this.indexes) {
@@ -70,7 +70,7 @@ public class DeleteExpiredIndexJob extends DeleteExpiredJob<Object> {
      * Delete expired element(if exist) of the index,
      * otherwise just delete expired index only
      */
-    private void deleteExpiredIndex(HugeGraph graph, HugeIndex index) {
+    private void deleteExpiredIndex(HugeGraphParams graph, HugeIndex index) {
         GraphTransaction tx = graph.graphTransaction();
         HugeType type = index.indexLabel().queryType().isVertex()?
                         HugeType.VERTEX : HugeType.EDGE;

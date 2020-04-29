@@ -21,7 +21,7 @@ package com.baidu.hugegraph.job.system;
 
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.job.EphemeralJob;
 import com.baidu.hugegraph.job.EphemeralJobBuilder;
@@ -40,7 +40,8 @@ public abstract class DeleteExpiredJob<T> extends EphemeralJob<T> {
     private static final int MAX_JOBS = 1000;
     protected static final JobCounters JOB_COUNTERS = new JobCounters();
 
-    public static <T> void asyncDeleteExpiredObject(HugeGraph graph, T object) {
+    public static <T> void asyncDeleteExpiredObject(HugeGraphParams graph,
+                                                    T object) {
         E.checkArgumentNotNull(object, "The object can't be null");
         JobCounters.JobCounter jobCounter = JOB_COUNTERS.jobCounter(graph);
         if (!jobCounter.addAndTriggerDelete(object)) {
@@ -57,7 +58,7 @@ public abstract class DeleteExpiredJob<T> extends EphemeralJob<T> {
         jobCounter.clear(object);
         HugeTask<?> task;
         try {
-            task = EphemeralJobBuilder.of(graph)
+            task = EphemeralJobBuilder.of(graph.graph())
                                       .name("delete_expired_object")
                                       .job(job)
                                       .schedule();
