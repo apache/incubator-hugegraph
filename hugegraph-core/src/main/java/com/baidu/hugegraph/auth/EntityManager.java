@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
+import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import com.baidu.hugegraph.HugeException;
@@ -70,6 +71,10 @@ public class EntityManager<T extends Entity> {
         return this.graph.graph();
     }
 
+    private String unhideLabel() {
+        return Hidden.unHide(this.label) ;
+    }
+
     public Id add(T entity) {
         E.checkArgumentNotNull(entity, "Entity can't be null");
         return this.save(entity);
@@ -103,9 +108,20 @@ public class EntityManager<T extends Entity> {
         }
         if (entity == null) {
             throw new NotFoundException("Can't find %s with id '%s'",
-                                        this.label, id);
+                                        this.unhideLabel(), id);
         }
         return entity;
+    }
+
+    public boolean exists(Id id) {
+        Iterator<Vertex> vertices = this.tx().queryVertices(id);
+        if (vertices.hasNext()) {
+            Vertex vertex = vertices.next();
+            if (this.label.equals(vertex.label())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public List<T> list(List<Id> ids) {

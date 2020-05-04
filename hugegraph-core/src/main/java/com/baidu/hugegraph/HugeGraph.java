@@ -31,7 +31,6 @@ import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 
-import com.baidu.hugegraph.auth.HugeResource.RolePermission;
 import com.baidu.hugegraph.auth.UserManager;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
@@ -137,8 +136,6 @@ public interface HugeGraph extends Graph {
 
     @Override
     public HugeFeatures features();
-
-    public RolePermission matchUser(String username, String password);
 
     public UserManager userManager();
     public TaskScheduler taskScheduler();

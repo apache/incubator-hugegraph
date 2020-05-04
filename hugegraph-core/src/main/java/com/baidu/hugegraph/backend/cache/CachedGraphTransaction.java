@@ -26,7 +26,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.cache.CachedBackendStore.QueryId;
 import com.baidu.hugegraph.backend.id.Id;
@@ -95,8 +94,7 @@ public final class CachedGraphTransaction extends GraphTransaction {
 
     private Cache<Id, Object> cache(String prefix, String type, long capacity,
                                     long entrySize, long expire) {
-        HugeGraph graph = super.graph();
-        String name = prefix + "-" + graph.name();
+        String name = prefix + "-" + this.params().name();
         Cache<Id, Object> cache;
         switch (type) {
             case "l1":
@@ -104,8 +102,8 @@ public final class CachedGraphTransaction extends GraphTransaction {
                 break;
             case "l2":
                 long heapCapacity = (long) (DEFAULT_LEVEL_RATIO * capacity);
-                cache = CacheManager.instance().levelCache(graph, name,
-                                                           heapCapacity,
+                cache = CacheManager.instance().levelCache(super.graph(),
+                                                           name, heapCapacity,
                                                            capacity, entrySize);
                 break;
             default:

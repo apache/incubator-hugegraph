@@ -64,6 +64,7 @@ public class HugeGroup extends Entity {
         return P.GROUP;
     }
 
+    @Override
     public String name() {
         return this.name;
     }
@@ -124,11 +125,6 @@ public class HugeGroup extends Entity {
         E.checkState(this.name != null, "Group name can't be null");
 
         Map<String, Object> map = new HashMap<>();
-
-        if (this.id != null) {
-            // The id is null when creating group
-            map.put(Hidden.unHide(P.ID), this.id);
-        }
 
         map.put(Hidden.unHide(P.NAME), this.name);
         if (this.description != null) {

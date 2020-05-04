@@ -86,6 +86,7 @@ public final class FakeObjects {
         schema.cardinality(cardinality);
 
         Mockito.when(this.graph.propertyKey(id)).thenReturn(schema);
+        Mockito.when(this.graph.propertyKey(name)).thenReturn(schema);
         return schema;
     }
 

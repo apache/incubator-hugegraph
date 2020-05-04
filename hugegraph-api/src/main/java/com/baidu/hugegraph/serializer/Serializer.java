@@ -27,6 +27,7 @@ import java.util.Map;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
+import com.baidu.hugegraph.auth.SchemaDefine.UserElement;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -68,6 +69,11 @@ public interface Serializer {
     public String writeEdge(Edge e);
 
     public String writeEdges(Iterator<Edge> edges, boolean paging);
+
+    public String writeUserElement(UserElement elem);
+
+    public <V extends UserElement> String writeUserElements(String label,
+                                                            List<V> users);
 
     public String writePaths(String name, Collection<HugeTraverser.Path> paths,
                              boolean withCrossPoint, Iterator<Vertex> vertices);

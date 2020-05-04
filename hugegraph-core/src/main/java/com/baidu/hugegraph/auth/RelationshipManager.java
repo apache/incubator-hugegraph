@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.function.Function;
 
 import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
@@ -73,6 +74,10 @@ public class RelationshipManager<T extends Relationship> {
         return this.graph.graph();
     }
 
+    private String unhideLabel() {
+        return Hidden.unHide(this.label) ;
+    }
+
     public Id add(T relationship) {
         E.checkArgumentNotNull(relationship, "Relationship can't be null");
         return this.save(relationship);
@@ -106,7 +111,7 @@ public class RelationshipManager<T extends Relationship> {
         }
         if (relationship == null) {
             throw new NotFoundException("Can't find %s with id '%s'",
-                                        this.label, id);
+                                        this.unhideLabel(), id);
         }
         return relationship;
     }

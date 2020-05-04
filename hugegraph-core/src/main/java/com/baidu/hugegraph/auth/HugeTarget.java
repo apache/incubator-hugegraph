@@ -56,6 +56,10 @@ public class HugeTarget extends Entity {
         this(null, name, name, url, EMPTY);
     }
 
+    public HugeTarget(String name, String graph, String url) {
+        this(null, name, graph, url, EMPTY);
+    }
+
     public HugeTarget(String name, String graph, String url,
                       List<HugeResource> resources) {
         this(null, name, graph, url, resources);
@@ -80,6 +84,7 @@ public class HugeTarget extends Entity {
         return P.TARGET;
     }
 
+    @Override
     public String name() {
         return this.name;
     }
@@ -110,6 +115,7 @@ public class HugeTarget extends Entity {
     }
 
     public void resources(List<HugeResource> resources) {
+        E.checkNotNull(resources, "resources");
         this.resources = resources;
     }
 
@@ -175,11 +181,6 @@ public class HugeTarget extends Entity {
         E.checkState(this.url != null, "Target url can't be null");
 
         Map<String, Object> map = new HashMap<>();
-
-        if (this.id != null) {
-            // The id is null when creating target
-            map.put(Hidden.unHide(P.ID), this.id);
-        }
 
         map.put(Hidden.unHide(P.NAME), this.name);
         map.put(Hidden.unHide(P.GRAPH), this.graph);
