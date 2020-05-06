@@ -59,7 +59,7 @@ import jersey.repackaged.com.google.common.base.Objects;
 public abstract class AbstractAlgorithm implements Algorithm {
 
     public static final long MAX_RESULT_SIZE = 100L * Bytes.MB;
-    public static final long MAX_QUERY_LIMIT = 10000000L; // about 10GB
+    public static final long MAX_QUERY_LIMIT = 100000000L; // about 100GB
     public static final int BATCH = 500;
 
     public static final String CATEGORY_AGGR = "aggregate";
@@ -81,6 +81,7 @@ public abstract class AbstractAlgorithm implements Algorithm {
     public static final String KEY_TIMES = "times";
     public static final String KEY_STABLE_TIMES = "stable_times";
     public static final String KEY_PRECISION = "precision";
+    public static final String KEY_SHOW_MOD= "show_modularity";
     public static final String KEY_SHOW_COMM = "show_community";
     public static final String KEY_CLEAR = "clear";
     public static final String KEY_CAPACITY = "capacity";
