@@ -69,7 +69,7 @@ public class GroupAPI extends API {
 
         HugeGraph g = graph(manager, graph);
         HugeGroup group = jsonGroup.build();
-        group.id(g.userManager().createGroup(group));
+        group.id(manager.userManager().createGroup(group));
         return manager.serializer(g).writeUserElement(group);
     }
 
@@ -88,12 +88,12 @@ public class GroupAPI extends API {
         HugeGraph g = graph(manager, graph);
         HugeGroup group;
         try {
-            group = g.userManager().getGroup(UserAPI.parseId(id));
+            group = manager.userManager().getGroup(UserAPI.parseId(id));
         } catch (NotFoundException e) {
             throw new IllegalArgumentException("Invalid group id: " + id);
         }
         group = jsonGroup.build(group);
-        g.userManager().updateGroup(group);
+        manager.userManager().updateGroup(group);
         return manager.serializer(g).writeUserElement(group);
     }
 
@@ -106,7 +106,7 @@ public class GroupAPI extends API {
         LOG.debug("Graph [{}] list groups", graph);
 
         HugeGraph g = graph(manager, graph);
-        List<HugeGroup> groups = g.userManager().listAllGroups(limit);
+        List<HugeGroup> groups = manager.userManager().listAllGroups(limit);
         return manager.serializer(g).writeUserElements("groups", groups);
     }
 
@@ -120,7 +120,7 @@ public class GroupAPI extends API {
         LOG.debug("Graph [{}] get group: {}", graph, id);
 
         HugeGraph g = graph(manager, graph);
-        HugeGroup group = g.userManager().getGroup(IdGenerator.of(id));
+        HugeGroup group = manager.userManager().getGroup(IdGenerator.of(id));
         return manager.serializer(g).writeUserElement(group);
     }
 
@@ -133,8 +133,7 @@ public class GroupAPI extends API {
                        @PathParam("id") String id) {
         LOG.debug("Graph [{}] delete group: {}", graph, id);
 
-        HugeGraph g = graph(manager, graph);
-        g.userManager().deleteGroup(IdGenerator.of(id));
+        manager.userManager().deleteGroup(IdGenerator.of(id));
     }
 
     private static class JsonGroup implements Checkable {

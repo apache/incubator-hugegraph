@@ -71,7 +71,7 @@ public class AccessAPI extends API {
 
         HugeGraph g = graph(manager, graph);
         HugeAccess access = jsonAccess.build();
-        access.id(g.userManager().createAccess(access));
+        access.id(manager.userManager().createAccess(access));
         return manager.serializer(g).writeUserElement(access);
     }
 
@@ -90,12 +90,12 @@ public class AccessAPI extends API {
         HugeGraph g = graph(manager, graph);
         HugeAccess access;
         try {
-            access = g.userManager().getAccess(UserAPI.parseId(id));
+            access = manager.userManager().getAccess(UserAPI.parseId(id));
         } catch (NotFoundException e) {
             throw new IllegalArgumentException("Invalid access id: " + id);
         }
         access = jsonAccess.build(access);
-        g.userManager().updateAccess(access);
+        manager.userManager().updateAccess(access);
         return manager.serializer(g).writeUserElement(access);
     }
 
@@ -114,12 +114,12 @@ public class AccessAPI extends API {
         List<HugeAccess> belongs;
         if (group != null) {
             Id id = UserAPI.parseId(group);
-            belongs = g.userManager().listAccessByGroup(id, limit);
+            belongs = manager.userManager().listAccessByGroup(id, limit);
         } else if (target != null) {
             Id id = UserAPI.parseId(target);
-            belongs = g.userManager().listAccessByTarget(id, limit);
+            belongs = manager.userManager().listAccessByTarget(id, limit);
         } else {
-            belongs = g.userManager().listAllAccess(limit);
+            belongs = manager.userManager().listAllAccess(limit);
         }
         return manager.serializer(g).writeUserElements("accesses", belongs);
     }
@@ -134,7 +134,7 @@ public class AccessAPI extends API {
         LOG.debug("Graph [{}] get access: {}", graph, id);
 
         HugeGraph g = graph(manager, graph);
-        HugeAccess access = g.userManager().getAccess(IdGenerator.of(id));
+        HugeAccess access = manager.userManager().getAccess(IdGenerator.of(id));
         return manager.serializer(g).writeUserElement(access);
     }
 
@@ -147,8 +147,7 @@ public class AccessAPI extends API {
                        @PathParam("id") String id) {
         LOG.debug("Graph [{}] delete access: {}", graph, id);
 
-        HugeGraph g = graph(manager, graph);
-        g.userManager().deleteAccess(IdGenerator.of(id));
+        manager.userManager().deleteAccess(IdGenerator.of(id));
     }
 
     private static class JsonAccess implements Checkable {

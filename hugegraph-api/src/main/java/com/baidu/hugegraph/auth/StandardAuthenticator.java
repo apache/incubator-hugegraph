@@ -27,7 +27,6 @@ import org.apache.commons.lang.NotImplementedException;
 import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
 
 import com.baidu.hugegraph.HugeGraph;
-import com.baidu.hugegraph.auth.RolePermission;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.util.E;
@@ -37,13 +36,9 @@ public class StandardAuthenticator implements HugeAuthenticator {
 
     private HugeGraph graph = null;
 
-    @Override
-    public void setup(HugeConfig config) {
-        String graphName = config.get(ServerOptions.AUTH_GRAPH_STORE);
-        String graphPath = config.getMap(ServerOptions.GRAPHS).get(graphName);
-        E.checkArgument(graphPath != null,
-                        "Invalid graph name '%s'", graphName);
-        this.graph = (HugeGraph) GraphFactory.open(graphPath);
+    private HugeGraph graph() {
+        E.checkState(this.graph != null, "Must setup Authenticator first");
+        return this.graph;
     }
 
     private void initAdminUser() throws Exception {
@@ -51,7 +46,7 @@ public class StandardAuthenticator implements HugeAuthenticator {
         String caller = Thread.currentThread().getName();
         E.checkState(caller.equals("main"), "Invalid caller '%s'", caller);
 
-        UserManager userManager = this.graph.hugegraph().userManager();
+        UserManager userManager = this.graph().hugegraph().userManager();
         HugeUser admin = new HugeUser(HugeAuthenticator.USER_ADMIN);
         admin.password(StringEncoding.hashPassword(inputPassword()));
         admin.creator(HugeAuthenticator.USER_SYSTEM);
@@ -74,9 +69,13 @@ public class StandardAuthenticator implements HugeAuthenticator {
         }
     }
 
-    protected RolePermission loginUser(String username, String password) {
-        E.checkState(this.graph != null, "Must setup Authenticator first");
-        return this.graph.userManager().loginUser(username, password);
+    @Override
+    public void setup(HugeConfig config) {
+        String graphName = config.get(ServerOptions.AUTH_GRAPH_STORE);
+        String graphPath = config.getMap(ServerOptions.GRAPHS).get(graphName);
+        E.checkArgument(graphPath != null,
+                        "Invalid graph name '%s'", graphName);
+        this.graph = (HugeGraph) GraphFactory.open(graphPath);
     }
 
     /**
@@ -92,13 +91,19 @@ public class StandardAuthenticator implements HugeAuthenticator {
         E.checkArgumentNotNull(password,
                                "The password parameter can't be null");
 
-        RolePermission role = this.loginUser(username, password);
+        RolePermission role = this.graph().userManager().loginUser(username,
+                                                                   password);
         if (role == null) {
             role = ROLE_NONE;
         } else if (username.equals(USER_ADMIN)) {
             role = ROLE_ADMIN;
         }
         return role;
+    }
+
+    @Override
+    public UserManager userManager() {
+        return this.graph().userManager();
     }
 
     @Override

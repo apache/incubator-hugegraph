@@ -39,6 +39,7 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.auth.HugeAuthenticator;
 import com.baidu.hugegraph.auth.HugeFactoryAuthProxy;
 import com.baidu.hugegraph.auth.HugeGraphAuthProxy;
+import com.baidu.hugegraph.auth.UserManager;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.cache.Cache;
 import com.baidu.hugegraph.backend.cache.CacheManager;
@@ -131,6 +132,27 @@ public final class GraphManager {
         closeTx(graphSourceNamesToCloseTxOn, Transaction.Status.COMMIT);
     }
 
+    public boolean requireAuthentication() {
+        if (this.authenticator == null) {
+            return false;
+        }
+        return this.authenticator.requireAuthentication();
+    }
+
+    public HugeAuthenticator.User authenticate(Map<String, String> credentials)
+                                               throws AuthenticationException {
+        return this.authenticator().authenticate(credentials);
+    }
+
+    public UserManager userManager() {
+        return this.authenticator().userManager();
+    }
+
+    private HugeAuthenticator authenticator() {
+        E.checkState(this.authenticator != null, "Unconfigured authenticator");
+        return this.authenticator;
+    }
+
     @SuppressWarnings("unused")
     private void installLicense(HugeConfig config, String md5) {
         LicenseVerifier.instance().install(config, this, md5);
@@ -156,19 +178,6 @@ public final class GraphManager {
                 }
             }
         });
-    }
-
-    public boolean requireAuthentication() {
-        if (this.authenticator == null) {
-            return false;
-        }
-        return this.authenticator.requireAuthentication();
-    }
-
-    public HugeAuthenticator.User authenticate(Map<String, String> credentials)
-                                               throws AuthenticationException {
-        E.checkState(this.authenticator != null, "Unconfigured authenticator");
-        return this.authenticator.authenticate(credentials);
     }
 
     private void loadGraph(String name, String path) {

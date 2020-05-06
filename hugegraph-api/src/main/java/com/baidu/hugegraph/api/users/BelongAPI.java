@@ -70,7 +70,7 @@ public class BelongAPI extends API {
 
         HugeGraph g = graph(manager, graph);
         HugeBelong belong = jsonBelong.build();
-        belong.id(g.userManager().createBelong(belong));
+        belong.id(manager.userManager().createBelong(belong));
         return manager.serializer(g).writeUserElement(belong);
     }
 
@@ -89,12 +89,12 @@ public class BelongAPI extends API {
         HugeGraph g = graph(manager, graph);
         HugeBelong belong;
         try {
-            belong = g.userManager().getBelong(UserAPI.parseId(id));
+            belong = manager.userManager().getBelong(UserAPI.parseId(id));
         } catch (NotFoundException e) {
             throw new IllegalArgumentException("Invalid belong id: " + id);
         }
         belong = jsonBelong.build(belong);
-        g.userManager().updateBelong(belong);
+        manager.userManager().updateBelong(belong);
         return manager.serializer(g).writeUserElement(belong);
     }
 
@@ -113,12 +113,12 @@ public class BelongAPI extends API {
         List<HugeBelong> belongs;
         if (user != null) {
             Id id = UserAPI.parseId(user);
-            belongs = g.userManager().listBelongByUser(id, limit);
+            belongs = manager.userManager().listBelongByUser(id, limit);
         } else if (group != null) {
             Id id = UserAPI.parseId(group);
-            belongs = g.userManager().listBelongByGroup(id, limit);
+            belongs = manager.userManager().listBelongByGroup(id, limit);
         } else {
-            belongs = g.userManager().listAllBelong(limit);
+            belongs = manager.userManager().listAllBelong(limit);
         }
         return manager.serializer(g).writeUserElements("belongs", belongs);
     }
@@ -133,7 +133,7 @@ public class BelongAPI extends API {
         LOG.debug("Graph [{}] get belong: {}", graph, id);
 
         HugeGraph g = graph(manager, graph);
-        HugeBelong belong = g.userManager().getBelong(IdGenerator.of(id));
+        HugeBelong belong = manager.userManager().getBelong(IdGenerator.of(id));
         return manager.serializer(g).writeUserElement(belong);
     }
 
@@ -146,8 +146,7 @@ public class BelongAPI extends API {
                        @PathParam("id") String id) {
         LOG.debug("Graph [{}] delete belong: {}", graph, id);
 
-        HugeGraph g = graph(manager, graph);
-        g.userManager().deleteBelong(IdGenerator.of(id));
+        manager.userManager().deleteBelong(IdGenerator.of(id));
     }
 
     private static class JsonBelong implements Checkable {

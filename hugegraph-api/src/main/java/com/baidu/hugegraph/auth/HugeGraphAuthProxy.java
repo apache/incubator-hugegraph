@@ -51,7 +51,6 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.auth.HugeAuthenticator.RolePerm;
 import com.baidu.hugegraph.auth.HugeAuthenticator.User;
-import com.baidu.hugegraph.auth.RolePermission;
 import com.baidu.hugegraph.auth.ResourceObject.ResourceType;
 import com.baidu.hugegraph.auth.SchemaDefine.UserElement;
 import com.baidu.hugegraph.backend.id.Id;
@@ -594,12 +593,13 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         verifyAdminPermission();
         HugeUser admin = this.hugegraph.userManager()
                              .findUser(HugeAuthenticator.USER_ADMIN);
-        E.checkState(admin != null, "Does not exist admin user");
         try {
             this.hugegraph.truncateBackend();
         } finally {
-            // Restore admin user to continue to do any operation
-            this.hugegraph.userManager().createUser(admin);
+            if (admin != null) {
+                // Restore admin user to continue to do any operation
+                this.hugegraph.userManager().createUser(admin);
+            }
         }
     }
 

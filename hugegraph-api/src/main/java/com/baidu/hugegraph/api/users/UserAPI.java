@@ -71,7 +71,7 @@ public class UserAPI extends API {
 
         HugeGraph g = graph(manager, graph);
         HugeUser user = jsonUser.build();
-        user.id(g.userManager().createUser(user));
+        user.id(manager.userManager().createUser(user));
         return manager.serializer(g).writeUserElement(user);
     }
 
@@ -90,12 +90,12 @@ public class UserAPI extends API {
         HugeGraph g = graph(manager, graph);
         HugeUser user;
         try {
-            user = g.userManager().getUser(UserAPI.parseId(id));
+            user = manager.userManager().getUser(UserAPI.parseId(id));
         } catch (NotFoundException e) {
             throw new IllegalArgumentException("Invalid user id: " + id);
         }
         user = jsonUser.build(user);
-        g.userManager().updateUser(user);
+        manager.userManager().updateUser(user);
         return manager.serializer(g).writeUserElement(user);
     }
 
@@ -108,7 +108,7 @@ public class UserAPI extends API {
         LOG.debug("Graph [{}] list users", graph);
 
         HugeGraph g = graph(manager, graph);
-        List<HugeUser> users = g.userManager().listAllUsers(limit);
+        List<HugeUser> users = manager.userManager().listAllUsers(limit);
         return manager.serializer(g).writeUserElements("users", users);
     }
 
@@ -122,7 +122,7 @@ public class UserAPI extends API {
         LOG.debug("Graph [{}] get user: {}", graph, id);
 
         HugeGraph g = graph(manager, graph);
-        HugeUser user = g.userManager().getUser(IdGenerator.of(id));
+        HugeUser user = manager.userManager().getUser(IdGenerator.of(id));
         return manager.serializer(g).writeUserElement(user);
     }
 
@@ -135,9 +135,8 @@ public class UserAPI extends API {
                        @PathParam("id") String id) {
         LOG.debug("Graph [{}] get user role: {}", graph, id);
 
-        HugeGraph g = graph(manager, graph);
-        HugeUser user = g.userManager().getUser(IdGenerator.of(id));
-        return g.userManager().rolePermission(user).toJson();
+        HugeUser user = manager.userManager().getUser(IdGenerator.of(id));
+        return manager.userManager().rolePermission(user).toJson();
     }
 
     @DELETE
@@ -149,8 +148,7 @@ public class UserAPI extends API {
                        @PathParam("id") String id) {
         LOG.debug("Graph [{}] delete user: {}", graph, id);
 
-        HugeGraph g = graph(manager, graph);
-        g.userManager().deleteUser(IdGenerator.of(id));
+        manager.userManager().deleteUser(IdGenerator.of(id));
     }
 
     protected static Id parseId(String id) {

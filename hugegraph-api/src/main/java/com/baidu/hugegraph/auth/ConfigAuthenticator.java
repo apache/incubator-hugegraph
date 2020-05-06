@@ -26,7 +26,6 @@ import java.util.Map;
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.tinkerpop.gremlin.groovy.jsr223.dsl.credential.CredentialGraphTokens;
 
-import com.baidu.hugegraph.auth.RolePermission;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.util.E;
@@ -77,6 +76,11 @@ public class ConfigAuthenticator implements HugeAuthenticator {
         }
 
         return role;
+    }
+
+    @Override
+    public UserManager userManager() {
+        throw new NotImplementedException("UserManager is unsupported");
     }
 
     @Override

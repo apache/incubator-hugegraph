@@ -71,7 +71,7 @@ public class TargetAPI extends API {
 
         HugeGraph g = graph(manager, graph);
         HugeTarget target = jsonTarget.build();
-        target.id(g.userManager().createTarget(target));
+        target.id(manager.userManager().createTarget(target));
         return manager.serializer(g).writeUserElement(target);
     }
 
@@ -90,12 +90,12 @@ public class TargetAPI extends API {
         HugeGraph g = graph(manager, graph);
         HugeTarget target;
         try {
-            target = g.userManager().getTarget(UserAPI.parseId(id));
+            target = manager.userManager().getTarget(UserAPI.parseId(id));
         } catch (NotFoundException e) {
             throw new IllegalArgumentException("Invalid target id: " + id);
         }
         target = jsonTarget.build(target);
-        g.userManager().updateTarget(target);
+        manager.userManager().updateTarget(target);
         return manager.serializer(g).writeUserElement(target);
     }
 
@@ -108,7 +108,7 @@ public class TargetAPI extends API {
         LOG.debug("Graph [{}] list targets", graph);
 
         HugeGraph g = graph(manager, graph);
-        List<HugeTarget> targets = g.userManager().listAllTargets(limit);
+        List<HugeTarget> targets = manager.userManager().listAllTargets(limit);
         return manager.serializer(g).writeUserElements("targets", targets);
     }
 
@@ -122,7 +122,7 @@ public class TargetAPI extends API {
         LOG.debug("Graph [{}] get target: {}", graph, id);
 
         HugeGraph g = graph(manager, graph);
-        HugeTarget target = g.userManager().getTarget(IdGenerator.of(id));
+        HugeTarget target = manager.userManager().getTarget(IdGenerator.of(id));
         return manager.serializer(g).writeUserElement(target);
     }
 
@@ -135,8 +135,7 @@ public class TargetAPI extends API {
                        @PathParam("id") String id) {
         LOG.debug("Graph [{}] delete target: {}", graph, id);
 
-        HugeGraph g = graph(manager, graph);
-        g.userManager().deleteTarget(IdGenerator.of(id));
+        manager.userManager().deleteTarget(IdGenerator.of(id));
     }
 
     private static class JsonTarget implements Checkable {
