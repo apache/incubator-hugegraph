@@ -22,7 +22,7 @@ package com.baidu.hugegraph.job.algorithm.comm;
 import java.util.Map;
 
 import com.baidu.hugegraph.job.Job;
-import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
 
 public class LouvainAlgorithm extends AbstractCommAlgorithm {
 
@@ -39,6 +39,7 @@ public class LouvainAlgorithm extends AbstractCommAlgorithm {
         degree(parameters);
         sourceLabel(parameters);
         sourceCLabel(parameters);
+        showModularity(parameters);
         showCommunity(parameters);
         clearPass(parameters);
     }
@@ -52,10 +53,13 @@ public class LouvainAlgorithm extends AbstractCommAlgorithm {
         LouvainTraverser traverser = new LouvainTraverser(job, degree,
                                                           label, clabel);
         Long clearPass = clearPass(parameters);
+        Long modPass = showModularity(parameters);
         String showComm = showCommunity(parameters);
         try {
             if (clearPass != null) {
                 return traverser.clearPass(clearPass.intValue());
+            } else if (modPass != null) {
+                return traverser.modularity(modPass.intValue());
             } else if (showComm != null) {
                 return traverser.showCommunity(showComm);
             } else {
@@ -74,10 +78,16 @@ public class LouvainAlgorithm extends AbstractCommAlgorithm {
             return null;
         }
         long pass = parameterLong(parameters, KEY_CLEAR);
-        // TODO: change to checkNonNegative()
-        E.checkArgument(pass >= 0 || pass == -1,
-                        "The %s parameter must be >= 0 or == -1, but got %s",
-                        KEY_CLEAR, pass);
+        HugeTraverser.checkNonNegativeOrNoLimit(pass, KEY_CLEAR);
+        return pass;
+    }
+
+    protected static Long showModularity(Map<String, Object> parameters) {
+        if (!parameters.containsKey(KEY_SHOW_MOD)) {
+            return null;
+        }
+        long pass = parameterLong(parameters, KEY_SHOW_MOD);
+        HugeTraverser.checkNonNegative(pass, KEY_SHOW_MOD);
         return pass;
     }
 }
