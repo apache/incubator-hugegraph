@@ -333,7 +333,7 @@ public class InMemoryDBTable extends BackendTable<BackendSession,
 
         @Override
         protected long estimateDataSize(BackendSession session) {
-            return 0;
+            return 0L;
         }
 
         @Override

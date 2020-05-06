@@ -80,15 +80,7 @@ public abstract class BackendEntryIterator implements CIter<BackendEntry> {
 
         this.current = null;
         this.count += this.sizeOf(current);
-        if (this.query.paging() && !this.query.nolimit() &&
-            this.count > this.query.limit()) {
-            this.reduce2limit(current);
-        }
         return current;
-    }
-
-    protected void reduce2limit(BackendEntry entry) {
-        // Do nothing by default
     }
 
     @Override

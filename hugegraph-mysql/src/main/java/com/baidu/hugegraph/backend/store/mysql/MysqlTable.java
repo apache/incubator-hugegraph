@@ -414,7 +414,8 @@ public abstract class MysqlTable
                 this.wrapOrderBy(selection, query);
             }
             if (query.paging()) {
-                this.wrapPage(selection, query);
+                this.wrapPage(selection, query, false);
+                wrapLimit(selection, query);
             } else {
                 if (aggregate == null && !hasOrder) {
                     select.append(this.orderByKeys());
@@ -439,50 +440,40 @@ public abstract class MysqlTable
         if (MysqlShardSpliter.END.equals(shard.start()) &&
             MysqlShardSpliter.END.equals(shard.end()) &&
             (page == null || page.isEmpty())) {
-            select.append(this.orderByKeys());
-            if (!query.nolimit()) {
-                // Fetch `limit + 1` rows for judging whether reached the last page
-                select.append(" limit ");
-                select.append(query.limit() + 1);
-            }
-            select.append(";");
+            this.wrapLimit(select, query);
             return select;
         }
 
-        // < end
         HugeKeys partitionKey = this.idColumnName().get(0);
-        WhereBuilder where = this.newWhereBuilder();
-        boolean prefixAnd = true;
-        if (!MysqlShardSpliter.END.equals(shard.end())) {
-            where.lt(formatKey(partitionKey), shard.end());
-        } else {
-            prefixAnd = false;
-        }
-        select.append(where.build());
 
         if (page != null && !page.isEmpty()) {
             // >= page
-            wrapPage(select, query, prefixAnd);
+            wrapPage(select, query, true);
+            // < end
+            WhereBuilder where = this.newWhereBuilder(false);
+            if (!MysqlShardSpliter.END.equals(shard.end())) {
+                where.and();
+                where.lt(formatKey(partitionKey), shard.end());
+            }
+            select.append(where.build());
         } else {
             // >= start
+            WhereBuilder where = this.newWhereBuilder();
+            boolean hasStart = false;
             if (!MysqlShardSpliter.END.equals(shard.start())) {
-                if (prefixAnd) {
-                    select.append(" AND ");
-                }
-                where = this.newWhereBuilder(false);
                 where.gte(formatKey(partitionKey), shard.start());
-                select.append(where.build());
+                hasStart = true;
             }
-
-            select.append(this.orderByKeys());
-
-            if (!query.nolimit()) {
-                // Fetch `limit + 1` rows for judging whether reached the last page
-                select.append(" limit ");
-                select.append(query.limit() + 1);
+            // < end
+            if (!MysqlShardSpliter.END.equals(shard.end())) {
+                if (hasStart) {
+                    where.and();
+                }
+                where.lt(formatKey(partitionKey), shard.end());
             }
-            select.append(";");
+            select.append(where.build());
         }
+        this.wrapLimit(select, query);
 
         return select;
     }
@@ -621,12 +612,7 @@ public abstract class MysqlTable
         }
     }
 
-    protected void wrapPage(StringBuilder select, Query query) {
-        this.wrapPage(select, query, true);
-    }
-
-    protected void wrapPage(StringBuilder select, Query query,
-                            boolean prefixAnd) {
+    protected void wrapPage(StringBuilder select, Query query, boolean scan) {
         String page = query.page();
         // It's the first time if page is empty
         if (!page.isEmpty()) {
@@ -641,22 +627,23 @@ public abstract class MysqlTable
             }
 
             // Need add `where` to `select` when query is IdQuery
-            boolean startWithWhere = query.conditions().isEmpty();
-            WhereBuilder where = this.newWhereBuilder(startWithWhere);
-            where.gte(formatKeys(idColumnNames), values);
-            if (prefixAnd && !startWithWhere) {
-                select.append(" AND");
+            boolean expectWhere = scan || query.conditions().isEmpty();
+            WhereBuilder where = this.newWhereBuilder(expectWhere);
+            if (!expectWhere) {
+                where.and();
             }
+            where.gte(formatKeys(idColumnNames), values);
             select.append(where.build());
         }
+    }
 
-        select.append(this.orderByKeys());
-
+    private void wrapLimit(StringBuilder select, Query query) {
         if (!query.nolimit()) {
             // Fetch `limit + 1` rows for judging whether reached the last page
             select.append(" limit ");
             select.append(query.limit() + 1);
         }
+        select.append(this.orderByKeys());
         select.append(";");
     }
 
@@ -730,12 +717,12 @@ public abstract class MysqlTable
 
         @Override
         protected long estimateDataSize(Session session) {
-            return 0;
+            return 0L;
         }
 
         @Override
         protected long estimateNumKeys(Session session) {
-            return 0;
+            return 0L;
         }
     }
 }

@@ -4312,7 +4312,6 @@ public class EdgeCoreTest extends BaseCoreTest {
         Assert.assertEquals(0, edges.size()); // be careful!
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void testScanEdge() {
         HugeGraph graph = graph();
@@ -4323,9 +4322,10 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         Set<Edge> edges = new HashSet<>();
 
-        long splitSize = 1 * 1024 * 1024;
-        Object splits = graph.metadata(HugeType.EDGE_OUT, "splits", splitSize);
-        for (Shard split : (List<Shard>) splits) {
+        long splitSize = 1L * 1024L * 1024L;
+        List<Shard> splits = graph.metadata(HugeType.EDGE_OUT, "splits",
+                                            splitSize);
+        for (Shard split : splits) {
             ConditionQuery q = new ConditionQuery(HugeType.EDGE);
             q.scan(split.start(), split.end());
             edges.addAll(ImmutableList.copyOf(graph.edges(q)));

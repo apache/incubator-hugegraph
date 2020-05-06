@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -287,6 +288,9 @@ public class HbaseTable extends BackendTable<Session, BackendEntry> {
 
     private static class HbaseShardSpliter extends ShardSpliter<Session> {
 
+        private static final Base64.Encoder encoder = Base64.getEncoder();
+        private static final Base64.Decoder decoder = Base64.getDecoder();
+
         private static final byte[] EMPTY = new byte[0];
         private static final byte[] START_BYTES = new byte[]{0x0};
         private static final byte[] END_BYTES = new byte[]{
@@ -376,7 +380,7 @@ public class HbaseTable extends BackendTable<Session, BackendEntry> {
             if (END.equals(position)) {
                 return null;
             }
-            return Bytes.fromHex(position);
+            return decoder.decode(position);
         }
 
         @Override
@@ -407,9 +411,8 @@ public class HbaseTable extends BackendTable<Session, BackendEntry> {
 
             private List<Shard> splitEven(int count) {
                 if (count <= 1) {
-                    return ImmutableList.of(new Shard(
-                                            Bytes.toHex(this.startKey),
-                                            endKey(this.endKey), 0));
+                    return ImmutableList.of(new Shard(startKey(this.startKey),
+                                                      endKey(this.endKey), 0));
                 }
 
                 byte[] start, end;
@@ -459,16 +462,19 @@ public class HbaseTable extends BackendTable<Session, BackendEntry> {
                     if (endChanged && Arrays.equals(offset, end)) {
                         offset = this.endKey;
                     }
-                    shards.add(new Shard(Bytes.toHex(last),
-                                         endKey(offset), 0));
+                    shards.add(new Shard(startKey(last), endKey(offset), 0));
                     last = offset;
                 }
                 return shards;
             }
 
+            private static String startKey(byte[] start) {
+                return encoder.encodeToString(start);
+            }
+
             private static String endKey(byte[] end) {
                 return Bytes.compare(end, END_BYTES) == 0 ?
-                       END : Bytes.toHex(end);
+                       END : encoder.encodeToString(end);
             }
 
             private static byte[] add(byte[] array1, byte[] array2) {
