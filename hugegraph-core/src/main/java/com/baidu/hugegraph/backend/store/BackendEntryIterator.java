@@ -91,6 +91,13 @@ public abstract class BackendEntryIterator implements CIter<BackendEntry> {
         throw new NotSupportException("Invalid meta '%s'", meta);
     }
 
+    public static final void checkInterrupted() {
+        if (Thread.interrupted()) {
+            throw new BackendException("Interrupted, maybe it is timed out",
+                                       new InterruptedException());
+        }
+    }
+
     protected final void checkCapacity() throws LimitExceedException {
         // Stop if reach capacity
         this.query.checkCapacity(this.count());
@@ -108,15 +115,8 @@ public abstract class BackendEntryIterator implements CIter<BackendEntry> {
     }
 
     protected final boolean reachLimit(long count) {
-        this.checkInterrupted();
+        checkInterrupted();
         return this.query.reachLimit(count);
-    }
-
-    protected final void checkInterrupted() {
-        if (Thread.interrupted()) {
-            throw new BackendException("Interrupted, maybe it is timed out",
-                                       new InterruptedException());
-        }
     }
 
     protected final long count() {

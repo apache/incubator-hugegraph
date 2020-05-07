@@ -60,6 +60,7 @@ import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.serializer.BinarySerializer;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumn;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumnIterator;
+import com.baidu.hugegraph.backend.store.BackendEntryIterator;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
@@ -772,7 +773,8 @@ public class RocksDBStdSessions extends RocksDBSessions {
     /**
      * A wrapper for RocksIterator that convert RocksDB results to std Iterator
      */
-    private static class ColumnIterator implements BackendColumnIterator {
+    private static class ColumnIterator implements BackendColumnIterator,
+                                                   Countable {
 
         private final String table;
         private final RocksIterator iter;
@@ -969,6 +971,18 @@ public class RocksDBStdSessions extends RocksDBSessions {
             this.matched = false;
 
             return col;
+        }
+
+        @Override
+        public long count() {
+            long count = 0L;
+            while (this.hasNext()) {
+                this.iter.next();
+                this.matched = false;
+                count++;
+                BackendEntryIterator.checkInterrupted();
+            }
+            return count;
         }
 
         @Override
