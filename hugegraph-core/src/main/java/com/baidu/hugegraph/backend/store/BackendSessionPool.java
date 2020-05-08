@@ -40,6 +40,7 @@ public abstract class BackendSessionPool {
     private final ThreadLocal<BackendSession> threadLocalSession;
     private final AtomicInteger sessionCount;
     private final Map<Long, BackendSession> sessions;
+    private final long reconnectDetectInterval;
 
     public BackendSessionPool(HugeConfig config, String name) {
         this.config = config;
@@ -47,6 +48,8 @@ public abstract class BackendSessionPool {
         this.threadLocalSession = new ThreadLocal<>();
         this.sessionCount = new AtomicInteger(0);
         this.sessions = new ConcurrentHashMap<>();
+        this.reconnectDetectInterval = this.config.get(
+                                       CoreOptions.CONNECTION_DETECT_INTERVAL);
     }
 
     public HugeConfig config() {
@@ -83,9 +86,9 @@ public abstract class BackendSessionPool {
 
     private void detectSession(BackendSession session) {
         // Reconnect if the session idle time exceed specified value
-        long interval = this.config.get(CoreOptions.CONNECTION_DETECT_INTERVAL);
+        long interval = TimeUnit.SECONDS.toMillis(this.reconnectDetectInterval);
         long now = System.currentTimeMillis();
-        if (now - session.updated() > TimeUnit.SECONDS.toMillis(interval)) {
+        if (now - session.updated() > interval) {
             session.reconnectIfNeeded();
         }
         session.update();
