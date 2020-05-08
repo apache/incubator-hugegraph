@@ -4347,14 +4347,12 @@ public class EdgeCoreTest extends BaseCoreTest {
         ConditionQuery query = new ConditionQuery(HugeType.EDGE);
 
         String backend = graph.backend();
-        if (backend.equals("hbase")) {
-            query.scan("00", BackendTable.ShardSpliter.END);
-        } else if (backend.equals("mysql") || backend.equals("postgresql")) {
-            query.scan(BackendTable.ShardSpliter.END,
-                       BackendTable.ShardSpliter.END);
-        } else {
+        if (backend.equals("cassandra") || backend.equals("scylladb")) {
             query.scan(String.valueOf(Long.MIN_VALUE),
                        String.valueOf(Long.MAX_VALUE));
+        } else {
+            query.scan(BackendTable.ShardSpliter.START,
+                       BackendTable.ShardSpliter.END);
         }
 
         query.limit(1);

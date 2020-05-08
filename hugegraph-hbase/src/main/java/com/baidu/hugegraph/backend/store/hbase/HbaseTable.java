@@ -20,10 +20,7 @@
 package com.baidu.hugegraph.backend.store.hbase;
 
 import java.io.IOException;
-import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -250,7 +247,8 @@ public class HbaseTable extends BackendTable<Session, BackendEntry> {
         byte[] end = this.shardSpliter.position(shard.end());
         if (page != null && !page.isEmpty()) {
             byte[] position = PageState.fromString(page).position();
-            E.checkArgument(Bytes.compare(position, start) >= 0,
+            E.checkArgument(start == null ||
+                            Bytes.compare(position, start) >= 0,
                             "Invalid page out of lower bound");
             start = position;
         }
@@ -287,15 +285,6 @@ public class HbaseTable extends BackendTable<Session, BackendEntry> {
     }
 
     private static class HbaseShardSpliter extends ShardSpliter<Session> {
-
-        private static final Base64.Encoder encoder = Base64.getEncoder();
-        private static final Base64.Decoder decoder = Base64.getDecoder();
-
-        private static final byte[] EMPTY = new byte[0];
-        private static final byte[] START_BYTES = new byte[]{0x0};
-        private static final byte[] END_BYTES = new byte[]{
-                -1, -1, -1, -1, -1, -1, -1, -1,
-                -1, -1, -1, -1, -1, -1, -1, -1};
 
         public HbaseShardSpliter(String table) {
             super(table);
@@ -396,144 +385,6 @@ public class HbaseTable extends BackendTable<Session, BackendEntry> {
         public long estimateNumKeys(Session session) {
             // TODO: improve
             return 100000L;
-        }
-
-        private static class Range {
-
-            private byte[] startKey;
-            private byte[] endKey;
-
-            private Range(byte[] startKey, byte[] endKey) {
-                this.startKey = Arrays.equals(EMPTY, startKey) ?
-                                START_BYTES : startKey;
-                this.endKey = Arrays.equals(EMPTY, endKey) ? END_BYTES : endKey;
-            }
-
-            private List<Shard> splitEven(int count) {
-                if (count <= 1) {
-                    return ImmutableList.of(new Shard(startKey(this.startKey),
-                                                      endKey(this.endKey), 0));
-                }
-
-                byte[] start, end;
-                boolean startChanged = false;
-                boolean endChanged = false;
-                int length;
-                if (this.startKey.length < this.endKey.length) {
-                    length = this.endKey.length;
-                    start = new byte[length];
-                    System.arraycopy(this.startKey, 0, start, 0,
-                                     this.startKey.length);
-                    end = this.endKey;
-                    startChanged = true;
-                } else if (this.startKey.length > this.endKey.length) {
-                    length = this.startKey.length;
-                    end = new byte[length];
-                    System.arraycopy(this.endKey, 0, end, 0,
-                                     this.endKey.length);
-                    start = this.startKey;
-                    endChanged = true;
-                } else {
-                    assert this.startKey.length == this.endKey.length;
-                    length = this.startKey.length;
-                    start = this.startKey;
-                    end = this.endKey;
-                }
-
-                assert count > 1;
-                assert startChanged != endChanged;
-                byte[] each = align(new BigInteger(1, subtract(end, start))
-                                        .divide(BigInteger.valueOf(count))
-                                        .toByteArray(),
-                                    length);
-                byte[] offset = start;
-                byte[] last = offset;
-                List<Shard> shards = new ArrayList<>(count);
-                while (Bytes.compare(offset, end) < 0) {
-                    offset = add(offset, each);
-                    if (offset.length > end.length ||
-                        Bytes.compare(offset, end) > 0) {
-                        offset = end;
-                    }
-                    if (startChanged) {
-                        last = this.startKey;
-                        startChanged = false;
-                    }
-                    if (endChanged && Arrays.equals(offset, end)) {
-                        offset = this.endKey;
-                    }
-                    shards.add(new Shard(startKey(last), endKey(offset), 0));
-                    last = offset;
-                }
-                return shards;
-            }
-
-            private static String startKey(byte[] start) {
-                return encoder.encodeToString(start);
-            }
-
-            private static String endKey(byte[] end) {
-                return Bytes.compare(end, END_BYTES) == 0 ?
-                       END : encoder.encodeToString(end);
-            }
-
-            private static byte[] add(byte[] array1, byte[] array2) {
-                E.checkArgument(array1.length == array2.length,
-                                "The length of array should be equal");
-                int length = array1.length;
-                byte[] result = new byte[length];
-                int carry = 0;
-                for (int i = length - 1; i >= 0; i--) {
-                    int i1 = byte2int(array1[i]);
-                    int i2 = byte2int(array2[i]);
-                    int col = i1 + i2 + carry;
-                    carry = (col >> 8);
-                    result[i] = int2byte(col);
-                }
-                if (carry == 0) {
-                    return result;
-                }
-
-                byte[] target = new byte[length + 1];
-                target[1] = 0x1;
-                System.arraycopy(result, 0, target, 1, length);
-                return target;
-            }
-
-            private static byte[] subtract(byte[] array1, byte[] array2) {
-                E.checkArgument(array1.length == array2.length,
-                                "The length of array should be equal");
-                int length = array1.length;
-                byte[] result = new byte[length];
-                int borrow = 0;
-                for (int i = length - 1; 0 <= i; i--) {
-                    int i1 = byte2int(array1[i]);
-                    int i2 = byte2int(array2[i]);
-                    int col = i1 - i2 + borrow;
-                    borrow = (col >> 8);
-                    result[i] = int2byte(col);
-                }
-                E.checkArgument(borrow == 0, "The array1 must >= array2");
-                return result;
-            }
-
-            private static byte[] align(byte[] array, int length) {
-                int len = array.length;
-                E.checkArgument(len <= length,
-                                "The length of array '%s' exceed " +
-                                "align length '%s'", len, length);
-                byte[] target = new byte[length];
-                System.arraycopy(array, 0, target, length - len, len);
-                return target;
-            }
-
-            private static int byte2int(byte b) {
-                return ((int) b & 0x000000ff);
-            }
-
-            private static byte int2byte(int i) {
-                return (byte) (i & 0x000000ff);
-            }
         }
     }
 }

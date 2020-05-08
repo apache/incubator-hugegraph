@@ -33,6 +33,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.rocksdb.BlockBasedTableConfig;
 import org.rocksdb.BloomFilter;
 import org.rocksdb.ColumnFamilyDescriptor;
@@ -601,6 +602,25 @@ public class RocksDBStdSessions extends RocksDBSessions {
             } catch (RocksDBException e) {
                 throw new BackendException(e);
             }
+        }
+
+        @Override
+        public Pair<byte[], byte[]> getKeyRange(String table) {
+            byte[] startKey, endKey;
+            try (CFHandle cf = cf(table);
+                 RocksIterator iter = rocksdb().newIterator(cf.get())) {
+                iter.seekToFirst();
+                if (!iter.isValid()) {
+                    return null;
+                }
+                startKey = iter.key();
+                iter.seekToLast();
+                if (!iter.isValid()) {
+                    return null;
+                }
+                endKey = iter.key();
+            }
+            return Pair.of(startKey, endKey);
         }
 
         /**
