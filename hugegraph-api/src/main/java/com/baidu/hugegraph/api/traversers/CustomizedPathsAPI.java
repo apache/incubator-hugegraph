@@ -89,7 +89,7 @@ public class CustomizedPathsAPI extends API {
                   request.sortBy, request.capacity, request.limit,
                   request.withVertex);
 
-        HugeGraph g = graph4path(manager, graph);
+        HugeGraph g = graph(manager, graph);
         Iterator<Vertex> sources = request.sources.sourcesVertices(g);
         List<CustomizePathsTraverser.Step> steps = step(g, request);
         boolean sorted = request.sortBy != SortBy.NONE;

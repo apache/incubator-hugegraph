@@ -71,7 +71,7 @@ public class JaccardSimilarityAPI extends API {
         Id targetId = VertexAPI.checkAndParseVertexId(other);
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
 
-        HugeGraph g = graph4path(manager, graph);
+        HugeGraph g = graph(manager, graph);
         HugeTraverser traverser = new HugeTraverser(g);
         double similarity = traverser.jaccardSimilarity(sourceId, targetId, dir,
                                                         edgeLabel, degree);

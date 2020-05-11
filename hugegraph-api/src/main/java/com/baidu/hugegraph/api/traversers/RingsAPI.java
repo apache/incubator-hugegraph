@@ -80,7 +80,7 @@ public class RingsAPI extends API {
         Id source = VertexAPI.checkAndParseVertexId(sourceV);
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
 
-        HugeGraph g = graph4path(manager, graph);
+        HugeGraph g = graph(manager, graph);
 
         SubGraphTraverser traverser = new SubGraphTraverser(g);
         HugeTraverser.PathSet paths = traverser.rings(source, dir, edgeLabel,

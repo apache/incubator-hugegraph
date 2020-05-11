@@ -19,30 +19,32 @@
 
 package com.baidu.hugegraph.auth;
 
+import java.time.Duration;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import com.baidu.hugegraph.HugeGraphParams;
+import com.baidu.hugegraph.auth.HugeResource.RolePermission;
 import com.baidu.hugegraph.auth.HugeUser.P;
+import com.baidu.hugegraph.backend.cache.Cache;
+import com.baidu.hugegraph.backend.cache.CacheManager;
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.event.EventListener;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Events;
-import com.baidu.hugegraph.util.JsonUtil;
 import com.baidu.hugegraph.util.StringEncoding;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 public class UserManager {
 
+    private static final long CACHE_EXPIRE = Duration.ofDays(1L).toMillis();
+
     private final HugeGraphParams graph;
     private final EventListener eventListener;
+    private final Cache<Id, HugeUser> usersCache;
 
     private final EntityManager<HugeUser> users;
     private final EntityManager<HugeGroup> groups;
@@ -56,6 +58,7 @@ public class UserManager {
 
         this.graph = graph;
         this.eventListener = this.listenChanges();
+        this.usersCache = this.cache("users");
 
         this.users = new EntityManager<>(this.graph, HugeUser.P.USER,
                                          HugeUser::fromVertex);
@@ -68,6 +71,13 @@ public class UserManager {
                                                 HugeBelong::fromEdge);
         this.access = new RelationshipManager<>(this.graph, HugeAccess.P.ACCESS,
                                                 HugeAccess::fromEdge);
+    }
+
+    private Cache<Id, HugeUser> cache(String prefix) {
+        String name = prefix + "-" + this.graph.name();
+        Cache<Id, HugeUser> cache = CacheManager.instance().cache(name);
+        cache.expire(CACHE_EXPIRE);
+        return cache;
     }
 
     private EventListener listenChanges() {
@@ -98,32 +108,48 @@ public class UserManager {
         return true;
     }
 
+    public void initSchemaIfNeeded() {
+        this.invalidCache();
+        HugeUser.schema(this.graph).initSchemaIfNeeded();
+        HugeGroup.schema(this.graph).initSchemaIfNeeded();
+        HugeTarget.schema(this.graph).initSchemaIfNeeded();
+        HugeBelong.schema(this.graph).initSchemaIfNeeded();
+        HugeAccess.schema(this.graph).initSchemaIfNeeded();
+    }
+
+    private void invalidCache() {
+        this.usersCache.clear();
+    }
+
     public Id createUser(HugeUser user) {
+        this.invalidCache();
         return this.users.add(user);
     }
 
     public void updateUser(HugeUser user) {
+        this.invalidCache();
         this.users.update(user);
     }
 
     public HugeUser deleteUser(Id id) {
+        this.invalidCache();
         return this.users.delete(id);
     }
 
-    public HugeUser matchUser(String name, String password) {
-        E.checkArgumentNotNull(name, "User name can't be null");
-        E.checkArgumentNotNull(password, "User password can't be null");
-        HugeUser user = null;
+    public HugeUser findUser(String name) {
+        Id key = IdGenerator.of(name);
+        HugeUser user = (HugeUser) this.usersCache.get(key);
+        if (user != null) {
+            return user;
+        }
+
         List<HugeUser> users = this.users.query(P.NAME, name, 2L);
         if (users.size() > 0) {
             assert users.size() == 1;
             user = users.get(0);
+            this.usersCache.update(key, user);
         }
-        if (user != null &&
-            StringEncoding.checkPassword(password, user.password())) {
-            return user;
-        }
-        return null;
+        return user;
     }
 
     public HugeUser getUser(Id id) {
@@ -139,14 +165,17 @@ public class UserManager {
     }
 
     public Id createGroup(HugeGroup group) {
+        this.invalidCache();
         return this.groups.add(group);
     }
 
     public void updateGroup(HugeGroup group) {
+        this.invalidCache();
         this.groups.update(group);
     }
 
     public HugeGroup deleteGroup(Id id) {
+        this.invalidCache();
         return this.groups.delete(id);
     }
 
@@ -163,14 +192,17 @@ public class UserManager {
     }
 
     public Id createTarget(HugeTarget target) {
+        this.invalidCache();
         return this.targets.add(target);
     }
 
     public void updateTarget(HugeTarget target) {
+        this.invalidCache();
         this.targets.update(target);
     }
 
     public HugeTarget deleteTarget(Id id) {
+        this.invalidCache();
         return this.targets.delete(id);
     }
 
@@ -186,19 +218,18 @@ public class UserManager {
         return this.targets.list(limit);
     }
 
-    public Id createBelong(Id user, Id group) {
-        return this.createBelong(new HugeBelong(user, group));
-    }
-
     public Id createBelong(HugeBelong belong) {
+        this.invalidCache();
         return this.belong.add(belong);
     }
 
     public Id updateBelong(HugeBelong belong) {
+        this.invalidCache();
         return this.belong.update(belong);
     }
 
     public HugeBelong deleteBelong(Id id) {
+        this.invalidCache();
         return this.belong.delete(id);
     }
 
@@ -224,19 +255,18 @@ public class UserManager {
                                 HugeBelong.P.BELONG, limit);
     }
 
-    public Id createAccess(Id group, Id target, HugePermission permission) {
-        return this.createAccess(new HugeAccess(group, target, permission));
-    }
-
     public Id createAccess(HugeAccess access) {
+        this.invalidCache();
         return this.access.add(access);
     }
 
     public Id updateAccess(HugeAccess access) {
+        this.invalidCache();
         return this.access.update(access);
     }
 
     public HugeAccess deleteAccess(Id id) {
+        this.invalidCache();
         return this.access.delete(id);
     }
 
@@ -262,35 +292,37 @@ public class UserManager {
                                 HugeAccess.P.ACCESS, limit);
     }
 
-    public String roleAction(HugeUser user) {
+    public HugeUser matchUser(String name, String password) {
+        E.checkArgumentNotNull(name, "User name can't be null");
+        E.checkArgumentNotNull(password, "User password can't be null");
+        HugeUser user = this.findUser(name);
+        if (user != null &&
+            StringEncoding.checkPassword(password, user.password())) {
+            return user;
+        }
+        return null;
+    }
+
+    public RolePermission roleAction(HugeUser user) {
+        if (user.role() != null) {
+            // Return cached role (40ms => 10ms)
+            return user.role();
+        }
+
         List<HugeAccess> accesses = new ArrayList<>();;
         List<HugeBelong> belongs = this.listBelongByUser(user.id(), -1);
         for (HugeBelong belong : belongs) {
             accesses.addAll(this.listAccessByGroup(belong.target(), -1));
         }
 
-        Map<String, Set<String>> role = new HashMap<>();
+        // Mapping of: graph -> action -> resource
+        RolePermission role = new RolePermission();
         for (HugeAccess access : accesses) {
-            Id graph = access.target();
-            String[] parts = SplicingIdGenerator.parse(graph);
-            E.checkState(parts.length == 2,
-                         "Invalid primary key vertex id '%s'", graph);
-            String key = parts[1];
-            Set<String> value = role.get(key);
-            if (value == null) {
-                value = new HashSet<>();
-                role.put(key, value);
-            }
-            value.add(access.permission().string());
+            HugePermission accessPerm = access.permission();
+            HugeTarget target = this.getTarget(access.target());
+            role.add(target.graph(), accessPerm, target.resources());
         }
-        return JsonUtil.toJson(ImmutableMap.of("owners", role));
-    }
-
-    public void initSchemaIfNeeded() {
-        HugeUser.schema(this.graph).initSchemaIfNeeded();
-        HugeGroup.schema(this.graph).initSchemaIfNeeded();
-        HugeTarget.schema(this.graph).initSchemaIfNeeded();
-        HugeBelong.schema(this.graph).initSchemaIfNeeded();
-        HugeAccess.schema(this.graph).initSchemaIfNeeded();
+        user.role(role);
+        return role;
     }
 }

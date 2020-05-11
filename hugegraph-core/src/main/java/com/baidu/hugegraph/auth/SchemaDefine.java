@@ -21,6 +21,7 @@ package com.baidu.hugegraph.auth;
 
 import java.util.Date;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -29,10 +30,9 @@ import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 
-import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraphParams;
+import com.baidu.hugegraph.auth.ResourceObject.ResourceType;
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaManager;
@@ -59,11 +59,11 @@ public abstract class SchemaDefine {
     }
 
     protected boolean existVertexLabel(String label) {
-        return existVertexLabel(this.graph, label);
+        return this.graph.graph().existsVertexLabel(label);
     }
 
     protected boolean existEdgeLabel(String label) {
-        return existEdgeLabel(this.graph, label);
+        return this.graph.graph().existsEdgeLabel(label);
     }
 
     protected String createPropertyKey(String name) {
@@ -85,6 +85,17 @@ public abstract class SchemaDefine {
         return name;
     }
 
+    protected String[] initProperties(List<String> props) {
+        String label = this.label;
+        props.add(createPropertyKey(hideField(label, UserElement.CREATE),
+                                    DataType.DATE));
+        props.add(createPropertyKey(hideField(label, UserElement.UPDATE),
+                                    DataType.DATE));
+        props.add(createPropertyKey(hideField(label, UserElement.CREATOR)));
+
+        return props.toArray(new String[0]);
+    }
+
     protected IndexLabel createRangeIndex(VertexLabel label, String field) {
         SchemaManager schema = this.schema();
         String name = Hidden.hide(label + "-index-by-" + field);
@@ -96,47 +107,26 @@ public abstract class SchemaDefine {
         return indexLabel;
     }
 
-    public static boolean existVertexLabel(HugeGraphParams graph,
-                                           String label) {
-        return graph.schemaTransaction().getVertexLabel(label) != null;
+    protected static String hideField(String label, String key) {
+        return label + "_" + key;
     }
 
-    public static boolean existEdgeLabel(HugeGraphParams graph,
-                                         String label) {
-        return graph.schemaTransaction().getEdgeLabel(label) != null;
+    protected static String unhideField(String label, String key) {
+        return Hidden.unHide(label) + "_" + key;
     }
 
-    public static PropertyKey propertyKey(HugeGraphParams graph, String key) {
-        PropertyKey pkey = graph.schemaTransaction().getPropertyKey(key);
-        if (pkey == null) {
-            throw new HugeException("Property key is missing: '%s'", key);
-        }
-        return pkey;
-    }
+    public static abstract class UserElement {
 
-    public static VertexLabel vertexLabel(HugeGraphParams graph, String label) {
-        VertexLabel vl = graph.schemaTransaction().getVertexLabel(label);
-        if (vl == null) {
-            throw new HugeException("Vertex label is missing: '%s'", label);
-        }
-        return vl;
-    }
-
-    public static EdgeLabel edgeLabel(HugeGraphParams graph, String label) {
-        EdgeLabel el = graph.schemaTransaction().getEdgeLabel(label);
-        if (el == null) {
-            throw new HugeException("Edge label is missing: '%s'", label);
-        }
-        return el;
-    }
-
-    public static abstract class Element {
+        protected static final String CREATE = "create";
+        protected static final String UPDATE = "update";
+        protected static final String CREATOR = "creator";
 
         protected Id id;
         protected Date create;
         protected Date update;
+        protected String creator;
 
-        public Element() {
+        public UserElement() {
             this.create = new Date();
             this.update = this.create;
         }
@@ -169,15 +159,77 @@ public abstract class SchemaDefine {
             this.update = new Date();
         }
 
-        public abstract String label();
-    }
+        public String creator() {
+            return this.creator;
+        }
 
-    public static abstract class Entity extends Element {
+        public void creator(String creator) {
+            this.creator = creator;
+        }
+
+        protected Map<String, Object> asMap(Map<String, Object> map) {
+            E.checkState(this.create != null,
+                         "Property %s can't be null", CREATE);
+            E.checkState(this.update != null,
+                         "Property %s can't be null", UPDATE);
+            E.checkState(this.creator != null,
+                         "Property %s can't be null", CREATOR);
+
+            map.put(unhideField(this.label(), CREATE), this.create);
+            map.put(unhideField(this.label(), UPDATE), this.update);
+            map.put(unhideField(this.label(), CREATOR), this.creator);
+
+            return map;
+        }
+
+        protected boolean property(String key, Object value) {
+            E.checkNotNull(key, "property key");
+            if (key.equals(hideField(this.label(), CREATE))) {
+                this.create = (Date) value;
+                return true;
+            }
+            if (key.equals(hideField(this.label(), UPDATE))) {
+                this.update = (Date) value;
+                return true;
+            }
+            if (key.equals(hideField(this.label(), CREATOR))) {
+                this.creator = (String) value;
+                return true;
+            }
+            return false;
+        }
+
+        protected Object[] asArray(List<Object> list) {
+            E.checkState(this.create != null,
+                         "Property %s can't be null", CREATE);
+            E.checkState(this.update != null,
+                         "Property %s can't be null", UPDATE);
+            E.checkState(this.creator != null,
+                         "Property %s can't be null", CREATOR);
+
+            list.add(hideField(this.label(), CREATE));
+            list.add(this.create);
+
+            list.add(hideField(this.label(), UPDATE));
+            list.add(this.update);
+
+            list.add(hideField(this.label(), CREATOR));
+            list.add(this.creator);
+
+            return list.toArray();
+        }
+
+        public abstract ResourceType type();
+
+        public abstract String label();
 
         public abstract Map<String, Object> asMap();
 
-        protected abstract void property(String key, Object value);
         protected abstract Object[] asArray();
+
+    }
+
+    public static abstract class Entity extends UserElement {
 
         public static <T extends Entity> T fromVertex(Vertex vertex, T entity) {
             E.checkArgument(vertex.label().equals(entity.label()),
@@ -193,18 +245,13 @@ public abstract class SchemaDefine {
         }
     }
 
-    public static abstract class Relationship extends Element {
+    public static abstract class Relationship extends UserElement {
 
         public abstract String sourceLabel();
         public abstract String targetLabel();
 
         public abstract Id source();
         public abstract Id target();
-
-        public abstract Map<String, Object> asMap();
-
-        protected abstract void property(String key, Object value);
-        protected abstract Object[] asArray();
 
         public static <T extends Relationship> T fromEdge(Edge edge,
                                                           T relationship) {

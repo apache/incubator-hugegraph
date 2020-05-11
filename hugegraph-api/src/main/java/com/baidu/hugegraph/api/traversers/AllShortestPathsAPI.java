@@ -78,7 +78,7 @@ public class AllShortestPathsAPI extends API {
         Id targetId = VertexAPI.checkAndParseVertexId(target);
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
 
-        HugeGraph g = graph4path(manager, graph);
+        HugeGraph g = graph(manager, graph);
 
         ShortestPathTraverser traverser = new ShortestPathTraverser(g);
         HugeTraverser.PathSet paths = traverser.allShortestPaths(

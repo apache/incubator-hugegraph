@@ -24,6 +24,7 @@ import java.util.stream.Collectors;
 
 import org.apache.tinkerpop.gremlin.structure.Graph;
 
+import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.builder.EdgeLabelBuilder;
@@ -36,26 +37,36 @@ import com.baidu.hugegraph.util.E;
 public class SchemaManager {
 
     private final SchemaTransaction transaction;
+    private HugeGraph graph;
 
-    public SchemaManager(final SchemaTransaction transaction) {
+    public SchemaManager(SchemaTransaction transaction, HugeGraph graph) {
         E.checkNotNull(transaction, "transaction");
+        E.checkNotNull(graph, "graph");
         this.transaction = transaction;
+        this.graph = graph;
+    }
+
+    public HugeGraph proxy(HugeGraph graph) {
+        E.checkNotNull(graph, "graph");
+        HugeGraph old = this.graph;
+        this.graph = graph;
+        return old;
     }
 
     public PropertyKey.Builder propertyKey(String name) {
-        return new PropertyKeyBuilder(name, this.transaction);
+        return new PropertyKeyBuilder(this.transaction, this.graph, name);
     }
 
     public VertexLabel.Builder vertexLabel(String name) {
-        return new VertexLabelBuilder(name, this.transaction);
+        return new VertexLabelBuilder(this.transaction, this.graph, name);
     }
 
     public EdgeLabel.Builder edgeLabel(String name) {
-        return new EdgeLabelBuilder(name, this.transaction);
+        return new EdgeLabelBuilder(this.transaction, this.graph, name);
     }
 
     public IndexLabel.Builder indexLabel(String name) {
-        return new IndexLabelBuilder(name, this.transaction);
+        return new IndexLabelBuilder(this.transaction, this.graph, name);
     }
 
     public PropertyKey getPropertyKey(String name) {
@@ -87,25 +98,25 @@ public class SchemaManager {
     }
 
     public List<PropertyKey> getPropertyKeys() {
-        return this.transaction.getPropertyKeys().stream()
+        return this.graph.propertyKeys().stream()
                    .filter(pk -> !Graph.Hidden.isHidden(pk.name()))
                    .collect(Collectors.toList());
     }
 
     public List<VertexLabel> getVertexLabels() {
-        return this.transaction.getVertexLabels().stream()
+        return this.graph.vertexLabels().stream()
                    .filter(vl -> !Graph.Hidden.isHidden(vl.name()))
                    .collect(Collectors.toList());
     }
 
     public List<EdgeLabel> getEdgeLabels() {
-        return this.transaction.getEdgeLabels().stream()
+        return this.graph.edgeLabels().stream()
                    .filter(el -> !Graph.Hidden.isHidden(el.name()))
                    .collect(Collectors.toList());
     }
 
     public List<IndexLabel> getIndexLabels() {
-        return this.transaction.getIndexLabels().stream()
+        return this.graph.indexLabels().stream()
                    .filter(il -> !Graph.Hidden.isHidden(il.name()))
                    .collect(Collectors.toList());
     }

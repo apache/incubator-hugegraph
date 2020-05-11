@@ -46,6 +46,7 @@ import com.baidu.hugegraph.auth.HugeAuthenticator;
 import com.baidu.hugegraph.auth.HugeAuthenticator.RoleAction;
 import com.baidu.hugegraph.auth.HugeAuthenticator.RolePerm;
 import com.baidu.hugegraph.auth.HugeAuthenticator.User;
+import com.baidu.hugegraph.auth.HugeResource.RolePermission;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.util.E;
@@ -147,7 +148,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
             return this.user.username();
         }
 
-        public String role() {
+        public RolePermission role() {
             return this.user.role();
         }
 
@@ -159,13 +160,11 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         @Override
         public boolean isUserInRole(String required) {
             boolean valid;
-            if (required.equals(HugeAuthenticator.ROLE_DYNAMIC)) {
+            if (required.equals(HugeAuthenticator.KEY_DYNAMIC)) {
                 // Let the resource itself determine dynamically
                 valid = true;
-            } else if (required.startsWith(HugeAuthenticator.ROLE_OWNER)) {
-                valid = this.matchPermission(required);
             } else {
-                valid = RolePerm.match(this.user.role(), required);
+                valid = this.matchPermission(required);
             }
 
             if (!valid && LOG.isDebugEnabled() &&
@@ -187,15 +186,24 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         }
 
         private boolean matchPermission(String required) {
-            // Permission format like: "$owner=name $action=vertex-write"
-            RoleAction roleAction = RoleAction.fromPermission(required);
-            RolePerm rolePerm = RolePerm.fromJson(this.role());
-
-            String owner = this.getPathParameter(roleAction.owner());
-            if (!rolePerm.matchOwner(owner)) {
-                return false;
+            if (!required.startsWith(HugeAuthenticator.KEY_OWNER)) {
+                // Permission format like: "admin"
+                return RolePerm.match(this.role(), required);
             }
-            return rolePerm.matchPermission(owner, roleAction.actions());
+
+            // Permission format like: "$owner=$graph $action=vertex-write"
+            RoleAction roleAction = RoleAction.fromPermission(required);
+
+            // Replace owner value(may be variable) if needed
+            String owner = roleAction.owner();
+            if (owner.startsWith(HugeAuthenticator.VAR_PREFIX)) {
+                assert owner.length() > HugeAuthenticator.VAR_PREFIX.length();
+                owner = owner.substring(HugeAuthenticator.VAR_PREFIX.length());
+                owner = this.getPathParameter(owner);
+                roleAction.owner(owner);
+            }
+
+            return RolePerm.match(this.role(), roleAction);
         }
 
         private String getPathParameter(String key) {
@@ -209,7 +217,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
             @Override
             public String getName() {
-                return Authorizer.this.user.role();
+                return Authorizer.this.user.getName();
             }
 
             @Override

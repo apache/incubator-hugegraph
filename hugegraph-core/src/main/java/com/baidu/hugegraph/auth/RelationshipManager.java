@@ -27,6 +27,7 @@ import java.util.function.Function;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 
 import com.baidu.hugegraph.HugeException;
+import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.auth.SchemaDefine.Relationship;
 import com.baidu.hugegraph.backend.id.Id;
@@ -66,6 +67,10 @@ public class RelationshipManager<T extends Relationship> {
 
     private GraphTransaction tx() {
         return this.graph.systemTransaction();
+    }
+
+    private HugeGraph graph() {
+        return this.graph.graph();
     }
 
     public Id add(T relationship) {
@@ -182,7 +187,7 @@ public class RelationshipManager<T extends Relationship> {
     }
 
     private Id save(T relationship) {
-        if (!SchemaDefine.existEdgeLabel(this.graph, relationship.label())) {
+        if (!this.graph().existsEdgeLabel(relationship.label())) {
             throw new HugeException("Schema is missing for %s '%s'",
                                     relationship.label(),
                                     relationship.source());
@@ -199,7 +204,7 @@ public class RelationshipManager<T extends Relationship> {
     }
 
     private HugeVertex newVertex(Object id, String label) {
-        VertexLabel vl = SchemaDefine.vertexLabel(this.graph, label);
+        VertexLabel vl = this.graph().vertexLabel(label);
         Id idValue = HugeVertex.getIdValue(id);
         return new HugeVertex(this.tx(), idValue, vl);
     }

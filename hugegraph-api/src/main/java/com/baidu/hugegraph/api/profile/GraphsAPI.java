@@ -42,8 +42,7 @@ import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
-import com.baidu.hugegraph.auth.HugeAuthenticator;
-import com.baidu.hugegraph.auth.HugeAuthenticator.RolePerm;
+import com.baidu.hugegraph.auth.HugeAuthenticator.RoleAction;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.RestServer;
@@ -68,26 +67,22 @@ public class GraphsAPI extends API {
     public Object list(@Context GraphManager manager,
                        @Context SecurityContext sc) {
         Set<String> graphs = manager.graphs();
-        String role = sc.getUserPrincipal().getName();
-        if (!role.equals(HugeAuthenticator.ROLE_ADMIN)) {
-            // Filter by user role
-            RolePerm rolePerm = RolePerm.fromJson(role);
-            Set<String> newGraphs = new HashSet<>();
-            for (String graph : graphs) {
-                if (rolePerm.owners().contains(graph)) {
-                    newGraphs.add(graph);
-                }
+        // Filter by user role
+        Set<String> filterGraphs = new HashSet<>();
+        for (String graph : graphs) {
+            String role = RoleAction.roleFor(graph);
+            if (sc.isUserInRole(role)) {
+                filterGraphs.add(graph);
             }
-            graphs = newGraphs;
         }
-        return ImmutableMap.of("graphs", graphs);
+        return ImmutableMap.of("graphs", filterGraphs);
     }
 
     @GET
     @Timed
     @Path("{name}")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=name"})
+    @RolesAllowed({"admin", "$owner=$name"})
     public Object get(@Context GraphManager manager,
                       @PathParam("name") String name) {
         LOG.debug("Get graph by name '{}'", name);
@@ -157,7 +152,7 @@ public class GraphsAPI extends API {
     @Path("{name}/mode")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=name"})
+    @RolesAllowed({"admin", "$owner=$name"})
     public Map<String, GraphMode> mode(@Context GraphManager manager,
                                        @PathParam("name") String name) {
         LOG.debug("Get mode of graph '{}'", name);

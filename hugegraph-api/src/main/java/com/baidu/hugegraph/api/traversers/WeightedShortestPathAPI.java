@@ -86,7 +86,7 @@ public class WeightedShortestPathAPI extends API {
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
         E.checkArgumentNotNull(weight, "The weight property can't be null");
 
-        HugeGraph g = graph4path(manager, graph);
+        HugeGraph g = graph(manager, graph);
         SingleSourceShortestPathTraverser traverser = new SingleSourceShortestPathTraverser(g);
 
         NodeWithWeight path = traverser.weightedShortestPath(

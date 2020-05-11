@@ -84,7 +84,7 @@ public class SingleSourceShortestPathAPI extends API {
         Id sourceId = VertexAPI.checkAndParseVertexId(source);
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
 
-        HugeGraph g = graph4path(manager, graph);
+        HugeGraph g = graph(manager, graph);
         SingleSourceShortestPathTraverser traverser =
                 new SingleSourceShortestPathTraverser(g);
         WeightedPaths paths = traverser.singleSourceShortestPaths(

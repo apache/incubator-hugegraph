@@ -37,7 +37,6 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.HugeGraphParams;
-import com.baidu.hugegraph.auth.SchemaDefine;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.page.PageInfo;
 import com.baidu.hugegraph.backend.query.Condition;
@@ -450,11 +449,10 @@ public class StandardTaskScheduler implements TaskScheduler {
             if (page != null) {
                 query.page(page);
             }
-            VertexLabel vl = SchemaDefine.vertexLabel(this.graph, P.TASK);
+            VertexLabel vl = this.graph().vertexLabel(P.TASK);
             query.eq(HugeKeys.LABEL, vl.id());
             for (Map.Entry<String, Object> entry : conditions.entrySet()) {
-                PropertyKey pk = SchemaDefine.propertyKey(this.graph,
-                                                          entry.getKey());
+                PropertyKey pk = this.graph().propertyKey(entry.getKey());
                 query.query(Condition.eq(pk.id(), entry.getValue()));
             }
             query.showHidden(true);
@@ -506,7 +504,7 @@ public class StandardTaskScheduler implements TaskScheduler {
         }
 
         public HugeVertex constructVertex(HugeTask<?> task) {
-            if (!SchemaDefine.existVertexLabel(this.params(), TASK)) {
+            if (!this.graph().existsVertexLabel(TASK)) {
                 throw new HugeException("Schema is missing for task(%s) '%s'",
                                         task.id(), task.name());
             }

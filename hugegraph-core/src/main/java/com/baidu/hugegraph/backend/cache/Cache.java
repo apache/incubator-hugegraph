@@ -42,7 +42,7 @@ public interface Cache<K, V> {
 
     public void clear();
 
-    public void expire(long seconds);
+    public void expire(long ms);
 
     public long expire();
 

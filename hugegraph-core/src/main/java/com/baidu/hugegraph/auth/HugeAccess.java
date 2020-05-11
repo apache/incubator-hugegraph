@@ -20,7 +20,6 @@
 package com.baidu.hugegraph.auth;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +29,7 @@ import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
 import org.apache.tinkerpop.gremlin.structure.T;
 
 import com.baidu.hugegraph.HugeGraphParams;
+import com.baidu.hugegraph.auth.ResourceObject.ResourceType;
 import com.baidu.hugegraph.auth.SchemaDefine.Relationship;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.schema.EdgeLabel;
@@ -50,6 +50,11 @@ public class HugeAccess extends Relationship {
         this.group = group;
         this.target = target;
         this.permission = permission;
+    }
+
+    @Override
+    public ResourceType type() {
+        return ResourceType.GRANT;
     }
 
     @Override
@@ -93,31 +98,26 @@ public class HugeAccess extends Relationship {
     }
 
     @Override
-    protected void property(String key, Object value) {
-        E.checkNotNull(key, "property key");
+    protected boolean property(String key, Object value) {
+        if (super.property(key, value)) {
+            return true;
+        }
         switch (key) {
             case P.PERMISSION:
                 this.permission = HugePermission.fromCode((Byte) value);
                 break;
-            case P.CREATE:
-                this.create = (Date) value;
-                break;
-            case P.UPDATE:
-                this.update = (Date) value;
-                break;
             default:
                 throw new AssertionError("Unsupported key: " + key);
         }
+        return true;
     }
 
     @Override
     protected Object[] asArray() {
         E.checkState(this.permission != null,
                      "Access permission can't be null");
-        E.checkState(this.create != null, "Access create can't be null");
-        E.checkState(this.update != null, "Access update can't be null");
 
-        List<Object> list = new ArrayList<>(8);
+        List<Object> list = new ArrayList<>(10);
 
         list.add(T.label);
         list.add(P.ACCESS);
@@ -125,21 +125,13 @@ public class HugeAccess extends Relationship {
         list.add(P.PERMISSION);
         list.add(this.permission.code());
 
-        list.add(P.CREATE);
-        list.add(this.create);
-
-        list.add(P.UPDATE);
-        list.add(this.update);
-
-        return list.toArray();
+        return super.asArray(list);
     }
 
     @Override
     public Map<String, Object> asMap() {
         E.checkState(this.permission != null,
                      "Access permission can't be null");
-        E.checkState(this.create != null, "Access create can't be null");
-        E.checkState(this.update != null, "Access update can't be null");
 
         Map<String, Object> map = new HashMap<>();
 
@@ -147,10 +139,8 @@ public class HugeAccess extends Relationship {
         map.put(Hidden.unHide(P.TARGET), this.target);
 
         map.put(Hidden.unHide(P.PERMISSION), this.permission.string());
-        map.put(Hidden.unHide(P.CREATE), this.create);
-        map.put(Hidden.unHide(P.UPDATE), this.update);
 
-        return map;
+        return super.asMap(map);
     }
 
     public static <V> HugeAccess fromEdge(Edge edge) {
@@ -173,8 +163,6 @@ public class HugeAccess extends Relationship {
         public static final String TARGET = HugeTarget.P.TARGET;
 
         public static final String PERMISSION = "~access_permission";
-        public static final String CREATE = "~access_create";
-        public static final String UPDATE = "~access_update";
 
         public static String unhide(String key) {
             final String prefix = Hidden.hide("access_");
@@ -214,10 +202,8 @@ public class HugeAccess extends Relationship {
             List<String> props = new ArrayList<>();
 
             props.add(createPropertyKey(P.PERMISSION, DataType.BYTE));
-            props.add(createPropertyKey(P.CREATE, DataType.DATE));
-            props.add(createPropertyKey(P.UPDATE, DataType.DATE));
 
-            return props.toArray(new String[0]);
+            return super.initProperties(props);
         }
     }
 }

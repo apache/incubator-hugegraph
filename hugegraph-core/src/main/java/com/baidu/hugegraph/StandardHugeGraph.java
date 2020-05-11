@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph;
 
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeoutException;
@@ -38,6 +39,7 @@ import org.slf4j.Logger;
 
 import com.baidu.hugegraph.analyzer.Analyzer;
 import com.baidu.hugegraph.analyzer.AnalyzerFactory;
+import com.baidu.hugegraph.auth.HugeResource.RolePermission;
 import com.baidu.hugegraph.auth.HugeUser;
 import com.baidu.hugegraph.auth.UserManager;
 import com.baidu.hugegraph.backend.BackendException;
@@ -62,6 +64,8 @@ import com.baidu.hugegraph.io.HugeGraphIoRegistry;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
+import com.baidu.hugegraph.schema.SchemaElement;
+import com.baidu.hugegraph.schema.SchemaLabel;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.structure.HugeEdge;
@@ -84,6 +88,14 @@ import com.google.common.util.concurrent.RateLimiter;
  * query the schema/vertex/edge data through this class.
  */
 public class StandardHugeGraph implements HugeGraph {
+
+    public static final Class<?>[] PROTECT_CLASSES = {
+           StandardHugeGraph.class,
+           StandardHugeGraph.StandardHugeGraphParams.class,
+           StandardHugeGraph.TinkerpopTransaction.class,
+           StandardHugeGraph.Txs.class,
+           StandardHugeGraph.SysTransaction.class
+    };
 
     private static final Logger LOG = Log.logger(HugeGraph.class);
 
@@ -156,11 +168,6 @@ public class StandardHugeGraph implements HugeGraph {
 
     @Override
     public HugeGraph hugegraph() {
-        return this;
-    }
-
-    @Override
-    public HugeGraph hugegraph(String permission) {
         return this;
     }
 
@@ -404,6 +411,11 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
+    public void canAddEdge(Edge edge) {
+        // pass
+    }
+
+    @Override
     public void removeEdge(Edge edge) {
         this.graphTransaction().removeEdge((HugeEdge) edge);
     }
@@ -470,6 +482,21 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
+    public void addPropertyKey(PropertyKey key) {
+        this.schemaTransaction().addPropertyKey(key);
+    }
+
+    @Override
+    public void removePropertyKey(Id key) {
+        this.schemaTransaction().removePropertyKey(key);
+    }
+
+    @Override
+    public Collection<PropertyKey> propertyKeys() {
+        return this.schemaTransaction().getPropertyKeys();
+    }
+
+    @Override
     public PropertyKey propertyKey(Id id) {
         PropertyKey pk = this.schemaTransaction().getPropertyKey(id);
         E.checkArgument(pk != null, "Undefined property key with id: '%s'", id);
@@ -486,6 +513,21 @@ public class StandardHugeGraph implements HugeGraph {
     @Override
     public boolean existsPropertyKey(String name) {
         return this.schemaTransaction().getPropertyKey(name) != null;
+    }
+
+    @Override
+    public void addVertexLabel(VertexLabel vertexLabel) {
+        this.schemaTransaction().addVertexLabel(vertexLabel);
+    }
+
+    @Override
+    public Id removeVertexLabel(Id label) {
+        return this.schemaTransaction().removeVertexLabel(label);
+    }
+
+    @Override
+    public Collection<VertexLabel> vertexLabels() {
+        return this.schemaTransaction().getVertexLabels();
     }
 
     @Override
@@ -528,6 +570,21 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
+    public void addEdgeLabel(EdgeLabel edgeLabel) {
+        this.schemaTransaction().addEdgeLabel(edgeLabel);
+    }
+
+    @Override
+    public Id removeEdgeLabel(Id id) {
+        return this.schemaTransaction().removeEdgeLabel(id);
+    }
+
+    @Override
+    public Collection<EdgeLabel> edgeLabels() {
+        return this.schemaTransaction().getEdgeLabels();
+    }
+
+    @Override
     public EdgeLabel edgeLabelOrNone(Id id) {
         EdgeLabel el = this.schemaTransaction().getEdgeLabel(id);
         if (el == null) {
@@ -553,6 +610,26 @@ public class StandardHugeGraph implements HugeGraph {
     @Override
     public boolean existsEdgeLabel(String name) {
         return this.schemaTransaction().getEdgeLabel(name) != null;
+    }
+
+    @Override
+    public void addIndexLabel(SchemaLabel schemaLabel, IndexLabel indexLabel) {
+        this.schemaTransaction().addIndexLabel(schemaLabel, indexLabel);
+    }
+
+    @Override
+    public Id removeIndexLabel(Id id) {
+        return this.schemaTransaction().removeIndexLabel(id);
+    }
+
+    @Override
+    public Id rebuildIndex(SchemaElement schema) {
+        return this.schemaTransaction().rebuildIndex(schema);
+    }
+
+    @Override
+    public Collection<IndexLabel> indexLabels() {
+        return this.schemaTransaction().getIndexLabels();
     }
 
     @Override
@@ -618,7 +695,7 @@ public class StandardHugeGraph implements HugeGraph {
 
     @Override
     public SchemaManager schema() {
-        return new SchemaManager(this.schemaTransaction());
+        return new SchemaManager(this.schemaTransaction(), this);
     }
 
     @Override
@@ -640,7 +717,7 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
-    public String matchUser(String username, String password) {
+    public RolePermission matchUser(String username, String password) {
         HugeUser user = this.userManager.matchUser(username, password);
         if (user == null) {
             return null;
