@@ -19,20 +19,55 @@
 
 package com.baidu.hugegraph.auth;
 
+import java.io.Console;
 import java.net.InetAddress;
+import java.util.Scanner;
 
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
 
 import com.baidu.hugegraph.HugeGraph;
-import com.baidu.hugegraph.auth.HugeResource.RolePermission;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.StringEncoding;
 
 public class StandardAuthenticator implements HugeAuthenticator {
 
     private HugeGraph graph = null;
+
+    private HugeGraph graph() {
+        E.checkState(this.graph != null, "Must setup Authenticator first");
+        return this.graph;
+    }
+
+    private void initAdminUser() throws Exception {
+        // Not allowed to call by non main thread
+        String caller = Thread.currentThread().getName();
+        E.checkState(caller.equals("main"), "Invalid caller '%s'", caller);
+
+        UserManager userManager = this.graph().hugegraph().userManager();
+        HugeUser admin = new HugeUser(HugeAuthenticator.USER_ADMIN);
+        admin.password(StringEncoding.hashPassword(inputPassword()));
+        admin.creator(HugeAuthenticator.USER_SYSTEM);
+        userManager.createUser(admin);
+
+        this.graph.close();
+    }
+
+    private String inputPassword() {
+        String prompt = "Please input the admin password:";
+        Console console = System.console();
+        if (console != null) {
+            char[] chars = console.readPassword(prompt);
+            return new String(chars);
+        } else {
+            System.out.print(prompt);
+            @SuppressWarnings("resource")
+            Scanner scanner = new Scanner(System.in);
+            return scanner.nextLine();
+        }
+    }
 
     @Override
     public void setup(HugeConfig config) {
@@ -41,11 +76,6 @@ public class StandardAuthenticator implements HugeAuthenticator {
         E.checkArgument(graphPath != null,
                         "Invalid graph name '%s'", graphName);
         this.graph = (HugeGraph) GraphFactory.open(graphPath);
-    }
-
-    protected RolePermission matchUser(String username, String password) {
-        E.checkState(this.graph != null, "Must setup Authenticator first");
-        return this.graph.matchUser(username, password);
     }
 
     /**
@@ -61,7 +91,8 @@ public class StandardAuthenticator implements HugeAuthenticator {
         E.checkArgumentNotNull(password,
                                "The password parameter can't be null");
 
-        RolePermission role = this.matchUser(username, password);
+        RolePermission role = this.graph().userManager().loginUser(username,
+                                                                   password);
         if (role == null) {
             role = ROLE_NONE;
         } else if (username.equals(USER_ADMIN)) {
@@ -71,7 +102,23 @@ public class StandardAuthenticator implements HugeAuthenticator {
     }
 
     @Override
+    public UserManager userManager() {
+        return this.graph().userManager();
+    }
+
+    @Override
     public SaslNegotiator newSaslNegotiator(InetAddress remoteAddress) {
         throw new NotImplementedException("SaslNegotiator is unsupported");
+    }
+
+    public static void initAdminUser(String restConfFile) throws Exception {
+        StandardAuthenticator auth = new StandardAuthenticator();
+        HugeConfig config = new HugeConfig(restConfFile);
+        String authClass = config.get(ServerOptions.AUTHENTICATOR);
+        if (authClass.isEmpty()) {
+            return;
+        }
+        auth.setup(config);
+        auth.initAdminUser();
     }
 }

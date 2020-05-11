@@ -32,8 +32,10 @@ import com.baidu.hugegraph.auth.HugeAccess;
 import com.baidu.hugegraph.auth.HugeBelong;
 import com.baidu.hugegraph.auth.HugeGroup;
 import com.baidu.hugegraph.auth.HugePermission;
+import com.baidu.hugegraph.auth.HugeResource;
 import com.baidu.hugegraph.auth.HugeTarget;
 import com.baidu.hugegraph.auth.HugeUser;
+import com.baidu.hugegraph.auth.RolePermission;
 import com.baidu.hugegraph.auth.UserManager;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
@@ -601,12 +603,14 @@ public class UsersTest extends BaseCoreTest {
         Assert.assertEquals(null, belong.description());
         Assert.assertEquals(belong.create(), belong.update());
 
-        Assert.assertEquals(ImmutableMap.of("user", user,
-                                            "group", group1,
-                                            "belong_creator", "admin",
-                                            "belong_create", belong.create(),
-                                            "belong_update", belong.update()),
-                            belong.asMap());
+        Map<String, Object> expected = new HashMap<>();
+        expected.putAll(ImmutableMap.of("id", belong.id(),
+                                        "user", user,
+                                        "group", group1));
+        expected.putAll(ImmutableMap.of("belong_creator", "admin",
+                                        "belong_create", belong.create(),
+                                        "belong_update", belong.update()));
+        Assert.assertEquals(expected, belong.asMap());
 
         belong = userManager.getBelong(id2);
         Assert.assertEquals(user, belong.source());
@@ -614,12 +618,14 @@ public class UsersTest extends BaseCoreTest {
         Assert.assertEquals(null, belong.description());
         Assert.assertEquals(belong.create(), belong.update());
 
-        Assert.assertEquals(ImmutableMap.of("user", user,
-                                            "group", group2,
-                                            "belong_creator", "admin",
-                                            "belong_create", belong.create(),
-                                            "belong_update", belong.update()),
-                            belong.asMap());
+        expected = new HashMap<>();
+        expected.putAll(ImmutableMap.of("id", belong.id(),
+                                        "user", user,
+                                        "group", group2));
+        expected.putAll(ImmutableMap.of("belong_creator", "admin",
+                                        "belong_create", belong.create(),
+                                        "belong_update", belong.update()));
+        Assert.assertEquals(expected, belong.asMap());
 
         List<HugeBelong> belongs = userManager.listBelongByUser(user, -1);
         Assert.assertEquals(2, belongs.size());
@@ -629,6 +635,26 @@ public class UsersTest extends BaseCoreTest {
 
         belongs = userManager.listBelongByGroup(group2, -1);
         Assert.assertEquals(1, belongs.size());
+
+        // Create belong with description
+        belong = makeBelong(user, group1);
+        belong.description("something2");
+        Id id3 = userManager.createBelong(belong);
+        belong = userManager.getBelong(id3);
+        Assert.assertEquals(user, belong.source());
+        Assert.assertEquals(group1, belong.target());
+        Assert.assertEquals("something2", belong.description());
+        Assert.assertEquals(belong.create(), belong.update());
+
+        expected = new HashMap<>();
+        expected.putAll(ImmutableMap.of("id", belong.id(),
+                                        "user", user,
+                                        "group", group1));
+        expected.putAll(ImmutableMap.of("belong_description", "something2",
+                                        "belong_creator", "admin",
+                                        "belong_create", belong.create(),
+                                        "belong_update", belong.update()));
+        Assert.assertEquals(expected, belong.asMap());
     }
 
     @Test
@@ -821,7 +847,8 @@ public class UsersTest extends BaseCoreTest {
         Assert.assertEquals(access.create(), access.update());
 
         Map<String, Object> expected = new HashMap<>();
-        expected.putAll(ImmutableMap.of("group", group1,
+        expected.putAll(ImmutableMap.of("id", access.id(),
+                                        "group", group1,
                                         "target", target1,
                                         "access_permission",
                                         HugePermission.READ.string(),
@@ -837,7 +864,8 @@ public class UsersTest extends BaseCoreTest {
         Assert.assertEquals(access.create(), access.update());
 
         expected = new HashMap<>();
-        expected.putAll(ImmutableMap.of("group", group1,
+        expected.putAll(ImmutableMap.of("id", access.id(),
+                                        "group", group1,
                                         "target", target1,
                                         "access_permission",
                                         HugePermission.WRITE.string(),
@@ -853,7 +881,8 @@ public class UsersTest extends BaseCoreTest {
         Assert.assertEquals(access.create(), access.update());
 
         expected = new HashMap<>();
-        expected.putAll(ImmutableMap.of("group", group1,
+        expected.putAll(ImmutableMap.of("id", access.id(),
+                                        "group", group1,
                                         "target", target2,
                                         "access_permission",
                                         HugePermission.READ.string(),
@@ -869,7 +898,8 @@ public class UsersTest extends BaseCoreTest {
         Assert.assertEquals(access.create(), access.update());
 
         expected = new HashMap<>();
-        expected.putAll(ImmutableMap.of("group", group2,
+        expected.putAll(ImmutableMap.of("id", access.id(),
+                                        "group", group2,
                                         "target", target2,
                                         "access_permission",
                                         HugePermission.READ.string(),
@@ -889,6 +919,29 @@ public class UsersTest extends BaseCoreTest {
 
         accesses = userManager.listAccessByTarget(target2, -1);
         Assert.assertEquals(2, accesses.size());
+
+        // Create access with description
+        access = makeAccess(group1, target1, HugePermission.READ);
+        access.description("something3");
+        Id id5 = userManager.createAccess(access);
+        access = userManager.getAccess(id5);
+        Assert.assertEquals(group1, access.source());
+        Assert.assertEquals(target1, access.target());
+        Assert.assertEquals(HugePermission.READ, access.permission());
+        Assert.assertEquals("something3", access.description());
+        Assert.assertEquals(access.create(), access.update());
+
+        expected = new HashMap<>();
+        expected.putAll(ImmutableMap.of("id", access.id(),
+                                        "group", group1,
+                                        "target", target1,
+                                        "access_permission",
+                                        HugePermission.READ.string(),
+                                        "access_creator", "admin"));
+        expected.putAll(ImmutableMap.of("access_description", "something3",
+                                        "access_create", access.create(),
+                                        "access_update", access.update()));
+        Assert.assertEquals(expected, access.asMap());
     }
 
     @Test
@@ -1074,6 +1127,99 @@ public class UsersTest extends BaseCoreTest {
         });
     }
 
+    @Test
+    public void testRolePermission() {
+        HugeGraph graph = graph();
+        UserManager userManager = graph.userManager();
+
+        userManager.createUser(makeUser("admin", "pa"));
+
+        Id user0 = userManager.createUser(makeUser("hugegraph", "p0"));
+        Id user1 = userManager.createUser(makeUser("hugegraph1", "p1"));
+
+        Id group1 = userManager.createGroup(makeGroup("group1"));
+        Id group2 = userManager.createGroup(makeGroup("group2"));
+
+        Id graph1 = userManager.createTarget(makeTarget("hugegraph", "url1"));
+        Id graph2 = userManager.createTarget(makeTarget("hugegraph1", "url2"));
+
+        List<HugeResource> rv = HugeResource.parseResources(
+            "[{\"type\": \"VERTEX\", \"label\": \"person\", " +
+            "\"properties\":{\"city\": \"Beijing\", \"age\": \"P.gte(20)\"}}," +
+            " {\"type\": \"VERTEX_LABEL\", \"label\": \"*\"}," +
+            " {\"type\": \"PROPERTY_KEY\", \"label\": \"*\"}]");
+        List<HugeResource> re = HugeResource.parseResources(
+            "[{\"type\": \"EDGE\", \"label\": \"write\"}, " +
+            " {\"type\": \"PROPERTY_KEY\"}, {\"type\": \"VERTEX_LABEL\"}, " +
+            " {\"type\": \"EDGE_LABEL\"}, {\"type\": \"INDEX_LABEL\"}]");
+        List<HugeResource> rg = HugeResource.parseResources(
+            "[{\"type\": \"GREMLIN\"}]");
+        Id graph1v = userManager.createTarget(makeTarget("hugegraph-v",
+                                                         "hugegraph",
+                                                         "url1", rv));
+        Id graph1e = userManager.createTarget(makeTarget("hugegraph-e",
+                                                         "hugegraph",
+                                                         "url1", re));
+        Id graph1gremlin = userManager.createTarget(makeTarget("hugegraph-g",
+                                                               "hugegraph",
+                                                               "url1", rg));
+
+        Id belong1 = userManager.createBelong(makeBelong(user0, group1));
+        Id belong2 = userManager.createBelong(makeBelong(user1, group2));
+
+        userManager.createAccess(makeAccess(group1, graph1,
+                                            HugePermission.READ));
+        userManager.createAccess(makeAccess(group1, graph1,
+                                            HugePermission.WRITE));
+        userManager.createAccess(makeAccess(group1, graph2,
+                                            HugePermission.READ));
+        userManager.createAccess(makeAccess(group2, graph2,
+                                            HugePermission.READ));
+
+        Id access1v = userManager.createAccess(makeAccess(group1, graph1v,
+                                                          HugePermission.READ));
+        userManager.createAccess(makeAccess(group1, graph1v,
+                                            HugePermission.WRITE));
+        userManager.createAccess(makeAccess(group1, graph1e,
+                                            HugePermission.READ));
+        Id access1g = userManager.createAccess(makeAccess(group1, graph1gremlin,
+                                               HugePermission.EXECUTE));
+
+        RolePermission role;
+        role = userManager.rolePermission(userManager.getUser(user0));
+        String expected = "{\"roles\":{\"hugegraph\":{\"READ\":[{\"type\":\"EDGE\",\"label\":\"write\",\"properties\":null},{\"type\":\"PROPERTY_KEY\",\"label\":\"*\",\"properties\":null},{\"type\":\"VERTEX_LABEL\",\"label\":\"*\",\"properties\":null},{\"type\":\"EDGE_LABEL\",\"label\":\"*\",\"properties\":null},{\"type\":\"INDEX_LABEL\",\"label\":\"*\",\"properties\":null},{\"type\":\"VERTEX\",\"label\":\"person\",\"properties\":{\"city\":\"Beijing\",\"age\":\"P.gte(20)\"}},{\"type\":\"VERTEX_LABEL\",\"label\":\"*\",\"properties\":null},{\"type\":\"PROPERTY_KEY\",\"label\":\"*\",\"properties\":null}],\"WRITE\":[{\"type\":\"VERTEX\",\"label\":\"person\",\"properties\":{\"city\":\"Beijing\",\"age\":\"P.gte(20)\"}},{\"type\":\"VERTEX_LABEL\",\"label\":\"*\",\"properties\":null},{\"type\":\"PROPERTY_KEY\",\"label\":\"*\",\"properties\":null}],\"EXECUTE\":[{\"type\":\"GREMLIN\",\"label\":\"*\",\"properties\":null}]},\"hugegraph1\":{\"READ\":[]}}}";
+        Assert.assertEquals(expected, role.toJson());
+
+        role = userManager.rolePermission(userManager.getBelong(belong1));
+        Assert.assertEquals(expected, role.toJson());
+
+        role = userManager.rolePermission(userManager.getGroup(group1));
+        Assert.assertEquals(expected, role.toJson());
+
+        role = userManager.rolePermission(userManager.getAccess(access1v));
+        expected = "{\"roles\":{\"hugegraph\":{\"READ\":[{\"type\":\"VERTEX\",\"label\":\"person\",\"properties\":{\"city\":\"Beijing\",\"age\":\"P.gte(20)\"}},{\"type\":\"VERTEX_LABEL\",\"label\":\"*\",\"properties\":null},{\"type\":\"PROPERTY_KEY\",\"label\":\"*\",\"properties\":null}]}}}";
+        Assert.assertEquals(expected, role.toJson());
+
+        role = userManager.rolePermission(userManager.getAccess(access1g));
+        expected = "{\"roles\":{\"hugegraph\":{\"EXECUTE\":[{\"type\":\"GREMLIN\",\"label\":\"*\",\"properties\":null}]}}}";
+        Assert.assertEquals(expected, role.toJson());
+
+        role = userManager.rolePermission(userManager.getUser(user1));
+        expected = "{\"roles\":{\"hugegraph1\":{\"READ\":[]}}}";
+        Assert.assertEquals(expected, role.toJson());
+
+        role = userManager.rolePermission(userManager.getBelong(belong2));
+        expected = "{\"roles\":{\"hugegraph1\":{\"READ\":[]}}}";
+        Assert.assertEquals(expected, role.toJson());
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            userManager.rolePermission(userManager.getTarget(graph1v));
+        }, e -> {
+            Assert.assertContains("Invalid type for role permission: HugeTarget",
+                                  e.getMessage());
+        });
+    }
+
     private static HugeUser makeUser(String name, String password) {
         HugeUser user = new HugeUser(name);
         user.password(password);
@@ -1089,6 +1235,13 @@ public class UsersTest extends BaseCoreTest {
 
     private static HugeTarget makeTarget(String name, String url) {
         HugeTarget target = new HugeTarget(name, url);
+        target.creator("admin");
+        return target;
+    }
+
+    private static HugeTarget makeTarget(String name, String graph, String url,
+                                         List<HugeResource> ress) {
+        HugeTarget target = new HugeTarget(name, graph, url, ress);
         target.creator("admin");
         return target;
     }

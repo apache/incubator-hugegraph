@@ -31,6 +31,7 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 
 import com.baidu.hugegraph.HugeGraphParams;
+import com.baidu.hugegraph.auth.HugeTarget.P;
 import com.baidu.hugegraph.auth.ResourceObject.ResourceType;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.schema.IndexLabel;
@@ -175,6 +176,11 @@ public abstract class SchemaDefine {
             E.checkState(this.creator != null,
                          "Property %s can't be null", CREATOR);
 
+            if (this.id != null) {
+                // The id is null when creating
+                map.put(Hidden.unHide(P.ID), this.id);
+            }
+
             map.put(unhideField(this.label(), CREATE), this.create);
             map.put(unhideField(this.label(), UPDATE), this.update);
             map.put(unhideField(this.label(), CREATOR), this.creator);
@@ -229,7 +235,8 @@ public abstract class SchemaDefine {
 
     }
 
-    public static abstract class Entity extends UserElement {
+    public static abstract class Entity extends UserElement
+                           implements com.baidu.hugegraph.type.Namifiable {
 
         public static <T extends Entity> T fromVertex(Vertex vertex, T entity) {
             E.checkArgument(vertex.label().equals(entity.label()),

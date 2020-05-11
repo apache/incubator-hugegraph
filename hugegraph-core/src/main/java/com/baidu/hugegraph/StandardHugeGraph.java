@@ -39,8 +39,7 @@ import org.slf4j.Logger;
 
 import com.baidu.hugegraph.analyzer.Analyzer;
 import com.baidu.hugegraph.analyzer.AnalyzerFactory;
-import com.baidu.hugegraph.auth.HugeResource.RolePermission;
-import com.baidu.hugegraph.auth.HugeUser;
+import com.baidu.hugegraph.auth.StandardUserManager;
 import com.baidu.hugegraph.auth.UserManager;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.cache.CachedGraphTransaction;
@@ -157,7 +156,7 @@ public class StandardHugeGraph implements HugeGraph {
         SnowflakeIdGenerator.init(this.params);
 
         this.taskManager.addScheduler(this.params);
-        this.userManager = new UserManager(this.params);
+        this.userManager = new StandardUserManager(this.params);
         this.variables = null;
     }
 
@@ -714,15 +713,6 @@ public class StandardHugeGraph implements HugeGraph {
         E.checkState(scheduler != null,
                      "Can't find task scheduler for graph '%s'", this);
         return scheduler;
-    }
-
-    @Override
-    public RolePermission matchUser(String username, String password) {
-        HugeUser user = this.userManager.matchUser(username, password);
-        if (user == null) {
-            return null;
-        }
-        return this.userManager.roleAction(user);
     }
 
     @Override

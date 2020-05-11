@@ -59,14 +59,16 @@ public class ResourceObject<V> {
                              this.graph, this.type, this.operated);
     }
 
-    public static ResourceObject<SchemaElement> of(SchemaElement elem) {
+    public static ResourceObject<SchemaElement> of(String graph,
+                                                   SchemaElement elem) {
         ResourceType resType = ResourceType.from(elem.type());
-        return new ResourceObject<>(elem.graph().name(), resType, elem);
+        return new ResourceObject<>(graph, resType, elem);
     }
 
-    public static ResourceObject<HugeElement> of(HugeElement elem) {
+    public static ResourceObject<HugeElement> of(String graph,
+                                                 HugeElement elem) {
         ResourceType resType = ResourceType.from(elem.type());
-        return new ResourceObject<>(elem.graph().name(), resType, elem);
+        return new ResourceObject<>(graph, resType, elem);
     }
 
     public static ResourceObject<UserElement> of(String graph,

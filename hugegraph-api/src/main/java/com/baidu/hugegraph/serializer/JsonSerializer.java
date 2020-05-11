@@ -33,6 +33,7 @@ import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.api.API;
+import com.baidu.hugegraph.auth.SchemaDefine.UserElement;
 import com.baidu.hugegraph.backend.page.PageInfo;
 import com.baidu.hugegraph.iterator.Metadatable;
 import com.baidu.hugegraph.schema.EdgeLabel;
@@ -207,6 +208,21 @@ public class JsonSerializer implements Serializer {
     }
 
     @Override
+    public String writeUserElement(UserElement elem) {
+        return this.writeMap(elem.asMap());
+    }
+
+    @Override
+    public <V extends UserElement> String writeUserElements(String label,
+                                                            List<V> elems) {
+        List<Object> list = new ArrayList<>(elems.size());
+        for (V elem : elems) {
+            list.add(elem.asMap());
+        }
+        return this.writeList(label, list);
+    }
+
+    @Override
     public String writePaths(String name, Collection<HugeTraverser.Path> paths,
                              boolean withCrossPoint,
                              Iterator<Vertex> vertices) {
@@ -258,6 +274,7 @@ public class JsonSerializer implements Serializer {
                                                "vertices", vertices));
     }
 
+    @Override
     public String writeWeightedPaths(WeightedPaths paths,
                                      Iterator<Vertex> vertices) {
         return JsonUtil.toJson(ImmutableMap.of("paths", paths.toMap(),

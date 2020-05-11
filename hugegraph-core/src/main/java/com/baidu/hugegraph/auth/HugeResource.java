@@ -20,12 +20,10 @@
 package com.baidu.hugegraph.auth;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.TreeMap;
+import java.util.Set;
 
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.shaded.jackson.annotation.JsonProperty;
@@ -34,7 +32,6 @@ import org.apache.tinkerpop.shaded.jackson.core.JsonParser;
 import org.apache.tinkerpop.shaded.jackson.core.JsonToken;
 import org.apache.tinkerpop.shaded.jackson.core.type.TypeReference;
 import org.apache.tinkerpop.shaded.jackson.databind.DeserializationContext;
-import org.apache.tinkerpop.shaded.jackson.databind.JsonMappingException;
 import org.apache.tinkerpop.shaded.jackson.databind.SerializerProvider;
 import org.apache.tinkerpop.shaded.jackson.databind.deser.std.StdDeserializer;
 import org.apache.tinkerpop.shaded.jackson.databind.module.SimpleModule;
@@ -46,9 +43,9 @@ import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
 import com.baidu.hugegraph.type.Namifiable;
 import com.baidu.hugegraph.type.Typifiable;
-import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 public class HugeResource {
 
@@ -58,14 +55,14 @@ public class HugeResource {
                                                             ANY, null);
     public static final List<HugeResource> ALL_RES = ImmutableList.of(ALL);
 
+    private static final Set<ResourceType> CHECK_NAME_RESS = ImmutableSet.of(
+                                                             ResourceType.META);
+
     static {
         SimpleModule module = new SimpleModule();
 
         module.addSerializer(HugeResource.class, new HugeResourceSer());
         module.addDeserializer(HugeResource.class, new HugeResourceDeser());
-
-        module.addSerializer(RolePermission.class, new RolePermissionSer());
-        module.addDeserializer(RolePermission.class, new RolePermissionDeser());
 
         JsonUtil.registerModule(module);
     }
@@ -88,6 +85,23 @@ public class HugeResource {
         this.type = type;
         this.label = label;
         this.properties = properties;
+        this.checkFormat();
+    }
+
+    public void checkFormat() {
+        if (this.properties == null) {
+            return;
+        }
+        for (Map.Entry<String, String> entry : this.properties.entrySet()) {
+            String propName = entry.getKey();
+            String propValue = entry.getValue();
+            if (propName.equals(ANY) && propValue.equals(ANY)) {
+                continue;
+            }
+            if (propValue.startsWith(TraversalUtil.P_CALL)) {
+                TraversalUtil.parsePredicate(propValue);
+            }
+        }
     }
 
     public boolean filter(ResourceObject<?> resourceObject) {
@@ -99,14 +113,17 @@ public class HugeResource {
             return false;
         }
 
-        if (resourceObject.type().isGraph()) {
-            return this.filter((HugeElement) resourceObject.operated());
-        }
-        if (resourceObject.type().isSchema()) {
-            return this.filter((Namifiable) resourceObject.operated());
-        }
-        if (resourceObject.type().isUser()) {
-            return this.filter((UserElement) resourceObject.operated());
+        if (resourceObject.operated() != NameObject.NONE) {
+            ResourceType resType = resourceObject.type();
+            if (resType.isGraph()) {
+                return this.filter((HugeElement) resourceObject.operated());
+            }
+            if (resType.isUser()) {
+                return this.filter((UserElement) resourceObject.operated());
+            }
+            if (resType.isSchema() || CHECK_NAME_RESS.contains(resType)) {
+                return this.filter((Namifiable) resourceObject.operated());
+            }
         }
 
         /*
@@ -118,6 +135,11 @@ public class HugeResource {
 
     private boolean filter(UserElement element) {
         assert this.type.match(element.type());
+        if (element instanceof Namifiable) {
+            if (!this.filter((Namifiable) element)) {
+                return false;
+            }
+        }
         return true;
     }
 
@@ -165,11 +187,48 @@ public class HugeResource {
         return true;
     }
 
-    private boolean matchLabel(String value) {
-        if (this.label == null || value == null) {
+    private boolean matchLabel(String other) {
+        // Label value may be vertex/edge label or schema name
+        if (this.label == null || other == null) {
             return false;
         }
-        if (!this.label.equals(ANY) && !value.matches(this.label)) {
+        if (!this.label.equals(ANY) && !other.matches(this.label)) {
+            return false;
+        }
+        return true;
+    }
+
+    private boolean matchProperties(Map<String, String> other) {
+        if (this.properties == null) {
+            // Any property is OK
+            return true;
+        }
+        if (other == null) {
+            return false;
+        }
+        for (Map.Entry<String, String> p : other.entrySet()) {
+            String value = this.properties.get(p.getKey());
+            if (!Objects.equals(value, p.getValue())) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    protected boolean contains(HugeResource other) {
+        if (this.equals(other)) {
+            return true;
+        }
+        if (this.type == null || this.type == ResourceType.NONE) {
+            return false;
+        }
+        if (!this.type.match(other.type)) {
+            return false;
+        }
+        if (!this.matchLabel(other.label)) {
+            return false;
+        }
+        if (!this.matchProperties(other.properties)) {
             return false;
         }
         return true;
@@ -205,113 +264,17 @@ public class HugeResource {
         return JsonUtil.fromJson(resources, type);
     }
 
-    public static class RolePermission {
-
-        public static final RolePermission NONE = RolePermission.role(
-                                                  "none", HugePermission.NONE);
-        public static final RolePermission ADMIN = RolePermission.role(
-                                                   "admin", HugePermission.ALL);
-
-        // Mapping of: graph -> action -> resource
-        @JsonProperty("roles")
-        private final Map<String, Map<HugePermission, List<HugeResource>>> map;
-
-        public RolePermission() {
-            this(new TreeMap<>());
-        }
-
-        private RolePermission(Map<String, Map<HugePermission,
-                                               List<HugeResource>>> map) {
-            this.map = map;
-        }
-
-        protected void add(String graph, String action,
-                           List<HugeResource> resources) {
-            this.add(graph, HugePermission.valueOf(action), resources);
-        }
-
-        protected void add(String graph, HugePermission action,
-                           List<HugeResource> resources) {
-            Map<HugePermission, List<HugeResource>> permissions;
-            permissions = this.map.get(graph);
-            if (permissions == null) {
-                permissions = new TreeMap<>();
-                this.map.put(graph, permissions);
-            }
-            List<HugeResource> mergedResources = permissions.get(action);
-            if (mergedResources == null) {
-                mergedResources = new ArrayList<>();
-                permissions.put(action, mergedResources);
-            }
-            mergedResources.addAll(resources);
-        }
-
-        protected Map<String, Map<HugePermission, List<HugeResource>>> map() {
-            return Collections.unmodifiableMap(this.map);
-        }
-
-        @Override
-        public boolean equals(Object object) {
-            if (!(object instanceof RolePermission)) {
-                return false;
-            }
-            RolePermission other = (RolePermission) object;
-            return Objects.equals(this.map, other.map);
-        }
-
-        @Override
-        public String toString() {
-            return this.map.toString();
-        }
-
-        public static RolePermission fromJson(Object json) {
-            RolePermission role;
-            if (json instanceof String) {
-                role = JsonUtil.fromJson((String) json, RolePermission.class);
-            } else {
-                // Optimized json with RolePermission object
-                E.checkArgument(json instanceof RolePermission,
-                                "Invalid role value: %s", json);
-                role = (RolePermission) json;
-            }
-            return role;
-        }
-
-        public static RolePermission all(String graph) {
-            return role(graph, HugePermission.ALL);
-        }
-
-        public static RolePermission role(String graph, HugePermission perm) {
-            RolePermission role = new RolePermission();
-            role.add(graph, perm, ALL_RES);
-            return role;
-        }
-
-        public static RolePermission none() {
-            return NONE;
-        }
-
-        public static RolePermission admin() {
-            return ADMIN;
-        }
-
-        public static RolePermission builtin(RolePermission role) {
-            E.checkNotNull(role, "role");
-            if (role == ADMIN || role.equals(ADMIN)) {
-                return ADMIN;
-            }
-            if (role == NONE || role.equals(NONE)) {
-                return NONE;
-            }
-            return role;
-        }
-    }
-
     public static class NameObject implements Namifiable {
+
+        public static final NameObject NONE = new NameObject("*");
 
         private final String name;
 
-        public NameObject(String name) {
+        public static NameObject of(String name) {
+            return new NameObject(name);
+        }
+
+        private NameObject(String name) {
             this.name = name;
         }
 
@@ -386,47 +349,8 @@ public class HugeResource {
                     }
                 }
             }
+            res.checkFormat();
             return res;
-        }
-    }
-
-    private static class RolePermissionSer extends StdSerializer<RolePermission> {
-
-        private static final long serialVersionUID = -2533310506459479383L;
-
-        public RolePermissionSer() {
-            super(RolePermission.class);
-        }
-
-        @Override
-        public void serialize(RolePermission role, JsonGenerator generator,
-                              SerializerProvider provider)
-                              throws IOException {
-            generator.writeStartObject();
-            generator.writeObjectField("roles", role.map);
-            generator.writeEndObject();
-        }
-    }
-
-    private static class RolePermissionDeser extends StdDeserializer<RolePermission> {
-
-        private static final long serialVersionUID = -2038234657843260957L;
-
-        public RolePermissionDeser() {
-            super(RolePermission.class);
-        }
-
-        @Override
-        public RolePermission deserialize(JsonParser parser,
-                                          DeserializationContext ctxt)
-                                          throws IOException {
-            TypeReference<?> type = new TypeReference<TreeMap<String,
-                             TreeMap<HugePermission, List<HugeResource>>>>() {};
-            if (parser.nextFieldName().equals("roles")) {
-                parser.nextValue();
-                return new RolePermission(parser.readValueAs(type));
-            }
-            throw JsonMappingException.from(parser, "Expect field roles");
         }
     }
 }

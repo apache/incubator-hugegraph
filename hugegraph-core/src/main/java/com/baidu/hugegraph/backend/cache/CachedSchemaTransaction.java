@@ -72,7 +72,7 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
     private Cache<Id, Object> cache(String prefix) {
         HugeConfig conf = super.params().configuration();
 
-        final String name = prefix + "-" + super.graph().name();
+        final String name = prefix + "-" + super.params().name();
         final long capacity = conf.get(CoreOptions.SCHEMA_CACHE_CAPACITY);
         // NOTE: must disable schema cache-expire due to getAllSchema()
         return CacheManager.instance().cache(name, capacity);

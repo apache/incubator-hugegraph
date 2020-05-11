@@ -37,6 +37,7 @@ import com.baidu.hugegraph.unit.core.DirectionsTest;
 import com.baidu.hugegraph.unit.core.ExceptionTest;
 import com.baidu.hugegraph.unit.core.LocksTableTest;
 import com.baidu.hugegraph.unit.core.QueryTest;
+import com.baidu.hugegraph.unit.core.RolePermissionTest;
 import com.baidu.hugegraph.unit.core.RowLockTest;
 import com.baidu.hugegraph.unit.core.SecurityManagerTest;
 import com.baidu.hugegraph.unit.core.SerialEnumTest;
@@ -88,6 +89,7 @@ import com.baidu.hugegraph.unit.util.VersionTest;
     ConditionQueryFlattenTest.class,
     QueryTest.class,
     SecurityManagerTest.class,
+    RolePermissionTest.class,
     ExceptionTest.class,
     BackendStoreSystemInfoTest.class,
     TraversalUtilTest.class,

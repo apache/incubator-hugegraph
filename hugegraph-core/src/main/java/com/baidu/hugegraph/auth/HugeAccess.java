@@ -41,6 +41,7 @@ public class HugeAccess extends Relationship {
     private final Id group;
     private final Id target;
     private HugePermission permission;
+    private String description;
 
     public HugeAccess(Id group, Id target) {
         this(group, target, null);
@@ -50,6 +51,7 @@ public class HugeAccess extends Relationship {
         this.group = group;
         this.target = target;
         this.permission = permission;
+        this.description = null;
     }
 
     @Override
@@ -90,6 +92,13 @@ public class HugeAccess extends Relationship {
         this.permission = permission;
     }
 
+    public String description() {
+        return this.description;
+    }
+
+    public void description(String description) {
+        this.description = description;
+    }
 
     @Override
     public String toString() {
@@ -106,6 +115,9 @@ public class HugeAccess extends Relationship {
             case P.PERMISSION:
                 this.permission = HugePermission.fromCode((Byte) value);
                 break;
+            case P.DESCRIPTION:
+                this.description = (String) value;
+                break;
             default:
                 throw new AssertionError("Unsupported key: " + key);
         }
@@ -117,13 +129,18 @@ public class HugeAccess extends Relationship {
         E.checkState(this.permission != null,
                      "Access permission can't be null");
 
-        List<Object> list = new ArrayList<>(10);
+        List<Object> list = new ArrayList<>(12);
 
         list.add(T.label);
         list.add(P.ACCESS);
 
         list.add(P.PERMISSION);
         list.add(this.permission.code());
+
+        if (this.description != null) {
+            list.add(P.DESCRIPTION);
+            list.add(this.description);
+        }
 
         return super.asArray(list);
     }
@@ -139,6 +156,10 @@ public class HugeAccess extends Relationship {
         map.put(Hidden.unHide(P.TARGET), this.target);
 
         map.put(Hidden.unHide(P.PERMISSION), this.permission.string());
+
+        if (this.description != null) {
+            map.put(Hidden.unHide(P.DESCRIPTION), this.description);
+        }
 
         return super.asMap(map);
     }
@@ -163,6 +184,7 @@ public class HugeAccess extends Relationship {
         public static final String TARGET = HugeTarget.P.TARGET;
 
         public static final String PERMISSION = "~access_permission";
+        public static final String DESCRIPTION = "~access_description";
 
         public static String unhide(String key) {
             final String prefix = Hidden.hide("access_");
@@ -192,6 +214,7 @@ public class HugeAccess extends Relationship {
                                   .sourceLabel(P.GROUP)
                                   .targetLabel(P.TARGET)
                                   .properties(properties)
+                                  .nullableKeys(P.DESCRIPTION)
                                   .sortKeys(P.PERMISSION)
                                   .enableLabelIndex(true)
                                   .build();
@@ -202,6 +225,7 @@ public class HugeAccess extends Relationship {
             List<String> props = new ArrayList<>();
 
             props.add(createPropertyKey(P.PERMISSION, DataType.BYTE));
+            props.add(createPropertyKey(P.DESCRIPTION));
 
             return super.initProperties(props);
         }

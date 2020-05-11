@@ -51,8 +51,8 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.auth.HugeAuthenticator.RolePerm;
 import com.baidu.hugegraph.auth.HugeAuthenticator.User;
-import com.baidu.hugegraph.auth.HugeResource.RolePermission;
 import com.baidu.hugegraph.auth.ResourceObject.ResourceType;
+import com.baidu.hugegraph.auth.SchemaDefine.UserElement;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
@@ -91,11 +91,13 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
     private final HugeGraph hugegraph;
     private final TaskScheduler taskScheduler;
+    private final UserManager userManager;
 
     public HugeGraphAuthProxy(HugeGraph hugegraph) {
         LOG.info("Wrap graph '{}' with HugeGraphAuthProxy", hugegraph.name());
         this.hugegraph = hugegraph;
         this.taskScheduler = new TaskSchedulerProxy(hugegraph.taskScheduler());
+        this.userManager = new UserManagerProxy(hugegraph.userManager());
         this.hugegraph.proxy(this);
     }
 
@@ -474,7 +476,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     @Override
     public HugeFeatures features() {
         // Can't verifyPermission() here, will be called by rollbackAll()
-        verifyPermission(HugePermission.READ, ResourceType.STATUS);
+        //verifyPermission(HugePermission.READ, ResourceType.STATUS);
         return this.hugegraph.features();
     }
 
@@ -557,7 +559,8 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
     @Override
     public <R> R metadata(HugeType type, String meta, Object... args) {
-        this.verifyPermission(HugePermission.EXECUTE, ResourceType.META, meta);
+        this.verifySchemaPermission(HugePermission.EXECUTE,
+                                    ResourceType.META, meta);
         return this.hugegraph.metadata(type, meta, args);
     }
 
@@ -568,24 +571,9 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     @Override
-    public RolePermission matchUser(String username, String password) {
-        // Can't verifyPermission() here, login first with temp permission
-        Context context = setContext(Context.admin());
-        try {
-            return this.hugegraph.matchUser(username, password);
-        } catch (Exception e) {
-            LOG.error("Failed to login user {}: ", username, e);
-            throw e;
-        } finally {
-            setContext(context);
-        }
-    }
-
-    @Override
     public UserManager userManager() {
-        // TODO: return proxy
-        verifyAdminPermission();
-        return this.hugegraph.userManager();
+        // Just return proxy
+        return this.userManager;
     }
 
     @Override
@@ -603,7 +591,16 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     @Override
     public void truncateBackend() {
         verifyAdminPermission();
-        this.hugegraph.truncateBackend();
+        HugeUser admin = this.hugegraph.userManager()
+                             .findUser(HugeAuthenticator.USER_ADMIN);
+        try {
+            this.hugegraph.truncateBackend();
+        } finally {
+            if (admin != null) {
+                // Restore admin user to continue to do any operation
+                this.hugegraph.userManager().createUser(admin);
+            }
+        }
     }
 
     private void verifyAdminPermission() {
@@ -614,18 +611,8 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         verifyPermission(HugePermission.READ, ResourceType.STATUS);
     }
 
-    private void verifySchemaExistsPermission(ResourceType resType,
-                                              String schema) {
-        verifyPermission(HugePermission.READ, resType, schema);
-    }
-
     private void verifyPermission(HugePermission actionPerm,
                                   ResourceType resType) {
-        verifyPermission(actionPerm, resType, "*");
-    }
-
-    private void verifyPermission(HugePermission actionPerm,
-                                  ResourceType resType, String name) {
         /*
          * The owner role should match the graph name
          * NOTE: the graph names in gremlin-server.yaml/graphs and
@@ -633,57 +620,99 @@ public final class HugeGraphAuthProxy implements HugeGraph {
          */
         String graph = this.hugegraph.name();
         verifyResPermission(actionPerm, true, () -> {
-            Namifiable elem = new HugeResource.NameObject(name);
+            Namifiable elem = HugeResource.NameObject.NONE;
             return ResourceObject.of(graph, resType, elem);
         });
     }
 
-    private static void verifyElemPermission(HugePermission actionPerm,
-                                             Element elem) {
+    private <V extends UserElement> V verifyUserPermission(
+                                      HugePermission actionPerm,
+                                      V elementFetcher) {
+        return verifyUserPermission(actionPerm, true, () -> elementFetcher);
+    }
+
+    private <V extends UserElement> List<V> verifyUserPermission(
+                                            HugePermission actionPerm,
+                                            List<V> elems) {
+        List<V> results = new ArrayList<>();
+        for (V elem : elems) {
+            V r = verifyUserPermission(actionPerm, false, () -> elem);
+            if (r != null) {
+                results.add(r);
+            }
+        }
+        return results;
+    }
+
+    private <V extends UserElement> V verifyUserPermission(
+                                      HugePermission actionPerm,
+                                      boolean throwIfNoPermission,
+                                      Supplier<V> elementFetcher) {
+        String graph = this.hugegraph.name();
+        return verifyResPermission(actionPerm, true, () -> {
+            V elem = elementFetcher.get();
+            @SuppressWarnings("unchecked")
+            ResourceObject<V> r = (ResourceObject<V>) ResourceObject.of(graph,
+                                                                        elem);
+            return r;
+        });
+    }
+
+    private void verifyElemPermission(HugePermission actionPerm, Element elem) {
         verifyElemPermission(actionPerm, true, () -> elem);
     }
 
-    private static <V extends HugeElement> V verifyElemPermission(
-                                             HugePermission actionPerm,
-                                             Supplier<V> elementFetcher) {
+    private <V extends HugeElement> V verifyElemPermission(
+                                      HugePermission actionPerm,
+                                      Supplier<V> elementFetcher) {
         return verifyElemPermission(actionPerm, true, elementFetcher);
     }
 
-    private static <V extends Element> Iterator<V> verifyElemPermission(
-                                                   HugePermission actionPerm,
-                                                   Iterator<V> elems) {
+    private <V extends Element> Iterator<V> verifyElemPermission(
+                                            HugePermission actionPerm,
+                                            Iterator<V> elems) {
         return new FilterIterator<>(elems, elem -> {
             V r = verifyElemPermission(actionPerm, false, () -> elem);
             return r != null;
         });
     }
 
-    private static <V extends Element> V verifyElemPermission(
-                                         HugePermission actionPerm,
-                                         boolean throwIfNoPermission,
-                                         Supplier<V> elementFetcher) {
-        ResourceObject<V> ro;
-        ro = verifyResPermission(actionPerm, throwIfNoPermission, () -> {
+    private <V extends Element> V verifyElemPermission(
+                                  HugePermission actionPerm,
+                                  boolean throwIfNoPermission,
+                                  Supplier<V> elementFetcher) {
+        return verifyResPermission(actionPerm, throwIfNoPermission, () -> {
             HugeElement elem = (HugeElement) elementFetcher.get();
+            String graph = this.hugegraph.name();
             @SuppressWarnings("unchecked")
-            ResourceObject<V> r = (ResourceObject<V>) ResourceObject.of(elem);
+            ResourceObject<V> r = (ResourceObject<V>) ResourceObject.of(graph,
+                                                                        elem);
             return r;
         });
-        if (ro != null) {
-            return ro.operated();
-        }
-        return null;
     }
 
-    private static void verifySchemaPermission(HugePermission actionPerm,
-                                               SchemaElement schema) {
-        verifySchemaPermission(actionPerm, () -> schema);
+    private void verifySchemaExistsPermission(ResourceType resType,
+                                              String schema) {
+        verifySchemaPermission(HugePermission.READ, resType, schema);
     }
 
-    private static <V extends SchemaElement> Collection<V>
-                                             verifySchemaPermission(
-                                             HugePermission actionPerm,
-                                             Collection<V> schemas) {
+    private void verifySchemaPermission(HugePermission actionPerm,
+                                        ResourceType resType, String name) {
+        verifyResPermission(actionPerm, true, () -> {
+            Namifiable elem = HugeResource.NameObject.of(name);
+            String graph = this.hugegraph.name();
+            return ResourceObject.of(graph, resType, elem);
+        });
+    }
+
+    private void verifySchemaPermission(HugePermission actionPerm,
+                                        SchemaElement schema) {
+        verifySchemaPermission(actionPerm, true, () -> schema);
+    }
+
+    private <V extends SchemaElement> Collection<V> verifySchemaPermission(
+                                                    HugePermission actionPerm,
+                                                    Collection<V> schemas) {
         List<V> results = new ArrayList<>();
         for (V schema : schemas) {
             V r = verifySchemaPermission(actionPerm, false, () -> schema);
@@ -694,33 +723,29 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         return results;
     }
 
-    private static <V extends SchemaElement> V verifySchemaPermission(
-                                               HugePermission actionPerm,
-                                               Supplier<V> schemaFetcher) {
+    private <V extends SchemaElement> V verifySchemaPermission(
+                                        HugePermission actionPerm,
+                                        Supplier<V> schemaFetcher) {
         return verifySchemaPermission(actionPerm, true, schemaFetcher);
     }
 
-    private static <V extends SchemaElement> V verifySchemaPermission(
-                                               HugePermission actionPerm,
-                                               boolean throwIfNoPermission,
-                                               Supplier<V> schemaFetcher) {
-        ResourceObject<V> ro;
-        ro = verifyResPermission(actionPerm, throwIfNoPermission, () -> {
+    private <V extends SchemaElement> V verifySchemaPermission(
+                                        HugePermission actionPerm,
+                                        boolean throwIfNoPermission,
+                                        Supplier<V> schemaFetcher) {
+        return verifyResPermission(actionPerm, throwIfNoPermission, () -> {
             SchemaElement elem = schemaFetcher.get();
+            String graph = this.hugegraph.name();
             @SuppressWarnings("unchecked")
-            ResourceObject<V> r = (ResourceObject<V>) ResourceObject.of(elem);
+            ResourceObject<V> r = (ResourceObject<V>) ResourceObject.of(graph,
+                                                                        elem);
             return r;
         });
-        if (ro != null) {
-            return ro.operated();
-        }
-        return null;
     }
 
-    private static <V> ResourceObject<V> verifyResPermission(
-                                         HugePermission actionPerm,
-                                         boolean throwIfNoPermission,
-                                         Supplier<ResourceObject<V>> fetcher) {
+    private <V> V verifyResPermission(HugePermission actionPerm,
+                                      boolean throwIfNoPermission,
+                                      Supplier<ResourceObject<V>> fetcher) {
         // TODO: call verifyPermission() before actual action
         Context context = getContext();
         E.checkState(context != null,
@@ -733,16 +758,28 @@ public final class HugeGraphAuthProxy implements HugeGraph {
             LOG.debug("Verify permission '{}' for role '{}' with resource {}",
                       action, role, ro);
         }
+
+        V result = ro.operated();
+        // verify role permission
         if (!RolePerm.match(role, actionPerm, ro)) {
-            if (throwIfNoPermission) {
-                String error = String.format("Permission denied: %s %s",
-                                             action, ro);
-                throw new ForbiddenException(error);
-            } else {
-                ro = null;
+            result = null;
+        }
+        // verify grant permission <= user role
+        else if (ro.type() == ResourceType.GRANT) {
+            UserElement element = (UserElement) ro.operated();
+            RolePermission grant = this.hugegraph.userManager()
+                                                 .rolePermission(element);
+            if (!RolePerm.match(role, grant, ro)) {
+                result = null;
             }
         }
-        return ro;
+
+        if (result == null && throwIfNoPermission) {
+            String error = String.format("Permission denied: %s %s",
+                                         action, ro);
+            throw new ForbiddenException(error);
+        }
+        return result;
     }
 
     class TaskSchedulerProxy implements TaskScheduler {
@@ -849,6 +886,306 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         private void verifyTaskPermission(HugePermission perm) {
             // TODO: verify task details
             verifyPermission(perm, ResourceType.TASK);
+        }
+    }
+
+    class UserManagerProxy implements UserManager {
+
+        private final UserManager userManager;
+
+        public UserManagerProxy(UserManager origin) {
+            this.userManager = origin;
+        }
+
+        private UserElement updateCreator(UserElement elem) {
+            String username = currentUsername();
+            if (username != null && elem.creator() == null) {
+                elem.creator(username);
+            }
+            return elem;
+        }
+
+        private String currentUsername() {
+            Context context = getContext();
+            if (context != null) {
+                return context.user().username();
+            }
+            return null;
+        }
+
+        @Override
+        public boolean close() {
+            verifyAdminPermission();
+            return this.userManager.close();
+        }
+
+        @Override
+        public Id createUser(HugeUser user) {
+            E.checkArgument(!user.name().equals(HugeAuthenticator.USER_ADMIN),
+                            "Invalid user name '%s'", user.name());
+            this.updateCreator(user);
+            verifyPermission(HugePermission.WRITE, ResourceType.USER_GROUP);
+            return this.userManager.createUser(user);
+        }
+
+        @Override
+        public Id updateUser(HugeUser updatedUser) {
+            String username = currentUsername();
+            HugeUser user = this.userManager.getUser(updatedUser.id());
+            if (!user.name().equals(username)) {
+                this.updateCreator(updatedUser);
+                verifyPermission(HugePermission.WRITE, ResourceType.USER_GROUP);
+            }
+            return this.userManager.updateUser(updatedUser);
+        }
+
+        @Override
+        public HugeUser deleteUser(Id id) {
+            verifyPermission(HugePermission.DELETE, ResourceType.USER_GROUP);
+            return this.userManager.deleteUser(id);
+        }
+
+        @Override
+        public HugeUser findUser(String name) {
+            HugeUser user = this.userManager.findUser(name);
+            String username = currentUsername();
+            if (!user.name().equals(username)) {
+                verifyPermission(HugePermission.READ, ResourceType.USER_GROUP);
+            }
+            return user;
+        }
+
+        @Override
+        public HugeUser getUser(Id id) {
+            HugeUser user = this.userManager.getUser(id);
+            String username = currentUsername();
+            if (!user.name().equals(username)) {
+                verifyPermission(HugePermission.READ, ResourceType.USER_GROUP);
+            }
+            return user;
+        }
+
+        @Override
+        public List<HugeUser> listUsers(List<Id> ids) {
+            verifyPermission(HugePermission.READ, ResourceType.USER_GROUP);
+            return this.userManager.listUsers(ids);
+        }
+
+        @Override
+        public List<HugeUser> listAllUsers(long limit) {
+            verifyPermission(HugePermission.READ, ResourceType.USER_GROUP);
+            return this.userManager.listAllUsers(limit);
+        }
+
+        @Override
+        public Id createGroup(HugeGroup group) {
+            this.updateCreator(group);
+            verifyPermission(HugePermission.WRITE, ResourceType.USER_GROUP);
+            return this.userManager.createGroup(group);
+        }
+
+        @Override
+        public Id updateGroup(HugeGroup group) {
+            this.updateCreator(group);
+            verifyPermission(HugePermission.WRITE, ResourceType.USER_GROUP);
+            return this.userManager.updateGroup(group);
+        }
+
+        @Override
+        public HugeGroup deleteGroup(Id id) {
+            verifyPermission(HugePermission.DELETE, ResourceType.USER_GROUP);
+            return this.userManager.deleteGroup(id);
+        }
+
+        @Override
+        public HugeGroup getGroup(Id id) {
+            verifyPermission(HugePermission.READ, ResourceType.USER_GROUP);
+            return this.userManager.getGroup(id);
+        }
+
+        @Override
+        public List<HugeGroup> listGroups(List<Id> ids) {
+            verifyPermission(HugePermission.READ, ResourceType.USER_GROUP);
+            return this.userManager.listGroups(ids);
+        }
+
+        @Override
+        public List<HugeGroup> listAllGroups(long limit) {
+            verifyPermission(HugePermission.READ, ResourceType.USER_GROUP);
+            return this.userManager.listAllGroups(limit);
+        }
+
+        @Override
+        public Id createTarget(HugeTarget target) {
+            this.updateCreator(target);
+            verifyPermission(HugePermission.WRITE, ResourceType.TARGET);
+            return this.userManager.createTarget(target);
+        }
+
+        @Override
+        public Id updateTarget(HugeTarget target) {
+            this.updateCreator(target);
+            verifyPermission(HugePermission.WRITE, ResourceType.TARGET);
+            return this.userManager.updateTarget(target);
+        }
+
+        @Override
+        public HugeTarget deleteTarget(Id id) {
+            verifyPermission(HugePermission.DELETE, ResourceType.TARGET);
+            return this.userManager.deleteTarget(id);
+        }
+
+        @Override
+        public HugeTarget getTarget(Id id) {
+            verifyPermission(HugePermission.READ, ResourceType.TARGET);
+            return this.userManager.getTarget(id);
+        }
+
+        @Override
+        public List<HugeTarget> listTargets(List<Id> ids) {
+            verifyPermission(HugePermission.READ, ResourceType.TARGET);
+            return this.userManager.listTargets(ids);
+        }
+
+        @Override
+        public List<HugeTarget> listAllTargets(long limit) {
+            verifyPermission(HugePermission.READ, ResourceType.TARGET);
+            return this.userManager.listAllTargets(limit);
+        }
+
+        @Override
+        public Id createBelong(HugeBelong belong) {
+            this.updateCreator(belong);
+            verifyUserPermission(HugePermission.WRITE, belong);
+            return this.userManager.createBelong(belong);
+        }
+
+        @Override
+        public Id updateBelong(HugeBelong belong) {
+            this.updateCreator(belong);
+            verifyUserPermission(HugePermission.WRITE, belong);
+            return this.userManager.updateBelong(belong);
+        }
+
+        @Override
+        public HugeBelong deleteBelong(Id id) {
+            verifyUserPermission(HugePermission.DELETE,
+                                  this.userManager.getBelong(id));
+            return this.userManager.deleteBelong(id);
+        }
+
+        @Override
+        public HugeBelong getBelong(Id id) {
+            return verifyUserPermission(HugePermission.READ,
+                                         this.userManager.getBelong(id));
+        }
+
+        @Override
+        public List<HugeBelong> listBelong(List<Id> ids) {
+            return verifyUserPermission(HugePermission.READ,
+                                         this.userManager.listBelong(ids));
+        }
+
+        @Override
+        public List<HugeBelong> listAllBelong(long limit) {
+            return verifyUserPermission(HugePermission.READ,
+                                         this.userManager.listAllBelong(limit));
+        }
+
+        @Override
+        public List<HugeBelong> listBelongByUser(Id user, long limit) {
+            List<HugeBelong> r = this.userManager.listBelongByUser(user, limit);
+            return verifyUserPermission(HugePermission.READ, r);
+        }
+
+        @Override
+        public List<HugeBelong> listBelongByGroup(Id group, long limit) {
+            List<HugeBelong> r = this.userManager.listBelongByGroup(group,
+                                                                    limit);
+            return verifyUserPermission(HugePermission.READ, r);
+        }
+
+        @Override
+        public Id createAccess(HugeAccess access) {
+            verifyUserPermission(HugePermission.WRITE, access);
+            this.updateCreator(access);
+            return this.userManager.createAccess(access);
+        }
+
+        @Override
+        public Id updateAccess(HugeAccess access) {
+            verifyUserPermission(HugePermission.WRITE, access);
+            this.updateCreator(access);
+            return this.userManager.updateAccess(access);
+        }
+
+        @Override
+        public HugeAccess deleteAccess(Id id) {
+            verifyUserPermission(HugePermission.DELETE,
+                                  this.userManager.getAccess(id));
+            return this.userManager.deleteAccess(id);
+        }
+
+        @Override
+        public HugeAccess getAccess(Id id) {
+            return verifyUserPermission(HugePermission.READ,
+                                         this.userManager.getAccess(id));
+        }
+
+        @Override
+        public List<HugeAccess> listAccess(List<Id> ids) {
+            return verifyUserPermission(HugePermission.READ,
+                                         this.userManager.listAccess(ids));
+        }
+
+        @Override
+        public List<HugeAccess> listAllAccess(long limit) {
+            return verifyUserPermission(HugePermission.READ,
+                                         this.userManager.listAllAccess(limit));
+        }
+
+        @Override
+        public List<HugeAccess> listAccessByGroup(Id group, long limit) {
+            List<HugeAccess> r = this.userManager.listAccessByGroup(group,
+                                                                    limit);
+            return verifyUserPermission(HugePermission.READ, r);
+        }
+
+        @Override
+        public List<HugeAccess> listAccessByTarget(Id target, long limit) {
+            List<HugeAccess> r = this.userManager.listAccessByTarget(target,
+                                                                     limit);
+            return verifyUserPermission(HugePermission.READ, r);
+        }
+
+        @Override
+        public HugeUser matchUser(String name, String password) {
+            // Unneeded to verify permission
+            return this.userManager.matchUser(name, password);
+        }
+
+        @Override
+        public RolePermission rolePermission(UserElement element) {
+            String username = currentUsername();
+            if (!(element instanceof HugeUser) ||
+                !((HugeUser) element).name().equals(username)) {
+                verifyUserPermission(HugePermission.READ, element);
+            }
+            return this.userManager.rolePermission(element);
+        }
+
+        @Override
+        public RolePermission loginUser(String username, String password) {
+            // Can't verifyPermission() here, login first with temp permission
+            Context context = setContext(Context.admin());
+            try {
+                return this.userManager.loginUser(username, password);
+            } catch (Exception e) {
+                LOG.error("Failed to login user {}: ", username, e);
+                throw e;
+            } finally {
+                setContext(context);
+            }
         }
     }
 

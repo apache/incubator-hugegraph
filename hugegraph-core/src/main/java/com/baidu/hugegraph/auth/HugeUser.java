@@ -29,7 +29,6 @@ import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import com.baidu.hugegraph.HugeGraphParams;
-import com.baidu.hugegraph.auth.HugeResource.RolePermission;
 import com.baidu.hugegraph.auth.ResourceObject.ResourceType;
 import com.baidu.hugegraph.auth.SchemaDefine.Entity;
 import com.baidu.hugegraph.backend.id.Id;
@@ -70,6 +69,7 @@ public class HugeUser extends Entity {
         return P.USER;
     }
 
+    @Override
     public String name() {
         return this.name;
     }
@@ -186,11 +186,6 @@ public class HugeUser extends Entity {
         E.checkState(this.password != null, "User password can't be null");
 
         Map<String, Object> map = new HashMap<>();
-
-        if (this.id != null) {
-            // The id is null when creating user
-            map.put(Hidden.unHide(P.ID), this.id);
-        }
 
         map.put(Hidden.unHide(P.NAME), this.name);
         map.put(Hidden.unHide(P.PASSWORD), this.password);

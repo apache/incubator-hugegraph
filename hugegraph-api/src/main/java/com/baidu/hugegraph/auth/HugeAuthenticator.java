@@ -34,7 +34,6 @@ import org.apache.tinkerpop.shaded.jackson.annotation.JsonProperty;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.auth.HugeGraphAuthProxy.Context;
-import com.baidu.hugegraph.auth.HugeResource.RolePermission;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.OptionSpace;
 import com.baidu.hugegraph.config.ServerOptions;
@@ -51,9 +50,9 @@ public interface HugeAuthenticator extends Authenticator {
     public static final String KEY_CLIENT = "client";
     public static final String KEY_PATH = "path";
 
+    public static final String USER_SYSTEM = "system";
     public static final String USER_ADMIN = "admin";
-    public static final String USER_ANONY =
-                               AuthenticatedUser.ANONYMOUS_USERNAME;
+    public static final String USER_ANONY = AuthenticatedUser.ANONYMOUS_USERNAME;
 
     public static final RolePermission ROLE_NONE = RolePermission.none();
     public static final RolePermission ROLE_ADMIN = RolePermission.admin();
@@ -66,6 +65,7 @@ public interface HugeAuthenticator extends Authenticator {
     public void setup(HugeConfig config);
 
     public RolePermission authenticate(String username, String password);
+    public UserManager userManager();
 
     @Override
     public default void setup(final Map<String, Object> config) {
@@ -380,6 +380,18 @@ public interface HugeAuthenticator extends Authenticator {
             }
             RolePerm rolePerm = RolePerm.fromJson(role);
             return rolePerm.matchResource(required, resourceObject);
+        }
+
+        public static boolean match(Object role, RolePermission grant,
+                                    ResourceObject<?> resourceObject) {
+            if (role == ROLE_ADMIN) {
+                return true;
+            }
+            if (role == ROLE_NONE) {
+                return false;
+            }
+            RolePermission rolePerm = RolePermission.fromJson(role);
+            return rolePerm.contains(grant);
         }
     }
 
