@@ -42,6 +42,7 @@ public class LouvainAlgorithm extends AbstractCommAlgorithm {
         showModularity(parameters);
         showCommunity(parameters);
         clearPass(parameters);
+        workers(parameters);
     }
 
     @Override
@@ -49,13 +50,15 @@ public class LouvainAlgorithm extends AbstractCommAlgorithm {
         String label = sourceLabel(parameters);
         String clabel = sourceCLabel(parameters);
         long degree = degree(parameters);
+        int workers = workers(parameters);
 
-        LouvainTraverser traverser = new LouvainTraverser(job, degree,
-                                                          label, clabel);
         Long clearPass = clearPass(parameters);
         Long modPass = showModularity(parameters);
         String showComm = showCommunity(parameters);
-        try {
+
+        try (LouvainTraverser traverser = new LouvainTraverser(
+                                          job, workers, degree,
+                                          label, clabel)) {
             if (clearPass != null) {
                 return traverser.clearPass(clearPass.intValue());
             } else if (modPass != null) {

@@ -44,16 +44,17 @@ public class EigenvectorCentralityAlgorithm extends AbstractCentAlgorithm {
 
     @Override
     public Object call(Job<Object> job, Map<String, Object> parameters) {
-        Traverser traverser = new Traverser(job);
-        return traverser.eigenvectorCentrality(direction(parameters),
-                                               edgeLabel(parameters),
-                                               depth(parameters),
-                                               degree(parameters),
-                                               sample(parameters),
-                                               sourceLabel(parameters),
-                                               sourceSample(parameters),
-                                               sourceCLabel(parameters),
-                                               top(parameters));
+        try (Traverser traverser = new Traverser(job)) {
+            return traverser.eigenvectorCentrality(direction(parameters),
+                                                   edgeLabel(parameters),
+                                                   depth(parameters),
+                                                   degree(parameters),
+                                                   sample(parameters),
+                                                   sourceLabel(parameters),
+                                                   sourceSample(parameters),
+                                                   sourceCLabel(parameters),
+                                                   top(parameters));
+        }
     }
 
     private static class Traverser extends AbstractCentAlgorithm.Traverser {

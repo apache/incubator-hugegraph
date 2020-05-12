@@ -43,8 +43,9 @@ public class CountVertexAlgorithm extends AbstractAlgorithm {
 
     @Override
     public Object call(Job<Object> job, Map<String, Object> parameters) {
-        Traverser traverser = new Traverser(job);
-        return traverser.count();
+        try (Traverser traverser = new Traverser(job)) {
+            return traverser.count();
+        }
     }
 
     private static class Traverser extends AlgoTraverser {

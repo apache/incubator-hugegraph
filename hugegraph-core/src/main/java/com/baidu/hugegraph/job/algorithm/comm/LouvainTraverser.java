@@ -29,8 +29,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.commons.lang.mutable.MutableFloat;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
@@ -47,6 +51,7 @@ import com.baidu.hugegraph.iterator.ListIterator;
 import com.baidu.hugegraph.job.Job;
 import com.baidu.hugegraph.job.algorithm.AbstractAlgorithm;
 import com.baidu.hugegraph.job.algorithm.AbstractAlgorithm.AlgoTraverser;
+import com.baidu.hugegraph.job.algorithm.Consumers;
 import com.baidu.hugegraph.schema.SchemaLabel;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.schema.VertexLabel;
@@ -78,9 +83,9 @@ public class LouvainTraverser extends AlgoTraverser {
     private long m;
     private String passLabel;
 
-    public LouvainTraverser(Job<Object> job,  long degree,
+    public LouvainTraverser(Job<Object> job, int workers, long degree,
                             String sourceLabel, String sourceCLabel) {
-        super(job);
+        super(job, "louvain", workers);
         this.g = this.graph().traversal();
         this.sourceLabel = sourceLabel;
         this.sourceCLabel = sourceCLabel;
@@ -197,13 +202,13 @@ public class LouvainTraverser extends AlgoTraverser {
 
     private void insertNewCommunity(int pass, Id cid, float cweight,
                                     int kin, List<String> members,
-                                    Map<Id, MutableInt> cedges) {
+                                    Map<Id, MutableFloat> cedges) {
         // create backend vertex if it's the first time
         Id vid = this.cache.genId(pass, cid);
         Vertex node = this.newCommunityNode(vid, cweight, kin, members);
         commitIfNeeded();
         // update backend vertex edges
-        for (Map.Entry<Id, MutableInt> e : cedges.entrySet()) {
+        for (Map.Entry<Id, MutableFloat> e : cedges.entrySet()) {
             float weight = e.getValue().floatValue();
             vid = this.cache.genId(pass, e.getKey());
             Vertex targetV = this.makeCommunityNode(vid);
@@ -280,7 +285,7 @@ public class LouvainTraverser extends AlgoTraverser {
         return 1f;
     }
 
-    private Id cidOfVertex(Vertex v, List<Edge> nbs) {
+    private Community communityOfVertex(Vertex v, List<Edge> nbs) {
         Id vid = (Id) v.id();
         Community c = this.cache.vertex2Community(vid);
         // ensure source vertex exist in cache
@@ -288,7 +293,7 @@ public class LouvainTraverser extends AlgoTraverser {
             c = this.wrapCommunity(v, nbs);
             assert c != null;
         }
-        return c != null ? c.cid : vid;
+        return c;
     }
 
     // 1: wrap original vertex as community node
@@ -305,7 +310,7 @@ public class LouvainTraverser extends AlgoTraverser {
 
         comm = new Community(vid);
         comm.add(this, v, nbs);
-        this.cache.vertex2Community(vid, comm);
+        comm = this.cache.vertex2CommunityIfAbsent(vid, comm);
         return comm;
     }
 
@@ -331,31 +336,93 @@ public class LouvainTraverser extends AlgoTraverser {
         return comms.values();
     }
 
-    private void moveCommunity(Vertex v, List<Edge> nbs, Community newC) {
+    private void doMoveCommunity(Vertex v, List<Edge> nbs, Community newC) {
         Id vid = (Id) v.id();
 
-        // remove v from old community
-        Community oldC = this.cache.vertex2Community(vid);
+        // update community of v (return the origin one)
+        Community oldC = this.cache.vertex2Community(vid, newC);
+
+        // remove v from old community. should synchronized (vid)?
         if (oldC != null) {
             oldC.remove(this, v, nbs);
         }
 
         // add v to new community
         newC.add(this, v, nbs);
-        LOG.debug("Move {} to comm: {}", v, newC);
+        LOG.debug("Move {} to community: {}", v, newC);
+    }
 
-        // update community of v
-        this.cache.vertex2Community(vid, newC);
+    private boolean moveCommunity(Vertex v, int pass) {
+        // move vertex to neighbor community if needed
+        List<Edge> nbs = neighbors((Id) v.id());
+        Community c = communityOfVertex(v, nbs);
+        double ki = kinOfVertex(v) + weightOfVertex(v, nbs);
+        // update community of v if △Q changed
+        double maxDeltaQ = 0d;
+        Community bestComm = null;
+        // list all neighbor communities of v
+        for (Pair<Community, MutableInt> nbc : nbCommunities(pass, nbs)) {
+            // △Q = (Ki_in - Ki * Etot / m) / 2m
+            Community otherC = nbc.getLeft();
+            if (otherC.size() >= MAX_COMM_SIZE) {
+                LOG.info("Skip community {} for {} due to its size >= {}",
+                         otherC.cid, v, MAX_COMM_SIZE);
+                continue;
+            }
+            // weight between c and otherC
+            double kiin = nbc.getRight().floatValue();
+            // weight of otherC
+            double tot = otherC.kin() + otherC.kout();
+            if (c.equals(otherC)) {
+                assert c == otherC;
+                if (tot < ki) {
+                    /*
+                     * expect tot >= ki, but multi-threads may
+                     * cause tot < ki due to concurrent update otherC
+                     */
+                    LOG.warn("Changing vertex: {}(ki={}, kiin={}, pass={}), otherC: {}",
+                             v, ki, kiin, pass, otherC);
+                }
+                tot -= ki;
+                // assert tot >= 0d : otherC + ", tot=" + tot + ", ki=" + ki;
+                // expect tot >= 0, but may be something wrong?
+                if (tot < 0d) {
+                    tot = 0d;
+                }
+            }
+            double deltaQ = kiin - ki * tot / this.m;
+            if (deltaQ > maxDeltaQ) {
+                // TODO: cache otherC for neighbors the same community
+                maxDeltaQ = deltaQ;
+                bestComm = otherC;
+            }
+        }
+        if (maxDeltaQ > 0d && !c.equals(bestComm)) {
+            // move v to the community of maxQ neighbor
+            doMoveCommunity(v, nbs, bestComm);
+            return true;
+        }
+        return false;
     }
 
     private double moveCommunities(int pass) {
+        LOG.info("Detect community for pass {}", pass);
         Iterator<Vertex> vertices = this.sourceVertices(pass);
 
         // shuffle
         //r = r.order().by(shuffle);
 
         long total = 0L;
-        long moved = 0L;
+        AtomicLong moved = new AtomicLong(0L);
+
+        Consumers<Vertex> consumers = new Consumers<>(this.executor, v -> {
+            // called by multi-threads
+            if (this.moveCommunity(v, pass)) {
+                moved.incrementAndGet();
+            }
+        });
+        consumers.start();
+
         while (vertices.hasNext()) {
             this.updateProgress(++this.progress);
             Vertex v = vertices.next();
@@ -364,106 +431,93 @@ public class LouvainTraverser extends AlgoTraverser {
                 continue;
             }
             total++;
-            List<Edge> nbs = neighbors((Id) v.id());
-            Id cid = cidOfVertex(v, nbs);
-            double ki = kinOfVertex(v) + weightOfVertex(v, nbs);
-            // update community of v if △Q changed
-            double maxDeltaQ = 0d;
-            Community bestComm = null;
-            // list all neighbor communities of v
-            for (Pair<Community, MutableInt> nbc : nbCommunities(pass, nbs)) {
-                // △Q = (Ki_in - Ki * Etot / m) / 2m
-                Community otherC = nbc.getLeft();
-                if (otherC.size() >= MAX_COMM_SIZE) {
-                    LOG.info("Skip community {} for {} due to its size >= {}",
-                             otherC.cid, v, MAX_COMM_SIZE);
-                    continue;
-                }
-                // weight between c and otherC
-                double kiin = nbc.getRight().floatValue();
-                // weight of otherC
-                double tot = otherC.kin() + otherC.kout();
-                if (cid.equals(otherC.cid)) {
-                    tot -= ki;
-                    assert tot >= 0d;
-                    // expect tot >= 0, but may be something wrong?
-                    if (tot < 0d) {
-                        tot = 0d;
-                    }
-                }
-                double deltaQ = kiin - ki * tot / this.m;
-                if (deltaQ > maxDeltaQ) {
-                    // TODO: cache otherC for neighbors the same community
-                    maxDeltaQ = deltaQ;
-                    bestComm = otherC;
-                }
-            }
-            if (maxDeltaQ > 0d && !cid.equals(bestComm.cid)) {
-                moved++;
-                // move v to the community of maxQ neighbor
-                moveCommunity(v, nbs, bestComm);
-            }
+            consumers.provide(v);
         }
 
-        // maybe always shocking when set degree limit
-        return total == 0L ? 0d : (double) moved / total;
+        consumers.await();
+
+        // maybe always shocking when set degree limited
+        return total == 0L ? 0d : moved.doubleValue() / total;
     }
 
     private void mergeCommunities(int pass) {
+        LOG.info("Merge community for pass {}", pass);
         // merge each community as a vertex
         Collection<Pair<Community, Set<Id>>> comms = this.cache.communities();
-        assert this.allMembersExist(comms, pass -1);
+        assert this.allMembersExist(comms,  pass - 1);
         this.cache.resetVertexWeight();
+
+        Consumers<Pair<Community, Set<Id>>> consumers = new Consumers<>(
+                                                        this.executor, pair -> {
+            // called by multi-threads
+            this.mergeCommunity(pass, pair.getLeft(), pair.getRight());
+        }, () -> {
+            // commit when finished
+            this.graph().tx().commit();
+        });
+        consumers.start();
+
         for (Pair<Community, Set<Id>> pair : comms) {
-            Community c = pair.getKey();
+            Community c = pair.getLeft();
             if (c.empty()) {
                 continue;
             }
-            // update kin and edges between communities
-            int kin = c.kin();
-            Set<Id> vertices = pair.getRight();
-            assert !vertices.isEmpty();
-            assert vertices.size() == c.size();
-            List<String> members = new ArrayList<>(vertices.size());
-            Map<Id, MutableInt> cedges = new HashMap<>(vertices.size());
-            for (Id v : vertices) {
-                this.updateProgress(++this.progress);
-                members.add(v.toString());
-                // collect edges between this community and other communities
-                List<Edge> neighbors = neighbors(v);
-                for (Edge edge : neighbors) {
-                    Vertex otherV = ((HugeEdge) edge).otherVertex();
-                    if (vertices.contains(otherV.id())) {
-                        // inner edges of this community, will be calc twice
-                        // due to both e-in and e-out are in vertices,
-                        kin += weightOfEdge(edge);
-                        continue;
-                    }
-                    assert this.cache.vertex2Community(otherV.id()) != null;
-                    Id otherCid = cidOfVertex(otherV, null);
-                    if (otherCid.compareTo(c.cid) < 0) {
-                        // skip if it should be collected by otherC
-                        continue;
-                    }
-                    if (!cedges.containsKey(otherCid)) {
-                        cedges.put(otherCid, new MutableInt(0));
-                    }
-                    // update edge weight
-                    cedges.get(otherCid).add(weightOfEdge(edge));
-                }
-            }
-            // insert new community vertex and edges into storage
-            this.insertNewCommunity(pass, c.cid, c.weight(), kin, members, cedges);
+            this.progress += pair.getRight().size();
+            this.updateProgress(this.progress);
+            //this.mergeCommunity(pass, pair.getLeft(), pair.getRight());
+            consumers.provide(pair);
         }
+        consumers.await();
+
         this.graph().tx().commit();
+        assert this.allMembersExist(pass);
+
         // reset communities
         this.cache.reset();
     }
 
+    private void mergeCommunity(int pass, Community c, Set<Id> cvertices) {
+        // update kin and edges between communities
+        int kin = c.kin();
+        int membersSize = cvertices.size();
+        assert !cvertices.isEmpty();
+        assert membersSize == c.size();
+        List<String> members = new ArrayList<>(membersSize);
+        Map<Id, MutableFloat> cedges = new HashMap<>(membersSize);
+        for (Id v : cvertices) {
+            members.add(v.toString());
+            // collect edges between this community and other communities
+            List<Edge> neighbors = neighbors(v);
+            for (Edge edge : neighbors) {
+                Vertex otherV = ((HugeEdge) edge).otherVertex();
+                if (cvertices.contains(otherV.id())) {
+                    // inner edges of this community, will be calc twice
+                    // due to both e-in and e-out are in vertices,
+                    kin += weightOfEdge(edge);
+                    continue;
+                }
+                assert this.cache.vertex2Community(otherV.id()) != null;
+                Id otherCid = communityOfVertex(otherV, null).cid;
+                if (otherCid.compareTo(c.cid) < 0) {
+                    // skip if it should be collected by otherC
+                    continue;
+                }
+                if (!cedges.containsKey(otherCid)) {
+                    cedges.putIfAbsent(otherCid, new MutableFloat(0f));
+                }
+                // update edge weight
+                cedges.get(otherCid).add(weightOfEdge(edge));
+            }
+        }
+
+        // insert new community vertex and edges into storage
+        this.insertNewCommunity(pass, c.cid, c.weight(), kin, members, cedges);
+    }
+
     private boolean allMembersExist(Collection<Pair<Community, Set<Id>>> comms,
-                                    int pass) {
-        String lastLabel = labelOfPassN(pass);
-        GraphTraversal<Vertex, Object> t = pass < 0 ? this.g.V().id() :
+                                    int lastPass) {
+        String lastLabel = labelOfPassN(lastPass);
+        GraphTraversal<Vertex, Object> t = lastPass < 0 ? this.g.V().id() :
                                            this.g.V().hasLabel(lastLabel).id();
         Set<Object> all = this.execute(t, t::toSet);
         for (Pair<Community, Set<Id>> comm : comms) {
@@ -473,6 +527,24 @@ public class LouvainTraverser extends AlgoTraverser {
             LOG.warn("Lost members of last pass: {}", all);
         }
         return all.isEmpty();
+    }
+
+    private boolean allMembersExist(int pass) {
+        String label = labelOfPassN(pass);
+        int lastPass = pass - 1;
+        Number expected;
+        if (lastPass < 0) {
+            expected = tryNext(this.g.V().count()).longValue() -
+                       tryNext(this.g.V().hasLabel(label).count()).longValue();
+        } else {
+            expected = tryNext(this.g.V().hasLabel(labelOfPassN(lastPass))
+                                         .values(C_WEIGHT).sum());
+        }
+        Number actual = tryNext(this.g.V().hasLabel(label)
+                                          .values(C_WEIGHT).sum());
+        boolean allExist = actual.floatValue() == expected.floatValue();
+        assert allExist : actual + "!=" + expected;
+        return allExist;
     }
 
     public Object louvain(int maxTimes, int stableTimes, double precision) {
@@ -678,26 +750,37 @@ public class LouvainTraverser extends AlgoTraverser {
             return this.weight;
         }
 
-        public void add(LouvainTraverser t, Vertex v, List<Edge> nbs) {
+        public synchronized void add(LouvainTraverser t,
+                                     Vertex v, List<Edge> nbs) {
             this.size++;
             this.weight += t.cweightOfVertex(v);
             this.kin += t.kinOfVertex(v);
             this.kout += t.weightOfVertex(v, nbs);
         }
 
-        public void remove(LouvainTraverser t, Vertex v, List<Edge> nbs) {
+        public synchronized void remove(LouvainTraverser t,
+                                        Vertex v, List<Edge> nbs) {
             this.size--;
             this.weight -= t.cweightOfVertex(v);
             this.kin -= t.kinOfVertex(v);
             this.kout -= t.weightOfVertex(v, nbs);
         }
 
-        public int kin() {
+        public synchronized int kin() {
             return this.kin;
         }
 
-        public float kout() {
+        public synchronized float kout() {
             return this.kout;
+        }
+
+        @Override
+        public boolean equals(Object object) {
+            if (!(object instanceof Community)) {
+                return false;
+            }
+            Community other = (Community) object;
+            return Objects.equals(this.cid, other.cid);
         }
 
         @Override
@@ -715,9 +798,9 @@ public class LouvainTraverser extends AlgoTraverser {
         private final Map<Id, Integer> genIds;
 
         public Cache() {
-            this.vertexWeightCache = new HashMap<>();
-            this.vertex2Community = new HashMap<>();
-            this.genIds = new HashMap<>();
+            this.vertexWeightCache = new ConcurrentHashMap<>();
+            this.vertex2Community = new ConcurrentHashMap<>();
+            this.genIds = new ConcurrentHashMap<>();
         }
 
         public Community vertex2Community(Object id) {
@@ -725,8 +808,16 @@ public class LouvainTraverser extends AlgoTraverser {
             return this.vertex2Community.get(id);
         }
 
-        public void vertex2Community(Id id, Community c) {
-            this.vertex2Community.put(id, c);
+        public Community vertex2Community(Id id, Community c) {
+            return this.vertex2Community.put(id, c);
+        }
+
+        public Community vertex2CommunityIfAbsent(Id id, Community c) {
+            Community old = this.vertex2Community.putIfAbsent(id, c);
+            if (old != null) {
+                c = old;
+            }
+            return c;
         }
 
         public Float vertexWeight(Id id) {
@@ -748,11 +839,13 @@ public class LouvainTraverser extends AlgoTraverser {
         }
 
         public Id genId(int pass, Id cid) {
-            if (!this.genIds.containsKey(cid)) {
-                this.genIds.put(cid, this.genIds.size() + 1);
+            synchronized (this.genIds) {
+                if (!this.genIds.containsKey(cid)) {
+                    this.genIds.putIfAbsent(cid, this.genIds.size() + 1);
+                }
+                String id = pass + "~" + this.genIds.get(cid);
+                return IdGenerator.of(id);
             }
-            String id = pass + "~" + this.genIds.get(cid);
-            return IdGenerator.of(id);
         }
 
         @SuppressWarnings("unused")

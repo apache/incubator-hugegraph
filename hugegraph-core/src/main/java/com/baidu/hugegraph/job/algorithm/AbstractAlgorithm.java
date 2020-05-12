@@ -26,6 +26,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.function.Consumer;
 
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.lang3.mutable.MutableLong;
@@ -87,6 +89,7 @@ public abstract class AbstractAlgorithm implements Algorithm {
     public static final String KEY_CAPACITY = "capacity";
     public static final String KEY_LIMIT = "limit";
     public static final String KEY_ALPHA = "alpha";
+    public static final String KEY_WORKERS = "workers";
 
     public static final long DEFAULT_CAPACITY = 10000000L;
     public static final long DEFAULT_LIMIT = 100L;
@@ -213,6 +216,15 @@ public abstract class AbstractAlgorithm implements Algorithm {
         return parameterString(parameters, KEY_SOURCE_CLABEL);
     }
 
+    protected static int workers(Map<String, Object> parameters) {
+        if (!parameters.containsKey(KEY_WORKERS)) {
+            return -1;
+        }
+        int workers = parameterInt(parameters, KEY_WORKERS);
+        HugeTraverser.checkNonNegativeOrNoLimit(workers, KEY_WORKERS);
+        return workers;
+    }
+
     public static Object parameter(Map<String, Object> parameters, String key) {
         Object value = parameters.get(key);
         E.checkArgument(value != null,
@@ -280,18 +292,57 @@ public abstract class AbstractAlgorithm implements Algorithm {
         }
     }
 
-    public static class AlgoTraverser extends HugeTraverser {
+    public static class AlgoTraverser extends HugeTraverser
+                                      implements AutoCloseable {
 
         private final Job<Object> job;
+        protected final ExecutorService executor;
         protected long progress;
 
         public AlgoTraverser(Job<Object> job) {
             super(job.graph());
             this.job = job;
+            this.executor = null;
+        }
+
+        protected AlgoTraverser(Job<Object> job, String name, int workers) {
+            super(job.graph());
+            this.job = job;
+            String prefix = name + "-" + job.task().id();
+            this.executor = Consumers.newThreadPool(prefix, workers);
         }
 
         public void updateProgress(long progress) {
             this.job.updateProgress((int) progress);
+        }
+
+        @Override
+        public void close() {
+            if (this.executor != null) {
+                this.executor.shutdown();
+            }
+        }
+
+        protected long traverse(String sourceLabel, String sourceCLabel,
+                                Consumer<Vertex> consumer) {
+            Iterator<Vertex> vertices = this.vertices(sourceLabel, sourceLabel,
+                                                      Query.NO_LIMIT);
+
+            Consumers<Vertex> consumers = new Consumers<>(this.executor,
+                                                          consumer);
+            consumers.start();
+
+            long total = 0L;
+            while (vertices.hasNext()) {
+                this.updateProgress(++this.progress);
+                total++;
+                Vertex v = vertices.next();
+                consumers.provide(v);
+            }
+
+            consumers.await();
+
+            return total;
         }
 
         protected Iterator<Vertex> vertices() {
