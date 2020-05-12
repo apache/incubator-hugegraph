@@ -19,8 +19,8 @@
 
 package com.baidu.hugegraph.backend.store.rocksdb;
 
-import java.util.Set;
 import java.util.List;
+import java.util.Set;
 
 import org.rocksdb.RocksDBException;
 
@@ -91,5 +91,10 @@ public abstract class RocksDBSessions extends BackendSessionPool {
         public static boolean matchScanType(int expected, int actual) {
             return (expected & actual) == expected;
         }
+    }
+
+    public interface Countable {
+
+        public long count();
     }
 }

@@ -22,6 +22,7 @@ package com.baidu.hugegraph.backend.store.rocksdb;
 import java.util.Collections;
 import java.util.Iterator;
 
+import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.backend.id.Id;
@@ -38,9 +39,11 @@ import com.baidu.hugegraph.backend.serializer.BinaryEntryIterator;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumn;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumnIterator;
+import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumnIteratorWrapper;
 import com.baidu.hugegraph.backend.store.BackendEntryIterator;
 import com.baidu.hugegraph.backend.store.BackendTable;
 import com.baidu.hugegraph.backend.store.Shard;
+import com.baidu.hugegraph.backend.store.rocksdb.RocksDBSessions.Countable;
 import com.baidu.hugegraph.backend.store.rocksdb.RocksDBSessions.Session;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.iterator.FlatMapperIterator;
@@ -121,12 +124,12 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
         }
 
         assert aggregate.func() == AggregateFunc.COUNT;
-        Iterator<BackendEntry> results = this.query(session, query);
-        long total = 0L;
-        while (results.hasNext()) {
-            total += sizeOfBackendEntry(results.next());
+        assert query.nolimit();
+        Iterator<BackendColumn> results = this.queryBy(session, query);
+        if (results instanceof Countable) {
+            return ((Countable) results).count();
         }
-        return total;
+        return IteratorUtils.count(results);
     }
 
     @Override
@@ -135,36 +138,39 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
             LOG.debug("Return empty result(limit=0) for query {}", query);
             return Collections.emptyIterator();
         }
+        return newEntryIterator(this.queryBy(session, query), query);
+    }
 
+    protected BackendColumnIterator queryBy(Session session, Query query) {
         // Query all
         if (query.empty()) {
-            return newEntryIterator(this.queryAll(session, query), query);
+            return this.queryAll(session, query);
         }
 
         // Query by prefix
         if (query instanceof IdPrefixQuery) {
             IdPrefixQuery pq = (IdPrefixQuery) query;
-            return newEntryIterator(this.queryByPrefix(session, pq), query);
+            return this.queryByPrefix(session, pq);
         }
 
         // Query by range
         if (query instanceof IdRangeQuery) {
             IdRangeQuery rq = (IdRangeQuery) query;
-            return newEntryIterator(this.queryByRange(session, rq), query);
+            return this.queryByRange(session, rq);
         }
 
         // Query by id
         if (query.conditions().isEmpty()) {
             assert !query.ids().isEmpty();
             // NOTE: this will lead to lazy create rocksdb iterator
-            return new FlatMapperIterator<>(query.ids().iterator(), id -> {
-                return newEntryIterator(this.queryById(session, id), query);
-            });
+            return new BackendColumnIteratorWrapper(new FlatMapperIterator<>(
+                   query.ids().iterator(), id -> this.queryById(session, id)
+            ));
         }
 
         // Query by condition (or condition + id)
         ConditionQuery cq = (ConditionQuery) query;
-        return newEntryIterator(this.queryByCond(session, cq), query);
+        return this.queryByCond(session, cq);
     }
 
     protected BackendColumnIterator queryAll(Session session, Query query) {
