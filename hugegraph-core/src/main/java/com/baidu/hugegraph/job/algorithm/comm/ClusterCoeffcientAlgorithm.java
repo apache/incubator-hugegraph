@@ -40,9 +40,10 @@ public class ClusterCoeffcientAlgorithm extends AbstractCommAlgorithm {
 
     @Override
     public Object call(Job<Object> job, Map<String, Object> parameters) {
-        Traverser traverser = new Traverser(job);
-        return traverser.clusterCoeffcient(direction(parameters),
-                                           degree(parameters));
+        try (Traverser traverser = new Traverser(job)) {
+            return traverser.clusterCoeffcient(direction(parameters),
+                                               degree(parameters));
+        }
     }
 
     private static class Traverser extends TriangleCountAlgorithm.Traverser {

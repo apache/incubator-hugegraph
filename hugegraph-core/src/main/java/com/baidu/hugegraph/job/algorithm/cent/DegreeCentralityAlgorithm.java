@@ -47,10 +47,11 @@ public class DegreeCentralityAlgorithm extends AbstractCentAlgorithm {
 
     @Override
     public Object call(Job<Object> job, Map<String, Object> parameters) {
-        Traverser traverser = new Traverser(job);
-        return traverser.degreeCentrality(direction(parameters),
-                                          edgeLabel(parameters),
-                                          top(parameters));
+        try (Traverser traverser = new Traverser(job)) {
+            return traverser.degreeCentrality(direction(parameters),
+                                              edgeLabel(parameters),
+                                              top(parameters));
+        }
     }
 
     private static class Traverser extends AlgoTraverser {

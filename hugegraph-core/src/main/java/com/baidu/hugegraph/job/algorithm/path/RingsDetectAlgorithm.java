@@ -19,17 +19,11 @@
 
 package com.baidu.hugegraph.job.algorithm.path;
 
-import java.util.Iterator;
 import java.util.Map;
 
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-
-import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.job.Job;
 import com.baidu.hugegraph.job.algorithm.AbstractAlgorithm;
-import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.traversal.algorithm.SubGraphTraverser;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.JsonUtil;
@@ -56,41 +50,42 @@ public class RingsDetectAlgorithm extends AbstractAlgorithm {
         sourceCLabel(parameters);
         direction(parameters);
         edgeLabel(parameters);
+        workers(parameters);
     }
 
     @Override
     public Object call(Job<Object> job, Map<String, Object> parameters) {
-        Traverser traverser = new Traverser(job);
-        return traverser.rings(sourceLabel(parameters),
-                               sourceCLabel(parameters),
-                               direction(parameters),
-                               edgeLabel(parameters),
-                               depth(parameters),
-                               degree(parameters),
-                               capacity(parameters),
-                               limit(parameters));
+        int workers = workers(parameters);
+        try (Traverser traverser = new Traverser(job, workers)) {
+            return traverser.rings(sourceLabel(parameters),
+                                   sourceCLabel(parameters),
+                                   direction(parameters),
+                                   edgeLabel(parameters),
+                                   depth(parameters),
+                                   degree(parameters),
+                                   capacity(parameters),
+                                   limit(parameters));
+        }
     }
 
     public static class Traverser extends AlgoTraverser {
 
-        public Traverser(Job<Object> job) {
-            super(job);
+        public Traverser(Job<Object> job, int workers) {
+            super(job, "ring", workers);
         }
 
         public Object rings(String sourceLabel, String sourceCLabel,
                             Directions dir, String label, int depth,
                             long degree, long capacity, long limit) {
-            HugeGraph graph = this.graph();
-            Iterator<Vertex> vertices = this.vertices(sourceLabel, sourceCLabel,
-                                                      Query.NO_LIMIT);
             JsonMap ringsJson = new JsonMap();
             ringsJson.startObject();
             ringsJson.appendKey("rings");
             ringsJson.startList();
-            SubGraphTraverser traverser = new SubGraphTraverser(graph);
-            while(vertices.hasNext()) {
-                this.updateProgress(++this.progress);
-                Id source = ((HugeVertex) vertices.next()).id();
+
+            SubGraphTraverser traverser = new SubGraphTraverser(this.graph());
+
+            this.traverse(sourceLabel, sourceCLabel, v -> {
+                Id source = (Id) v.id();
                 PathSet rings = traverser.rings(source, dir, label, depth,
                                                 true, degree, capacity, limit);
                 for (Path ring : rings) {
@@ -101,10 +96,13 @@ public class RingsDetectAlgorithm extends AbstractAlgorithm {
                         }
                     }
                     if (source.equals(min)) {
-                        ringsJson.appendRaw(JsonUtil.toJson(ring.vertices()));
+                        String ringJson = JsonUtil.toJson(ring.vertices());
+                        synchronized (ringsJson) {
+                            ringsJson.appendRaw(ringJson);
+                        }
                     }
                 }
-            }
+            });
             ringsJson.endList();
             ringsJson.endObject();
 

@@ -33,7 +33,6 @@ import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.job.Job;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.traversal.algorithm.FusiformSimilarityTraverser;
@@ -65,19 +64,22 @@ public class KCoreAlgorithm extends AbstractCommAlgorithm {
         sourceCLabel(parameters);
         direction(parameters);
         edgeLabel(parameters);
+        workers(parameters);
     }
 
     @Override
     public Object call(Job<Object> job, Map<String, Object> parameters) {
-        Traverser traverser = new Traverser(job);
-        return traverser.kcore(sourceLabel(parameters),
-                               sourceCLabel(parameters),
-                               direction(parameters),
-                               edgeLabel(parameters),
-                               k(parameters),
-                               alpha(parameters),
-                               degree(parameters),
-                               merged(parameters));
+        int workers = workers(parameters);
+        try (Traverser traverser = new Traverser(job, workers)) {
+            return traverser.kcore(sourceLabel(parameters),
+                                   sourceCLabel(parameters),
+                                   direction(parameters),
+                                   edgeLabel(parameters),
+                                   k(parameters),
+                                   alpha(parameters),
+                                   degree(parameters),
+                                   merged(parameters));
+        }
     }
 
     protected static int k(Map<String, Object> parameters) {
@@ -98,16 +100,14 @@ public class KCoreAlgorithm extends AbstractCommAlgorithm {
 
     public static class Traverser extends AlgoTraverser {
 
-        public Traverser(Job<Object> job) {
-            super(job);
+        public Traverser(Job<Object> job, int workers) {
+            super(job, "kcore", workers);
         }
 
         public Object kcore(String sourceLabel, String sourceCLabel,
                             Directions dir, String label, int k, double alpha,
                             long degree, boolean merged) {
             HugeGraph graph = this.graph();
-            Iterator<Vertex> vertices = this.vertices(sourceLabel, sourceCLabel,
-                                                      Query.NO_LIMIT);
             EdgeLabel edgeLabel = label == null ? null : graph.edgeLabel(label);
 
             KcoreTraverser traverser = new KcoreTraverser(graph);
@@ -115,27 +115,34 @@ public class KCoreAlgorithm extends AbstractCommAlgorithm {
             kcoresJson.startObject();
             kcoresJson.appendKey("kcores");
             kcoresJson.startList();
-            Set<Set<Id>> kcoreSet = new HashSet<>();
-            while(vertices.hasNext()) {
-                this.updateProgress(++this.progress);
-                Vertex vertex = vertices.next();
-                Set<Id> kcore = traverser.kcore(IteratorUtils.of(vertex),
+
+            Set<Set<Id>> kcores = new HashSet<>();
+
+            this.traverse(sourceLabel, sourceCLabel, v -> {
+                Set<Id> kcore = traverser.kcore(IteratorUtils.of(v),
                                                 dir, edgeLabel, k, alpha,
                                                 degree);
                 if (kcore.isEmpty()) {
-                    continue;
+                    return;
                 }
                 if (merged) {
-                    mergeKcores(kcoreSet, kcore);
+                    synchronized (kcores) {
+                        mergeKcores(kcores, kcore);
+                    }
                 } else {
-                    kcoresJson.appendRaw(JsonUtil.toJson(kcore));
+                    String json = JsonUtil.toJson(kcore);
+                    synchronized (kcoresJson) {
+                        kcoresJson.appendRaw(json);
+                    }
                 }
-            }
+            });
+
             if (merged) {
-                for (Set<Id> kcore : kcoreSet) {
+                for (Set<Id> kcore : kcores) {
                     kcoresJson.appendRaw(JsonUtil.toJson(kcore));
                 }
             }
+
             kcoresJson.endList();
             kcoresJson.endObject();
 

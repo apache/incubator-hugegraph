@@ -19,14 +19,11 @@
 
 package com.baidu.hugegraph.job.algorithm.similarity;
 
-import java.util.Iterator;
 import java.util.Map;
 
-import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import com.baidu.hugegraph.HugeGraph;
-import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.job.Job;
 import com.baidu.hugegraph.job.algorithm.AbstractAlgorithm;
 import com.baidu.hugegraph.schema.EdgeLabel;
@@ -72,24 +69,27 @@ public class FusiformSimilarityAlgorithm extends AbstractAlgorithm {
         sourceCLabel(parameters);
         direction(parameters);
         edgeLabel(parameters);
+        workers(parameters);
     }
 
     @Override
     public Object call(Job<Object> job, Map<String, Object> parameters) {
-        Traverser traverser = new Traverser(job);
-        return traverser.fusiformSimilars(sourceLabel(parameters),
-                                          sourceCLabel(parameters),
-                                          direction(parameters),
-                                          edgeLabel(parameters),
-                                          minNeighbors(parameters),
-                                          alpha(parameters),
-                                          minSimilars(parameters),
-                                          top(parameters),
-                                          groupProperty(parameters),
-                                          minGroups(parameters),
-                                          degree(parameters),
-                                          capacity(parameters),
-                                          limit(parameters));
+        int workers = workers(parameters);
+        try (Traverser traverser = new Traverser(job, workers)) {
+            return traverser.fusiformSimilars(sourceLabel(parameters),
+                                              sourceCLabel(parameters),
+                                              direction(parameters),
+                                              edgeLabel(parameters),
+                                              minNeighbors(parameters),
+                                              alpha(parameters),
+                                              minSimilars(parameters),
+                                              top(parameters),
+                                              groupProperty(parameters),
+                                              minGroups(parameters),
+                                              degree(parameters),
+                                              capacity(parameters),
+                                              limit(parameters));
+        }
     }
 
     protected static int minNeighbors(Map<String, Object> parameters) {
@@ -128,8 +128,8 @@ public class FusiformSimilarityAlgorithm extends AbstractAlgorithm {
 
     protected static class Traverser extends AlgoTraverser {
 
-        public Traverser(Job<Object> job) {
-            super(job);
+        public Traverser(Job<Object> job, int workers) {
+            super(job, "fusiform", workers);
         }
 
         public Object fusiformSimilars(String sourceLabel, String sourceCLabel,
@@ -138,31 +138,30 @@ public class FusiformSimilarityAlgorithm extends AbstractAlgorithm {
                                        int minSimilars, long topSimilars,
                                        String groupProperty, int minGroups,
                                        long degree, long capacity, long limit) {
-            Iterator<Vertex> vertices = this.vertices(sourceLabel, sourceCLabel,
-                                                      Query.NO_LIMIT);
             HugeGraph graph = this.graph();
             EdgeLabel edgeLabel = label == null ? null : graph.edgeLabel(label);
 
-            FusiformSimilarityTraverser traverser = new
-                                        FusiformSimilarityTraverser(graph);
+            FusiformSimilarityTraverser traverser =
+                                        new FusiformSimilarityTraverser(graph);
             JsonMap similarsJson = new JsonMap();
             similarsJson.startObject();
-            while(vertices.hasNext()) {
-                this.updateProgress(++this.progress);
-                Vertex vertex = vertices.next();
+
+            this.traverse(sourceLabel, sourceCLabel, v -> {
                 SimilarsMap similars = traverser.fusiformSimilarity(
-                                       IteratorUtils.of(vertex), direction,
+                                       IteratorUtils.of(v), direction,
                                        edgeLabel, minNeighbors, alpha,
                                        minSimilars, (int) topSimilars,
                                        groupProperty, minGroups, degree,
                                        capacity, limit, true);
                 if (similars.isEmpty()) {
-                    continue;
+                    return;
                 }
                 String result = JsonUtil.toJson(similars.toMap());
                 result = result.substring(1, result.length() - 1);
-                similarsJson.appendRaw(result);
-            }
+                synchronized (similarsJson) {
+                    similarsJson.appendRaw(result);
+                }
+            });
             similarsJson.endObject();
 
             return similarsJson.asJson();

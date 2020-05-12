@@ -25,6 +25,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.tinkerpop.gremlin.process.traversal.Scope;
@@ -54,14 +55,15 @@ public class LpaAlgorithm extends AbstractCommAlgorithm {
         direction(parameters);
         degree(parameters);
         showCommunity(parameters);
+        workers(parameters);
     }
 
     @Override
     public Object call(Job<Object> job, Map<String, Object> parameters) {
-        Traverser traverser = new Traverser(job);
+        int workers = workers(parameters);
         String showComm = showCommunity(parameters);
 
-        try {
+        try (Traverser traverser = new Traverser(job, workers)) {
             if (showComm != null) {
                 return traverser.showCommunity(showComm);
             } else {
@@ -84,8 +86,8 @@ public class LpaAlgorithm extends AbstractCommAlgorithm {
 
         private final Random R = new Random();
 
-        public Traverser(Job<Object> job) {
-            super(job);
+        public Traverser(Job<Object> job, int workers) {
+            super(job, "lpa", workers);
         }
 
         public Object lpa(String sourceLabel, String edgeLabel,
@@ -113,7 +115,7 @@ public class LpaAlgorithm extends AbstractCommAlgorithm {
                 }
             }
 
-            long communities = this.graph().traversal().V().limit(10000L)
+            long communities = this.graph().traversal().V().limit(100000L)
                                    .groupCount().by(C_LABEL)
                                    .count(Scope.local).next();
             return ImmutableMap.of("iteration_times", times,
@@ -143,26 +145,30 @@ public class LpaAlgorithm extends AbstractCommAlgorithm {
             // shuffle: r.order().by(shuffle)
             // r = this.graph().traversal().V().sample((int) LIMIT);
 
-            // all vertices
-            Iterator<Vertex> vertices = this.vertices(sourceLabel, LIMIT);
-
-            long total = 0L;
-            long changed = 0L;
-            while (vertices.hasNext()) {
-                this.updateProgress(++this.progress);
-                total++;
-                Vertex v = vertices.next();
-                String label = this.voteCommunityOfVertex(v, edgeLabel,
-                                                          dir, degree);
-                // update label if it's absent or changed
-                if (!labelPresent(v) || !label.equals(this.labelOfVertex(v))) {
-                    changed++;
-                    this.updateLabelOfVertex(v, label);
+            // detect all vertices
+            AtomicLong changed = new AtomicLong(0L);
+            long total = this.traverse(sourceLabel, null, v -> {
+                // called by multi-threads
+                if (this.voteCommunityAndUpdate(v, edgeLabel, dir, degree)) {
+                    changed.incrementAndGet();
                 }
-            }
+            });
+
             this.graph().tx().commit();
 
-            return total == 0L ? 0d : (double) changed / total;
+            return total == 0L ? 0d : changed.doubleValue() / total;
+        }
+
+        private boolean voteCommunityAndUpdate(Vertex vertex, String edgeLabel,
+                                               Directions dir, long degree) {
+            String label = this.voteCommunityOfVertex(vertex, edgeLabel,
+                                                      dir, degree);
+            // update label if it's absent or changed
+            if (!labelPresent(vertex) || !label.equals(labelOfVertex(vertex))) {
+                this.updateLabelOfVertex(vertex, label);
+                return true;
+            }
+            return false;
         }
 
         private String voteCommunityOfVertex(Vertex vertex, String edgeLabel,
