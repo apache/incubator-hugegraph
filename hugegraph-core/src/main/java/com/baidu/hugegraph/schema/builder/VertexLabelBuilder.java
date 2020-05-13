@@ -88,7 +88,7 @@ public class VertexLabelBuilder extends AbstractBuilder
                                      this.enableLabelIndex);
         vertexLabel.ttl(this.ttl);
         if (this.ttlStartTime != null) {
-            vertexLabel.ttlStartTime(this.transaction.getPropertyKey(
+            vertexLabel.ttlStartTime(this.graph().propertyKey(
                                      this.ttlStartTime).id());
         }
         // Assign properties
@@ -494,7 +494,7 @@ public class VertexLabelBuilder extends AbstractBuilder
                         "The ttl start time '%s' must be contained in " +
                         "properties '%s' for vertex label '%s'",
                         this.ttlStartTime, this.name, this.properties);
-        PropertyKey pkey = this.transaction.getPropertyKey(this.ttlStartTime);
+        PropertyKey pkey = this.graph().propertyKey(this.ttlStartTime);
         E.checkArgument(pkey.dataType().isDate(),
                         "The ttl start time property must be date type," +
                         "but got '%s(%s)'", this.ttlStartTime, pkey.dataType());

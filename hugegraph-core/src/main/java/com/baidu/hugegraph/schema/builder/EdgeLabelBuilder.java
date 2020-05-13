@@ -473,8 +473,8 @@ public class EdgeLabelBuilder extends AbstractBuilder
                             "Can't set ttl start time if ttl is not set");
             return;
         }
-        VertexLabel source = this.transaction.getVertexLabel(this.sourceLabel);
-        VertexLabel target = this.transaction.getVertexLabel(this.targetLabel);
+        VertexLabel source = this.graph().vertexLabel(this.sourceLabel);
+        VertexLabel target = this.graph().vertexLabel(this.targetLabel);
         E.checkArgument((source.ttl() == 0L || this.ttl <= source.ttl()) &&
                         (target.ttl() == 0L || this.ttl <= target.ttl()),
                         "The ttl(%s) of edge label '%s' should less than " +

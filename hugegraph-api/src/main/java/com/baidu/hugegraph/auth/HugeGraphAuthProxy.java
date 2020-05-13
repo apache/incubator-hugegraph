@@ -505,7 +505,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
     @Override
     public long now() {
-        this.verifyPermission();
+        this.verifyStatusPermission();
         return this.hugegraph.now();
     }
 
