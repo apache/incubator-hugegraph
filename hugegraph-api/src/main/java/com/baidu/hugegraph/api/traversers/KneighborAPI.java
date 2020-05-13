@@ -46,6 +46,7 @@ import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
+import com.google.common.collect.ImmutableMap;
 
 @Path("graphs/{graph}/traversers/kneighbor")
 @Singleton
@@ -65,12 +66,14 @@ public class KneighborAPI extends API {
                       @QueryParam("max_degree")
                       @DefaultValue(DEFAULT_DEGREE) long degree,
                       @QueryParam("limit")
-                      @DefaultValue(DEFAULT_ELEMENTS_LIMIT) long limit) {
+                      @DefaultValue(DEFAULT_ELEMENTS_LIMIT) long limit,
+                      @QueryParam("count_only")
+                      @DefaultValue("false") boolean countOnly) {
         LOG.debug("Graph [{}] get k-neighbor from '{}' with " +
                   "direction '{}', edge label '{}', max depth '{}', " +
-                  "max degree '{}' and limit '{}'",
+                  "max degree '{}', limit '{}' and count only '{}'",
                   graph, sourceV, direction, edgeLabel, depth,
-                  degree, limit);
+                  degree, limit, countOnly);
 
         Id source = VertexAPI.checkAndParseVertexId(sourceV);
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
@@ -80,6 +83,10 @@ public class KneighborAPI extends API {
         HugeTraverser traverser = new HugeTraverser(g);
         Set<Id> ids = traverser.kneighbor(source, dir, edgeLabel, depth,
                                           degree, limit);
+        if (countOnly) {
+            return manager.serializer(g).writeMap(ImmutableMap.of("count",
+                                                                  ids.size()));
+        }
         return manager.serializer(g).writeList("vertices", ids);
     }
 }

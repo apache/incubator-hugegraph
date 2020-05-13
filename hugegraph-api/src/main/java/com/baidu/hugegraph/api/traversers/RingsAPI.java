@@ -46,6 +46,7 @@ import com.baidu.hugegraph.traversal.algorithm.SubGraphTraverser;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
+import com.google.common.collect.ImmutableMap;
 
 @Path("graphs/{graph}/traversers/rings")
 @Singleton
@@ -69,13 +70,15 @@ public class RingsAPI extends API {
                       @QueryParam("capacity")
                       @DefaultValue(DEFAULT_CAPACITY) long capacity,
                       @QueryParam("limit")
-                      @DefaultValue(DEFAULT_PATHS_LIMIT) long limit) {
+                      @DefaultValue(DEFAULT_PATHS_LIMIT) long limit,
+                      @QueryParam("count_only")
+                      @DefaultValue("false") boolean countOnly) {
         LOG.debug("Graph [{}] get rings paths reachable from '{}' with " +
                   "direction '{}', edge label '{}', max depth '{}', " +
-                  "source in ring '{}', max degree '{}', capacity '{}' " +
-                  "and limit '{}'",
+                  "source in ring '{}', max degree '{}', capacity '{}', " +
+                  "limit '{}' and count only '{}'",
                   graph, sourceV, direction, edgeLabel, depth, sourceInRing,
-                  degree, capacity, limit);
+                  degree, capacity, limit, countOnly);
 
         Id source = VertexAPI.checkAndParseVertexId(sourceV);
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
@@ -86,6 +89,10 @@ public class RingsAPI extends API {
         HugeTraverser.PathSet paths = traverser.rings(source, dir, edgeLabel,
                                                       depth, sourceInRing,
                                                       degree, capacity, limit);
+        if (countOnly) {
+            return manager.serializer(g).writeMap(ImmutableMap.of(
+                                                  "count", paths.size()));
+        }
         return manager.serializer(g).writePaths("rings", paths, false);
     }
 }

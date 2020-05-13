@@ -103,10 +103,11 @@ public final class ApiVersion {
      * [0.52] Issue-781: Support range query for rest api like P.gt(18)
      * [0.53] Issue-985: Add grant permission API
      * [0.54] Issue-295: Support ttl for vertex and edge
+     * [0.55] Issue-994: Support results count for kneighbor/kout/rings
      */
 
     // The second parameter of Version.of() is for IDE running without JAR
-    public static final Version VERSION = Version.of(ApiVersion.class, "0.54");
+    public static final Version VERSION = Version.of(ApiVersion.class, "0.55");
 
     public static final void check() {
         // Check version of hugegraph-core. Firstly do check from version 0.3
