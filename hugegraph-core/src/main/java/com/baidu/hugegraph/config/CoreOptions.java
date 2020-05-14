@@ -247,10 +247,10 @@ public class CoreOptions extends OptionHolder {
                     10000L
             );
 
-    public static final ConfigOption<Boolean> SCHEMA_SYNC_DELETION =
+    public static final ConfigOption<Boolean> TASK_SYNC_DELETION =
             new ConfigOption<>(
-                    "schema.sync_deletion",
-                    "Whether to delete schema synchronously.",
+                    "task.sync_deletion",
+                    "Whether to delete schema or expired data synchronously.",
                     disallowEmpty(),
                     false
             );
@@ -261,6 +261,14 @@ public class CoreOptions extends OptionHolder {
                     "The type of vertex cache, allowed values are [l1, l2].",
                     allowValues("l1", "l2"),
                     "l1"
+            );
+
+    public static final ConfigOption<Integer> EXPIRED_DELETE_BATCH =
+            new ConfigOption<>(
+                    "expired.delete_batch",
+                    "The batch size used to delete expired data.",
+                    rangeInt(1, 500),
+                    10
             );
 
     public static final ConfigOption<Long> VERTEX_CACHE_CAPACITY =

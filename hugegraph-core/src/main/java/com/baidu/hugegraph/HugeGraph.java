@@ -142,6 +142,8 @@ public interface HugeGraph extends Graph {
 
     public void proxy(HugeGraph graph);
 
+    public long now();
+
     public default List<String> mapPkId2Name(Collection<Id> ids) {
         List<String> names = new ArrayList<>(ids.size());
         for (Id id : ids) {

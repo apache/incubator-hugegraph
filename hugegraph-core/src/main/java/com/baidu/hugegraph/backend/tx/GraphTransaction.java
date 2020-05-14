@@ -71,6 +71,7 @@ import com.baidu.hugegraph.iterator.FilterIterator;
 import com.baidu.hugegraph.iterator.FlatMapperIterator;
 import com.baidu.hugegraph.iterator.ListIterator;
 import com.baidu.hugegraph.iterator.MapperIterator;
+import com.baidu.hugegraph.job.system.DeleteExpiredJob;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
@@ -81,6 +82,7 @@ import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeEdgeProperty;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.structure.HugeFeatures.HugeVertexFeatures;
+import com.baidu.hugegraph.structure.HugeIndex;
 import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.structure.HugeVertexProperty;
@@ -601,6 +603,7 @@ public class GraphTransaction extends IndexableTransaction {
         } else {
             vertex.assignId(id);
         }
+        vertex.setExpiredTime();
 
         return vertex;
     }
@@ -664,6 +667,9 @@ public class GraphTransaction extends IndexableTransaction {
                 continue;
             } else if ((vertex = this.addedVertices.get(id)) != null ||
                        (vertex = this.updatedVertices.get(id)) != null) {
+                if (vertex.expired()) {
+                    continue;
+                }
                 // Found from local tx
                 vertices.put(vertex.id(), vertex);
             } else {
@@ -750,6 +756,17 @@ public class GraphTransaction extends IndexableTransaction {
         Iterator<HugeVertex> vertices = new MapperIterator<>(entries,
                                                              this::parseEntry);
 
+        if (!this.store().features().supportsTtl() && !query.showExpired()) {
+            vertices = new FilterIterator<>(vertices, vertex -> {
+                if (vertex.expired()) {
+                    DeleteExpiredJob.asyncDeleteExpiredObject(this.params(),
+                                                              vertex);
+                    return false;
+                }
+                return true;
+            });
+        }
+
         if (!this.store().features().supportsQuerySortByInputIds()) {
             // There is no id in BackendEntry, so sort after deserialization
             vertices = results.keepInputOrderIfNeeded(vertices);
@@ -820,6 +837,9 @@ public class GraphTransaction extends IndexableTransaction {
                 continue;
             } else if ((edge = this.addedEdges.get(id)) != null ||
                        (edge = this.updatedEdges.get(id)) != null) {
+                if (edge.expired()) {
+                    continue;
+                }
                 // Found from local tx
                 edges.put(edge.id(), edge);
             } else {
@@ -934,6 +954,17 @@ public class GraphTransaction extends IndexableTransaction {
              */
             return new ListIterator<>(ImmutableList.copyOf(vertex.getEdges()));
         });
+
+        if (!this.store().features().supportsTtl() && !query.showExpired()) {
+            edges = new FilterIterator<>(edges, edge -> {
+                if (edge.expired()) {
+                    DeleteExpiredJob.asyncDeleteExpiredObject(this.params(),
+                                                              edge);
+                    return false;
+                }
+                return true;
+            });
+        }
 
         if (!this.store().features().supportsQuerySortByInputIds()) {
             // There is no id in BackendEntry, so sort after deserialization
@@ -1553,10 +1584,17 @@ public class GraphTransaction extends IndexableTransaction {
     private Iterator<?> joinTxVertices(Query query,
                                        Iterator<HugeVertex> vertices) {
         assert query.resultType().isVertex();
-        return this.joinTxRecords(query, vertices,
-                                  (q, v) -> q.test(v) ? v : null,
-                                  this.addedVertices, this.removedVertices,
-                                  this.updatedVertices);
+        vertices =  this.joinTxRecords(query, vertices,
+                                       (q, v) -> q.test(v) ? v : null,
+                                       this.addedVertices, this.removedVertices,
+                                       this.updatedVertices);
+        // Filter vertices with ttl
+        if (!query.showExpired()) {
+            vertices = new FilterIterator<>(vertices, vertex -> {
+                return !vertex.expired();
+            });
+        }
+        return vertices;
     }
 
     private Iterator<?> joinTxEdges(Query query, Iterator<HugeEdge> edges,
@@ -1569,6 +1607,12 @@ public class GraphTransaction extends IndexableTransaction {
         edges = this.joinTxRecords(query, edges, matchTxEdges,
                                    this.addedEdges, this.removedEdges,
                                    this.updatedEdges);
+        // Filter edges with ttl
+        if (!query.showExpired()) {
+            edges = new FilterIterator<>(edges, edge -> {
+                return !edge.expired();
+            });
+        }
         if (removingVertices.isEmpty()) {
             return edges;
         }
@@ -1701,6 +1745,15 @@ public class GraphTransaction extends IndexableTransaction {
         this.indexTx.updateIndex(ilId, element, removed);
     }
 
+    public void removeIndex(HugeIndex index) {
+        // TODO: use event to replace direct call
+        this.checkOwnerThread();
+
+        this.beforeWrite();
+        this.indexTx.doEliminate(this.serializer.writeIndex(index));
+        this.afterWrite();
+    }
+
     public void removeVertices(VertexLabel vertexLabel) {
         if (this.hasUpdate()) {
             throw new HugeException("There are still changes to commit");
@@ -1782,6 +1835,7 @@ public class GraphTransaction extends IndexableTransaction {
             query.showHidden(true);
         }
         query.showDeleting(deleting);
+        query.showExpired(deleting);
 
         if (label.enableLabelIndex()) {
             // Support label index, query by label index by paging

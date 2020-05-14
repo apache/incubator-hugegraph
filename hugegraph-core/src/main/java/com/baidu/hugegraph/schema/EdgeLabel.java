@@ -32,6 +32,8 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Frequency;
 import com.baidu.hugegraph.util.E;
 
+import static com.baidu.hugegraph.backend.id.IdGenerator.ZERO;
+
 public class EdgeLabel extends SchemaLabel {
 
     public static final EdgeLabel NONE = new EdgeLabel(null, ZERO, UNDEF);
@@ -133,6 +135,10 @@ public class EdgeLabel extends SchemaLabel {
         Builder nullableKeys(String... keys);
 
         Builder frequency(Frequency frequency);
+
+        Builder ttl(long ttl);
+
+        Builder ttlStartTime(String ttlStartTime);
 
         Builder enableLabelIndex(boolean enable);
 

@@ -116,4 +116,9 @@ public class CassandraFeatures implements BackendFeatures {
     public boolean supportsAggregateProperty() {
         return false;
     }
+
+    @Override
+    public boolean supportsTtl() {
+        return true;
+    }
 }

@@ -90,6 +90,7 @@ public class IndexLabelBuilder extends AbstractBuilder
         SchemaLabel schemaLabel = this.loadElement();
         indexLabel.baseValue(schemaLabel.id());
         indexLabel.indexType(this.indexType);
+        indexLabel.ttl(schemaLabel.ttl());
         for (String field : this.indexFields) {
             PropertyKey propertyKey = graph.propertyKey(field);
             indexLabel.indexField(propertyKey.id());

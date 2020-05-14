@@ -205,6 +205,18 @@ public abstract class MysqlTable
         return this.deleteTemplate;
     }
 
+    protected String buildDeleteTemplateWithoutCache(List<HugeKeys> idNames) {
+        StringBuilder delete = new StringBuilder();
+        delete.append("DELETE FROM ").append(this.table());
+        this.appendPartition(delete);
+
+        WhereBuilder where = this.newWhereBuilder();
+        where.and(formatKeys(idNames), "=");
+        delete.append(where.build());
+
+        return delete.toString();
+    }
+
     protected String buildDropTemplate() {
         return String.format("DROP TABLE IF EXISTS %s;", this.table());
     }
@@ -256,7 +268,6 @@ public abstract class MysqlTable
     public void delete(Session session, MysqlBackendEntry.Row entry) {
         List<HugeKeys> idNames = this.idColumnName();
         String template = this.buildDeleteTemplate(idNames);
-
         PreparedStatement deleteStmt;
         try {
             deleteStmt = session.prepareStatement(template);
@@ -376,13 +387,19 @@ public abstract class MysqlTable
         }
         // Set page, order-by and limit
         for (StringBuilder selection : selections) {
-            if (!query.orders().isEmpty()) {
+            boolean hasOrder = !query.orders().isEmpty();
+            if (hasOrder) {
                 this.wrapOrderBy(selection, query);
             }
             if (query.paging()) {
                 this.wrapPage(selection, query);
-            } else if (!query.nolimit() || query.offset() > 0) {
-                this.wrapOffset(selection, query);
+            } else {
+                if (aggregate == null && !hasOrder) {
+                    select.append(this.orderByKeys());
+                }
+                if (!query.nolimit() || query.offset() > 0L) {
+                    this.wrapOffset(selection, query);
+                }
             }
         }
 

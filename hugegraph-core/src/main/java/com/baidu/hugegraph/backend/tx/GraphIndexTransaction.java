@@ -68,6 +68,7 @@ import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.iterator.Metadatable;
 import com.baidu.hugegraph.job.EphemeralJob;
 import com.baidu.hugegraph.job.EphemeralJobBuilder;
+import com.baidu.hugegraph.job.system.DeleteExpiredJob;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -128,9 +129,10 @@ public class GraphIndexTransaction extends AbstractTransaction {
         }
 
         // Update label index if backend store not supports label-query
-        HugeIndex index = new HugeIndex(IndexLabel.label(element.type()));
-        index.fieldValues(label.id());
-        index.elementIds(element.id());
+        HugeIndex index = new HugeIndex(this.graph(),
+                                        IndexLabel.label(element.type()));
+        index.fieldValues(element.schemaLabel().id());
+        index.elementIds(element.id(), element.expiredTime());
 
         if (removed) {
             this.doEliminate(this.serializer.writeIndex(index));
@@ -196,6 +198,9 @@ public class GraphIndexTransaction extends AbstractTransaction {
         // Not build index for record with nullable field except unique index
         List<Object> propValues = allPropValues.subList(0, firstNullField);
 
+        // Expired time
+        long expiredTime = element.expiredTime();
+
         // Update index for each index type
         switch (indexLabel.indexType()) {
             case RANGE_INT:
@@ -205,7 +210,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 E.checkState(propValues.size() == 1,
                              "Expect only one property in range index");
                 Object value = NumericUtil.convertToNumber(propValues.get(0));
-                this.updateIndex(indexLabel, value, element.id(), removed);
+                this.updateIndex(indexLabel, value, element.id(),
+                                 expiredTime, removed);
                 break;
             case SEARCH:
                 E.checkState(propValues.size() == 1,
@@ -213,7 +219,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 value = propValues.get(0);
                 Set<String> words = this.segmentWords(value.toString());
                 for (String word : words) {
-                    this.updateIndex(indexLabel, word, element.id(), removed);
+                    this.updateIndex(indexLabel, word, element.id(),
+                                     expiredTime, removed);
                 }
                 break;
             case SECONDARY:
@@ -231,7 +238,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
                         value = INDEX_EMPTY_SYM;
                     }
 
-                    this.updateIndex(indexLabel, value, element.id(), removed);
+                    this.updateIndex(indexLabel, value, element.id(),
+                                     expiredTime, removed);
                 }
                 break;
             case SHARD:
@@ -244,7 +252,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 if (((String) value).isEmpty()) {
                     value = INDEX_EMPTY_SYM;
                 }
-                this.updateIndex(indexLabel, value, element.id(), removed);
+                this.updateIndex(indexLabel, value, element.id(),
+                                 expiredTime, removed);
                 break;
             case UNIQUE:
                 value = ConditionQuery.concatValues(allPropValues);
@@ -263,7 +272,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
                               "Unique constraint %s conflict is found for %s",
                               indexLabel, element));
                 }
-                this.updateIndex(indexLabel, value, element.id(), removed);
+                this.updateIndex(indexLabel, value, element.id(),
+                                 expiredTime, removed);
                 break;
             default:
                 throw new AssertionError(String.format(
@@ -272,10 +282,10 @@ public class GraphIndexTransaction extends AbstractTransaction {
     }
 
     private void updateIndex(IndexLabel indexLabel, Object propValue,
-                             Id elementId, boolean removed) {
-        HugeIndex index = new HugeIndex(indexLabel);
+                             Id elementId, long expiredTime, boolean removed) {
+        HugeIndex index = new HugeIndex(this.graph(), indexLabel);
         index.fieldValues(propValue);
-        index.elementIds(elementId);
+        index.elementIds(elementId, expiredTime);
 
         if (removed) {
             this.doEliminate(this.serializer.writeIndex(index));
@@ -292,7 +302,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
     private boolean hasEliminateInTx(IndexLabel indexLabel, Object value,
                                      Id elementId) {
-        HugeIndex index = new HugeIndex(indexLabel);
+        HugeIndex index = new HugeIndex(this.graph(), indexLabel);
         index.fieldValues(value);
         index.elementIds(elementId);
         BackendEntry entry = this.serializer.writeIndex(index);
@@ -311,6 +321,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
             if (exist) {
                 HugeIndex index = this.serializer.readIndex(graph(), query,
                                                             iterator.next());
+                this.removeExpiredIndexIfNeeded(index, query.showExpired());
                 // Memory backend might return empty BackendEntry
                 if (index.elementIds().isEmpty()) {
                     return false;
@@ -404,6 +415,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
         indexQuery.limit(query.limit());
         indexQuery.offset(query.offset());
         indexQuery.capacity(query.capacity());
+        indexQuery.showExpired(query.showExpired());
 
         IdHolder idHolder = this.doIndexQuery(il, indexQuery);
 
@@ -561,6 +573,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                        entries.hasNext()) {
                     HugeIndex index = this.serializer.readIndex(graph(), query,
                                                                 entries.next());
+                    this.removeExpiredIndexIfNeeded(index, query.showExpired());
                     ids.addAll(index.elementIds());
                     Query.checkForceCapacity(ids.size());
                 }
@@ -569,6 +582,20 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 locks.unlock();
             }
         });
+    }
+
+    private void removeExpiredIndexIfNeeded(HugeIndex index,
+                                            boolean showExpired) {
+        if (this.store().features().supportsTtl() || showExpired) {
+            return;
+        }
+        for (HugeIndex.IdWithExpiredTime id : index.expiredElementIds()) {
+            HugeIndex removeIndex = index.clone();
+            removeIndex.resetElementIds();
+            removeIndex.elementIds(id.id(), id.expiredTime());
+            DeleteExpiredJob.asyncDeleteExpiredObject(this.params(),
+                                                      removeIndex);
+        }
     }
 
     @Watched(prefix = "index")
@@ -586,6 +613,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
             while (entries.hasNext()) {
                 HugeIndex index = this.serializer.readIndex(graph(), query,
                                                             entries.next());
+                this.removeExpiredIndexIfNeeded(index, query.showExpired());
                 ids.addAll(index.elementIds());
                 if (query.reachLimit(ids.size())) {
                     break;
@@ -1286,7 +1314,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
     }
 
     public void removeIndex(IndexLabel indexLabel) {
-        HugeIndex index = new HugeIndex(indexLabel);
+        HugeIndex index = new HugeIndex(this.graph(), indexLabel);
         this.doRemove(this.serializer.writeIndex(index));
     }
 
@@ -1511,6 +1539,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                     while (it.hasNext()) {
                         HugeIndex index = serializer.readIndex(graph(), q,
                                                                it.next());
+                        tx.removeExpiredIndexIfNeeded(index, q.showExpired());
                         if (index.elementIds().contains(element.id())) {
                             index.resetElementIds();
                             index.elementIds(element.id());

@@ -31,7 +31,11 @@ import com.baidu.hugegraph.schema.builder.SchemaBuilder;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.IdStrategy;
 
+import static com.baidu.hugegraph.backend.id.IdGenerator.ZERO;
+
 public class VertexLabel extends SchemaLabel {
+
+    private static final String UNDEF = "~undefined";
 
     public static final VertexLabel NONE = new VertexLabel(null, ZERO, UNDEF);
 
@@ -102,6 +106,10 @@ public class VertexLabel extends SchemaLabel {
         Builder primaryKeys(String... keys);
 
         Builder nullableKeys(String... keys);
+
+        Builder ttl(long ttl);
+
+        Builder ttlStartTime(String ttlStartTime);
 
         Builder enableLabelIndex(boolean enable);
 

@@ -88,6 +88,8 @@ public class PaloTables {
             this.define.column(HugeKeys.ENABLE_LABEL_INDEX, TINYINT, NOT_NULL);
             this.define.column(HugeKeys.USER_DATA, VARCHAR, DEFAULT_EMPTY);
             this.define.column(HugeKeys.STATUS, TINYINT, NOT_NULL);
+            this.define.column(HugeKeys.TTL, INT, NOT_NULL);
+            this.define.column(HugeKeys.TTL_START_TIME, INT);
             // Unique keys/hash keys
             this.define.keys(HugeKeys.ID);
         }
@@ -112,6 +114,8 @@ public class PaloTables {
             this.define.column(HugeKeys.ENABLE_LABEL_INDEX, TINYINT, NOT_NULL);
             this.define.column(HugeKeys.USER_DATA, VARCHAR, DEFAULT_EMPTY);
             this.define.column(HugeKeys.STATUS, TINYINT, NOT_NULL);
+            this.define.column(HugeKeys.TTL, INT, NOT_NULL);
+            this.define.column(HugeKeys.TTL_START_TIME, INT);
             // Unique keys/hash keys
             this.define.keys(HugeKeys.ID);
         }
@@ -167,6 +171,7 @@ public class PaloTables {
             this.define.column(HugeKeys.ID, VARCHAR, NOT_NULL);
             this.define.column(HugeKeys.LABEL, INT, NOT_NULL);
             this.define.column(HugeKeys.PROPERTIES, TEXT, DEFAULT_EMPTY);
+            this.define.column(HugeKeys.EXPIRED_TIME, DECIMAL, NOT_NULL);
             // Unique keys/hash keys
             this.define.keys(HugeKeys.ID);
         }
@@ -197,6 +202,7 @@ public class PaloTables {
                                DEFAULT_EMPTY);
             this.define.column(HugeKeys.OTHER_VERTEX, VARCHAR, NOT_NULL);
             this.define.column(HugeKeys.PROPERTIES, TEXT, DEFAULT_EMPTY);
+            this.define.column(HugeKeys.EXPIRED_TIME, DECIMAL, NOT_NULL);
             // Unique keys/hash keys
             this.define.keys(HugeKeys.OWNER_VERTEX, HugeKeys.DIRECTION,
                              HugeKeys.LABEL, HugeKeys.SORT_VALUES,

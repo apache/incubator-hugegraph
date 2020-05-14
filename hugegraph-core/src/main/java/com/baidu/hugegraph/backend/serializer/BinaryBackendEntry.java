@@ -41,6 +41,7 @@ public class BinaryBackendEntry implements BackendEntry {
     private final BinaryId id;
     private Id subId;
     private final List<BackendColumn> columns;
+    private long ttl;
 
     public BinaryBackendEntry(HugeType type, byte[] bytes) {
         this(type, BytesBuffer.wrap(bytes).parseId(type));
@@ -51,6 +52,7 @@ public class BinaryBackendEntry implements BackendEntry {
         this.id = id;
         this.subId = null;
         this.columns = new ArrayList<>();
+        this.ttl = 0L;
     }
 
     @Override
@@ -70,6 +72,15 @@ public class BinaryBackendEntry implements BackendEntry {
 
     public void subId(Id subId) {
         this.subId = subId;
+    }
+
+    public void ttl(long ttl) {
+        this.ttl = ttl;
+    }
+
+    @Override
+    public long ttl() {
+        return this.ttl;
     }
 
     @Override

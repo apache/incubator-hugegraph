@@ -60,6 +60,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     public HugeEdge(HugeVertex owner, Id id, EdgeLabel label,
                     HugeVertex other) {
         this(owner.graph(), id, label);
+        this.expiredTime = 0L;
         this.fresh = true;
         this.vertices(owner, other);
     }

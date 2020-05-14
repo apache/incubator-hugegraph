@@ -46,6 +46,8 @@ public enum HugeKeys {
     SOURCE_LABEL(82, "source_label"),
     TARGET_LABEL(83, "target_label"),
     SORT_KEYS(84, "sort_keys"),
+    TTL(85, "ttl"),
+    TTL_START_TIME(86, "ttl_start_time"),
 
     /* Column names of schema type (PropertyKey) */
     DATA_TYPE(120, "data_type"),
@@ -72,7 +74,8 @@ public enum HugeKeys {
     PROPERTY_VALUE(204, "property_value"),
     DIRECTION(205, "direction"),
     SORT_VALUES(206, "sort_values"),
-    PRIMARY_VALUES(207, "primary_values");
+    PRIMARY_VALUES(207, "primary_values"),
+    EXPIRED_TIME(208, "expired_time");
 
     /* HugeKeys define */
     private byte code = 0;

@@ -188,6 +188,10 @@ public class EdgeLabelAPI extends API {
         public String[] sortKeys;
         @JsonProperty("nullable_keys")
         public String[] nullableKeys;
+        @JsonProperty("ttl")
+        public long ttl;
+        @JsonProperty("ttl_start_time")
+        public String ttlStartTime;
         @JsonProperty("enable_label_index")
         public Boolean enableLabelIndex;
         @JsonProperty("user_data")
@@ -240,6 +244,15 @@ public class EdgeLabelAPI extends API {
             if (this.checkExist != null) {
                 builder.checkExist(this.checkExist);
             }
+            if (this.ttl != 0) {
+                builder.ttl(this.ttl);
+            }
+            if (this.ttlStartTime != null) {
+                E.checkArgument(this.ttl > 0,
+                                "Only set ttlStartTime when ttl is " +
+                                "positive,  but got ttl: %s", this.ttl);
+                builder.ttlStartTime(this.ttlStartTime);
+            }
             return builder;
         }
 
@@ -247,10 +260,11 @@ public class EdgeLabelAPI extends API {
         public String toString() {
             return String.format("JsonEdgeLabel{" +
                    "name=%s, sourceLabel=%s, targetLabel=%s, frequency=%s, " +
-                   "sortKeys=%s, nullableKeys=%s, properties=%s}",
+                   "sortKeys=%s, nullableKeys=%s, properties=%s, ttl=%s, " +
+                   "ttlStartTime=%s}",
                    this.name, this.sourceLabel, this.targetLabel,
                    this.frequency, this.sortKeys, this.nullableKeys,
-                   this.properties);
+                   this.properties, this.ttl, this.ttlStartTime);
         }
     }
 }

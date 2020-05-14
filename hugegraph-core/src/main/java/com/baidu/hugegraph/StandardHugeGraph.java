@@ -76,6 +76,7 @@ import com.baidu.hugegraph.task.TaskManager;
 import com.baidu.hugegraph.task.TaskScheduler;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.GraphMode;
+import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.LockUtil;
 import com.baidu.hugegraph.util.Log;
@@ -755,6 +756,11 @@ public class StandardHugeGraph implements HugeGraph {
         this.params.graph(graph);
     }
 
+    @Override
+    public long now() {
+        return ((TinkerpopTransaction) this.tx()).openedTime();
+    }
+
     private class StandardHugeGraphParams implements HugeGraphParams {
 
         private HugeGraph graph = StandardHugeGraph.this;
@@ -947,6 +953,10 @@ public class StandardHugeGraph implements HugeGraph {
                                  this.opened.get(), this.transactions.get());
         }
 
+        public long openedTime() {
+            return this.transactions.get().openedTime();
+        }
+
         private void verifyOpened() {
             if (!this.isOpen()) {
                 throw new HugeException("Transaction has not been opened");
@@ -963,6 +973,7 @@ public class StandardHugeGraph implements HugeGraph {
             // The backend tx may be reused, here just set a flag
             assert this.opened.get() == false;
             this.opened.set(true);
+            this.transactions.get().openedTime(DateUtil.now().getTime());
             this.refs.incrementAndGet();
         }
 
@@ -1023,6 +1034,7 @@ public class StandardHugeGraph implements HugeGraph {
         private final SchemaTransaction schemaTx;
         private final SysTransaction systemTx;
         private final GraphTransaction graphTx;
+        private long openedTime;
 
         public Txs(SchemaTransaction schemaTx, SysTransaction systemTx,
                    GraphTransaction graphTx) {
@@ -1030,6 +1042,7 @@ public class StandardHugeGraph implements HugeGraph {
             this.schemaTx = schemaTx;
             this.systemTx = systemTx;
             this.graphTx = graphTx;
+            this.openedTime = DateUtil.now().getTime();
         }
 
         public void commit() {
@@ -1058,6 +1071,14 @@ public class StandardHugeGraph implements HugeGraph {
             } catch (Exception e) {
                 LOG.error("Failed to close SchemaTransaction", e);
             }
+        }
+
+        public void openedTime(long time) {
+            this.openedTime = time;
+        }
+
+        public long openedTime() {
+            return this.openedTime;
         }
 
         @Override

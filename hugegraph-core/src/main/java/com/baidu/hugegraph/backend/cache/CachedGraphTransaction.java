@@ -46,6 +46,7 @@ import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.Events;
 import com.google.common.collect.ImmutableSet;
 
@@ -182,11 +183,14 @@ public final class CachedGraphTransaction extends GraphTransaction {
         IdQuery newQuery = new IdQuery(HugeType.VERTEX, query);
         List<HugeVertex> vertices = new ArrayList<>();
         for (Id vertexId : query.ids()) {
-            Object vertex = this.verticesCache.get(vertexId);
-            if (vertex != null) {
-                vertices.add((HugeVertex) vertex);
-            } else {
+            HugeVertex vertex = (HugeVertex) this.verticesCache.get(vertexId);
+            if (vertex == null) {
                 newQuery.query(vertexId);
+            } else if (vertex.expired()) {
+                newQuery.query(vertexId);
+                this.verticesCache.invalidate(vertexId);
+            } else {
+                vertices.add(vertex);
             }
         }
 
@@ -216,6 +220,7 @@ public final class CachedGraphTransaction extends GraphTransaction {
         return results;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     protected final Iterator<HugeEdge> queryEdgesFromBackend(Query query) {
         if (query.empty() || query.paging() || query.bigCapacity()) {
@@ -225,26 +230,34 @@ public final class CachedGraphTransaction extends GraphTransaction {
 
         Id cacheKey = new QueryId(query);
         Object value = this.edgesCache.get(cacheKey);
+        Collection<HugeEdge> edges = (Collection<HugeEdge>) value;
         if (value != null) {
-            @SuppressWarnings("unchecked")
-            Collection<HugeEdge> edges = (Collection<HugeEdge>) value;
-            return edges.iterator();
-        } else {
-            Iterator<HugeEdge> rs = super.queryEdgesFromBackend(query);
-            /*
-             * Iterator can't be cached, caching list instead
-             * Generally there are not too much data with id query
-             */
-            ListIterator<HugeEdge> listIterator = QueryResults.toList(rs);
-            Collection<HugeEdge> edges = listIterator.list();
-            if (edges.size() == 0) {
-                this.edgesCache.update(cacheKey, Collections.emptyList());
-            } else if (edges.size() <= MAX_CACHE_EDGES_PER_QUERY) {
-                // Skip large query
-                this.edgesCache.update(cacheKey, edges);
+            for (HugeEdge edge : edges) {
+                if (edge.expired()) {
+                    this.edgesCache.invalidate(cacheKey);
+                    value = null;
+                }
             }
-            return listIterator;
         }
+
+        if (value != null) {
+            return edges.iterator();
+        }
+
+        Iterator<HugeEdge> rs = super.queryEdgesFromBackend(query);
+        /*
+         * Iterator can't be cached, caching list instead
+         * Generally there are not too much data with id query
+         */
+        ListIterator<HugeEdge> listIterator = QueryResults.toList(rs);
+        edges = listIterator.list();
+        if (edges.size() == 0) {
+            this.edgesCache.update(cacheKey, Collections.emptyList());
+        } else if (edges.size() <= MAX_CACHE_EDGES_PER_QUERY) {
+            this.edgesCache.update(cacheKey, edges);
+        }
+
+        return listIterator;
     }
 
     @Override

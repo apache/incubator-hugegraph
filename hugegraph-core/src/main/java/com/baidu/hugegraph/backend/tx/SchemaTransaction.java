@@ -23,12 +23,10 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 
-import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.BackendException;
@@ -400,15 +398,6 @@ public class SchemaTransaction extends IndexableTransaction {
         }
     }
 
-    public long taskWaitTimeout() {
-        return this.params().configuration().get(CoreOptions.TASK_WAIT_TIMEOUT);
-    }
-
-    public boolean syncDelete() {
-        return this.params().configuration()
-                            .get( CoreOptions.SCHEMA_SYNC_DELETION);
-    }
-
     public void checkSchemaName(String name) {
         String illegalReg = this.params().configuration()
                                 .get(CoreOptions.SCHEMA_ILLEGAL_NAME_REGEX);
@@ -425,6 +414,15 @@ public class SchemaTransaction extends IndexableTransaction {
             E.checkArgument(name.indexOf(c) == -1,
                             "The name can't contain character '%s'.", c);
         }
+    }
+
+    public long taskWaitTimeout() {
+        return this.params().configuration().get(CoreOptions.TASK_WAIT_TIMEOUT);
+    }
+
+    public boolean syncDelete() {
+        return this.params().configuration()
+                            .get(CoreOptions.TASK_SYNC_DELETION);
     }
 
     @Watched(prefix = "schema")
@@ -505,23 +503,10 @@ public class SchemaTransaction extends IndexableTransaction {
                                                .dependencies(dependencies);
         HugeTask<?> task = builder.schedule();
 
-        // If SCHEMA_SYNC_DELETION is true, wait async thread done before
+        // If TASK_SYNC_DELETION is true, wait async thread done before
         // continue. This is used when running tests.
         if (sync) {
-            try {
-                task.get();
-                assert task.completed();
-            } catch (ExecutionException e) {
-                Throwable cause = e.getCause();
-                if (cause instanceof RuntimeException) {
-                    throw (RuntimeException) cause;
-                }
-                throw new HugeException("Async task failed with error: %s",
-                                        cause, cause.getMessage());
-            } catch (Exception e) {
-                throw new HugeException("Async task failed with error: %s",
-                                        e, e.getMessage());
-            }
+            task.syncWait();
         }
         return task.id();
     }

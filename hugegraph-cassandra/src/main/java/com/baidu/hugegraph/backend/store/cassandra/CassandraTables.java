@@ -39,12 +39,16 @@ import com.baidu.hugegraph.util.E;
 import com.datastax.driver.core.DataType;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
+import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.exceptions.DriverException;
+import com.datastax.driver.core.querybuilder.BuiltStatement;
 import com.datastax.driver.core.querybuilder.Clause;
 import com.datastax.driver.core.querybuilder.Delete;
+import com.datastax.driver.core.querybuilder.Insert;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Select;
 import com.datastax.driver.core.querybuilder.Update;
+import com.datastax.driver.core.querybuilder.Using;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
@@ -62,6 +66,9 @@ public class CassandraTables {
 
     private static final DataType TYPE_ID = DataType.blob();
     private static final DataType TYPE_PROP = DataType.blob();
+
+    private static final DataType TYPE_TTL = DataType.cint();
+    private static final DataType TYPE_EXPIRED_TIME = DataType.bigint();
 
     private static final long COMMIT_DELETE_BATCH = Query.COMMIT_BATCH;
 
@@ -134,6 +141,8 @@ public class CassandraTables {
                     .put(HugeKeys.ENABLE_LABEL_INDEX, DataType.cboolean())
                     .put(HugeKeys.USER_DATA, TYPE_UD)
                     .put(HugeKeys.STATUS, DataType.tinyint())
+                    .put(HugeKeys.TTL, TYPE_TTL)
+                    .put(HugeKeys.TTL_START_TIME, TYPE_PK)
                     .build();
 
             this.createTable(session, pkeys, ckeys, columns);
@@ -168,6 +177,8 @@ public class CassandraTables {
                     .put(HugeKeys.ENABLE_LABEL_INDEX, DataType.cboolean())
                     .put(HugeKeys.USER_DATA, TYPE_UD)
                     .put(HugeKeys.STATUS, DataType.tinyint())
+                    .put(HugeKeys.TTL, TYPE_TTL)
+                    .put(HugeKeys.TTL_START_TIME, TYPE_PK)
                     .build();
 
             this.createTable(session, pkeys, ckeys, columns);
@@ -251,11 +262,26 @@ public class CassandraTables {
             ImmutableMap<HugeKeys, DataType> ckeys = ImmutableMap.of();
             ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of(
                     HugeKeys.LABEL, TYPE_SL,
-                    HugeKeys.PROPERTIES, DataType.map(TYPE_PK, TYPE_PROP)
+                    HugeKeys.PROPERTIES, DataType.map(TYPE_PK, TYPE_PROP),
+                    HugeKeys.EXPIRED_TIME, TYPE_EXPIRED_TIME
             );
 
             this.createTable(session, pkeys, ckeys, columns);
             this.createIndex(session, LABEL_INDEX, HugeKeys.LABEL);
+        }
+
+        @Override
+        public void insert(CassandraSessionPool.Session session,
+                           CassandraBackendEntry.Row entry) {
+            Insert insert = this.buildInsert(entry);
+            session.add(setTtl(insert, entry));
+        }
+
+        @Override
+        public void append(CassandraSessionPool.Session session,
+                           CassandraBackendEntry.Row entry) {
+            Update append = this.buildAppend(entry);
+            session.add(setTtl(append, entry));
         }
     }
 
@@ -296,7 +322,8 @@ public class CassandraTables {
                     HugeKeys.OTHER_VERTEX, TYPE_ID
             );
             ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of(
-                    HugeKeys.PROPERTIES, DataType.map(TYPE_PK, TYPE_PROP)
+                    HugeKeys.PROPERTIES, DataType.map(TYPE_PK, TYPE_PROP),
+                    HugeKeys.EXPIRED_TIME, TYPE_EXPIRED_TIME
             );
 
             this.createTable(session, pkeys, ckeys, columns);
@@ -308,6 +335,20 @@ public class CassandraTables {
             if (this.direction == Directions.OUT) {
                 this.createIndex(session, LABEL_INDEX, HugeKeys.LABEL);
             }
+        }
+
+        @Override
+        public void insert(CassandraSessionPool.Session session,
+                           CassandraBackendEntry.Row entry) {
+            Insert insert = this.buildInsert(entry);
+            session.add(setTtl(insert, entry));
+        }
+
+        @Override
+        public void append(CassandraSessionPool.Session session,
+                           CassandraBackendEntry.Row entry) {
+            Update update = this.buildAppend(entry);
+            session.add(setTtl(update, entry));
         }
 
         @Override
@@ -510,7 +551,9 @@ public class CassandraTables {
                     HugeKeys.INDEX_LABEL_ID, TYPE_IL,
                     HugeKeys.ELEMENT_IDS, TYPE_ID
             );
-            ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of();
+            ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of(
+                    HugeKeys.EXPIRED_TIME, TYPE_EXPIRED_TIME
+            );
 
             this.createTable(session, pkeys, ckeys, columns);
         }
@@ -581,14 +624,15 @@ public class CassandraTables {
         @Override
         public void append(CassandraSessionPool.Session session,
                            CassandraBackendEntry.Row entry) {
-            assert entry.columns().size() == 3;
-            super.insert(session, entry);
+            assert entry.columns().size() == 4;
+            Insert insert = this.buildInsert(entry);
+            session.add(setTtl(insert, entry));
         }
 
         @Override
         public void eliminate(CassandraSessionPool.Session session,
                               CassandraBackendEntry.Row entry) {
-            assert entry.columns().size() == 3;
+            assert entry.columns().size() == 4;
             this.delete(session, entry);
         }
     }
@@ -643,7 +687,9 @@ public class CassandraTables {
                     HugeKeys.FIELD_VALUES, this.fieldValuesType(),
                     HugeKeys.ELEMENT_IDS, TYPE_ID
             );
-            ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of();
+            ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of(
+                    HugeKeys.EXPIRED_TIME, TYPE_EXPIRED_TIME
+            );
 
             this.createTable(session, pkeys, ckeys, columns);
         }
@@ -694,14 +740,15 @@ public class CassandraTables {
         @Override
         public void append(CassandraSessionPool.Session session,
                            CassandraBackendEntry.Row entry) {
-            assert entry.columns().size() == 3;
-            super.insert(session, entry);
+            assert entry.columns().size() == 4;
+            Insert insert = this.buildInsert(entry);
+            session.add(setTtl(insert, entry));
         }
 
         @Override
         public void eliminate(CassandraSessionPool.Session session,
                               CassandraBackendEntry.Row entry) {
-            assert entry.columns().size() == 3;
+            assert entry.columns().size() == 4;
             this.delete(session, entry);
         }
     }
@@ -782,5 +829,21 @@ public class CassandraTables {
             throw new BackendException(
                       "ShardIndex insertion is not supported.");
         }
+    }
+
+    private static Statement setTtl(BuiltStatement statement,
+                                    CassandraBackendEntry.Row entry) {
+        long ttl = entry.ttl();
+        if (ttl != 0L) {
+            int calcTtl = (int) Math.ceil(ttl / 1000D);
+            Using usingTtl = QueryBuilder.ttl(calcTtl);
+            if (statement instanceof Insert) {
+                ((Insert) statement).using(usingTtl);
+            } else {
+                assert statement instanceof Update;
+                ((Update) statement).using(usingTtl);
+            }
+        }
+        return statement;
     }
 }
