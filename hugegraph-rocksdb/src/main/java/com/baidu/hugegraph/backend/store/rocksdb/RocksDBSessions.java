@@ -64,7 +64,7 @@ public abstract class RocksDBSessions extends BackendSessionPool {
         public static final int SCAN_LTE_END = 0x30;
 
         public abstract String property(String table, String property);
-        public abstract Pair<byte[], byte[]> getKeyRange(String table);
+        public abstract Pair<byte[], byte[]> keyRange(String table);
 
         public abstract void put(String table, byte[] key, byte[] value);
         public abstract void merge(String table, byte[] key, byte[] value);

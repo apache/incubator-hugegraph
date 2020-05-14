@@ -290,8 +290,8 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
                             "The split-size must be >= %s bytes, but got %s",
                             MIN_SHARD_SIZE, splitSize);
 
-            Pair<byte[], byte[]> keyRange = session.getKeyRange(this.table());
-            if (keyRange == null) {
+            Pair<byte[], byte[]> keyRange = session.keyRange(this.table());
+            if (keyRange == null || keyRange.getRight() == null) {
                 return super.getSplits(session, splitSize);
             }
 

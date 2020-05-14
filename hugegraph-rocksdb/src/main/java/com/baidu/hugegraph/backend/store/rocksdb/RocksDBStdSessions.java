@@ -605,7 +605,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
         }
 
         @Override
-        public Pair<byte[], byte[]> getKeyRange(String table) {
+        public Pair<byte[], byte[]> keyRange(String table) {
             byte[] startKey, endKey;
             try (CFHandle cf = cf(table);
                  RocksIterator iter = rocksdb().newIterator(cf.get())) {
@@ -616,7 +616,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
                 startKey = iter.key();
                 iter.seekToLast();
                 if (!iter.isValid()) {
-                    return null;
+                    return Pair.of(startKey, null);
                 }
                 endKey = iter.key();
             }

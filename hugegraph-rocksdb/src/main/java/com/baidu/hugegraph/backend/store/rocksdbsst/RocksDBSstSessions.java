@@ -248,7 +248,7 @@ public class RocksDBSstSessions extends RocksDBSessions {
         }
 
         @Override
-        public Pair<byte[], byte[]> getKeyRange(String table) {
+        public Pair<byte[], byte[]> keyRange(String table) {
             return null;
         }
 

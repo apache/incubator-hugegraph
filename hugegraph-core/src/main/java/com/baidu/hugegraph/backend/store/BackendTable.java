@@ -136,9 +136,10 @@ public abstract class BackendTable<Session extends BackendSession, Entry> {
 
         private static final byte[] EMPTY = new byte[0];
         public static final byte[] START_BYTES = new byte[]{0x0};
-        public static final byte[] END_BYTES = new byte[]{
-                -1, -1, -1, -1, -1, -1, -1, -1,
-                -1, -1, -1, -1, -1, -1, -1, -1};
+        public static final byte[] END_BYTES = new byte[]{-1, -1, -1, -1,
+                                                          -1, -1, -1, -1,
+                                                          -1, -1, -1, -1,
+                                                          -1, -1, -1, -1};
 
         protected static final Base64.Encoder encoder = Base64.getEncoder();
         protected static final Base64.Decoder decoder = Base64.getDecoder();
