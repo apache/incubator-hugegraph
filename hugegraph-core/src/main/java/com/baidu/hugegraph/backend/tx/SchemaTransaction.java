@@ -23,21 +23,21 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 
 import org.apache.tinkerpop.gremlin.structure.Graph;
+import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 
-import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.config.CoreOptions;
-import com.baidu.hugegraph.exception.ExistedException;
 import com.baidu.hugegraph.exception.NotAllowException;
 import com.baidu.hugegraph.job.JobBuilder;
 import com.baidu.hugegraph.job.schema.EdgeLabelRemoveCallable;
@@ -67,7 +67,7 @@ public class SchemaTransaction extends IndexableTransaction {
 
     private SchemaIndexTransaction indexTx;
 
-    public SchemaTransaction(HugeGraph graph, BackendStore store) {
+    public SchemaTransaction(HugeGraphParams graph, BackendStore store) {
         super(graph, store);
         this.autoCommit(true);
 
@@ -85,7 +85,7 @@ public class SchemaTransaction extends IndexableTransaction {
          * NOTE: each schema operation will be auto committed,
          * we expect the tx is clean when query.
          */
-        if (this.hasUpdates()) {
+        if (this.hasUpdate()) {
             throw new BackendException("There are still dirty changes");
         }
     }
@@ -182,7 +182,8 @@ public class SchemaTransaction extends IndexableTransaction {
     public Id removeVertexLabel(Id id) {
         LOG.debug("SchemaTransaction remove vertex label '{}'", id);
         SchemaCallable callable = new VertexLabelRemoveCallable();
-        return asyncRun(this.graph(), HugeType.VERTEX_LABEL, id, callable);
+        VertexLabel schema = this.getVertexLabel(id);
+        return asyncRun(this.graph(), schema, this.syncDelete(), callable);
     }
 
     @Watched(prefix = "schema")
@@ -207,7 +208,8 @@ public class SchemaTransaction extends IndexableTransaction {
     public Id removeEdgeLabel(Id id) {
         LOG.debug("SchemaTransaction remove edge label '{}'", id);
         SchemaCallable callable = new EdgeLabelRemoveCallable();
-        return asyncRun(this.graph(), HugeType.EDGE_LABEL, id, callable);
+        EdgeLabel schema = this.getEdgeLabel(id);
+        return asyncRun(this.graph(), schema, this.syncDelete(), callable);
     }
 
     @Watched(prefix = "schema")
@@ -239,7 +241,8 @@ public class SchemaTransaction extends IndexableTransaction {
     public Id removeIndexLabel(Id id) {
         LOG.debug("SchemaTransaction remove index label '{}'", id);
         SchemaCallable callable = new IndexLabelRemoveCallable();
-        return asyncRun(this.graph(), HugeType.INDEX_LABEL, id, callable);
+        IndexLabel schema = this.getIndexLabel(id);
+        return asyncRun(this.graph(), schema, this.syncDelete(), callable);
     }
 
     @Watched(prefix = "schema")
@@ -252,14 +255,19 @@ public class SchemaTransaction extends IndexableTransaction {
         LOG.debug("SchemaTransaction rebuild index for {} with id '{}'",
                   schema.type(), schema.id());
         SchemaCallable callable = new RebuildIndexCallable();
-        return asyncRun(this.graph(), schema.type(), schema.id(),
-                        callable, dependencies);
+        boolean sync = this.syncDelete();
+        return asyncRun(this.graph(), schema, sync, callable, dependencies);
     }
 
     @Watched(prefix = "schema")
     public void updateSchemaStatus(SchemaElement schema, SchemaStatus status) {
         schema.status(status);
         this.updateSchema(schema);
+    }
+
+    @Watched(prefix = "schema")
+    public boolean existsSchemaId(HugeType type, Id id) {
+        return this.getSchema(type, id) != null;
     }
 
     protected void updateSchema(SchemaElement schema) {
@@ -309,28 +317,35 @@ public class SchemaTransaction extends IndexableTransaction {
         LOG.debug("SchemaTransaction get {} by name '{}'",
                   type.readableName(), name);
         this.beforeRead();
+
         ConditionQuery query = new ConditionQuery(type);
         query.eq(HugeKeys.NAME, name);
-        Iterator<BackendEntry> iter = this.indexTx.query(query).iterator();
+        QueryResults<BackendEntry> results = this.indexTx.query(query);
+
         this.afterRead();
-        if (iter.hasNext()) {
-            T schema = this.deserialize(iter.next(), type);
-            E.checkState(!iter.hasNext(),
-                         "Should not exist schema with same name '%s'", name);
-            return schema;
+
+        // Should not exist schema with same name
+        BackendEntry entry = results.one();
+        if (entry == null) {
+            return null;
         }
-        return null;
+        T schema = this.deserialize(entry, type);
+        return schema;
     }
 
     protected <T extends SchemaElement> List<T> getAllSchema(HugeType type) {
+        List<T> results = new ArrayList<>();
         Query query = new Query(type);
         Iterator<BackendEntry> entries = this.query(query).iterator();
-
-        List<T> result = new ArrayList<>();
-        while (entries.hasNext()) {
-            result.add(this.deserialize(entries.next(), type));
+        try {
+            while (entries.hasNext()) {
+                results.add(this.deserialize(entries.next(), type));
+                Query.checkForceCapacity(results.size());
+            }
+        } finally {
+            CloseableIterator.closeIterator(entries);
         }
-        return result;
+        return results;
     }
 
     protected void removeSchema(SchemaElement schema) {
@@ -381,6 +396,33 @@ public class SchemaTransaction extends IndexableTransaction {
                 throw new AssertionError(String.format(
                           "Unknown schema type '%s'", type));
         }
+    }
+
+    public void checkSchemaName(String name) {
+        String illegalReg = this.params().configuration()
+                                .get(CoreOptions.SCHEMA_ILLEGAL_NAME_REGEX);
+
+        E.checkNotNull(name, "name");
+        E.checkArgument(!name.isEmpty(), "The name can't be empty.");
+        E.checkArgument(name.length() < 256,
+                        "The length of name must less than 256 bytes.");
+        E.checkArgument(!name.matches(illegalReg),
+                        String.format("Illegal schema name '%s'", name));
+
+        final char[] filters = {'#', '>', ':', '!'};
+        for (char c : filters) {
+            E.checkArgument(name.indexOf(c) == -1,
+                            "The name can't contain character '%s'.", c);
+        }
+    }
+
+    public long taskWaitTimeout() {
+        return this.params().configuration().get(CoreOptions.TASK_WAIT_TIMEOUT);
+    }
+
+    public boolean syncDelete() {
+        return this.params().configuration()
+                            .get(CoreOptions.TASK_SYNC_DELETION);
     }
 
     @Watched(prefix = "schema")
@@ -436,61 +478,35 @@ public class SchemaTransaction extends IndexableTransaction {
         return IdGenerator.of(-id.asLong());
     }
 
-    @Watched(prefix = "schema")
-    public void checkIdIfRestoringMode(HugeType type, Id id) {
-        if (this.graph().mode() == GraphMode.RESTORING) {
-            E.checkArgument(id != null,
-                            "Must provide schema id if in RESTORING mode");
-            SchemaElement element = this.getSchema(type, id);
-            if (element != null) {
-                throw new ExistedException(type.readableName() + " id", id);
-            }
-        }
-    }
-
     private static void setCreateTimeIfNeeded(SchemaElement schema) {
         if (!schema.userdata().containsKey(Userdata.CREATE_TIME)) {
             schema.userdata(Userdata.CREATE_TIME, DateUtil.now());
         }
     }
 
-    private static Id asyncRun(HugeGraph graph, HugeType schemaType,
-                               Id schemaId, SchemaCallable callable) {
-        return asyncRun(graph, schemaType, schemaId,
-                        callable, ImmutableSet.of());
+    private static Id asyncRun(HugeGraph graph, SchemaElement schema,
+                               boolean sync, SchemaCallable callable) {
+        return asyncRun(graph, schema, sync, callable, ImmutableSet.of());
     }
 
     @Watched(prefix = "schema")
-    private static Id asyncRun(HugeGraph graph, HugeType schemaType,
-                               Id schemaId, SchemaCallable callable,
+    private static Id asyncRun(HugeGraph graph, SchemaElement schema,
+                               boolean sync, SchemaCallable callable,
                                Set<Id> dependencies) {
-        String schemaName = graph.schemaTransaction()
-                                 .getSchema(schemaType, schemaId).name();
-        String name = SchemaCallable.formatTaskName(schemaType, schemaId,
-                                                    schemaName);
+        E.checkArgument(schema != null, "Schema can't be null");
+        String name = SchemaCallable.formatTaskName(schema.type(),
+                                                    schema.id(),
+                                                    schema.name());
 
         JobBuilder<Object> builder = JobBuilder.of(graph).name(name)
                                                .job(callable)
                                                .dependencies(dependencies);
         HugeTask<?> task = builder.schedule();
 
-        // If SCHEMA_SYNC_DELETION is true, wait async thread done before
+        // If TASK_SYNC_DELETION is true, wait async thread done before
         // continue. This is used when running tests.
-        if (graph.configuration().get(CoreOptions.SCHEMA_SYNC_DELETION)) {
-            try {
-                task.get();
-                assert task.completed();
-            } catch (ExecutionException e) {
-                Throwable cause = e.getCause();
-                if (cause instanceof RuntimeException) {
-                    throw (RuntimeException) cause;
-                }
-                throw new HugeException("Async task failed with error: %s",
-                                        cause, cause.getMessage());
-            } catch (Exception e) {
-                throw new HugeException("Async task failed with error: %s",
-                                        e, e.getMessage());
-            }
+        if (sync) {
+            task.syncWait();
         }
         return task.id();
     }

@@ -23,14 +23,15 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.id.IdUtil;
+import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
+import com.baidu.hugegraph.backend.store.BackendEntryIterator;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
@@ -38,12 +39,16 @@ import com.baidu.hugegraph.util.E;
 import com.datastax.driver.core.DataType;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
+import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.exceptions.DriverException;
+import com.datastax.driver.core.querybuilder.BuiltStatement;
 import com.datastax.driver.core.querybuilder.Clause;
 import com.datastax.driver.core.querybuilder.Delete;
+import com.datastax.driver.core.querybuilder.Insert;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Select;
 import com.datastax.driver.core.querybuilder.Update;
+import com.datastax.driver.core.querybuilder.Using;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
@@ -62,7 +67,10 @@ public class CassandraTables {
     private static final DataType TYPE_ID = DataType.blob();
     private static final DataType TYPE_PROP = DataType.blob();
 
-    private static final int COMMIT_DELETE_BATCH = 1000;
+    private static final DataType TYPE_TTL = DataType.cint();
+    private static final DataType TYPE_EXPIRED_TIME = DataType.bigint();
+
+    private static final long COMMIT_DELETE_BATCH = Query.COMMIT_BATCH;
 
     public static class Counters extends CassandraTable {
 
@@ -133,6 +141,8 @@ public class CassandraTables {
                     .put(HugeKeys.ENABLE_LABEL_INDEX, DataType.cboolean())
                     .put(HugeKeys.USER_DATA, TYPE_UD)
                     .put(HugeKeys.STATUS, DataType.tinyint())
+                    .put(HugeKeys.TTL, TYPE_TTL)
+                    .put(HugeKeys.TTL_START_TIME, TYPE_PK)
                     .build();
 
             this.createTable(session, pkeys, ckeys, columns);
@@ -167,6 +177,8 @@ public class CassandraTables {
                     .put(HugeKeys.ENABLE_LABEL_INDEX, DataType.cboolean())
                     .put(HugeKeys.USER_DATA, TYPE_UD)
                     .put(HugeKeys.STATUS, DataType.tinyint())
+                    .put(HugeKeys.TTL, TYPE_TTL)
+                    .put(HugeKeys.TTL_START_TIME, TYPE_PK)
                     .build();
 
             this.createTable(session, pkeys, ckeys, columns);
@@ -250,7 +262,8 @@ public class CassandraTables {
             ImmutableMap<HugeKeys, DataType> ckeys = ImmutableMap.of();
             ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of(
                     HugeKeys.LABEL, TYPE_SL,
-                    HugeKeys.PROPERTIES, DataType.map(TYPE_PK, TYPE_PROP)
+                    HugeKeys.PROPERTIES, DataType.map(TYPE_PK, TYPE_PROP),
+                    HugeKeys.EXPIRED_TIME, TYPE_EXPIRED_TIME
             );
 
             this.createTable(session, pkeys, ckeys, columns);
@@ -260,23 +273,15 @@ public class CassandraTables {
         @Override
         public void insert(CassandraSessionPool.Session session,
                            CassandraBackendEntry.Row entry) {
-            Map<HugeKeys, Object> columns = entry.columns();
-            assert columns.containsKey(HugeKeys.ID);
-            Object id = columns.get(HugeKeys.ID);
-            Object label = columns.get(HugeKeys.LABEL);
-            E.checkState(label != null,
-                         "The label of inserting vertex can't be null");
-            Map<?, ?> properties = (Map<?, ?>) columns.get(HugeKeys.PROPERTIES);
-            E.checkState(properties != null,
-                         "The properties of inserting vertex can't be null");
+            Insert insert = this.buildInsert(entry);
+            session.add(setTtl(insert, entry));
+        }
 
-            Update update = QueryBuilder.update(table());
-            update.with(QueryBuilder.set(formatKey(HugeKeys.LABEL), label));
-            update.with(QueryBuilder.putAll(formatKey(HugeKeys.PROPERTIES),
-                                            properties));
-            update.where(formatEQ(HugeKeys.ID, id));
-
-            session.add(update);
+        @Override
+        public void append(CassandraSessionPool.Session session,
+                           CassandraBackendEntry.Row entry) {
+            Update append = this.buildAppend(entry);
+            session.add(setTtl(append, entry));
         }
     }
 
@@ -317,7 +322,8 @@ public class CassandraTables {
                     HugeKeys.OTHER_VERTEX, TYPE_ID
             );
             ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of(
-                    HugeKeys.PROPERTIES, DataType.map(TYPE_PK, TYPE_PROP)
+                    HugeKeys.PROPERTIES, DataType.map(TYPE_PK, TYPE_PROP),
+                    HugeKeys.EXPIRED_TIME, TYPE_EXPIRED_TIME
             );
 
             this.createTable(session, pkeys, ckeys, columns);
@@ -329,6 +335,20 @@ public class CassandraTables {
             if (this.direction == Directions.OUT) {
                 this.createIndex(session, LABEL_INDEX, HugeKeys.LABEL);
             }
+        }
+
+        @Override
+        public void insert(CassandraSessionPool.Session session,
+                           CassandraBackendEntry.Row entry) {
+            Insert insert = this.buildInsert(entry);
+            session.add(setTtl(insert, entry));
+        }
+
+        @Override
+        public void append(CassandraSessionPool.Session session,
+                           CassandraBackendEntry.Row entry) {
+            Update update = this.buildAppend(entry);
+            session.add(setTtl(update, entry));
         }
 
         @Override
@@ -418,7 +438,7 @@ public class CassandraTables {
             }
 
             // Delete edges
-            int count = 0;
+            long count = 0L;
             for (Iterator<Row> it = rs.iterator(); it.hasNext();) {
                 Row row = it.next();
                 Object ownerVertex = row.getObject(OWNER_VERTEX);
@@ -432,13 +452,13 @@ public class CassandraTables {
                 session.add(buildDelete(label, otherVertex, Directions.IN,
                                         sortValues, ownerVertex));
 
-                count += 2;
+                count += 2L;
                 if (count >= COMMIT_DELETE_BATCH) {
                     session.commit();
                     count = 0;
                 }
             }
-            if (count > 0) {
+            if (count > 0L) {
                 session.commit();
             }
         }
@@ -469,7 +489,8 @@ public class CassandraTables {
             E.checkState(next != null && next.type().isEdge(),
                          "The next entry must be EDGE");
 
-            if (current != null) {
+            long maxSize = BackendEntryIterator.INLINE_BATCH_SIZE;
+            if (current != null && current.subRows().size() < maxSize) {
                 Object nextVertexId = next.column(HugeKeys.OWNER_VERTEX);
                 if (current.id().equals(IdGenerator.of(nextVertexId))) {
                     current.subRow(next.row());
@@ -530,7 +551,9 @@ public class CassandraTables {
                     HugeKeys.INDEX_LABEL_ID, TYPE_IL,
                     HugeKeys.ELEMENT_IDS, TYPE_ID
             );
-            ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of();
+            ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of(
+                    HugeKeys.EXPIRED_TIME, TYPE_EXPIRED_TIME
+            );
 
             this.createTable(session, pkeys, ckeys, columns);
         }
@@ -576,7 +599,7 @@ public class CassandraTables {
             }
 
             final String FIELD_VALUES = formatKey(HugeKeys.FIELD_VALUES);
-            int count = 0;
+            long count = 0L;
             for (Iterator<Row> it = rs.iterator(); it.hasNext();) {
                 fieldValues = it.next().get(FIELD_VALUES, String.class);
                 Delete delete = QueryBuilder.delete().from(this.table());
@@ -586,7 +609,7 @@ public class CassandraTables {
 
                 if (++count >= COMMIT_DELETE_BATCH) {
                     session.commit();
-                    count = 0;
+                    count = 0L;
                 }
             }
         }
@@ -601,14 +624,15 @@ public class CassandraTables {
         @Override
         public void append(CassandraSessionPool.Session session,
                            CassandraBackendEntry.Row entry) {
-            assert entry.columns().size() == 3;
-            super.insert(session, entry);
+            assert entry.columns().size() == 4;
+            Insert insert = this.buildInsert(entry);
+            session.add(setTtl(insert, entry));
         }
 
         @Override
         public void eliminate(CassandraSessionPool.Session session,
                               CassandraBackendEntry.Row entry) {
-            assert entry.columns().size() == 3;
+            assert entry.columns().size() == 4;
             this.delete(session, entry);
         }
     }
@@ -663,7 +687,9 @@ public class CassandraTables {
                     HugeKeys.FIELD_VALUES, this.fieldValuesType(),
                     HugeKeys.ELEMENT_IDS, TYPE_ID
             );
-            ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of();
+            ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of(
+                    HugeKeys.EXPIRED_TIME, TYPE_EXPIRED_TIME
+            );
 
             this.createTable(session, pkeys, ckeys, columns);
         }
@@ -714,14 +740,15 @@ public class CassandraTables {
         @Override
         public void append(CassandraSessionPool.Session session,
                            CassandraBackendEntry.Row entry) {
-            assert entry.columns().size() == 3;
-            super.insert(session, entry);
+            assert entry.columns().size() == 4;
+            Insert insert = this.buildInsert(entry);
+            session.add(setTtl(insert, entry));
         }
 
         @Override
         public void eliminate(CassandraSessionPool.Session session,
                               CassandraBackendEntry.Row entry) {
-            assert entry.columns().size() == 3;
+            assert entry.columns().size() == 4;
             this.delete(session, entry);
         }
     }
@@ -802,5 +829,21 @@ public class CassandraTables {
             throw new BackendException(
                       "ShardIndex insertion is not supported.");
         }
+    }
+
+    private static Statement setTtl(BuiltStatement statement,
+                                    CassandraBackendEntry.Row entry) {
+        long ttl = entry.ttl();
+        if (ttl != 0L) {
+            int calcTtl = (int) Math.ceil(ttl / 1000D);
+            Using usingTtl = QueryBuilder.ttl(calcTtl);
+            if (statement instanceof Insert) {
+                ((Insert) statement).using(usingTtl);
+            } else {
+                assert statement instanceof Update;
+                ((Update) statement).using(usingTtl);
+            }
+        }
+        return statement;
     }
 }

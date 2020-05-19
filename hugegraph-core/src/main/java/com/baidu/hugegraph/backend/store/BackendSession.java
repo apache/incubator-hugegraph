@@ -24,76 +24,96 @@ import com.baidu.hugegraph.backend.store.BackendStore.TxState;
 /**
  * interface Session for backend store
  */
-public abstract class BackendSession {
+public interface BackendSession {
 
-    protected boolean opened;
-    private int refs;
-    private TxState txState;
-    private final long created;
-    private long updated;
+    public void open();
+    public void close();
 
-    public BackendSession() {
-        this.opened = true;
-        this.refs = 1;
-        this.txState = TxState.CLEAN;
-        this.created = System.currentTimeMillis();
-        this.updated = this.created;
-    }
+    public boolean opened();
+    public boolean closed();
 
-    public long created() {
-        return this.created;
-    }
+    public Object commit();
 
-    public long updated() {
-        return this.updated;
-    }
+    public void rollback();
 
-    public void update() {
-        this.updated = System.currentTimeMillis();
-    }
+    public boolean hasChanges();
 
-    public abstract void open();
-    public abstract void close();
+    public int attach();
+    public int detach();
 
-    public abstract Object commit();
+    public long created();
+    public long updated();
+    public void update();
 
-    public abstract void rollback();
-
-    public abstract boolean hasChanges();
-
-    protected void reconnectIfNeeded() {
+    public default void reconnectIfNeeded() {
         // pass
     }
 
-    protected void reset() {
+    public default void reset() {
         // pass
     }
 
-    public boolean opened() {
-        return this.opened;
-    }
+    public abstract class AbstractBackendSession implements BackendSession {
 
-    public boolean closed() {
-        return !this.opened;
-    }
+        protected boolean opened;
+        private int refs;
+        private TxState txState;
+        private final long created;
+        private long updated;
 
-    protected int attach() {
-        return ++this.refs;
-    }
+        public AbstractBackendSession() {
+            this.opened = true;
+            this.refs = 1;
+            this.txState = TxState.CLEAN;
+            this.created = System.currentTimeMillis();
+            this.updated = this.created;
+        }
 
-    protected int detach() {
-        return --this.refs;
-    }
+        @Override
+        public long created() {
+            return this.created;
+        }
 
-    public boolean closeable() {
-        return this.refs <= 0;
-    }
+        @Override
+        public long updated() {
+            return this.updated;
+        }
 
-    public TxState txState() {
-        return this.txState;
-    }
+        @Override
+        public void update() {
+            this.updated = System.currentTimeMillis();
+        }
 
-    public void txState(TxState state) {
-        this.txState = state;
+        @Override
+        public boolean opened() {
+            return this.opened;
+        }
+
+        @Override
+        public boolean closed() {
+            return !this.opened;
+        }
+
+        @Override
+        public int attach() {
+            return ++this.refs;
+        }
+
+        @Override
+        public int detach() {
+            return --this.refs;
+        }
+
+        public boolean closeable() {
+            return this.refs <= 0;
+        }
+
+        public TxState txState() {
+            return this.txState;
+        }
+
+        public void txState(TxState state) {
+            this.txState = state;
+        }
     }
 }

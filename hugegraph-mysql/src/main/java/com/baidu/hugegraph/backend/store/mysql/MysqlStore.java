@@ -71,7 +71,15 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
         this.sessions = null;
         this.tables = new ConcurrentHashMap<>();
 
+        this.registerMetaHandlers();
         LOG.debug("Store loaded: {}", store);
+    }
+
+    private void registerMetaHandlers() {
+        this.registerMetaHandler("metrics", (session, meta, args) -> {
+            MysqlMetrics metrics = new MysqlMetrics();
+            return metrics.getMetrics();
+        });
     }
 
     protected void registerTableManager(HugeType type, MysqlTable table) {
@@ -119,8 +127,10 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
                 !e.getMessage().endsWith("does not exist")) {
                 throw new ConnectionException("Failed to connect to MySQL", e);
             }
-            LOG.info("Failed to open database '{}', " +
-                     "try to init database later", this.database);
+            if (this.isSchemaStore()) {
+                LOG.info("Failed to open database '{}', " +
+                         "try to init database later", this.database);
+            }
         }
 
         try {
@@ -264,6 +274,14 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
     }
 
     @Override
+    public Number queryNumber(Query query) {
+        this.checkOpened();
+
+        MysqlTable table = this.table(MysqlTable.tableType(query));
+        return table.queryNumber(this.sessions.session(), query);
+    }
+
+    @Override
     public void beginTx() {
         this.checkOpened();
 
@@ -392,6 +410,11 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
             Session session = super.sessions.session();
             return this.counters.getCounter(session, type);
         }
+
+        @Override
+        public boolean isSchemaStore() {
+            return true;
+        }
     }
 
     public static class MysqlGraphStore extends MysqlStore {
@@ -424,6 +447,11 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
                                  new MysqlTables.ShardIndex(store));
             registerTableManager(HugeType.UNIQUE_INDEX,
                                  new MysqlTables.UniqueIndex(store));
+        }
+
+        @Override
+        public boolean isSchemaStore() {
+            return false;
         }
 
         @Override

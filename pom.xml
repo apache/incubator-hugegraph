@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.baidu.hugegraph</groupId>
     <artifactId>hugegraph</artifactId>
-    <version>0.11.0</version>
+    <version>0.11.1</version>
     <packaging>pom</packaging>
     <prerequisites>
         <maven>3.3.9</maven>
@@ -102,11 +102,6 @@
         <commons.io.version>2.4</commons.io.version>
         <guava.version>19.0</guava.version>
         <httpclient.version>4.5.2</httpclient.version>
-        <datastax.cassandra.version>3.2.0</datastax.cassandra.version>
-        <apache.cassandra.version>3.10</apache.cassandra.version>
-        <rocksdb.version>6.3.6</rocksdb.version>
-        <hbase.client.version>2.0.0</hbase.client.version>
-        <mysql.driver.version>5.1.45</mysql.driver.version>
         <jersey.version>2.25.1</jersey.version>
         <metrics.version>3.1.0</metrics.version>
         <javassist.version>3.21.0-GA</javassist.version>
@@ -228,33 +223,6 @@
                 <groupId>org.apache.httpcomponents</groupId>
                 <artifactId>httpclient</artifactId>
                 <version>${httpclient.version}</version>
-            </dependency>
-
-            <!-- backend driver -->
-            <dependency>
-                <groupId>org.apache.cassandra</groupId>
-                <artifactId>cassandra-all</artifactId>
-                <version>${apache.cassandra.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.datastax.cassandra</groupId>
-                <artifactId>cassandra-driver-core</artifactId>
-                <version>${datastax.cassandra.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.rocksdb</groupId>
-                <artifactId>rocksdbjni</artifactId>
-                <version>${rocksdb.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.hbase</groupId>
-                <artifactId>hbase-client</artifactId>
-                <version>${hbase.client.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>mysql</groupId>
-                <artifactId>mysql-connector-java</artifactId>
-                <version>${mysql.driver.version}</version>
             </dependency>
 
             <!-- jersey -->

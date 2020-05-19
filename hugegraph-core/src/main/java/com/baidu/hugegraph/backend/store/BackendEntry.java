@@ -25,9 +25,11 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.iterator.WrappedIterator;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.Idfiable;
 import com.baidu.hugegraph.util.Bytes;
+import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.StringEncoding;
 
 public interface BackendEntry extends Idfiable {
@@ -76,6 +78,8 @@ public interface BackendEntry extends Idfiable {
     public Id id();
 
     public Id subId();
+
+    public long ttl();
 
     public int columnsSize();
     public Collection<BackendColumn> columns();
@@ -130,12 +134,17 @@ public interface BackendEntry extends Idfiable {
     }
 
     public static class BackendColumnIteratorWrapper
-           implements BackendColumnIterator {
+                  implements BackendColumnIterator {
 
         private final Iterator<BackendColumn> iter;
 
         public BackendColumnIteratorWrapper(BackendColumn... cols) {
             this.iter = Arrays.asList(cols).iterator();
+        }
+
+        public BackendColumnIteratorWrapper(Iterator<BackendColumn> cols) {
+            E.checkNotNull(cols, "cols");
+            this.iter = cols;
         }
 
         @Override
@@ -150,7 +159,7 @@ public interface BackendEntry extends Idfiable {
 
         @Override
         public void close() {
-            // pass
+            WrappedIterator.close(this.iter);
         }
 
         @Override

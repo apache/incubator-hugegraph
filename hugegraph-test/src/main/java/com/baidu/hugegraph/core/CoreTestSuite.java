@@ -44,6 +44,8 @@ import com.baidu.hugegraph.util.Log;
     VertexPropertyCoreTest.class,
     EdgePropertyCoreTest.class,
     RestoreCoreTest.class,
+    TaskCoreTest.class,
+    UsersTest.class,
     MultiGraphsTest.class
 })
 public class CoreTestSuite {

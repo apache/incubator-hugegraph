@@ -313,6 +313,46 @@ public class RocksDBOptions extends OptionHolder {
                     1
             );
 
+    public static final ConfigOption<Integer> LEVEL0_COMPACTION_TRIGGER =
+            new ConfigOption<>(
+                    "rocksdb.level0_file_num_compaction_trigger",
+                    "Number of files to trigger level-0 compaction.",
+                    rangeInt(0, Integer.MAX_VALUE),
+                    2
+            );
+
+    public static final ConfigOption<Integer> LEVEL0_SLOWDOWN_WRITES_TRIGGER =
+            new ConfigOption<>(
+                    "rocksdb.level0_slowdown_writes_trigger",
+                    "Soft limit on number of level-0 files for slowing down writes.",
+                    rangeInt(-1, Integer.MAX_VALUE),
+                    20
+            );
+
+    public static final ConfigOption<Integer> LEVEL0_STOP_WRITES_TRIGGER =
+            new ConfigOption<>(
+                    "rocksdb.level0_stop_writes_trigger",
+                    "Hard limit on number of level-0 files for stopping writes.",
+                    rangeInt(-1, Integer.MAX_VALUE),
+                    36
+            );
+
+    public static final ConfigOption<Long> SOFT_PENDING_COMPACTION_LIMIT =
+            new ConfigOption<>(
+                    "rocksdb.soft_pending_compaction_bytes_limit",
+                    "The soft limit to impose on pending compaction in bytes.",
+                    rangeInt(Bytes.GB, Long.MAX_VALUE),
+                    64L * Bytes.GB
+            );
+
+    public static final ConfigOption<Long> HARD_PENDING_COMPACTION_LIMIT =
+            new ConfigOption<>(
+                    "rocksdb.hard_pending_compaction_bytes_limit",
+                    "The hard limit to impose on pending compaction in bytes.",
+                    rangeInt(Bytes.GB, Long.MAX_VALUE),
+                    256L * Bytes.GB
+            );
+
     public static final ConfigOption<Boolean> ALLOW_MMAP_WRITES =
             new ConfigOption<>(
                     "rocksdb.allow_mmap_writes",

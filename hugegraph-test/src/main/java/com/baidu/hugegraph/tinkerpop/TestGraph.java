@@ -41,7 +41,6 @@ import com.baidu.hugegraph.io.HugeGraphSONModule;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaManager;
-import com.baidu.hugegraph.structure.HugeFeatures;
 import com.baidu.hugegraph.type.define.IdStrategy;
 import com.google.common.collect.ImmutableSet;
 
@@ -75,7 +74,7 @@ public class TestGraph implements Graph {
 
     @Watched
     protected void initBackend() {
-        BackendStoreSystemInfo sysInfo = new BackendStoreSystemInfo(this.graph);
+        BackendStoreSystemInfo sysInfo = this.graph.backendStoreSystemInfo();
         if (!sysInfo.exists()) {
             this.graph.initBackend();
         }
@@ -253,7 +252,7 @@ public class TestGraph implements Graph {
     }
 
     @Override
-    public HugeFeatures features() {
+    public Features features() {
         return this.graph.features();
     }
 

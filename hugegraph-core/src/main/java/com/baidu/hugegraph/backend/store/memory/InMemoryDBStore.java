@@ -73,6 +73,16 @@ public abstract class InMemoryDBStore
         this.database = database;
         this.store = store;
         this.tables = new HashMap<>();
+
+        this.registerMetaHandlers();
+        LOG.debug("Store loaded: {}", store);
+    }
+
+    private void registerMetaHandlers() {
+        this.registerMetaHandler("metrics", (session, meta, args) -> {
+            InMemoryMetrics metrics = new InMemoryMetrics();
+            return metrics.getMetrics();
+        });
     }
 
     protected void registerTableManager(HugeType type, InMemoryDBTable table) {
@@ -105,6 +115,15 @@ public abstract class InMemoryDBStore
         LOG.debug("[store {}] has result({}) for query: {}",
                   this.store, rs.hasNext(), query);
         return rs;
+    }
+
+    @Override
+    public Number queryNumber(Query query) {
+        InMemoryDBTable table = this.table(InMemoryDBTable.tableType(query));
+        Number result = table.queryNumber(null, query);
+        LOG.debug("[store {}] get result({}) for number query: {}",
+                  this.store, result, query);
+        return result;
     }
 
     @Override
@@ -273,6 +292,11 @@ public abstract class InMemoryDBStore
             this.counter.reset();
             super.truncate();
         }
+
+        @Override
+        public boolean isSchemaStore() {
+            return true;
+        }
     }
 
     public static class InMemoryGraphStore extends InMemoryDBStore {
@@ -303,6 +327,11 @@ public abstract class InMemoryDBStore
                                  new InMemoryDBTables.ShardIndex());
             registerTableManager(HugeType.UNIQUE_INDEX,
                                  new InMemoryDBTables.UniqueIndex());
+        }
+
+        @Override
+        public boolean isSchemaStore() {
+            return false;
         }
 
         @Override
@@ -373,12 +402,14 @@ public abstract class InMemoryDBStore
 
         @Override
         public boolean supportsQueryWithContains() {
-            return true;
+            // NOTE: hasValue tests will skip
+            return false;
         }
 
         @Override
         public boolean supportsQueryWithContainsKey() {
-            return true;
+            // NOTE: hasKey tests will skip
+            return false;
         }
 
         @Override
@@ -398,12 +429,12 @@ public abstract class InMemoryDBStore
 
         @Override
         public boolean supportsUpdateVertexProperty() {
-            return true;
+            return false;
         }
 
         @Override
         public boolean supportsMergeVertexProperty() {
-            return true;
+            return false;
         }
 
         @Override
@@ -423,6 +454,11 @@ public abstract class InMemoryDBStore
 
         @Override
         public boolean supportsAggregateProperty() {
+            return false;
+        }
+
+        @Override
+        public boolean supportsTtl() {
             return false;
         }
     };

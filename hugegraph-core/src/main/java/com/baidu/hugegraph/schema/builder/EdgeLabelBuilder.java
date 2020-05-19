@@ -38,8 +38,8 @@ import com.baidu.hugegraph.exception.NotAllowException;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
-import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.Userdata;
+import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Action;
 import com.baidu.hugegraph.type.define.Frequency;
@@ -47,7 +47,8 @@ import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 import com.google.common.collect.ImmutableList;
 
-public class EdgeLabelBuilder implements EdgeLabel.Builder {
+public class EdgeLabelBuilder extends AbstractBuilder
+                              implements EdgeLabel.Builder {
 
     private Id id;
     private String name;
@@ -57,15 +58,16 @@ public class EdgeLabelBuilder implements EdgeLabel.Builder {
     private Set<String> properties;
     private List<String> sortKeys;
     private Set<String> nullableKeys;
+    private long ttl;
+    private String ttlStartTime;
     private Boolean enableLabelIndex;
     private Userdata userdata;
     private boolean checkExist;
 
-    private SchemaTransaction transaction;
-
-    public EdgeLabelBuilder(String name, SchemaTransaction transaction) {
+    public EdgeLabelBuilder(SchemaTransaction transaction,
+                            HugeGraph graph, String name) {
+        super(transaction, graph);
         E.checkNotNull(name, "name");
-        E.checkNotNull(transaction, "transaction");
         this.id = null;
         this.name = name;
         this.sourceLabel = null;
@@ -74,35 +76,39 @@ public class EdgeLabelBuilder implements EdgeLabel.Builder {
         this.properties = new HashSet<>();
         this.sortKeys = new ArrayList<>();
         this.nullableKeys = new HashSet<>();
+        this.ttl = 0L;
+        this.ttlStartTime = null;
         this.enableLabelIndex = null;
         this.userdata = new Userdata();
         this.checkExist = true;
-        this.transaction = transaction;
     }
 
     @Override
     public EdgeLabel build() {
-        Id id = this.transaction.validOrGenerateId(HugeType.EDGE_LABEL,
-                                                   this.id, this.name);
-        HugeGraph graph = this.transaction.graph();
+        Id id = this.validOrGenerateId(HugeType.EDGE_LABEL,
+                                       this.id, this.name);
+        HugeGraph graph = this.graph();
         EdgeLabel edgeLabel = new EdgeLabel(graph, id, this.name);
-        edgeLabel.sourceLabel(this.transaction.getVertexLabel(
-                              this.sourceLabel).id());
-        edgeLabel.targetLabel(this.transaction.getVertexLabel(
-                              this.targetLabel).id());
+        edgeLabel.sourceLabel(graph.vertexLabel(this.sourceLabel).id());
+        edgeLabel.targetLabel(graph.vertexLabel(this.targetLabel).id());
         edgeLabel.frequency(this.frequency);
+        edgeLabel.ttl(this.ttl);
+        if (this.ttlStartTime != null) {
+            edgeLabel.ttlStartTime(this.graph().propertyKey(
+                                   this.ttlStartTime).id());
+        }
         edgeLabel.enableLabelIndex(this.enableLabelIndex == null ||
                                    this.enableLabelIndex);
         for (String key : this.properties) {
-            PropertyKey propertyKey = this.transaction.getPropertyKey(key);
+            PropertyKey propertyKey = graph.propertyKey(key);
             edgeLabel.property(propertyKey.id());
         }
         for (String key : this.sortKeys) {
-            PropertyKey propertyKey = this.transaction.getPropertyKey(key);
+            PropertyKey propertyKey = graph.propertyKey(key);
             edgeLabel.sortKey(propertyKey.id());
         }
         for (String key : this.nullableKeys) {
-            PropertyKey propertyKey = this.transaction.getPropertyKey(key);
+            PropertyKey propertyKey = graph.propertyKey(key);
             edgeLabel.nullableKey(propertyKey.id());
         }
         edgeLabel.userdata(this.userdata);
@@ -112,35 +118,40 @@ public class EdgeLabelBuilder implements EdgeLabel.Builder {
     @Override
     public EdgeLabel create() {
         HugeType type = HugeType.EDGE_LABEL;
-        SchemaTransaction tx = this.transaction;
-        SchemaElement.checkName(this.name, tx.graph().configuration());
-        EdgeLabel edgeLabel = tx.getEdgeLabel(this.name);
-        if (edgeLabel != null) {
-            if (this.checkExist) {
-                throw new ExistedException(type, this.name);
+        this.checkSchemaName(this.name);
+
+        return this.lockCheckAndCreateSchema(type, this.name, name -> {
+            EdgeLabel edgeLabel = this.edgeLabelOrNull(this.name);
+            if (edgeLabel != null) {
+                if (this.checkExist) {
+                    throw new ExistedException(type, this.name);
+                }
+                return edgeLabel;
             }
+            this.checkSchemaIdIfRestoringMode(type, this.id);
+
+            if (this.frequency == Frequency.DEFAULT) {
+                this.frequency = Frequency.SINGLE;
+            }
+            // These methods will check params and fill to member variables
+            this.checkRelation();
+            this.checkProperties(Action.INSERT);
+            this.checkSortKeys();
+            this.checkNullableKeys(Action.INSERT);
+            Userdata.check(this.userdata, Action.INSERT);
+            this.checkTtl();
+            this.checkUserdata(Action.INSERT);
+
+            edgeLabel = this.build();
+            assert edgeLabel.name().equals(name);
+            this.graph().addEdgeLabel(edgeLabel);
             return edgeLabel;
-        }
-        tx.checkIdIfRestoringMode(type, this.id);
-
-        if (this.frequency == Frequency.DEFAULT) {
-            this.frequency = Frequency.SINGLE;
-        }
-        // These methods will check params and fill to member variables
-        this.checkRelation();
-        this.checkProperties(Action.INSERT);
-        this.checkSortKeys();
-        this.checkNullableKeys(Action.INSERT);
-        Userdata.check(this.userdata, Action.INSERT);
-
-        edgeLabel = this.build();
-        tx.addEdgeLabel(edgeLabel);
-        return edgeLabel;
+        });
     }
 
     @Override
     public EdgeLabel append() {
-        EdgeLabel edgeLabel = this.transaction.getEdgeLabel(this.name);
+        EdgeLabel edgeLabel = this.edgeLabelOrNull(this.name);
         if (edgeLabel == null) {
             throw new NotFoundException("Can't update edge label '%s' " +
                                         "since it doesn't exist", this.name);
@@ -152,21 +163,21 @@ public class EdgeLabelBuilder implements EdgeLabel.Builder {
         Userdata.check(this.userdata, Action.APPEND);
 
         for (String key : this.properties) {
-            PropertyKey propertyKey = this.transaction.getPropertyKey(key);
+            PropertyKey propertyKey = this.graph().propertyKey(key);
             edgeLabel.property(propertyKey.id());
         }
         for (String key : this.nullableKeys) {
-            PropertyKey propertyKey = this.transaction.getPropertyKey(key);
+            PropertyKey propertyKey = this.graph().propertyKey(key);
             edgeLabel.nullableKey(propertyKey.id());
         }
         edgeLabel.userdata(this.userdata);
-        this.transaction.addEdgeLabel(edgeLabel);
+        this.graph().addEdgeLabel(edgeLabel);
         return edgeLabel;
     }
 
     @Override
     public EdgeLabel eliminate() {
-        EdgeLabel edgeLabel = this.transaction.getEdgeLabel(this.name);
+        EdgeLabel edgeLabel = this.edgeLabelOrNull(this.name);
         if (edgeLabel == null) {
             throw new NotFoundException("Can't update edge label '%s' " +
                                         "since it doesn't exist", this.name);
@@ -178,26 +189,26 @@ public class EdgeLabelBuilder implements EdgeLabel.Builder {
         Userdata.check(this.userdata, Action.ELIMINATE);
 
         edgeLabel.removeUserdata(this.userdata);
-        this.transaction.addEdgeLabel(edgeLabel);
+        this.graph().addEdgeLabel(edgeLabel);
         return edgeLabel;
     }
 
     @Override
     public Id remove() {
-        EdgeLabel edgeLabel = this.transaction.getEdgeLabel(this.name);
+        EdgeLabel edgeLabel = this.edgeLabelOrNull(this.name);
         if (edgeLabel == null) {
             return null;
         }
-        return this.transaction.removeEdgeLabel(edgeLabel.id());
+        return this.graph().removeEdgeLabel(edgeLabel.id());
     }
 
     @Override
     public Id rebuildIndex() {
-        EdgeLabel edgeLabel = this.transaction.graph().edgeLabel(this.name);
+        EdgeLabel edgeLabel = this.edgeLabelOrNull(this.name);
         if (edgeLabel == null) {
             return null;
         }
-        return this.transaction.rebuildIndex(edgeLabel);
+        return this.graph().rebuildIndex(edgeLabel);
     }
 
     @Override
@@ -280,6 +291,18 @@ public class EdgeLabelBuilder implements EdgeLabel.Builder {
     }
 
     @Override
+    public EdgeLabel.Builder ttl(long ttl) {
+        this.ttl = ttl;
+        return this;
+    }
+
+    @Override
+    public EdgeLabel.Builder ttlStartTime(String ttlStartTime) {
+        this.ttlStartTime = ttlStartTime;
+        return this;
+    }
+
+    @Override
     public EdgeLabelBuilder enableLabelIndex(boolean enable) {
         this.enableLabelIndex = enable;
         return this;
@@ -308,9 +331,7 @@ public class EdgeLabelBuilder implements EdgeLabel.Builder {
             case INSERT:
             case APPEND:
                 for (String key : this.properties) {
-                    PropertyKey pkey = this.transaction.getPropertyKey(key);
-                    E.checkArgumentNotNull(pkey,
-                                           "Undefined property key '%s'", key);
+                    this.graph().propertyKey(key);
                 }
                 break;
             case ELIMINATE:
@@ -340,11 +361,11 @@ public class EdgeLabelBuilder implements EdgeLabel.Builder {
             return;
         }
 
-        EdgeLabel edgeLabel = this.transaction.getEdgeLabel(this.name);
+        EdgeLabel edgeLabel = this.edgeLabelOrNull(this.name);
         // The originProps is empty when firstly create edge label
         List<String> originProps = edgeLabel == null ?
                                    ImmutableList.of() :
-                                   this.transaction.graph()
+                                   this.graph()
                                        .mapPkId2Name(edgeLabel.properties());
         Set<String> appendProps = this.properties;
 
@@ -408,10 +429,10 @@ public class EdgeLabelBuilder implements EdgeLabel.Builder {
                         "Must set source and target label " +
                         "for edge label '%s'", this.name);
 
-        E.checkArgumentNotNull(this.transaction.getVertexLabel(srcLabel),
+        E.checkArgumentNotNull(this.vertexLabelOrNull(srcLabel),
                                "Undefined source vertex label '%s' " +
                                "in edge label '%s'", srcLabel, this.name);
-        E.checkArgumentNotNull(this.transaction.getVertexLabel(tgtLabel),
+        E.checkArgumentNotNull(this.vertexLabelOrNull(tgtLabel),
                                "Undefined target vertex label '%s' " +
                                "in edge label '%s'", tgtLabel, this.name);
     }
@@ -441,6 +462,62 @@ public class EdgeLabelBuilder implements EdgeLabel.Builder {
             throw new NotAllowException(
                       "Not allowed to update enable_label_index " +
                       "for edge label '%s'", this.name);
+        }
+    }
+
+    private void checkTtl() {
+        E.checkArgument(this.ttl >= 0,
+                        "The ttl must be >= 0, but got: %s", this.ttl);
+        if (this.ttl == 0L) {
+            E.checkArgument(this.ttlStartTime == null,
+                            "Can't set ttl start time if ttl is not set");
+            return;
+        }
+        VertexLabel source = this.graph().vertexLabel(this.sourceLabel);
+        VertexLabel target = this.graph().vertexLabel(this.targetLabel);
+        E.checkArgument((source.ttl() == 0L || this.ttl <= source.ttl()) &&
+                        (target.ttl() == 0L || this.ttl <= target.ttl()),
+                        "The ttl(%s) of edge label '%s' should less than " +
+                        "ttl(%s) of source label '%s' and ttl(%s) of target " +
+                        "label '%s'", this.ttl, this.name,
+                        source.ttl(), this.sourceLabel,
+                        target.ttl(), this.targetLabel);
+        if (this.ttlStartTime == null) {
+            return;
+        }
+        // Check whether the properties contains the specified keys
+        E.checkArgument(!this.properties.isEmpty(),
+                        "The properties can't be empty when exist " +
+                        "ttl start time for edge label '%s'", this.name);
+        E.checkArgument(this.properties.contains(this.ttlStartTime),
+                        "The ttl start time '%s' must be contained in " +
+                        "properties '%s' for edge label '%s'",
+                        this.ttlStartTime, this.name, this.properties);
+        PropertyKey pkey = this.graph().propertyKey(this.ttlStartTime);
+        E.checkArgument(pkey.dataType().isDate(),
+                        "The ttl start time property must be date type," +
+                        "but got '%s(%s)'", this.ttlStartTime, pkey.dataType());
+    }
+
+    private void checkUserdata(Action action) {
+        switch (action) {
+            case INSERT:
+            case APPEND:
+                for (Map.Entry<String, Object> e : this.userdata.entrySet()) {
+                    if (e.getValue() == null) {
+                        throw new NotAllowException(
+                                  "Not allowed pass null userdata value when " +
+                                  "create or append edge label");
+                    }
+                }
+                break;
+            case ELIMINATE:
+            case DELETE:
+                // pass
+                break;
+            default:
+                throw new AssertionError(String.format(
+                          "Unknown schema action '%s'", action));
         }
     }
 }

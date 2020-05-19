@@ -19,7 +19,9 @@
 
 package com.baidu.hugegraph.api.traversers;
 
-import java.util.Set;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPACITY;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PATHS_LIMIT;
 
 import javax.inject.Singleton;
 import javax.ws.rs.DefaultValue;
@@ -44,10 +46,6 @@ import com.baidu.hugegraph.traversal.algorithm.PathsTraverser;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
-
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPACITY;
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PATHS_LIMIT;
 
 @Path("graphs/{graph}/traversers/paths")
 @Singleton
@@ -83,9 +81,10 @@ public class PathsAPI extends API {
 
         HugeGraph g = graph(manager, graph);
         PathsTraverser traverser = new PathsTraverser(g);
-        Set<HugeTraverser.Path> paths;
-        paths = traverser.paths(sourceId, dir, targetId, dir.opposite(),
-                                edgeLabel, depth, degree, capacity, limit);
+        HugeTraverser.PathSet paths = traverser.paths(sourceId, dir, targetId,
+                                                      dir.opposite(), edgeLabel,
+                                                      depth, degree, capacity,
+                                                      limit);
         return manager.serializer(g).writePaths("paths", paths, false);
     }
 }

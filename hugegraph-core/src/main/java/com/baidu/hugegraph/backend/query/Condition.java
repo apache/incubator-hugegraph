@@ -376,10 +376,11 @@ public abstract class Condition {
 
         @Override
         public String toString() {
-            return String.format("%s %s %s",
-                                 this.left,
-                                 this.type().name(),
-                                 this.right);
+            StringBuilder sb = new StringBuilder(64);
+            sb.append(this.left).append(' ');
+            sb.append(this.type().name()).append(' ');
+            sb.append(this.right);
+            return sb.toString();
         }
 
         @Override
@@ -526,10 +527,11 @@ public abstract class Condition {
 
         @Override
         public String toString() {
-            return String.format("%s %s %s",
-                                 this.key(),
-                                 this.relation.string(),
-                                 this.value);
+            StringBuilder sb = new StringBuilder(64);
+            sb.append(this.key()).append(' ');
+            sb.append(this.relation.string()).append(' ');
+            sb.append(this.value);
+            return sb.toString();
         }
 
         @Override

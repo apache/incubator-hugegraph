@@ -96,9 +96,9 @@ public class TaskAPI extends API {
             iter = scheduler.tasks(idList);
         } else {
             if (status == null) {
-                iter = scheduler.findAllTask(limit, page);
+                iter = scheduler.tasks(null, limit, page);
             } else {
-                iter = scheduler.findTask(parseStatus(status), limit, page);
+                iter = scheduler.tasks(parseStatus(status), limit, page);
             }
         }
 
@@ -139,7 +139,7 @@ public class TaskAPI extends API {
         LOG.debug("Graph [{}] delete task: {}", graph, id);
 
         TaskScheduler scheduler = graph(manager, graph).taskScheduler();
-        HugeTask<?> task = scheduler.deleteTask(IdGenerator.of(id));
+        HugeTask<?> task = scheduler.delete(IdGenerator.of(id));
         E.checkArgument(task != null, "There is no task with id '%s'", id);
     }
 
@@ -161,13 +161,13 @@ public class TaskAPI extends API {
 
         TaskScheduler scheduler = graph(manager, graph).taskScheduler();
         HugeTask<?> task = scheduler.task(IdGenerator.of(id));
-        if (!task.completed()) {
-            scheduler.cancel(task);
-        } else {
-            throw new BadRequestException(String.format(
-                      "Can't cancel task '%s' which is completed", id));
+        if (!task.completed() && scheduler.cancel(task)) {
+            return task.asMap();
         }
-        return task.asMap();
+
+        assert task.completed();
+        throw new BadRequestException(String.format(
+                  "Can't cancel task '%s' which is completed", id));
     }
 
     private static TaskStatus parseStatus(String status) {

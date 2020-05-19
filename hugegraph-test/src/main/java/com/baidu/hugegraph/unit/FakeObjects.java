@@ -86,6 +86,7 @@ public final class FakeObjects {
         schema.cardinality(cardinality);
 
         Mockito.when(this.graph.propertyKey(id)).thenReturn(schema);
+        Mockito.when(this.graph.propertyKey(name)).thenReturn(schema);
         return schema;
     }
 
@@ -97,6 +98,7 @@ public final class FakeObjects {
         schema.properties(properties);
 
         Mockito.when(this.graph.vertexLabel(id)).thenReturn(schema);
+        Mockito.when(this.graph.vertexLabelOrNone(id)).thenReturn(schema);
         return schema;
     }
 
@@ -110,6 +112,7 @@ public final class FakeObjects {
         schema.properties(properties);
 
         Mockito.when(this.graph.edgeLabel(id)).thenReturn(schema);
+        Mockito.when(this.graph.edgeLabelOrNone(id)).thenReturn(schema);
         return schema;
     }
 

@@ -33,6 +33,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.rocksdb.BlockBasedTableConfig;
 import org.rocksdb.BloomFilter;
 import org.rocksdb.ColumnFamilyDescriptor;
@@ -60,6 +61,7 @@ import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.serializer.BinarySerializer;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumn;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumnIterator;
+import com.baidu.hugegraph.backend.store.BackendEntryIterator;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
@@ -207,13 +209,20 @@ public class RocksDBStdSessions extends RocksDBSessions {
     }
 
     @Override
-    public String property(String property) {
+    public List<String> property(String property) {
         try {
             if (property.equals(RocksDBMetrics.DISK_USAGE)) {
-                return String.valueOf(this.sstFileManager.getTotalSize());
+                long size = this.sstFileManager.getTotalSize();
+                return ImmutableList.of(String.valueOf(size));
             }
-            return rocksdb().getProperty(property);
-        } catch (RocksDBException e) {
+            List<String> values = new ArrayList<>();
+            for (String cf : this.openedTables()) {
+                try (CFHandle cfh = cf(cf)) {
+                    values.add(rocksdb().getProperty(cfh.get(), property));
+                }
+            }
+            return values;
+        } catch(RocksDBException | UnsupportedOperationException e) {
             throw new BackendException(e);
         }
     }
@@ -455,6 +464,18 @@ public class RocksDBStdSessions extends RocksDBSessions {
             mcf.setTargetFileSizeMultiplier(
                     conf.get(RocksDBOptions.TARGET_FILE_SIZE_MULTIPLIER));
 
+            mcf.setLevel0FileNumCompactionTrigger(
+                    conf.get(RocksDBOptions.LEVEL0_COMPACTION_TRIGGER));
+            mcf.setLevel0SlowdownWritesTrigger(
+                    conf.get(RocksDBOptions.LEVEL0_SLOWDOWN_WRITES_TRIGGER));
+            mcf.setLevel0StopWritesTrigger(
+                    conf.get(RocksDBOptions.LEVEL0_STOP_WRITES_TRIGGER));
+
+            mcf.setSoftPendingCompactionBytesLimit(
+                    conf.get(RocksDBOptions.SOFT_PENDING_COMPACTION_LIMIT));
+            mcf.setHardPendingCompactionBytesLimit(
+                    conf.get(RocksDBOptions.HARD_PENDING_COMPACTION_LIMIT));
+
             boolean bulkload = conf.get(RocksDBOptions.BULKLOAD_MODE);
             if (bulkload) {
                 // Disable automatic compaction
@@ -581,6 +602,25 @@ public class RocksDBStdSessions extends RocksDBSessions {
             } catch (RocksDBException e) {
                 throw new BackendException(e);
             }
+        }
+
+        @Override
+        public Pair<byte[], byte[]> keyRange(String table) {
+            byte[] startKey, endKey;
+            try (CFHandle cf = cf(table);
+                 RocksIterator iter = rocksdb().newIterator(cf.get())) {
+                iter.seekToFirst();
+                if (!iter.isValid()) {
+                    return null;
+                }
+                startKey = iter.key();
+                iter.seekToLast();
+                if (!iter.isValid()) {
+                    return Pair.of(startKey, null);
+                }
+                endKey = iter.key();
+            }
+            return Pair.of(startKey, endKey);
         }
 
         /**
@@ -753,7 +793,8 @@ public class RocksDBStdSessions extends RocksDBSessions {
     /**
      * A wrapper for RocksIterator that convert RocksDB results to std Iterator
      */
-    private static class ColumnIterator implements BackendColumnIterator {
+    private static class ColumnIterator implements BackendColumnIterator,
+                                                   Countable {
 
         private final String table;
         private final RocksIterator iter;
@@ -950,6 +991,18 @@ public class RocksDBStdSessions extends RocksDBSessions {
             this.matched = false;
 
             return col;
+        }
+
+        @Override
+        public long count() {
+            long count = 0L;
+            while (this.hasNext()) {
+                this.iter.next();
+                this.matched = false;
+                count++;
+                BackendEntryIterator.checkInterrupted();
+            }
+            return count;
         }
 
         @Override

@@ -27,6 +27,7 @@ import java.util.Map;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
+import com.baidu.hugegraph.auth.SchemaDefine.UserElement;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -34,6 +35,8 @@ import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.traversal.algorithm.CustomizedCrosspointsTraverser.CrosspointsPaths;
 import com.baidu.hugegraph.traversal.algorithm.FusiformSimilarityTraverser.SimilarsMap;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
+import com.baidu.hugegraph.traversal.algorithm.SingleSourceShortestPathTraverser.NodeWithWeight;
+import com.baidu.hugegraph.traversal.algorithm.SingleSourceShortestPathTraverser.WeightedPaths;
 
 public interface Serializer {
 
@@ -67,6 +70,11 @@ public interface Serializer {
 
     public String writeEdges(Iterator<Edge> edges, boolean paging);
 
+    public String writeUserElement(UserElement elem);
+
+    public <V extends UserElement> String writeUserElements(String label,
+                                                            List<V> users);
+
     public String writePaths(String name, Collection<HugeTraverser.Path> paths,
                              boolean withCrossPoint, Iterator<Vertex> vertices);
 
@@ -81,4 +89,10 @@ public interface Serializer {
 
     public String writeSimilars(SimilarsMap similars,
                                 Iterator<Vertex> vertices);
+
+    public String writeWeightedPath(NodeWithWeight path,
+                                    Iterator<Vertex> vertices);
+
+    public String writeWeightedPaths(WeightedPaths paths,
+                                     Iterator<Vertex> vertices);
 }

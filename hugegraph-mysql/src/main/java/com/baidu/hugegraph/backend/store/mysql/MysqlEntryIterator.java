@@ -44,6 +44,7 @@ public class MysqlEntryIterator extends BackendEntryIterator {
 
     private BackendEntry next;
     private BackendEntry lastest;
+    private boolean exceedLimit;
 
     public MysqlEntryIterator(ResultSet rs, Query query,
            BiFunction<BackendEntry, BackendEntry, BackendEntry> merger) {
@@ -52,6 +53,7 @@ public class MysqlEntryIterator extends BackendEntryIterator {
         this.merger = merger;
         this.next = null;
         this.lastest = null;
+        this.exceedLimit = false;
     }
 
     @Override
@@ -79,6 +81,15 @@ public class MysqlEntryIterator extends BackendEntryIterator {
                     this.next = merged;
                     break;
                 }
+
+                // When limit exceed, stop fetching
+                if (this.reachLimit(this.fetched() - 1)) {
+                    this.exceedLimit = true;
+                    // Need remove last one because fetched limit + 1 records
+                    this.removeLastRecord();
+                    this.results.close();
+                    break;
+                }
             }
         } catch (SQLException e) {
             throw new BackendException("Fetch next error", e);
@@ -90,7 +101,7 @@ public class MysqlEntryIterator extends BackendEntryIterator {
     protected PageState pageState() {
         byte[] position;
         // There is no latest or no next page
-        if (this.lastest == null ||
+        if (this.lastest == null || !exceedLimit &&
             this.fetched() <= this.query.limit() && this.next == null) {
             position = PageState.EMPTY_BYTES;
         } else {
@@ -101,15 +112,15 @@ public class MysqlEntryIterator extends BackendEntryIterator {
     }
 
     @Override
+    protected void skipOffset() {
+        // pass
+    }
+
+    @Override
     protected final long sizeOf(BackendEntry entry) {
         MysqlBackendEntry e = (MysqlBackendEntry) entry;
         int subRowsSize = e.subRows().size();
         return subRowsSize > 0 ? subRowsSize : 1L;
-    }
-
-    @Override
-    protected final long offset() {
-        return 0L;
     }
 
     @Override
@@ -137,6 +148,13 @@ public class MysqlEntryIterator extends BackendEntryIterator {
             entry.column(MysqlTable.parseKey(name), value);
         }
         return entry;
+    }
+
+    private void removeLastRecord() {
+        MysqlBackendEntry entry = (MysqlBackendEntry) this.current;
+        int lastOne = entry.subRows().size() - 1;
+        assert lastOne >= 0;
+        entry.subRows().remove(lastOne);
     }
 
     public static class PagePosition {

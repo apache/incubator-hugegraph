@@ -30,7 +30,7 @@ import org.junit.Test;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
-import com.baidu.hugegraph.backend.store.BackendFeatures;
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.exception.NoIndexException;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.SchemaManager;
@@ -40,6 +40,7 @@ import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.Events;
+import com.google.common.collect.ImmutableSet;
 
 public class VertexLabelCoreTest extends SchemaCoreTest {
 
@@ -551,8 +552,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
 
         List<Vertex> persons;
 
-        BackendFeatures features = graph.graphTransaction().store().features();
-        if (!features.supportsQueryByLabel()) {
+        if (!storeFeatures().supportsQueryByLabel()) {
             Assert.assertThrows(NoIndexException.class, () -> {
                 graph.traversal().V().hasLabel("person").toList();
             });
@@ -560,6 +560,75 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
             persons = graph.traversal().V().hasLabel("person").toList();
             Assert.assertEquals(2, persons.size());
         }
+    }
+
+
+    @Test
+    public void testAddVertexLabelWithTtl() {
+        super.initPropertyKeys();
+
+        SchemaManager schema = graph().schema();
+
+        schema.propertyKey("born").asDate().ifNotExist().create();
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.vertexLabel("person")
+                  .properties("name", "age", "city", "born")
+                  .ttl(-86400L)
+                  .create();
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.vertexLabel("person")
+                  .properties("name", "age", "city", "born")
+                  .ttlStartTime("born")
+                  .create();
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.vertexLabel("person")
+                  .properties("name", "age", "city", "born")
+                  .ttlStartTime("name")
+                  .create();
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.vertexLabel("person")
+                  .properties("name", "age", "city", "born")
+                  .ttlStartTime("age")
+                  .create();
+        });
+
+        VertexLabel person = schema.vertexLabel("person")
+                                   .properties("name", "age", "city", "born")
+                                   .ttl(86400L)
+                                   .create();
+
+        Assert.assertNotNull(person);
+        Assert.assertEquals("person", person.name());
+        Assert.assertEquals(4, person.properties().size());
+        assertContainsPk(person.properties(), "name", "age", "city", "born");
+        Assert.assertEquals(0, person.primaryKeys().size());
+        Assert.assertEquals(IdStrategy.AUTOMATIC, person.idStrategy());
+        Assert.assertEquals(86400L, person.ttl());
+        Assert.assertEquals(IdGenerator.ZERO, person.ttlStartTime());
+
+        VertexLabel student = schema.vertexLabel("student")
+                                    .properties("name", "age", "city", "born")
+                                    .ttl(86400L)
+                                    .ttlStartTime("born")
+                                    .create();
+
+        Assert.assertNotNull(student);
+        Assert.assertEquals("student", student.name());
+        Assert.assertEquals(4, student.properties().size());
+        assertContainsPk(student.properties(),
+                         "name", "age", "city", "born");
+        Assert.assertEquals(0, student.primaryKeys().size());
+        Assert.assertEquals(IdStrategy.AUTOMATIC, student.idStrategy());
+        Assert.assertEquals(86400L, student.ttl());
+        Assert.assertNotNull(student.ttlStartTime());
+        assertContainsPk(ImmutableSet.of(student.ttlStartTime()), "born");
     }
 
     @Test
@@ -784,7 +853,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
         graph().tx().commit();
 
         List<Vertex> vertex = graph().traversal().V().hasLabel("person")
-                              .has("city", "Beijing").toList();
+                                     .has("city", "Beijing").toList();
         Assert.assertNotNull(vertex);
         Assert.assertEquals(2, vertex.size());
 
@@ -852,7 +921,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
         }, e -> {
             Assert.assertTrue(
                    e.getMessage().startsWith("Don't accept query by label") &&
-                   e.getMessage().endsWith("it disables label index"));
+                   e.getMessage().endsWith("label index is disabled"));
         });
 
         // Query by property index is ok
@@ -880,7 +949,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
         }, e -> {
             Assert.assertTrue(
                    e.getMessage().startsWith("Don't accept query by label") &&
-                   e.getMessage().endsWith("it disables label index"));
+                   e.getMessage().endsWith("label index is disabled"));
         });
 
         // Query by property index is ok
@@ -1014,7 +1083,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
         Assert.assertTrue(vertexLabels.contains(book));
 
         // clear cache
-        graph().schemaEventHub().call(Events.CACHE, "clear", null);
+        params().schemaEventHub().call(Events.CACHE, "clear", null);
 
         Assert.assertEquals(person, schema.getVertexLabel("person"));
 

@@ -23,7 +23,7 @@ import org.apache.tinkerpop.gremlin.server.GremlinServer;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
-import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.util.Log;
 
@@ -44,7 +44,7 @@ public class HugeGraphServer {
             this.gremlinServer = HugeGremlinServer.start(gremlinServerConf);
         } catch (Throwable e) {
             LOG.error("HugeGremlinServer start error: ", e);
-            HugeGraph.shutdown(30L);
+            HugeFactory.shutdown(30L);
             throw e;
         } finally {
             System.setSecurityManager(securityManager);
@@ -60,7 +60,7 @@ public class HugeGraphServer {
             } catch (Throwable t) {
                 LOG.error("GremlinServer stop error: ", t);
             }
-            HugeGraph.shutdown(30L);
+            HugeFactory.shutdown(30L);
             throw e;
         }
     }
@@ -81,7 +81,7 @@ public class HugeGraphServer {
         }
 
         try {
-            HugeGraph.shutdown(30L);
+            HugeFactory.shutdown(30L);
             LOG.info("HugeGraph stopped");
         } catch (Throwable e) {
             LOG.error("Failed to stop HugeGraph: ", e);

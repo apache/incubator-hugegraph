@@ -17,24 +17,25 @@
  * under the License.
  */
 
-package com.baidu.hugegraph;
+package com.baidu.hugegraph.job;
 
-import org.apache.tinkerpop.gremlin.structure.Graph;
+import com.baidu.hugegraph.task.TaskCallable.SysTaskCallable;
 
-import com.baidu.hugegraph.schema.SchemaManager;
+public abstract class SysJob<V> extends SysTaskCallable<V> implements Job<V> {
 
-/**
- * Graph interface for Gremlin operations
- */
-public interface GremlinGraph extends Graph {
+    @Override
+    public V call() throws Exception {
+        this.save();
+        return this.execute();
+    }
 
-    public String name();
+    @Override
+    protected void done() {
+        this.save();
+    }
 
-    public SchemaManager schema();
-
-    public String backend();
-
-    public void initBackend();
-    public void clearBackend();
-    public void truncateBackend();
+    @Override
+    protected void cancelled() {
+        this.save();
+    }
 }

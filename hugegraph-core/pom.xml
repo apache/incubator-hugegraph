@@ -5,7 +5,7 @@
     <parent>
         <groupId>com.baidu.hugegraph</groupId>
         <artifactId>hugegraph</artifactId>
-        <version>0.11.0</version>
+        <version>0.11.1</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <artifactId>hugegraph-core</artifactId>
@@ -19,7 +19,7 @@
         <dependency>
             <groupId>com.baidu.hugegraph</groupId>
             <artifactId>hugegraph-common</artifactId>
-            <version>1.7.2</version>
+            <version>1.7.5</version>
         </dependency>
 
         <!-- tinkerpop -->
@@ -53,6 +53,12 @@
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.caffinitas.ohc</groupId>
+            <artifactId>ohc-core</artifactId>
+            <version>0.7.0</version>
         </dependency>
 
         <dependency>
@@ -157,7 +163,7 @@
                             </addDefaultSpecificationEntries>
                         </manifest>
                         <manifestEntries>
-                            <Implementation-Version>0.11.0.0</Implementation-Version>
+                            <Implementation-Version>0.11.1.0</Implementation-Version>
                         </manifestEntries>
                     </archive>
                 </configuration>

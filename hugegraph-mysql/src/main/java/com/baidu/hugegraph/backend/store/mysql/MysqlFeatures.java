@@ -25,7 +25,7 @@ public class MysqlFeatures implements BackendFeatures {
 
     @Override
     public boolean supportsScanToken() {
-        return false;
+        return true;
     }
 
     @Override
@@ -35,7 +35,7 @@ public class MysqlFeatures implements BackendFeatures {
 
     @Override
     public boolean supportsScanKeyRange() {
-        return false;
+        return true;
     }
 
     @Override
@@ -113,6 +113,11 @@ public class MysqlFeatures implements BackendFeatures {
 
     @Override
     public boolean supportsAggregateProperty() {
+        return false;
+    }
+
+    @Override
+    public boolean supportsTtl() {
         return false;
     }
 }

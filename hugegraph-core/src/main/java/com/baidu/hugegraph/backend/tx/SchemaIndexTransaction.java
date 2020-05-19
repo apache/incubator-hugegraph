@@ -21,7 +21,9 @@ package com.baidu.hugegraph.backend.tx;
 
 import java.util.Iterator;
 
-import com.baidu.hugegraph.HugeGraph;
+import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
+
+import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
@@ -38,7 +40,7 @@ import com.baidu.hugegraph.util.E;
 
 public class SchemaIndexTransaction extends AbstractTransaction {
 
-    public SchemaIndexTransaction(HugeGraph graph, BackendStore store) {
+    public SchemaIndexTransaction(HugeGraphParams graph, BackendStore store) {
         super(graph, store);
     }
 
@@ -50,7 +52,7 @@ public class SchemaIndexTransaction extends AbstractTransaction {
 
         IndexLabel indexLabel = IndexLabel.label(element.type());
         // Update name index if backend store not supports name-query
-        HugeIndex index = new HugeIndex(indexLabel);
+        HugeIndex index = new HugeIndex(this.graph(), indexLabel);
         index.fieldValues(element.name());
         index.elementIds(element.id());
 
@@ -67,7 +69,7 @@ public class SchemaIndexTransaction extends AbstractTransaction {
 
     @Watched(prefix = "index")
     @Override
-    public QueryResults query(Query query) {
+    public QueryResults<BackendEntry> query(Query query) {
         if (query instanceof ConditionQuery) {
             ConditionQuery q = (ConditionQuery) query;
             if (q.allSysprop() && q.conditions().size() == 1 &&
@@ -79,7 +81,7 @@ public class SchemaIndexTransaction extends AbstractTransaction {
     }
 
     @Watched(prefix = "index")
-    private QueryResults queryByName(ConditionQuery query) {
+    private QueryResults<BackendEntry> queryByName(ConditionQuery query) {
         if (!this.needIndexForName()) {
             return super.query(query);
         }
@@ -93,16 +95,23 @@ public class SchemaIndexTransaction extends AbstractTransaction {
         indexQuery.eq(HugeKeys.FIELD_VALUES, name);
         indexQuery.eq(HugeKeys.INDEX_LABEL_ID, il.id());
 
-        Iterator<BackendEntry> entries = super.query(indexQuery).iterator();
         IdQuery idQuery = new IdQuery(query.resultType(), query);
-        while (entries.hasNext()) {
-            HugeIndex index = this.serializer.readIndex(graph(), indexQuery,
-                                                        entries.next());
-            idQuery.query(index.elementIds());
+        Iterator<BackendEntry> entries = super.query(indexQuery).iterator();
+        try {
+            while (entries.hasNext()) {
+                HugeIndex index = this.serializer.readIndex(graph(), indexQuery,
+                                                            entries.next());
+                idQuery.query(index.elementIds());
+                Query.checkForceCapacity(idQuery.ids().size());
+            }
+        } finally {
+            CloseableIterator.closeIterator(entries);
         }
+
         if (idQuery.ids().isEmpty()) {
             return QueryResults.empty();
         }
+
         assert idQuery.ids().size() == 1 : idQuery.ids();
         return super.query(idQuery);
     }

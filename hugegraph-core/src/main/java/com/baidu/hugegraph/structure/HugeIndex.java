@@ -19,12 +19,12 @@
 
 package com.baidu.hugegraph.structure;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.Id.IdType;
@@ -37,17 +37,21 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.HashUtil;
+import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.NumericUtil;
 
-public class HugeIndex implements GraphType {
+public class HugeIndex implements GraphType, Cloneable {
 
+    private final HugeGraph graph;
     private Object fieldValues;
     private IndexLabel indexLabel;
-    private Set<Id> elementIds;
+    private Set<IdWithExpiredTime> elementIds;
 
-    public HugeIndex(IndexLabel indexLabel) {
+    public HugeIndex(HugeGraph graph, IndexLabel indexLabel) {
+        E.checkNotNull(graph, "graph");
         E.checkNotNull(indexLabel, "label");
         E.checkNotNull(indexLabel.id(), "label id");
+        this.graph = graph;
         this.indexLabel = indexLabel;
         this.elementIds = new LinkedHashSet<>();
         this.fieldValues = null;
@@ -66,6 +70,10 @@ public class HugeIndex implements GraphType {
             return HugeType.EDGE_LABEL_INDEX;
         }
         return this.indexLabel.indexType().type();
+    }
+
+    public HugeGraph graph() {
+        return this.graph;
     }
 
     public Id id() {
@@ -92,23 +100,69 @@ public class HugeIndex implements GraphType {
         return this.indexLabel;
     }
 
-    public Id elementId() {
+    public IdWithExpiredTime elementIdWithExpiredTime() {
         E.checkState(this.elementIds.size() == 1,
                      "Expect one element id, actual %s",
                      this.elementIds.size());
         return this.elementIds.iterator().next();
     }
 
-    public Set<Id> elementIds() {
-        return Collections.unmodifiableSet(this.elementIds);
+    public Id elementId() {
+        return this.elementIdWithExpiredTime().id();
     }
 
-    public void elementIds(Id... elementIds) {
-        this.elementIds.addAll(Arrays.asList(elementIds));
+    public Set<Id> elementIds() {
+        Set<Id> ids = InsertionOrderUtil.newSet(this.elementIds.size());
+        for (IdWithExpiredTime idWithExpiredTime : this.elementIds) {
+            ids.add(idWithExpiredTime.id());
+        }
+        return Collections.unmodifiableSet(ids);
+    }
+
+    public Set<IdWithExpiredTime> expiredElementIds() {
+        long now = this.graph.now();
+        Set<IdWithExpiredTime> expired = InsertionOrderUtil.newSet(
+                                         this.elementIds.size());
+        for (IdWithExpiredTime id : this.elementIds) {
+            if (0L < id.expiredTime && id.expiredTime < now) {
+                expired.add(id);
+            }
+        }
+        this.elementIds.removeAll(expired);
+        return expired;
+    }
+
+    public void elementIds(Id elementId) {
+        this.elementIds(elementId, 0L);
+    }
+
+    public void elementIds(Id elementId, long expiredTime) {
+        this.elementIds.add(new IdWithExpiredTime(elementId, expiredTime));
     }
 
     public void resetElementIds() {
         this.elementIds = new LinkedHashSet<>();
+    }
+
+    public long expiredTime() {
+        return this.elementIdWithExpiredTime().expiredTime();
+    }
+
+    public boolean hasTtl() {
+        return this.indexLabel().ttl() > 0L;
+    }
+
+    public long ttl() {
+        return this.expiredTime() - this.graph.now();
+    }
+
+    @Override
+    public HugeIndex clone() {
+        try {
+            return (HugeIndex) super.clone();
+        } catch (CloneNotSupportedException e) {
+            throw new HugeException("Failed to clone HugeIndex", e);
+        }
     }
 
     @Override
@@ -142,20 +196,26 @@ public class HugeIndex implements GraphType {
         return formatIndexId(type, indexLabel, HashUtil.hash(value));
     }
 
-    public static Id formatIndexId(HugeType type, Id indexLabel,
+    public static Id formatIndexId(HugeType type, Id indexLabelId,
                                    Object fieldValues) {
         if (type.isStringIndex()) {
-            String v = fieldValues == null ? "" : fieldValues.toString();
+            String value = "";
+            if (fieldValues instanceof Id) {
+                value = IdGenerator.asStoredString((Id) fieldValues);
+            } else if (fieldValues != null) {
+                value = fieldValues.toString();
+            }
             /*
              * Modify order between index label and field-values to put the
              * index label in front(hugegraph-1317)
              */
-            return SplicingIdGenerator.splicing(indexLabel.asString(), v);
+            String strIndexLabelId = IdGenerator.asStoredString(indexLabelId);
+            return SplicingIdGenerator.splicing(strIndexLabelId, value);
         } else {
             assert type.isRangeIndex();
             int length = type.isRange4Index() ? 4 : 8;
             BytesBuffer buffer = BytesBuffer.allocate(4 + length);
-            buffer.writeInt(SchemaElement.schemaId(indexLabel));
+            buffer.writeInt(SchemaElement.schemaId(indexLabelId));
             if (fieldValues != null) {
                 E.checkState(fieldValues instanceof Number,
                              "Field value of range index must be number:" +
@@ -175,7 +235,7 @@ public class HugeIndex implements GraphType {
             Id idObject = IdGenerator.of(id, IdType.STRING);
             String[] parts = SplicingIdGenerator.parse(idObject);
             E.checkState(parts.length == 2, "Invalid secondary index id");
-            Id label = SchemaElement.schemaId(parts[0]);
+            Id label = IdGenerator.ofStoredString(parts[0], IdType.LONG);
             indexLabel = IndexLabel.label(graph, label);
             values = parts[1];
         } else {
@@ -194,7 +254,7 @@ public class HugeIndex implements GraphType {
                              dataType.clazz() : DataType.LONG.clazz();
             values = bytes2number(buffer.read(id.length - labelLength), clazz);
         }
-        HugeIndex index = new HugeIndex(indexLabel);
+        HugeIndex index = new HugeIndex(graph, indexLabel);
         index.fieldValues(values);
         return index;
     }
@@ -209,5 +269,24 @@ public class HugeIndex implements GraphType {
 
     public static Number bytes2number(byte[] bytes, Class<?> clazz) {
         return NumericUtil.sortableBytesToNumber(bytes, clazz);
+    }
+
+    public static class IdWithExpiredTime {
+
+        private Id id;
+        private long expiredTime;
+
+        public IdWithExpiredTime(Id id, long expiredTime) {
+            this.id = id;
+            this.expiredTime = expiredTime;
+        }
+
+        public Id id() {
+            return this.id;
+        }
+
+        public long expiredTime() {
+            return this.expiredTime;
+        }
     }
 }

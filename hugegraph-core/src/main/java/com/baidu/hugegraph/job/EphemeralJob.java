@@ -19,16 +19,16 @@
 
 package com.baidu.hugegraph.job;
 
-import com.baidu.hugegraph.task.TaskCallable;
+import com.baidu.hugegraph.task.TaskCallable.SysTaskCallable;
 
-public abstract class EphemeralJob<T> extends TaskCallable<T> {
+public abstract class EphemeralJob<V> extends SysTaskCallable<V> {
 
     public abstract String type();
 
-    public abstract T execute() throws Exception;
+    public abstract V execute() throws Exception;
 
     @Override
-    public T call() throws Exception {
+    public V call() throws Exception {
         return this.execute();
     }
 }

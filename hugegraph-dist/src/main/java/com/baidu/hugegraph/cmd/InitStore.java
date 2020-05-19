@@ -21,15 +21,16 @@ package com.baidu.hugegraph.cmd;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.collections.map.MultiValueMap;
-import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.tree.ConfigurationNode;
 import org.apache.tinkerpop.gremlin.util.config.YamlConfiguration;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.auth.StandardAuthenticator;
 import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.dist.RegisterUtil;
@@ -46,7 +47,7 @@ public class InitStore {
     // Less than 5000 may cause mismatch exception with Cassandra backend
     private static final long RETRY_INTERVAL = 5000;
 
-    private static MultiValueMap exceptions = new MultiValueMap();
+    private static final MultiValueMap exceptions = new MultiValueMap();
 
     static {
         exceptions.put("OperationTimedOutException",
@@ -57,25 +58,29 @@ public class InitStore {
         exceptions.put("InvalidQueryException", "unconfigured table");
     }
 
-    public static void main(String[] args)
-                       throws ConfigurationException, InterruptedException {
-        E.checkArgument(args.length == 1,
-                        "Init store only accept one config file.");
+    public static void main(String[] args) throws Exception {
+        E.checkArgument(args.length == 2,
+                        "HugeGraph init-store can only accept two config files");
         E.checkArgument(args[0].endsWith(".yaml"),
-                        "Init store only accept yaml config file.");
+                        "Expect the 1st parameter is yaml config file.");
+        E.checkArgument(args[1].endsWith(".properties"),
+                        "Expect the 2nd parameter is properties config file.");
 
-        String confFile = args[0];
+        String gremlinConfFile = args[0];
+        String restConfFile = args[1];
+
         RegisterUtil.registerBackends();
         RegisterUtil.registerPlugins();
+        RegisterUtil.registerServer();
 
         YamlConfiguration config = new YamlConfiguration();
-        config.load(confFile);
+        config.load(gremlinConfFile);
 
         List<ConfigurationNode> nodes = config.getRootNode()
                                               .getChildren(GRAPHS);
         E.checkArgument(nodes.size() == 1,
-                        "Must contain one '%s' in config file '%s'",
-                        GRAPHS, confFile);
+                        "Must contain one '%s' node in config file '%s'",
+                        GRAPHS, gremlinConfFile);
 
         List<ConfigurationNode> graphNames = nodes.get(0).getChildren();
 
@@ -83,18 +88,24 @@ public class InitStore {
                         "Must contain at least one graph");
 
         for (ConfigurationNode graphName : graphNames) {
+            @SuppressWarnings("unchecked")
+            String name = ((Map.Entry<String, Object>)
+                           graphName.getReference()).getKey();
+            HugeFactory.checkGraphName(name, "gremlin-server.yaml");
             String configPath = graphName.getValue().toString();
             initGraph(configPath);
         }
 
-        HugeGraph.shutdown(30L);
+        StandardAuthenticator.initAdminUser(restConfFile);
+
+        HugeFactory.shutdown(30L);
     }
 
-    private static void initGraph(String config) throws InterruptedException {
+    private static void initGraph(String config) throws Exception {
         LOG.info("Init graph with config file: {}", config);
         HugeGraph graph = HugeFactory.open(config);
 
-        BackendStoreSystemInfo sysInfo = new BackendStoreSystemInfo(graph);
+        BackendStoreSystemInfo sysInfo = graph.backendStoreSystemInfo();
         try {
             if (sysInfo.exists()) {
                 LOG.info("Skip init-store due to the backend store of '{}' " +

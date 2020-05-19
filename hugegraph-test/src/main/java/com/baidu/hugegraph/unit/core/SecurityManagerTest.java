@@ -39,9 +39,10 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.baidu.hugegraph.HugeException;
+import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
-import com.baidu.hugegraph.api.job.GremlinAPI;
 import com.baidu.hugegraph.config.HugeConfig;
+import com.baidu.hugegraph.job.GremlinJob;
 import com.baidu.hugegraph.job.JobBuilder;
 import com.baidu.hugegraph.security.HugeSecurityManager;
 import com.baidu.hugegraph.task.HugeTask;
@@ -63,10 +64,11 @@ public class SecurityManagerTest {
     }
 
     @AfterClass
-    public static void clear() {
+    public static void clear() throws Exception {
         System.setSecurityManager(null);
         graph.close();
-        HugeGraph.shutdown(30L);
+        // Stop daemon thread
+        HugeFactory.shutdown(30L);
     }
 
     @Test
@@ -154,6 +156,12 @@ public class SecurityManagerTest {
         new File("").delete();
         result = runGremlinJob("new File(\"\").delete()");
         assertError(result, "Not allowed to delete file via Gremlin");
+
+        // get absolute path
+        new File("").getAbsolutePath();
+        result = runGremlinJob("new File(\"\").getAbsolutePath()");
+        assertError(result, "Not allowed to access " +
+                    "system property(user.dir) via Gremlin");
     }
 
     @Test
@@ -299,7 +307,7 @@ public class SecurityManagerTest {
         input.put("aliases", ImmutableMap.of());
         builder.name("test-gremlin-job")
                .input(JsonUtil.toJson(input))
-               .job(new GremlinAPI.GremlinJob());
+               .job(new GremlinJob());
         HugeTask<?> task = builder.schedule();
         try {
             graph.taskScheduler().waitUntilTaskCompleted(task.id(), 10);
@@ -311,7 +319,7 @@ public class SecurityManagerTest {
 
     private static HugeGraph loadGraph(boolean needClear) {
         HugeConfig config = FakeObjects.newConfig();
-        HugeGraph graph = new HugeGraph(config);
+        HugeGraph graph = HugeFactory.open(config);
 
         if (needClear) {
             graph.clearBackend();

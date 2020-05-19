@@ -19,6 +19,8 @@
 
 package com.baidu.hugegraph.api.traversers;
 
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PAGE_LIMIT;
+
 import java.util.Iterator;
 import java.util.List;
 
@@ -48,8 +50,6 @@ import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
 
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PAGE_LIMIT;
-
 @Path("graphs/{graph}/traversers/edges")
 @Singleton
 public class EdgesAPI extends API {
@@ -70,7 +70,7 @@ public class EdgesAPI extends API {
 
         Object[] ids = new Id[stringIds.size()];
         for (int i = 0; i < ids.length; i++) {
-            ids[i] = HugeEdge.getIdValue(stringIds.get(i));
+            ids[i] = HugeEdge.getIdValue(stringIds.get(i), false);
         }
 
         HugeGraph g = graph(manager, graph);
@@ -91,8 +91,7 @@ public class EdgesAPI extends API {
                   graph, splitSize);
 
         HugeGraph g = graph(manager, graph);
-        List<Shard> shards = g.graphTransaction()
-                              .metadata(HugeType.EDGE_OUT, "splits", splitSize);
+        List<Shard> shards = g.metadata(HugeType.EDGE_OUT, "splits", splitSize);
         return manager.serializer(g).writeList("shards", shards);
     }
 

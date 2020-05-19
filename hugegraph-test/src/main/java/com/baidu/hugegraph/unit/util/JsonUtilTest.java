@@ -132,8 +132,8 @@ public class JsonUtilTest extends BaseUnitTest {
                             "\"primary_keys\":[],\"nullable_keys\":[]," +
                             "\"index_labels\":[]," +
                             "\"properties\":[\"name\",\"age\",\"city\"]," +
-                            "\"enable_label_index\":true,\"user_data\":{}}",
-                            json);
+                            "\"ttl\":0,\"enable_label_index\":true," +
+                            "\"user_data\":{}}", json);
     }
 
     @Test
@@ -171,7 +171,7 @@ public class JsonUtilTest extends BaseUnitTest {
                             "\"frequency\":\"SINGLE\",\"sort_keys\":[]," +
                             "\"nullable_keys\":[],\"index_labels\":[]," +
                             "\"properties\":[\"date\",\"weight\"]," +
-                            "\"enable_label_index\":true," +
+                            "\"ttl\":0,\"enable_label_index\":true," +
                             "\"user_data\":{}}", json);
     }
 

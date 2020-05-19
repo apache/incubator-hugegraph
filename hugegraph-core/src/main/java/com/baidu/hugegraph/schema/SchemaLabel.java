@@ -36,10 +36,14 @@ import com.baidu.hugegraph.util.E;
 public abstract class SchemaLabel extends SchemaElement
                                   implements Indexfiable, Propfiable {
 
+    protected static final String UNDEF = "~undefined";
+
     private final Set<Id> properties;
     private final Set<Id> nullableKeys;
     private final Set<Id> indexLabels;
     private boolean enableLabelIndex;
+    private long ttl;
+    private Id ttlStartTime;
 
     public SchemaLabel(final HugeGraph graph, Id id, String name) {
         super(graph, id, name);
@@ -47,6 +51,8 @@ public abstract class SchemaLabel extends SchemaElement
         this.nullableKeys = new HashSet<>();
         this.indexLabels = new HashSet<>();
         this.enableLabelIndex = true;
+        this.ttl = 0L;
+        this.ttlStartTime = IdGenerator.ZERO;
     }
 
     @Override
@@ -106,6 +112,26 @@ public abstract class SchemaLabel extends SchemaElement
 
     public void enableLabelIndex(boolean enable) {
         this.enableLabelIndex = enable;
+    }
+
+    public boolean undefined() {
+        return this.name() == UNDEF;
+    }
+
+    public void ttl(long ttl) {
+        this.ttl = ttl;
+    }
+
+    public long ttl() {
+        return this.ttl;
+    }
+
+    public void ttlStartTime(Id id) {
+        this.ttlStartTime = id;
+    }
+
+    public Id ttlStartTime() {
+        return this.ttlStartTime;
     }
 
     public static Id getLabelId(HugeGraph graph, HugeType type, Object label) {

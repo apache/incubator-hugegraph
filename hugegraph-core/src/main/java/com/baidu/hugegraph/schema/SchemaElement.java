@@ -27,9 +27,6 @@ import org.apache.tinkerpop.gremlin.structure.Graph;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.backend.id.IdGenerator;
-import com.baidu.hugegraph.config.CoreOptions;
-import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.type.Namifiable;
 import com.baidu.hugegraph.type.Typifiable;
 import com.baidu.hugegraph.type.define.SchemaStatus;
@@ -59,6 +56,8 @@ public abstract class SchemaElement implements Namifiable, Typifiable,
     }
 
     public HugeGraph graph() {
+        E.checkState(this.graph != null,
+                     "Graph is null of schema '%s'", this.name);
         return this.graph;
     }
 
@@ -149,32 +148,11 @@ public abstract class SchemaElement implements Namifiable, Typifiable,
         return String.format("%s(id=%s)", this.name, this.id);
     }
 
-    public static Id schemaId(String id) {
-        return IdGenerator.of(Long.parseLong(id));
-    }
-
     public static int schemaId(Id id) {
         long l = id.asLong();
         // Currently we limit the schema id to within 4 bytes
         E.checkArgument(Integer.MIN_VALUE <= l && l <= Integer.MAX_VALUE,
                         "Schema id is out of bound: %s", l);
         return (int) l;
-    }
-
-    public static void checkName(String name, HugeConfig config) {
-        String illegalReg = config.get(CoreOptions.SCHEMA_ILLEGAL_NAME_REGEX);
-
-        E.checkNotNull(name, "name");
-        E.checkArgument(!name.isEmpty(), "The name can't be empty.");
-        E.checkArgument(name.length() < 256,
-                        "The length of name must less than 256 bytes.");
-        E.checkArgument(!name.matches(illegalReg),
-                        String.format("Illegal schema name '%s'", name));
-
-        final char[] filters = {'#', '>', ':', '!'};
-        for (char c : filters) {
-            E.checkArgument(name.indexOf(c) == -1,
-                            "The name can't contain character '%s'.", c);
-        }
     }
 }

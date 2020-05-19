@@ -98,10 +98,16 @@ public final class IdRangeQuery extends Query {
 
     @Override
     public String toString() {
-        return String.format("%s where id in range %s%s,%s%s",
-                             super.toString(),
-                             this.inclusiveStart ? "[" : "(",
-                             this.start, this.end,
-                             this.inclusiveEnd ? "]" : ")");
+        StringBuilder sb = new StringBuilder(super.toString());
+        assert sb.length() > 0;
+        sb.deleteCharAt(sb.length() - 1); // Remove the last "`"
+        sb.append(" id in range ")
+          .append(this.inclusiveStart ? "[" : "(")
+          .append(this.start)
+          .append(", ")
+          .append(this.end)
+          .append(this.inclusiveEnd ? "]" : ")")
+          .append("`");
+        return sb.toString();
     }
 }

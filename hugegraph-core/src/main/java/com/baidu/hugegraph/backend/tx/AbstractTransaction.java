@@ -19,11 +19,10 @@
 
 package com.baidu.hugegraph.backend.tx;
 
-import java.util.Iterator;
-
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.Transaction;
 import com.baidu.hugegraph.backend.id.Id;
@@ -32,6 +31,7 @@ import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.serializer.AbstractSerializer;
 import com.baidu.hugegraph.backend.store.BackendEntry;
+import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.exception.NotFoundException;
@@ -53,14 +53,14 @@ public abstract class AbstractTransaction implements Transaction {
     private boolean committing = false;
     private boolean committing2Backend = false;
 
-    private final HugeGraph graph;
+    private final HugeGraphParams graph;
     private final BackendStore store;
 
     private BackendMutation mutation;
 
     protected final AbstractSerializer serializer;
 
-    public AbstractTransaction(HugeGraph graph, BackendStore store) {
+    public AbstractTransaction(HugeGraphParams graph, BackendStore store) {
         E.checkNotNull(graph, "graph");
         E.checkNotNull(store, "store");
 
@@ -70,17 +70,30 @@ public abstract class AbstractTransaction implements Transaction {
         this.store = store;
         this.reset();
 
-        store.open(graph.configuration());
+        store.open(this.graph.configuration());
     }
 
     public HugeGraph graph() {
         E.checkNotNull(this.graph, "graph");
+        return this.graph.graph();
+    }
+
+    protected HugeGraphParams params() {
+        E.checkNotNull(this.graph, "graph");
         return this.graph;
     }
 
-    public BackendStore store() {
-        E.checkNotNull(this.graph, "store");
+    protected BackendStore store() {
+        E.checkNotNull(this.store, "store");
         return this.store;
+    }
+
+    public BackendFeatures storeFeatures() {
+        return this.store.features();
+    }
+
+    public boolean initialized() {
+        return this.store.initialized();
     }
 
     public <R> R metadata(HugeType type, String meta, Object... args) {
@@ -88,7 +101,24 @@ public abstract class AbstractTransaction implements Transaction {
     }
 
     @Watched(prefix = "tx")
-    public QueryResults query(Query query) {
+    public Number queryNumber(Query query) {
+        LOG.debug("Transaction queryNumber: {}", query);
+
+        E.checkArgument(query.aggregate() != null,
+                        "The aggregate must be set for number query: %s",
+                        query);
+        Query squery = this.serializer.writeQuery(query);
+
+        this.beforeRead();
+        try {
+            return this.store.queryNumber(squery);
+        } finally {
+            this.afterRead();
+        }
+    }
+
+    @Watched(prefix = "tx")
+    public QueryResults<BackendEntry> query(Query query) {
         LOG.debug("Transaction query: {}", query);
         /*
          * NOTE: it's dangerous if an IdQuery/ConditionQuery is empty
@@ -102,7 +132,7 @@ public abstract class AbstractTransaction implements Transaction {
 
         this.beforeRead();
         try {
-            return new QueryResults(this.store.query(squery), query);
+            return new QueryResults<>(this.store.query(squery), query);
         } finally {
             this.afterRead(); // TODO: not complete the iteration currently
         }
@@ -110,14 +140,8 @@ public abstract class AbstractTransaction implements Transaction {
 
     @Watched(prefix = "tx")
     public BackendEntry query(HugeType type, Id id) {
-        IdQuery q = new IdQuery(type, id);
-        Iterator<BackendEntry> results = this.query(q).iterator();
-        if (results.hasNext()) {
-            BackendEntry entry = results.next();
-            assert !results.hasNext();
-            return entry;
-        }
-        return null;
+        IdQuery idQuery = new IdQuery(type, id);
+        return this.query(idQuery).one();
     }
 
     public BackendEntry get(HugeType type, Id id) {
@@ -145,7 +169,7 @@ public abstract class AbstractTransaction implements Transaction {
             return;
         }
 
-        if (!this.hasUpdates()) {
+        if (!this.hasUpdate()) {
             LOG.debug("Transaction has no data to commit({})", store());
             return;
         }
@@ -192,7 +216,7 @@ public abstract class AbstractTransaction implements Transaction {
     @Watched(prefix = "tx")
     @Override
     public void close() {
-        if (this.hasUpdates()) {
+        if (this.hasUpdate()) {
             throw new BackendException("There are still changes to commit");
         }
         if (this.closed) {
@@ -208,8 +232,12 @@ public abstract class AbstractTransaction implements Transaction {
         return this.autoCommit;
     }
 
-    public boolean hasUpdates() {
+    public boolean hasUpdate() {
         return !this.mutation.isEmpty();
+    }
+
+    public boolean hasUpdate(HugeType type, Action action) {
+        return this.mutation.contains(type, action);
     }
 
     public int mutationSize() {
@@ -221,7 +249,9 @@ public abstract class AbstractTransaction implements Transaction {
     }
 
     protected void reset() {
-        this.mutation = new BackendMutation();
+        if (this.mutation == null || !this.mutation.isEmpty()) {
+            this.mutation = new BackendMutation();
+        }
     }
 
     protected BackendMutation mutation() {
@@ -265,7 +295,7 @@ public abstract class AbstractTransaction implements Transaction {
     }
 
     protected void beforeRead() {
-        if (this.autoCommit() && this.hasUpdates()) {
+        if (this.autoCommit() && this.hasUpdate()) {
             this.commitOrRollback();
         }
     }
@@ -274,8 +304,14 @@ public abstract class AbstractTransaction implements Transaction {
         // pass
     }
 
+    protected void checkOwnerThread() {
+        if (Thread.currentThread() != this.ownerThread) {
+            throw new BackendException("Can't operate a tx in other threads");
+        }
+    }
+
     @Watched(prefix = "tx")
-    protected void commitOrRollback() {
+    public void commitOrRollback() {
         LOG.debug("Transaction commitOrRollback()");
         this.checkOwnerThread();
 
@@ -296,15 +332,13 @@ public abstract class AbstractTransaction implements Transaction {
             } catch (Throwable e2) {
                 LOG.error("Failed to rollback changes:\n {}", mutation, e2);
             }
-            // Rethrow the commit exception
+            /*
+             * Rethrow the commit exception
+             * The e.getMessage maybe too long to see key information,
+             * therefore use e.getCause
+             */
             throw new BackendException(
-                      "Failed to commit changes: %s", e1.getMessage());
-        }
-    }
-
-    protected void checkOwnerThread() {
-        if (Thread.currentThread() != this.ownerThread) {
-            throw new BackendException("Can't operate a tx in other threads");
+                      "Failed to commit changes: %s", e1.getCause());
         }
     }
 

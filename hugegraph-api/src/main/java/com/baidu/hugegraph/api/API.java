@@ -25,10 +25,12 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.function.Consumer;
 
+import javax.ws.rs.ForbiddenException;
 import javax.ws.rs.NotFoundException;
 import javax.ws.rs.NotSupportedException;
 import javax.ws.rs.core.MediaType;
 
+import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
@@ -77,6 +79,10 @@ public class API {
         return g;
     }
 
+    public static HugeGraph graph4admin(GraphManager manager, String graph) {
+        return graph(manager, graph).hugegraph();
+    }
+
     public static <R> R commit(HugeGraph g, Callable<R> callable) {
         Consumer<Throwable> rollback = (error) -> {
             if (error != null) {
@@ -94,7 +100,8 @@ public class API {
             g.tx().commit();
             succeedMeter.mark();
             return result;
-        } catch (IllegalArgumentException | NotFoundException e) {
+        } catch (IllegalArgumentException | NotFoundException |
+                 ForbiddenException e) {
             illegalArgErrorMeter.mark();
             rollback.accept(null);
             throw e;
@@ -131,6 +138,10 @@ public class API {
                                      HugeType type,
                                      String id) {
         if (!iter.hasNext()) {
+            try {
+                CloseableIterator.closeIterator(iter);
+            } catch (Exception ignored) {}
+
             throw new NotFoundException(String.format(
                       "%s with id '%s' does not exist",
                       type.readableName(), id));

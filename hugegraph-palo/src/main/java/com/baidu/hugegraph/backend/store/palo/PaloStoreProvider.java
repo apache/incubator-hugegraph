@@ -60,8 +60,11 @@ public class PaloStoreProvider extends MysqlStoreProvider {
          * [1.4] #633: support unique index
          * [1.5] #661: reduce the storage of vertex/edge id
          * [1.6] #746: support userdata for indexlabel
+         * [1.7] #894: asStoredString() encoding is changed to signed B64
+         *             instead of sortable B64
+         * [1.8] #295: support ttl for vertex and edge
          */
-        return "1.6";
+        return "1.8";
     }
 
     public static class PaloSchemaStore extends PaloStore {
@@ -104,6 +107,10 @@ public class PaloStoreProvider extends MysqlStoreProvider {
             return this.counter.getCounter(type);
         }
 
+        @Override
+        public boolean isSchemaStore() {
+            return true;
+        }
     }
 
     public static class PaloGraphStore extends PaloStore {
@@ -139,6 +146,11 @@ public class PaloStoreProvider extends MysqlStoreProvider {
         @Override
         public BackendFeatures features() {
             return FEATURES;
+        }
+
+        @Override
+        public boolean isSchemaStore() {
+            return false;
         }
 
         @Override

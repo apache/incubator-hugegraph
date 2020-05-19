@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import javax.annotation.security.RolesAllowed;
 import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -65,6 +66,7 @@ public class VertexLabelAPI extends API {
     @Status(Status.CREATED)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin", "$owner=$graph $action=schema_write"})
     public String create(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          JsonVertexLabel jsonVertexLabel) {
@@ -83,6 +85,7 @@ public class VertexLabelAPI extends API {
     @Path("{name}")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin", "$owner=$graph $action=schema_write"})
     public String update(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          @PathParam("name") String name,
@@ -109,6 +112,7 @@ public class VertexLabelAPI extends API {
     @GET
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin", "$owner=$graph $action=schema_read"})
     public String list(@Context GraphManager manager,
                        @PathParam("graph") String graph,
                        @QueryParam("names") List<String> names) {
@@ -136,6 +140,7 @@ public class VertexLabelAPI extends API {
     @Timed
     @Path("{name}")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin", "$owner=$graph $action=schema_read"})
     public String get(@Context GraphManager manager,
                       @PathParam("graph") String graph,
                       @PathParam("name") String name) {
@@ -152,6 +157,7 @@ public class VertexLabelAPI extends API {
     @Status(Status.ACCEPTED)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin", "$owner=$graph $action=schema_delete"})
     public Map<String, Id> delete(@Context GraphManager manager,
                                   @PathParam("graph") String graph,
                                   @PathParam("name") String name) {
@@ -181,6 +187,10 @@ public class VertexLabelAPI extends API {
         public String[] primaryKeys;
         @JsonProperty("nullable_keys")
         public String[] nullableKeys;
+        @JsonProperty("ttl")
+        public long ttl;
+        @JsonProperty("ttl_start_time")
+        public String ttlStartTime;
         @JsonProperty("enable_label_index")
         public Boolean enableLabelIndex;
         @JsonProperty("user_data")
@@ -227,16 +237,26 @@ public class VertexLabelAPI extends API {
             if (this.checkExist != null) {
                 builder.checkExist(this.checkExist);
             }
+            if (this.ttl != 0) {
+                builder.ttl(this.ttl);
+            }
+            if (this.ttlStartTime != null) {
+                E.checkArgument(this.ttl > 0,
+                                "Only set ttlStartTime when ttl is " +
+                                "positive,  but got ttl: %s", this.ttl);
+                builder.ttlStartTime(this.ttlStartTime);
+            }
             return builder;
         }
 
         @Override
         public String toString() {
             return String.format("JsonVertexLabel{" +
-                   "name=%s, idStrategy=%s, primaryKeys=%s, " +
-                   "nullableKeys=%s, properties=%s}",
+                   "name=%s, idStrategy=%s, primaryKeys=%s, nullableKeys=%s, " +
+                   "properties=%s, ttl=%s, ttlStartTime=%s}",
                    this.name, this.idStrategy, this.primaryKeys,
-                   this.nullableKeys, this.properties);
+                   this.nullableKeys, this.properties, this.ttl,
+                   this.ttlStartTime);
         }
     }
 }

@@ -25,6 +25,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.tinkerpop.gremlin.process.traversal.Compare;
 import org.apache.tinkerpop.gremlin.process.traversal.Contains;
@@ -39,42 +41,60 @@ import org.apache.tinkerpop.gremlin.process.traversal.step.filter.HasStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.filter.RangeGlobalStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.map.CountGlobalStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.map.GraphStep;
+import org.apache.tinkerpop.gremlin.process.traversal.step.map.MaxGlobalStep;
+import org.apache.tinkerpop.gremlin.process.traversal.step.map.MeanGlobalStep;
+import org.apache.tinkerpop.gremlin.process.traversal.step.map.MinGlobalStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.map.NoOpBarrierStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.map.OrderGlobalStep;
+import org.apache.tinkerpop.gremlin.process.traversal.step.map.PropertiesStep;
+import org.apache.tinkerpop.gremlin.process.traversal.step.map.SumGlobalStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.sideEffect.IdentityStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.util.ElementValueComparator;
 import org.apache.tinkerpop.gremlin.process.traversal.step.util.HasContainer;
+import org.apache.tinkerpop.gremlin.process.traversal.step.util.ReducingBarrierStep;
 import org.apache.tinkerpop.gremlin.process.traversal.util.AndP;
 import org.apache.tinkerpop.gremlin.process.traversal.util.ConnectiveP;
 import org.apache.tinkerpop.gremlin.process.traversal.util.OrP;
 import org.apache.tinkerpop.gremlin.process.traversal.util.TraversalHelper;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Element;
+import org.apache.tinkerpop.gremlin.structure.PropertyType;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.page.PageInfo;
 import com.baidu.hugegraph.backend.page.PageState;
+import com.baidu.hugegraph.backend.query.Aggregate.AggregateFunc;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.Condition.Relation;
 import com.baidu.hugegraph.backend.query.Condition.RelationType;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.iterator.FilterIterator;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaLabel;
-import com.baidu.hugegraph.structure.HugeEdge;
-import com.baidu.hugegraph.structure.HugeVertex;
+import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.JsonUtil;
 import com.google.common.collect.ImmutableList;
 
 public final class TraversalUtil {
+
+    public static final String P_CALL = "P.";
+
+    public static HugeGraph getGraph(Step<?, ?> step) {
+        return (HugeGraph) step.getTraversal().getGraph().get();
+    }
 
     public static void extractHasContainer(HugeGraphStep<?, ?> newStep,
                                            Traversal.Admin<?, ?> traversal) {
@@ -181,6 +201,50 @@ public final class TraversalUtil {
                  step instanceof NoOpBarrierStep);
     }
 
+    public static void extractAggregateFunc(Step<?, ?> newStep,
+                                            Traversal.Admin<?, ?> traversal) {
+        PropertiesStep<?> propertiesStep = null;
+        Step<?, ?> step = newStep;
+        do {
+            step = step.getNextStep();
+            if (step instanceof PropertiesStep) {
+                @SuppressWarnings("resource")
+                PropertiesStep<?> propStep = (PropertiesStep<?>) step;
+                if (propStep.getReturnType() == PropertyType.VALUE &&
+                    propStep.getPropertyKeys().length == 1) {
+                    propertiesStep = propStep;
+                }
+            } else if (propertiesStep != null &&
+                       step instanceof ReducingBarrierStep) {
+                AggregateFunc aggregateFunc;
+                if (step instanceof CountGlobalStep) {
+                    aggregateFunc = AggregateFunc.COUNT;
+                } else if (step instanceof MaxGlobalStep) {
+                    aggregateFunc = AggregateFunc.MAX;
+                } else if (step instanceof MinGlobalStep) {
+                    aggregateFunc = AggregateFunc.MIN;
+                } else if (step instanceof MeanGlobalStep) {
+                    aggregateFunc = AggregateFunc.AVG;
+                } else if (step instanceof SumGlobalStep) {
+                    aggregateFunc = AggregateFunc.SUM;
+                } else {
+                    aggregateFunc = null;
+                }
+
+                if (aggregateFunc != null) {
+                    QueryHolder holder = (QueryHolder) newStep;
+                    holder.setAggregate(aggregateFunc,
+                                        propertiesStep.getPropertyKeys()[0]);
+                    traversal.removeStep(step);
+                    traversal.removeStep(propertiesStep);
+                }
+            }
+        } while (step instanceof FilterStep ||
+                 step instanceof PropertiesStep ||
+                 step instanceof IdentityStep ||
+                 step instanceof NoOpBarrierStep);
+    }
+
     public static ConditionQuery fillConditionQuery(
                                  List<HasContainer> hasContainers,
                                  ConditionQuery query,
@@ -275,14 +339,7 @@ public final class TraversalUtil {
         BiPredicate<?, ?> bp = has.getPredicate().getBiPredicate();
         assert bp instanceof Compare;
 
-        boolean isSyspropKey = true;
-        try {
-            string2HugeKey(has.getKey());
-        } catch (IllegalArgumentException ignored) {
-            isSyspropKey = false;
-        }
-
-        return isSyspropKey ?
+        return isSysProp(has.getKey()) ?
                convCompare2SyspropRelation(graph, type, has) :
                convCompare2UserpropRelation(graph, type, has);
     }
@@ -294,7 +351,8 @@ public final class TraversalUtil {
         BiPredicate<?, ?> bp = has.getPredicate().getBiPredicate();
         assert bp instanceof Compare;
 
-        HugeKeys key = string2HugeKey(has.getKey());
+        HugeKeys key = token2HugeKey(has.getKey());
+        E.checkNotNull(key, "token key");
         Object value = convSysValueIfNeeded(graph, type, key, has.getValue());
 
         switch ((Compare) bp) {
@@ -373,13 +431,7 @@ public final class TraversalUtil {
                             "multiple values");
         }
 
-        HugeKeys hugeKey = null;
-        try {
-            hugeKey = string2HugeKey(originKey);
-        } catch (IllegalArgumentException ignored) {
-            // Ignore
-        }
-
+        HugeKeys hugeKey = token2HugeKey(originKey);
         List<?> valueList;
         if (hugeKey != null) {
             valueList = convSysListValueIfNeeded(graph, type, hugeKey, values);
@@ -412,7 +464,8 @@ public final class TraversalUtil {
         E.checkArgument(bp == Compare.eq, "CONTAINS query with relation " +
                         "'%s' is not supported", bp);
 
-        HugeKeys key = string2HugeKey(has.getKey());
+        HugeKeys key = token2HugeKey(has.getKey());
+        E.checkNotNull(key, "token key");
         Object value = has.getValue();
 
         if (keyForContainsKey(has.getKey())) {
@@ -431,6 +484,11 @@ public final class TraversalUtil {
     }
 
     public static HugeKeys string2HugeKey(String key) {
+        HugeKeys hugeKey = token2HugeKey(key);
+        return hugeKey != null ? hugeKey : HugeKeys.valueOf(key);
+    }
+
+    public static HugeKeys token2HugeKey(String key) {
         if (key.equals(T.label.getAccessor())) {
             return HugeKeys.LABEL;
         } else if (key.equals(T.id.getAccessor())) {
@@ -438,7 +496,7 @@ public final class TraversalUtil {
         } else if (keyForContainsKeyOrValue(key)) {
             return HugeKeys.PROPERTIES;
         }
-        return HugeKeys.valueOf(key);
+        return null;
     }
 
     public static boolean keyForContainsKeyOrValue(String key) {
@@ -467,9 +525,9 @@ public final class TraversalUtil {
     public static void convAllHasSteps(Traversal.Admin<?, ?> traversal) {
         // Extract all has steps in traversal
         @SuppressWarnings("rawtypes")
-        List<HasStep> steps = TraversalHelper
-                              .getStepsOfAssignableClassRecursively(
-                              HasStep.class, traversal);
+        List<HasStep> steps =
+                      TraversalHelper.getStepsOfAssignableClassRecursively(
+                      HasStep.class, traversal);
         HugeGraph graph = (HugeGraph) traversal.getGraph().get();
         for (HasStep<?> step : steps) {
             TraversalUtil.convHasStep(graph, step);
@@ -483,7 +541,8 @@ public final class TraversalUtil {
         }
     }
 
-    private static void convPredicateValue(HugeGraph graph, HasContainer has) {
+    private static void convPredicateValue(HugeGraph graph,
+                                           HasContainer has) {
         // No need to convert if key is sysprop
         if (isSysProp(has.getKey())) {
             return;
@@ -502,14 +561,8 @@ public final class TraversalUtil {
         if (QueryHolder.SYSPROP_PAGE.equals(key)) {
             return true;
         }
-        try {
-            string2HugeKey(key);
-            // Come here if key is ~id, ~label, ~key and ~value
-            return true;
-        } catch (IllegalArgumentException e) {
-            // Ignore
-            return false;
-        }
+        // Return true if key is ~id, ~label, ~key and ~value
+        return token2HugeKey(key) != null;
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -524,16 +577,14 @@ public final class TraversalUtil {
         }
     }
 
-    private static Object convSysValueIfNeeded(HugeGraph graph,HugeType type,
-                                               HugeKeys key, Object value) {
+    private static Object convSysValueIfNeeded(HugeGraph graph,
+                                               HugeType type,
+                                               HugeKeys key,
+                                               Object value) {
         if (key == HugeKeys.LABEL && !(value instanceof Id)) {
             value = SchemaLabel.getLabelId(graph, type, value);
         } else if (key == HugeKeys.ID && !(value instanceof Id)) {
-            if (type.isVertex()) {
-                value = HugeVertex.getIdValue(value);
-            } else {
-                value = HugeEdge.getIdValue(value);
-            }
+            value = HugeElement.getIdValue(type, value);
         }
         return value;
     }
@@ -552,15 +603,13 @@ public final class TraversalUtil {
     public static Iterator<Edge> filterResult(Vertex vertex,
                                               Directions dir,
                                               Iterator<Edge> edges) {
-        final List<Edge> list = new ArrayList<>();
-        while (edges.hasNext()) {
-            Edge edge = edges.next();
+        return new FilterIterator<>(edges, edge -> {
             if (dir == Directions.OUT && vertex.equals(edge.outVertex()) ||
                 dir == Directions.IN && vertex.equals(edge.inVertex())) {
-                list.add(edge);
+                return true;
             }
-        }
-        return list.iterator();
+            return false;
+        });
     }
 
     public static Query.Order convOrder(Order order) {
@@ -569,11 +618,26 @@ public final class TraversalUtil {
 
     private static <V> V validPredicateValue(V value, PropertyKey pkey) {
         V validValue = pkey.convValue(value, false);
-        E.checkArgumentNotNull(validValue,
-                               "Invalid data type of query value '%s', " +
-                               "expect '%s' for '%s', actual '%s'",
-                               value, pkey.dataType().clazz(), pkey.name(),
-                               value == null ? null : value.getClass());
+        if (validValue == null) {
+            if (pkey.cardinality() == Cardinality.SINGLE &&
+                value instanceof Collection) {
+                List<Class<?>> classes = new ArrayList<>();
+                for (Object v : (Collection<?>) value) {
+                    classes.add(v == null ? null : v.getClass());
+                }
+                E.checkArgument(false,
+                                "Invalid data type of query value in %s, " +
+                                "expect %s for '%s', actual got %s",
+                                value, pkey.dataType(), pkey.name(),
+                                value == null ? null : classes);
+            } else {
+                E.checkArgument(false,
+                                "Invalid data type of query value '%s', " +
+                                "expect %s for '%s', actual got %s",
+                                value, pkey.dataType(), pkey.name(),
+                                value == null ? null : value.getClass());
+            }
+        }
         return validValue;
     }
 
@@ -623,5 +687,103 @@ public final class TraversalUtil {
             }
         }
         return null;
+    }
+
+    public static P<Object> parsePredicate(String predicate) {
+        /*
+         * Extract P from json string like {"properties": {"age": "P.gt(18)"}}
+         * the `predicate` may actually be like "P.gt(18)"
+         */
+        Pattern pattern = Pattern.compile("^P\\.([a-z]+)\\(([\\S ]*)\\)$");
+        Matcher matcher = pattern.matcher(predicate);
+        if (!matcher.find()) {
+            throw new HugeException("Invalid predicate: %s", predicate);
+        }
+
+        String method = matcher.group(1);
+        String value = matcher.group(2);
+        switch (method) {
+            case "eq":
+                return P.eq(predicateNumber(value));
+            case "neq":
+                return P.neq(predicateNumber(value));
+            case "lt":
+                return P.lt(predicateNumber(value));
+            case "lte":
+                return P.lte(predicateNumber(value));
+            case "gt":
+                return P.gt(predicateNumber(value));
+            case "gte":
+                return P.gte(predicateNumber(value));
+            case "between":
+                Number[] params = predicateNumbers(value, 2);
+                return P.between(params[0], params[1]);
+            case "inside":
+                params = predicateNumbers(value, 2);
+                return P.inside(params[0], params[1]);
+            case "outside":
+                params = predicateNumbers(value, 2);
+                return P.outside(params[0], params[1]);
+            case "within":
+                return P.within(predicateArgs(value));
+            default:
+                throw new NotSupportException("predicate '%s'", method);
+        }
+    }
+
+    private static Number predicateNumber(String value) {
+        try {
+            return JsonUtil.fromJson(value, Number.class);
+        } catch (Exception e) {
+            // Try to parse date
+            if (e.getMessage().contains("not a valid number") ||
+                e.getMessage().contains("Unexpected character ('-'")) {
+                try {
+                    if (value.startsWith("\"")) {
+                        value = JsonUtil.fromJson(value, String.class);
+                    }
+                    return DateUtil.parse(value).getTime();
+                } catch (Exception ignored) {}
+            }
+
+            throw new HugeException(
+                      "Invalid value '%s', expect a number", e, value);
+        }
+    }
+
+    private static Number[] predicateNumbers(String value, int count) {
+        List<Number> values = predicateArgs(value);
+        if (values.size() != count) {
+            throw new HugeException("Invalid numbers size %s, expect %s",
+                                    values.size(), count);
+        }
+        for (int i = 0; i < count; i++) {
+            Object v = values.get(i);
+            if (v instanceof Number) {
+                continue;
+            }
+            try {
+                v = predicateNumber(v.toString());
+            } catch (Exception ignored) {
+                // pass
+            }
+            if (v instanceof Number) {
+                values.set(i, (Number) v);
+                continue;
+            }
+            throw new HugeException(
+                      "Invalid value '%s', expect a list of number", value);
+        }
+        return values.toArray(new Number[values.size()]);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <V> List<V> predicateArgs(String value) {
+        try {
+            return JsonUtil.fromJson("[" + value + "]", List.class);
+        } catch (Exception e) {
+            throw new HugeException(
+                      "Invalid value '%s', expect a list", e, value);
+        }
     }
 }

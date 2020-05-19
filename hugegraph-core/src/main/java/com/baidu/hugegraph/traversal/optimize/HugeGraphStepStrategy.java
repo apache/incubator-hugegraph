@@ -19,7 +19,9 @@
 
 package com.baidu.hugegraph.traversal.optimize;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.tinkerpop.gremlin.process.traversal.Traversal;
 import org.apache.tinkerpop.gremlin.process.traversal.TraversalStrategy.ProviderOptimizationStrategy;
@@ -64,6 +66,11 @@ public final class HugeGraphStepStrategy
 
             TraversalUtil.extractCount(newStep, traversal);
         }
+    }
+
+    @Override
+    public Set<Class<? extends ProviderOptimizationStrategy>> applyPost() {
+        return Collections.singleton(HugeCountStepStrategy.class);
     }
 
     public static HugeGraphStepStrategy instance() {

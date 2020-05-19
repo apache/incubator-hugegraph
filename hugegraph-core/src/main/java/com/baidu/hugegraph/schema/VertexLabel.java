@@ -27,15 +27,17 @@ import java.util.Map;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.schema.builder.SchemaBuilder;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.IdStrategy;
 
+import static com.baidu.hugegraph.backend.id.IdGenerator.ZERO;
+
 public class VertexLabel extends SchemaLabel {
 
-    public static final VertexLabel NONE =
-                        new VertexLabel(null, IdGenerator.of(0), "");
+    private static final String UNDEF = "~undefined";
+
+    public static final VertexLabel NONE = new VertexLabel(null, ZERO, UNDEF);
 
     private IdStrategy idStrategy;
     private List<Id> primaryKeys;
@@ -71,6 +73,18 @@ public class VertexLabel extends SchemaLabel {
         this.primaryKeys.addAll(Arrays.asList(ids));
     }
 
+    public boolean existsLinkLabel() {
+        return this.graph().existsLinkLabel(this.id());
+    }
+
+    public static VertexLabel undefined(HugeGraph graph) {
+        return new VertexLabel(graph, ZERO, UNDEF);
+    }
+
+    public static VertexLabel undefined(HugeGraph graph, Id id) {
+        return new VertexLabel(graph, id, UNDEF);
+    }
+
     public interface Builder extends SchemaBuilder<VertexLabel> {
 
         Id rebuildIndex();
@@ -92,6 +106,10 @@ public class VertexLabel extends SchemaLabel {
         Builder primaryKeys(String... keys);
 
         Builder nullableKeys(String... keys);
+
+        Builder ttl(long ttl);
+
+        Builder ttlStartTime(String ttlStartTime);
 
         Builder enableLabelIndex(boolean enable);
 

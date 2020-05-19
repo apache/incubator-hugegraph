@@ -19,22 +19,22 @@
 
 package com.baidu.hugegraph.backend.tx;
 
-import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
 
 public abstract class IndexableTransaction extends AbstractTransaction {
 
-    public IndexableTransaction(HugeGraph graph, BackendStore store) {
+    public IndexableTransaction(HugeGraphParams graph, BackendStore store) {
         super(graph, store);
     }
 
     @Override
-    public boolean hasUpdates() {
+    public boolean hasUpdate() {
         AbstractTransaction indexTx = this.indexTransaction();
-        boolean indexTxChanged = (indexTx != null && indexTx.hasUpdates());
-        return indexTxChanged || super.hasUpdates();
+        boolean indexTxChanged = (indexTx != null && indexTx.hasUpdate());
+        return indexTxChanged || super.hasUpdate();
     }
 
     @Override
@@ -51,10 +51,10 @@ public abstract class IndexableTransaction extends AbstractTransaction {
     @Override
     protected void commit2Backend() {
         BackendMutation mutation = this.prepareCommit();
-        BackendMutation txMutation = this.indexTransaction().prepareCommit();
-        assert !mutation.isEmpty() || !txMutation.isEmpty();
+        BackendMutation idxMutation = this.indexTransaction().prepareCommit();
+        assert !mutation.isEmpty() || !idxMutation.isEmpty();
         // Commit graph/schema updates and index updates with graph/schema tx
-        this.commitMutation2Backend(mutation, txMutation);
+        this.commitMutation2Backend(mutation, idxMutation);
     }
 
     @Override

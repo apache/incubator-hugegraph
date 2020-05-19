@@ -29,7 +29,6 @@ import com.baidu.hugegraph.exception.ExistedException;
 import com.baidu.hugegraph.exception.NotAllowException;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.PropertyKey;
-import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.Userdata;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Action;
@@ -38,7 +37,8 @@ import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.util.E;
 
-public class PropertyKeyBuilder implements PropertyKey.Builder {
+public class PropertyKeyBuilder extends AbstractBuilder
+                                implements PropertyKey.Builder {
 
     private Id id;
     private String name;
@@ -47,11 +47,11 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
     private AggregateType aggregateType;
     private boolean checkExist;
     private Userdata userdata;
-    private SchemaTransaction transaction;
 
-    public PropertyKeyBuilder(String name, SchemaTransaction transaction) {
+    public PropertyKeyBuilder(SchemaTransaction transaction,
+                              HugeGraph graph, String name) {
+        super(transaction, graph);
         E.checkNotNull(name, "name");
-        E.checkNotNull(transaction, "transaction");
         this.id = null;
         this.name = name;
         this.dataType = DataType.TEXT;
@@ -59,15 +59,13 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
         this.aggregateType = AggregateType.NONE;
         this.userdata = new Userdata();
         this.checkExist = true;
-        this.transaction = transaction;
     }
 
     @Override
     public PropertyKey build() {
-        Id id = this.transaction.validOrGenerateId(HugeType.PROPERTY_KEY,
-                                                   this.id, this.name);
-        HugeGraph graph = this.transaction.graph();
-        PropertyKey propertyKey = new PropertyKey(graph, id, this.name);
+        Id id = this.validOrGenerateId(HugeType.PROPERTY_KEY,
+                                       this.id, this.name);
+        PropertyKey propertyKey = new PropertyKey(this.graph(), id, this.name);
         propertyKey.dataType(this.dataType);
         propertyKey.cardinality(this.cardinality);
         propertyKey.aggregateType(this.aggregateType);
@@ -78,28 +76,31 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
     @Override
     public PropertyKey create() {
         HugeType type = HugeType.PROPERTY_KEY;
-        SchemaTransaction tx = this.transaction;
-        SchemaElement.checkName(this.name, tx.graph().configuration());
-        PropertyKey propertyKey = tx.getPropertyKey(this.name);
-        if (propertyKey != null) {
-            if (this.checkExist) {
-                throw new ExistedException(type, this.name);
+        this.checkSchemaName(this.name);
+
+        return this.lockCheckAndCreateSchema(type, this.name, name -> {
+            PropertyKey propertyKey = this.propertyKeyOrNull(name);
+            if (propertyKey != null) {
+                if (this.checkExist) {
+                    throw new ExistedException(type, name);
+                }
+                return propertyKey;
             }
+            this.checkSchemaIdIfRestoringMode(type, this.id);
+
+            Userdata.check(this.userdata, Action.INSERT);
+            this.checkAggregateType();
+
+            propertyKey = this.build();
+            assert propertyKey.name().equals(name);
+            this.graph().addPropertyKey(propertyKey);
             return propertyKey;
-        }
-        tx.checkIdIfRestoringMode(type, this.id);
-
-        Userdata.check(this.userdata, Action.INSERT);
-        this.checkAggregateType();
-
-        propertyKey = this.build();
-        tx.addPropertyKey(propertyKey);
-        return propertyKey;
+        });
     }
 
     @Override
     public PropertyKey append() {
-        PropertyKey propertyKey = this.transaction.getPropertyKey(this.name);
+        PropertyKey propertyKey = this.propertyKeyOrNull(this.name);
         if (propertyKey == null) {
             throw new NotFoundException("Can't update property key '%s' " +
                                         "since it doesn't exist", this.name);
@@ -108,13 +109,13 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
         Userdata.check(this.userdata, Action.APPEND);
 
         propertyKey.userdata(this.userdata);
-        this.transaction.addPropertyKey(propertyKey);
+        this.graph().addPropertyKey(propertyKey);
         return propertyKey;
     }
 
     @Override
     public PropertyKey eliminate() {
-        PropertyKey propertyKey = this.transaction.getPropertyKey(this.name);
+        PropertyKey propertyKey = this.propertyKeyOrNull(this.name);
         if (propertyKey == null) {
             throw new NotFoundException("Can't update property key '%s' " +
                                         "since it doesn't exist", this.name);
@@ -123,17 +124,17 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
         Userdata.check(this.userdata, Action.ELIMINATE);
 
         propertyKey.removeUserdata(this.userdata);
-        this.transaction.addPropertyKey(propertyKey);
+        this.graph().addPropertyKey(propertyKey);
         return propertyKey;
     }
 
     @Override
     public Id remove() {
-        PropertyKey propertyKey = this.transaction.getPropertyKey(this.name);
+        PropertyKey propertyKey = this.propertyKeyOrNull(this.name);
         if (propertyKey == null) {
             return null;
         }
-        this.transaction.removePropertyKey(propertyKey.id());
+        this.graph().removePropertyKey(propertyKey.id());
         return null;
     }
 

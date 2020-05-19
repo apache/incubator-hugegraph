@@ -89,7 +89,8 @@ public abstract class CassandraStore
 
     private void registerMetaHandlers() {
         this.registerMetaHandler("metrics", (session, meta, args) -> {
-            CassandraMetrics metrics = new CassandraMetrics(cluster(), this.conf);
+            CassandraMetrics metrics = new CassandraMetrics(this.sessions,
+                                                            this.conf);
             return metrics.getMetrics();
         });
     }
@@ -146,8 +147,10 @@ public abstract class CassandraStore
                     "Keyspace '%s' does not exist", this.keyspace))) {
                     throw e;
                 }
-                LOG.info("Failed to connect keyspace: {}, " +
-                         "try to init keyspace later", this.keyspace);
+                if (this.isSchemaStore()) {
+                    LOG.info("Failed to connect keyspace: {}, " +
+                             "try to init keyspace later", this.keyspace);
+                }
             }
         } catch (Throwable e) {
             try {
@@ -249,6 +252,14 @@ public abstract class CassandraStore
 
         CassandraTable table = this.table(CassandraTable.tableType(query));
         return table.query(this.sessions.session(), query);
+    }
+
+    @Override
+    public Number queryNumber(Query query) {
+        this.checkOpened();
+
+        CassandraTable table = this.table(CassandraTable.tableType(query));
+        return table.queryNumber(this.sessions.session(), query);
     }
 
     @Override
@@ -585,6 +596,11 @@ public abstract class CassandraStore
             CassandraSessionPool.Session session = super.sessions.session();
             return this.counters.getCounter(session, type);
         }
+
+        @Override
+        public boolean isSchemaStore() {
+            return true;
+        }
     }
 
     public static class CassandraGraphStore extends CassandraStore {
@@ -635,6 +651,11 @@ public abstract class CassandraStore
         public long getCounter(HugeType type) {
             throw new UnsupportedOperationException(
                       "CassandraGraphStore.getCounter()");
+        }
+
+        @Override
+        public boolean isSchemaStore() {
+            return false;
         }
     }
 }

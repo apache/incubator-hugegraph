@@ -29,7 +29,10 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.query.Aggregate;
+import com.baidu.hugegraph.backend.query.Aggregate.AggregateFunc;
 import com.baidu.hugegraph.backend.query.Condition;
+import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.IdPrefixQuery;
 import com.baidu.hugegraph.backend.query.IdRangeQuery;
 import com.baidu.hugegraph.backend.query.Query;
@@ -38,6 +41,7 @@ import com.baidu.hugegraph.backend.serializer.TextBackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendSession;
 import com.baidu.hugegraph.backend.store.BackendTable;
+import com.baidu.hugegraph.backend.store.Shard;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
@@ -47,15 +51,28 @@ public class InMemoryDBTable extends BackendTable<BackendSession,
                                                   TextBackendEntry> {
 
     protected final Map<Id, BackendEntry> store;
+    private final InMemoryShardSpliter shardSpliter;
 
     public InMemoryDBTable(HugeType type) {
         super(type.name());
         this.store = new ConcurrentHashMap<>();
+        this.shardSpliter = new InMemoryShardSpliter(this.table());
     }
 
     public InMemoryDBTable(HugeType type, Map<Id, BackendEntry> store) {
         super(type.name());
         this.store = store;
+        this.shardSpliter = new InMemoryShardSpliter(this.table());
+    }
+
+    @Override
+    protected void registerMetaHandlers() {
+        this.registerMetaHandler("splits", (session, meta, args) -> {
+            E.checkArgument(args.length == 1,
+                            "The args count of %s must be 1", meta);
+            long splitSize = (long) args[0];
+            return this.shardSpliter.getSplits(session, splitSize);
+        });
     }
 
     protected Map<Id, BackendEntry> store() {
@@ -111,8 +128,25 @@ public class InMemoryDBTable extends BackendTable<BackendSession,
     }
 
     @Override
+    public Number queryNumber(BackendSession session, Query query) {
+        Aggregate aggregate = query.aggregateNotNull();
+        if (aggregate.func() != AggregateFunc.COUNT) {
+            throw new NotSupportException(aggregate.toString());
+        }
+
+        assert aggregate.func() == AggregateFunc.COUNT;
+        Iterator<BackendEntry> results = this.query(session, query);
+        long total = 0L;
+        while (results.hasNext()) {
+            total += this.sizeOfBackendEntry(results.next());
+        }
+        return total;
+    }
+
+    @Override
     public Iterator<BackendEntry> query(BackendSession session, Query query) {
-        if (query.paging()) {
+        String page = query.page();
+        if (page != null && !page.isEmpty()) {
             throw new NotSupportException("paging by InMemoryDBStore");
         }
 
@@ -137,21 +171,51 @@ public class InMemoryDBTable extends BackendTable<BackendSession,
 
         // Query by condition(s)
         if (!query.conditions().isEmpty()) {
+            ConditionQuery condQuery = (ConditionQuery) query;
+            if (condQuery.containsScanCondition()) {
+                return this.queryByRange(condQuery);
+            }
             rs = this.queryByFilter(query.conditions(), rs);
         }
 
         Iterator<BackendEntry> iterator = rs.values().iterator();
 
-        if (query.offset() >= rs.size()) {
+        long offset = query.offset() - query.actualOffset();
+        if (offset >= rs.size()) {
+            query.skipOffset(rs.size());
             return QueryResults.emptyIterator();
         }
-        iterator = this.skipOffset(iterator, query.offset());
+        if (offset > 0L) {
+            query.skipOffset(offset);
+            iterator = this.skipOffset(iterator, offset);
+        }
 
-        if (query.limit() != Query.NO_LIMIT &&
-            query.offset() + query.limit() < rs.size()) {
+        if (!query.nolimit() && query.total() < rs.size()) {
             iterator = this.dropTails(iterator, query.limit());
         }
         return iterator;
+    }
+
+    private Iterator<BackendEntry> queryByRange(ConditionQuery query) {
+        E.checkArgument(query.relations().size() == 1,
+                        "Invalid scan with multi conditions: %s", query);
+        Condition.Relation scan = query.relations().iterator().next();
+        Shard shard = (Shard) scan.value();
+
+        int start = Long.valueOf(shard.start()).intValue();
+        int end = Long.valueOf(shard.end()).intValue();
+
+        List<BackendEntry> rs = new ArrayList<>(end - start);
+
+        Iterator<BackendEntry> iterator = this.store.values().iterator();
+        int i = 0;
+        while (iterator.hasNext() && i++ < end) {
+            BackendEntry entry = iterator.next();
+            if (i > start) {
+                rs.add(entry);
+            }
+        }
+        return rs.iterator();
     }
 
     protected Map<Id, BackendEntry> queryById(Set<Id> ids,
@@ -227,6 +291,10 @@ public class InMemoryDBTable extends BackendTable<BackendSession,
         return entries.iterator();
     }
 
+    protected long sizeOfBackendEntry(BackendEntry entry) {
+        return 1L;
+    }
+
     private static boolean matchCondition(BackendEntry item, Condition c) {
         // TODO: Compatible with BackendEntry
         TextBackendEntry entry = (TextBackendEntry) item;
@@ -250,5 +318,27 @@ public class InMemoryDBTable extends BackendTable<BackendSession,
             return r.test(entry.column(key));
         }
         return false;
+    }
+
+    private class InMemoryShardSpliter extends ShardSpliter {
+
+        public InMemoryShardSpliter(String table) {
+            super(table);
+        }
+
+        @Override
+        protected long maxKey() {
+            return InMemoryDBTable.this.store.size();
+        }
+
+        @Override
+        protected long estimateDataSize(BackendSession session) {
+            return 0L;
+        }
+
+        @Override
+        protected long estimateNumKeys(BackendSession session) {
+            return InMemoryDBTable.this.store.size();
+        }
     }
 }

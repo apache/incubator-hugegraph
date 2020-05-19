@@ -28,7 +28,7 @@ import com.baidu.hugegraph.util.StringEncoding;
 
 public enum DataType implements SerialEnum {
 
-    // This property has sub properties
+    UNKNOWN(0, "unknown", Object.class),
     OBJECT(1, "object", Object.class),
     BOOLEAN(2, "boolean", Boolean.class),
     BYTE(3, "byte", Byte.class),
@@ -41,9 +41,9 @@ public enum DataType implements SerialEnum {
     DATE(10, "date", Date.class),
     UUID(11, "uuid", UUID.class);
 
-    private byte code = 0;
-    private String name = null;
-    private Class<?> clazz = null;
+    private final byte code;
+    private final String name;
+    private final Class<?> clazz;
 
     static {
         SerialEnum.register(DataType.class);

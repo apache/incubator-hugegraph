@@ -19,7 +19,6 @@
 
 package com.baidu.hugegraph.unit.core;
 
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -29,33 +28,28 @@ import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.testutil.Whitebox;
-import com.baidu.hugegraph.unit.FakeObjects;
 
 public class BackendStoreSystemInfoTest {
 
     private static final String PK_BACKEND_INFO = "~backend_info";
-    private static HugeGraph graph;
-
-    @BeforeClass
-    public static void setup() {
-        FakeObjects fakeObjects = new FakeObjects();
-        graph = fakeObjects.graph();
-    }
 
     @Test
     public void testBackendStoreSystemInfoIllegalStateException() {
+        HugeGraph graph = Mockito.mock(HugeGraph.class);
         SchemaTransaction stx = Mockito.mock(SchemaTransaction.class);
-        Mockito.when(graph.schemaTransaction()).thenReturn(stx);
         Mockito.when(stx.getPropertyKey(PK_BACKEND_INFO))
-               .thenThrow(new IllegalStateException(
-                "Should not exist schema with same name '~backend_info'"));
+               .thenThrow(new IllegalStateException("Should not exist schema " +
+                          "with same name '~backend_info'"));
+        Mockito.when(stx.graph()).thenReturn(graph);
+        Mockito.when(graph.backendStoreInitialized()).thenReturn(true);
 
-        BackendStoreSystemInfo info = new BackendStoreSystemInfo(graph);
+        BackendStoreSystemInfo info = new BackendStoreSystemInfo(stx);
+
         Assert.assertThrows(HugeException.class, () -> {
             Whitebox.invoke(BackendStoreSystemInfo.class, "info", info);
         }, e -> {
-            Assert.assertTrue(e.getMessage().contains(
-                              "There exists multiple backend info"));
+            Assert.assertContains("There exists multiple backend info",
+                                  e.getMessage());
         });
     }
 }

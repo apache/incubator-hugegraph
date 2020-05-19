@@ -34,6 +34,8 @@ import com.baidu.hugegraph.util.StringEncoding;
 
 public abstract class IdGenerator {
 
+    public static final Id ZERO = IdGenerator.of(0L);
+
     public abstract Id generate(HugeVertex vertex);
 
     public final static Id of(String id) {
@@ -81,7 +83,7 @@ public abstract class IdGenerator {
     public final static Id ofStoredString(String id, IdType type) {
         switch (type) {
             case LONG:
-                return of(LongEncoding.decodeSortable(id));
+                return of(LongEncoding.decodeSignedB64(id));
             case UUID:
                 byte[] bytes = Base64.getDecoder().decode(id);
                 return of(bytes, IdType.UUID);
@@ -95,7 +97,7 @@ public abstract class IdGenerator {
     public final static String asStoredString(Id id) {
         switch (id.type()) {
             case LONG:
-                return LongEncoding.encodeSortable(id.asLong());
+                return LongEncoding.encodeSignedB64(id.asLong());
             case UUID:
                 return Base64.getEncoder().encodeToString(id.asBytes());
             case STRING:
@@ -201,7 +203,7 @@ public abstract class IdGenerator {
         @Override
         public String asString() {
             // TODO: encode with base64
-            return String.valueOf(this.id);
+            return Long.toString(this.id);
         }
 
         @Override

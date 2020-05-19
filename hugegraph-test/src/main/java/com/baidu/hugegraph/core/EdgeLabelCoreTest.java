@@ -31,7 +31,7 @@ import org.junit.Test;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
-import com.baidu.hugegraph.backend.store.BackendFeatures;
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.exception.NoIndexException;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.EdgeLabel;
@@ -41,6 +41,7 @@ import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.type.define.Frequency;
 import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.Events;
+import com.google.common.collect.ImmutableSet;
 
 public class EdgeLabelCoreTest extends SchemaCoreTest {
 
@@ -468,8 +469,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
         marko.addEdge("write", hadoop, "time", "2014-2-28", "weight", 0.5);
         graph.tx().commit();
 
-        BackendFeatures features = graph.graphTransaction().store().features();
-        if (!features.supportsQueryByLabel()) {
+        if (!storeFeatures().supportsQueryByLabel()) {
             Assert.assertThrows(NoIndexException.class, () -> {
                 graph.traversal().E().hasLabel("write").toList();
             });
@@ -478,6 +478,88 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
                                     .toList();
             Assert.assertEquals(2, edges.size());
         }
+    }
+
+    @Test
+    public void testAddEdgeLabelWithTtl() {
+        super.initPropertyKeys();
+
+        SchemaManager schema = graph().schema();
+
+        schema.propertyKey("date").asDate().ifNotExist().create();
+
+        schema.vertexLabel("person")
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .nullableKeys("city")
+              .create();
+
+        schema.vertexLabel("book")
+              .properties("name")
+              .primaryKeys("name")
+              .create();
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.edgeLabel("read").link("person", "book")
+                  .properties("date", "weight")
+                  .ttl(-86400L)
+                  .create();
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.edgeLabel("read").link("person", "book")
+                  .properties("date", "weight")
+                  .ttlStartTime("date")
+                  .create();
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.edgeLabel("read").link("person", "book")
+                  .properties("date", "weight")
+                  .ttlStartTime("name")
+                  .create();
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.edgeLabel("read").link("person", "book")
+                  .properties("date", "weight")
+                  .ttlStartTime("weight")
+                  .create();
+        });
+
+        EdgeLabel read = schema.edgeLabel("read").link("person", "book")
+                               .properties("date", "weight")
+                               .ttl(86400L)
+                               .create();
+
+        Assert.assertNotNull(read);
+        Assert.assertEquals("read", read.name());
+        assertVLEqual("person", read.sourceLabel());
+        assertVLEqual("book", read.targetLabel());
+        Assert.assertEquals(2, read.properties().size());
+        assertContainsPk(read.properties(), "date", "weight");
+        Assert.assertEquals(0, read.sortKeys().size());
+        Assert.assertEquals(Frequency.SINGLE, read.frequency());
+        Assert.assertEquals(86400L, read.ttl());
+        Assert.assertEquals(IdGenerator.ZERO, read.ttlStartTime());
+
+        EdgeLabel write = schema.edgeLabel("write").link("person", "book")
+                                .properties("date", "weight")
+                                .ttl(86400L)
+                                .ttlStartTime("date")
+                                .create();
+
+        Assert.assertNotNull(write);
+        Assert.assertEquals("write", write.name());
+        assertVLEqual("person", write.sourceLabel());
+        assertVLEqual("book", write.targetLabel());
+        Assert.assertEquals(2, write.properties().size());
+        assertContainsPk(write.properties(), "date", "weight");
+        Assert.assertEquals(0, write.sortKeys().size());
+        Assert.assertEquals(Frequency.SINGLE, write.frequency());
+        Assert.assertEquals(86400L, write.ttl());
+        Assert.assertNotNull(write.ttlStartTime());
+        assertContainsPk(ImmutableSet.of(write.ttlStartTime()), "date");
     }
 
     @Test
@@ -888,7 +970,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
         }, e -> {
             Assert.assertTrue(
                    e.getMessage().startsWith("Don't accept query by label") &&
-                   e.getMessage().endsWith("it disables label index"));
+                   e.getMessage().endsWith("label index is disabled"));
         });
 
         // Query by property index is ok
@@ -917,7 +999,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
         }, e -> {
             Assert.assertTrue(
                    e.getMessage().startsWith("Don't accept query by label") &&
-                   e.getMessage().endsWith("it disables label index"));
+                   e.getMessage().endsWith("label index is disabled"));
         });
 
         // Query by property index is ok
@@ -1132,7 +1214,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
         Assert.assertTrue(edgeLabels.contains(write));
 
         // clear cache
-        graph().schemaEventHub().call(Events.CACHE, "clear", null);
+        params().schemaEventHub().call(Events.CACHE, "clear", null);
 
         Assert.assertEquals(look, schema.getEdgeLabel("look"));
 

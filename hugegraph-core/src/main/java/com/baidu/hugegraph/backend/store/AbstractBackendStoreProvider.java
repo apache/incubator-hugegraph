@@ -138,7 +138,7 @@ public abstract class AbstractBackendStoreProvider
     @Override
     public void initSystemInfo(HugeGraph graph) {
         this.checkOpened();
-        BackendStoreSystemInfo info = new BackendStoreSystemInfo(graph);
+        BackendStoreSystemInfo info = graph.backendStoreSystemInfo();
         info.init();
         this.notifyAndWaitEvent(Events.STORE_INITED);
 

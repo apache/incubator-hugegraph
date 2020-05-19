@@ -23,7 +23,7 @@ import org.junit.Test;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.serializer.AbstractSerializer;
-import com.baidu.hugegraph.backend.serializer.BinaryInlineSerializer;
+import com.baidu.hugegraph.backend.serializer.BinaryScatterSerializer;
 import com.baidu.hugegraph.backend.serializer.BinarySerializer;
 import com.baidu.hugegraph.backend.serializer.SerializerFactory;
 import com.baidu.hugegraph.backend.serializer.TextSerializer;
@@ -40,8 +40,8 @@ public class SerializerFactoryTest extends BaseUnitTest {
         serializer = SerializerFactory.serializer("binary");
         Assert.assertEquals(BinarySerializer.class, serializer.getClass());
 
-        serializer = SerializerFactory.serializer("binaryinline");
-        Assert.assertEquals(BinaryInlineSerializer.class,
+        serializer = SerializerFactory.serializer("binaryscatter");
+        Assert.assertEquals(BinaryScatterSerializer.class,
                             serializer.getClass());
 
         Assert.assertThrows(BackendException.class, () -> {

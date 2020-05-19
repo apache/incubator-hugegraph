@@ -37,7 +37,6 @@ import com.baidu.hugegraph.exception.ExistedException;
 import com.baidu.hugegraph.exception.NotAllowException;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.PropertyKey;
-import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.Userdata;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.HugeType;
@@ -47,7 +46,8 @@ import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 import com.google.common.collect.ImmutableList;
 
-public class VertexLabelBuilder implements VertexLabel.Builder {
+public class VertexLabelBuilder extends AbstractBuilder
+                                implements VertexLabel.Builder {
 
     private Id id;
     private String name;
@@ -55,48 +55,53 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
     private Set<String> properties;
     private List<String> primaryKeys;
     private Set<String> nullableKeys;
+    private long ttl;
+    private String ttlStartTime;
     private Boolean enableLabelIndex;
     private Userdata userdata;
     private boolean checkExist;
 
-    private SchemaTransaction transaction;
-
-    public VertexLabelBuilder(String name, SchemaTransaction transaction) {
+    public VertexLabelBuilder(SchemaTransaction transaction,
+                              HugeGraph graph, String name) {
+        super(transaction, graph);
         E.checkNotNull(name, "name");
-        E.checkNotNull(transaction, "transaction");
         this.id = null;
         this.name = name;
         this.idStrategy = IdStrategy.DEFAULT;
         this.properties = new HashSet<>();
         this.primaryKeys = new ArrayList<>();
         this.nullableKeys = new HashSet<>();
+        this.ttl = 0L;
+        this.ttlStartTime = null;
         this.enableLabelIndex = null;
         this.userdata = new Userdata();
         this.checkExist = true;
-
-        this.transaction = transaction;
     }
 
     @Override
     public VertexLabel build() {
-        Id id = this.transaction.validOrGenerateId(HugeType.VERTEX_LABEL,
-                                                   this.id, this.name);
-        HugeGraph graph = this.transaction.graph();
-        VertexLabel vertexLabel = new VertexLabel(graph, id, this.name);
+        Id id = this.validOrGenerateId(HugeType.VERTEX_LABEL,
+                                       this.id, this.name);
+        VertexLabel vertexLabel = new VertexLabel(this.graph(), id, this.name);
         vertexLabel.idStrategy(this.idStrategy);
         vertexLabel.enableLabelIndex(this.enableLabelIndex == null ||
                                      this.enableLabelIndex);
+        vertexLabel.ttl(this.ttl);
+        if (this.ttlStartTime != null) {
+            vertexLabel.ttlStartTime(this.graph().propertyKey(
+                                     this.ttlStartTime).id());
+        }
         // Assign properties
         for (String key : this.properties) {
-            PropertyKey propertyKey = this.transaction.getPropertyKey(key);
+            PropertyKey propertyKey = this.graph().propertyKey(key);
             vertexLabel.property(propertyKey.id());
         }
         for (String key : this.primaryKeys) {
-            PropertyKey propertyKey = this.transaction.getPropertyKey(key);
+            PropertyKey propertyKey = this.graph().propertyKey(key);
             vertexLabel.primaryKey(propertyKey.id());
         }
         for (String key : this.nullableKeys) {
-            PropertyKey propertyKey = this.transaction.getPropertyKey(key);
+            PropertyKey propertyKey = this.graph().propertyKey(key);
             vertexLabel.nullableKey(propertyKey.id());
         }
         vertexLabel.userdata(this.userdata);
@@ -106,30 +111,35 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
     @Override
     public VertexLabel create() {
         HugeType type = HugeType.VERTEX_LABEL;
-        SchemaTransaction tx = this.transaction;
-        SchemaElement.checkName(this.name, tx.graph().configuration());
-        VertexLabel vertexLabel = tx.getVertexLabel(this.name);
-        if (vertexLabel != null) {
-            if (this.checkExist) {
-                throw new ExistedException(type, this.name);
+        this.checkSchemaName(this.name);
+
+        return this.lockCheckAndCreateSchema(type, this.name, name -> {
+            VertexLabel vertexLabel = this.vertexLabelOrNull(name);
+            if (vertexLabel != null) {
+                if (this.checkExist) {
+                    throw new ExistedException(type, name);
+                }
+                return vertexLabel;
             }
+            this.checkSchemaIdIfRestoringMode(type, this.id);
+
+            this.checkProperties(Action.INSERT);
+            this.checkIdStrategy();
+            this.checkNullableKeys(Action.INSERT);
+            Userdata.check(this.userdata, Action.INSERT);
+            this.checkTtl();
+            this.checkUserdata(Action.INSERT);
+
+            vertexLabel = this.build();
+            assert vertexLabel.name().equals(name);
+            this.graph().addVertexLabel(vertexLabel);
             return vertexLabel;
-        }
-        tx.checkIdIfRestoringMode(type, this.id);
-
-        this.checkProperties(Action.INSERT);
-        this.checkIdStrategy();
-        this.checkNullableKeys(Action.INSERT);
-        Userdata.check(this.userdata, Action.INSERT);
-
-        vertexLabel = this.build();
-        tx.addVertexLabel(vertexLabel);
-        return vertexLabel;
+        });
     }
 
     @Override
     public VertexLabel append() {
-        VertexLabel vertexLabel = this.transaction.getVertexLabel(this.name);
+        VertexLabel vertexLabel = this.vertexLabelOrNull(this.name);
         if (vertexLabel == null) {
             throw new NotFoundException("Can't update vertex label '%s' " +
                                         "since it doesn't exist", this.name);
@@ -141,21 +151,21 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
         Userdata.check(this.userdata, Action.APPEND);
 
         for (String key : this.properties) {
-            PropertyKey propertyKey = this.transaction.getPropertyKey(key);
+            PropertyKey propertyKey = this.graph().propertyKey(key);
             vertexLabel.property(propertyKey.id());
         }
         for (String key : this.nullableKeys) {
-            PropertyKey propertyKey = this.transaction.getPropertyKey(key);
+            PropertyKey propertyKey = this.graph().propertyKey(key);
             vertexLabel.nullableKey(propertyKey.id());
         }
         vertexLabel.userdata(this.userdata);
-        this.transaction.addVertexLabel(vertexLabel);
+        this.graph().addVertexLabel(vertexLabel);
         return vertexLabel;
     }
 
     @Override
     public VertexLabel eliminate() {
-        VertexLabel vertexLabel = this.transaction.getVertexLabel(this.name);
+        VertexLabel vertexLabel = this.vertexLabelOrNull(this.name);
         if (vertexLabel == null) {
             throw new NotFoundException("Can't update vertex label '%s' " +
                                         "since it doesn't exist", this.name);
@@ -167,27 +177,26 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
         Userdata.check(this.userdata, Action.ELIMINATE);
 
         vertexLabel.removeUserdata(this.userdata);
-        this.transaction.addVertexLabel(vertexLabel);
+        this.graph().addVertexLabel(vertexLabel);
         return vertexLabel;
     }
 
     @Override
     public Id remove() {
-        VertexLabel vertexLabel = this.transaction.getVertexLabel(this.name);
+        VertexLabel vertexLabel = this.vertexLabelOrNull(this.name);
         if (vertexLabel == null) {
             return null;
         }
-        return this.transaction.removeVertexLabel(vertexLabel.id());
+        return this.graph().removeVertexLabel(vertexLabel.id());
     }
 
     @Override
     public Id rebuildIndex() {
-        VertexLabel vertexLabel = this.transaction.graph()
-                                      .vertexLabel(this.name);
+        VertexLabel vertexLabel = this.vertexLabelOrNull(this.name);
         if (vertexLabel == null) {
             return null;
         }
-        return this.transaction.rebuildIndex(vertexLabel);
+        return this.graph().rebuildIndex(vertexLabel);
     }
 
     @Override
@@ -288,6 +297,18 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
     }
 
     @Override
+    public VertexLabel.Builder ttl(long ttl) {
+        this.ttl = ttl;
+        return this;
+    }
+
+    @Override
+    public VertexLabel.Builder ttlStartTime(String ttlStartTime) {
+        this.ttlStartTime = ttlStartTime;
+        return this;
+    }
+
+    @Override
     public VertexLabelBuilder enableLabelIndex(boolean enable) {
         this.enableLabelIndex = enable;
         return this;
@@ -322,9 +343,7 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
             case INSERT:
             case APPEND:
                 for (String key : this.properties) {
-                    PropertyKey pkey = this.transaction.getPropertyKey(key);
-                    E.checkArgumentNotNull(pkey,
-                                           "Undefined property key '%s'", key);
+                    this.graph().propertyKey(key);
                 }
                 break;
             case ELIMINATE:
@@ -354,16 +373,16 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
             return;
         }
 
-        VertexLabel vertexLabel = this.transaction.getVertexLabel(this.name);
+        VertexLabel vertexLabel = this.vertexLabelOrNull(this.name);
         // The originProps is empty when firstly create vertex label
         List<String> originProps = vertexLabel == null ?
                                    ImmutableList.of() :
-                                   this.transaction.graph()
+                                   this.graph()
                                        .mapPkId2Name(vertexLabel.properties());
         Set<String> appendProps = this.properties;
 
         E.checkArgument(CollectionUtil.union(originProps, appendProps)
-                        .containsAll(this.nullableKeys),
+                                      .containsAll(this.nullableKeys),
                         "The nullableKeys: %s to be created or appended " +
                         "must belong to the origin/new properties: %s/%s",
                         this.nullableKeys, originProps, appendProps);
@@ -453,6 +472,53 @@ public class VertexLabelBuilder implements VertexLabel.Builder {
             throw new NotAllowException(
                       "Not allowed to update enable_label_index " +
                       "for vertex label '%s'", this.name);
+        }
+    }
+
+    private void checkTtl() {
+        E.checkArgument(this.ttl >= 0,
+                        "The ttl must be >= 0, but got: %s", this.ttl);
+        if (this.ttl == 0L) {
+            E.checkArgument(this.ttlStartTime == null,
+                            "Can't set ttl start time if ttl is not set");
+            return;
+        }
+        if (this.ttlStartTime == null) {
+            return;
+        }
+        // Check whether the properties contains the specified keys
+        E.checkArgument(!this.properties.isEmpty(),
+                        "The properties can't be empty when exist " +
+                        "ttl start time for edge label '%s'", this.name);
+        E.checkArgument(this.properties.contains(this.ttlStartTime),
+                        "The ttl start time '%s' must be contained in " +
+                        "properties '%s' for vertex label '%s'",
+                        this.ttlStartTime, this.name, this.properties);
+        PropertyKey pkey = this.graph().propertyKey(this.ttlStartTime);
+        E.checkArgument(pkey.dataType().isDate(),
+                        "The ttl start time property must be date type," +
+                        "but got '%s(%s)'", this.ttlStartTime, pkey.dataType());
+    }
+
+    private void checkUserdata(Action action) {
+        switch (action) {
+            case INSERT:
+            case APPEND:
+                for (Map.Entry<String, Object> e : this.userdata.entrySet()) {
+                    if (e.getValue() == null) {
+                        throw new NotAllowException(
+                                  "Not allowed pass null userdata value when " +
+                                  "create or append edge label");
+                    }
+                }
+                break;
+            case ELIMINATE:
+            case DELETE:
+                // pass
+                break;
+            default:
+                throw new AssertionError(String.format(
+                          "Unknown schema action '%s'", action));
         }
     }
 }

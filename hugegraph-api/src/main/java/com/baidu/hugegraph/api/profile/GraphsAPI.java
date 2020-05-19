@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.api.profile;
 
 import java.io.File;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -41,13 +42,14 @@ import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
+import com.baidu.hugegraph.auth.HugeAuthenticator.RoleAction;
+import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.type.define.GraphMode;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 @Path("graphs")
@@ -65,25 +67,22 @@ public class GraphsAPI extends API {
     public Object list(@Context GraphManager manager,
                        @Context SecurityContext sc) {
         Set<String> graphs = manager.graphs();
-        String role = sc.getUserPrincipal().getName();
-        if ("admin".equals(role)) {
-            return ImmutableMap.of("graphs", graphs);
-        } else {
-            // Filter by user role
-            String graph = role;
-            if (graphs.contains(graph)) {
-                return ImmutableMap.of("graphs", ImmutableList.of(graph));
-            } else {
-                return ImmutableMap.of("graphs", ImmutableList.of());
+        // Filter by user role
+        Set<String> filterGraphs = new HashSet<>();
+        for (String graph : graphs) {
+            String role = RoleAction.roleFor(graph);
+            if (sc.isUserInRole(role)) {
+                filterGraphs.add(graph);
             }
         }
+        return ImmutableMap.of("graphs", filterGraphs);
     }
 
     @GET
     @Timed
     @Path("{name}")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=name"})
+    @RolesAllowed({"admin", "$owner=$name"})
     public Object get(@Context GraphManager manager,
                       @PathParam("name") String name) {
         LOG.debug("Get graph by name '{}'", name);
@@ -101,9 +100,10 @@ public class GraphsAPI extends API {
                         @PathParam("name") String name) {
         LOG.debug("Get graph configuration by name '{}'", name);
 
-        HugeGraph g = graph(manager, name);
+        HugeGraph g = graph4admin(manager, name);
 
-        File file = g.configuration().getFile();
+        HugeConfig config = (HugeConfig) g.configuration();
+        File file = config.getFile();
         if (file == null) {
             throw new NotSupportedException("Can't access the api in " +
                       "a node which started with non local file config.");
@@ -152,7 +152,7 @@ public class GraphsAPI extends API {
     @Path("{name}/mode")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed("admin")
+    @RolesAllowed({"admin", "$owner=$name"})
     public Map<String, GraphMode> mode(@Context GraphManager manager,
                                        @PathParam("name") String name) {
         LOG.debug("Get mode of graph '{}'", name);

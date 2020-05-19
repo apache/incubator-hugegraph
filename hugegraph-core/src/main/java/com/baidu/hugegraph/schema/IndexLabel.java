@@ -39,6 +39,7 @@ public class IndexLabel extends SchemaElement {
     private Id baseValue;
     private IndexType indexType;
     private List<Id> indexFields;
+    private long ttl;
 
     public IndexLabel(final HugeGraph graph, Id id, String name) {
         super(graph, id, name);
@@ -46,6 +47,7 @@ public class IndexLabel extends SchemaElement {
         this.baseValue = null;
         this.indexType = IndexType.SECONDARY;
         this.indexFields = new ArrayList<>();
+        this.ttl = 0L;
     }
 
     protected IndexLabel(long id, String name) {
@@ -118,6 +120,14 @@ public class IndexLabel extends SchemaElement {
                      "There should be only one field in %s index label, " +
                      "but got: %s", this.indexType.string(), this.indexFields);
         return this.indexFields.get(0);
+    }
+
+    public void ttl(long ttl) {
+        this.ttl = ttl;
+    }
+
+    public long ttl() {
+        return this.ttl;
     }
 
     // ABS of System index id must be below SchemaElement.MAX_PRIMITIVE_SYS_ID

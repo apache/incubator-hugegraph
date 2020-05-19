@@ -83,7 +83,7 @@ public final class HugeVertexStep<E extends Element>
     }
 
     private Iterator<Vertex> vertices(Traverser.Admin<Vertex> traverser) {
-        HugeGraph graph = (HugeGraph) traverser.get().graph();
+        HugeGraph graph = TraversalUtil.getGraph(this);
         Vertex vertex = traverser.get();
 
         Iterator<Edge> edges = this.edges(traverser);
@@ -104,7 +104,7 @@ public final class HugeVertexStep<E extends Element>
     }
 
     private Iterator<Edge> edges(Traverser.Admin<Vertex> traverser) {
-        HugeGraph graph = (HugeGraph) traverser.get().graph();
+        HugeGraph graph = TraversalUtil.getGraph(this);
         List<HasContainer> conditions = this.hasContainers;
 
         // Query for edge with conditions(else conditions for vertex)
@@ -113,16 +113,14 @@ public final class HugeVertexStep<E extends Element>
 
         Id vertex = (Id) traverser.get().id();
         Directions direction = Directions.convert(this.getDirection());
-        String[] edgeLabels = this.getEdgeLabels();
+        Id[] edgeLabels = graph.mapElName2Id(this.getEdgeLabels());
 
         LOG.debug("HugeVertexStep.edges(): vertex={}, direction={}, " +
                   "edgeLabels={}, has={}",
                   vertex, direction, edgeLabels, this.hasContainers);
 
-        Id[] edgeLabelIds = graph.mapElName2Id(edgeLabels);
-
         ConditionQuery query = GraphTransaction.constructEdgesQuery(
-                               vertex, direction, edgeLabelIds);
+                               vertex, direction, edgeLabels);
         // Query by sort-keys
         if (withEdgeCond && edgeLabels.length > 0) {
             TraversalUtil.fillConditionQuery(conditions, query, graph);

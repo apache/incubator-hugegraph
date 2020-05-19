@@ -246,8 +246,10 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
             }
 
             if (e.getMessage().contains("Column family not found")) {
-                LOG.info("Failed to open RocksDB '{}' with database '{}', " +
-                         "try to init CF later", dataPath, this.database);
+                if (this.isSchemaStore()) {
+                    LOG.info("Failed to open RocksDB '{}' with database '{}'," +
+                             " try to init CF later", dataPath, this.database);
+                }
                 List<String> none;
                 boolean existsOtherKeyspace = existsOtherKeyspace(dataPath);
                 if (existsOtherKeyspace) {
@@ -383,6 +385,15 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         HugeType tableType = RocksDBTable.tableType(query);
         RocksDBTable table = this.table(tableType);
         return table.query(this.session(tableType), query);
+    }
+
+    @Override
+    public Number queryNumber(Query query) {
+        this.checkOpened();
+
+        HugeType tableType = RocksDBTable.tableType(query);
+        RocksDBTable table = this.table(tableType);
+        return table.queryNumber(this.session(tableType), query);
     }
 
     @Override
@@ -632,6 +643,11 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
             Session session = super.sessions.session();
             return this.counters.getCounter(session, type);
         }
+
+        @Override
+        public boolean isSchemaStore() {
+            return true;
+        }
     }
 
     public static class RocksDBGraphStore extends RocksDBStore {
@@ -668,6 +684,11 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
                                  new RocksDBTables.ShardIndex(database));
             registerTableManager(HugeType.UNIQUE_INDEX,
                                  new RocksDBTables.UniqueIndex(database));
+        }
+
+        @Override
+        public boolean isSchemaStore() {
+            return false;
         }
 
         @Override
