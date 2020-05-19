@@ -20,14 +20,23 @@
 package com.baidu.hugegraph.backend.store.hbase;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellScanner;
 import org.apache.hadoop.hbase.CellUtil;
+import org.apache.hadoop.hbase.RegionMetrics;
+import org.apache.hadoop.hbase.ServerName;
+import org.apache.hadoop.hbase.Size;
+import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.Admin;
+import org.apache.hadoop.hbase.client.RegionInfo;
 import org.apache.hadoop.hbase.client.Result;
 import org.slf4j.Logger;
 
@@ -238,7 +247,8 @@ public class HbaseTable extends BackendTable<Session, BackendEntry> {
         byte[] end = this.shardSpliter.position(shard.end());
         if (page != null && !page.isEmpty()) {
             byte[] position = PageState.fromString(page).position();
-            E.checkArgument(Bytes.compare(position, start) >= 0,
+            E.checkArgument(start == null ||
+                            Bytes.compare(position, start) >= 0,
                             "Invalid page out of lower bound");
             start = position;
         }
@@ -278,6 +288,88 @@ public class HbaseTable extends BackendTable<Session, BackendEntry> {
 
         public HbaseShardSpliter(String table) {
             super(table);
+        }
+
+        @Override
+        public List<Shard> getSplits(Session session, long splitSize) {
+            E.checkArgument(splitSize >= MIN_SHARD_SIZE,
+                            "The split-size must be >= %s bytes, but got %s",
+                            MIN_SHARD_SIZE, splitSize);
+            List<Shard> shards = new ArrayList<>();
+            String namespace = session.namespace();
+            String table = this.table();
+
+            // Calc data size for each region
+            Map<String, Double> regionSizes = regionSizes(session, namespace,
+                                                          table);
+            // Get token range of each region
+            Map<String, Range> regionRanges = regionRanges(session, namespace,
+                                                           table);
+            // Split regions to shards
+            for (Map.Entry<String, Double> rs : regionSizes.entrySet()) {
+                String region = rs.getKey();
+                double size = rs.getValue();
+                Range range = regionRanges.get(region);
+                int count = calcSplitCount(size, splitSize);
+                shards.addAll(range.splitEven(count));
+            }
+            return shards;
+        }
+
+        private static Map<String, Double> regionSizes(Session session,
+                                                       String namespace,
+                                                       String table) {
+            Map<String, Double> regionSizes = new HashMap<>();
+            try (Admin admin = session.hbase().getAdmin()) {
+                TableName tableName = TableName.valueOf(namespace, table);
+                for (ServerName serverName : admin.getRegionServers()) {
+                    List<RegionMetrics> metrics = admin.getRegionMetrics(
+                                                  serverName, tableName);
+                    for (RegionMetrics metric : metrics) {
+                        double size = metric.getStoreFileSize()
+                                            .get(Size.Unit.BYTE);
+                        size += metric.getMemStoreSize().get(Size.Unit.BYTE);
+                        regionSizes.put(metric.getNameAsString(), size);
+                    }
+                }
+            } catch (Throwable e) {
+                throw new BackendException(String.format(
+                          "Failed to get region sizes of %s(%s)",
+                          table, namespace), e);
+            }
+            return regionSizes;
+        }
+
+        private static Map<String, Range> regionRanges(Session session,
+                                                       String namespace,
+                                                       String table) {
+            Map<String, Range> regionRanges = new HashMap<>();
+            TableName tableName = TableName.valueOf(namespace, table);
+            try (Admin admin = session.hbase().getAdmin()) {
+                for (RegionInfo regionInfo : admin.getRegions(tableName)) {
+                    byte[] start = regionInfo.getStartKey();
+                    byte[] end = regionInfo.getEndKey();
+                    regionRanges.put(regionInfo.getRegionNameAsString(),
+                                     new Range(start, end));
+                }
+            } catch (Throwable e) {
+                throw new BackendException(String.format(
+                          "Failed to get region ranges of %s(%s)",
+                          table, namespace), e);
+            }
+            return regionRanges;
+        }
+
+        private static int calcSplitCount(double totalSize, long splitSize) {
+            return (int) Math.ceil(totalSize / splitSize);
+        }
+
+        @Override
+        public byte[] position(String position) {
+            if (END.equals(position)) {
+                return null;
+            }
+            return decoder.decode(position);
         }
 
         @Override

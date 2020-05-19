@@ -57,6 +57,7 @@ import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
+import com.baidu.hugegraph.backend.store.BackendTable;
 import com.baidu.hugegraph.backend.store.Shard;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.config.CoreOptions;
@@ -4311,7 +4312,6 @@ public class EdgeCoreTest extends BaseCoreTest {
         Assert.assertEquals(0, edges.size()); // be careful!
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void testScanEdge() {
         HugeGraph graph = graph();
@@ -4322,9 +4322,10 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         Set<Edge> edges = new HashSet<>();
 
-        long splitSize = 1 * 1024 * 1024;
-        Object splits = graph.metadata(HugeType.EDGE_OUT, "splits", splitSize);
-        for (Shard split : (List<Shard>) splits) {
+        long splitSize = 1L * 1024L * 1024L;
+        List<Shard> splits = graph.metadata(HugeType.EDGE_OUT, "splits",
+                                            splitSize);
+        for (Shard split : splits) {
             ConditionQuery q = new ConditionQuery(HugeType.EDGE);
             q.scan(split.start(), split.end());
             edges.addAll(ImmutableList.copyOf(graph.edges(q)));
@@ -4344,8 +4345,16 @@ public class EdgeCoreTest extends BaseCoreTest {
         List<Edge> edges = new LinkedList<>();
 
         ConditionQuery query = new ConditionQuery(HugeType.EDGE);
-        query.scan(String.valueOf(Long.MIN_VALUE),
-                   String.valueOf(Long.MAX_VALUE));
+
+        String backend = graph.backend();
+        if (backend.equals("cassandra") || backend.equals("scylladb")) {
+            query.scan(String.valueOf(Long.MIN_VALUE),
+                       String.valueOf(Long.MAX_VALUE));
+        } else {
+            query.scan(BackendTable.ShardSpliter.START,
+                       BackendTable.ShardSpliter.END);
+        }
+
         query.limit(1);
         String page = PageInfo.PAGE_NONE;
         while (page != null) {

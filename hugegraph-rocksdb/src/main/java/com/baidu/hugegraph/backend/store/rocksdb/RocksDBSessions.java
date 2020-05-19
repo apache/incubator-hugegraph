@@ -22,6 +22,7 @@ package com.baidu.hugegraph.backend.store.rocksdb;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.rocksdb.RocksDBException;
 
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumnIterator;
@@ -63,6 +64,7 @@ public abstract class RocksDBSessions extends BackendSessionPool {
         public static final int SCAN_LTE_END = 0x30;
 
         public abstract String property(String table, String property);
+        public abstract Pair<byte[], byte[]> keyRange(String table);
 
         public abstract void put(String table, byte[] key, byte[] value);
         public abstract void merge(String table, byte[] key, byte[] value);

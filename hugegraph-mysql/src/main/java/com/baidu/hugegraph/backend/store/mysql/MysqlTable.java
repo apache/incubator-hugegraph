@@ -39,15 +39,18 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.page.PageState;
 import com.baidu.hugegraph.backend.query.Aggregate;
 import com.baidu.hugegraph.backend.query.Condition;
+import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendTable;
+import com.baidu.hugegraph.backend.store.Shard;
 import com.baidu.hugegraph.backend.store.TableDefine;
 import com.baidu.hugegraph.backend.store.mysql.MysqlEntryIterator.PagePosition;
 import com.baidu.hugegraph.backend.store.mysql.MysqlSessions.Session;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.google.common.collect.ImmutableList;
 
@@ -62,10 +65,23 @@ public abstract class MysqlTable
     private String insertTemplate;
     private String deleteTemplate;
 
+    private final MysqlShardSpliter shardSpliter;
+
     public MysqlTable(String table) {
         super(table);
         this.insertTemplate = null;
         this.deleteTemplate = null;
+        this.shardSpliter = new MysqlShardSpliter(this.table());
+    }
+
+    @Override
+    protected void registerMetaHandlers() {
+        this.registerMetaHandler("splits", (session, meta, args) -> {
+            E.checkArgument(args.length == 1,
+                            "The args count of %s must be 1", meta);
+            long splitSize = (long) args[0];
+            return this.shardSpliter.getSplits(session, splitSize);
+        });
     }
 
     public abstract TableDefine tableDefine();
@@ -378,6 +394,12 @@ public abstract class MysqlTable
             LOG.debug("Query only by id(s): {}", ids);
             selections = ids;
         } else {
+            ConditionQuery condQuery = (ConditionQuery) query;
+            if (condQuery.containsScanCondition()) {
+                assert ids.size() == 1;
+                return ImmutableList.of(queryByRange(condQuery, ids.get(0)));
+            }
+
             selections = new ArrayList<>(ids.size());
             for (StringBuilder selection : ids) {
                 // Query by condition
@@ -392,7 +414,8 @@ public abstract class MysqlTable
                 this.wrapOrderBy(selection, query);
             }
             if (query.paging()) {
-                this.wrapPage(selection, query);
+                this.wrapPage(selection, query, false);
+                wrapLimit(selection, query);
             } else {
                 if (aggregate == null && !hasOrder) {
                     select.append(this.orderByKeys());
@@ -404,6 +427,55 @@ public abstract class MysqlTable
         }
 
         return selections;
+    }
+
+    protected StringBuilder queryByRange(ConditionQuery query,
+                                         StringBuilder select) {
+        E.checkArgument(query.relations().size() == 1,
+                        "Invalid scan with multi conditions: %s", query);
+        Condition.Relation scan = query.relations().iterator().next();
+        Shard shard = (Shard) scan.value();
+
+        String page = query.page();
+        if (MysqlShardSpliter.START.equals(shard.start()) &&
+            MysqlShardSpliter.END.equals(shard.end()) &&
+            (page == null || page.isEmpty())) {
+            this.wrapLimit(select, query);
+            return select;
+        }
+
+        HugeKeys partitionKey = this.idColumnName().get(0);
+
+        if (page != null && !page.isEmpty()) {
+            // >= page
+            this.wrapPage(select, query, true);
+            // < end
+            WhereBuilder where = this.newWhereBuilder(false);
+            if (!MysqlShardSpliter.END.equals(shard.end())) {
+                where.and();
+                where.lt(formatKey(partitionKey), shard.end());
+            }
+            select.append(where.build());
+        } else {
+            // >= start
+            WhereBuilder where = this.newWhereBuilder();
+            boolean hasStart = false;
+            if (!MysqlShardSpliter.START.equals(shard.start())) {
+                where.gte(formatKey(partitionKey), shard.start());
+                hasStart = true;
+            }
+            // < end
+            if (!MysqlShardSpliter.END.equals(shard.end())) {
+                if (hasStart) {
+                    where.and();
+                }
+                where.lt(formatKey(partitionKey), shard.end());
+            }
+            select.append(where.build());
+        }
+        this.wrapLimit(select, query);
+
+        return select;
     }
 
     protected List<StringBuilder> queryId2Select(Query query,
@@ -540,7 +612,7 @@ public abstract class MysqlTable
         }
     }
 
-    protected void wrapPage(StringBuilder select, Query query) {
+    protected void wrapPage(StringBuilder select, Query query, boolean scan) {
         String page = query.page();
         // It's the first time if page is empty
         if (!page.isEmpty()) {
@@ -555,17 +627,18 @@ public abstract class MysqlTable
             }
 
             // Need add `where` to `select` when query is IdQuery
-            boolean startWithWhere = query.conditions().isEmpty();
-            WhereBuilder where = this.newWhereBuilder(startWithWhere);
-            where.gte(formatKeys(idColumnNames), values);
-            if (!startWithWhere) {
-                select.append(" AND");
+            boolean expectWhere = scan || query.conditions().isEmpty();
+            WhereBuilder where = this.newWhereBuilder(expectWhere);
+            if (!expectWhere) {
+                where.and();
             }
+            where.gte(formatKeys(idColumnNames), values);
             select.append(where.build());
         }
+    }
 
+    private void wrapLimit(StringBuilder select, Query query) {
         select.append(this.orderByKeys());
-
         if (!query.nolimit()) {
             // Fetch `limit + 1` rows for judging whether reached the last page
             select.append(" limit ");
@@ -615,5 +688,41 @@ public abstract class MysqlTable
             names.add(formatKey(key));
         }
         return names;
+    }
+
+    private static class MysqlShardSpliter extends ShardSpliter<Session> {
+
+        private static final String BASE64 =
+                "0123456789=?ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
+                "abcdefghijklmnopqrstuvwxyz";
+        private static final int COUNT = 64;
+
+        public MysqlShardSpliter(String table) {
+            super(table);
+        }
+
+        public List<Shard> getSplits(Session session, long splitSize) {
+            E.checkArgument(splitSize >= MIN_SHARD_SIZE,
+                            "The split-size must be >= %s bytes, but got %s",
+                            MIN_SHARD_SIZE, splitSize);
+            List<Shard> splits = new ArrayList<>(COUNT);
+            splits.add(new Shard(START, BASE64.substring(0, 1), 0));
+            for (int i = 0; i < COUNT - 1; i++) {
+                splits.add(new Shard(BASE64.substring(i, i + 1),
+                                     BASE64.substring(i + 1, i + 2), 0));
+            }
+            splits.add(new Shard(BASE64.substring(COUNT - 1, COUNT), END, 0));
+            return splits;
+        }
+
+        @Override
+        protected long estimateDataSize(Session session) {
+            return 0L;
+        }
+
+        @Override
+        protected long estimateNumKeys(Session session) {
+            return 0L;
+        }
     }
 }

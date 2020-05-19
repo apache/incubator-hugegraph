@@ -247,6 +247,11 @@ public class RocksDBSstSessions extends RocksDBSessions {
             throw new NotSupportException("RocksDBSstStore property()");
         }
 
+        @Override
+        public Pair<byte[], byte[]> keyRange(String table) {
+            return null;
+        }
+
         /**
          * Add a KV record to a table
          */

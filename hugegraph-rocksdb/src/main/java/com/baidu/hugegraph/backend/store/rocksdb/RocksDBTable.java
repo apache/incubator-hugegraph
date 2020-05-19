@@ -19,10 +19,13 @@
 
 package com.baidu.hugegraph.backend.store.rocksdb;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.backend.id.Id;
@@ -237,11 +240,19 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
         byte[] end = this.shardSpliter.position(shard.end());
         if (page != null && !page.isEmpty()) {
             byte[] position = PageState.fromString(page).position();
-            E.checkArgument(Bytes.compare(position, start) >= 0,
+            E.checkArgument(start == null ||
+                            Bytes.compare(position, start) >= 0,
                             "Invalid page out of lower bound");
             start = position;
         }
-        return session.scan(this.table(), start, end);
+        if (start == null) {
+            start = ShardSpliter.START_BYTES;
+        }
+        int type = Session.SCAN_GTE_BEGIN;
+        if (end != null) {
+            type |= Session.SCAN_LT_END;
+        }
+        return session.scan(this.table(), start, end, type);
     }
 
     protected static final BackendEntryIterator newEntryIterator(
@@ -274,6 +285,34 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
         }
 
         @Override
+        public List<Shard> getSplits(Session session, long splitSize) {
+            E.checkArgument(splitSize >= MIN_SHARD_SIZE,
+                            "The split-size must be >= %s bytes, but got %s",
+                            MIN_SHARD_SIZE, splitSize);
+
+            Pair<byte[], byte[]> keyRange = session.keyRange(this.table());
+            if (keyRange == null || keyRange.getRight() == null) {
+                return super.getSplits(session, splitSize);
+            }
+
+            long size = this.estimateDataSize(session);
+            if (size <= 0) {
+                size = this.estimateNumKeys(session) * ESTIMATE_BYTES_PER_KV;
+            }
+
+            double count = Math.ceil(size / (double) splitSize);
+            if (count <= 0) {
+                count = 1;
+            }
+
+            Range range = new Range(keyRange.getLeft(),
+                                    Range.increase(keyRange.getRight()));
+            List<Shard> splits = new ArrayList<>((int) count);
+            splits.addAll(range.splitEven((int) count));
+            return splits;
+        }
+
+        @Override
         public long estimateDataSize(Session session) {
             long mem = Long.parseLong(session.property(this.table(), MEM_SIZE));
             long sst = Long.parseLong(session.property(this.table(), SST_SIZE));
@@ -283,6 +322,14 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
         @Override
         public long estimateNumKeys(Session session) {
             return Long.parseLong(session.property(this.table(), NUM_KEYS));
+        }
+
+        @Override
+        public byte[] position(String position) {
+            if (END.equals(position)) {
+                return null;
+            }
+            return decoder.decode(position);
         }
     }
 }
