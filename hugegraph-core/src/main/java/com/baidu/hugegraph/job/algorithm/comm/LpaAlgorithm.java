@@ -152,9 +152,10 @@ public class LpaAlgorithm extends AbstractCommAlgorithm {
                 if (this.voteCommunityAndUpdate(v, edgeLabel, dir, degree)) {
                     changed.incrementAndGet();
                 }
+            }, () -> {
+                // commit when finished
+                this.graph().tx().commit();
             });
-
-            this.graph().tx().commit();
 
             return total == 0L ? 0d : changed.doubleValue() / total;
         }
