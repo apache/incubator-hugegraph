@@ -44,6 +44,7 @@ import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.iterator.MapperIterator;
@@ -69,6 +70,7 @@ public class HugeTraverser {
     public static final String DEFAULT_PATHS_LIMIT = "10";
     public static final String DEFAULT_LIMIT = "100";
     public static final String DEFAULT_DEGREE = "10000";
+    public static final String DEFAULT_SKIP_DEGREE = "100000";
     public static final String DEFAULT_SAMPLE = "100";
     public static final String DEFAULT_MAX_DEPTH = "50";
     public static final String DEFAULT_WEIGHT = "0";
@@ -357,6 +359,43 @@ public class HugeTraverser {
             throw new HugeException("Exceed capacity '%s' while finding %s",
                                     capacity, traverse);
         }
+    }
+
+    public static void checkSkipDegree(long skipDegree, long degree,
+                                       long capacity) {
+        E.checkArgument(skipDegree >= 0L || skipDegree == NO_LIMIT,
+                        "The skipped degree must be >= 0, but got '%s'",
+                        skipDegree);
+        if (capacity != NO_LIMIT) {
+            E.checkArgument(degree != NO_LIMIT && degree < capacity,
+                            "The degree must be < capacity");
+            E.checkArgument(skipDegree < capacity,
+                            "The skipped degree must be < capacity");
+        }
+        if (skipDegree > 0L) {
+            E.checkArgument(degree != NO_LIMIT && skipDegree >= degree,
+                            "The skipped degree must be >= degree, " +
+                            "but got skipped degree '%s' and degree '%s'",
+                            skipDegree, degree);
+        }
+    }
+
+    public static Iterator<Edge> skipSuperNodeIfNeeded(Iterator<Edge> edges,
+                                                       long degree,
+                                                       long skipDegree) {
+        if (skipDegree <= 0L) {
+            return edges;
+        }
+        List<Edge> edgeList = new ArrayList<>();
+        for (int i = 1; edges.hasNext(); i++) {
+            if (i <= degree) {
+                edgeList.add(edges.next());
+            }
+            if (i >= skipDegree) {
+                return QueryResults.emptyIterator();
+            }
+        }
+        return edgeList.iterator();
     }
 
     protected static <V> Set<V> newSet() {

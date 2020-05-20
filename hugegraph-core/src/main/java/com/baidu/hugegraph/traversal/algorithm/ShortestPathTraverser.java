@@ -19,10 +19,8 @@
 
 package com.baidu.hugegraph.traversal.algorithm;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -30,7 +28,6 @@ import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
@@ -120,25 +117,6 @@ public class ShortestPathTraverser extends HugeTraverser {
         return paths;
     }
 
-    private static void checkSkipDegree(long skipDegree, long degree,
-                                        long capacity) {
-        E.checkArgument(skipDegree >= 0L,
-                        "The skipped degree must be >= 0, but got '%s'",
-                        skipDegree);
-        if (capacity != NO_LIMIT) {
-            E.checkArgument(degree != NO_LIMIT && degree < capacity,
-                            "The degree must be < capacity");
-            E.checkArgument(skipDegree < capacity,
-                            "The skipped degree must be < capacity");
-        }
-        if (skipDegree > 0L) {
-            E.checkArgument(degree != NO_LIMIT && skipDegree >= degree,
-                            "The skipped degree must be >= degree, " +
-                            "but got skipped degree '%s' and degree '%s'",
-                            skipDegree, degree);
-        }
-    }
-
     private class Traverser {
 
         // TODO: change Map to Set to reduce memory cost
@@ -175,7 +153,8 @@ public class ShortestPathTraverser extends HugeTraverser {
             for (Node v : this.sources.values()) {
                 Iterator<Edge> edges = edgesOfVertex(v.id(), this.direction,
                                                      this.label, degree);
-                edges = this.skipSuperNodeIfNeeded(edges);
+                edges = skipSuperNodeIfNeeded(edges, this.degree,
+                                              this.skipDegree);
                 while (edges.hasNext()) {
                     HugeEdge edge = (HugeEdge) edges.next();
                     Id target = edge.id().otherVertexId();
@@ -225,7 +204,8 @@ public class ShortestPathTraverser extends HugeTraverser {
             for (Node v : this.targets.values()) {
                 Iterator<Edge> edges = edgesOfVertex(v.id(), opposite,
                                                      this.label, degree);
-                edges = this.skipSuperNodeIfNeeded(edges);
+                edges = skipSuperNodeIfNeeded(edges, this.degree,
+                                              this.skipDegree);
                 while (edges.hasNext()) {
                     HugeEdge edge = (HugeEdge) edges.next();
                     Id target = edge.id().otherVertexId();
@@ -261,22 +241,6 @@ public class ShortestPathTraverser extends HugeTraverser {
             this.size += newVertices.size();
 
             return paths;
-        }
-
-        private Iterator<Edge> skipSuperNodeIfNeeded(Iterator<Edge> edges) {
-            if (this.skipDegree <= 0L) {
-                return edges;
-            }
-            List<Edge> edgeList = new ArrayList<>();
-            for (int i = 1; edges.hasNext(); i++) {
-                if (i <= this.degree) {
-                    edgeList.add(edges.next());
-                }
-                if (i >= this.skipDegree) {
-                    return QueryResults.emptyIterator();
-                }
-            }
-            return edgeList.iterator();
         }
 
         private boolean superNode(Id vertex, Directions direction) {

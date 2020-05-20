@@ -47,7 +47,6 @@ import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
-import com.google.common.collect.ImmutableMap;
 
 @Path("graphs/{graph}/traversers/kout")
 @Singleton
@@ -71,14 +70,12 @@ public class KoutAPI extends API {
                       @QueryParam("capacity")
                       @DefaultValue(DEFAULT_CAPACITY) long capacity,
                       @QueryParam("limit")
-                      @DefaultValue(DEFAULT_ELEMENTS_LIMIT) long limit,
-                      @QueryParam("count_only")
-                      @DefaultValue("false") boolean countOnly) {
+                      @DefaultValue(DEFAULT_ELEMENTS_LIMIT) long limit) {
         LOG.debug("Graph [{}] get k-out from '{}' with " +
                   "direction '{}', edge label '{}', max depth '{}', nearest " +
-                  "'{}', max degree '{}', capacity '{}', limit '{}' and " +
-                  "count only '{}'", graph, source, direction, edgeLabel, depth,
-                  nearest, degree, capacity, limit, countOnly);
+                  "'{}', max degree '{}', capacity '{}' and limit '{}'",
+                  graph, source, direction, edgeLabel, depth, nearest,
+                  degree, capacity, limit);
 
         Id sourceId = VertexAPI.checkAndParseVertexId(source);
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
@@ -88,10 +85,6 @@ public class KoutAPI extends API {
         HugeTraverser traverser = new HugeTraverser(g);
         Set<Id> ids = traverser.kout(sourceId, dir, edgeLabel, depth,
                                      nearest, degree, capacity, limit);
-        if (countOnly) {
-            return manager.serializer(g).writeMap(ImmutableMap.of("count",
-                                                                  ids.size()));
-        }
         return manager.serializer(g).writeList("vertices", ids);
     }
 }

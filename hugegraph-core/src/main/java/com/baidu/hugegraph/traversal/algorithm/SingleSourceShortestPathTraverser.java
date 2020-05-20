@@ -95,25 +95,6 @@ public class SingleSourceShortestPathTraverser extends HugeTraverser {
         }
     }
 
-    private static void checkSkipDegree(long skipDegree, long degree,
-                                        long capacity) {
-        E.checkArgument(skipDegree >= 0L,
-                        "The skipped degree must be >= 0, but got '%s'",
-                        skipDegree);
-        if (capacity != NO_LIMIT) {
-            E.checkArgument(degree != NO_LIMIT && degree < capacity,
-                            "The degree must be < capacity");
-            E.checkArgument(skipDegree < capacity,
-                            "The skipped degree must be < capacity");
-        }
-        if (skipDegree > 0L) {
-            E.checkArgument(degree != NO_LIMIT && skipDegree >= degree,
-                            "The skipped degree must be >= degree, " +
-                            "but got skipped degree '%s' and degree '%s'",
-                            skipDegree, degree);
-        }
-    }
-
     private class Traverser {
 
         private WeightedPaths findingNodes = new WeightedPaths();
