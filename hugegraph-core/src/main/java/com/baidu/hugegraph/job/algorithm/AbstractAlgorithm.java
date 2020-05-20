@@ -325,11 +325,16 @@ public abstract class AbstractAlgorithm implements Algorithm {
 
         protected long traverse(String sourceLabel, String sourceCLabel,
                                 Consumer<Vertex> consumer) {
+            return this.traverse(sourceLabel, sourceCLabel, consumer, null);
+        }
+
+        protected long traverse(String sourceLabel, String sourceCLabel,
+                                Consumer<Vertex> consumer, Runnable done) {
             Iterator<Vertex> vertices = this.vertices(sourceLabel, sourceLabel,
                                                       Query.NO_LIMIT);
 
             Consumers<Vertex> consumers = new Consumers<>(this.executor,
-                                                          consumer);
+                                                          consumer, done);
             consumers.start();
 
             long total = 0L;

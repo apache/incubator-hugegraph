@@ -122,7 +122,7 @@ public class Consumers<V> {
 
     public void provide(V v) {
         if (this.executor == null) {
-            // do job directly
+            // do job directly if without thread pool
             this.consumer.accept(v);
         } else {
             try {
@@ -135,7 +135,12 @@ public class Consumers<V> {
 
     public void await() {
         this.ending = true;
-        if (this.executor != null) {
+        if (this.executor == null) {
+            // call done() directly if without thread pool
+            if (this.done != null) {
+                this.done.run();
+            }
+        } else {
             try {
                 this.latch.await();
             } catch (InterruptedException e) {
