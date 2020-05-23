@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Future;
@@ -482,7 +483,6 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
     @Override
     public Variables variables() {
-        this.verifyStatusPermission();
         // Just return proxy
         return new VariablesProxy(this.hugegraph.variables());
     }
@@ -604,7 +604,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     private void verifyAdminPermission() {
-        verifyPermission(HugePermission.ALL, ResourceType.ROOT);
+        verifyPermission(HugePermission.ANY, ResourceType.ROOT);
     }
 
     private void verifyStatusPermission() {
@@ -809,45 +809,47 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
         @Override
         public <V> Future<?> schedule(HugeTask<V> task) {
-            verifyTaskPermission(HugePermission.WRITE);
+            verifyTaskPermission(HugePermission.EXECUTE);
             task.context(getContextString());
             return this.taskScheduler.schedule(task);
         }
 
         @Override
         public <V> boolean cancel(HugeTask<V> task) {
-            verifyTaskPermission(HugePermission.WRITE);
+            verifyTaskPermission(HugePermission.WRITE, task);
             return this.taskScheduler.cancel(task);
         }
 
         @Override
         public <V> void save(HugeTask<V> task) {
-            verifyTaskPermission(HugePermission.WRITE);
+            verifyTaskPermission(HugePermission.WRITE, task);
             this.taskScheduler.save(task);
         }
 
         @Override
         public <V> HugeTask<V> task(Id id) {
-            verifyTaskPermission(HugePermission.READ);
-            return this.taskScheduler.task(id);
+            return verifyTaskPermission(HugePermission.READ,
+                                        this.taskScheduler.task(id));
         }
 
         @Override
         public <V> Iterator<HugeTask<V>> tasks(List<Id> ids) {
-            verifyTaskPermission(HugePermission.READ);
-            return this.taskScheduler.tasks(ids);
+            return verifyTaskPermission(HugePermission.READ,
+                                        this.taskScheduler.tasks(ids));
         }
 
         @Override
         public <V> Iterator<HugeTask<V>> tasks(TaskStatus status,
                                                long limit, String page) {
-            verifyTaskPermission(HugePermission.READ);
-            return this.taskScheduler.tasks(status, limit, page);
+            Iterator<HugeTask<V>> tasks = this.taskScheduler.tasks(status,
+                                                                   limit, page);
+            return verifyTaskPermission(HugePermission.READ, tasks);
         }
 
         @Override
         public <V> HugeTask<V> delete(Id id) {
-            verifyTaskPermission(HugePermission.DELETE);
+            verifyTaskPermission(HugePermission.DELETE,
+                                 this.taskScheduler.task(id));
             return this.taskScheduler.delete(id);
         }
 
@@ -884,8 +886,44 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         }
 
         private void verifyTaskPermission(HugePermission perm) {
-            // TODO: verify task details
             verifyPermission(perm, ResourceType.TASK);
+        }
+
+        private <V> HugeTask<V> verifyTaskPermission(HugePermission perm,
+                                                     HugeTask<V> task) {
+            verifyPermission(perm, ResourceType.TASK);
+            if (!hasTaskPermission(task)) {
+                String error = String.format("Permission denied: %s task(%s)",
+                                             perm, task.id());
+                throw new ForbiddenException(error);
+            }
+            return task;
+        }
+
+        private <V> Iterator<HugeTask<V>> verifyTaskPermission(
+                                          HugePermission perm,
+                                          Iterator<HugeTask<V>> tasks) {
+            verifyPermission(perm, ResourceType.TASK);
+            return new FilterIterator<>(tasks, this::hasTaskPermission);
+        }
+
+        private boolean hasTaskPermission(HugeTask<?> task) {
+            Context context = getContext();
+            if (context == null) {
+                return false;
+            }
+            User currentUser = context.user();
+
+            User taskUser = User.fromJson(task.context());
+            if (taskUser == null) {
+                return false;
+            }
+
+            if (Objects.equals(currentUser.getName(), taskUser.getName()) ||
+                RolePerm.match(currentUser.role(), taskUser.role(), null)) {
+                return true;
+            }
+            return false;
         }
     }
 

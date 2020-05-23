@@ -99,8 +99,6 @@ public class ResourceObject<V> {
 
         GREMLIN,
 
-        GREMLIN_JOB,
-
         TASK,
 
         PROPERTY_KEY,

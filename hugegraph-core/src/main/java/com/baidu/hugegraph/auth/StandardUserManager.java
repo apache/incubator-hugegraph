@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.Set;
 
 import com.baidu.hugegraph.HugeGraphParams;
-import com.baidu.hugegraph.auth.RolePermission;
 import com.baidu.hugegraph.auth.HugeUser.P;
 import com.baidu.hugegraph.auth.SchemaDefine.UserElement;
 import com.baidu.hugegraph.backend.cache.Cache;

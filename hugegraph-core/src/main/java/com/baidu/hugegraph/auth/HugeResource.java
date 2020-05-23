@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.shaded.jackson.annotation.JsonProperty;
 import org.apache.tinkerpop.shaded.jackson.core.JsonGenerator;
@@ -253,6 +254,18 @@ public class HugeResource {
     @Override
     public String toString() {
         return JsonUtil.toJson(this);
+    }
+
+    public static boolean allowed(ResourceObject<?> resourceObject) {
+        // Allowed to access system(hidden) schema by anyone
+        if (resourceObject.type().isSchema()) {
+            Namifiable schema = (Namifiable) resourceObject.operated();
+            if (Hidden.isHidden(schema.name())) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public static HugeResource parseResource(String resource) {
