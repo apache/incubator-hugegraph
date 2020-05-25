@@ -38,6 +38,7 @@ import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.schema.EdgeLabel;
+import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.traversal.algorithm.CountTraverser;
@@ -71,16 +72,16 @@ public class CountAPI extends API {
         E.checkArgumentNotNull(request.steps != null &&
                                !request.steps.isEmpty(),
                                "The steps of request can't be null or empty");
-        E.checkArgumentNotNull(request.dedup == NO_LIMIT ||
-                               request.dedup >= 0L,
-                               "The dedup of request must >= 0, but got '%s'",
-                               request.dedup);
+        E.checkArgumentNotNull(request.dedupSize == NO_LIMIT ||
+                               request.dedupSize >= 0L,
+                               "The dedupSize of request must >= 0, but got '%s'",
+                               request.dedupSize);
 
         HugeGraph g = graph(manager, graph);
         List<CountTraverser.Step> steps = step(g, request);
         CountTraverser traverser = new CountTraverser(g);
         long count = traverser.count(sourceId, steps, request.containsTraversed,
-                                     request.dedup);
+                                     request.dedupSize);
 
         return manager.serializer(g).writeMap(ImmutableMap.of("count", count));
     }
@@ -103,15 +104,15 @@ public class CountAPI extends API {
         public List<Step> steps;
         @JsonProperty("contains_traversed")
         public boolean containsTraversed = false;
-        @JsonProperty("dedup")
-        public long dedup = 1000000L;
+        @JsonProperty("dedup_size")
+        public long dedupSize = 1000000L;
 
         @Override
         public String toString() {
             return String.format("CountRequest{source=%s,steps=%s," +
-                                 "contains_traversed=%s,dedup=%s}",
+                                 "contains_traversed=%s,dedupSize=%s}",
                                  this.source, this.steps,
-                                 this.containsTraversed, this.dedup);
+                                 this.containsTraversed, this.dedupSize);
         }
     }
 
@@ -121,6 +122,8 @@ public class CountAPI extends API {
         public Directions direction = Directions.BOTH;
         @JsonProperty("labels")
         public List<String> labels;
+        @JsonProperty("properties")
+        public Map<String, Object> properties;
         @JsonProperty("degree")
         public long degree = Long.valueOf(DEFAULT_DEGREE);
         @JsonProperty("skip_degree")
@@ -130,8 +133,9 @@ public class CountAPI extends API {
             E.checkArgument(this.degree == NO_LIMIT || this.degree > 0,
                             "The degree must be > 0, but got: %s",
                             this.degree);
-            E.checkArgument(this.skipDegree >= 0,
-                            "The skip degree must be > 0, but got: %s",
+            E.checkArgument(this.skipDegree == NO_LIMIT ||
+                            this.skipDegree >= 0,
+                            "The skip degree must be >= 0, but got: %s",
                             this.skipDegree);
 
             Map<Id, String> labelIds = new HashMap<>();
@@ -141,15 +145,23 @@ public class CountAPI extends API {
                     labelIds.put(el.id(), label);
                 }
             }
+            Map<Id, Object> pks = null;
+            if (this.properties != null && !this.properties.isEmpty()) {
+                pks = new HashMap<>(this.properties.size());
+                for (Map.Entry<String, Object> e: this.properties.entrySet()) {
+                    PropertyKey pk = graph.propertyKey(e.getKey());
+                    pks.put(pk.id(), e.getValue());
+                }
+            }
             return new CountTraverser.Step(this.direction, labelIds,
-                                           this.degree, this.skipDegree);
+                                           pks, this.degree, this.skipDegree);
         }
 
         @Override
         public String toString() {
-            return String.format("Step{direction=%s,labels=%s," +
+            return String.format("Step{direction=%s,labels=%s,properties=%s" +
                                  "degree=%s,skipDegree=%s}",
-                                 this.direction, this.labels,
+                                 this.direction, this.labels, this.properties,
                                  this.degree, this.skipDegree);
         }
     }

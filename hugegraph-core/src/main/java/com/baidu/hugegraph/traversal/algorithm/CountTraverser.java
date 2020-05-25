@@ -25,79 +25,85 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.lang.mutable.MutableLong;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Aggregate;
+import com.baidu.hugegraph.backend.query.Condition;
+import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.iterator.FilterIterator;
 import com.baidu.hugegraph.iterator.FlatMapperIterator;
 import com.baidu.hugegraph.structure.HugeEdge;
+import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
 
 public class CountTraverser extends HugeTraverser {
 
     private boolean containsTraversed = false;
-    private long dedup = 1000000L;
+    private long dedupSize = 1000000L;
     private final Set<Id> dedupSet = new HashSet<>();
-    private final long[] count = {0L};
+    private final MutableLong count = new MutableLong(0L);
 
     public CountTraverser(HugeGraph graph) {
         super(graph);
     }
 
     public long count(Id source, List<Step> steps,
-                      boolean containsTraversed, long dedup) {
+                      boolean containsTraversed, long dedupSize) {
         E.checkArgumentNotNull(source, "The source can't be null");
         E.checkArgument(steps != null && !steps.isEmpty(),
                         "The steps can't be empty");
-        checkDedup(dedup);
+        checkDedupSize(dedupSize);
 
         this.containsTraversed = containsTraversed;
-        this.dedup = dedup;
+        this.dedupSize = dedupSize;
         if (this.containsTraversed) {
-            count[0]++;
+            count.increment();
         }
 
         int stepNum = steps.size();
         Step firstStep = steps.get(0);
         if (stepNum == 1) {
             // Just one step, query count and return
-            count[0] += this.edgesCount(source, firstStep.direction,
-                                        firstStep.labels);
-            return count[0];
+            count.add(this.edgesCount(source, firstStep.direction,
+                                      firstStep.labels, firstStep.properties));
+            return count.longValue();
         }
 
         // Multiple steps, construct first step to iterator
         Iterator<Edge> edges = this.edgesOfVertex(source, firstStep);
-        for (int i = 1; i < stepNum; i++) {
+        // Wrap steps to Iterator except last step
+        for (int i = 1; i < stepNum - 1; i++) {
             Step currentStep = steps.get(i);
             if (i != stepNum - 1) {
                 edges = new FlatMapperIterator<>(edges, (edge) -> {
                     Id target = ((HugeEdge) edge).id().otherVertexId();
                     return this.edgesOfVertex(target, currentStep);
                 });
-            } else {
-                // The last step, just query count
-                while (edges.hasNext()) {
-                    HugeEdge edge = (HugeEdge) edges.next();
-                    Id target = edge.id().otherVertexId();
-                    if (this.dedup(target)) {
-                        continue;
-                    }
-                    // Count last layer vertices(without dedup)
-                    this.count[0] += this.edgesCount(target,
-                                                     currentStep.direction,
-                                                     currentStep.labels);
-                }
             }
         }
 
-        return this.count[0];
+        // The last step, just query count
+        Step lastStep = steps.get(stepNum - 1);
+        while (edges.hasNext()) {
+            HugeEdge edge = (HugeEdge) edges.next();
+            Id target = edge.id().otherVertexId();
+            if (this.dedup(target)) {
+                continue;
+            }
+            // Count last layer vertices(without dedupSize)
+            this.count.add(this.edgesCount(target, lastStep.direction,
+                                           lastStep.labels,
+                                           lastStep.properties));
+        }
+
+        return this.count.longValue();
     }
 
     private Iterator<Edge> edgesOfVertex(Id source, Step step) {
@@ -105,12 +111,14 @@ public class CountTraverser extends HugeTraverser {
             return QueryResults.emptyIterator();
         }
         Iterator<Edge> flatten = this.edgesOfVertex(source, step.direction,
-                                                    step.labels, step.degree,
+                                                    step.labels,
+                                                    step.properties,
+                                                    step.degree,
                                                     step.skipDegree);
         return new FilterIterator<>(flatten, e -> {
             if (this.containsTraversed) {
                 // Count intermediate vertices
-                this.count[0]++;
+                this.count.increment();
             }
             return true;
         });
@@ -118,19 +126,23 @@ public class CountTraverser extends HugeTraverser {
 
     private Iterator<Edge> edgesOfVertex(Id source, Directions dir,
                                          Map<Id, String> labels,
+                                         Map<Id, Object> properties,
                                          long degree, long skipDegree) {
         checkSkipDegree(skipDegree, degree, NO_LIMIT);
         long queryLimit = skipDegree > 0 ? skipDegree : degree;
-        Iterator<Edge> edges = this.edgesOfVertex(source, dir, labels,
-                                                  queryLimit);
+        Iterator<Edge> edges = this.edgesOfVertexWithSK(source, dir, labels,
+                                                        properties, queryLimit);
         return ShortestPathTraverser.skipSuperNodeIfNeeded(edges, degree,
                                                            skipDegree);
     }
 
-    private Iterator<Edge> edgesOfVertex(Id source, Directions dir,
-                                         Map<Id, String> labels, long limit) {
+    protected Iterator<Edge> edgesOfVertexWithSK(Id source, Directions dir,
+                                                 Map<Id, String> labels,
+                                                 Map<Id, Object> properties,
+                                                 long limit) {
         Id[] els = labels.keySet().toArray(new Id[labels.size()]);
         Query query = GraphTransaction.constructEdgesQuery(source, dir, els);
+        this.filterBySortKeys(query, labels, properties);
         query.capacity(Query.NO_CAPACITY);
         if (limit != NO_LIMIT) {
             query.limit(limit);
@@ -138,17 +150,47 @@ public class CountTraverser extends HugeTraverser {
         return this.graph().edges(query);
     }
 
-    private long edgesCount(Id source, Directions dir, Map<Id, String> labels) {
+    private long edgesCount(Id source, Directions dir, Map<Id, String> labels,
+                            Map<Id, Object> properties) {
         Id[] els = labels.keySet().toArray(new Id[labels.size()]);
         Query query = GraphTransaction.constructEdgesQuery(source, dir, els);
+        this.filterBySortKeys(query, labels, properties);
         query.aggregate(Aggregate.AggregateFunc.COUNT, null);
         query.capacity(Query.NO_CAPACITY);
         query.limit(Query.NO_LIMIT);
         return graph().queryNumber(query).longValue();
     }
 
-    private void checkDedup(long dedup) {
-        checkNonNegativeOrNoLimit(dedup, "dedup");
+    private void filterBySortKeys(Query query, Map<Id, String> labels,
+                                  Map<Id, Object> properties) {
+        if (properties == null || properties.isEmpty()) {
+            return;
+        }
+        E.checkArgument(labels.size() == 1,
+                        "The properties filter condition can be set " +
+                        "only if just set one edge label");
+
+        ConditionQuery condQuery = (ConditionQuery) query;
+        for (Map.Entry<Id, Object> entry : properties.entrySet()) {
+            Id key = entry.getKey();
+            Object value = entry.getValue();
+            if (value instanceof String &&
+                ((String) value).startsWith(TraversalUtil.P_CALL)) {
+                String predicate = (String) value;
+                condQuery.query(TraversalUtil.parsePredicate(key, predicate));
+            } else {
+                condQuery.query(Condition.eq(key, value));
+            }
+        }
+
+        E.checkArgument(GraphTransaction.matchEdgeSortKeys(condQuery, graph()),
+                        "The properties '%s' does not match sort keys of " +
+                        "edge label '%s'",
+                        properties.keySet(), labels.keySet().iterator().next());
+    }
+
+    private void checkDedupSize(long dedup) {
+        checkNonNegativeOrNoLimit(dedup, "dedup size");
     }
 
     private boolean dedup(Id vertex) {
@@ -160,31 +202,34 @@ public class CountTraverser extends HugeTraverser {
             // Skip vertex already traversed
             return true;
         } else if (!this.reachDedup()) {
-            // Record vertex not traversed before if not reach dedup
+            // Record vertex not traversed before if not reach dedup size
             this.dedupSet.add(vertex);
         }
         return false;
     }
 
     private boolean needDedup() {
-        return this.dedup != 0L;
+        return this.dedupSize != 0L;
     }
 
     private boolean reachDedup() {
-        return this.dedup != NO_LIMIT && this.dedupSet.size() >= this.dedup;
+        return this.dedupSize != NO_LIMIT &&
+               this.dedupSet.size() >= this.dedupSize;
     }
 
     public static class Step {
 
         private Directions direction;
         private Map<Id, String> labels;
+        private Map<Id, Object> properties;
         private long degree;
         private long skipDegree;
 
         public Step(Directions direction, Map<Id, String> labels,
-                    long degree, long skipDegree) {
+                    Map<Id, Object> properties, long degree, long skipDegree) {
             this.direction = direction;
             this.labels = labels;
+            this.properties = properties;
             this.degree = degree;
             this.skipDegree = skipDegree;
         }

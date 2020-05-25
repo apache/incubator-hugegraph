@@ -388,8 +388,9 @@ public class HugeTraverser {
         }
         List<Edge> edgeList = new ArrayList<>();
         for (int i = 1; edges.hasNext(); i++) {
+            Edge edge = edges.next();
             if (i <= degree) {
-                edgeList.add(edges.next());
+                edgeList.add(edge);
             }
             if (i >= skipDegree) {
                 return QueryResults.emptyIterator();
