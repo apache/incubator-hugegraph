@@ -451,13 +451,13 @@ public class SchemaTransaction extends IndexableTransaction {
             throw new IllegalStateException(String.format(
                       "Invalid system id '%s'", id));
         }
-        HugeGraph graph = this.graph();
+        HugeGraphParams graph = this.params();
         E.checkState(id.number() && id.asLong() > 0L,
                      "Schema id must be number and >0, but got '%s'", id);
         E.checkState(graph.mode() == GraphMode.RESTORING,
                      "Can't build schema with provided id '%s' " +
                      "when graph '%s' in mode '%s'",
-                     id, graph, graph.mode());
+                     id, graph.name(), graph.mode());
         this.setNextIdLowest(type, id.asLong());
     }
 

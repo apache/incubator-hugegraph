@@ -34,6 +34,7 @@ import org.apache.tinkerpop.shaded.jackson.annotation.JsonProperty;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.auth.HugeGraphAuthProxy.Context;
+import com.baidu.hugegraph.auth.SchemaDefine.UserElement;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.OptionSpace;
 import com.baidu.hugegraph.config.ServerOptions;
@@ -401,6 +402,15 @@ public interface HugeAuthenticator extends Authenticator {
             if (role == ROLE_NONE) {
                 return false;
             }
+
+            if (resourceObject != null) {
+                UserElement element = (UserElement) resourceObject.operated();
+                if (element instanceof HugeUser &&
+                    ((HugeUser) element).name().equals(USER_ADMIN)) {
+                    return false;
+                }
+            }
+
             RolePermission rolePerm = RolePermission.fromJson(role);
             return rolePerm.contains(grant);
         }

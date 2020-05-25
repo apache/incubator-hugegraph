@@ -182,7 +182,7 @@ public class RolePermissionTest {
 
         // common
         ResourceObject<?> r1 = ResourceObject.of("g1", ResourceType.GREMLIN,
-                                                 NameObject.NONE);
+                                                 NameObject.ANY);
         Assert.assertTrue(all.filter(r1));
 
         ResourceObject<?> r2 = ResourceObject.of("g1", ResourceType.META,
@@ -329,7 +329,7 @@ public class RolePermissionTest {
 
         // user
         ResourceObject<?> r3 = ResourceObject.of("g1", ResourceType.USER_GROUP,
-                                                 NameObject.NONE);
+                                                 NameObject.ANY);
         Assert.assertFalse(all.filter(r3));
 
         HugeResource user = new HugeResource(ResourceType.USER_GROUP,

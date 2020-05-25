@@ -114,7 +114,7 @@ public class HugeResource {
             return false;
         }
 
-        if (resourceObject.operated() != NameObject.NONE) {
+        if (resourceObject.operated() != NameObject.ANY) {
             ResourceType resType = resourceObject.type();
             if (resType.isGraph()) {
                 return this.filter((HugeElement) resourceObject.operated());
@@ -279,7 +279,7 @@ public class HugeResource {
 
     public static class NameObject implements Namifiable {
 
-        public static final NameObject NONE = new NameObject("*");
+        public static final NameObject ANY = new NameObject("*");
 
         private final String name;
 

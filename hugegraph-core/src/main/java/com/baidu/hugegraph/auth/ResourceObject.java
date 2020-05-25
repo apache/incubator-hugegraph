@@ -55,8 +55,12 @@ public class ResourceObject<V> {
 
     @Override
     public String toString() {
-        return String.format("ResourceObject{graph=%s,type=%s,operated=%s}",
-                             this.graph, this.type, this.operated);
+        Object operated = this.operated;
+        if (this.type.isUser()) {
+            operated = ((UserElement) this.operated).idString();
+        }
+        return String.format("Resource{graph=%s,type=%s,operated=%s}",
+                             this.graph, this.type, operated);
     }
 
     public static ResourceObject<SchemaElement> of(String graph,
