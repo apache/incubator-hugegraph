@@ -43,6 +43,7 @@ public class FusiformSimilarityAlgorithm extends AbstractAlgorithm {
     public static final int DEFAULT_MIN_NEIGHBORS = 10;
     public static final int DEFAULT_MIN_SIMILARS = 6;
     public static final int DEFAULT_MIN_GROUPS = 1;
+    public static final long DEFAULT_LIMIT = -1L;
 
     @Override
     public String name() {
@@ -126,6 +127,15 @@ public class FusiformSimilarityAlgorithm extends AbstractAlgorithm {
         return minGroups;
     }
 
+    protected static long limit(Map<String, Object> parameters) {
+        if (!parameters.containsKey(KEY_LIMIT)) {
+            return DEFAULT_LIMIT;
+        }
+        long limit = parameterLong(parameters, KEY_LIMIT);
+        HugeTraverser.checkLimit(limit);
+        return limit;
+    }
+
     protected static class Traverser extends AlgoTraverser {
 
         public Traverser(Job<Object> job, int workers) {
@@ -152,7 +162,7 @@ public class FusiformSimilarityAlgorithm extends AbstractAlgorithm {
                                        edgeLabel, minNeighbors, alpha,
                                        minSimilars, (int) topSimilars,
                                        groupProperty, minGroups, degree,
-                                       capacity, limit, true);
+                                       capacity, NO_LIMIT, true);
                 if (similars.isEmpty()) {
                     return;
                 }
@@ -161,7 +171,7 @@ public class FusiformSimilarityAlgorithm extends AbstractAlgorithm {
                 synchronized (similarsJson) {
                     similarsJson.appendRaw(result);
                 }
-            });
+            }, null, limit);
             similarsJson.endObject();
 
             return similarsJson.asJson();
