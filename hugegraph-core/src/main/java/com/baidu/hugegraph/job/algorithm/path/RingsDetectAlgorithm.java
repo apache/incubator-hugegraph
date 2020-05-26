@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.job.algorithm.path;
 
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.job.Job;
@@ -29,6 +30,8 @@ import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.JsonUtil;
 
 public class RingsDetectAlgorithm extends AbstractAlgorithm {
+
+    public static final String KEY_COUNT_ONLY = "count_only";
 
     @Override
     public String name() {
@@ -50,6 +53,7 @@ public class RingsDetectAlgorithm extends AbstractAlgorithm {
         sourceCLabel(parameters);
         direction(parameters);
         edgeLabel(parameters);
+        countOnly(parameters);
         workers(parameters);
     }
 
@@ -64,8 +68,16 @@ public class RingsDetectAlgorithm extends AbstractAlgorithm {
                                    depth(parameters),
                                    degree(parameters),
                                    capacity(parameters),
-                                   limit(parameters));
+                                   limit(parameters),
+                                   countOnly(parameters));
         }
+    }
+
+    public boolean countOnly(Map<String, Object> parameters) {
+        if (!parameters.containsKey(KEY_COUNT_ONLY)) {
+            return false;
+        }
+        return parameterBoolean(parameters, KEY_COUNT_ONLY);
     }
 
     public static class Traverser extends AlgoTraverser {
@@ -76,13 +88,19 @@ public class RingsDetectAlgorithm extends AbstractAlgorithm {
 
         public Object rings(String sourceLabel, String sourceCLabel,
                             Directions dir, String label, int depth,
-                            long degree, long capacity, long limit) {
+                            long degree, long capacity, long limit,
+                            boolean countOnly) {
             JsonMap ringsJson = new JsonMap();
             ringsJson.startObject();
-            ringsJson.appendKey("rings");
-            ringsJson.startList();
+            if (countOnly) {
+                ringsJson.appendKey("rings_count");
+            } else {
+                ringsJson.appendKey("rings");
+                ringsJson.startList();
+            }
 
             SubGraphTraverser traverser = new SubGraphTraverser(this.graph());
+            AtomicInteger count = new AtomicInteger(0);
 
             this.traverse(sourceLabel, sourceCLabel, v -> {
                 Id source = (Id) v.id();
@@ -96,6 +114,10 @@ public class RingsDetectAlgorithm extends AbstractAlgorithm {
                         }
                     }
                     if (source.equals(min)) {
+                        if (countOnly) {
+                            count.incrementAndGet();
+                            continue;
+                        }
                         String ringJson = JsonUtil.toJson(ring.vertices());
                         synchronized (ringsJson) {
                             ringsJson.appendRaw(ringJson);
@@ -103,7 +125,11 @@ public class RingsDetectAlgorithm extends AbstractAlgorithm {
                     }
                 }
             });
-            ringsJson.endList();
+            if (countOnly) {
+                ringsJson.append(count.get());
+            } else {
+                ringsJson.endList();
+            }
             ringsJson.endObject();
 
             return ringsJson.asJson();

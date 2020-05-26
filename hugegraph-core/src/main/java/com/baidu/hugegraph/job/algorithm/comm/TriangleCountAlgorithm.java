@@ -42,7 +42,7 @@ public class TriangleCountAlgorithm extends AbstractCommAlgorithm {
 
     @Override
     public void checkParameters(Map<String, Object> parameters) {
-        direction(parameters);
+        directionOutIn(parameters);
         degree(parameters);
     }
 

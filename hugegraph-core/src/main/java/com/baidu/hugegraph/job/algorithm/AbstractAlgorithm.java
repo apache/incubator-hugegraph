@@ -19,7 +19,6 @@
 
 package com.baidu.hugegraph.job.algorithm;
 
-
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -129,6 +128,17 @@ public abstract class AbstractAlgorithm implements Algorithm {
         }
         Object direction = parameter(parameters, KEY_DIRECTION);
         return parseDirection(direction);
+    }
+
+    protected static Directions directionOutIn(Map<String, Object> parameters) {
+        E.checkArgument(parameters.containsKey(KEY_DIRECTION),
+                        "The direction must be set");
+        Object direction = parameter(parameters, KEY_DIRECTION);
+        Directions direct = parseDirection(direction);
+        E.checkArgument(direct == Directions.OUT || direct == Directions.IN,
+                        "The direction for triangle_count must be " +
+                        "either OUT or IN, but got: %s", direct);
+        return direct;
     }
 
     protected static double alpha(Map<String, Object> parameters) {
@@ -330,8 +340,16 @@ public abstract class AbstractAlgorithm implements Algorithm {
 
         protected long traverse(String sourceLabel, String sourceCLabel,
                                 Consumer<Vertex> consumer, Runnable done) {
-            Iterator<Vertex> vertices = this.vertices(sourceLabel, sourceLabel,
-                                                      Query.NO_LIMIT);
+            return this.traverse(sourceLabel, sourceCLabel, consumer, done,
+                                 NO_LIMIT);
+        }
+
+        protected long traverse(String sourceLabel, String sourceCLabel,
+                                Consumer<Vertex> consumer, Runnable done,
+                                long limit) {
+            long actualLimit = limit == NO_LIMIT ? Query.NO_LIMIT : limit;
+            Iterator<Vertex> vertices = this.vertices(sourceLabel, sourceCLabel,
+                                                      actualLimit);
 
             Consumers<Vertex> consumers = new Consumers<>(this.executor,
                                                           consumer, done);
