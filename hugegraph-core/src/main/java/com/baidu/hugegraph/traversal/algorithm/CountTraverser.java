@@ -31,15 +31,12 @@ import org.apache.tinkerpop.gremlin.structure.Edge;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Aggregate;
-import com.baidu.hugegraph.backend.query.Condition;
-import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.iterator.FilterIterator;
 import com.baidu.hugegraph.iterator.FlatMapperIterator;
 import com.baidu.hugegraph.structure.HugeEdge;
-import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
 
@@ -81,23 +78,20 @@ public class CountTraverser extends HugeTraverser {
         // Wrap steps to Iterator except last step
         for (int i = 1; i < stepNum - 1; i++) {
             Step currentStep = steps.get(i);
-            if (i != stepNum - 1) {
-                edges = new FlatMapperIterator<>(edges, (edge) -> {
-                    Id target = ((HugeEdge) edge).id().otherVertexId();
-                    return this.edgesOfVertex(target, currentStep);
-                });
-            }
+            edges = new FlatMapperIterator<>(edges, (edge) -> {
+                Id target = ((HugeEdge) edge).id().otherVertexId();
+                return this.edgesOfVertex(target, currentStep);
+            });
         }
 
         // The last step, just query count
         Step lastStep = steps.get(stepNum - 1);
         while (edges.hasNext()) {
-            HugeEdge edge = (HugeEdge) edges.next();
-            Id target = edge.id().otherVertexId();
+            Id target = ((HugeEdge) edges.next()).id().otherVertexId();
             if (this.dedup(target)) {
                 continue;
             }
-            // Count last layer vertices(without dedupSize)
+            // Count last layer vertices(without dedup size)
             this.count.add(this.edgesCount(target, lastStep.direction,
                                            lastStep.labels,
                                            lastStep.properties));
@@ -159,34 +153,6 @@ public class CountTraverser extends HugeTraverser {
         query.capacity(Query.NO_CAPACITY);
         query.limit(Query.NO_LIMIT);
         return graph().queryNumber(query).longValue();
-    }
-
-    private void filterBySortKeys(Query query, Map<Id, String> labels,
-                                  Map<Id, Object> properties) {
-        if (properties == null || properties.isEmpty()) {
-            return;
-        }
-        E.checkArgument(labels.size() == 1,
-                        "The properties filter condition can be set " +
-                        "only if just set one edge label");
-
-        ConditionQuery condQuery = (ConditionQuery) query;
-        for (Map.Entry<Id, Object> entry : properties.entrySet()) {
-            Id key = entry.getKey();
-            Object value = entry.getValue();
-            if (value instanceof String &&
-                ((String) value).startsWith(TraversalUtil.P_CALL)) {
-                String predicate = (String) value;
-                condQuery.query(TraversalUtil.parsePredicate(key, predicate));
-            } else {
-                condQuery.query(Condition.eq(key, value));
-            }
-        }
-
-        E.checkArgument(GraphTransaction.matchEdgeSortKeys(condQuery, graph()),
-                        "The properties '%s' does not match sort keys of " +
-                        "edge label '%s'",
-                        properties.keySet(), labels.keySet().iterator().next());
     }
 
     private void checkDedupSize(long dedup) {

@@ -43,6 +43,8 @@ import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.query.Condition;
+import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
@@ -50,6 +52,7 @@ import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.iterator.MapperIterator;
 import com.baidu.hugegraph.schema.SchemaLabel;
 import com.baidu.hugegraph.structure.HugeEdge;
+import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.CollectionUtil;
@@ -397,6 +400,34 @@ public class HugeTraverser {
             }
         }
         return edgeList.iterator();
+    }
+
+    protected void filterBySortKeys(Query query, Map<Id, String> labels,
+                                    Map<Id, Object> properties) {
+        if (properties == null || properties.isEmpty()) {
+            return;
+        }
+        E.checkArgument(labels.size() == 1,
+                        "The properties filter condition can be set " +
+                        "only if just set one edge label");
+
+        ConditionQuery condQuery = (ConditionQuery) query;
+        for (Map.Entry<Id, Object> entry : properties.entrySet()) {
+            Id key = entry.getKey();
+            Object value = entry.getValue();
+            if (value instanceof String &&
+                ((String) value).startsWith(TraversalUtil.P_CALL)) {
+                String predicate = (String) value;
+                condQuery.query(TraversalUtil.parsePredicate(key, predicate));
+            } else {
+                condQuery.query(Condition.eq(key, value));
+            }
+        }
+
+        E.checkArgument(GraphTransaction.matchEdgeSortKeys(condQuery, graph()),
+                        "The properties '%s' does not match sort keys of " +
+                        "edge label '%s'",
+                        properties.keySet(), labels.keySet().iterator().next());
     }
 
     protected static <V> Set<V> newSet() {
