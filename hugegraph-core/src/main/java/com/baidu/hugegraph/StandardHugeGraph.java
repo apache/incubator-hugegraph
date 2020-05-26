@@ -780,6 +780,11 @@ public class StandardHugeGraph implements HugeGraph {
         }
 
         @Override
+        public GraphMode mode() {
+            return StandardHugeGraph.this.mode();
+        }
+
+        @Override
         public SchemaTransaction schemaTransaction() {
             return StandardHugeGraph.this.schemaTransaction();
         }

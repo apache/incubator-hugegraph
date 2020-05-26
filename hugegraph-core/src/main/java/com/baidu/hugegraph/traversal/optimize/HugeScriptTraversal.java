@@ -67,6 +67,10 @@ public final class HugeScriptTraversal<S, E> extends DefaultTraversal<S, E> {
         return this.result;
     }
 
+    public String script() {
+        return this.script;
+    }
+
     @Override
     public void applyStrategies() throws IllegalStateException {
         assert 0 == this.getSteps().size();

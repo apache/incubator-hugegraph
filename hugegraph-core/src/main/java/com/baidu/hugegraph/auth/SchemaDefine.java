@@ -140,6 +140,10 @@ public abstract class SchemaDefine {
             this.id = id;
         }
 
+        public String idString() {
+            return Hidden.unHide(this.label()) + "(" + this.id + ")";
+        }
+
         public Date create() {
             return this.create;
         }
@@ -232,7 +236,6 @@ public abstract class SchemaDefine {
         public abstract Map<String, Object> asMap();
 
         protected abstract Object[] asArray();
-
     }
 
     public static abstract class Entity extends UserElement

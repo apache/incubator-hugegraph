@@ -30,7 +30,7 @@ public enum HugePermission implements SerialEnum {
     DELETE(0x04),
     EXECUTE(0x08),
 
-    ALL(0x7f);
+    ANY(0x7f);
 
     private final byte code;
 

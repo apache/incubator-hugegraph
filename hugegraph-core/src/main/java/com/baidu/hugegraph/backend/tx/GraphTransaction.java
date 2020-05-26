@@ -596,7 +596,7 @@ public class GraphTransaction extends IndexableTransaction {
         ElementHelper.attachProperties(vertex, keyValues);
 
         // Assign vertex id
-        if (this.graph().mode().maintaining() &&
+        if (this.params().mode().maintaining() &&
             vertexLabel.idStrategy() == IdStrategy.AUTOMATIC) {
             // Resume id for AUTOMATIC id strategy in restoring mode
             vertex.assignId(id, true);
@@ -1425,7 +1425,7 @@ public class GraphTransaction extends IndexableTransaction {
                                 vertexLabel.name(), strategy);
                 break;
             case AUTOMATIC:
-                if (this.graph().mode().maintaining()) {
+                if (this.params().mode().maintaining()) {
                     E.checkArgument(id != null && id.number(),
                                     "Must customize vertex number id when " +
                                     "id strategy is '%s' for vertex label " +

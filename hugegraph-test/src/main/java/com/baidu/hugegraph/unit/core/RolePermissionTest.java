@@ -44,12 +44,12 @@ public class RolePermissionTest {
     @Test
     public void testBuiltinAdmin() {
         RolePermission admin = RolePermission.admin();
-        RolePermission role1 = RolePermission.role("admin", HugePermission.ALL);
+        RolePermission role1 = RolePermission.role("admin", HugePermission.ANY);
         Assert.assertEquals(admin, role1);
         Assert.assertSame(admin, RolePermission.builtin(admin));
         Assert.assertSame(admin, RolePermission.builtin(role1));
 
-        RolePermission role = RolePermission.fromJson("{\"roles\":{\"admin\":{\"ALL\":[{\"type\":\"ALL\",\"label\":\"write\",\"properties\":null}]}}");
+        RolePermission role = RolePermission.fromJson("{\"roles\":{\"admin\":{\"ANY\":[{\"type\":\"ALL\",\"label\":\"write\",\"properties\":null}]}}");
         Assert.assertTrue(roleContains(admin, role));
 
         RolePermission role2 = RolePermission.all("admin");
@@ -58,7 +58,7 @@ public class RolePermissionTest {
         Assert.assertTrue(roleContains(role2, role));
 
         RolePermission hg = RolePermission.all("hg1");
-        RolePermission role3 = RolePermission.fromJson("{\"roles\":{\"hg1\":{\"ALL\":[{\"type\":\"ALL\",\"label\":\"write\",\"properties\":null}]}}");
+        RolePermission role3 = RolePermission.fromJson("{\"roles\":{\"hg1\":{\"ANY\":[{\"type\":\"ALL\",\"label\":\"write\",\"properties\":null}]}}");
         Assert.assertSame(hg, RolePermission.builtin(hg));
         Assert.assertSame(hg, RolePermission.fromJson(hg));
         Assert.assertTrue(roleContains(hg, role3));
@@ -182,7 +182,7 @@ public class RolePermissionTest {
 
         // common
         ResourceObject<?> r1 = ResourceObject.of("g1", ResourceType.GREMLIN,
-                                                 NameObject.NONE);
+                                                 NameObject.ANY);
         Assert.assertTrue(all.filter(r1));
 
         ResourceObject<?> r2 = ResourceObject.of("g1", ResourceType.META,
@@ -329,7 +329,7 @@ public class RolePermissionTest {
 
         // user
         ResourceObject<?> r3 = ResourceObject.of("g1", ResourceType.USER_GROUP,
-                                                 NameObject.NONE);
+                                                 NameObject.ANY);
         Assert.assertFalse(all.filter(r3));
 
         HugeResource user = new HugeResource(ResourceType.USER_GROUP,

@@ -159,7 +159,7 @@ public class RelationshipManager<T extends Relationship> {
                                              Map<String, Object> conditions,
                                              long limit) {
         ConditionQuery query = new ConditionQuery(HugeType.EDGE);
-        EdgeLabel el = this.graph.graph().edgeLabel(label);
+        EdgeLabel el = this.graph().edgeLabel(label);
         if (direction == null) {
             direction = Directions.OUT;
         }
@@ -171,7 +171,7 @@ public class RelationshipManager<T extends Relationship> {
             query.eq(HugeKeys.LABEL, el.id());
         }
         for (Map.Entry<String, Object> entry : conditions.entrySet()) {
-            PropertyKey pk = this.graph.graph().propertyKey(entry.getKey());
+            PropertyKey pk = this.graph().propertyKey(entry.getKey());
             query.query(Condition.eq(pk.id(), entry.getValue()));
         }
         query.showHidden(true);
