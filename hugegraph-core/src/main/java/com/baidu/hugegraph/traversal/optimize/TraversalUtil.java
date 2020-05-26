@@ -731,6 +731,47 @@ public final class TraversalUtil {
         }
     }
 
+    public static Condition parsePredicate(Id key, String predicate) {
+        Pattern pattern = Pattern.compile("^P\\.([a-z]+)\\(([\\S ]*)\\)$");
+        Matcher matcher = pattern.matcher(predicate);
+        if (!matcher.find()) {
+            throw new HugeException("Invalid predicate: %s", predicate);
+        }
+
+        String method = matcher.group(1);
+        String value = matcher.group(2);
+        switch (method) {
+            case "eq":
+                return Condition.eq(key, predicateNumber(value));
+            case "neq":
+                return Condition.neq(key, predicateNumber(value));
+            case "lt":
+                return Condition.lt(key, predicateNumber(value));
+            case "lte":
+                return Condition.lte(key, predicateNumber(value));
+            case "gt":
+                return Condition.gt(key, predicateNumber(value));
+            case "gte":
+                return Condition.gte(key, predicateNumber(value));
+            case "between":
+                Number[] params = predicateNumbers(value, 2);
+                return Condition.and(Condition.gte(key, params[0]),
+                                     Condition.lt(key, params[1]));
+            case "inside":
+                params = predicateNumbers(value, 2);
+                return Condition.and(Condition.gt(key, params[0]),
+                                     Condition.lt(key, params[1]));
+            case "outside":
+                params = predicateNumbers(value, 2);
+                return Condition.and(Condition.lt(key, params[0]),
+                                     Condition.gt(key, params[1]));
+            case "within":
+                return Condition.in(key, predicateArgs(value));
+            default:
+                throw new NotSupportException("predicate '%s'", method);
+        }
+    }
+
     private static Number predicateNumber(String value) {
         try {
             return JsonUtil.fromJson(value, Number.class);

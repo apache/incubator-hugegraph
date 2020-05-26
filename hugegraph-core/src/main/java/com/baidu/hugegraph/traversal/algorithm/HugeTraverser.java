@@ -43,12 +43,16 @@ import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.query.Condition;
+import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.iterator.MapperIterator;
 import com.baidu.hugegraph.schema.SchemaLabel;
 import com.baidu.hugegraph.structure.HugeEdge;
+import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.CollectionUtil;
@@ -69,6 +73,7 @@ public class HugeTraverser {
     public static final String DEFAULT_PATHS_LIMIT = "10";
     public static final String DEFAULT_LIMIT = "100";
     public static final String DEFAULT_DEGREE = "10000";
+    public static final String DEFAULT_SKIP_DEGREE = "100000";
     public static final String DEFAULT_SAMPLE = "100";
     public static final String DEFAULT_MAX_DEPTH = "50";
     public static final String DEFAULT_WEIGHT = "0";
@@ -357,6 +362,72 @@ public class HugeTraverser {
             throw new HugeException("Exceed capacity '%s' while finding %s",
                                     capacity, traverse);
         }
+    }
+
+    public static void checkSkipDegree(long skipDegree, long degree,
+                                       long capacity) {
+        E.checkArgument(skipDegree >= 0L || skipDegree == NO_LIMIT,
+                        "The skipped degree must be >= 0, but got '%s'",
+                        skipDegree);
+        if (capacity != NO_LIMIT) {
+            E.checkArgument(degree != NO_LIMIT && degree < capacity,
+                            "The degree must be < capacity");
+            E.checkArgument(skipDegree < capacity,
+                            "The skipped degree must be < capacity");
+        }
+        if (skipDegree > 0L) {
+            E.checkArgument(degree != NO_LIMIT && skipDegree >= degree,
+                            "The skipped degree must be >= degree, " +
+                            "but got skipped degree '%s' and degree '%s'",
+                            skipDegree, degree);
+        }
+    }
+
+    public static Iterator<Edge> skipSuperNodeIfNeeded(Iterator<Edge> edges,
+                                                       long degree,
+                                                       long skipDegree) {
+        if (skipDegree <= 0L) {
+            return edges;
+        }
+        List<Edge> edgeList = new ArrayList<>();
+        for (int i = 1; edges.hasNext(); i++) {
+            Edge edge = edges.next();
+            if (i <= degree) {
+                edgeList.add(edge);
+            }
+            if (i >= skipDegree) {
+                return QueryResults.emptyIterator();
+            }
+        }
+        return edgeList.iterator();
+    }
+
+    protected void filterBySortKeys(Query query, Map<Id, String> labels,
+                                    Map<Id, Object> properties) {
+        if (properties == null || properties.isEmpty()) {
+            return;
+        }
+        E.checkArgument(labels.size() == 1,
+                        "The properties filter condition can be set " +
+                        "only if just set one edge label");
+
+        ConditionQuery condQuery = (ConditionQuery) query;
+        for (Map.Entry<Id, Object> entry : properties.entrySet()) {
+            Id key = entry.getKey();
+            Object value = entry.getValue();
+            if (value instanceof String &&
+                ((String) value).startsWith(TraversalUtil.P_CALL)) {
+                String predicate = (String) value;
+                condQuery.query(TraversalUtil.parsePredicate(key, predicate));
+            } else {
+                condQuery.query(Condition.eq(key, value));
+            }
+        }
+
+        E.checkArgument(GraphTransaction.matchEdgeSortKeys(condQuery, graph()),
+                        "The properties '%s' does not match sort keys of " +
+                        "edge label '%s'",
+                        properties.keySet(), labels.keySet().iterator().next());
     }
 
     protected static <V> Set<V> newSet() {
