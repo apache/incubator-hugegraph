@@ -34,10 +34,12 @@ import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
+import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Action;
+import com.baidu.hugegraph.type.define.GraphMode;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.google.common.util.concurrent.RateLimiter;
@@ -98,6 +100,22 @@ public abstract class AbstractTransaction implements Transaction {
 
     public <R> R metadata(HugeType type, String meta, Object... args) {
         return this.store().metadata(type, meta, args);
+    }
+
+    public String graphName() {
+        return this.params().name();
+    }
+
+    public GraphMode graphMode() {
+        return this.params().mode();
+    }
+
+    public long taskWaitTimeout() {
+        return this.params().configuration().get(CoreOptions.TASK_WAIT_TIMEOUT);
+    }
+
+    public boolean syncDelete() {
+        return this.params().configuration().get(CoreOptions.TASK_SYNC_DELETION);
     }
 
     @Watched(prefix = "tx")

@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.auth;
 
 import java.io.IOException;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -44,6 +45,7 @@ import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
 import com.baidu.hugegraph.type.Namifiable;
 import com.baidu.hugegraph.type.Typifiable;
+import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -75,14 +77,14 @@ public class HugeResource {
     private String label = ANY;
 
     @JsonProperty("properties")
-    private Map<String, String> properties; // value can be predicate
+    private Map<String, Object> properties; // value can be predicate
 
     public HugeResource() {
         // pass
     }
 
     public HugeResource(ResourceType type, String label,
-                        Map<String, String> properties) {
+                        Map<String, Object> properties) {
         this.type = type;
         this.label = label;
         this.properties = properties;
@@ -93,14 +95,15 @@ public class HugeResource {
         if (this.properties == null) {
             return;
         }
-        for (Map.Entry<String, String> entry : this.properties.entrySet()) {
+        for (Map.Entry<String, Object> entry : this.properties.entrySet()) {
             String propName = entry.getKey();
-            String propValue = entry.getValue();
+            Object propValue = entry.getValue();
             if (propName.equals(ANY) && propValue.equals(ANY)) {
                 continue;
             }
-            if (propValue.startsWith(TraversalUtil.P_CALL)) {
-                TraversalUtil.parsePredicate(propValue);
+            if (propValue instanceof String &&
+                ((String) propValue).startsWith(TraversalUtil.P_CALL)) {
+                TraversalUtil.parsePredicate((String) propValue);
             }
         }
     }
@@ -119,7 +122,7 @@ public class HugeResource {
             if (resType.isGraph()) {
                 return this.filter((HugeElement) resourceObject.operated());
             }
-            if (resType.isUser()) {
+            if (resType.isUsers()) {
                 return this.filter((UserElement) resourceObject.operated());
             }
             if (resType.isSchema() || CHECK_NAME_RESS.contains(resType)) {
@@ -164,9 +167,9 @@ public class HugeResource {
         if (this.properties == null) {
             return true;
         }
-        for (Map.Entry<String, String> entry : this.properties.entrySet()) {
+        for (Map.Entry<String, Object> entry : this.properties.entrySet()) {
             String propName = entry.getKey();
-            String expected = entry.getValue();
+            Object expected = entry.getValue();
             if (propName.equals(ANY) && expected.equals(ANY)) {
                 return true;
             }
@@ -175,12 +178,20 @@ public class HugeResource {
                 return false;
             }
             Object actual = prop.value();
-            if (expected.startsWith(TraversalUtil.P_CALL)) {
-                if (!TraversalUtil.parsePredicate(expected).test(actual)) {
+            if (expected instanceof String &&
+                ((String) expected).startsWith(TraversalUtil.P_CALL)) {
+                String pred = ((String) expected);
+                if (actual instanceof Date) {
+                    actual = ((Date) actual).getTime();
+                }
+                if (!TraversalUtil.parsePredicate(pred).test(actual)) {
                     return false;
                 }
             } else {
-                if (!expected.equals(actual)) {
+                if (actual instanceof Date && expected instanceof String) {
+                    expected = DateUtil.parse((String) expected);
+                }
+                if (!Objects.equals(expected, actual)) {
                     return false;
                 }
             }
@@ -199,7 +210,7 @@ public class HugeResource {
         return true;
     }
 
-    private boolean matchProperties(Map<String, String> other) {
+    private boolean matchProperties(Map<String, Object> other) {
         if (this.properties == null) {
             // Any property is OK
             return true;
@@ -207,8 +218,8 @@ public class HugeResource {
         if (other == null) {
             return false;
         }
-        for (Map.Entry<String, String> p : other.entrySet()) {
-            String value = this.properties.get(p.getKey());
+        for (Map.Entry<String, Object> p : other.entrySet()) {
+            Object value = this.properties.get(p.getKey());
             if (!Objects.equals(value, p.getValue())) {
                 return false;
             }
@@ -354,7 +365,7 @@ public class HugeResource {
                 } else if (key.equals("properties")) {
                     if (parser.nextToken() != JsonToken.VALUE_NULL) {
                         @SuppressWarnings("unchecked")
-                        Map<String, String> prop = ctxt.readValue(parser,
+                        Map<String, Object> prop = ctxt.readValue(parser,
                                                                   Map.class);
                         res.properties = prop;
                     } else {

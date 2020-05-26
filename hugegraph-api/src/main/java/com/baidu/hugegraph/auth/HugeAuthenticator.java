@@ -407,6 +407,7 @@ public interface HugeAuthenticator extends Authenticator {
                 UserElement element = (UserElement) resourceObject.operated();
                 if (element instanceof HugeUser &&
                     ((HugeUser) element).name().equals(USER_ADMIN)) {
+                    // Can't access admin by other users
                     return false;
                 }
             }

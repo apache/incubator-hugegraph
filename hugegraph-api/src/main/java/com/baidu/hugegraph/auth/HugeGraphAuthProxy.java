@@ -777,7 +777,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
             result = null;
         }
         // verify permission for one access another, like: granted <= user role
-        else if (ro.type().isUser()) {
+        else if (ro.type().isGrantOrUser()) {
             UserElement element = (UserElement) ro.operated();
             RolePermission grant = this.hugegraph.userManager()
                                                  .rolePermission(element);
@@ -906,21 +906,21 @@ public final class HugeGraphAuthProxy implements HugeGraph {
             verifyPermission(perm, ResourceType.TASK);
         }
 
-        private <V> HugeTask<V> verifyTaskPermission(HugePermission perm,
+        private <V> HugeTask<V> verifyTaskPermission(HugePermission action,
                                                      HugeTask<V> task) {
-            verifyPermission(perm, ResourceType.TASK);
+            verifyPermission(action, ResourceType.TASK);
             if (!hasTaskPermission(task)) {
                 String error = String.format("Permission denied: %s task(%s)",
-                                             perm, task.id());
+                                             action, task.id());
                 throw new ForbiddenException(error);
             }
             return task;
         }
 
         private <V> Iterator<HugeTask<V>> verifyTaskPermission(
-                                          HugePermission perm,
+                                          HugePermission action,
                                           Iterator<HugeTask<V>> tasks) {
-            verifyPermission(perm, ResourceType.TASK);
+            verifyPermission(action, ResourceType.TASK);
             return new FilterIterator<>(tasks, this::hasTaskPermission);
         }
 

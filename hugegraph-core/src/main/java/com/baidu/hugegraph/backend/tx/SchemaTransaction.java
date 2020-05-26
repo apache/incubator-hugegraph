@@ -279,7 +279,7 @@ public class SchemaTransaction extends IndexableTransaction {
                   schema.type(), schema.id());
         setCreateTimeIfNeeded(schema);
 
-        LockUtil.Locks locks = new LockUtil.Locks(this.graph().name());
+        LockUtil.Locks locks = new LockUtil.Locks(this.params().name());
         try {
             locks.lockWrites(LockUtil.hugeType2Group(schema.type()),
                              schema.id());
@@ -351,7 +351,7 @@ public class SchemaTransaction extends IndexableTransaction {
     protected void removeSchema(SchemaElement schema) {
         LOG.debug("SchemaTransaction remove {} by id '{}'",
                   schema.type(), schema.id());
-        LockUtil.Locks locks = new LockUtil.Locks(this.graph().name());
+        LockUtil.Locks locks = new LockUtil.Locks(this.graphName());
         try {
             locks.lockWrites(LockUtil.hugeType2Group(schema.type()),
                              schema.id());
@@ -416,15 +416,6 @@ public class SchemaTransaction extends IndexableTransaction {
         }
     }
 
-    public long taskWaitTimeout() {
-        return this.params().configuration().get(CoreOptions.TASK_WAIT_TIMEOUT);
-    }
-
-    public boolean syncDelete() {
-        return this.params().configuration()
-                            .get(CoreOptions.TASK_SYNC_DELETION);
-    }
-
     @Watched(prefix = "schema")
     public Id validOrGenerateId(HugeType type, Id id, String name) {
         boolean forSystem = Graph.Hidden.isHidden(name);
@@ -449,13 +440,13 @@ public class SchemaTransaction extends IndexableTransaction {
             throw new IllegalStateException(String.format(
                       "Invalid system id '%s'", id));
         }
-        HugeGraphParams graph = this.params();
         E.checkState(id.number() && id.asLong() > 0L,
                      "Schema id must be number and >0, but got '%s'", id);
-        E.checkState(graph.mode() == GraphMode.RESTORING,
+        GraphMode mode = this.graphMode();
+        E.checkState(mode == GraphMode.RESTORING,
                      "Can't build schema with provided id '%s' " +
                      "when graph '%s' in mode '%s'",
-                     id, graph.name(), graph.mode());
+                     id, this.graphName(), mode);
         this.setNextIdLowest(type, id.asLong());
     }
 
