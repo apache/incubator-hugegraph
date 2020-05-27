@@ -530,7 +530,7 @@ public class InMemoryDBTables {
             if (this.store().isEmpty()) {
                 return;
             }
-            Id indexLabelId = IdGenerator.of(indexLabel);
+            Id indexLabelId = IdGenerator.of(Long.parseLong(indexLabel));
             Id min = HugeIndex.formatIndexId(entry.type(), indexLabelId, 0L);
             indexLabelId = IdGenerator.of(indexLabelId.asLong() + 1L);
             Id max = HugeIndex.formatIndexId(entry.type(), indexLabelId, 0L);

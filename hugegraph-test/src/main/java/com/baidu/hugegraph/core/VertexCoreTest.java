@@ -3297,7 +3297,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    public void testQuerytestQueryByDatePropertyWithUnion() {
+    public void testQueryByDatePropertyWithUnion() {
         HugeGraph graph = graph();
         initPersonIndex(false);
         init5Persons();
@@ -3577,6 +3577,43 @@ public class VertexCoreTest extends BaseCoreTest {
                                      .toList();
 
         Assert.assertEquals(0, vertices.size());
+    }
+
+    @Test
+    public void testQueryByNeq() {
+        HugeGraph graph = graph();
+
+        graph.schema().indexLabel("authorByLived1").onV("author")
+             .secondary().by("lived").create();
+        graph.schema().indexLabel("authorByLived2").onV("author")
+             .search().by("lived").create();
+
+        graph.addVertex(T.label, "author", "id", 1,
+                        "name", "James Gosling",  "age", 62,
+                        "lived", "San Francisco Bay Area");
+        graph.tx().commit();
+
+        Assert.assertThrows(NoIndexException.class, () -> {
+            graph.traversal().V().hasLabel("author")
+                                 .has("lived",P.neq("Beijing"))
+                                 .toList();
+        }, e -> {
+            Assert.assertEquals("Don't accept query based on properties " +
+                                "[lived] that are not indexed in label " +
+                                "'author', may not match secondary" +
+                                "/not-equal condition", e.getMessage());
+        });
+
+        Assert.assertThrows(NoIndexException.class, () -> {
+            graph.traversal().V().has("lived",P.neq("Beijing"))
+                                 .toList();
+        }, e -> {
+            Assert.assertContains("Don't accept query based on properties " +
+                                  "[lived] that are not indexed in any label",
+                                  e.getMessage());
+            Assert.assertContains("may not match not-equal condition",
+                                  e.getMessage());
+        });
     }
 
     @Test

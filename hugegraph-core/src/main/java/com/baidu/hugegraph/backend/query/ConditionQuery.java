@@ -377,6 +377,17 @@ public final class ConditionQuery extends IdQuery {
         return false;
     }
 
+    public boolean hasNeqCondition() {
+        // NOTE: we need to judge all the conditions, including the nested
+        for (Condition.Relation r : this.relations()) {
+            if (r.relation() == RelationType.NEQ) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+
     public boolean matchUserpropKeys(List<Id> keys) {
         Set<Id> conditionKeys = this.userpropKeys();
         return keys.size() > 0 && conditionKeys.containsAll(keys);

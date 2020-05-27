@@ -777,6 +777,9 @@ public class GraphIndexTransaction extends AbstractTransaction {
     private static Set<IndexLabel> matchSingleOrCompositeIndex(
                                    ConditionQuery query,
                                    Set<IndexLabel> indexLabels) {
+        if (query.hasNeqCondition()) {
+            return ImmutableSet.of();
+        }
         boolean requireRange = query.hasRangeCondition();
         boolean requireSearch = query.hasSearchCondition();
         Set<Id> queryPropKeys = query.userpropKeys();
@@ -815,6 +818,9 @@ public class GraphIndexTransaction extends AbstractTransaction {
     private static Set<IndexLabel> matchJointIndexes(
                                    ConditionQuery query,
                                    Set<IndexLabel> indexLabels) {
+        if (query.hasNeqCondition()) {
+            return ImmutableSet.of();
+        }
         Set<Id> queryPropKeys = query.userpropKeys();
         assert !queryPropKeys.isEmpty();
         Set<IndexLabel> allILs = InsertionOrderUtil.newSet(indexLabels);
@@ -1281,6 +1287,9 @@ public class GraphIndexTransaction extends AbstractTransaction {
         }
         if (query.hasSearchCondition()) {
             mismatched.add("search");
+        }
+        if (query.hasNeqCondition()) {
+            mismatched.add("not-equal");
         }
         return new NoIndexException("Don't accept query based on properties " +
                                     "%s that are not indexed in %s, " +
