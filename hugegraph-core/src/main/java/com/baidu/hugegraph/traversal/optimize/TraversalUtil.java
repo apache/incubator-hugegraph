@@ -58,6 +58,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.util.OrP;
 import org.apache.tinkerpop.gremlin.process.traversal.util.TraversalHelper;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Element;
+import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.PropertyType;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
@@ -79,6 +80,8 @@ import com.baidu.hugegraph.iterator.FilterIterator;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaLabel;
 import com.baidu.hugegraph.structure.HugeElement;
+import com.baidu.hugegraph.structure.HugeProperty;
+import com.baidu.hugegraph.traversal.optimize.Text.ConditionP;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.Directions;
@@ -382,7 +385,7 @@ public final class TraversalUtil {
         String key = has.getKey();
         PropertyKey pkey = graph.propertyKey(key);
         Id pkeyId = pkey.id();
-        Object value = validPredicateValue(has.getValue(), pkey);
+        Object value = validPropertyValue(has.getValue(), pkey);
 
         switch ((Compare) bp) {
             case eq:
@@ -412,7 +415,7 @@ public final class TraversalUtil {
         String key = has.getKey();
         PropertyKey pkey = graph.propertyKey(key);
         Id pkeyId = pkey.id();
-        Object value = validPredicateValue(has.getValue(), pkey);
+        Object value = validPropertyValue(has.getValue(), pkey);
         return new Condition.UserpropRelation(pkeyId, (RelationType) bp, value);
     }
 
@@ -548,12 +551,15 @@ public final class TraversalUtil {
             return;
         }
         PropertyKey pkey = graph.propertyKey(has.getKey());
+        updatePredicateValue(has.getPredicate(), pkey);
+    }
 
+    private static void updatePredicateValue(P<?> predicate, PropertyKey pkey) {
         List<P<Object>> leafPredicates = new ArrayList<>();
-        collectPredicates(leafPredicates, ImmutableList.of(has.getPredicate()));
-        for (P<Object> predicate : leafPredicates) {
-            Object value = validPredicateValue(predicate.getValue(), pkey);
-            predicate.setValue(value);
+        collectPredicates(leafPredicates, ImmutableList.of(predicate));
+        for (P<Object> pred : leafPredicates) {
+            Object value = validPropertyValue(pred.getValue(), pkey);
+            pred.setValue(value);
         }
     }
 
@@ -616,7 +622,7 @@ public final class TraversalUtil {
         return order == Order.desc ? Query.Order.DESC : Query.Order.ASC;
     }
 
-    private static <V> V validPredicateValue(V value, PropertyKey pkey) {
+    private static <V> V validPropertyValue(V value, PropertyKey pkey) {
         V validValue = pkey.convValue(value, false);
         if (validValue == null) {
             if (pkey.cardinality() == Cardinality.SINGLE &&
@@ -689,6 +695,19 @@ public final class TraversalUtil {
         return null;
     }
 
+    public static boolean testProperty(Property<?> prop, Object expected) {
+        Object actual = prop.value();
+        P<Object> predicate;
+        if (expected instanceof String &&
+            ((String) expected).startsWith(TraversalUtil.P_CALL)) {
+            predicate = TraversalUtil.parsePredicate(((String) expected));
+        } else {
+            predicate = P.eq(expected);
+        }
+        updatePredicateValue(predicate, ((HugeProperty<?>) prop).propertyKey());
+        return predicate.test(actual);
+    }
+
     public static P<Object> parsePredicate(String predicate) {
         /*
          * Extract P from json string like {"properties": {"age": "P.gt(18)"}}
@@ -726,6 +745,9 @@ public final class TraversalUtil {
                 return P.outside(params[0], params[1]);
             case "within":
                 return P.within(predicateArgs(value));
+            case "contains":
+                // Just for inner use case like auth filter
+                return ConditionP.contains(predicateArg(value));
             default:
                 throw new NotSupportException("predicate '%s'", method);
         }
@@ -816,6 +838,16 @@ public final class TraversalUtil {
                       "Invalid value '%s', expect a list of number", value);
         }
         return values.toArray(new Number[values.size()]);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <V> V predicateArg(String value) {
+        try {
+            return (V) JsonUtil.fromJson(value, Object.class);
+        } catch (Exception e) {
+            throw new HugeException(
+                      "Invalid value '%s', expect a single value", e, value);
+        }
     }
 
     @SuppressWarnings("unchecked")

@@ -48,7 +48,7 @@ public interface HugeAuthenticator extends Authenticator {
     public static final String KEY_PASSWORD =
                                CredentialGraphTokens.PROPERTY_PASSWORD;
     public static final String KEY_ROLE = "role";
-    public static final String KEY_CLIENT = "client";
+    public static final String KEY_CLIENT = "address";
     public static final String KEY_PATH = "path";
 
     public static final String USER_SYSTEM = "system";

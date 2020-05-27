@@ -253,7 +253,8 @@ public class PropertyKey extends SchemaElement implements Propfiable {
             validValue = this.convSingleValue(value);
         } else {
             Collection<T> collection = (Collection<T>) value;
-            if (collection instanceof Set) {
+            if (collection instanceof Set ||
+                this.cardinality == Cardinality.SET) {
                 validValues = new HashSet<>(collection.size());
             } else {
                 E.checkArgument(collection instanceof List,

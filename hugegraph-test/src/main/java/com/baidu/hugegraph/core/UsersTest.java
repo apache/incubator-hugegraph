@@ -1212,12 +1212,9 @@ public class UsersTest extends BaseCoreTest {
         expected = "{\"roles\":{\"hugegraph1\":{\"READ\":[]}}}";
         Assert.assertEquals(expected, role.toJson());
 
-        Assert.assertThrows(IllegalArgumentException.class, () -> {
-            userManager.rolePermission(userManager.getTarget(graph1v));
-        }, e -> {
-            Assert.assertContains("Invalid type for role permission: HugeTarget",
-                                  e.getMessage());
-        });
+        role = userManager.rolePermission(userManager.getTarget(graph1v));
+        expected = "{\"roles\":{\"hugegraph\":{\"READ\":[{\"type\":\"VERTEX\",\"label\":\"person\",\"properties\":{\"city\":\"Beijing\",\"age\":\"P.gte(20)\"}},{\"type\":\"VERTEX_LABEL\",\"label\":\"*\",\"properties\":null},{\"type\":\"PROPERTY_KEY\",\"label\":\"*\",\"properties\":null}]}}}";
+        Assert.assertEquals(expected, role.toJson());
     }
 
     private static HugeUser makeUser(String name, String password) {

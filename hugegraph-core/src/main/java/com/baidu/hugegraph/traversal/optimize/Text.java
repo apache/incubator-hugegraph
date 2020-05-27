@@ -27,19 +27,39 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.query.Condition.RelationType;
 
-public class Text extends P<Object> {
+public class Text {
 
-    private static final long serialVersionUID = -4775814319848365698L;
-
-    private Text(final BiPredicate<Object, Object> predicate, String value) {
-        super(predicate, value);
-    }
-
-    public static Text contains(String value) {
-        return new Text(RelationType.TEXT_CONTAINS, value);
+    public static ConditionP contains(String value) {
+        return ConditionP.textContains(value);
     }
 
     public static Id uuid(String id) {
         return IdGenerator.of(id, true);
+    }
+
+    public static class ConditionP extends P<Object> {
+
+        private static final long serialVersionUID = 9094970577400072902L;
+
+        private ConditionP(final BiPredicate<Object, Object> predicate,
+                           Object value) {
+            super(predicate, value);
+        }
+
+        public static ConditionP textContains(String value) {
+            return new ConditionP(RelationType.TEXT_CONTAINS, value);
+        }
+
+        public static ConditionP contains(String value) {
+            return new ConditionP(RelationType.CONTAINS, value);
+        }
+
+        public static ConditionP containsK(String value) {
+            return new ConditionP(RelationType.CONTAINS_KEY, value);
+        }
+
+        public static ConditionP containsV(String value) {
+            return new ConditionP(RelationType.CONTAINS_VALUE, value);
+        }
     }
 }

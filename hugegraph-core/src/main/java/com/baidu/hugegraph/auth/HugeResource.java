@@ -20,7 +20,6 @@
 package com.baidu.hugegraph.auth;
 
 import java.io.IOException;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -39,13 +38,13 @@ import org.apache.tinkerpop.shaded.jackson.databind.deser.std.StdDeserializer;
 import org.apache.tinkerpop.shaded.jackson.databind.module.SimpleModule;
 import org.apache.tinkerpop.shaded.jackson.databind.ser.std.StdSerializer;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.auth.ResourceObject.ResourceType;
 import com.baidu.hugegraph.auth.SchemaDefine.UserElement;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
 import com.baidu.hugegraph.type.Namifiable;
 import com.baidu.hugegraph.type.Typifiable;
-import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -177,23 +176,13 @@ public class HugeResource {
             if (!prop.isPresent()) {
                 return false;
             }
-            Object actual = prop.value();
-            if (expected instanceof String &&
-                ((String) expected).startsWith(TraversalUtil.P_CALL)) {
-                String pred = ((String) expected);
-                if (actual instanceof Date) {
-                    actual = ((Date) actual).getTime();
-                }
-                if (!TraversalUtil.parsePredicate(pred).test(actual)) {
+            try {
+                if (!TraversalUtil.testProperty(prop, expected)) {
                     return false;
                 }
-            } else {
-                if (actual instanceof Date && expected instanceof String) {
-                    expected = DateUtil.parse((String) expected);
-                }
-                if (!Objects.equals(expected, actual)) {
-                    return false;
-                }
+            } catch (IllegalArgumentException e) {
+                throw new HugeException("Invalid resouce '%s' for '%s': %s",
+                                        expected, propName, e.getMessage());
             }
         }
         return true;
