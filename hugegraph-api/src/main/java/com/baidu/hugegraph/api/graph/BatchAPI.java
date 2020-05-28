@@ -143,7 +143,7 @@ public class BatchAPI extends API {
                 Object value = updateStrategy.checkAndUpdateProperty(
                                oldElement.property(key).value(),
                                newElement.properties.get(key));
-                value = g.propertyKey(key).convValue(value, false);
+                value = g.propertyKey(key).validValueOrThrow(value);
                 newElement.properties.put(key, value);
             } else if (oldElement.property(key).isPresent() &&
                        newElement.properties.get(key) == null) {

@@ -81,7 +81,6 @@ import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaLabel;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.structure.HugeProperty;
-import com.baidu.hugegraph.traversal.optimize.Text.ConditionP;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.Directions;
@@ -623,10 +622,20 @@ public final class TraversalUtil {
     }
 
     private static <V> V validPropertyValue(V value, PropertyKey pkey) {
-        V validValue = pkey.convValue(value, false);
-        if (validValue == null) {
-            if (pkey.cardinality() == Cardinality.SINGLE &&
-                value instanceof Collection) {
+        if (pkey.cardinality() == Cardinality.SINGLE &&
+            value instanceof Collection) {
+            // Expect single but got collection, like P.within([])
+            Collection<?> collection = (Collection<?>) value;
+            Collection<Object> validValues = new ArrayList<>();
+            for (Object element : collection) {
+                Object validValue = pkey.validValue(element);
+                if (validValue == null) {
+                    validValues = null;
+                    break;
+                }
+                validValues.add(validValue);
+            }
+            if (validValues == null) {
                 List<Class<?>> classes = new ArrayList<>();
                 for (Object v : (Collection<?>) value) {
                     classes.add(v == null ? null : v.getClass());
@@ -636,15 +645,21 @@ public final class TraversalUtil {
                                 "expect %s for '%s', actual got %s",
                                 value, pkey.dataType(), pkey.name(),
                                 value == null ? null : classes);
-            } else {
+            }
+            @SuppressWarnings("unchecked")
+            V validValue = (V) validValues;
+            return validValue;
+        } else {
+            V validValue = pkey.validValue(value);
+            if (validValue == null) {
                 E.checkArgument(false,
                                 "Invalid data type of query value '%s', " +
                                 "expect %s for '%s', actual got %s",
                                 value, pkey.dataType(), pkey.name(),
                                 value == null ? null : value.getClass());
             }
+            return validValue;
         }
-        return validValue;
     }
 
     public static void retriveSysprop(List<HasContainer> hasContainers,
@@ -702,7 +717,7 @@ public final class TraversalUtil {
             ((String) expected).startsWith(TraversalUtil.P_CALL)) {
             predicate = TraversalUtil.parsePredicate(((String) expected));
         } else {
-            predicate = P.eq(expected);
+            predicate = ConditionP.eq(expected);
         }
         updatePredicateValue(predicate, ((HugeProperty<?>) prop).propertyKey());
         return predicate.test(actual);

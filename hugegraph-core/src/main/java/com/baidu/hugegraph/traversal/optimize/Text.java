@@ -19,13 +19,8 @@
 
 package com.baidu.hugegraph.traversal.optimize;
 
-import java.util.function.BiPredicate;
-
-import org.apache.tinkerpop.gremlin.process.traversal.P;
-
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
-import com.baidu.hugegraph.backend.query.Condition.RelationType;
 
 public class Text {
 
@@ -35,31 +30,5 @@ public class Text {
 
     public static Id uuid(String id) {
         return IdGenerator.of(id, true);
-    }
-
-    public static class ConditionP extends P<Object> {
-
-        private static final long serialVersionUID = 9094970577400072902L;
-
-        private ConditionP(final BiPredicate<Object, Object> predicate,
-                           Object value) {
-            super(predicate, value);
-        }
-
-        public static ConditionP textContains(String value) {
-            return new ConditionP(RelationType.TEXT_CONTAINS, value);
-        }
-
-        public static ConditionP contains(String value) {
-            return new ConditionP(RelationType.CONTAINS, value);
-        }
-
-        public static ConditionP containsK(String value) {
-            return new ConditionP(RelationType.CONTAINS_KEY, value);
-        }
-
-        public static ConditionP containsV(String value) {
-            return new ConditionP(RelationType.CONTAINS_VALUE, value);
-        }
     }
 }

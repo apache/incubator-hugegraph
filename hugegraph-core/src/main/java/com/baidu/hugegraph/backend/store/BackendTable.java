@@ -22,7 +22,6 @@ package com.baidu.hugegraph.backend.store;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Base64;
 import java.util.Iterator;
 import java.util.List;
 
@@ -35,6 +34,7 @@ import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.NumericUtil;
+import com.baidu.hugegraph.util.StringEncoding;
 import com.google.common.collect.ImmutableList;
 
 public abstract class BackendTable<Session extends BackendSession, Entry> {
@@ -140,9 +140,6 @@ public abstract class BackendTable<Session extends BackendSession, Entry> {
                                                           -1, -1, -1, -1,
                                                           -1, -1, -1, -1,
                                                           -1, -1, -1, -1};
-
-        protected static final Base64.Encoder encoder = Base64.getEncoder();
-        protected static final Base64.Decoder decoder = Base64.getDecoder();
 
         private final String table;
 
@@ -279,12 +276,12 @@ public abstract class BackendTable<Session extends BackendSession, Entry> {
 
             private static String startKey(byte[] start) {
                 return Arrays.equals(start, START_BYTES) ?
-                       START : encoder.encodeToString(start);
+                       START : StringEncoding.encodeBase64(start);
             }
 
             private static String endKey(byte[] end) {
                 return Arrays.equals(end, END_BYTES) ?
-                       END : encoder.encodeToString(end);
+                       END : StringEncoding.encodeBase64(end);
             }
 
             private static byte[] add(byte[] array1, byte[] array2) {
@@ -345,7 +342,7 @@ public abstract class BackendTable<Session extends BackendSession, Entry> {
             }
 
             private static int byte2int(byte b) {
-                return ((int) b & 0x000000ff);
+                return (b & 0x000000ff);
             }
 
             private static byte int2byte(int i) {

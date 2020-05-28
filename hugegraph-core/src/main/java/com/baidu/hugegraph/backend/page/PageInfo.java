@@ -19,7 +19,6 @@
 
 package com.baidu.hugegraph.backend.page;
 
-import java.util.Base64;
 import java.util.Iterator;
 
 import com.baidu.hugegraph.HugeException;
@@ -27,6 +26,7 @@ import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.baidu.hugegraph.iterator.Metadatable;
 import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.StringEncoding;
 
 public final class PageInfo {
 
@@ -62,7 +62,7 @@ public final class PageInfo {
 
     @Override
     public String toString() {
-        return Base64.getEncoder().encodeToString(this.toBytes());
+        return StringEncoding.encodeBase64(this.toBytes());
     }
 
     public byte[] toBytes() {
@@ -77,7 +77,7 @@ public final class PageInfo {
     public static PageInfo fromString(String page) {
         byte[] bytes;
         try {
-            bytes = Base64.getDecoder().decode(page);
+            bytes = StringEncoding.decodeBase64(page);
         } catch (Exception e) {
             throw new HugeException("Invalid page: '%s'", e, page);
         }

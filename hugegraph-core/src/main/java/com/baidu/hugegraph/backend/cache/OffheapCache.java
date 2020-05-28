@@ -225,7 +225,7 @@ public class OffheapCache extends AbstractCache<Id, Object> {
                 this.svalue = BytesBuffer.allocate(64 * listSize);
                 this.serialize(this.value, this.svalue);
                 this.serializedSize = this.svalue.position();
-                this.svalue.flip();
+                this.svalue.forReadWritten();
             }
             return this.svalue.asByteBuffer();
         }

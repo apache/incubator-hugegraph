@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.backend.tx;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
@@ -353,10 +354,10 @@ public abstract class AbstractTransaction implements Transaction {
             /*
              * Rethrow the commit exception
              * The e.getMessage maybe too long to see key information,
-             * therefore use e.getCause
              */
-            throw new BackendException(
-                      "Failed to commit changes: %s", e1.getCause());
+            throw new BackendException("Failed to commit changes: %s",
+                                       StringUtils.abbreviateMiddle(
+                                       e1.getMessage(), ".", 256));
         }
     }
 

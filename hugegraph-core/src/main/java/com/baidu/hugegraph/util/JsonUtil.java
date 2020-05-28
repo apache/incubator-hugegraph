@@ -116,8 +116,10 @@ public final class JsonUtil {
                 object = number.longValue();
             } else if (clazz == Float.class) {
                 object = number.floatValue();
+            } else if (clazz == Double.class) {
+                assert object instanceof Double : object;
             } else {
-                assert clazz == Double.class;
+                assert clazz == Date.class : clazz;
             }
         }
         return object;

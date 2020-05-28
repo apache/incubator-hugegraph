@@ -72,6 +72,7 @@ import com.baidu.hugegraph.traversal.optimize.Text;
 import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.util.Blob;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.DateUtil;
 import com.google.common.collect.ImmutableList;
@@ -3369,6 +3370,64 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertEquals(1, vertices.size());
         Assert.assertEquals(Utils.date(dates[3]),
                             vertices.get(0).value("birth"));
+    }
+
+    @Test
+    public void testQueryByUUIDProperty() {
+        HugeGraph graph = graph();
+
+        SchemaManager schema = graph.schema();
+        schema.propertyKey("uuid").asUUID().create();
+        schema.vertexLabel("user").primaryKeys("id")
+              .properties("id", "uuid").create();
+        schema.indexLabel("userByUuid").secondary()
+              .onV("user").by("uuid").create();
+
+        UUID uuid1 = UUID.randomUUID();
+        UUID uuid2 = UUID.randomUUID();
+        graph().addVertex(T.label, "user", "id", 1, "uuid", uuid1);
+        graph().addVertex(T.label, "user", "id", 2, "uuid", uuid2);
+
+        graph().tx().commit();
+
+        List<Vertex> vertices = graph.traversal().V().hasLabel("user")
+                                     .has("uuid", uuid1).toList();
+        Assert.assertEquals(1, vertices.size());
+        assertContains(vertices, T.label, "user", "id", 1, "uuid", uuid1);
+
+        vertices = graph.traversal().V().hasLabel("user")
+                        .has("uuid", uuid2).toList();
+        Assert.assertEquals(1, vertices.size());
+        assertContains(vertices, T.label, "user", "id", 2, "uuid", uuid2);
+    }
+
+    @Test
+    public void testQueryByBlobProperty() {
+        HugeGraph graph = graph();
+
+        SchemaManager schema = graph.schema();
+        schema.propertyKey("blob").asBlob().create();
+        schema.vertexLabel("user").primaryKeys("id")
+              .properties("id", "blob").create();
+        schema.indexLabel("userByBlob").secondary()
+              .onV("user").by("blob").create();
+
+        Blob blob1 = Blob.wrap(new byte[]{97, 49, 50, 51, 52});
+        Blob blob2 = Blob.wrap(new byte[]{97, 98, 50, 51, 52});
+        graph().addVertex(T.label, "user", "id", 1, "blob", blob1);
+        graph().addVertex(T.label, "user", "id", 2, "blob", blob2);
+
+        graph().tx().commit();
+
+        List<Vertex> vertices = graph.traversal().V().hasLabel("user")
+                                     .has("blob", blob1).toList();
+        Assert.assertEquals(1, vertices.size());
+        assertContains(vertices, T.label, "user", "id", 1, "blob", blob1);
+
+        vertices = graph.traversal().V().hasLabel("user")
+                        .has("blob", blob2).toList();
+        Assert.assertEquals(1, vertices.size());
+        assertContains(vertices, T.label, "user", "id", 2, "blob", blob2);
     }
 
     @Test

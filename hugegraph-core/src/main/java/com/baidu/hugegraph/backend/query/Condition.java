@@ -29,6 +29,8 @@ import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
 
+import org.apache.commons.lang.ArrayUtils;
+
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.store.Shard;
 import com.baidu.hugegraph.structure.HugeElement;
@@ -149,6 +151,8 @@ public abstract class Condition {
                 }
             } else if (second instanceof Number) {
                 return compare(first, second) == 0;
+            } else if (second.getClass().isArray()) {
+                return ArrayUtils.isEquals(first, second);
             }
 
             return Objects.equals(first, second);

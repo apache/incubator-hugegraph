@@ -22,7 +22,6 @@ package com.baidu.hugegraph.schema;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -154,45 +153,13 @@ public class PropertyKey extends SchemaElement implements Propfiable {
     }
 
     /**
-     * Check type of the value valid
-     * @param value the property value to be checked data type
-     * @param <V>   the property value original data type
-     * @return true if the value is or can convert to the data type,
-     *         otherwise false
-     */
-    public <V> boolean checkDataType(V value) {
-        if (value instanceof Number) {
-            return this.dataType().valueToNumber(value) != null;
-        }
-        return this.dataType().clazz().isInstance(value);
-    }
-
-    /**
-     * Check type of all the values(may be some of list properties) valid
-     * @param values the property values to be checked data type
-     * @param <V> the property value class
-     * @return true if all the values are or can convert to the data type,
-     *         otherwise false
-     */
-    public <V> boolean checkDataType(Collection<V> values) {
-        boolean valid = true;
-        for (Object o : values) {
-            if (!this.checkDataType(o)) {
-                valid = false;
-                break;
-            }
-        }
-        return valid;
-    }
-
-    /**
      * Check property value valid
      * @param value the property value to be checked data type and cardinality
      * @param <V> the property value class
      * @return true if data type and cardinality satisfy requirements,
      *         otherwise false
      */
-    public <V> boolean checkValue(V value) {
+    public <V> boolean checkValueType(V value) {
         boolean valid;
 
         switch (this.cardinality) {
@@ -214,11 +181,43 @@ public class PropertyKey extends SchemaElement implements Propfiable {
         return valid;
     }
 
+    /**
+     * Check type of the value valid
+     * @param value the property value to be checked data type
+     * @param <V>   the property value original data type
+     * @return true if the value is or can convert to the data type,
+     *         otherwise false
+     */
+    private <V> boolean checkDataType(V value) {
+        return this.dataType().clazz().isInstance(value);
+    }
+
+    /**
+     * Check type of all the values(may be some of list properties) valid
+     * @param values the property values to be checked data type
+     * @param <V> the property value class
+     * @return true if all the values are or can convert to the data type,
+     *         otherwise false
+     */
+    private <V> boolean checkDataType(Collection<V> values) {
+        boolean valid = true;
+        for (Object o : values) {
+            if (!this.checkDataType(o)) {
+                valid = false;
+                break;
+            }
+        }
+        return valid;
+    }
+
     public <V> Object serialValue(V value) {
         V validValue = this.validValue(value);
         E.checkArgument(validValue != null,
                         "Invalid property value '%s' for key '%s'",
                         value, this.name());
+        E.checkArgument(this.cardinality == Cardinality.SINGLE,
+                        "The cardinality can't be '%s' for navigation key '%s'",
+                        this.cardinality, this.name());
         if (this.dataType.isNumber() || this.dataType.isDate()) {
             return LongEncoding.encodeNumber(validValue);
         }
@@ -228,7 +227,7 @@ public class PropertyKey extends SchemaElement implements Propfiable {
     public <V> V validValueOrThrow(V value) {
         V validValue = this.validValue(value);
         if (validValue == null) {
-            E.checkArgument(validValue != null,
+            E.checkArgument(false,
                             "Invalid property value '%s' for key '%s', " +
                             "expect a value of type %s, actual type %s",
                             value, this.name(), this.clazz(),
@@ -238,47 +237,59 @@ public class PropertyKey extends SchemaElement implements Propfiable {
     }
 
     public <V> V validValue(V value) {
-        return this.convValue(value, true);
+        try {
+            return this.convValue(value);
+        } catch (RuntimeException e) {
+            throw new IllegalArgumentException(String.format(
+                      "Invalid property value '%s' for key '%s': %s",
+                      value, this.name(), e.getMessage()));
+        }
     }
 
     @SuppressWarnings("unchecked")
-    public <V, T> V convValue(V value, boolean checkValue) {
+    private <V, T> V convValue(V value) {
         if (value == null) {
             return null;
         }
+        if (this.checkValueType(value)) {
+            // Same as expected type, no conversion required
+            return value;
+        }
 
-        V validValue;
+        V validValue = null;
         Collection<T> validValues;
-        if (!(value instanceof Collection)) {
+        if (this.cardinality == Cardinality.SINGLE) {
             validValue = this.convSingleValue(value);
-        } else {
+        } else if (value instanceof Collection) {
             Collection<T> collection = (Collection<T>) value;
-            if (collection instanceof Set ||
-                this.cardinality == Cardinality.SET) {
-                validValues = new HashSet<>(collection.size());
+            if (this.cardinality == Cardinality.SET) {
+                validValues = new LinkedHashSet<>(collection.size());
             } else {
-                E.checkArgument(collection instanceof List,
-                                "Property value must be Single, Set, List, " +
-                                "but got %s", value);
+                assert this.cardinality == Cardinality.LIST;
                 validValues = new ArrayList<>(collection.size());
             }
             for (T element : collection) {
                 element = this.convSingleValue(element);
                 if (element == null) {
-                    return null;
+                    validValues = null;
+                    break;
                 }
                 validValues.add(element);
             }
             validValue = (V) validValues;
+        } else {
+            E.checkArgument(false,
+                            "Property value must be single/set/list, " +
+                            "but got '%s'(%s)",
+                            value, value.getClass().getSimpleName());
         }
-
-        if (!checkValue || this.checkValue(validValue)) {
-            return validValue;
-        }
-        return null;
+        return validValue;
     }
 
     private <V> V convSingleValue(V value) {
+        if (value == null) {
+            return null;
+        }
         if (this.dataType().isNumber()) {
             @SuppressWarnings("unchecked")
             V number = (V) this.dataType().valueToNumber(value);
@@ -291,8 +302,16 @@ public class PropertyKey extends SchemaElement implements Propfiable {
             @SuppressWarnings("unchecked")
             V uuid = (V) this.dataType().valueToUUID(value);
             return uuid;
+        } else if (this.dataType().isBlob()) {
+            @SuppressWarnings("unchecked")
+            V blob = (V) this.dataType().valueToBlob(value);
+            return blob;
         }
-        return value;
+
+        if (this.checkDataType(value)) {
+            return value;
+        }
+        return null;
     }
 
     public interface Builder extends SchemaBuilder<PropertyKey> {

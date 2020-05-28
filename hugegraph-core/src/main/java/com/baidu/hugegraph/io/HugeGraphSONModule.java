@@ -61,6 +61,7 @@ import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.util.Blob;
 
 @SuppressWarnings("serial")
 public class HugeGraphSONModule extends TinkerPopJacksonModule {
@@ -171,6 +172,9 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
 
         module.addSerializer(Shard.class, new ShardSerializer());
         module.addSerializer(File.class, new FileSerializer());
+
+        module.addSerializer(Blob.class, new BlobSerializer());
+        module.addDeserializer(Blob.class, new BlobDeserializer());
     }
 
     public static void registerGraphSerializers(SimpleModule module) {
@@ -477,6 +481,36 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
             jsonGenerator.writeStartObject();
             jsonGenerator.writeStringField("file", file.getName());
             jsonGenerator.writeEndObject();
+        }
+    }
+
+    private static class BlobSerializer extends StdSerializer<Blob> {
+
+        public BlobSerializer() {
+            super(Blob.class);
+        }
+
+        @Override
+        public void serialize(Blob blob, JsonGenerator jsonGenerator,
+                              SerializerProvider provider)
+                              throws IOException {
+            jsonGenerator.writeBinary(blob.bytes());
+        }
+    }
+
+
+    private static class BlobDeserializer extends StdDeserializer<Blob> {
+
+        public BlobDeserializer() {
+            super(Blob.class);
+        }
+
+        @Override
+        public Blob deserialize(JsonParser jsonParser,
+                                DeserializationContext ctxt)
+                                throws IOException {
+            byte[] bytes = jsonParser.getBinaryValue();
+            return Blob.wrap(bytes);
         }
     }
 }

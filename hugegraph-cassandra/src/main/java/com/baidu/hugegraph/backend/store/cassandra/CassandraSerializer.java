@@ -143,7 +143,7 @@ public class CassandraSerializer extends TableSerializer {
             propertyKey.dataType(DataType.fromClass(value.getClass()));
         }
         buffer.writeProperty(propertyKey, value);
-        buffer.flip();
+        buffer.forReadWritten();
         return buffer.asByteBuffer();
     }
 

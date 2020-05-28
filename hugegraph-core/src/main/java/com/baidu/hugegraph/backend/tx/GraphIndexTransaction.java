@@ -1257,7 +1257,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                          "Expect user property values for key '%s', " +
                          "but got none", pk);
             for (Object value : values) {
-                if (!pk.checkValue(value)) {
+                if (!pk.checkValueType(value)) {
                     return false;
                 }
             }
