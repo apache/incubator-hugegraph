@@ -21,6 +21,7 @@ package com.baidu.hugegraph.core;
 
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.structure.T;
@@ -31,6 +32,7 @@ import org.junit.Test;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.IdGenerator;
+import com.baidu.hugegraph.exception.ExistedException;
 import com.baidu.hugegraph.exception.NoIndexException;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.SchemaManager;
@@ -1111,5 +1113,43 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
         person = schema.getVertexLabel("person");
         createTime = (Date) person.userdata().get(Userdata.CREATE_TIME);
         Assert.assertFalse(createTime.after(now));
+    }
+
+    @Test
+    public void testDuplicatePropertyWithIdentityProperties() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+        schema.vertexLabel("person")
+              .properties("name", "age", "city")
+              .primaryKeys("name").create();
+        String name = UUID.randomUUID().toString();
+        schema.vertexLabel(name)
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .create();
+        schema.vertexLabel(name)
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .checkExist(false)
+              .create();
+    }
+
+    @Test
+    public void testDuplicatePropertyWithDifferentProperties() {
+        super.initPropertyKeys();
+        String name = UUID.randomUUID().toString();
+        SchemaManager schema = graph().schema();
+
+        schema.vertexLabel(name)
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .create();
+        Assert.assertThrows(ExistedException.class, () -> {
+            schema.vertexLabel(name)
+                  .properties("name", "age") // remove city
+                  .primaryKeys("name")
+                  .checkExist(false)
+                  .create();
+        });
     }
 }

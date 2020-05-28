@@ -123,7 +123,7 @@ public class EdgeLabelBuilder extends AbstractBuilder
         return this.lockCheckAndCreateSchema(type, this.name, name -> {
             EdgeLabel edgeLabel = this.edgeLabelOrNull(this.name);
             if (edgeLabel != null) {
-                if (this.checkExist) {
+                if (this.checkExist || !hasSameProperties(edgeLabel)) {
                     throw new ExistedException(type, this.name);
                 }
                 return edgeLabel;
@@ -147,6 +147,72 @@ public class EdgeLabelBuilder extends AbstractBuilder
             this.graph().addEdgeLabel(edgeLabel);
             return edgeLabel;
         });
+    }
+
+    private boolean hasSameProperties(EdgeLabel existedEdgeLabel) {
+        Id sourceId = this.transaction.getVertexLabel(
+                this.sourceLabel).id();
+        if (! existedEdgeLabel.sourceLabel().equals(sourceId)) {
+            return false;
+        }
+
+        Id targetId = this.transaction.getVertexLabel(
+                this.targetLabel).id();
+
+        if (! existedEdgeLabel.targetLabel().equals(targetId)) {
+            return false;
+        }
+
+        if (this.frequency != existedEdgeLabel.frequency()) {
+            return false;
+        }
+
+        // this.enableLabelIndex == null, it means true.
+        if (this.enableLabelIndex == null || this.enableLabelIndex) {
+            if (! existedEdgeLabel.enableLabelIndex()) {
+                return false;
+            }
+        } else { // means false
+            if (existedEdgeLabel.enableLabelIndex() == false) {
+                return false;
+            }
+        }
+
+        Set<Id> existedProperties = existedEdgeLabel.properties();
+        if (this.properties.size() != existedProperties.size()) {
+            return false;
+        }
+        for (String key : this.properties) {
+            PropertyKey propertyKey = this.transaction.getPropertyKey(key);
+            if (! existedProperties.contains(propertyKey.id())) {
+                return false;
+            }
+        }
+
+        List<Id> existedSortKeys = existedEdgeLabel.sortKeys();
+
+        if (this.sortKeys.size() != existedSortKeys.size()) {
+            return false;
+        }
+        for (String key : this.sortKeys) {
+            PropertyKey propertyKey = this.transaction.getPropertyKey(key);
+            if (! existedSortKeys.contains(propertyKey.id())) {
+                return false;
+            }
+        }
+
+        Set<Id> existedNullableKeys = existedEdgeLabel.nullableKeys();
+        if (this.nullableKeys.size() != existedNullableKeys.size()) {
+            return false;
+        }
+
+        for (String nullableKeyName : this.nullableKeys) {
+            PropertyKey nullableKey = this.transaction.getPropertyKey(nullableKeyName);
+            if (!existedNullableKeys.contains(nullableKey.id())) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @Override

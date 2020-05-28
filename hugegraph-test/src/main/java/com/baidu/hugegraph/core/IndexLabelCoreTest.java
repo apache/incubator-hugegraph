@@ -21,6 +21,7 @@ package com.baidu.hugegraph.core;
 
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -31,6 +32,7 @@ import org.junit.Test;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.exception.ExistedException;
 import com.baidu.hugegraph.exception.NoIndexException;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.EdgeLabel;
@@ -1663,5 +1665,49 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
         personByName = schema.getIndexLabel("personByName");
         createTime = (Date) personByName.userdata().get(Userdata.CREATE_TIME);
         Assert.assertFalse(createTime.after(now));
+    }
+
+    @Test
+    public void testDuplicatePropertyWithIdentityProperties() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+        schema.vertexLabel("person").properties("name", "age", "city")
+                .primaryKeys("name").create();
+        String name = UUID.randomUUID().toString();
+        schema.indexLabel(name)
+                .onV("person")
+                .by("age", "city")
+                .secondary()
+                .ifNotExist()
+                .create();
+        schema.indexLabel(name)
+                .onV("person")
+                .by("age", "city")
+                .secondary()
+                .checkExist(false)
+                .create();
+    }
+
+    @Test
+    public void testDuplicatePropertyWithDifferentProperties() {
+        super.initPropertyKeys();
+        String name = UUID.randomUUID().toString();
+        SchemaManager schema = graph().schema();
+        schema.vertexLabel("person").properties("name", "age", "city")
+                .primaryKeys("name").create();
+        schema.indexLabel(name)
+                .onV("person")
+                .by("age", "city")
+                .secondary()
+                .ifNotExist()
+                .create();
+        Assert.assertThrows(ExistedException.class, () -> {
+            schema.indexLabel(name)
+                    .onV("person")
+                    .by("age") // remove city
+                    .secondary()
+                    .checkExist(false)
+                    .create();
+        });
     }
 }

@@ -20,10 +20,12 @@
 package com.baidu.hugegraph.core;
 
 import java.util.Date;
+import java.util.UUID;
 
 import org.junit.Test;
 
 import com.baidu.hugegraph.HugeException;
+import com.baidu.hugegraph.exception.ExistedException;
 import com.baidu.hugegraph.exception.NotAllowException;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -472,5 +474,23 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
         id = schema.getPropertyKey("id");
         createTime = (Date) id.userdata().get(Userdata.CREATE_TIME);
         Assert.assertFalse(createTime.after(now));
+    }
+
+    @Test
+    public void testDuplicatePropertyWithIdentityProperties() {
+        SchemaManager schema = graph().schema();
+        String name = UUID.randomUUID().toString();
+        schema.propertyKey(name).asText().ifNotExist().create();
+        schema.propertyKey(name).asText().checkExist(false).create();
+    }
+
+    @Test
+    public void testDuplicatePropertyWithDifferentProperties() {
+        String name = UUID.randomUUID().toString();
+        SchemaManager schema = graph().schema();
+        schema.propertyKey(name).userdata("a", "").asText().ifNotExist().create();
+        Assert.assertThrows(ExistedException.class, () -> {
+            schema.propertyKey(name).asDouble().checkExist(false).create();
+        });
     }
 }
