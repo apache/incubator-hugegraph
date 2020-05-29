@@ -1121,7 +1121,8 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
         SchemaManager schema = graph().schema();
         schema.vertexLabel("person")
               .properties("name", "age", "city")
-              .primaryKeys("name").create();
+              .primaryKeys("name")
+              .create();
         String name = UUID.randomUUID().toString();
         schema.vertexLabel(name)
               .properties("name", "age", "city")

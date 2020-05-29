@@ -150,14 +150,13 @@ public class EdgeLabelBuilder extends AbstractBuilder
     }
 
     private boolean hasSameProperties(EdgeLabel existedEdgeLabel) {
-        Id sourceId = this.transaction.getVertexLabel(
-                this.sourceLabel).id();
+        HugeGraph graph = this.graph();
+        Id sourceId = graph.vertexLabel(this.sourceLabel).id();
         if (! existedEdgeLabel.sourceLabel().equals(sourceId)) {
             return false;
         }
 
-        Id targetId = this.transaction.getVertexLabel(
-                this.targetLabel).id();
+        Id targetId = graph.vertexLabel(this.targetLabel).id();
 
         if (! existedEdgeLabel.targetLabel().equals(targetId)) {
             return false;
@@ -183,8 +182,8 @@ public class EdgeLabelBuilder extends AbstractBuilder
             return false;
         }
         for (String key : this.properties) {
-            PropertyKey propertyKey = this.transaction.getPropertyKey(key);
-            if (! existedProperties.contains(propertyKey.id())) {
+            PropertyKey propertyKey = graph.propertyKey(key);
+            if (!existedProperties.contains(propertyKey.id())) {
                 return false;
             }
         }
@@ -195,8 +194,8 @@ public class EdgeLabelBuilder extends AbstractBuilder
             return false;
         }
         for (String key : this.sortKeys) {
-            PropertyKey propertyKey = this.transaction.getPropertyKey(key);
-            if (! existedSortKeys.contains(propertyKey.id())) {
+            PropertyKey propertyKey = graph.propertyKey(key);
+            if (!existedSortKeys.contains(propertyKey.id())) {
                 return false;
             }
         }
@@ -207,7 +206,7 @@ public class EdgeLabelBuilder extends AbstractBuilder
         }
 
         for (String nullableKeyName : this.nullableKeys) {
-            PropertyKey nullableKey = this.transaction.getPropertyKey(nullableKeyName);
+            PropertyKey nullableKey = graph.propertyKey(nullableKeyName);
             if (!existedNullableKeys.contains(nullableKey.id())) {
                 return false;
             }

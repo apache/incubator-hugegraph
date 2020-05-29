@@ -138,25 +138,22 @@ public class VertexLabelBuilder extends AbstractBuilder
     }
 
     /**
-     * Check whither this has same properties with vertexLabel.
-     * Only  properties,  primaryKeys, nullableKeys, enableLabelIndex  is checked.
-     * The id, idStrategy, checkExist, transaction,userdata is not checked.
+     * Check whether this has same properties with existedVertexLabel.
+     * Only  properties,  primaryKeys, nullableKeys, enableLabelIndex  are checked.
+     * The id, idStrategy, checkExist, transaction,userdata are not checked.
      * @param existedVertexLabel to be compared with
-     * @return true if this has same properties with propertyKey
+     * @return true if this has same properties with existedVertexLabel
      */
     private boolean hasSameProperties(VertexLabel existedVertexLabel) {
-
-//        if (this.idStrategy != existedVertexLabel.idStrategy()) {
-//            return false;
-//        }
+        HugeGraph graph = this.graph();
 
         Set<Id> existedProperties = existedVertexLabel.properties();
         if (this.properties.size() != existedProperties.size()) {
             return false;
         }
         for (String propertyName : this.properties) {
-            PropertyKey propertyKey = this.transaction.getPropertyKey(propertyName);
-            if (! existedProperties.contains(propertyKey.id())) {
+            PropertyKey propertyKey = graph.propertyKey(propertyName);
+            if (!existedProperties.contains(propertyKey.id())) {
                 return false;
             }
         }
@@ -167,7 +164,7 @@ public class VertexLabelBuilder extends AbstractBuilder
         }
 
         for (String primaryKeyName : this.primaryKeys) {
-            PropertyKey primaryKey = this.transaction.getPropertyKey(primaryKeyName);
+            PropertyKey primaryKey = graph.propertyKey(primaryKeyName);
             if (!existedPrimaryKeys.contains(primaryKey.id())) {
                 return false;
             }
@@ -179,7 +176,7 @@ public class VertexLabelBuilder extends AbstractBuilder
         }
 
         for (String nullableKeyName : this.nullableKeys) {
-            PropertyKey nullableKey = this.transaction.getPropertyKey(nullableKeyName);
+            PropertyKey nullableKey = graph.propertyKey(nullableKeyName);
             if (!existedNullableKeys.contains(nullableKey.id())) {
                 return false;
             }
@@ -187,7 +184,7 @@ public class VertexLabelBuilder extends AbstractBuilder
 
         // this.enableLabelIndex == null, it means true.
         if (this.enableLabelIndex == null || this.enableLabelIndex) {
-            if (! existedVertexLabel.enableLabelIndex()) {
+            if (!existedVertexLabel.enableLabelIndex()) {
                 return false;
             }
         } else {
@@ -195,12 +192,7 @@ public class VertexLabelBuilder extends AbstractBuilder
                 return false;
             }
         }
-
-
         return true;
-
-
-
     }
 
     @Override

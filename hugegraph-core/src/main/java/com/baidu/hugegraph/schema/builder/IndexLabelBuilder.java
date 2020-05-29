@@ -101,26 +101,28 @@ public class IndexLabelBuilder extends AbstractBuilder
 
 
     /**
-     * Check whither this has same properties with existedIndexLabel.
-     * Only baseType,baseValue,indexType, indexFields is checked.
-     * The id, checkExist, transaction,userdata is not checked.
+     * Check whether this has same properties with existedIndexLabel.
+     * Only baseType,baseValue,indexType, indexFields are checked.
+     * The id, checkExist, transaction,userdata are not checked.
      * @param existedIndexLabel to be compared with
-     * @return true if this has same properties with propertyKey
+     * @return true if this has same properties with existedIndexLabel
      */
     private boolean hasSameProperties(IndexLabel existedIndexLabel) {
         // baseType is null, it means HugeType.SYS_SCHEMA
-        if (this.baseType == null && existedIndexLabel.baseType() != HugeType.SYS_SCHEMA
-        || this.baseType != existedIndexLabel.baseType()) {
+        if (this.baseType == null &&
+            existedIndexLabel.baseType() != HugeType.SYS_SCHEMA ||
+            this.baseType != existedIndexLabel.baseType()) {
             return false;
         }
 
         SchemaLabel schemaLabel = this.loadElement();
-        if (! schemaLabel.id().equals(existedIndexLabel.baseValue())) {
+        if (!schemaLabel.id().equals(existedIndexLabel.baseValue())) {
             return false;
         }
 
-        if (this.indexType == null && existedIndexLabel.indexType() != IndexType.SECONDARY
-                || this.indexType != existedIndexLabel.indexType()) {
+        if (this.indexType == null &&
+            existedIndexLabel.indexType() != IndexType.SECONDARY ||
+            this.indexType != existedIndexLabel.indexType()) {
             return false;
         }
 
@@ -129,8 +131,8 @@ public class IndexLabelBuilder extends AbstractBuilder
             return false;
         }
         for (String field : this.indexFields) {
-            PropertyKey propertyKey = this.transaction.getPropertyKey(field);
-            if (! existedIndexFieldIds.contains(propertyKey.id())) {
+            PropertyKey propertyKey = graph().propertyKey(field);
+            if (!existedIndexFieldIds.contains(propertyKey.id())) {
                 return false;
             }
         }

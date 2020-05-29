@@ -480,17 +480,30 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
     public void testDuplicatePropertyWithIdentityProperties() {
         SchemaManager schema = graph().schema();
         String name = UUID.randomUUID().toString();
-        schema.propertyKey(name).asText().ifNotExist().create();
-        schema.propertyKey(name).asText().checkExist(false).create();
+        schema.propertyKey(name)
+              .asText()
+              .ifNotExist()
+              .create();
+        schema.propertyKey(name)
+              .asText()
+              .checkExist(false)
+              .create();
     }
 
     @Test
     public void testDuplicatePropertyWithDifferentProperties() {
         String name = UUID.randomUUID().toString();
         SchemaManager schema = graph().schema();
-        schema.propertyKey(name).userdata("a", "").asText().ifNotExist().create();
+        schema.propertyKey(name)
+              .userdata("a", "")
+              .asText()
+              .ifNotExist()
+              .create();
         Assert.assertThrows(ExistedException.class, () -> {
-            schema.propertyKey(name).asDouble().checkExist(false).create();
+            schema.propertyKey(name)
+                  .asDouble()
+                  .checkExist(false)
+                  .create();
         });
     }
 }

@@ -100,9 +100,9 @@ public class PropertyKeyBuilder extends AbstractBuilder
 
 
     /**
-     * Check whither this has same properties with propertyKey.
-     * Only dataType, cardinality, aggregateType  is checked.
-     * The id, checkExist, transaction,userdata is not checked.
+     * Check whether this has same properties with propertyKey.
+     * Only dataType, cardinality, aggregateType  are checked.
+     * The id, checkExist, transaction,userdata are not checked.
      * @param propertyKey to be compared with
      * @return true if this has same properties with propertyKey
      */

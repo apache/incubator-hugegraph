@@ -1671,21 +1671,25 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
     public void testDuplicatePropertyWithIdentityProperties() {
         super.initPropertyKeys();
         SchemaManager schema = graph().schema();
-        schema.vertexLabel("person").properties("name", "age", "city")
-                .primaryKeys("name").create();
+        schema.vertexLabel("person")
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .create();
         String name = UUID.randomUUID().toString();
         schema.indexLabel(name)
-                .onV("person")
-                .by("age", "city")
-                .secondary()
-                .ifNotExist()
-                .create();
+              .onV("person")
+              .by("age", "city")
+              .secondary()
+              .ifNotExist()
+              .create();
+
+        // create indexLabel with same properties
         schema.indexLabel(name)
-                .onV("person")
-                .by("age", "city")
-                .secondary()
-                .checkExist(false)
-                .create();
+              .onV("person")
+              .by("age", "city")
+              .secondary()
+              .checkExist(false)
+              .create();
     }
 
     @Test
@@ -1693,21 +1697,24 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
         super.initPropertyKeys();
         String name = UUID.randomUUID().toString();
         SchemaManager schema = graph().schema();
-        schema.vertexLabel("person").properties("name", "age", "city")
-                .primaryKeys("name").create();
+        schema.vertexLabel("person")
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .create();
         schema.indexLabel(name)
-                .onV("person")
-                .by("age", "city")
-                .secondary()
-                .ifNotExist()
-                .create();
+              .onV("person")
+              .by("age", "city")
+              .secondary()
+              .ifNotExist()
+              .create();
+        // create indexLabel with different properties
         Assert.assertThrows(ExistedException.class, () -> {
             schema.indexLabel(name)
-                    .onV("person")
-                    .by("age") // remove city
-                    .secondary()
-                    .checkExist(false)
-                    .create();
+                  .onV("person")
+                  .by("age") // remove city
+                  .secondary()
+                  .checkExist(false)
+                  .create();
         });
     }
 }
