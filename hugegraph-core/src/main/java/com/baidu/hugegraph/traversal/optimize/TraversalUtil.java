@@ -623,7 +623,7 @@ public final class TraversalUtil {
 
     private static <V> V validPropertyValue(V value, PropertyKey pkey) {
         if (pkey.cardinality() == Cardinality.SINGLE &&
-            value instanceof Collection) {
+            value instanceof Collection && !pkey.dataType().isBlob()) {
             // Expect single but got collection, like P.within([])
             Collection<?> collection = (Collection<?>) value;
             Collection<Object> validValues = new ArrayList<>();

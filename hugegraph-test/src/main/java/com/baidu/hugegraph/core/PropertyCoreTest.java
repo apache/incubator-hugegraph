@@ -36,6 +36,7 @@ import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.testutil.Utils;
+import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
 import com.baidu.hugegraph.util.Blob;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -137,7 +138,10 @@ public abstract class PropertyCoreTest extends BaseCoreTest {
             Vertex vertex = graph.addVertex(T.label, "person", "id", 1,
                                             key, value);
             graph.tx().commit();
-            return graph.vertices(vertex.id()).next().value(key);
+            vertex = graph.vertices(vertex.id()).next();
+            Assert.assertTrue(TraversalUtil.testProperty(vertex.property(key),
+                                                         value));
+            return vertex.value(key);
         }
 
         @Override
@@ -171,7 +175,11 @@ public abstract class PropertyCoreTest extends BaseCoreTest {
             Edge edge = vertex1.addEdge("transfer", vertex2, "id", 1,
                                         key, value);
             graph.tx().commit();
-            return graph.edges(edge.id()).next().value(key);
+
+            edge = graph.edges(edge.id()).next();
+            Assert.assertTrue(TraversalUtil.testProperty(edge.property(key),
+                                                         value));
+            return edge.value(key);
         }
 
         @Override
