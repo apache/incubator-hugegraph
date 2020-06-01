@@ -563,8 +563,6 @@ public class HbaseSessions extends BackendSessionPool {
         }
 
         /**
-<<<<<<< HEAD
-=======
          * Add a row record to a table with ttl for index
          */
         public void put(String table, byte[] family, byte[] rowkey,
@@ -578,13 +576,13 @@ public class HbaseSessions extends BackendSessionPool {
         /**
          * Delete a record by rowkey and qualifier from a table
          */
+        @Override
         public void remove(String table, byte[] family,
                            byte[] rowkey, byte[] qualifier) {
             this.remove(table, family, rowkey, qualifier, false);
         }
 
         /**
->>>>>>> support edgeLabel ttl
          * Delete a record by rowkey and qualifier from a table,
          * just delete the latest version of the specified column if need
          */

@@ -25,13 +25,12 @@ import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.job.EphemeralJob;
 import com.baidu.hugegraph.job.EphemeralJobBuilder;
+import com.baidu.hugegraph.job.system.JobCounters.JobCounter;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.structure.HugeIndex;
 import com.baidu.hugegraph.task.HugeTask;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
-
-import static com.baidu.hugegraph.job.system.JobCounters.JobCounter;
 
 public abstract class DeleteExpiredJob<T> extends EphemeralJob<T> {
 
@@ -40,8 +39,8 @@ public abstract class DeleteExpiredJob<T> extends EphemeralJob<T> {
     private static final int MAX_JOBS = 1000;
     protected static final JobCounters JOB_COUNTERS = new JobCounters();
 
-    public static <T> void asyncDeleteExpiredObject(HugeGraphParams graph,
-                                                    T object) {
+    public static <V> void asyncDeleteExpiredObject(HugeGraphParams graph,
+                                                    V object) {
         E.checkArgumentNotNull(object, "The object can't be null");
         JobCounters.JobCounter jobCounter = JOB_COUNTERS.jobCounter(graph);
         if (!jobCounter.addAndTriggerDelete(object)) {
@@ -54,11 +53,11 @@ public abstract class DeleteExpiredJob<T> extends EphemeralJob<T> {
             return;
         }
         jobCounter.increment();
-        EphemeralJob job = newDeleteExpiredElementJob(jobCounter, object);
+        EphemeralJob<V> job = newDeleteExpiredElementJob(jobCounter, object);
         jobCounter.clear(object);
         HugeTask<?> task;
         try {
-            task = EphemeralJobBuilder.of(graph.graph())
+            task = EphemeralJobBuilder.<V>of(graph.graph())
                                       .name("delete_expired_object")
                                       .job(job)
                                       .schedule();
@@ -80,13 +79,13 @@ public abstract class DeleteExpiredJob<T> extends EphemeralJob<T> {
         }
     }
 
-    public static <T> EphemeralJob newDeleteExpiredElementJob(
-                                   JobCounter jobCounter, T object) {
+    public static <V> EphemeralJob<V> newDeleteExpiredElementJob(
+                                      JobCounter jobCounter, V object) {
         if (object instanceof HugeElement) {
-            return new DeleteExpiredElementJob(jobCounter.edges());
+            return new DeleteExpiredElementJob<>(jobCounter.edges());
         } else {
             assert object instanceof HugeIndex;
-            return new DeleteExpiredIndexJob(jobCounter.indexes());
+            return new DeleteExpiredIndexJob<>(jobCounter.indexes());
         }
     }
 }

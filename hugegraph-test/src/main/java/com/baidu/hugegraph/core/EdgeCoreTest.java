@@ -75,8 +75,8 @@ import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
-import com.baidu.hugegraph.util.Events;
 import com.baidu.hugegraph.util.DateUtil;
+import com.baidu.hugegraph.util.Events;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
@@ -691,10 +691,12 @@ public class EdgeCoreTest extends BaseCoreTest {
         Vertex java5 = graph().addVertex(T.label, "book", "name", "Java5");
         Edge edge1 = baby.addEdge("read", java1, "place", "library of school",
                                   "date", "2019-12-23 12:00:00");
+        @SuppressWarnings("unused")
         Edge edge2 = baby.addEdge("read", java2, "place", "library of school",
                                   "date", "2019-12-23 13:00:00");
         Edge edge3 = baby.addEdge("read", java3, "place", "library of school",
                                   "date", "2019-12-23 14:00:00");
+        @SuppressWarnings("unused")
         Edge edge4 = baby.addEdge("read", java4, "place", "library of school",
                                   "date", "2019-12-23 15:00:00");
         Edge edge5 = baby.addEdge("read", java5, "place", "library of school",
@@ -768,10 +770,12 @@ public class EdgeCoreTest extends BaseCoreTest {
         Vertex java6 = graph().addVertex(T.label, "book", "name", "Java6");
         Edge edge1 = baby.addEdge("read", java1, "place", "library of school",
                                   "date", "2019-12-23 12:00:00");
+        @SuppressWarnings("unused")
         Edge edge2 = baby.addEdge("read", java2, "place", "library of school",
                                   "date", "2019-12-23 13:00:00");
         Edge edge3 = baby.addEdge("read", java3, "place", "library of school",
                                   "date", "2019-12-23 14:00:00");
+        @SuppressWarnings("unused")
         Edge edge4 = baby.addEdge("read", java4, "place", "library of school",
                                   "date", "2019-12-23 15:00:00");
         Edge edge5 = baby.addEdge("read", java5, "place", "library of school",
@@ -965,10 +969,12 @@ public class EdgeCoreTest extends BaseCoreTest {
         Vertex java5 = graph().addVertex(T.label, "book", "name", "Java5");
         Edge edge1 = baby.addEdge("read", java1, "place", "library of school",
                                   "date", "2019-12-23 12:00:00");
+        @SuppressWarnings("unused")
         Edge edge2 = baby.addEdge("read", java2, "place", "library of school",
                                   "date", "2019-12-23 13:00:00");
         Edge edge3 = baby.addEdge("read", java3, "place", "library of school",
                                   "date", "2019-12-23 14:00:00");
+        @SuppressWarnings("unused")
         Edge edge4 = baby.addEdge("read", java4, "place", "library of school",
                                   "date", "2019-12-23 15:00:00");
         Edge edge5 = baby.addEdge("read", java5, "place", "library of school",
@@ -1010,10 +1016,12 @@ public class EdgeCoreTest extends BaseCoreTest {
         // Override
         Edge edge6 = baby.addEdge("read", java1, "place", "library of school",
                                   "date", "2019-12-23 12:01:00");
+        @SuppressWarnings("unused")
         Edge edge7 = baby.addEdge("read", java2, "place", "library of school",
                                   "date", "2019-12-23 13:01:00");
         Edge edge8 = baby.addEdge("read", java3, "place", "library of school",
                                   "date", "2019-12-23 14:01:00");
+        @SuppressWarnings("unused")
         Edge edge9 = baby.addEdge("read", java4, "place", "library of school",
                                   "date", "2019-12-23 15:01:00");
         Edge edge10 = baby.addEdge("read", java5,
@@ -1094,10 +1102,12 @@ public class EdgeCoreTest extends BaseCoreTest {
         Vertex java6 = graph().addVertex(T.label, "book", "name", "Java6");
         Edge edge1 = baby.addEdge("read", java1, "place", "library of school",
                                   "date", "2019-12-23 12:00:00");
+        @SuppressWarnings("unused")
         Edge edge2 = baby.addEdge("read", java2, "place", "library of school",
                                   "date", "2019-12-23 13:00:00");
         Edge edge3 = baby.addEdge("read", java3, "place", "library of school",
                                   "date", "2019-12-23 14:00:00");
+        @SuppressWarnings("unused")
         Edge edge4 = baby.addEdge("read", java4, "place", "library of school",
                                   "date", "2019-12-23 15:00:00");
         Edge edge5 = baby.addEdge("read", java5, "place", "library of school",
@@ -1144,10 +1154,12 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         Edge edge7 = baby.addEdge("read", java1, "place", "library of school",
                                   "date", "2019-12-23 12:01:00");
+        @SuppressWarnings("unused")
         Edge edge8 = baby.addEdge("read", java2, "place", "library of school",
                                   "date", "2019-12-23 13:01:00");
         Edge edge9 = baby.addEdge("read", java3, "place", "library of school",
                                   "date", "2019-12-23 14:01:00");
+        @SuppressWarnings("unused")
         Edge edge10 = baby.addEdge("read", java4,
                                    "place", "library of school",
                                   "date", "2019-12-23 15:01:00");

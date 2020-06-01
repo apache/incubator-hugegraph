@@ -852,7 +852,7 @@ public class TextSerializer extends AbstractSerializer {
         IdWithExpiredTime[] ids = new IdWithExpiredTime[values.length];
         for (int i = 0; i < values.length; i++) {
             @SuppressWarnings("unchecked")
-            Map<String, Object> map = (Map) values[i];
+            Map<String, Object> map = (Map<String, Object>) values[i];
             Object idValue = map.get(HugeKeys.ID.string());
             long expiredTime = ((Number) map.get(
                                HugeKeys.EXPIRED_TIME.string())).longValue();
