@@ -99,6 +99,47 @@ public class IndexLabelBuilder extends AbstractBuilder
         return indexLabel;
     }
 
+
+    /**
+     * Check whether this has same properties with existedIndexLabel.
+     * Only baseType, baseValue, indexType, indexFields are checked.
+     * The id, checkExist, userdata are not checked.
+     * @param existedIndexLabel to be compared with
+     * @return true if this has same properties with existedIndexLabel
+     */
+    private boolean hasSameProperties(IndexLabel existedIndexLabel) {
+        // baseType is null, it means HugeType.SYS_SCHEMA
+        if (this.baseType == null &&
+            existedIndexLabel.baseType() != HugeType.SYS_SCHEMA ||
+            this.baseType != existedIndexLabel.baseType()) {
+            return false;
+        }
+
+        SchemaLabel schemaLabel = this.loadElement();
+        if (!schemaLabel.id().equals(existedIndexLabel.baseValue())) {
+            return false;
+        }
+
+        if (this.indexType == null &&
+            existedIndexLabel.indexType() != IndexType.SECONDARY ||
+            this.indexType != existedIndexLabel.indexType()) {
+            return false;
+        }
+
+        List<Id> existedIndexFieldIds = existedIndexLabel.indexFields();
+        if (indexFields.size() != existedIndexFieldIds.size()) {
+            return false;
+        }
+        for (String field : this.indexFields) {
+            PropertyKey propertyKey = graph().propertyKey(field);
+            if (!existedIndexFieldIds.contains(propertyKey.id())) {
+                return false;
+            }
+        }
+        // all properties are same, return true.
+        return true;
+    }
+
     /**
      * Create index label with async mode
      */
@@ -110,7 +151,7 @@ public class IndexLabelBuilder extends AbstractBuilder
         return this.lockCheckAndCreateSchema(type, this.name, name -> {
             IndexLabel indexLabel = this.indexLabelOrNull(name);
             if (indexLabel != null) {
-                if (this.checkExist) {
+                if (this.checkExist || !hasSameProperties(indexLabel)) {
                     throw new ExistedException(type, name);
                 }
                 return new IndexLabel.CreatedIndexLabel(indexLabel, null);

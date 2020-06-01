@@ -123,7 +123,7 @@ public class EdgeLabelBuilder extends AbstractBuilder
         return this.lockCheckAndCreateSchema(type, this.name, name -> {
             EdgeLabel edgeLabel = this.edgeLabelOrNull(this.name);
             if (edgeLabel != null) {
-                if (this.checkExist) {
+                if (this.checkExist || !hasSameProperties(edgeLabel)) {
                     throw new ExistedException(type, this.name);
                 }
                 return edgeLabel;
@@ -147,6 +147,76 @@ public class EdgeLabelBuilder extends AbstractBuilder
             this.graph().addEdgeLabel(edgeLabel);
             return edgeLabel;
         });
+    }
+
+    /**
+     * Check whether this has same properties with existedEdgeLabel.
+     * Only sourceId, targetId, frequency, enableLabelIndex, properties, sortKeys,
+     * nullableKeys are checked.
+     * The id, ttl, ttlStartTime, userdata are not checked.
+     * @param existedEdgeLabel to be compared with
+     * @return true if this has same properties with existedVertexLabel
+     */
+    private boolean hasSameProperties(EdgeLabel existedEdgeLabel) {
+        HugeGraph graph = this.graph();
+        Id sourceId = graph.vertexLabel(this.sourceLabel).id();
+        if (!existedEdgeLabel.sourceLabel().equals(sourceId)) {
+            return false;
+        }
+
+        Id targetId = graph.vertexLabel(this.targetLabel).id();
+        if (!existedEdgeLabel.targetLabel().equals(targetId)) {
+            return false;
+        }
+
+        if (this.frequency != existedEdgeLabel.frequency()) {
+            return false;
+        }
+
+        // this.enableLabelIndex == null, it means true.
+        if (this.enableLabelIndex == null || this.enableLabelIndex) {
+            if (!existedEdgeLabel.enableLabelIndex()) {
+                return false;
+            }
+        } else { // this false
+            if (existedEdgeLabel.enableLabelIndex() == true) {
+                return false;
+            }
+        }
+
+        Set<Id> existedProperties = existedEdgeLabel.properties();
+        if (this.properties.size() != existedProperties.size()) {
+            return false;
+        }
+        for (String key : this.properties) {
+            PropertyKey propertyKey = graph.propertyKey(key);
+            if (!existedProperties.contains(propertyKey.id())) {
+                return false;
+            }
+        }
+
+        List<Id> existedSortKeys = existedEdgeLabel.sortKeys();
+        if (this.sortKeys.size() != existedSortKeys.size()) {
+            return false;
+        }
+        for (String key : this.sortKeys) {
+            PropertyKey propertyKey = graph.propertyKey(key);
+            if (!existedSortKeys.contains(propertyKey.id())) {
+                return false;
+            }
+        }
+
+        Set<Id> existedNullableKeys = existedEdgeLabel.nullableKeys();
+        if (this.nullableKeys.size() != existedNullableKeys.size()) {
+            return false;
+        }
+        for (String nullableKeyName : this.nullableKeys) {
+            PropertyKey nullableKey = graph.propertyKey(nullableKeyName);
+            if (!existedNullableKeys.contains(nullableKey.id())) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @Override

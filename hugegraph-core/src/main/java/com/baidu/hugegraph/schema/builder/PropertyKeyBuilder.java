@@ -81,7 +81,7 @@ public class PropertyKeyBuilder extends AbstractBuilder
         return this.lockCheckAndCreateSchema(type, this.name, name -> {
             PropertyKey propertyKey = this.propertyKeyOrNull(name);
             if (propertyKey != null) {
-                if (this.checkExist) {
+                if (this.checkExist || !hasSameProperties(propertyKey)) {
                     throw new ExistedException(type, name);
                 }
                 return propertyKey;
@@ -96,6 +96,34 @@ public class PropertyKeyBuilder extends AbstractBuilder
             this.graph().addPropertyKey(propertyKey);
             return propertyKey;
         });
+    }
+
+
+    /**
+     * Check whether this has same properties with propertyKey.
+     * Only dataType, cardinality, aggregateType are checked.
+     * The id, checkExist, userdata are not checked.
+     * @param propertyKey to be compared with
+     * @return true if this has same properties with propertyKey
+     */
+    private boolean hasSameProperties(PropertyKey propertyKey) {
+        // dataType is enum
+        if (this.dataType != propertyKey.dataType()) {
+            return false;
+        }
+
+        // cardinality is enum
+        if (this.cardinality != propertyKey.cardinality()) {
+            return false;
+        }
+
+        // aggregateType is enum
+        if (this.aggregateType != propertyKey.aggregateType()) {
+            return false;
+        }
+
+        // all properties are same, return true.
+        return true;
     }
 
     @Override

@@ -21,6 +21,7 @@ package com.baidu.hugegraph.core;
 
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -32,6 +33,7 @@ import org.junit.Test;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.IdGenerator;
+import com.baidu.hugegraph.exception.ExistedException;
 import com.baidu.hugegraph.exception.NoIndexException;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.EdgeLabel;
@@ -1247,5 +1249,74 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
         look = schema.getEdgeLabel("look");
         createTime = (Date) look.userdata().get(Userdata.CREATE_TIME);
         Assert.assertFalse(createTime.after(now));
+    }
+
+    @Test
+    public void testDuplicatePropertyWithIdentityProperties() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+        schema.vertexLabel("person")
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .create();
+        String name = UUID.randomUUID().toString();
+        schema.vertexLabel("person")
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .ifNotExist()
+              .create();
+        schema.vertexLabel("book")
+              .properties("id", "name")
+              .primaryKeys("id")
+              .ifNotExist()
+              .create();
+        schema.edgeLabel(name)
+              .multiTimes()
+              .properties("time")
+              .link("person", "book")
+              .sortKeys("time")
+              .ifNotExist()
+              .create();
+        // create edgeLabel with same properties
+        schema.edgeLabel(name)
+              .multiTimes()
+              .properties("time")
+              .link("person", "book")
+              .sortKeys("time")
+              .checkExist(false)
+              .create();
+    }
+
+    @Test
+    public void testDuplicatePropertyWithDifferentProperties() {
+        super.initPropertyKeys();
+        String name = UUID.randomUUID().toString();
+        SchemaManager schema = graph().schema();
+
+        schema.vertexLabel("person")
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .ifNotExist()
+              .create();
+        schema.vertexLabel("book")
+              .properties("id", "name")
+              .primaryKeys("id")
+              .ifNotExist().create();
+        schema.edgeLabel(name)
+              .multiTimes()
+              .properties("time")
+              .link("person", "book")
+              .sortKeys("time")
+              .ifNotExist()
+              .create();
+        // create edgeLabel with different properties
+        Assert.assertThrows(ExistedException.class, () -> {
+            schema.edgeLabel(name).multiTimes()
+                  .properties("time", "city") // add city
+                  .link("person", "book")
+                  .sortKeys("time")
+                  .checkExist(false)
+                  .create();
+        });
     }
 }
