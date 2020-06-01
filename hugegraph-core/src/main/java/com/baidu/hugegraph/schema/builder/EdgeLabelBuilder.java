@@ -152,13 +152,13 @@ public class EdgeLabelBuilder extends AbstractBuilder
     private boolean hasSameProperties(EdgeLabel existedEdgeLabel) {
         HugeGraph graph = this.graph();
         Id sourceId = graph.vertexLabel(this.sourceLabel).id();
-        if (! existedEdgeLabel.sourceLabel().equals(sourceId)) {
+        if (!existedEdgeLabel.sourceLabel().equals(sourceId)) {
             return false;
         }
 
         Id targetId = graph.vertexLabel(this.targetLabel).id();
 
-        if (! existedEdgeLabel.targetLabel().equals(targetId)) {
+        if (!existedEdgeLabel.targetLabel().equals(targetId)) {
             return false;
         }
 
@@ -168,11 +168,11 @@ public class EdgeLabelBuilder extends AbstractBuilder
 
         // this.enableLabelIndex == null, it means true.
         if (this.enableLabelIndex == null || this.enableLabelIndex) {
-            if (! existedEdgeLabel.enableLabelIndex()) {
+            if (!existedEdgeLabel.enableLabelIndex()) {
                 return false;
             }
-        } else { // means false
-            if (existedEdgeLabel.enableLabelIndex() == false) {
+        } else { // this false
+            if (existedEdgeLabel.enableLabelIndex() == true) {
                 return false;
             }
         }
@@ -189,7 +189,6 @@ public class EdgeLabelBuilder extends AbstractBuilder
         }
 
         List<Id> existedSortKeys = existedEdgeLabel.sortKeys();
-
         if (this.sortKeys.size() != existedSortKeys.size()) {
             return false;
         }
@@ -204,7 +203,6 @@ public class EdgeLabelBuilder extends AbstractBuilder
         if (this.nullableKeys.size() != existedNullableKeys.size()) {
             return false;
         }
-
         for (String nullableKeyName : this.nullableKeys) {
             PropertyKey nullableKey = graph.propertyKey(nullableKeyName);
             if (!existedNullableKeys.contains(nullableKey.id())) {

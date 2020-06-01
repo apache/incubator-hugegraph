@@ -162,7 +162,6 @@ public class VertexLabelBuilder extends AbstractBuilder
         if (this.primaryKeys.size() != existedPrimaryKeys.size()) {
             return false;
         }
-
         for (String primaryKeyName : this.primaryKeys) {
             PropertyKey primaryKey = graph.propertyKey(primaryKeyName);
             if (!existedPrimaryKeys.contains(primaryKey.id())) {
@@ -174,7 +173,6 @@ public class VertexLabelBuilder extends AbstractBuilder
         if (this.nullableKeys.size() != existedNullableKeys.size()) {
             return false;
         }
-
         for (String nullableKeyName : this.nullableKeys) {
             PropertyKey nullableKey = graph.propertyKey(nullableKeyName);
             if (!existedNullableKeys.contains(nullableKey.id())) {
@@ -187,8 +185,8 @@ public class VertexLabelBuilder extends AbstractBuilder
             if (!existedVertexLabel.enableLabelIndex()) {
                 return false;
             }
-        } else {
-            if (existedVertexLabel.enableLabelIndex() == false) {
+        } else { // this.enableLabelIndex is false
+            if (existedVertexLabel.enableLabelIndex() == true) {
                 return false;
             }
         }
