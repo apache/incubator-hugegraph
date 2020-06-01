@@ -778,7 +778,8 @@ public final class TraversalUtil {
         }
     }
 
-    public static Condition parsePredicate(Id key, String predicate) {
+    public static <T> Condition parsePredicate(PropertyKey pk,
+                                               String predicate) {
         Pattern pattern = Pattern.compile("^P\\.([a-z]+)\\(([\\S ]*)\\)$");
         Matcher matcher = pattern.matcher(predicate);
         if (!matcher.find()) {
@@ -787,33 +788,52 @@ public final class TraversalUtil {
 
         String method = matcher.group(1);
         String value = matcher.group(2);
+        Object validValue;
         switch (method) {
             case "eq":
-                return Condition.eq(key, predicateNumber(value));
+                validValue = validPredicateValue(predicateNumber(value), pk);
+                return Condition.eq(pk.id(), validValue);
             case "neq":
-                return Condition.neq(key, predicateNumber(value));
+                validValue = validPredicateValue(predicateNumber(value), pk);
+                return Condition.neq(pk.id(), validValue);
             case "lt":
-                return Condition.lt(key, predicateNumber(value));
+                validValue = validPredicateValue(predicateNumber(value), pk);
+                return Condition.lt(pk.id(), validValue);
             case "lte":
-                return Condition.lte(key, predicateNumber(value));
+                validValue = validPredicateValue(predicateNumber(value), pk);
+                return Condition.lte(pk.id(), validValue);
             case "gt":
-                return Condition.gt(key, predicateNumber(value));
+                validValue = validPredicateValue(predicateNumber(value), pk);
+                return Condition.gt(pk.id(), validValue);
             case "gte":
-                return Condition.gte(key, predicateNumber(value));
+                validValue = validPredicateValue(predicateNumber(value), pk);
+                return Condition.gte(pk.id(), validValue);
             case "between":
                 Number[] params = predicateNumbers(value, 2);
-                return Condition.and(Condition.gte(key, params[0]),
-                                     Condition.lt(key, params[1]));
+                Object v1 = validPredicateValue(params[0], pk);
+                Object v2 = validPredicateValue(params[1], pk);
+                return Condition.and(Condition.gte(pk.id(), v1),
+                                     Condition.lt(pk.id(), v2));
             case "inside":
                 params = predicateNumbers(value, 2);
-                return Condition.and(Condition.gt(key, params[0]),
-                                     Condition.lt(key, params[1]));
+                v1 = validPredicateValue(params[0], pk);
+                v2 = validPredicateValue(params[1], pk);
+                return Condition.and(Condition.gt(pk.id(), v1),
+                                     Condition.lt(pk.id(), v2));
             case "outside":
                 params = predicateNumbers(value, 2);
-                return Condition.and(Condition.lt(key, params[0]),
-                                     Condition.gt(key, params[1]));
+                v1 = validPredicateValue(params[0], pk);
+                v2 = validPredicateValue(params[1], pk);
+                return Condition.and(Condition.lt(pk.id(), v1),
+                                     Condition.gt(pk.id(), v2));
             case "within":
-                return Condition.in(key, predicateArgs(value));
+
+                List<T> values = predicateArgs(value);
+                List<T> validValues = new ArrayList<>(values.size());
+                for (T v : validValues) {
+                    validValues.add(validPredicateValue(v, pk));
+                }
+                return Condition.in(pk.id(), validValues);
             default:
                 throw new NotSupportException("predicate '%s'", method);
         }
