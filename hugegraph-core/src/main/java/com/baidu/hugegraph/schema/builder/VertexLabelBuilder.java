@@ -139,8 +139,8 @@ public class VertexLabelBuilder extends AbstractBuilder
 
     /**
      * Check whether this has same properties with existedVertexLabel.
-     * Only  properties,  primaryKeys, nullableKeys, enableLabelIndex  are checked.
-     * The id, idStrategy, checkExist, transaction,userdata are not checked.
+     * Only properties, primaryKeys, nullableKeys, enableLabelIndex are checked.
+     * The id, idStrategy, checkExist, userdata are not checked.
      * @param existedVertexLabel to be compared with
      * @return true if this has same properties with existedVertexLabel
      */

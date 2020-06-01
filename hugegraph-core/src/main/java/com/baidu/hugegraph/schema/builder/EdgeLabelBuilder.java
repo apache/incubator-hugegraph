@@ -149,6 +149,14 @@ public class EdgeLabelBuilder extends AbstractBuilder
         });
     }
 
+    /**
+     * Check whether this has same properties with existedEdgeLabel.
+     * Only sourceId, targetId, frequency, enableLabelIndex, properties, sortKeys,
+     * nullableKeys are checked.
+     * The id, ttl, ttlStartTime, userdata are not checked.
+     * @param existedEdgeLabel to be compared with
+     * @return true if this has same properties with existedVertexLabel
+     */
     private boolean hasSameProperties(EdgeLabel existedEdgeLabel) {
         HugeGraph graph = this.graph();
         Id sourceId = graph.vertexLabel(this.sourceLabel).id();
@@ -157,7 +165,6 @@ public class EdgeLabelBuilder extends AbstractBuilder
         }
 
         Id targetId = graph.vertexLabel(this.targetLabel).id();
-
         if (!existedEdgeLabel.targetLabel().equals(targetId)) {
             return false;
         }

@@ -102,8 +102,8 @@ public class IndexLabelBuilder extends AbstractBuilder
 
     /**
      * Check whether this has same properties with existedIndexLabel.
-     * Only baseType,baseValue,indexType, indexFields are checked.
-     * The id, checkExist, transaction,userdata are not checked.
+     * Only baseType, baseValue, indexType, indexFields are checked.
+     * The id, checkExist, userdata are not checked.
      * @param existedIndexLabel to be compared with
      * @return true if this has same properties with existedIndexLabel
      */
