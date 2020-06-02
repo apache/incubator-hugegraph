@@ -188,7 +188,7 @@ public abstract class Condition {
         }
 
         public boolean isRangeType() {
-            return ImmutableSet.of(GT, GTE, LT, LTE, NEQ).contains(this);
+            return ImmutableSet.of(GT, GTE, LT, LTE).contains(this);
         }
 
         public boolean isSearchType() {
