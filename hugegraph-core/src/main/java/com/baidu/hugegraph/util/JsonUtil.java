@@ -23,15 +23,12 @@ import java.io.IOException;
 import java.util.Date;
 
 import org.apache.tinkerpop.shaded.jackson.core.JsonGenerator;
-import org.apache.tinkerpop.shaded.jackson.core.JsonParser;
 import org.apache.tinkerpop.shaded.jackson.core.JsonProcessingException;
 import org.apache.tinkerpop.shaded.jackson.core.type.TypeReference;
-import org.apache.tinkerpop.shaded.jackson.databind.DeserializationContext;
 import org.apache.tinkerpop.shaded.jackson.databind.Module;
 import org.apache.tinkerpop.shaded.jackson.databind.ObjectMapper;
 import org.apache.tinkerpop.shaded.jackson.databind.ObjectReader;
 import org.apache.tinkerpop.shaded.jackson.databind.SerializerProvider;
-import org.apache.tinkerpop.shaded.jackson.databind.deser.std.StdDeserializer;
 import org.apache.tinkerpop.shaded.jackson.databind.module.SimpleModule;
 import org.apache.tinkerpop.shaded.jackson.databind.ser.std.StdSerializer;
 
@@ -46,10 +43,6 @@ public final class JsonUtil {
         SimpleModule module = new SimpleModule();
 
         module.addSerializer(RawJson.class, new RawJsonSerializer());
-
-        // Will be overridden by registerCommonSerializers()
-        module.addSerializer(Date.class, new DateSerializer());
-        module.addDeserializer(Date.class, new DateDeserializer());
 
         HugeGraphSONModule.registerCommonSerializers(module);
         HugeGraphSONModule.registerIdSerializers(module);
@@ -155,39 +148,6 @@ public final class JsonUtil {
                               SerializerProvider provider)
                               throws IOException {
             generator.writeRaw(json.value());
-        }
-    }
-
-    private static class DateSerializer extends StdSerializer<Date> {
-
-        private static final long serialVersionUID = -6615155657857746161L;
-
-        public DateSerializer() {
-            super(Date.class);
-        }
-
-        @Override
-        public void serialize(Date date, JsonGenerator generator,
-                              SerializerProvider provider)
-                              throws IOException {
-            generator.writeNumber(date.getTime());
-        }
-    }
-
-    private static class DateDeserializer extends StdDeserializer<Date> {
-
-        private static final long serialVersionUID = 1209944821349424949L;
-
-        public DateDeserializer() {
-            super(Date.class);
-        }
-
-        @Override
-        public Date deserialize(JsonParser parser,
-                                DeserializationContext context)
-                                throws IOException {
-            Long number = parser.readValueAs(Long.class);
-            return new Date(number);
         }
     }
 }
