@@ -21,7 +21,6 @@ package com.baidu.hugegraph.util;
 
 import java.io.IOException;
 import java.util.Date;
-import java.util.UUID;
 
 import org.apache.tinkerpop.shaded.jackson.core.JsonGenerator;
 import org.apache.tinkerpop.shaded.jackson.core.JsonParser;
@@ -33,10 +32,8 @@ import org.apache.tinkerpop.shaded.jackson.databind.ObjectMapper;
 import org.apache.tinkerpop.shaded.jackson.databind.ObjectReader;
 import org.apache.tinkerpop.shaded.jackson.databind.SerializerProvider;
 import org.apache.tinkerpop.shaded.jackson.databind.deser.std.StdDeserializer;
-import org.apache.tinkerpop.shaded.jackson.databind.deser.std.UUIDDeserializer;
 import org.apache.tinkerpop.shaded.jackson.databind.module.SimpleModule;
 import org.apache.tinkerpop.shaded.jackson.databind.ser.std.StdSerializer;
-import org.apache.tinkerpop.shaded.jackson.databind.ser.std.UUIDSerializer;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.io.HugeGraphSONModule;
@@ -50,12 +47,11 @@ public final class JsonUtil {
 
         module.addSerializer(RawJson.class, new RawJsonSerializer());
 
+        // Will be overridden by registerCommonSerializers()
         module.addSerializer(Date.class, new DateSerializer());
         module.addDeserializer(Date.class, new DateDeserializer());
 
-        module.addSerializer(UUID.class, new UUIDSerializer());
-        module.addDeserializer(UUID.class, new UUIDDeserializer());
-
+        HugeGraphSONModule.registerCommonSerializers(module);
         HugeGraphSONModule.registerIdSerializers(module);
         HugeGraphSONModule.registerSchemaSerializers(module);
         HugeGraphSONModule.registerGraphSerializers(module);

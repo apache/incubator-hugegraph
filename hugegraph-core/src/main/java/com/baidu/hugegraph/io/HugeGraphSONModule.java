@@ -36,7 +36,9 @@ import org.apache.tinkerpop.shaded.jackson.core.type.WritableTypeId;
 import org.apache.tinkerpop.shaded.jackson.databind.DeserializationContext;
 import org.apache.tinkerpop.shaded.jackson.databind.JsonSerializer;
 import org.apache.tinkerpop.shaded.jackson.databind.SerializerProvider;
+import org.apache.tinkerpop.shaded.jackson.databind.deser.std.DateDeserializers;
 import org.apache.tinkerpop.shaded.jackson.databind.deser.std.StdDeserializer;
+import org.apache.tinkerpop.shaded.jackson.databind.deser.std.UUIDDeserializer;
 import org.apache.tinkerpop.shaded.jackson.databind.jsontype.TypeSerializer;
 import org.apache.tinkerpop.shaded.jackson.databind.module.SimpleModule;
 import org.apache.tinkerpop.shaded.jackson.databind.ser.std.DateSerializer;
@@ -114,10 +116,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
     private HugeGraphSONModule() {
         super(TYPE_NAMESPACE);
 
-        addSerializer(Optional.class, new OptionalSerializer());
-
-        addSerializer(Date.class, new DateSerializer(false, DATE_FORMAT));
-        addSerializer(UUID.class, new UUIDSerializer());
+        registerCommonSerializers(this);
 
         // HugeGraph id serializer
         registerIdSerializers(this);
@@ -140,6 +139,25 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
     @Override
     public String getTypeNamespace() {
         return TYPE_NAMESPACE;
+    }
+
+    public static void registerCommonSerializers(SimpleModule module) {
+        module.addSerializer(Optional.class, new OptionalSerializer());
+
+        module.addSerializer(Shard.class, new ShardSerializer());
+
+        module.addSerializer(File.class, new FileSerializer());
+
+        module.addSerializer(Date.class,
+                             new DateSerializer(true, DATE_FORMAT));
+        module.addDeserializer(Date.class,
+                               new DateDeserializers.DateDeserializer());
+
+        module.addSerializer(UUID.class, new UUIDSerializer());
+        module.addDeserializer(UUID.class, new UUIDDeserializer());
+
+        module.addSerializer(Blob.class, new BlobSerializer());
+        module.addDeserializer(Blob.class, new BlobDeserializer());
     }
 
     public static void registerIdSerializers(SimpleModule module) {
@@ -169,12 +187,6 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         module.addSerializer(VertexLabel.class, new VertexLabelSerializer());
         module.addSerializer(EdgeLabel.class, new EdgeLabelSerializer());
         module.addSerializer(IndexLabel.class, new IndexLabelSerializer());
-
-        module.addSerializer(Shard.class, new ShardSerializer());
-        module.addSerializer(File.class, new FileSerializer());
-
-        module.addSerializer(Blob.class, new BlobSerializer());
-        module.addDeserializer(Blob.class, new BlobDeserializer());
     }
 
     public static void registerGraphSerializers(SimpleModule module) {
