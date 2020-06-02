@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.core;
 
 import java.text.ParseException;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
@@ -138,6 +139,7 @@ public abstract class PropertyCoreTest extends BaseCoreTest {
             Vertex vertex = graph.addVertex(T.label, "person", "id", 1,
                                             key, value);
             graph.tx().commit();
+
             vertex = graph.vertices(vertex.id()).next();
             Assert.assertTrue(TraversalUtil.testProperty(vertex.property(key),
                                                          value));
@@ -149,9 +151,13 @@ public abstract class PropertyCoreTest extends BaseCoreTest {
             HugeGraph graph = graph();
             key = "list_" + key;
             Vertex vertex = graph.addVertex(T.label, "person", "id", 2,
-                                            key, ImmutableList.copyOf(values));
+                                            key, Arrays.asList(values));
             graph.tx().commit();
-            return graph.vertices(vertex.id()).next().value(key);
+
+            vertex = graph.vertices(vertex.id()).next();
+            Assert.assertTrue(TraversalUtil.testProperty(vertex.property(key),
+                                                         Arrays.asList(values)));
+            return vertex.value(key);
         }
 
         @Override
@@ -159,9 +165,15 @@ public abstract class PropertyCoreTest extends BaseCoreTest {
             HugeGraph graph = graph();
             key = "set_" + key;
             Vertex vertex = graph.addVertex(T.label, "person", "id", 3,
-                                            key, ImmutableList.copyOf(values));
+                                            key, Arrays.asList(values));
             graph.tx().commit();
-            return graph.vertices(vertex.id()).next().value(key);
+
+            vertex = graph.vertices(vertex.id()).next();
+            Assert.assertTrue(TraversalUtil.testProperty(vertex.property(key),
+                                            ImmutableSet.copyOf(values)));
+            Assert.assertFalse(TraversalUtil.testProperty(vertex.property(key),
+                                             ImmutableList.copyOf(values)));
+            return vertex.value(key);
         }
     }
 
@@ -189,9 +201,13 @@ public abstract class PropertyCoreTest extends BaseCoreTest {
             Vertex vertex2 = graph.addVertex(T.label, "person", "id", 2);
             key = "list_" + key;
             Edge edge = vertex1.addEdge("transfer", vertex2, "id", 2,
-                                        key, ImmutableList.copyOf(values));
+                                        key, Arrays.asList(values));
             graph.tx().commit();
-            return graph.edges(edge.id()).next().value(key);
+
+            edge = graph.edges(edge.id()).next();
+            Assert.assertTrue(TraversalUtil.testProperty(edge.property(key),
+                                                         Arrays.asList(values)));
+            return edge.value(key);
         }
 
         @Override
@@ -201,9 +217,15 @@ public abstract class PropertyCoreTest extends BaseCoreTest {
             Vertex vertex2 = graph.addVertex(T.label, "person", "id", 2);
             key = "set_" + key;
             Edge edge = vertex1.addEdge("transfer", vertex2, "id", 3,
-                                        key, ImmutableList.copyOf(values));
+                                        key, Arrays.asList(values));
             graph.tx().commit();
-            return graph.edges(edge.id()).next().value(key);
+
+            edge = graph.edges(edge.id()).next();
+            Assert.assertTrue(TraversalUtil.testProperty(edge.property(key),
+                                            ImmutableSet.copyOf(values)));
+            Assert.assertFalse(TraversalUtil.testProperty(edge.property(key),
+                                             ImmutableList.copyOf(values)));
+            return edge.value(key);
         }
     }
 

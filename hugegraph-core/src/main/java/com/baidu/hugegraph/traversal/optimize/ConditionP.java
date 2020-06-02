@@ -38,15 +38,15 @@ public class ConditionP extends P<Object> {
         return new ConditionP(RelationType.TEXT_CONTAINS, value);
     }
 
-    public static ConditionP contains(String value) {
+    public static ConditionP contains(Object value) {
         return new ConditionP(RelationType.CONTAINS, value);
     }
 
-    public static ConditionP containsK(String value) {
+    public static ConditionP containsK(Object value) {
         return new ConditionP(RelationType.CONTAINS_KEY, value);
     }
 
-    public static ConditionP containsV(String value) {
+    public static ConditionP containsV(Object value) {
         return new ConditionP(RelationType.CONTAINS_VALUE, value);
     }
 

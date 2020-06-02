@@ -82,9 +82,9 @@ import com.baidu.hugegraph.schema.SchemaLabel;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.type.HugeType;
-import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
@@ -622,8 +622,8 @@ public final class TraversalUtil {
     }
 
     private static <V> V validPropertyValue(V value, PropertyKey pkey) {
-        if (pkey.cardinality() == Cardinality.SINGLE &&
-            value instanceof Collection && !pkey.dataType().isBlob()) {
+        if (pkey.cardinality().single() && value instanceof Collection &&
+            !pkey.dataType().isBlob()) {
             // Expect single but got collection, like P.within([])
             Collection<?> collection = (Collection<?>) value;
             Collection<Object> validValues = new ArrayList<>();
@@ -646,20 +646,30 @@ public final class TraversalUtil {
                                 value, pkey.dataType(), pkey.name(),
                                 value == null ? null : classes);
             }
+
             @SuppressWarnings("unchecked")
             V validValue = (V) validValues;
             return validValue;
-        } else {
-            V validValue = pkey.validValue(value);
-            if (validValue == null) {
-                E.checkArgument(false,
-                                "Invalid data type of query value '%s', " +
-                                "expect %s for '%s', actual got %s",
-                                value, pkey.dataType(), pkey.name(),
-                                value == null ? null : value.getClass());
-            }
-            return validValue;
         }
+
+        V validValue;
+        if (pkey.cardinality().multiple() && !(value instanceof Collection)) {
+            // Expect non-single but got single, like P.contains(value)
+            List<V> values = CollectionUtil.toList(value);
+            values = pkey.validValue(values);
+            validValue = values != null ? values.get(0) : null;
+        } else {
+            validValue = pkey.validValue(value);
+        }
+
+        if (validValue == null) {
+            E.checkArgument(false,
+                            "Invalid data type of query value '%s', " +
+                            "expect %s for '%s', actual got %s",
+                            value, pkey.dataType(), pkey.name(),
+                            value == null ? null : value.getClass());
+        }
+        return validValue;
     }
 
     public static void retriveSysprop(List<HasContainer> hasContainers,

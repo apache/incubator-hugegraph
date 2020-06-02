@@ -261,11 +261,12 @@ public class PropertyKey extends SchemaElement implements Propfiable {
         if (this.cardinality == Cardinality.SINGLE) {
             validValue = this.convSingleValue(value);
         } else if (value instanceof Collection) {
+            assert this.cardinality.multiple();
             Collection<T> collection = (Collection<T>) value;
-            if (this.cardinality == Cardinality.SET) {
+            if (value instanceof Set) {
                 validValues = new LinkedHashSet<>(collection.size());
             } else {
-                assert this.cardinality == Cardinality.LIST;
+                assert value instanceof List;
                 validValues = new ArrayList<>(collection.size());
             }
             for (T element : collection) {
@@ -278,10 +279,11 @@ public class PropertyKey extends SchemaElement implements Propfiable {
             }
             validValue = (V) validValues;
         } else {
+            assert this.cardinality.multiple();
             E.checkArgument(false,
-                            "Property value must be single/set/list, " +
-                            "but got '%s'(%s)",
-                            value, value.getClass().getSimpleName());
+                            "Property value must be %s, but got '%s'(%s)",
+                            this.cardinality, value,
+                            value.getClass().getSimpleName());
         }
         return validValue;
     }
