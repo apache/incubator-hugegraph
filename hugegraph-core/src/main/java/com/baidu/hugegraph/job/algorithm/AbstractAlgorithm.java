@@ -354,18 +354,20 @@ public abstract class AbstractAlgorithm implements Algorithm {
             Consumers<Vertex> consumers = new Consumers<>(this.executor,
                                                           consumer, done);
             consumers.start();
-
-            long total = 0L;
-            while (vertices.hasNext()) {
-                this.updateProgress(++this.progress);
-                total++;
-                Vertex v = vertices.next();
-                consumers.provide(v);
+            try {
+                long total = 0L;
+                while (vertices.hasNext()) {
+                    this.updateProgress(++this.progress);
+                    total++;
+                    Vertex v = vertices.next();
+                    consumers.provide(v);
+                }
+                return total;
+            } catch (Throwable e) {
+                throw Consumers.wrapException(e);
+            } finally {
+                consumers.await();
             }
-
-            consumers.await();
-
-            return total;
         }
 
         protected Iterator<Vertex> vertices() {
