@@ -421,20 +421,24 @@ public class LouvainTraverser extends AlgoTraverser {
                 moved.incrementAndGet();
             }
         });
+
         consumers.start();
-
-        while (vertices.hasNext()) {
-            this.updateProgress(++this.progress);
-            Vertex v = vertices.next();
-            if (needSkipVertex(pass, v)) {
-                // skip the old intermediate data, or filter clabel
-                continue;
+        try {
+            while (vertices.hasNext()) {
+                this.updateProgress(++this.progress);
+                Vertex v = vertices.next();
+                if (needSkipVertex(pass, v)) {
+                    // skip the old intermediate data, or filter clabel
+                    continue;
+                }
+                total++;
+                consumers.provide(v);
             }
-            total++;
-            consumers.provide(v);
+        } catch (Throwable e) {
+            throw Consumers.wrapException(e);
+        } finally {
+            consumers.await();
         }
-
-        consumers.await();
 
         // maybe always shocking when set degree limited
         return total == 0L ? 0d : moved.doubleValue() / total;
@@ -455,19 +459,24 @@ public class LouvainTraverser extends AlgoTraverser {
             // commit when finished
             this.graph().tx().commit();
         });
-        consumers.start();
 
-        for (Pair<Community, Set<Id>> pair : comms) {
-            Community c = pair.getLeft();
-            if (c.empty()) {
-                continue;
+        consumers.start();
+        try {
+            for (Pair<Community, Set<Id>> pair : comms) {
+                Community c = pair.getLeft();
+                if (c.empty()) {
+                    continue;
+                }
+                this.progress += pair.getRight().size();
+                this.updateProgress(this.progress);
+                //this.mergeCommunity(pass, pair.getLeft(), pair.getRight());
+                consumers.provide(pair);
             }
-            this.progress += pair.getRight().size();
-            this.updateProgress(this.progress);
-            //this.mergeCommunity(pass, pair.getLeft(), pair.getRight());
-            consumers.provide(pair);
+        } catch (Throwable e) {
+            throw Consumers.wrapException(e);
+        } finally {
+            consumers.await();
         }
-        consumers.await();
 
         this.graph().tx().commit();
         assert this.allMembersExist(pass);

@@ -29,6 +29,7 @@ import java.util.function.Consumer;
 
 import org.slf4j.Logger;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.util.ExecutorUtil;
 import com.baidu.hugegraph.util.Log;
 
@@ -50,6 +51,7 @@ public class Consumers<V> {
     private final BlockingQueue<V> queue;
 
     private volatile boolean ending = false;
+    private volatile Throwable exception = null;
 
     public Consumers(ExecutorService executor, Consumer<V> consumer) {
         this(executor, consumer, null);
@@ -72,6 +74,8 @@ public class Consumers<V> {
     }
 
     public void start() {
+        this.ending = false;
+        this.exception = null;
         if (this.executor == null) {
             return;
         }
@@ -81,11 +85,12 @@ public class Consumers<V> {
             this.executor.submit(() -> {
                 try {
                     this.run();
-                    if (this.done != null) {
-                        this.done.run();
-                    }
+                    this.done();
                 } catch (Throwable e) {
+                    // Only the first exception of one thread can be stored
+                    this.exception  = e;
                     LOG.error("Error when running task", e);
+                    this.done();
                 } finally {
                     this.latch.countDown();
                 }
@@ -120,10 +125,19 @@ public class Consumers<V> {
         return true;
     }
 
-    public void provide(V v) {
+    private void done() {
+        if (this.done != null) {
+            this.done.run();
+        }
+    }
+
+    public void provide(V v) throws Throwable {
         if (this.executor == null) {
+            assert this.exception == null;
             // do job directly if without thread pool
             this.consumer.accept(v);
+        } else if (this.exception != null) {
+            throw this.exception;
         } else {
             try {
                 this.queue.put(v);
@@ -137,14 +151,12 @@ public class Consumers<V> {
         this.ending = true;
         if (this.executor == null) {
             // call done() directly if without thread pool
-            if (this.done != null) {
-                this.done.run();
-            }
+            this.done();
         } else {
             try {
                 this.latch.await();
             } catch (InterruptedException e) {
-                LOG.warn("Interrupted", e);;
+                LOG.warn("Interrupted", e);
             }
         }
     }
@@ -162,5 +174,13 @@ public class Consumers<V> {
             String name = prefix + "-worker-%d";
             return ExecutorUtil.newFixedThreadPool(workers, name);
         }
+    }
+
+    public static RuntimeException wrapException(Throwable e) {
+        if (e instanceof RuntimeException) {
+            throw (RuntimeException) e;
+        }
+        throw new HugeException("Error when running task: %s",
+                                HugeException.rootCause(e).getMessage(), e);
     }
 }
