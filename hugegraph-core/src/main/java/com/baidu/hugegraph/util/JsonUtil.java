@@ -147,7 +147,7 @@ public final class JsonUtil {
         public void serialize(RawJson json, JsonGenerator generator,
                               SerializerProvider provider)
                               throws IOException {
-            generator.writeRaw(json.value());
+            generator.writeRawValue(json.value());
         }
     }
 }
