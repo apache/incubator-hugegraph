@@ -32,6 +32,7 @@ import com.baidu.hugegraph.job.algorithm.comm.LouvainAlgorithm;
 import com.baidu.hugegraph.job.algorithm.comm.LpaAlgorithm;
 import com.baidu.hugegraph.job.algorithm.comm.TriangleCountAlgorithm;
 import com.baidu.hugegraph.job.algorithm.path.RingsDetectAlgorithm;
+import com.baidu.hugegraph.job.algorithm.rank.PageRankAlgorithm;
 import com.baidu.hugegraph.job.algorithm.similarity.FusiformSimilarityAlgorithm;
 
 public class AlgorithmPool {
@@ -55,6 +56,8 @@ public class AlgorithmPool {
         INSTANCE.register(new FusiformSimilarityAlgorithm());
         INSTANCE.register(new RingsDetectAlgorithm());
         INSTANCE.register(new KCoreAlgorithm());
+
+        INSTANCE.register(new PageRankAlgorithm());
     }
 
     private final Map<String, Algorithm> algorithms;

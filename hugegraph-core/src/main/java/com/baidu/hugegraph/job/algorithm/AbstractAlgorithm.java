@@ -100,6 +100,7 @@ public abstract class AbstractAlgorithm implements Algorithm {
     public static final double DEFAULT_ALPHA = 0.5D;
 
     public static final String C_LABEL = "c_label";
+    public static final String R_RANK = "r_rank";
 
     @Override
     public void checkParameters(Map<String, Object> parameters) {
