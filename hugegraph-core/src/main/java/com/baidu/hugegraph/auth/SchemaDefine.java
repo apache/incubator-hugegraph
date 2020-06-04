@@ -253,6 +253,16 @@ public abstract class SchemaDefine {
             }
             return entity;
         }
+
+        @Override
+        public String idString() {
+            String label = Hidden.unHide(this.label());
+            String name = this.name();
+            StringBuilder sb = new StringBuilder(label.length() +
+                                                 name.length() + 2);
+            sb.append(label).append("(").append(name).append(")");
+            return sb.toString();
+        }
     }
 
     public static abstract class Relationship extends UserElement {
@@ -275,6 +285,17 @@ public abstract class SchemaDefine {
                 relationship.property(prop.key(), prop.value());
             }
             return relationship;
+        }
+
+        @Override
+        public String idString() {
+            String label = Hidden.unHide(this.label());
+            StringBuilder sb = new StringBuilder(label.length() +
+                                                 this.source().length() +
+                                                 this.target().length() + 4);
+            sb.append(label).append("(").append(this.source())
+              .append("->").append(this.target()).append(")");
+            return sb.toString();
         }
     }
 }

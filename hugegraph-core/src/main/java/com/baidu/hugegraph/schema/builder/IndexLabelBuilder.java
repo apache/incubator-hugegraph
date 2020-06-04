@@ -42,7 +42,6 @@ import com.baidu.hugegraph.schema.Userdata;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Action;
-import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.type.define.IndexType;
 import com.baidu.hugegraph.type.define.SchemaStatus;
@@ -445,7 +444,7 @@ public class IndexLabelBuilder extends AbstractBuilder
             E.checkArgument(pkey.aggregateType().isIndexable(),
                             "The aggregate type %s is not indexable",
                             pkey.aggregateType());
-            E.checkArgument(pkey.cardinality() == Cardinality.SINGLE,
+            E.checkArgument(pkey.cardinality().single(),
                             "Not allowed to build index on property key " +
                             "'%s' whose cardinality is list or set",
                             pkey.name());

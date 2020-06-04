@@ -67,6 +67,9 @@ public final class StringEncoding {
         }
     }
 
+    private static final Base64.Encoder BASE64_ENCODER = Base64.getEncoder();
+    private static final Base64.Decoder BASE64_DECODER = Base64.getDecoder();
+
     // Similar to {@link StringSerializer}
     public static int writeAsciiString(byte[] array, int offset, String value) {
         E.checkArgument(CharMatcher.ascii().matchesAllOf(value),
@@ -125,6 +128,14 @@ public final class StringEncoding {
         }
     }
 
+    public static String encodeBase64(byte[] bytes) {
+        return BASE64_ENCODER.encodeToString(bytes);
+    }
+
+    public static byte[] decodeBase64(String value) {
+        return BASE64_DECODER.decode(value);
+    }
+
     public static byte[] compress(String value) {
         try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
              GZIPOutputStream out = new GZIPOutputStream(bos, 256)) {
@@ -164,7 +175,7 @@ public final class StringEncoding {
     public static String sha256(String string) {
         byte[] stringBytes = encode(string);
         DIGEST.reset();
-        return Base64.getEncoder().encodeToString(DIGEST.digest(stringBytes));
+        return StringEncoding.encodeBase64(DIGEST.digest(stringBytes));
     }
 
     public static String format(byte[] bytes) {

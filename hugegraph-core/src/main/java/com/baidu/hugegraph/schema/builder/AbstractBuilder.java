@@ -66,7 +66,7 @@ public abstract class AbstractBuilder {
 
     protected <V> V lockCheckAndCreateSchema(HugeType type, String name,
                                              Function<String, V> callback) {
-        String graph = this.transaction.graph().name();
+        String graph = this.transaction.graphName();
         LockUtil.Locks locks = new LockUtil.Locks(graph);
         try {
             locks.lockWrites(LockUtil.hugeType2Group(type),
@@ -78,7 +78,7 @@ public abstract class AbstractBuilder {
     }
 
     protected void checkSchemaIdIfRestoringMode(HugeType type, Id id) {
-        if (this.transaction.graph().mode() == GraphMode.RESTORING) {
+        if (this.transaction.graphMode() == GraphMode.RESTORING) {
             E.checkArgument(id != null,
                             "Must provide schema id if in RESTORING mode");
             if (this.transaction.existsSchemaId(type, id)) {

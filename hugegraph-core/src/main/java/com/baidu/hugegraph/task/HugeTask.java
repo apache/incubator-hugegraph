@@ -44,6 +44,7 @@ import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.baidu.hugegraph.exception.LimitExceedException;
 import com.baidu.hugegraph.type.define.SerialEnum;
+import com.baidu.hugegraph.util.Blob;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.JsonUtil;
@@ -421,10 +422,10 @@ public class HugeTask<V> extends FutureTask<V> {
                                                    .collect(toOrderSet());
                 break;
             case P.INPUT:
-                this.input = StringEncoding.decompress((byte[]) value);
+                this.input = StringEncoding.decompress(((Blob) value).bytes());
                 break;
             case P.RESULT:
-                this.result = StringEncoding.decompress((byte[]) value);
+                this.result = StringEncoding.decompress(((Blob) value).bytes());
                 break;
             default:
                 throw new AssertionError("Unsupported key: " + key);

@@ -19,7 +19,6 @@
 
 package com.baidu.hugegraph.backend.id;
 
-import java.util.Base64;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -85,7 +84,7 @@ public abstract class IdGenerator {
             case LONG:
                 return of(LongEncoding.decodeSignedB64(id));
             case UUID:
-                byte[] bytes = Base64.getDecoder().decode(id);
+                byte[] bytes = StringEncoding.decodeBase64(id);
                 return of(bytes, IdType.UUID);
             case STRING:
                 return of(id);
@@ -99,7 +98,7 @@ public abstract class IdGenerator {
             case LONG:
                 return LongEncoding.encodeSignedB64(id.asLong());
             case UUID:
-                return Base64.getEncoder().encodeToString(id.asBytes());
+                return StringEncoding.encodeBase64(id.asBytes());
             case STRING:
                 return id.asString();
             default:

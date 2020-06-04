@@ -629,8 +629,8 @@ public final class HugeGraphAuthProxy implements HugeGraph {
          * NOTE: the graph names in gremlin-server.yaml/graphs and
          * hugegraph.properties/store must be the same if enable auth.
          */
-        String graph = this.hugegraph.name();
         verifyResPermission(actionPerm, true, () -> {
+            String graph = this.hugegraph.name();
             Namifiable elem = HugeResource.NameObject.ANY;
             return ResourceObject.of(graph, resType, elem);
         });
@@ -657,10 +657,10 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
     private <V extends UserElement> V verifyUserPermission(
                                       HugePermission actionPerm,
-                                      boolean throwIfNoPermission,
+                                      boolean throwIfNoPerm,
                                       Supplier<V> elementFetcher) {
-        String graph = this.hugegraph.name();
-        return verifyResPermission(actionPerm, throwIfNoPermission, () -> {
+        return verifyResPermission(actionPerm, throwIfNoPerm, () -> {
+            String graph = this.hugegraph.name();
             V elem = elementFetcher.get();
             @SuppressWarnings("unchecked")
             ResourceObject<V> r = (ResourceObject<V>) ResourceObject.of(graph,
@@ -690,11 +690,11 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
     private <V extends Element> V verifyElemPermission(
                                   HugePermission actionPerm,
-                                  boolean throwIfNoPermission,
+                                  boolean throwIfNoPerm,
                                   Supplier<V> elementFetcher) {
-        return verifyResPermission(actionPerm, throwIfNoPermission, () -> {
-            HugeElement elem = (HugeElement) elementFetcher.get();
+        return verifyResPermission(actionPerm, throwIfNoPerm, () -> {
             String graph = this.hugegraph.name();
+            HugeElement elem = (HugeElement) elementFetcher.get();
             @SuppressWarnings("unchecked")
             ResourceObject<V> r = (ResourceObject<V>) ResourceObject.of(graph,
                                                                         elem);
@@ -709,8 +709,8 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     private void verifyNamePermission(HugePermission actionPerm,
                                       ResourceType resType, String name) {
         verifyResPermission(actionPerm, true, () -> {
-            Namifiable elem = HugeResource.NameObject.of(name);
             String graph = this.hugegraph.name();
+            Namifiable elem = HugeResource.NameObject.of(name);
             return ResourceObject.of(graph, resType, elem);
         });
     }
@@ -741,11 +741,11 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
     private <V extends SchemaElement> V verifySchemaPermission(
                                         HugePermission actionPerm,
-                                        boolean throwIfNoPermission,
+                                        boolean throwIfNoPerm,
                                         Supplier<V> schemaFetcher) {
-        return verifyResPermission(actionPerm, throwIfNoPermission, () -> {
-            SchemaElement elem = schemaFetcher.get();
+        return verifyResPermission(actionPerm, throwIfNoPerm, () -> {
             String graph = this.hugegraph.name();
+            SchemaElement elem = schemaFetcher.get();
             @SuppressWarnings("unchecked")
             ResourceObject<V> r = (ResourceObject<V>) ResourceObject.of(graph,
                                                                         elem);
@@ -754,8 +754,15 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     private <V> V verifyResPermission(HugePermission actionPerm,
-                                      boolean throwIfNoPermission,
+                                      boolean throwIfNoPerm,
                                       Supplier<ResourceObject<V>> fetcher) {
+        return verifyResPermission(actionPerm, throwIfNoPerm, fetcher, null);
+    }
+
+    private <V> V verifyResPermission(HugePermission actionPerm,
+                                      boolean throwIfNoPerm,
+                                      Supplier<ResourceObject<V>> fetcher,
+                                      Supplier<Boolean> checker) {
         // TODO: call verifyPermission() before actual action
         Context context = getContext();
         E.checkState(context != null,
@@ -777,7 +784,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
             result = null;
         }
         // verify permission for one access another, like: granted <= user role
-        else if (ro.type().isUser()) {
+        else if (ro.type().isGrantOrUser()) {
             UserElement element = (UserElement) ro.operated();
             RolePermission grant = this.hugegraph.userManager()
                                                  .rolePermission(element);
@@ -786,12 +793,19 @@ public final class HugeGraphAuthProxy implements HugeGraph {
             }
         }
 
+        // check resource detail if needed
+        if (result != null && checker != null && !checker.get()) {
+            result = null;
+        }
+
+        // log user action
         if (!(actionPerm == HugePermission.READ && ro.type().isSchema())) {
             String status = result == null ? "denied" : "allowed";
             LOG.info("User '{}' is {} to {} {}", username, status, action, ro);
         }
 
-        if (result == null && throwIfNoPermission) {
+        // result=null means no permission, throw if needed
+        if (result == null && throwIfNoPerm) {
             String error = String.format("Permission denied: %s %s",
                                          action, ro);
             throw new ForbiddenException(error);
@@ -902,26 +916,35 @@ public final class HugeGraphAuthProxy implements HugeGraph {
             this.taskScheduler.waitUntilAllTasksCompleted(seconds);
         }
 
-        private void verifyTaskPermission(HugePermission perm) {
-            verifyPermission(perm, ResourceType.TASK);
+        private void verifyTaskPermission(HugePermission actionPerm) {
+            verifyPermission(actionPerm, ResourceType.TASK);
         }
 
-        private <V> HugeTask<V> verifyTaskPermission(HugePermission perm,
+        private <V> HugeTask<V> verifyTaskPermission(HugePermission actionPerm,
                                                      HugeTask<V> task) {
-            verifyPermission(perm, ResourceType.TASK);
-            if (!hasTaskPermission(task)) {
-                String error = String.format("Permission denied: %s task(%s)",
-                                             perm, task.id());
-                throw new ForbiddenException(error);
-            }
-            return task;
+            return verifyTaskPermission(actionPerm, true, task);
         }
 
         private <V> Iterator<HugeTask<V>> verifyTaskPermission(
-                                          HugePermission perm,
+                                          HugePermission actionPerm,
                                           Iterator<HugeTask<V>> tasks) {
-            verifyPermission(perm, ResourceType.TASK);
-            return new FilterIterator<>(tasks, this::hasTaskPermission);
+            return new FilterIterator<>(tasks, task -> {
+                return verifyTaskPermission(actionPerm, false, task) != null;
+            });
+        }
+
+        private <V> HugeTask<V> verifyTaskPermission(HugePermission actionPerm,
+                                                     boolean throwIfNoPerm,
+                                                     HugeTask<V> task) {
+            Object r = verifyResPermission(actionPerm, throwIfNoPerm, () -> {
+                String graph = HugeGraphAuthProxy.this.hugegraph.name();
+                String name = task.id().toString();
+                Namifiable elem = HugeResource.NameObject.of(name);
+                return ResourceObject.of(graph, ResourceType.TASK, elem);
+            }, () -> {
+                return hasTaskPermission(task);
+            });
+            return r == null ? null : task;
         }
 
         private boolean hasTaskPermission(HugeTask<?> task) {

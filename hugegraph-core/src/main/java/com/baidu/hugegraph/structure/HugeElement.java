@@ -293,6 +293,7 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
     @SuppressWarnings({ "rawtypes", "unchecked" })
     private <V> HugeProperty<V> addProperty(PropertyKey pkey, V value,
                                             Supplier<Collection<V>> supplier) {
+        assert pkey.cardinality().multiple();
         HugeProperty<Collection<V>> property;
         if (this.hasProperty(pkey.id())) {
             property = this.getProperty(pkey.id());

@@ -34,6 +34,7 @@ import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
+import com.baidu.hugegraph.util.Blob;
 import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.KryoUtil;
@@ -116,8 +117,13 @@ public final class BytesBuffer {
         return this.buffer;
     }
 
-    public BytesBuffer flip() {
+    public BytesBuffer forReadWritten() {
         this.buffer.flip();
+        return this;
+    }
+
+    public BytesBuffer forReadAll() {
+        this.buffer.position(this.buffer.limit());
         return this;
     }
 
@@ -560,7 +566,9 @@ public final class BytesBuffer {
                 this.writeString((String) value);
                 break;
             case BLOB:
-                this.writeBigBytes((byte[]) value);
+                byte[] bytes = value instanceof byte[] ?
+                               (byte[]) value : ((Blob) value).bytes();
+                this.writeBigBytes(bytes);
                 break;
             case UUID:
                 UUID uuid = (UUID) value;
@@ -593,7 +601,7 @@ public final class BytesBuffer {
             case TEXT:
                 return this.readString();
             case BLOB:
-                return this.readBigBytes();
+                return Blob.wrap(this.readBigBytes());
             case UUID:
                 return new UUID(this.readLong(), this.readLong());
             default:

@@ -94,7 +94,7 @@ public class RebuildIndexCallable extends SchemaCallable {
             }
         };
 
-        LockUtil.Locks locks = new LockUtil.Locks(this.graph().name());
+        LockUtil.Locks locks = new LockUtil.Locks(schemaTx.graphName());
         try {
             locks.lockWrites(LockUtil.INDEX_LABEL_REBUILD, indexLabelIds);
             locks.lockWrites(LockUtil.INDEX_LABEL_DELETE, indexLabelIds);

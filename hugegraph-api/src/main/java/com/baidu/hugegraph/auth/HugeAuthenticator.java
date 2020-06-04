@@ -48,7 +48,7 @@ public interface HugeAuthenticator extends Authenticator {
     public static final String KEY_PASSWORD =
                                CredentialGraphTokens.PROPERTY_PASSWORD;
     public static final String KEY_ROLE = "role";
-    public static final String KEY_CLIENT = "client";
+    public static final String KEY_ADDRESS = "address";
     public static final String KEY_PATH = "path";
 
     public static final String USER_SYSTEM = "system";
@@ -97,7 +97,7 @@ public interface HugeAuthenticator extends Authenticator {
                 throw new AuthenticationException(message);
             }
             user = new User(username, role);
-            user.client(credentials.get(KEY_CLIENT));
+            user.client(credentials.get(KEY_ADDRESS));
         }
 
         HugeGraphAuthProxy.logUser(user, credentials.get(KEY_PATH));
@@ -407,6 +407,7 @@ public interface HugeAuthenticator extends Authenticator {
                 UserElement element = (UserElement) resourceObject.operated();
                 if (element instanceof HugeUser &&
                     ((HugeUser) element).name().equals(USER_ADMIN)) {
+                    // Can't access admin by other users
                     return false;
                 }
             }

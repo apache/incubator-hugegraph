@@ -38,6 +38,7 @@ import org.apache.tinkerpop.shaded.jackson.databind.deser.std.StdDeserializer;
 import org.apache.tinkerpop.shaded.jackson.databind.module.SimpleModule;
 import org.apache.tinkerpop.shaded.jackson.databind.ser.std.StdSerializer;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.auth.ResourceObject.ResourceType;
 import com.baidu.hugegraph.auth.SchemaDefine.UserElement;
 import com.baidu.hugegraph.structure.HugeElement;
@@ -75,14 +76,14 @@ public class HugeResource {
     private String label = ANY;
 
     @JsonProperty("properties")
-    private Map<String, String> properties; // value can be predicate
+    private Map<String, Object> properties; // value can be predicate
 
     public HugeResource() {
         // pass
     }
 
     public HugeResource(ResourceType type, String label,
-                        Map<String, String> properties) {
+                        Map<String, Object> properties) {
         this.type = type;
         this.label = label;
         this.properties = properties;
@@ -93,14 +94,15 @@ public class HugeResource {
         if (this.properties == null) {
             return;
         }
-        for (Map.Entry<String, String> entry : this.properties.entrySet()) {
+        for (Map.Entry<String, Object> entry : this.properties.entrySet()) {
             String propName = entry.getKey();
-            String propValue = entry.getValue();
+            Object propValue = entry.getValue();
             if (propName.equals(ANY) && propValue.equals(ANY)) {
                 continue;
             }
-            if (propValue.startsWith(TraversalUtil.P_CALL)) {
-                TraversalUtil.parsePredicate(propValue);
+            if (propValue instanceof String &&
+                ((String) propValue).startsWith(TraversalUtil.P_CALL)) {
+                TraversalUtil.parsePredicate((String) propValue);
             }
         }
     }
@@ -119,7 +121,7 @@ public class HugeResource {
             if (resType.isGraph()) {
                 return this.filter((HugeElement) resourceObject.operated());
             }
-            if (resType.isUser()) {
+            if (resType.isUsers()) {
                 return this.filter((UserElement) resourceObject.operated());
             }
             if (resType.isSchema() || CHECK_NAME_RESS.contains(resType)) {
@@ -164,9 +166,9 @@ public class HugeResource {
         if (this.properties == null) {
             return true;
         }
-        for (Map.Entry<String, String> entry : this.properties.entrySet()) {
+        for (Map.Entry<String, Object> entry : this.properties.entrySet()) {
             String propName = entry.getKey();
-            String expected = entry.getValue();
+            Object expected = entry.getValue();
             if (propName.equals(ANY) && expected.equals(ANY)) {
                 return true;
             }
@@ -174,15 +176,13 @@ public class HugeResource {
             if (!prop.isPresent()) {
                 return false;
             }
-            Object actual = prop.value();
-            if (expected.startsWith(TraversalUtil.P_CALL)) {
-                if (!TraversalUtil.parsePredicate(expected).test(actual)) {
+            try {
+                if (!TraversalUtil.testProperty(prop, expected)) {
                     return false;
                 }
-            } else {
-                if (!expected.equals(actual)) {
-                    return false;
-                }
+            } catch (IllegalArgumentException e) {
+                throw new HugeException("Invalid resouce '%s' for '%s': %s",
+                                        expected, propName, e.getMessage());
             }
         }
         return true;
@@ -199,7 +199,7 @@ public class HugeResource {
         return true;
     }
 
-    private boolean matchProperties(Map<String, String> other) {
+    private boolean matchProperties(Map<String, Object> other) {
         if (this.properties == null) {
             // Any property is OK
             return true;
@@ -207,8 +207,8 @@ public class HugeResource {
         if (other == null) {
             return false;
         }
-        for (Map.Entry<String, String> p : other.entrySet()) {
-            String value = this.properties.get(p.getKey());
+        for (Map.Entry<String, Object> p : other.entrySet()) {
+            Object value = this.properties.get(p.getKey());
             if (!Objects.equals(value, p.getValue())) {
                 return false;
             }
@@ -354,7 +354,7 @@ public class HugeResource {
                 } else if (key.equals("properties")) {
                     if (parser.nextToken() != JsonToken.VALUE_NULL) {
                         @SuppressWarnings("unchecked")
-                        Map<String, String> prop = ctxt.readValue(parser,
+                        Map<String, Object> prop = ctxt.readValue(parser,
                                                                   Map.class);
                         res.properties = prop;
                     } else {

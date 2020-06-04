@@ -352,6 +352,8 @@ public class StandardUserManager implements UserManager {
     public RolePermission rolePermission(UserElement element) {
         if (element instanceof HugeUser) {
             return this.rolePermission((HugeUser) element);
+        } else if (element instanceof HugeTarget) {
+            return this.rolePermission((HugeTarget) element);
         }
 
         List<HugeAccess> accesses = new ArrayList<>();;
@@ -400,6 +402,13 @@ public class StandardUserManager implements UserManager {
             HugeTarget target = this.getTarget(access.target());
             role.add(target.graph(), accessPerm, target.resources());
         }
+        return role;
+    }
+
+    private RolePermission rolePermission(HugeTarget target) {
+        RolePermission role = new RolePermission();
+        // TODO: improve for the actual meaning
+        role.add(target.graph(), HugePermission.READ, target.resources());
         return role;
     }
 

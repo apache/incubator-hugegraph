@@ -56,7 +56,7 @@ public class ResourceObject<V> {
     @Override
     public String toString() {
         Object operated = this.operated;
-        if (this.type.isUser()) {
+        if (this.type.isUsers()) {
             operated = ((UserElement) this.operated).idString();
         }
         return String.format("Resource{graph=%s,type=%s,operated=%s}",
@@ -143,9 +143,13 @@ public class ResourceObject<V> {
             return PROPERTY_KEY.ordinal() <= ord && ord <= INDEX_LABEL.ordinal();
         }
 
-        public boolean isUser() {
+        public boolean isUsers() {
             int ord = this.ordinal();
             return GRANT.ordinal() <= ord && ord <= TARGET.ordinal();
+        }
+
+        public boolean isGrantOrUser() {
+            return this == GRANT && this == USER_GROUP;
         }
 
         public boolean isAny() {

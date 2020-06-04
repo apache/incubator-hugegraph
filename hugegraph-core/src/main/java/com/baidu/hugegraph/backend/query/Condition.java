@@ -29,6 +29,8 @@ import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
 
+import org.apache.commons.lang.ArrayUtils;
+
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.store.Shard;
 import com.baidu.hugegraph.structure.HugeElement;
@@ -58,23 +60,24 @@ public abstract class Condition {
         LT("<", (v1, v2) -> { return compare(v1, v2) < 0; }),
         LTE("<=", (v1, v2) -> { return compare(v1, v2) <= 0; }),
         NEQ("!=", (v1, v2) -> { return compare(v1, v2) != 0; }),
-        IN("in", (v1, v2) -> {
+        IN("in", null, Collection.class, (v1, v2) -> {
             assert v2 != null;
             return ((Collection<?>) v2).contains(v1);
         }),
-        NOT_IN("notin", (v1, v2) -> {
+        NOT_IN("notin", null, Collection.class, (v1, v2) -> {
             assert v2 != null;
             return !((Collection<?>) v2).contains(v1);
         }),
-        PREFIX("prefix", (v1, v2) -> {
+        PREFIX("prefix", Id.class, Id.class, (v1, v2) -> {
             assert v2 != null;
             return v1 != null && Bytes.prefixWith(((Id) v2).asBytes(),
                                                   ((Id) v1).asBytes());
         }),
-        TEXT_CONTAINS("textcontains", (v1, v2) -> {
+        TEXT_CONTAINS("textcontains", String.class, String.class, (v1, v2) -> {
             return v1 != null && ((String) v1).contains((String) v2);
         }),
-        TEXT_CONTAINS_ANY("textcontainsany", (v1, v2) -> {
+        TEXT_CONTAINS_ANY("textcontainsany", String.class, Collection.class,
+                          (v1, v2) -> {
             assert v2 != null;
             if (v1 == null) {
                 return false;
@@ -88,11 +91,15 @@ public abstract class Condition {
             }
             return false;
         }),
-        CONTAINS_VALUE("containsv", (v1, v2) -> {
+        CONTAINS("contains", Collection.class, null, (v1, v2) -> {
+            assert v2 != null;
+            return v1 != null && ((Collection<?>) v1).contains(v2);
+        }),
+        CONTAINS_VALUE("containsv", Map.class, null, (v1, v2) -> {
             assert v2 != null;
             return v1 != null && ((Map<?, ?>) v1).containsValue(v2);
         }),
-        CONTAINS_KEY("containsk", (v1, v2) -> {
+        CONTAINS_KEY("containsk", Map.class, null, (v1, v2) -> {
             assert v2 != null;
             return v1 != null && ((Map<?, ?>) v1).containsKey(v2);
         }),
@@ -107,11 +114,20 @@ public abstract class Condition {
 
         private final String operator;
         private final BiFunction<Object, Object, Boolean> tester;
+        private final Class<?> v1Class;
+        private final Class<?> v2Class;
 
         private RelationType(String op,
                              BiFunction<Object, Object, Boolean> tester) {
+            this(op, null, null, tester);
+        }
+
+        private RelationType(String op, Class<?> v1Class, Class<?> v2Class,
+                             BiFunction<Object, Object, Boolean> tester) {
             this.operator = op;
             this.tester = tester;
+            this.v1Class = v1Class;
+            this.v2Class = v2Class;
         }
 
         public String string() {
@@ -135,6 +151,8 @@ public abstract class Condition {
                 }
             } else if (second instanceof Number) {
                 return compare(first, second) == 0;
+            } else if (second.getClass().isArray()) {
+                return ArrayUtils.isEquals(first, second);
             }
 
             return Objects.equals(first, second);
@@ -179,11 +197,39 @@ public abstract class Condition {
                       second, second.getClass().getSimpleName()));
         }
 
+        private void checkBaseType(Object value, Class<?> clazz) {
+            if (!clazz.isInstance(value)) {
+                String valueClass = value == null ? "null" :
+                                    value.getClass().getSimpleName();
+                E.checkArgument(false,
+                                "Can't execute `%s` on type %s, expect %s",
+                                this.operator, valueClass,
+                                clazz.getSimpleName());
+            }
+        }
+
+        private void checkValueType(Object value, Class<?> clazz) {
+            if (!clazz.isInstance(value)) {
+                String valueClass = value == null ? "null" :
+                                    value.getClass().getSimpleName();
+                E.checkArgument(false,
+                                "Can't test '%s'(%s) for `%s`, expect %s",
+                                value, valueClass, this.operator,
+                                clazz.getSimpleName());
+            }
+        }
+
         @Override
         public boolean test(Object first, Object second) {
             E.checkState(this.tester != null, "Can't test %s", this.name());
             E.checkArgument(second != null,
-                            "The second parameter of test() can't be null");
+                            "Can't test null value for `%s`", this.operator);
+            if (this.v1Class != null) {
+                this.checkBaseType(first, this.v1Class);
+            }
+            if (this.v2Class != null) {
+                this.checkValueType(second, this.v2Class);
+            }
             return this.tester.apply(first, second);
         }
 
@@ -285,6 +331,10 @@ public abstract class Condition {
 
     public static Condition containsKey(HugeKeys key, Object value) {
         return new SyspropRelation(key, RelationType.CONTAINS_KEY, value);
+    }
+
+    public static Condition contains(HugeKeys key, Object value) {
+        return new SyspropRelation(key, RelationType.CONTAINS, value);
     }
 
     public static Condition scan(String start, String end) {

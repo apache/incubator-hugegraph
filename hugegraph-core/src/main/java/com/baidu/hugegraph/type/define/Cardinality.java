@@ -61,6 +61,14 @@ public enum Cardinality implements SerialEnum {
         return this.name;
     }
 
+    public boolean single() {
+        return this == SINGLE;
+    }
+
+    public boolean multiple() {
+        return this == LIST || this == SET;
+    }
+
     public static Cardinality convert(VertexProperty.Cardinality cardinality) {
         switch (cardinality) {
             case single:

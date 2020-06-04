@@ -440,7 +440,7 @@ public class EdgeAPI extends BatchAPI {
                 E.checkArgument(sortKeyValue != null,
                                 "The value of sort key '%s' can't be null",
                                 sortKey);
-                sortKeyValue = pk.convValue(sortKeyValue, true);
+                sortKeyValue = pk.validValueOrThrow(sortKeyValue);
                 sortKeyValues.add(sortKeyValue);
             });
             sortKeys = ConditionQuery.concatValues(sortKeyValues);

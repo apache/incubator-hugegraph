@@ -553,7 +553,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                                        ConditionQuery query) {
         Iterator<BackendEntry> entries = super.query(query).iterator();
         return new BatchIdHolder(query, entries, batch -> {
-            LockUtil.Locks locks = new LockUtil.Locks(this.graph().name());
+            LockUtil.Locks locks = new LockUtil.Locks(this.graphName());
             try {
                 // Catch lock every batch
                 locks.lockReads(LockUtil.INDEX_LABEL_DELETE, indexLabel.id());
@@ -603,7 +603,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                                      ConditionQuery query) {
         // Query all or one page
         Iterator<BackendEntry> entries = null;
-        LockUtil.Locks locks = new LockUtil.Locks(this.graph().name());
+        LockUtil.Locks locks = new LockUtil.Locks(this.graphName());
         try {
             locks.lockReads(LockUtil.INDEX_LABEL_DELETE, indexLabel.id());
             locks.lockReads(LockUtil.INDEX_LABEL_REBUILD, indexLabel.id());
@@ -1263,7 +1263,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                          "Expect user property values for key '%s', " +
                          "but got none", pk);
             for (Object value : values) {
-                if (!pk.checkValue(value)) {
+                if (!pk.checkValueType(value)) {
                     return false;
                 }
             }
