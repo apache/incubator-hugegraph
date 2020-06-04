@@ -791,39 +791,39 @@ public final class TraversalUtil {
         Object validValue;
         switch (method) {
             case "eq":
-                validValue = validPredicateValue(predicateNumber(value), pk);
+                validValue = validPropertyValue(predicateNumber(value), pk);
                 return Condition.eq(pk.id(), validValue);
             case "neq":
-                validValue = validPredicateValue(predicateNumber(value), pk);
+                validValue = validPropertyValue(predicateNumber(value), pk);
                 return Condition.neq(pk.id(), validValue);
             case "lt":
-                validValue = validPredicateValue(predicateNumber(value), pk);
+                validValue = validPropertyValue(predicateNumber(value), pk);
                 return Condition.lt(pk.id(), validValue);
             case "lte":
-                validValue = validPredicateValue(predicateNumber(value), pk);
+                validValue = validPropertyValue(predicateNumber(value), pk);
                 return Condition.lte(pk.id(), validValue);
             case "gt":
-                validValue = validPredicateValue(predicateNumber(value), pk);
+                validValue = validPropertyValue(predicateNumber(value), pk);
                 return Condition.gt(pk.id(), validValue);
             case "gte":
-                validValue = validPredicateValue(predicateNumber(value), pk);
+                validValue = validPropertyValue(predicateNumber(value), pk);
                 return Condition.gte(pk.id(), validValue);
             case "between":
                 Number[] params = predicateNumbers(value, 2);
-                Object v1 = validPredicateValue(params[0], pk);
-                Object v2 = validPredicateValue(params[1], pk);
+                Object v1 = validPropertyValue(params[0], pk);
+                Object v2 = validPropertyValue(params[1], pk);
                 return Condition.and(Condition.gte(pk.id(), v1),
                                      Condition.lt(pk.id(), v2));
             case "inside":
                 params = predicateNumbers(value, 2);
-                v1 = validPredicateValue(params[0], pk);
-                v2 = validPredicateValue(params[1], pk);
+                v1 = validPropertyValue(params[0], pk);
+                v2 = validPropertyValue(params[1], pk);
                 return Condition.and(Condition.gt(pk.id(), v1),
                                      Condition.lt(pk.id(), v2));
             case "outside":
                 params = predicateNumbers(value, 2);
-                v1 = validPredicateValue(params[0], pk);
-                v2 = validPredicateValue(params[1], pk);
+                v1 = validPropertyValue(params[0], pk);
+                v2 = validPropertyValue(params[1], pk);
                 return Condition.and(Condition.lt(pk.id(), v1),
                                      Condition.gt(pk.id(), v2));
             case "within":
@@ -831,7 +831,7 @@ public final class TraversalUtil {
                 List<T> values = predicateArgs(value);
                 List<T> validValues = new ArrayList<>(values.size());
                 for (T v : validValues) {
-                    validValues.add(validPredicateValue(v, pk));
+                    validValues.add(validPropertyValue(v, pk));
                 }
                 return Condition.in(pk.id(), validValues);
             default:
