@@ -149,7 +149,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         module.addSerializer(File.class, new FileSerializer());
 
         module.addSerializer(Date.class,
-                             new DateSerializer(true, DATE_FORMAT));
+                             new DateSerializer(false, DATE_FORMAT));
         module.addDeserializer(Date.class,
                                new DateDeserializers.DateDeserializer());
 
