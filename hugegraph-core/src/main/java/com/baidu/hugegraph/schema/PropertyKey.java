@@ -215,7 +215,7 @@ public class PropertyKey extends SchemaElement implements Propfiable {
         E.checkArgument(validValue != null,
                         "Invalid property value '%s' for key '%s'",
                         value, this.name());
-        E.checkArgument(this.cardinality == Cardinality.SINGLE,
+        E.checkArgument(this.cardinality.single(),
                         "The cardinality can't be '%s' for navigation key '%s'",
                         this.cardinality, this.name());
         if (this.dataType.isNumber() || this.dataType.isDate()) {
@@ -258,7 +258,7 @@ public class PropertyKey extends SchemaElement implements Propfiable {
 
         V validValue = null;
         Collection<T> validValues;
-        if (this.cardinality == Cardinality.SINGLE) {
+        if (this.cardinality.single()) {
             validValue = this.convSingleValue(value);
         } else if (value instanceof Collection) {
             assert this.cardinality.multiple();

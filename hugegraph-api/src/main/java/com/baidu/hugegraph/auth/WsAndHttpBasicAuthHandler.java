@@ -141,7 +141,7 @@ public class WsAndHttpBasicAuthHandler extends SaslAuthenticationHandler {
                 final Map<String,String> credentials = new HashMap<>();
                 credentials.put(PROPERTY_USERNAME, split[0]);
                 credentials.put(PROPERTY_PASSWORD, split[1]);
-                credentials.put(HugeAuthenticator.KEY_CLIENT, address);
+                credentials.put(HugeAuthenticator.KEY_ADDRESS, address);
 
                 try {
                     this.authenticator.authenticate(credentials);
