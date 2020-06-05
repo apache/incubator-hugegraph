@@ -415,6 +415,14 @@ public abstract class AbstractAlgorithm implements Algorithm {
             });
         }
 
+        protected Vertex vertex(Object id) {
+            Iterator<Vertex> iter = this.graph().vertices(id);
+            if (!iter.hasNext()) {
+                return null;
+            }
+            return iter.next();
+        }
+
         protected Iterator<Vertex> filter(Iterator<Vertex> vertices,
                                           String key, Object value) {
             return new FilterIterator<>(vertices, vertex -> {
