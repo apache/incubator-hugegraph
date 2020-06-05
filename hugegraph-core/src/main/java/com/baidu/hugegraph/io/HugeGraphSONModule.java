@@ -36,7 +36,7 @@ import org.apache.tinkerpop.shaded.jackson.core.type.WritableTypeId;
 import org.apache.tinkerpop.shaded.jackson.databind.DeserializationContext;
 import org.apache.tinkerpop.shaded.jackson.databind.JsonSerializer;
 import org.apache.tinkerpop.shaded.jackson.databind.SerializerProvider;
-import org.apache.tinkerpop.shaded.jackson.databind.deser.std.DateDeserializers;
+import org.apache.tinkerpop.shaded.jackson.databind.deser.std.DateDeserializers.DateDeserializer;
 import org.apache.tinkerpop.shaded.jackson.databind.deser.std.StdDeserializer;
 import org.apache.tinkerpop.shaded.jackson.databind.deser.std.UUIDDeserializer;
 import org.apache.tinkerpop.shaded.jackson.databind.jsontype.TypeSerializer;
@@ -148,10 +148,11 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
 
         module.addSerializer(File.class, new FileSerializer());
 
+        boolean useTimestamp = false;
         module.addSerializer(Date.class,
-                             new DateSerializer(false, DATE_FORMAT));
-        module.addDeserializer(Date.class,
-                               new DateDeserializers.DateDeserializer());
+                             new DateSerializer(useTimestamp, DATE_FORMAT));
+        module.addDeserializer(Date.class, new DateDeserializer(
+                               new DateDeserializer(), DATE_FORMAT, DF));
 
         module.addSerializer(UUID.class, new UUIDSerializer());
         module.addDeserializer(UUID.class, new UUIDDeserializer());
