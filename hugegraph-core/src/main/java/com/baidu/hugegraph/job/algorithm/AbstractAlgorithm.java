@@ -44,7 +44,7 @@ import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.iterator.FilterIterator;
 import com.baidu.hugegraph.iterator.FlatMapperIterator;
-import com.baidu.hugegraph.job.Job;
+import com.baidu.hugegraph.job.UserJob;
 import com.baidu.hugegraph.job.algorithm.Consumers.StopExecution;
 import com.baidu.hugegraph.testutil.Whitebox;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
@@ -323,17 +323,17 @@ public abstract class AbstractAlgorithm implements Algorithm {
     public static class AlgoTraverser extends HugeTraverser
                                       implements AutoCloseable {
 
-        private final Job<Object> job;
+        private final UserJob<Object> job;
         protected final ExecutorService executor;
         protected long progress;
 
-        public AlgoTraverser(Job<Object> job) {
+        public AlgoTraverser(UserJob<Object> job) {
             super(job.graph());
             this.job = job;
             this.executor = null;
         }
 
-        protected AlgoTraverser(Job<Object> job, String name, int workers) {
+        protected AlgoTraverser(UserJob<Object> job, String name, int workers) {
             super(job.graph());
             this.job = job;
             String prefix = name + "-" + job.task().id();

@@ -34,7 +34,7 @@ import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.job.Job;
+import com.baidu.hugegraph.job.UserJob;
 import com.baidu.hugegraph.job.algorithm.AbstractAlgorithm;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.type.define.Directions;
@@ -61,7 +61,7 @@ public abstract class AbstractCentAlgorithm extends AbstractAlgorithm {
 
     protected static class Traverser extends AlgoTraverser {
 
-        public Traverser(Job<Object> job) {
+        public Traverser(UserJob<Object> job) {
             super(job);
         }
 

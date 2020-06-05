@@ -26,7 +26,7 @@ import com.baidu.hugegraph.job.algorithm.AlgorithmPool;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
 
-public class AlgorithmJob extends Job<Object> {
+public class AlgorithmJob extends UserJob<Object> {
 
     public static final String TASK_TYPE = "algorithm";
 

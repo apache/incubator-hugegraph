@@ -30,7 +30,7 @@ import org.apache.tinkerpop.gremlin.structure.Edge;
 
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
-import com.baidu.hugegraph.job.Job;
+import com.baidu.hugegraph.job.UserJob;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
@@ -54,7 +54,7 @@ public class TriangleCountAlgorithm extends AbstractCommAlgorithm {
     }
 
     @Override
-    public Object call(Job<Object> job, Map<String, Object> parameters) {
+    public Object call(UserJob<Object> job, Map<String, Object> parameters) {
         int workers = workersWhenBoth(parameters);
         try (Traverser traverser = new Traverser(job, workers)) {
             return traverser.triangleCount(direction4Out(parameters),
@@ -77,11 +77,11 @@ public class TriangleCountAlgorithm extends AbstractCommAlgorithm {
         protected static final String KEY_TRIANGLES = "triangles";
         protected static final String KEY_TRIADS = "triads";
 
-        public Traverser(Job<Object> job, int workers) {
+        public Traverser(UserJob<Object> job, int workers) {
             super(job, ALGO_NAME, workers);
         }
 
-        protected Traverser(Job<Object> job, String name, int workers) {
+        protected Traverser(UserJob<Object> job, String name, int workers) {
             super(job, name, workers);
         }
 
@@ -205,7 +205,7 @@ public class TriangleCountAlgorithm extends AbstractCommAlgorithm {
         protected long intersect(long degree, Set<Id> adjVertices) {
             long count = 0L;
             Directions dir = Directions.OUT;
-            Id empty = IdGenerator.of(0);
+            Id empty = IdGenerator.ZERO;
             Iterator<Id> vertices;
             for (Id v : adjVertices) {
                 vertices = this.adjacentVertices(v, dir, null, degree);

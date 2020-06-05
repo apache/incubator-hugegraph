@@ -21,7 +21,7 @@ package com.baidu.hugegraph.job.algorithm.comm;
 
 import java.util.Map;
 
-import com.baidu.hugegraph.job.Job;
+import com.baidu.hugegraph.job.UserJob;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
@@ -43,7 +43,7 @@ public class ClusterCoeffcientAlgorithm extends AbstractCommAlgorithm {
     }
 
     @Override
-    public Object call(Job<Object> job, Map<String, Object> parameters) {
+    public Object call(UserJob<Object> job, Map<String, Object> parameters) {
         int workers = workersWhenBoth(parameters);
         try (Traverser traverser = new Traverser(job, workers)) {
             return traverser.clusterCoeffcient(direction(parameters),
@@ -63,7 +63,7 @@ public class ClusterCoeffcientAlgorithm extends AbstractCommAlgorithm {
 
     private static class Traverser extends TriangleCountAlgorithm.Traverser {
 
-        public Traverser(Job<Object> job, int workers) {
+        public Traverser(UserJob<Object> job, int workers) {
             super(job, ALGO_NAME, workers);
         }
 

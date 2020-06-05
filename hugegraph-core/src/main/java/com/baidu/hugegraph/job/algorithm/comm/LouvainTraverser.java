@@ -48,7 +48,7 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.exception.ExistedException;
 import com.baidu.hugegraph.iterator.ListIterator;
-import com.baidu.hugegraph.job.Job;
+import com.baidu.hugegraph.job.UserJob;
 import com.baidu.hugegraph.job.algorithm.AbstractAlgorithm;
 import com.baidu.hugegraph.job.algorithm.AbstractAlgorithm.AlgoTraverser;
 import com.baidu.hugegraph.job.algorithm.Consumers;
@@ -83,7 +83,7 @@ public class LouvainTraverser extends AlgoTraverser {
     private long m;
     private String passLabel;
 
-    public LouvainTraverser(Job<Object> job, int workers, long degree,
+    public LouvainTraverser(UserJob<Object> job, int workers, long degree,
                             String sourceLabel, String sourceCLabel) {
         super(job, LouvainAlgorithm.ALGO_NAME, workers);
         this.g = this.graph().traversal();

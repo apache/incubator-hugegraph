@@ -21,7 +21,7 @@ package com.baidu.hugegraph.job.algorithm;
 
 import java.util.Map;
 
-import com.baidu.hugegraph.job.Job;
+import com.baidu.hugegraph.job.UserJob;
 
 public interface Algorithm {
 
@@ -29,7 +29,7 @@ public interface Algorithm {
 
     public String category();
 
-    public Object call(Job<Object> job, Map<String, Object> parameters);
+    public Object call(UserJob<Object> job, Map<String, Object> parameters);
 
     public void checkParameters(Map<String, Object> parameters);
 }

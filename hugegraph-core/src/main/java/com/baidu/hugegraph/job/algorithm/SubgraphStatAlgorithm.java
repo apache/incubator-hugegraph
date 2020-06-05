@@ -27,10 +27,11 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSo
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.StandardHugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
-import com.baidu.hugegraph.job.Job;
+import com.baidu.hugegraph.job.UserJob;
 import com.baidu.hugegraph.job.algorithm.cent.BetweenessCentralityAlgorithm;
 import com.baidu.hugegraph.job.algorithm.cent.ClosenessCentralityAlgorithm;
 import com.baidu.hugegraph.job.algorithm.cent.DegreeCentralityAlgorithm;
@@ -39,6 +40,7 @@ import com.baidu.hugegraph.job.algorithm.comm.ClusterCoeffcientAlgorithm;
 import com.baidu.hugegraph.job.algorithm.path.RingsDetectAlgorithm;
 import com.baidu.hugegraph.job.algorithm.rank.PageRankAlgorithm;
 import com.baidu.hugegraph.task.HugeTask;
+import com.baidu.hugegraph.testutil.Whitebox;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
 import com.baidu.hugegraph.traversal.optimize.HugeScriptTraversal;
 import com.baidu.hugegraph.util.E;
@@ -66,27 +68,27 @@ public class SubgraphStatAlgorithm extends AbstractAlgorithm {
     }
 
     @Override
-    public Object call(Job<Object> job, Map<String, Object> parameters) {
+    public Object call(UserJob<Object> job, Map<String, Object> parameters) {
         HugeGraph graph = this.createTempGraph(job);
         try (Traverser traverser = new Traverser(job)) {
-            this.initGraph(job.graph(), graph, subgraph(parameters),
-                           copySchema(parameters));
-            Job<Object> tmpJob = new TempJob<>(graph, job, job.task());
+            this.initGraph(job.graph(), graph,
+                           subgraph(parameters), copySchema(parameters));
+            UserJob<Object> tmpJob = new TempJob<>(graph, job, job.task());
             return traverser.subgraphStat(tmpJob);
         } finally {
             graph.truncateBackend();
-            // FIXME: task thread can't call close() here (will hang)
-            graph.closeTx();
+            // FIXME: task thread can't call close() (will hang), use closeTx()
+            Whitebox.invoke(graph.getClass(), "closeTx", graph);
         }
     }
 
-    private HugeGraph createTempGraph(Job<Object> job) {
+    private HugeGraph createTempGraph(UserJob<Object> job) {
         Id id = job.task().id();
         PropertiesConfiguration config = new PropertiesConfiguration();
         config.setProperty(CoreOptions.BACKEND.name(), "memory");
         config.setProperty(CoreOptions.STORE.name(), "tmp_" + id);
         config.setDelimiterParsingDisabled(true);
-        return new HugeGraph(new HugeConfig(config));
+        return new StandardHugeGraph(new HugeConfig(config));
     }
 
     @SuppressWarnings("resource")
@@ -127,11 +129,11 @@ public class SubgraphStatAlgorithm extends AbstractAlgorithm {
                                                     "top", -1L /* sorted */,
                                                     "workers", 0);
 
-        public Traverser(Job<Object> job) {
+        public Traverser(UserJob<Object> job) {
             super(job);
         }
 
-        public Object subgraphStat(Job<Object> job) {
+        public Object subgraphStat(UserJob<Object> job) {
             Map<String, Object> results = InsertionOrderUtil.newMap();
 
             GraphTraversalSource g = job.graph().traversal();
@@ -168,7 +170,7 @@ public class SubgraphStatAlgorithm extends AbstractAlgorithm {
             return results;
         }
 
-        private Map<Object, Double> pageRanks(Job<Object> job) {
+        private Map<Object, Double> pageRanks(UserJob<Object> job) {
             PageRankAlgorithm algo = new PageRankAlgorithm();
             algo.call(job, ImmutableMap.of("alpha", 0.15));
 
@@ -184,12 +186,12 @@ public class SubgraphStatAlgorithm extends AbstractAlgorithm {
         }
     }
 
-    private static class TempJob<V> extends Job<V> {
+    private static class TempJob<V> extends UserJob<V> {
 
-        private final Job<V> parent;
+        private final UserJob<V> parent;
 
-        public TempJob(HugeGraph graph, Job<V> job, HugeTask<V> task) {
-            this.scheduler(graph.taskScheduler());
+        public TempJob(HugeGraph graph, UserJob<V> job, HugeTask<V> task) {
+            this.graph(graph);
             this.task(task);
             this.parent = job;
         }

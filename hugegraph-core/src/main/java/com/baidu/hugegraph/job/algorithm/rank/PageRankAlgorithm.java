@@ -30,7 +30,7 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.job.Job;
+import com.baidu.hugegraph.job.UserJob;
 import com.baidu.hugegraph.job.algorithm.comm.AbstractCommAlgorithm;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.schema.VertexLabel;
@@ -64,7 +64,7 @@ public class PageRankAlgorithm extends AbstractCommAlgorithm {
     }
 
     @Override
-    public Object call(Job<Object> job, Map<String, Object> parameters) {
+    public Object call(UserJob<Object> job, Map<String, Object> parameters) {
         try (Traverser traverser = new Traverser(job)) {
             return traverser.pageRank(alpha(parameters),
                                       times(parameters),
@@ -85,7 +85,7 @@ public class PageRankAlgorithm extends AbstractCommAlgorithm {
          */
         private final Map<Id, DoublePair> vertexRankMap;
 
-        public Traverser(Job<Object> job) {
+        public Traverser(UserJob<Object> job) {
             super(job);
             this.vertexRankMap = new HashMap<>();
         }

@@ -21,7 +21,7 @@ package com.baidu.hugegraph.job.algorithm.comm;
 
 import java.util.Map;
 
-import com.baidu.hugegraph.job.Job;
+import com.baidu.hugegraph.job.UserJob;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
 
 public class LouvainAlgorithm extends AbstractCommAlgorithm {
@@ -48,7 +48,7 @@ public class LouvainAlgorithm extends AbstractCommAlgorithm {
     }
 
     @Override
-    public Object call(Job<Object> job, Map<String, Object> parameters) {
+    public Object call(UserJob<Object> job, Map<String, Object> parameters) {
         String label = sourceLabel(parameters);
         String clabel = sourceCLabel(parameters);
         long degree = degree(parameters);
