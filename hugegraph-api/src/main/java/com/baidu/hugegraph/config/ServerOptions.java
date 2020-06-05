@@ -239,5 +239,13 @@ public class ServerOptions extends OptionHolder {
                     "http or https.",
                     allowValues("http", "https"),
                     "http"
+
+    public static final ConfigListOption<String> NODE_ROLE =
+            new ConfigListOption<>(
+                    "node.role",
+                    "The role of nodes in the cluster, available type are " +
+                    "[master, worker]",
+                    disallowEmpty(),
+                    "master"
             );
 }

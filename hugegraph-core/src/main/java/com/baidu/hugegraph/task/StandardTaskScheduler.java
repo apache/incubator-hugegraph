@@ -72,6 +72,7 @@ public class StandardTaskScheduler implements TaskScheduler {
     private final HugeGraphParams graph;
     private final ExecutorService taskExecutor;
     private final ExecutorService dbExecutor;
+    private final ExecutorService taskScheduler;
 
     private final EventListener eventListener;
     private final Map<Id, HugeTask<?>> tasks;
@@ -85,14 +86,17 @@ public class StandardTaskScheduler implements TaskScheduler {
 
     public StandardTaskScheduler(HugeGraphParams graph,
                                  ExecutorService taskExecutor,
-                                 ExecutorService dbExecutor) {
+                                 ExecutorService dbExecutor,
+                                 ExecutorService taskScheduler) {
         E.checkNotNull(graph, "graph");
         E.checkNotNull(taskExecutor, "taskExecutor");
         E.checkNotNull(dbExecutor, "dbExecutor");
+        E.checkNotNull(taskScheduler, "taskScheduler");
 
         this.graph = graph;
         this.taskExecutor = taskExecutor;
         this.dbExecutor = dbExecutor;
+        this.taskScheduler = taskScheduler;
 
         this.tasks = new ConcurrentHashMap<>();
 
@@ -195,10 +199,28 @@ public class StandardTaskScheduler implements TaskScheduler {
     public <V> Future<?> schedule(HugeTask<V> task) {
         E.checkArgumentNotNull(task, "Task can't be null");
         task.status(TaskStatus.QUEUED);
-        return this.submitTask(task);
+        initTaskCallable(task);
+        this.scheduleTask(task);
+
+        return null;
+//        return this.submitTask(task);
     }
 
-    private <V> Future<?> submitTask(HugeTask<V> task) {
+    private <V> void scheduleTask(HugeTask<V> task) {
+        if (this.graph.role().master()) {
+            String node = this.pickWorker();
+            task.node(node);
+            this.save(task);
+        }
+    }
+
+    private synchronized String pickWorker() {
+        // TODO: master calculate load of workers and assign task to a suitable
+        // worker
+        return "worker1";
+    }
+
+    public  <V> Future<?> submitTask(HugeTask<V> task) {
         int size = this.tasks.size() + 1;
         E.checkArgument(size <= MAX_PENDING_TASKS,
                         "Pending tasks size %s has exceeded the max limit %s",
@@ -347,6 +369,11 @@ public class StandardTaskScheduler implements TaskScheduler {
     public <V> Iterator<HugeTask<V>> findTask(TaskStatus status,
                                               long limit, String page) {
         return this.queryTask(P.STATUS, status.code(), limit, page);
+    }
+
+    public <V> Iterator<HugeTask<V>> findTask(String node, long limit,
+                                              String page) {
+        return this.queryTask(P.NODE, node, limit, page);
     }
 
     @Override
@@ -550,13 +577,14 @@ public class StandardTaskScheduler implements TaskScheduler {
                                      .useCustomizeNumberId()
                                      .nullableKeys(P.DESCRIPTION, P.CONTEXT,
                                                    P.UPDATE, P.INPUT, P.RESULT,
-                                                   P.DEPENDENCIES)
+                                                   P.DEPENDENCIES, P.NODE)
                                      .enableLabelIndex(true)
                                      .build();
             this.params().schemaTransaction().addVertexLabel(label);
 
             // Create index
             this.createIndexLabel(label, P.STATUS);
+            this.createIndexLabel(label, P.NODE);
         }
 
         private boolean existVertexLabel(String label) {
@@ -581,6 +609,7 @@ public class StandardTaskScheduler implements TaskScheduler {
             props.add(createPropertyKey(P.RESULT, DataType.BLOB));
             props.add(createPropertyKey(P.DEPENDENCIES, DataType.LONG,
                                         Cardinality.SET));
+            props.add(createPropertyKey(P.NODE));
 
             return props.toArray(new String[0]);
         }

@@ -76,6 +76,7 @@ import com.baidu.hugegraph.task.TaskManager;
 import com.baidu.hugegraph.task.TaskScheduler;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.GraphMode;
+import com.baidu.hugegraph.type.define.GraphRole;
 import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.LockUtil;
@@ -787,6 +788,16 @@ public class StandardHugeGraph implements HugeGraph {
         @Override
         public GraphMode mode() {
             return StandardHugeGraph.this.mode();
+        }
+
+        @Override
+        public GraphRole role() {
+            return GraphRole.WORKER;
+        }
+
+        @Override
+        public String node() {
+            return "worker1";
         }
 
         @Override

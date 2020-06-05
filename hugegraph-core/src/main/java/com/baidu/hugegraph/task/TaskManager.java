@@ -21,17 +21,22 @@ package com.baidu.hugegraph.task;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import com.baidu.hugegraph.HugeException;
+import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.HugeGraphParams;
+import com.baidu.hugegraph.backend.page.PageInfo;
+import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.ExecutorUtil;
 
@@ -39,14 +44,17 @@ public final class TaskManager {
 
     public static final String TASK_WORKER = "task-worker-%d";
     public static final String TASK_DB_WORKER = "task-db-worker-%d";
+    public static final String TASK_SCHEDULER = "task-scheduler-%d";
 
     private static final int THREADS = 4;
     private static final TaskManager MANAGER = new TaskManager(THREADS);
+    private static final long PAGE_SIZE = 500L;
 
     private final Map<HugeGraphParams, TaskScheduler> schedulers;
 
     private final ExecutorService taskExecutor;
     private final ExecutorService dbExecutor;
+    private final ScheduledExecutorService taskScheduler;
 
     public static TaskManager instance() {
         return MANAGER;
@@ -59,13 +67,20 @@ public final class TaskManager {
         this.taskExecutor = ExecutorUtil.newFixedThreadPool(pool, TASK_WORKER);
         // For save/query task state, just one thread is ok
         this.dbExecutor = ExecutorUtil.newFixedThreadPool(1, TASK_DB_WORKER);
+        // For schedule task to run, just one thread is ok
+        this.taskScheduler = ExecutorUtil.newScheduledThreadPool(1, TASK_SCHEDULER);
+        this.taskScheduler.scheduleWithFixedDelay(this::scheduleTasks,
+                                                  0L, 3, TimeUnit.SECONDS);
     }
 
     public void addScheduler(HugeGraphParams graph) {
         E.checkArgumentNotNull(graph, "The graph can't be null");
         ExecutorService task = this.taskExecutor;
         ExecutorService db = this.dbExecutor;
-        this.schedulers.put(graph, new StandardTaskScheduler(graph, task, db));
+        ExecutorService scheduler = this.taskScheduler;
+        TaskScheduler taskScheduler = new StandardTaskScheduler(graph, task,
+                                                                db, scheduler);
+        this.schedulers.put(graph, taskScheduler);
     }
 
     public void closeScheduler(HugeGraphParams graph) {
@@ -125,6 +140,7 @@ public final class TaskManager {
         boolean terminated = this.taskExecutor.isTerminated();
         final TimeUnit unit = TimeUnit.SECONDS;
 
+        // TODO: close taskScheduler
         if (!this.taskExecutor.isShutdown()) {
             this.taskExecutor.shutdown();
             try {
@@ -161,6 +177,26 @@ public final class TaskManager {
             size += scheduler.pendingTasks();
         }
         return size;
+    }
+
+    private <V> void scheduleTasks() {
+        for (Map.Entry<HugeGraphParams, TaskScheduler> entry :
+                 this.schedulers.entrySet()) {
+            HugeGraphParams graph = entry.getKey();
+            TaskScheduler scheduler = entry.getValue();
+            String page = PageInfo.PAGE_NONE;
+            do {
+                Iterator<HugeTask<V>> tasks = scheduler.tasks(TaskStatus.QUEUED,
+                                                              PAGE_SIZE, page);
+                while (tasks.hasNext()) {
+                    HugeTask<V> task = tasks.next();
+                    if (task.node().equals(graph.node())) {
+                        ((StandardTaskScheduler) scheduler).submitTask(task);
+                    }
+                }
+                page = PageInfo.pageInfo(tasks);
+            } while (page != null);
+        }
     }
 
     private static final ThreadLocal<String> contexts = new ThreadLocal<>();

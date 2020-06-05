@@ -73,6 +73,8 @@ public class HugeTask<V> extends FutureTask<V> {
     private volatile int retries;
     private volatile String input;
     private volatile String result;
+    private String node;
+    private long load;
 
     public HugeTask(Id id, Id parent, String callable, String input) {
         this(id, parent, TaskCallable.fromClass(callable));
@@ -101,6 +103,7 @@ public class HugeTask<V> extends FutureTask<V> {
         this.retries = 0;
         this.input = null;
         this.result = null;
+        this.node = null;
     }
 
     public Id id() {
@@ -214,6 +217,14 @@ public class HugeTask<V> extends FutureTask<V> {
     private void result(String result) {
         checkPropertySize(result, P.RESULT);
         this.result = result;
+    }
+
+    public void node(String node) {
+        this.node = node;
+    }
+
+    public String node() {
+        return this.node;
     }
 
     public boolean completed() {
@@ -427,6 +438,9 @@ public class HugeTask<V> extends FutureTask<V> {
             case P.RESULT:
                 this.result = StringEncoding.decompress(((Blob) value).bytes());
                 break;
+            case P.NODE:
+                this.node = (String) value;
+                break;
             default:
                 throw new AssertionError("Unsupported key: " + key);
         }
@@ -500,6 +514,11 @@ public class HugeTask<V> extends FutureTask<V> {
             list.add(bytes);
         }
 
+        if (this.node != null) {
+            list.add(P.NODE);
+            list.add(this.node);
+        }
+
         return list.toArray();
     }
 
@@ -532,6 +551,10 @@ public class HugeTask<V> extends FutureTask<V> {
             Set<Long> value = this.dependencies.stream().map(Id::asLong)
                                                         .collect(toOrderSet());
             map.put(Hidden.unHide(P.DEPENDENCIES), value);
+        }
+
+        if (this.node != null) {
+            map.put(Hidden.unHide(P.NODE), this.node);
         }
 
         if (withDetails) {
@@ -627,6 +650,7 @@ public class HugeTask<V> extends FutureTask<V> {
         public static final String INPUT = "~task_input";
         public static final String RESULT = "~task_result";
         public static final String DEPENDENCIES = "~task_dependencies";
+        public static final String NODE = "~task_node";
 
         //public static final String PARENT = hide("parent");
         //public static final String CHILDREN = hide("children");

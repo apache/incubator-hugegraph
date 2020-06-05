@@ -27,6 +27,7 @@ import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.type.define.GraphMode;
+import com.baidu.hugegraph.type.define.GraphRole;
 import com.google.common.util.concurrent.RateLimiter;
 
 /**
@@ -37,6 +38,8 @@ public interface HugeGraphParams {
     public HugeGraph graph();
     public String name();
     public GraphMode mode();
+    public GraphRole role();
+    public String node();
 
     public SchemaTransaction schemaTransaction();
     public GraphTransaction systemTransaction();
