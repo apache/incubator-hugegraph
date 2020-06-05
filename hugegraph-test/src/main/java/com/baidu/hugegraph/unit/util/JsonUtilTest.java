@@ -282,14 +282,14 @@ public class JsonUtilTest extends BaseUnitTest {
         );
         Whitebox.setInternalState(edge, "properties", properties);
 
-        long dateTime = Utils.date("2019-03-12").getTime();
         String json = JsonUtil.toJson(edge);
-        Assert.assertEquals(String.format("{\"id\":\"L123456>1>>L987654\"," +
+        Assert.assertEquals("{\"id\":\"L123456>1>>L987654\"," +
                             "\"label\":\"knows\",\"type\":\"edge\"," +
                             "\"outV\":123456,\"outVLabel\":\"person\"," +
                             "\"inV\":987654,\"inVLabel\":\"person\"," +
-                            "\"properties\":{\"date\":%s," +
-                            "\"weight\":0.8}}", dateTime), json);
+                            "\"properties\":{\"date\":" +
+                            "\"2019-03-12 00:00:00.000\"," +
+                            "\"weight\":0.8}}", json);
     }
 
     @Test
