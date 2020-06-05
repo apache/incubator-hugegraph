@@ -31,6 +31,7 @@ import com.baidu.hugegraph.job.algorithm.comm.KCoreAlgorithm;
 import com.baidu.hugegraph.job.algorithm.comm.LouvainAlgorithm;
 import com.baidu.hugegraph.job.algorithm.comm.LpaAlgorithm;
 import com.baidu.hugegraph.job.algorithm.comm.TriangleCountAlgorithm;
+import com.baidu.hugegraph.job.algorithm.comm.WeakConnectedComponent;
 import com.baidu.hugegraph.job.algorithm.path.RingsDetectAlgorithm;
 import com.baidu.hugegraph.job.algorithm.rank.PageRankAlgorithm;
 import com.baidu.hugegraph.job.algorithm.similarity.FusiformSimilarityAlgorithm;
@@ -52,6 +53,7 @@ public class AlgorithmPool {
         INSTANCE.register(new ClusterCoeffcientAlgorithm());
         INSTANCE.register(new LpaAlgorithm());
         INSTANCE.register(new LouvainAlgorithm());
+        INSTANCE.register(new WeakConnectedComponent());
 
         INSTANCE.register(new FusiformSimilarityAlgorithm());
         INSTANCE.register(new RingsDetectAlgorithm());
