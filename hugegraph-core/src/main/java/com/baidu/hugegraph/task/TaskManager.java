@@ -33,10 +33,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import com.baidu.hugegraph.HugeException;
-import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.page.PageInfo;
-import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.ExecutorUtil;
 
@@ -137,11 +135,19 @@ public final class TaskManager {
         assert this.schedulers.isEmpty() : this.schedulers.size();
 
         Throwable ex = null;
-        boolean terminated = this.taskExecutor.isTerminated();
+        boolean terminated = this.taskScheduler.isTerminated();
         final TimeUnit unit = TimeUnit.SECONDS;
 
-        // TODO: close taskScheduler
-        if (!this.taskExecutor.isShutdown()) {
+        if (!this.taskScheduler.isShutdown()) {
+            this.taskScheduler.shutdown();
+            try {
+                terminated = this.taskScheduler.awaitTermination(timeout, unit);
+            } catch (Throwable e) {
+                ex = e;
+            }
+        }
+
+        if (terminated && !this.taskExecutor.isShutdown()) {
             this.taskExecutor.shutdown();
             try {
                 terminated = this.taskExecutor.awaitTermination(timeout, unit);
