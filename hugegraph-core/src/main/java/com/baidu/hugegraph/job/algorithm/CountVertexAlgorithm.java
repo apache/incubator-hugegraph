@@ -26,7 +26,7 @@ import java.util.Map;
 import org.apache.commons.lang3.mutable.MutableLong;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
-import com.baidu.hugegraph.job.Job;
+import com.baidu.hugegraph.job.UserJob;
 import com.baidu.hugegraph.util.JsonUtil;
 
 public class CountVertexAlgorithm extends AbstractAlgorithm {
@@ -42,7 +42,7 @@ public class CountVertexAlgorithm extends AbstractAlgorithm {
     }
 
     @Override
-    public Object call(Job<Object> job, Map<String, Object> parameters) {
+    public Object call(UserJob<Object> job, Map<String, Object> parameters) {
         try (Traverser traverser = new Traverser(job)) {
             return traverser.count();
         }
@@ -50,7 +50,7 @@ public class CountVertexAlgorithm extends AbstractAlgorithm {
 
     private static class Traverser extends AlgoTraverser {
 
-        public Traverser(Job<Object> job) {
+        public Traverser(UserJob<Object> job) {
             super(job);
         }
 

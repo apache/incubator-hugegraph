@@ -33,7 +33,7 @@ import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.job.Job;
+import com.baidu.hugegraph.job.UserJob;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.traversal.algorithm.FusiformSimilarityTraverser;
 import com.baidu.hugegraph.type.define.Directions;
@@ -70,7 +70,7 @@ public class KCoreAlgorithm extends AbstractCommAlgorithm {
     }
 
     @Override
-    public Object call(Job<Object> job, Map<String, Object> parameters) {
+    public Object call(UserJob<Object> job, Map<String, Object> parameters) {
         int workers = workers(parameters);
         try (Traverser traverser = new Traverser(job, workers)) {
             return traverser.kcore(sourceLabel(parameters),
@@ -102,7 +102,7 @@ public class KCoreAlgorithm extends AbstractCommAlgorithm {
 
     private static class Traverser extends AlgoTraverser {
 
-        public Traverser(Job<Object> job, int workers) {
+        public Traverser(UserJob<Object> job, int workers) {
             super(job, ALGO_NAME, workers);
         }
 

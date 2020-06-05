@@ -32,7 +32,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.Scope;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.job.Job;
+import com.baidu.hugegraph.job.UserJob;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.define.Directions;
@@ -61,7 +61,7 @@ public class LpaAlgorithm extends AbstractCommAlgorithm {
     }
 
     @Override
-    public Object call(Job<Object> job, Map<String, Object> parameters) {
+    public Object call(UserJob<Object> job, Map<String, Object> parameters) {
         int workers = workers(parameters);
         String showComm = showCommunity(parameters);
 
@@ -88,7 +88,7 @@ public class LpaAlgorithm extends AbstractCommAlgorithm {
 
         private final Random R = new Random();
 
-        public Traverser(Job<Object> job, int workers) {
+        public Traverser(UserJob<Object> job, int workers) {
             super(job, ALGO_NAME, workers);
         }
 

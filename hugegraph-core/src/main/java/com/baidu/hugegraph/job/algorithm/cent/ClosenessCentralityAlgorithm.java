@@ -29,7 +29,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
-import com.baidu.hugegraph.job.Job;
+import com.baidu.hugegraph.job.UserJob;
 import com.baidu.hugegraph.type.define.Directions;
 
 public class ClosenessCentralityAlgorithm extends AbstractCentAlgorithm {
@@ -48,7 +48,7 @@ public class ClosenessCentralityAlgorithm extends AbstractCentAlgorithm {
     }
 
     @Override
-    public Object call(Job<Object> job, Map<String, Object> parameters) {
+    public Object call(UserJob<Object> job, Map<String, Object> parameters) {
         try (Traverser traverser = new Traverser(job)) {
             return traverser.closenessCentrality(direction(parameters),
                                                  edgeLabel(parameters),
@@ -64,7 +64,7 @@ public class ClosenessCentralityAlgorithm extends AbstractCentAlgorithm {
 
     private static class Traverser extends AbstractCentAlgorithm.Traverser {
 
-        public Traverser(Job<Object> job) {
+        public Traverser(UserJob<Object> job) {
             super(job);
         }
 

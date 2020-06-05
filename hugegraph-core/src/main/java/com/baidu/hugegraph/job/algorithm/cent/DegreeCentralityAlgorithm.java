@@ -27,7 +27,7 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.job.Job;
+import com.baidu.hugegraph.job.UserJob;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.type.define.Directions;
 
@@ -46,7 +46,7 @@ public class DegreeCentralityAlgorithm extends AbstractCentAlgorithm {
     }
 
     @Override
-    public Object call(Job<Object> job, Map<String, Object> parameters) {
+    public Object call(UserJob<Object> job, Map<String, Object> parameters) {
         try (Traverser traverser = new Traverser(job)) {
             return traverser.degreeCentrality(direction(parameters),
                                               edgeLabel(parameters),
@@ -56,7 +56,7 @@ public class DegreeCentralityAlgorithm extends AbstractCentAlgorithm {
 
     private static class Traverser extends AlgoTraverser {
 
-        public Traverser(Job<Object> job) {
+        public Traverser(UserJob<Object> job) {
             super(job);
         }
 

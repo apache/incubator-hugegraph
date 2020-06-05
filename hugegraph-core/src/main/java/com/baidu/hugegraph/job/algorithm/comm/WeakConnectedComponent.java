@@ -30,7 +30,7 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.job.Job;
+import com.baidu.hugegraph.job.UserJob;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.structure.HugeEdge;
@@ -56,7 +56,7 @@ public class WeakConnectedComponent extends AbstractCommAlgorithm {
     }
 
     @Override
-    public Object call(Job<Object> job, Map<String, Object> parameters) {
+    public Object call(UserJob<Object> job, Map<String, Object> parameters) {
         try (Traverser traverser = new Traverser(job)) {
             return traverser.connectedComponent(times(parameters),
                                                 directionOutIn(parameters),
@@ -71,7 +71,7 @@ public class WeakConnectedComponent extends AbstractCommAlgorithm {
 
         private final Map<Id, Id> vertexComponentMap = new HashMap<>();
 
-        public Traverser(Job<Object> job) {
+        public Traverser(UserJob<Object> job) {
             super(job);
         }
 
@@ -81,7 +81,7 @@ public class WeakConnectedComponent extends AbstractCommAlgorithm {
             this.initSchema();
             this.initVertexComponentMap();
             int times;
-            
+
             for (times = 0; times < maxTimes; times++) {
                 long changeCount = 0;
                 Id currentSourceVertexId = null;

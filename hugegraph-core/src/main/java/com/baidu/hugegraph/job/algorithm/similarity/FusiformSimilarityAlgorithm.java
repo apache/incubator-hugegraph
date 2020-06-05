@@ -25,7 +25,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import com.baidu.hugegraph.HugeGraph;
-import com.baidu.hugegraph.job.Job;
+import com.baidu.hugegraph.job.UserJob;
 import com.baidu.hugegraph.job.algorithm.AbstractAlgorithm;
 import com.baidu.hugegraph.job.algorithm.Consumers.StopExecution;
 import com.baidu.hugegraph.schema.EdgeLabel;
@@ -78,7 +78,7 @@ public class FusiformSimilarityAlgorithm extends AbstractAlgorithm {
     }
 
     @Override
-    public Object call(Job<Object> job, Map<String, Object> parameters) {
+    public Object call(UserJob<Object> job, Map<String, Object> parameters) {
         int workers = workers(parameters);
         try (Traverser traverser = new Traverser(job, workers)) {
             return traverser.fusiformSimilars(sourceLabel(parameters),
@@ -150,7 +150,7 @@ public class FusiformSimilarityAlgorithm extends AbstractAlgorithm {
 
     private static class Traverser extends AlgoTraverser {
 
-        public Traverser(Job<Object> job, int workers) {
+        public Traverser(UserJob<Object> job, int workers) {
             super(job, ALGO_NAME, workers);
         }
 
