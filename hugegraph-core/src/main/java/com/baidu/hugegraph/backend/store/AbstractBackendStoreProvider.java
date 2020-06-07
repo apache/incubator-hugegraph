@@ -148,7 +148,7 @@ public abstract class AbstractBackendStoreProvider
     @Override
     public BackendStore loadSchemaStore(final String name) {
         LOG.debug("The '{}' StoreProvider load SchemaStore '{}'",
-                  this.type(),  name);
+                  this.type(), name);
 
         this.checkOpened();
         if (!this.stores.containsKey(name)) {

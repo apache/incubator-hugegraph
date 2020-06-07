@@ -367,9 +367,15 @@ public class StandardHugeGraph implements HugeGraph {
 
     private BackendStoreProvider loadStoreProvider() {
         String backend = this.configuration.get(CoreOptions.BACKEND);
-        LOG.info("Opening backend store '{}' for graph '{}'",
-                 backend, this.name);
-        return BackendProviderFactory.open(backend, this.name);
+        boolean raftMode = this.configuration.get(CoreOptions.RAFT_MODE);
+        if (raftMode) {
+            LOG.info("Opening backend store '{}' in raft mode for graph '{}'",
+                     backend, this.name);
+        } else {
+            LOG.info("Opening backend store '{}' for graph '{}'",
+                     backend, this.name);
+        }
+        return BackendProviderFactory.open(this.configuration, this.name);
     }
 
     private AbstractSerializer serializer() {

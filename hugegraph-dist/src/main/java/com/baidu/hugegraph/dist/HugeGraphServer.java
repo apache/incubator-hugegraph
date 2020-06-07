@@ -25,6 +25,8 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.server.RestServer;
+import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.Action;
 import com.baidu.hugegraph.util.Log;
 
 public class HugeGraphServer {
@@ -36,6 +38,9 @@ public class HugeGraphServer {
 
     public HugeGraphServer(String gremlinServerConf, String restServerConf)
                            throws Exception {
+        System.out.println("==> Action" + Action.INSERT.string());
+        System.out.println("==> HugeType" + HugeType.VERTEX.string());
+
         // Only switch on security manager after HugeGremlinServer started
         SecurityManager securityManager = System.getSecurityManager();
         System.setSecurityManager(null);

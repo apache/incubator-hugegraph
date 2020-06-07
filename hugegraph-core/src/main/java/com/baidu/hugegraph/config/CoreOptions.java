@@ -100,6 +100,54 @@ public class CoreOptions extends OptionHolder {
                     "text"
             );
 
+    public static final ConfigOption<Boolean> RAFT_MODE =
+            new ConfigOption<>(
+                    "raft.mode",
+                    "Whether the backend storage works in raft mode",
+                    disallowEmpty(),
+                    false
+            );
+
+    public static final ConfigOption<Boolean> RAFT_READ_SAFE =
+            new ConfigOption<>(
+                    "raft.read.safe",
+                    "Whether to use linearly consistent read",
+                    disallowEmpty(),
+                    false
+            );
+
+    public static final ConfigOption<String> RAFT_GROUP =
+            new ConfigOption<>(
+                    "raft.group",
+                    "The group name of current raft node.",
+                    disallowEmpty(),
+                    "all-data"
+            );
+
+    public static final ConfigOption<String> RAFT_PEERID =
+            new ConfigOption<>(
+                    "raft.peerid",
+                    "The peerid of current raft node.",
+                    disallowEmpty(),
+                    "127.0.0.1:8081"
+            );
+
+    public static final ConfigOption<String> RAFT_GROUP_PEERS =
+            new ConfigOption<>(
+                    "raft.group.peers",
+                    "The peers of current raft group.",
+                    disallowEmpty(),
+                    "127.0.0.1:8281,127.0.0.1:8282,127.0.0.1:8283"
+            );
+
+    public static final ConfigOption<String> RAFT_LOG_PATH =
+            new ConfigOption<>(
+                    "raft.log_path",
+                    "The log path of current raft node.",
+                    disallowEmpty(),
+                    "./raft-log1"
+            );
+
     public static final ConfigOption<Integer> RATE_LIMIT =
             new ConfigOption<>(
                     "rate_limit",

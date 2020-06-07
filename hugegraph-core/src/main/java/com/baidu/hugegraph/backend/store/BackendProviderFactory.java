@@ -24,6 +24,9 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.store.memory.InMemoryDBStoreProvider;
+import com.baidu.hugegraph.backend.store.raft.RaftBackendStoreProvider;
+import com.baidu.hugegraph.config.CoreOptions;
+import com.baidu.hugegraph.config.HugeConfig;
 
 public class BackendProviderFactory {
 
@@ -33,7 +36,10 @@ public class BackendProviderFactory {
         providers = new ConcurrentHashMap<>();
     }
 
-    public static BackendStoreProvider open(String backend, String graph) {
+    public static BackendStoreProvider open(HugeConfig config, String graph) {
+        String backend = config.get(CoreOptions.BACKEND);
+        boolean raftMode = config.get(CoreOptions.RAFT_MODE);
+
         backend = backend.toLowerCase();
         if (InMemoryDBStoreProvider.matchType(backend)) {
             return InMemoryDBStoreProvider.instance(graph);
@@ -56,8 +62,14 @@ public class BackendProviderFactory {
                                "can't be opened by key '%s'",
                                instance.type(), backend);
 
-        instance.open(graph);
-        return instance;
+        BackendStoreProvider provider;
+        if (raftMode) {
+            provider = new RaftBackendStoreProvider(instance, config);
+        } else {
+            provider = instance;
+        }
+        provider.open(graph);
+        return provider;
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
