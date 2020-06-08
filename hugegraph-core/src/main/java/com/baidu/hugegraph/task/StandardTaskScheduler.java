@@ -33,6 +33,7 @@ import java.util.concurrent.TimeoutException;
 
 import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
@@ -44,6 +45,8 @@ import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
+import com.baidu.hugegraph.cluster.HugeServer;
+import com.baidu.hugegraph.cluster.ServerInfoManager;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.event.EventListener;
 import com.baidu.hugegraph.exception.ConnectionException;
@@ -62,12 +65,16 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Events;
+import com.baidu.hugegraph.util.Log;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 public class StandardTaskScheduler implements TaskScheduler {
+
+    private static final Logger LOG = Log.logger(TaskScheduler.class);
 
     private final HugeGraphParams graph;
     private final ExecutorService taskExecutor;
@@ -201,23 +208,66 @@ public class StandardTaskScheduler implements TaskScheduler {
         task.status(TaskStatus.QUEUED);
         initTaskCallable(task);
         this.scheduleTask(task);
-
         return null;
-//        return this.submitTask(task);
     }
 
-    private <V> void scheduleTask(HugeTask<V> task) {
-        if (this.graph.role().master()) {
-            String node = this.pickWorker();
-            task.node(node);
-            this.save(task);
+    private synchronized <V> void scheduleTask(HugeTask<V> task) {
+        if (!this.graph.serverManager().serverRole().master()) {
+            return;
         }
+
+        this.save(task);
+
+        // Schedule all queued tasks
+        String page = PageInfo.PAGE_NONE;
+        do {
+            Iterator<HugeTask<V>> tasks = this.tasks(TaskStatus.QUEUED,
+                                                     PAGE_SIZE, page);
+            HugeTask<V> currentTask;
+            while (tasks.hasNext()) {
+                currentTask = tasks.next();
+                HugeServer server = this.pickWorker(task);
+                if (server == null) {
+                    LOG.debug("Not find worker to execute task: {}", task);
+                    return;
+                }
+                currentTask.server(server.id());
+                this.save(currentTask);
+                server.load(server.load() + currentTask.load());
+                this.serverManager().save(server);
+            }
+            page = PageInfo.pageInfo(tasks);
+        } while (page != null);
     }
 
-    private synchronized String pickWorker() {
-        // TODO: master calculate load of workers and assign task to a suitable
-        // worker
-        return "worker1";
+    private synchronized <V> HugeServer pickWorker(HugeTask<V> task) {
+        HugeServer minServer = null;
+        int minLoad = HugeServer.MAX_LOAD;
+        Long now = DateUtil.now().getTime();
+        String page = PageInfo.PAGE_NONE;
+        do {
+            Iterator<HugeServer> servers = this.serverManager()
+                                               .servers(100L, page);
+            HugeServer server;
+            while (servers.hasNext()) {
+                server = servers.next();
+                if (server.updateTime().getTime() + 3000L < now ||
+                    server.load() + task.load() > HugeServer.MAX_LOAD) {
+                    continue;
+                }
+                if (server.load() < minLoad) {
+                    minLoad = server.load();
+                    minServer = server;
+                }
+            }
+            page = PageInfo.pageInfo(servers);
+        } while (page != null);
+
+        return minServer;
+    }
+
+    private ServerInfoManager serverManager() {
+        return this.graph.serverManager();
     }
 
     public  <V> Future<?> submitTask(HugeTask<V> task) {

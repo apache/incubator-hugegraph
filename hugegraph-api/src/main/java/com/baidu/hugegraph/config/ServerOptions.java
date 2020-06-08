@@ -57,6 +57,15 @@ public class ServerOptions extends OptionHolder {
                     "server-1"
             );
 
+    public static final ConfigOption<String> SERVER_ROLE =
+            new ConfigOption<>(
+                    "server.role",
+                    "The role of nodes in the cluster, available type are " +
+                    "[master, worker]",
+                    disallowEmpty(),
+                    "worker"
+            );
+
     public static final ConfigOption<Integer> MAX_WORKER_THREADS =
             new ConfigOption<>(
                     "restserver.max_worker_threads",
@@ -195,7 +204,6 @@ public class ServerOptions extends OptionHolder {
                     "hugegraph"
             );
 
-
     public static final ConfigOption<String> ADMIN_TOKEN =
             new ConfigOption<>(
                     "auth.admin_token",
@@ -239,13 +247,5 @@ public class ServerOptions extends OptionHolder {
                     "http or https.",
                     allowValues("http", "https"),
                     "http"
-
-    public static final ConfigListOption<String> NODE_ROLE =
-            new ConfigListOption<>(
-                    "node.role",
-                    "The role of nodes in the cluster, available type are " +
-                    "[master, worker]",
-                    disallowEmpty(),
-                    "master"
             );
 }

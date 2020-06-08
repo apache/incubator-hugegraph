@@ -56,6 +56,7 @@ import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
+import com.baidu.hugegraph.cluster.ServerInfoManager;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.event.EventHub;
@@ -76,7 +77,6 @@ import com.baidu.hugegraph.task.TaskManager;
 import com.baidu.hugegraph.task.TaskScheduler;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.GraphMode;
-import com.baidu.hugegraph.type.define.GraphRole;
 import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.LockUtil;
@@ -117,6 +117,7 @@ public class StandardHugeGraph implements HugeGraph {
     private final RateLimiter rateLimiter;
     private final TaskManager taskManager;
     private final UserManager userManager;
+    private final ServerInfoManager serverManager;
 
     private final HugeFeatures features;
 
@@ -159,6 +160,7 @@ public class StandardHugeGraph implements HugeGraph {
 
         this.taskManager.addScheduler(this.params);
         this.userManager = new StandardUserManager(this.params);
+        this.serverManager = new ServerInfoManager(this.params);
         this.variables = null;
     }
 
@@ -195,6 +197,14 @@ public class StandardHugeGraph implements HugeGraph {
     @Override
     public BackendFeatures backendStoreFeatures() {
         return this.graphTransaction().storeFeatures();
+    }
+
+    @Override
+    public void serverStarted(String serverId, String serverRole) {
+        LOG.info("Init server info for graph '{}'...", this.name);
+        this.serverManager.initServerInfo(serverId, serverRole);
+        LOG.info("Restoring incomplete tasks for graph '{}'...", this.name);
+        this.taskScheduler().restoreTasks();
     }
 
     @Override
@@ -791,16 +801,6 @@ public class StandardHugeGraph implements HugeGraph {
         }
 
         @Override
-        public GraphRole role() {
-            return GraphRole.WORKER;
-        }
-
-        @Override
-        public String node() {
-            return "worker1";
-        }
-
-        @Override
         public SchemaTransaction schemaTransaction() {
             return StandardHugeGraph.this.schemaTransaction();
         }
@@ -859,6 +859,12 @@ public class StandardHugeGraph implements HugeGraph {
         @Override
         public HugeConfig configuration() {
             return StandardHugeGraph.this.configuration();
+        }
+
+        @Override
+        public ServerInfoManager serverManager() {
+            // this.serverManager.initSchemaIfNeeded();
+            return StandardHugeGraph.this.serverManager;
         }
 
         @Override

@@ -84,6 +84,7 @@ import com.baidu.hugegraph.traversal.optimize.HugeScriptTraversal;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.Namifiable;
 import com.baidu.hugegraph.type.define.GraphMode;
+import com.baidu.hugegraph.type.define.GraphRole;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 
@@ -559,6 +560,12 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     public void mode(GraphMode mode) {
         this.verifyPermission(HugePermission.WRITE, ResourceType.STATUS);
         this.hugegraph.mode(mode);
+    }
+
+    @Override
+    public void serverStarted(String serverId, String serverRole) {
+        verifyAdminPermission();
+        this.hugegraph.serverStarted(serverId, serverRole);
     }
 
     @Override

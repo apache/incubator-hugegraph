@@ -126,6 +126,7 @@ public interface HugeGraph extends Graph {
     public GraphMode mode();
     public void mode(GraphMode mode);
 
+    public void serverStarted(String serverId, String serverRole);
     public boolean closed();
 
     public <T> T metadata(HugeType type, String meta, Object... args);

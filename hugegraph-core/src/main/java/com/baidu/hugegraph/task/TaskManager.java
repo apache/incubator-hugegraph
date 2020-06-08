@@ -35,6 +35,9 @@ import java.util.concurrent.TimeoutException;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.page.PageInfo;
+import com.baidu.hugegraph.cluster.HugeServer;
+import com.baidu.hugegraph.cluster.ServerInfoManager;
+import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.ExecutorUtil;
 
@@ -188,7 +191,7 @@ public final class TaskManager {
     private <V> void scheduleTasks() {
         for (Map.Entry<HugeGraphParams, TaskScheduler> entry :
                  this.schedulers.entrySet()) {
-            HugeGraphParams graph = entry.getKey();
+            ServerInfoManager serverInfo = entry.getKey().serverManager();
             TaskScheduler scheduler = entry.getValue();
             String page = PageInfo.PAGE_NONE;
             do {
@@ -196,13 +199,20 @@ public final class TaskManager {
                                                               PAGE_SIZE, page);
                 while (tasks.hasNext()) {
                     HugeTask<V> task = tasks.next();
-                    if (task.node().equals(graph.node())) {
+                    if (task.server().equals(serverInfo.serverId())) {
                         ((StandardTaskScheduler) scheduler).submitTask(task);
                     }
                 }
                 page = PageInfo.pageInfo(tasks);
             } while (page != null);
+            serverHeartbeat(serverInfo);
         }
+    }
+
+    private static void serverHeartbeat(ServerInfoManager serverInfoManager) {
+        HugeServer server = serverInfoManager.server();
+        server.updateTime(DateUtil.now());
+        serverInfoManager.save(server);
     }
 
     private static final ThreadLocal<String> contexts = new ThreadLocal<>();

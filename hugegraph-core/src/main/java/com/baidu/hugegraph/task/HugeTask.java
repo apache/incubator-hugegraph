@@ -73,8 +73,8 @@ public class HugeTask<V> extends FutureTask<V> {
     private volatile int retries;
     private volatile String input;
     private volatile String result;
-    private String node;
-    private long load;
+    private Id server;
+    private int load;
 
     public HugeTask(Id id, Id parent, String callable, String input) {
         this(id, parent, TaskCallable.fromClass(callable));
@@ -103,7 +103,8 @@ public class HugeTask<V> extends FutureTask<V> {
         this.retries = 0;
         this.input = null;
         this.result = null;
-        this.node = null;
+        this.server = null;
+        this.load = 100;
     }
 
     public Id id() {
@@ -219,12 +220,20 @@ public class HugeTask<V> extends FutureTask<V> {
         this.result = result;
     }
 
-    public void node(String node) {
-        this.node = node;
+    public void server(Id server) {
+        this.server = server;
     }
 
-    public String node() {
-        return this.node;
+    public Id server() {
+        return this.server;
+    }
+
+    public void load(int load) {
+        this.load = load;
+    }
+
+    public int load() {
+        return this.load;
     }
 
     public boolean completed() {
@@ -439,7 +448,7 @@ public class HugeTask<V> extends FutureTask<V> {
                 this.result = StringEncoding.decompress(((Blob) value).bytes());
                 break;
             case P.NODE:
-                this.node = (String) value;
+                this.server = (Id) value;
                 break;
             default:
                 throw new AssertionError("Unsupported key: " + key);
@@ -514,9 +523,9 @@ public class HugeTask<V> extends FutureTask<V> {
             list.add(bytes);
         }
 
-        if (this.node != null) {
+        if (this.server != null) {
             list.add(P.NODE);
-            list.add(this.node);
+            list.add(this.server);
         }
 
         return list.toArray();
@@ -553,8 +562,8 @@ public class HugeTask<V> extends FutureTask<V> {
             map.put(Hidden.unHide(P.DEPENDENCIES), value);
         }
 
-        if (this.node != null) {
-            map.put(Hidden.unHide(P.NODE), this.node);
+        if (this.server != null) {
+            map.put(Hidden.unHide(P.NODE), this.server);
         }
 
         if (withDetails) {

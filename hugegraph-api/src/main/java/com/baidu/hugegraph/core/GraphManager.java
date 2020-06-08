@@ -71,7 +71,7 @@ public final class GraphManager {
         this.loadGraphs(conf.getMap(ServerOptions.GRAPHS));
         // this.installLicense(conf, "");
         this.checkBackendVersionOrExit();
-        this.restoreUncompletedTasks();
+        this.serverStarted(conf);
         this.addMetrics(conf);
     }
 
@@ -212,12 +212,13 @@ public final class GraphManager {
         }
     }
 
-    private void restoreUncompletedTasks() {
+    private void serverStarted(HugeConfig config) {
+        String server = config.get(ServerOptions.SERVER_ID);
+        String role = config.get(ServerOptions.SERVER_ROLE);
         for (String graph : this.graphs()) {
             HugeGraph hugegraph = this.graph(graph);
             assert hugegraph != null;
-            LOG.info("Restoring incomplete tasks for graph '{}'...", graph);
-            hugegraph.taskScheduler().restoreTasks();
+            hugegraph.serverStarted(server, role);
         }
     }
 
