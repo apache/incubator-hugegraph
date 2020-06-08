@@ -126,7 +126,7 @@ public class IndexLabelBuilder extends AbstractBuilder
         }
 
         List<Id> existedIndexFieldIds = existedIndexLabel.indexFields();
-        if (indexFields.size() != existedIndexFieldIds.size()) {
+        if (this.indexFields.size() != existedIndexFieldIds.size()) {
             return false;
         }
         for (String field : this.indexFields) {
@@ -226,8 +226,9 @@ public class IndexLabelBuilder extends AbstractBuilder
         this.checkStableVars();
         Userdata.check(this.userdata, Action.APPEND);
 
-        SchemaLabel schemaLabel = this.loadElement(indexLabel.baseType(),
-                                                   indexLabel.baseValue());
+        SchemaLabel schemaLabel = IndexLabel.getElement(this.graph(),
+                                                        indexLabel.baseType(),
+                                                        indexLabel.baseValue());
         indexLabel.userdata(this.userdata);
         this.graph().addIndexLabel(schemaLabel, indexLabel);
         return indexLabel;
@@ -243,8 +244,9 @@ public class IndexLabelBuilder extends AbstractBuilder
         this.checkStableVars();
         Userdata.check(this.userdata, Action.ELIMINATE);
 
-        SchemaLabel schemaLabel = this.loadElement(indexLabel.baseType(),
-                                                   indexLabel.baseValue());
+        SchemaLabel schemaLabel = IndexLabel.getElement(this.graph(),
+                                                        indexLabel.baseType(),
+                                                        indexLabel.baseValue());
         indexLabel.removeUserdata(this.userdata);
         this.graph().addIndexLabel(schemaLabel, indexLabel);
         return indexLabel;
@@ -392,42 +394,8 @@ public class IndexLabelBuilder extends AbstractBuilder
     }
 
     private SchemaLabel loadElement() {
-        return this.loadElement(this.baseType, this.baseValue);
-    }
-
-    private SchemaLabel loadElement(HugeType baseType, Object baseValue) {
-        E.checkNotNull(baseType, "base type", "index label");
-        E.checkNotNull(baseValue, "base value", "index label");
-        E.checkArgument(baseValue instanceof String || baseValue instanceof Id,
-                        "The base value must be instance of String or Id, " +
-                        "but got %s(%s)", baseValue,
-                        baseValue.getClass().getSimpleName());
-
-        SchemaLabel label;
-        switch (baseType) {
-            case VERTEX_LABEL:
-                if (baseValue instanceof String) {
-                    label = this.graph().vertexLabel((String) baseValue);
-                } else {
-                    assert baseValue instanceof Id;
-                    label = this.graph().vertexLabel((Id) baseValue);
-                }
-                break;
-            case EDGE_LABEL:
-                if (baseValue instanceof String) {
-                    label = this.graph().edgeLabel((String) baseValue);
-                } else {
-                    assert baseValue instanceof Id;
-                    label = this.graph().edgeLabel((Id) baseValue);
-                }
-                break;
-            default:
-                throw new AssertionError(String.format(
-                          "Unsupported base type '%s' of index label '%s'",
-                          baseType, this.name));
-        }
-
-        return label;
+        return IndexLabel.getElement(this.graph(),
+                                     this.baseType, this.baseValue);
     }
 
     private void checkFields(Set<Id> propertyIds) {

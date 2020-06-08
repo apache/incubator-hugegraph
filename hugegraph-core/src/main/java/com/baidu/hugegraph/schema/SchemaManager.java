@@ -121,6 +121,24 @@ public class SchemaManager {
                    .collect(Collectors.toList());
     }
 
+    public void copyFrom(SchemaManager schema) {
+        for (PropertyKey pk : schema.getPropertyKeys()) {
+            this.transaction.addPropertyKey(pk);
+        }
+        for (VertexLabel vl : schema.getVertexLabels()) {
+            this.transaction.addVertexLabel(vl);
+        }
+        for (EdgeLabel el : schema.getEdgeLabels()) {
+            this.transaction.addEdgeLabel(el);
+        }
+        for (IndexLabel il : schema.getIndexLabels()) {
+            SchemaLabel label = IndexLabel.getElement(this.graph,
+                                                      il.baseType(),
+                                                      il.baseValue());
+            this.transaction.addIndexLabel(label, il);
+        }
+    }
+
     private static void checkExists(HugeType type, Object object, String name) {
         if (object == null) {
             throw new NotFoundException("%s with name '%s' does not exist",

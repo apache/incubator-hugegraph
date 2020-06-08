@@ -194,6 +194,44 @@ public class IndexLabel extends SchemaElement {
         return graph.indexLabel(id);
     }
 
+    public static SchemaLabel getElement(HugeGraph graph,
+                                         HugeType baseType, Object baseValue) {
+        E.checkNotNull(baseType, "base type", "index label");
+        E.checkNotNull(baseValue, "base value", "index label");
+        E.checkArgument(baseValue instanceof String || baseValue instanceof Id,
+                        "The base value must be instance of String or Id, " +
+                        "but got %s(%s)", baseValue,
+                        baseValue.getClass().getSimpleName());
+
+        SchemaLabel label;
+        switch (baseType) {
+            case VERTEX_LABEL:
+                if (baseValue instanceof String) {
+                    label = graph.vertexLabel((String) baseValue);
+                } else {
+                    assert baseValue instanceof Id;
+                    label = graph.vertexLabel((Id) baseValue);
+                }
+                break;
+            case EDGE_LABEL:
+                if (baseValue instanceof String) {
+                    label = graph.edgeLabel((String) baseValue);
+                } else {
+                    assert baseValue instanceof Id;
+                    label = graph.edgeLabel((Id) baseValue);
+                }
+                break;
+            default:
+                throw new AssertionError(String.format(
+                          "Unsupported base type '%s' of index label",
+                          baseType));
+        }
+
+        E.checkArgumentNotNull(label, "Can't find the %s with name '%s'",
+                               baseType.readableName(), baseValue);
+        return label;
+    }
+
     public interface Builder extends SchemaBuilder<IndexLabel> {
 
         CreatedIndexLabel createWithTask();
