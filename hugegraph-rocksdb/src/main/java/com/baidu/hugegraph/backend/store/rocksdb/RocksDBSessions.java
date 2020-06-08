@@ -63,6 +63,9 @@ public abstract class RocksDBSessions extends BackendSessionPool {
         public static final int SCAN_LT_END = 0x10;
         public static final int SCAN_LTE_END = 0x30;
 
+        public abstract String dataPath();
+        public abstract String walPath();
+
         public abstract String property(String table, String property);
         public abstract Pair<byte[], byte[]> keyRange(String table);
 
@@ -83,6 +86,8 @@ public abstract class RocksDBSessions extends BackendSessionPool {
                                                    byte[] keyFrom,
                                                    byte[] keyTo,
                                                    int scanType);
+
+        public abstract void createSnapshot(String parentPath);
 
         public BackendColumnIterator scan(String table,
                                           byte[] keyFrom,

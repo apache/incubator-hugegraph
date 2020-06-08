@@ -39,16 +39,16 @@ public class RaftBackendStore implements BackendStore {
     private static final Logger LOG = Log.logger(RaftBackendStore.class);
 
     private final BackendStore store;
-    private final RaftSharedComponent component;
+    private final RaftSharedContext context;
 
-    public RaftBackendStore(BackendStore store, RaftSharedComponent component) {
+    public RaftBackendStore(BackendStore store, RaftSharedContext context) {
         this.store = store;
-        this.component = component;
+        this.context = context;
         this.registerCommands();
     }
 
     private void registerCommands() {
-        StoreCommand.register(StoreCommand.INIT, this.store::init);
+        // StoreCommand.register(StoreCommand.INIT, this.store::init);
         StoreCommand.register(StoreCommand.TRUNCATE, this.store::truncate);
         StoreCommand.register(StoreCommand.BEGIN_TX, this.store::beginTx);
         StoreCommand.register(StoreCommand.COMMIT_TX, this.store::commitTx);
@@ -85,7 +85,7 @@ public class RaftBackendStore implements BackendStore {
     }
 
     public HugeConfig config() {
-        return this.component.config();
+        return this.context.config();
     }
 
     @Override
@@ -120,7 +120,7 @@ public class RaftBackendStore implements BackendStore {
             synchronized (RaftBackendStoreProvider.RAFT_NODES) {
                 if (!RaftBackendStoreProvider.RAFT_NODES.containsKey(group)) {
                     LOG.info("Initing raft node for '{}'", group);
-                    RaftNode node = new RaftNode(this.store, this.component);
+                    RaftNode node = new RaftNode(this.store, this.context);
                     RaftBackendStoreProvider.RAFT_NODES.put(group, node);
                 }
             }
@@ -139,7 +139,8 @@ public class RaftBackendStore implements BackendStore {
 
     @Override
     public void init() {
-        this.submitAndWait(StoreCommand.INIT);
+        // this.submitAndWait(StoreCommand.INIT);
+        this.store.init();
     }
 
     @Override
@@ -170,7 +171,7 @@ public class RaftBackendStore implements BackendStore {
         return this.store.query(query);
     }
 
-//    // TODO: support readOnlySafe, need serialize Query
+//    TODO: support readOnlySafe, need serialize Query, it's a bit complicate
 //    @Override
 //    public Iterator<BackendEntry> query(Query query) {
 //        boolean readOnlySafe = this.config().get(CoreOptions.RAFT_READ_SAFE);
@@ -254,6 +255,16 @@ public class RaftBackendStore implements BackendStore {
     @Override
     public long getCounter(HugeType type) {
         return this.store.getCounter(type);
+    }
+
+    @Override
+    public void writeSnapshot(String snapshotPath) {
+        this.store.writeSnapshot(snapshotPath);
+    }
+
+    @Override
+    public void readSnapshot(String snapshotPath) {
+        this.store.readSnapshot(snapshotPath);
     }
 
     private Object submitAndWait(byte command) {

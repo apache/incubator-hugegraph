@@ -49,8 +49,10 @@ import com.baidu.hugegraph.traversal.optimize.HugeCountStepStrategy;
 import com.baidu.hugegraph.traversal.optimize.HugeGraphStepStrategy;
 import com.baidu.hugegraph.traversal.optimize.HugeVertexStepStrategy;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.Action;
 import com.baidu.hugegraph.type.define.GraphMode;
 import com.baidu.hugegraph.type.define.NodeRole;
+import com.baidu.hugegraph.type.define.SerialEnum;
 
 /**
  * Graph interface for Gremlin operations
@@ -218,5 +220,9 @@ public interface HugeGraph extends Graph {
                                  HugeGraphStepStrategy.instance(),
                                  HugeCountStepStrategy.instance());
         TraversalStrategies.GlobalCache.registerStrategies(clazz, strategies);
+    }
+
+    public static void registerEnums() {
+        SerialEnum.register(Action.class);
     }
 }

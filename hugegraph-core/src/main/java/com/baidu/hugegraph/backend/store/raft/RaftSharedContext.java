@@ -20,7 +20,6 @@
 package com.baidu.hugegraph.backend.store.raft;
 
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.SynchronousQueue;
@@ -31,20 +30,22 @@ import com.alipay.sofa.jraft.rpc.RaftRpcServerFactory;
 import com.alipay.sofa.jraft.rpc.RpcServer;
 import com.alipay.sofa.jraft.util.NamedThreadFactory;
 import com.alipay.sofa.jraft.util.ThreadPoolUtil;
-import com.alipay.sofa.jraft.util.Utils;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 
-public final class RaftSharedComponent {
+public final class RaftSharedContext {
 
     private final HugeConfig config;
     private final RpcServer rpcServer;
-    private final Executor readIndexExecutor;
+    private final ExecutorService readIndexExecutor;
+    private final ExecutorService snapshotExecutor;
 
-    public RaftSharedComponent(HugeConfig config) {
+    public RaftSharedContext(HugeConfig config) {
         this.config = config;
         this.rpcServer = this.initAndStartRpcServer();
-        this.readIndexExecutor = this.initReadIndexExecutor();
+//        this.readIndexExecutor = this.createReadIndexExecutor(4);
+        this.readIndexExecutor = null;
+        this.snapshotExecutor = this.createSnapshotExecutor(4);
     }
 
     public HugeConfig config() {
@@ -55,8 +56,12 @@ public final class RaftSharedComponent {
         return this.rpcServer;
     }
 
-    public Executor readIndexExecutor() {
+    public ExecutorService readIndexExecutor() {
         return this.readIndexExecutor;
+    }
+
+    public ExecutorService snapshotExecutor() {
+        return this.snapshotExecutor;
     }
 
     private RpcServer initAndStartRpcServer() {
@@ -66,36 +71,34 @@ public final class RaftSharedComponent {
                                     serverId.getEndpoint());
     }
 
-    private Executor initReadIndexExecutor() {
-        return createReadIndexExecutor(Math.max(Utils.cpus() << 2, 4));
+    private ExecutorService createReadIndexExecutor(int coreThreads) {
+        int maxThreads = coreThreads << 2;
+        String name = "store-read-index-callback";
+        RejectedExecutionHandler handler = new ThreadPoolExecutor.AbortPolicy();
+        return newPool(coreThreads, maxThreads, name, handler);
     }
 
-    private static ExecutorService createReadIndexExecutor(final int coreThreads) {
-        final int maxThreads = coreThreads << 2;
-        final RejectedExecutionHandler handler = new ThreadPoolExecutor.AbortPolicy();
-        return newPool(coreThreads, maxThreads, "kvstore-read-index-callback", handler);
+    public ExecutorService createSnapshotExecutor(int coreThreads) {
+        int maxThreads = coreThreads << 2;
+        String name = "store-snapshot-executor";
+        RejectedExecutionHandler handler;
+        handler = new ThreadPoolExecutor.CallerRunsPolicy();
+        return newPool(coreThreads, maxThreads, name, handler);
     }
 
-    private static ExecutorService newPool(final int coreThreads, final int maxThreads,
-                                           final String name,
-                                           final RejectedExecutionHandler handler) {
-        final BlockingQueue<Runnable> defaultWorkQueue = new SynchronousQueue<>();
-        return newPool(coreThreads, maxThreads, defaultWorkQueue, name, handler);
-    }
-
-    private static ExecutorService newPool(final int coreThreads, final int maxThreads,
-                                           final BlockingQueue<Runnable> workQueue,
-                                           final String name,
-                                           final RejectedExecutionHandler handler) {
-        return ThreadPoolUtil.newBuilder() //
-                             .poolName(name) //
-                             .enableMetric(true) //
-                             .coreThreads(coreThreads) //
-                             .maximumThreads(maxThreads) //
-                             .keepAliveSeconds(60L) //
-                             .workQueue(workQueue) //
+    private static ExecutorService newPool(int coreThreads, int maxThreads,
+                                           String name,
+                                           RejectedExecutionHandler handler) {
+        BlockingQueue<Runnable> workQueue = new SynchronousQueue<>();
+        return ThreadPoolUtil.newBuilder()
+                             .poolName(name)
+                             .enableMetric(true)
+                             .coreThreads(coreThreads)
+                             .maximumThreads(maxThreads)
+                             .keepAliveSeconds(60L)
+                             .workQueue(workQueue)
                              .threadFactory(new NamedThreadFactory(name, true))
-                             .rejectedHandler(handler) //
+                             .rejectedHandler(handler)
                              .build();
     }
 }

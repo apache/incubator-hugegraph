@@ -32,6 +32,8 @@ import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.auth.StandardAuthenticator;
 import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
+import com.baidu.hugegraph.config.CoreOptions;
+import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.dist.RegisterUtil;
 import com.baidu.hugegraph.util.E;
@@ -101,8 +103,12 @@ public class InitStore {
         HugeFactory.shutdown(30L);
     }
 
-    private static void initGraph(String config) throws Exception {
-        LOG.info("Init graph with config file: {}", config);
+    private static void initGraph(String configPath) throws Exception {
+        LOG.info("Init graph with config file: {}", configPath);
+        HugeConfig config = new HugeConfig(HugeFactory.getLocalConfig(
+                                           configPath));
+        // Forced set to false when initializing backend
+        config.setProperty(CoreOptions.RAFT_MODE.name(), "false");
         HugeGraph graph = HugeFactory.open(config);
 
         BackendStoreSystemInfo sysInfo = graph.backendStoreSystemInfo();

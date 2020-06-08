@@ -24,21 +24,28 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
 
+import com.alipay.sofa.jraft.Closure;
 import com.alipay.sofa.jraft.Iterator;
 import com.alipay.sofa.jraft.Status;
 import com.alipay.sofa.jraft.core.StateMachineAdapter;
+import com.alipay.sofa.jraft.storage.snapshot.SnapshotReader;
+import com.alipay.sofa.jraft.storage.snapshot.SnapshotWriter;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.util.Log;
 
-public class BackendStoreStateMachine extends StateMachineAdapter {
+public class StoreStateMachine extends StateMachineAdapter {
 
-    private static final Logger LOG = Log.logger(BackendStoreStateMachine.class);
+    private static final Logger LOG = Log.logger(StoreStateMachine.class);
 
     private final BackendStore store;
+    private final RaftSharedContext context;
+    private final StoreSnapshotFile snapshotFile;
     private final AtomicLong leaderTerm;
 
-    public BackendStoreStateMachine(BackendStore store) {
+    public StoreStateMachine(BackendStore store, RaftSharedContext context) {
         this.store = store;
+        this.context = context;
+        this.snapshotFile = new StoreSnapshotFile();
         this.leaderTerm = new AtomicLong(-1);
     }
 
@@ -75,6 +82,23 @@ public class BackendStoreStateMachine extends StateMachineAdapter {
 
     public boolean isLeader() {
         return this.leaderTerm.get() > 0;
+    }
+
+    @Override
+    public void onSnapshotSave(SnapshotWriter writer, Closure done) {
+        LOG.debug("Start snapshot save");
+        this.snapshotFile.save(this.store, writer, done,
+                               this.context.snapshotExecutor());
+    }
+
+    @Override
+    public boolean onSnapshotLoad(SnapshotReader reader) {
+        LOG.debug("Start snapshot load");
+        if (this.isLeader()) {
+            LOG.warn("Leader is not supposed to load snapshot.");
+            return false;
+        }
+        return this.snapshotFile.load(this.store, reader);
     }
 
     @Override

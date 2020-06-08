@@ -31,9 +31,6 @@ import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.event.EventListener;
 import com.baidu.hugegraph.util.Log;
 
-/**
- * Is actually an proxy
- */
 public class RaftBackendStoreProvider implements BackendStoreProvider {
 
     private static final Logger LOG = Log.logger(RaftBackendStoreProvider.class);
@@ -42,7 +39,7 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
     public static final Map<String, RaftNode> RAFT_NODES = new HashMap<>();
 
     private final BackendStoreProvider provider;
-    private final RaftSharedComponent component;
+    private final RaftSharedContext context;
     private RaftBackendStore schemaStore;
     private RaftBackendStore graphStore;
     private RaftBackendStore systemStore;
@@ -50,7 +47,7 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
     public RaftBackendStoreProvider(BackendStoreProvider provider,
                                     HugeConfig config) {
         this.provider = provider;
-        this.component = new RaftSharedComponent(config);
+        this.context = new RaftSharedContext(config);
         this.schemaStore = null;
         this.graphStore = null;
         this.systemStore = null;
@@ -76,7 +73,7 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
         if (this.schemaStore == null) {
             LOG.info("Init raft backend schema store");
             BackendStore store = this.provider.loadSchemaStore(name);
-            this.schemaStore = new RaftBackendStore(store, this.component);
+            this.schemaStore = new RaftBackendStore(store, this.context);
         }
         return this.schemaStore;
     }
@@ -86,7 +83,7 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
         if (this.graphStore == null) {
             LOG.info("Init raft backend graph store");
             BackendStore store = this.provider.loadGraphStore(name);
-            this.graphStore = new RaftBackendStore(store, this.component);
+            this.graphStore = new RaftBackendStore(store, this.context);
         }
         return this.graphStore;
     }
@@ -96,7 +93,7 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
         if (this.systemStore == null) {
             LOG.info("Init raft backend system store");
             BackendStore store = this.provider.loadSystemStore(name);
-            this.systemStore = new RaftBackendStore(store, this.component);
+            this.systemStore = new RaftBackendStore(store, this.context);
         }
         return this.systemStore;
     }

@@ -116,6 +116,14 @@ public interface BackendStore {
     // Get current counter for a specific type
     public long getCounter(HugeType type);
 
+    public default void writeSnapshot(String snapshotPath) {
+        throw new UnsupportedOperationException("writeSnapshot");
+    }
+
+    public default void readSnapshot(String snapshotPath) {
+        throw new UnsupportedOperationException("readSnapshot");
+    }
+
     static enum TxState {
         BEGIN, COMMITTING, COMMITT_FAIL, ROLLBACKING, ROLLBACK_FAIL, CLEAN
     }

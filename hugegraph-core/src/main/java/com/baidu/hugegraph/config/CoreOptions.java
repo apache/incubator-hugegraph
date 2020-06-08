@@ -103,7 +103,7 @@ public class CoreOptions extends OptionHolder {
     public static final ConfigOption<Boolean> RAFT_MODE =
             new ConfigOption<>(
                     "raft.mode",
-                    "Whether the backend storage works in raft mode",
+                    "Whether the backend storage works in raft mode.",
                     disallowEmpty(),
                     false
             );
@@ -111,17 +111,17 @@ public class CoreOptions extends OptionHolder {
     public static final ConfigOption<Boolean> RAFT_READ_SAFE =
             new ConfigOption<>(
                     "raft.read.safe",
-                    "Whether to use linearly consistent read",
+                    "Whether to use linearly consistent read.",
                     disallowEmpty(),
                     false
             );
 
-    public static final ConfigOption<String> RAFT_GROUP =
+    public static final ConfigOption<Boolean> RAFT_USE_SNAPSHOT =
             new ConfigOption<>(
-                    "raft.group",
-                    "The group name of current raft node.",
+                    "raft.use_snapshot",
+                    "Whether to use snapshot.",
                     disallowEmpty(),
-                    "all-data"
+                    true
             );
 
     public static final ConfigOption<String> RAFT_PEERID =
@@ -129,7 +129,7 @@ public class CoreOptions extends OptionHolder {
                     "raft.peerid",
                     "The peerid of current raft node.",
                     disallowEmpty(),
-                    "127.0.0.1:8081"
+                    "127.0.0.1:8281"
             );
 
     public static final ConfigOption<String> RAFT_GROUP_PEERS =
@@ -140,12 +140,28 @@ public class CoreOptions extends OptionHolder {
                     "127.0.0.1:8281,127.0.0.1:8282,127.0.0.1:8283"
             );
 
-    public static final ConfigOption<String> RAFT_LOG_PATH =
+    public static final ConfigOption<String> RAFT_PATH =
             new ConfigOption<>(
-                    "raft.log_path",
+                    "raft.path",
                     "The log path of current raft node.",
                     disallowEmpty(),
-                    "./raft-log1"
+                    "./raft-log"
+            );
+
+    public static final ConfigOption<Integer> RAFT_ELECTION_TIMEOUT_MS =
+            new ConfigOption<>(
+                    "raft.election.timeout_ms",
+                    "Timeout in milliseconds to launch a round of election.",
+                    rangeInt(0, Integer.MAX_VALUE),
+                    3000
+            );
+
+    public static final ConfigOption<Integer> RAFT_SNAPSHOT_INTERVAL_SEC =
+            new ConfigOption<>(
+                    "raft.snapshot.interval_sec",
+                    "The interval in seconds to trigger snapshot save.",
+                    rangeInt(0, Integer.MAX_VALUE),
+                    3600
             );
 
     public static final ConfigOption<Integer> RATE_LIMIT =

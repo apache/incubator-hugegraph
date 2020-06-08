@@ -22,13 +22,18 @@ package com.baidu.hugegraph.backend.store;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.slf4j.Logger;
+
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.store.memory.InMemoryDBStoreProvider;
 import com.baidu.hugegraph.backend.store.raft.RaftBackendStoreProvider;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
+import com.baidu.hugegraph.util.Log;
 
 public class BackendProviderFactory {
+
+    private static final Logger LOG = Log.logger(BackendProviderFactory.class);
 
     private static Map<String, Class<? extends BackendStoreProvider>> providers;
 
@@ -64,8 +69,12 @@ public class BackendProviderFactory {
 
         BackendStoreProvider provider;
         if (raftMode) {
+            LOG.info("Opening backend store '{}' in raft mode for graph '{}'",
+                     backend, graph);
             provider = new RaftBackendStoreProvider(instance, config);
         } else {
+            LOG.info("Opening backend store '{}' for graph '{}'",
+                     backend, graph);
             provider = instance;
         }
         provider.open(graph);
