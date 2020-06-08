@@ -31,15 +31,14 @@ import com.baidu.hugegraph.schema.builder.SchemaBuilder;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Frequency;
 import com.baidu.hugegraph.util.E;
-
-import static com.baidu.hugegraph.backend.id.IdGenerator.ZERO;
+import com.google.common.base.Objects;
 
 public class EdgeLabel extends SchemaLabel {
 
-    public static final EdgeLabel NONE = new EdgeLabel(null, ZERO, UNDEF);
+    public static final EdgeLabel NONE = new EdgeLabel(null, NONE_ID, UNDEF);
 
-    private Id sourceLabel = ZERO;
-    private Id targetLabel = ZERO;
+    private Id sourceLabel = NONE_ID;
+    private Id targetLabel = NONE_ID;
     private Frequency frequency;
     private List<Id> sortKeys;
 
@@ -67,15 +66,23 @@ public class EdgeLabel extends SchemaLabel {
         return true;
     }
 
+    public String sourceLabelName() {
+        return this.graph.vertexLabelOrNone(this.sourceLabel).name();
+    }
+
     public Id sourceLabel() {
         return this.sourceLabel;
     }
 
     public void sourceLabel(Id id) {
-        E.checkArgument(this.sourceLabel == ZERO,
+        E.checkArgument(this.sourceLabel == NONE_ID,
                         "Not allowed to set source label multi times " +
                         "of edge label '%s'", this.name());
         this.sourceLabel = id;
+    }
+
+    public String targetLabelName() {
+        return this.graph.vertexLabelOrNone(this.targetLabel).name();
     }
 
     public Id targetLabel() {
@@ -83,7 +90,7 @@ public class EdgeLabel extends SchemaLabel {
     }
 
     public void targetLabel(Id id) {
-        E.checkArgument(this.targetLabel == ZERO,
+        E.checkArgument(this.targetLabel == NONE_ID,
                         "Not allowed to set target label multi times " +
                         "of edge label '%s'", this.name());
         this.targetLabel = id;
@@ -108,6 +115,15 @@ public class EdgeLabel extends SchemaLabel {
 
     public void sortKeys(Id... ids) {
         this.sortKeys.addAll(Arrays.asList(ids));
+    }
+
+    public boolean hasSameContent(EdgeLabel other) {
+        return super.hasSameContent(other) &&
+               this.frequency == other.frequency &&
+               Objects.equal(this.sourceLabelName(), other.sourceLabelName()) &&
+               Objects.equal(this.targetLabelName(), other.targetLabelName()) &&
+               Objects.equal(this.graph.mapPkId2Name(this.sortKeys),
+                             other.graph.mapPkId2Name(other.sortKeys));
     }
 
     public static EdgeLabel undefined(HugeGraph graph, Id id) {

@@ -32,11 +32,10 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.Indexfiable;
 import com.baidu.hugegraph.type.Propfiable;
 import com.baidu.hugegraph.util.E;
+import com.google.common.base.Objects;
 
 public abstract class SchemaLabel extends SchemaElement
                                   implements Indexfiable, Propfiable {
-
-    protected static final String UNDEF = "~undefined";
 
     private final Set<Id> properties;
     private final Set<Id> nullableKeys;
@@ -52,7 +51,7 @@ public abstract class SchemaLabel extends SchemaElement
         this.indexLabels = new HashSet<>();
         this.enableLabelIndex = true;
         this.ttl = 0L;
-        this.ttlStartTime = IdGenerator.ZERO;
+        this.ttlStartTime = NONE_ID;
     }
 
     @Override
@@ -132,6 +131,23 @@ public abstract class SchemaLabel extends SchemaElement
 
     public Id ttlStartTime() {
         return this.ttlStartTime;
+    }
+
+    public String ttlStartTimeName() {
+        return NONE_ID.equals(this.ttlStartTime) ? null :
+               this.graph.propertyKey(this.ttlStartTime).name();
+    }
+
+    public boolean hasSameContent(SchemaLabel other) {
+        return super.hasSameContent(other) && this.ttl == other.ttl &&
+               this.enableLabelIndex == other.enableLabelIndex &&
+               Objects.equal(this.graph.mapPkId2Name(this.properties),
+                             other.graph.mapPkId2Name(other.properties)) &&
+               Objects.equal(this.graph.mapPkId2Name(this.nullableKeys),
+                             other.graph.mapPkId2Name(other.nullableKeys)) &&
+               Objects.equal(this.graph.mapIlId2Name(this.indexLabels),
+                             other.graph.mapIlId2Name(other.indexLabels)) &&
+               Objects.equal(this.ttlStartTimeName(), other.ttlStartTimeName());
     }
 
     public static Id getLabelId(HugeGraph graph, HugeType type, Object label) {

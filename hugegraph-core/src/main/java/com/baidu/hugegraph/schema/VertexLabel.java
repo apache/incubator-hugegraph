@@ -30,14 +30,11 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.schema.builder.SchemaBuilder;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.IdStrategy;
-
-import static com.baidu.hugegraph.backend.id.IdGenerator.ZERO;
+import com.google.common.base.Objects;
 
 public class VertexLabel extends SchemaLabel {
 
-    private static final String UNDEF = "~undefined";
-
-    public static final VertexLabel NONE = new VertexLabel(null, ZERO, UNDEF);
+    public static final VertexLabel NONE = new VertexLabel(null, NONE_ID, UNDEF);
 
     private IdStrategy idStrategy;
     private List<Id> primaryKeys;
@@ -77,8 +74,15 @@ public class VertexLabel extends SchemaLabel {
         return this.graph().existsLinkLabel(this.id());
     }
 
+    public boolean hasSameContent(VertexLabel other) {
+        return super.hasSameContent(other) &&
+               this.idStrategy == other.idStrategy &&
+               Objects.equal(this.graph.mapPkId2Name(this.primaryKeys),
+                             other.graph.mapPkId2Name(other.primaryKeys));
+    }
+
     public static VertexLabel undefined(HugeGraph graph) {
-        return new VertexLabel(graph, ZERO, UNDEF);
+        return new VertexLabel(graph, NONE_ID, UNDEF);
     }
 
     public static VertexLabel undefined(HugeGraph graph, Id id) {

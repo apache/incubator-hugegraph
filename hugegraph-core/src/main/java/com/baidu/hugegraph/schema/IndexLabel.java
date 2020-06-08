@@ -32,6 +32,7 @@ import com.baidu.hugegraph.schema.builder.SchemaBuilder;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.IndexType;
 import com.baidu.hugegraph.util.E;
+import com.google.common.base.Objects;
 
 public class IndexLabel extends SchemaElement {
 
@@ -39,15 +40,13 @@ public class IndexLabel extends SchemaElement {
     private Id baseValue;
     private IndexType indexType;
     private List<Id> indexFields;
-    private long ttl;
 
     public IndexLabel(final HugeGraph graph, Id id, String name) {
         super(graph, id, name);
         this.baseType = HugeType.SYS_SCHEMA;
-        this.baseValue = null;
+        this.baseValue = NONE_ID;
         this.indexType = IndexType.SECONDARY;
         this.indexFields = new ArrayList<>();
-        this.ttl = 0L;
     }
 
     protected IndexLabel(long id, String name) {
@@ -122,12 +121,16 @@ public class IndexLabel extends SchemaElement {
         return this.indexFields.get(0);
     }
 
-    public void ttl(long ttl) {
-        this.ttl = ttl;
+    public SchemaLabel baseElement() {
+        return getElement(this.graph, this.baseType, this.baseValue);
     }
 
-    public long ttl() {
-        return this.ttl;
+    public boolean hasSameContent(IndexLabel other) {
+        return super.hasSameContent(other) &&
+               this.indexType == other.indexType &&
+               this.baseType == other.baseType &&
+               Objects.equal(this.graph.mapPkId2Name(this.indexFields),
+                             other.graph.mapPkId2Name(other.indexFields));
     }
 
     // ABS of System index id must be below SchemaElement.MAX_PRIMITIVE_SYS_ID

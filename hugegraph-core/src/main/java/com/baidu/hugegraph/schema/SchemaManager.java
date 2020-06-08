@@ -123,19 +123,16 @@ public class SchemaManager {
 
     public void copyFrom(SchemaManager schema) {
         for (PropertyKey pk : schema.getPropertyKeys()) {
-            this.transaction.addPropertyKey(pk);
+            new PropertyKeyBuilder(this.transaction, this.graph, pk).create();
         }
         for (VertexLabel vl : schema.getVertexLabels()) {
-            this.transaction.addVertexLabel(vl);
+            new VertexLabelBuilder(this.transaction, this.graph, vl).create();
         }
         for (EdgeLabel el : schema.getEdgeLabels()) {
-            this.transaction.addEdgeLabel(el);
+            new EdgeLabelBuilder(this.transaction, this.graph, el).create();
         }
         for (IndexLabel il : schema.getIndexLabels()) {
-            SchemaLabel label = IndexLabel.getElement(this.graph,
-                                                      il.baseType(),
-                                                      il.baseValue());
-            this.transaction.addIndexLabel(label, il);
+            new IndexLabelBuilder(this.transaction, this.graph, il).create();
         }
     }
 

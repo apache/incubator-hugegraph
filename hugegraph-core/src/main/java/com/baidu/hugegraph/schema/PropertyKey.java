@@ -94,6 +94,13 @@ public class PropertyKey extends SchemaElement implements Propfiable {
         return this;
     }
 
+    public boolean hasSameContent(PropertyKey other) {
+        return super.hasSameContent(other) &&
+               this.dataType == other.dataType() &&
+               this.cardinality == other.cardinality() &&
+               this.aggregateType == other.aggregateType();
+    }
+
     public String clazz() {
         String dataType = this.dataType().clazz().getSimpleName();
         switch (this.cardinality) {

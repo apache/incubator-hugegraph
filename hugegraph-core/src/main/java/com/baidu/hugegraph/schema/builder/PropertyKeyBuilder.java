@@ -61,6 +61,19 @@ public class PropertyKeyBuilder extends AbstractBuilder
         this.checkExist = true;
     }
 
+    public PropertyKeyBuilder(SchemaTransaction transaction,
+                              HugeGraph graph, PropertyKey copy) {
+        super(transaction, graph);
+        E.checkNotNull(copy, "copy");
+        this.id = null;
+        this.name = copy.name();
+        this.dataType = copy.dataType();
+        this.cardinality = copy.cardinality();
+        this.aggregateType = copy.aggregateType();
+        this.userdata = new Userdata(copy.userdata());
+        this.checkExist = false;
+    }
+
     @Override
     public PropertyKey build() {
         Id id = this.validOrGenerateId(HugeType.PROPERTY_KEY,

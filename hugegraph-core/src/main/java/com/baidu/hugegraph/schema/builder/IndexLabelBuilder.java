@@ -75,6 +75,23 @@ public class IndexLabelBuilder extends AbstractBuilder
         this.checkExist = true;
     }
 
+    public IndexLabelBuilder(SchemaTransaction transaction,
+                             HugeGraph graph, IndexLabel copy) {
+        super(transaction, graph);
+        E.checkNotNull(copy, "copy");
+        // Get base element from self graph
+        SchemaLabel schemaLabel = IndexLabel.getElement(graph, copy.baseType(),
+                                                        copy.baseValue());
+        this.id = null;
+        this.name = copy.name();
+        this.baseType = copy.baseType();
+        this.baseValue = schemaLabel.name();
+        this.indexType = copy.indexType();
+        this.indexFields = copy.graph().mapPkId2Name(copy.indexFields());
+        this.userdata = new Userdata(copy.userdata());
+        this.checkExist = false;
+    }
+
     @Override
     public IndexLabel build() {
         Id id = this.validOrGenerateId(HugeType.INDEX_LABEL,
@@ -89,7 +106,6 @@ public class IndexLabelBuilder extends AbstractBuilder
         SchemaLabel schemaLabel = this.loadElement();
         indexLabel.baseValue(schemaLabel.id());
         indexLabel.indexType(this.indexType);
-        indexLabel.ttl(schemaLabel.ttl());
         for (String field : this.indexFields) {
             PropertyKey propertyKey = graph.propertyKey(field);
             indexLabel.indexField(propertyKey.id());
@@ -225,11 +241,8 @@ public class IndexLabelBuilder extends AbstractBuilder
         }
         this.checkStableVars();
         Userdata.check(this.userdata, Action.APPEND);
-
-        SchemaLabel schemaLabel = IndexLabel.getElement(this.graph(),
-                                                        indexLabel.baseType(),
-                                                        indexLabel.baseValue());
         indexLabel.userdata(this.userdata);
+        SchemaLabel schemaLabel = indexLabel.baseElement();
         this.graph().addIndexLabel(schemaLabel, indexLabel);
         return indexLabel;
     }
@@ -244,10 +257,8 @@ public class IndexLabelBuilder extends AbstractBuilder
         this.checkStableVars();
         Userdata.check(this.userdata, Action.ELIMINATE);
 
-        SchemaLabel schemaLabel = IndexLabel.getElement(this.graph(),
-                                                        indexLabel.baseType(),
-                                                        indexLabel.baseValue());
         indexLabel.removeUserdata(this.userdata);
+        SchemaLabel schemaLabel = indexLabel.baseElement();
         this.graph().addIndexLabel(schemaLabel, indexLabel);
         return indexLabel;
     }

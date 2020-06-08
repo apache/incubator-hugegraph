@@ -35,6 +35,12 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.config.CoreOptions;
+import com.baidu.hugegraph.exception.ExistedException;
+import com.baidu.hugegraph.schema.EdgeLabel;
+import com.baidu.hugegraph.schema.IndexLabel;
+import com.baidu.hugegraph.schema.PropertyKey;
+import com.baidu.hugegraph.schema.SchemaManager;
+import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.testutil.Utils;
 
@@ -50,6 +56,150 @@ public class MultiGraphsTest {
         List<HugeGraph> graphs = openGraphs("g_1", NAME48);
         for (HugeGraph graph : graphs) {
             graph.initBackend();
+            graph.clearBackend();
+        }
+        destoryGraphs(graphs);
+    }
+
+    @Test
+    public void testCopySchemaWithMultiGraphs() {
+        List<HugeGraph> graphs = openGraphs("schema_g1", "schema_g2");
+        for (HugeGraph graph : graphs) {
+            graph.initBackend();
+        }
+        HugeGraph g1 = graphs.get(0);
+        HugeGraph g2 = graphs.get(1);
+
+        SchemaManager schema = g1.schema();
+
+        schema.propertyKey("id").asInt().create();
+        schema.propertyKey("name").asText().create();
+        schema.propertyKey("age").asInt().valueSingle().create();
+        schema.propertyKey("city").asText().create();
+        schema.propertyKey("weight").asDouble().valueList().create();
+        schema.propertyKey("born").asDate().ifNotExist().create();
+        schema.propertyKey("time").asDate().ifNotExist().create();
+
+        schema.vertexLabel("person")
+              .properties("id", "name", "age", "city","weight", "born")
+              .primaryKeys("id").create();
+        schema.vertexLabel("person2")
+              .properties("id", "name", "age", "city")
+              .primaryKeys("id").create();
+        schema.edgeLabel("friend").sourceLabel("person").targetLabel("person")
+              .properties("time").create();
+
+        schema.indexLabel("personByName").onV("person").secondary()
+              .by("name").create();
+        schema.indexLabel("personByCity").onV("person").search()
+              .by("city").create();
+        schema.indexLabel("personByAge").onV("person").range()
+              .by("age").create();
+        schema.indexLabel("friendByTime").onE("friend").range()
+              .by("time").create();
+
+        Assert.assertFalse(g2.existsPropertyKey("id"));
+        Assert.assertFalse(g2.existsPropertyKey("name"));
+        Assert.assertFalse(g2.existsPropertyKey("age"));
+        Assert.assertFalse(g2.existsPropertyKey("city"));
+        Assert.assertFalse(g2.existsPropertyKey("weight"));
+        Assert.assertFalse(g2.existsPropertyKey("born"));
+        Assert.assertFalse(g2.existsPropertyKey("time"));
+
+        Assert.assertFalse(g2.existsVertexLabel("person"));
+        Assert.assertFalse(g2.existsVertexLabel("person2"));
+        Assert.assertFalse(g2.existsEdgeLabel("friend"));
+
+        Assert.assertFalse(g2.existsIndexLabel("personByName"));
+        Assert.assertFalse(g2.existsIndexLabel("personByCity"));
+        Assert.assertFalse(g2.existsIndexLabel("personByAge"));
+        Assert.assertFalse(g2.existsIndexLabel("friendByTime"));
+
+        // Copy schema from g1 to g2
+        g2.schema().copyFrom(g1.schema());
+
+        Assert.assertTrue(g2.existsPropertyKey("id"));
+        Assert.assertTrue(g2.existsPropertyKey("name"));
+        Assert.assertTrue(g2.existsPropertyKey("age"));
+        Assert.assertTrue(g2.existsPropertyKey("city"));
+        Assert.assertTrue(g2.existsPropertyKey("weight"));
+        Assert.assertTrue(g2.existsPropertyKey("born"));
+        Assert.assertTrue(g2.existsPropertyKey("time"));
+
+        Assert.assertTrue(g2.existsVertexLabel("person"));
+        Assert.assertTrue(g2.existsVertexLabel("person2"));
+        Assert.assertTrue(g2.existsEdgeLabel("friend"));
+
+        Assert.assertTrue(g2.existsIndexLabel("personByName"));
+        Assert.assertTrue(g2.existsIndexLabel("personByCity"));
+        Assert.assertTrue(g2.existsIndexLabel("personByAge"));
+        Assert.assertTrue(g2.existsIndexLabel("friendByTime"));
+
+        for (PropertyKey pk : g2.schema().getPropertyKeys()) {
+            PropertyKey expected = g1.schema().getPropertyKey(pk.name());
+            Assert.assertTrue(expected.hasSameContent(pk));
+        }
+        for (VertexLabel vl : schema.getVertexLabels()) {
+            VertexLabel expected = g1.schema().getVertexLabel(vl.name());
+            Assert.assertTrue(expected.hasSameContent(vl));
+        }
+        for (EdgeLabel el : schema.getEdgeLabels()) {
+            EdgeLabel expected = g1.schema().getEdgeLabel(el.name());
+            Assert.assertTrue(expected.hasSameContent(el));
+
+        }
+        for (IndexLabel il : schema.getIndexLabels()) {
+            IndexLabel expected = g1.schema().getIndexLabel(il.name());
+            Assert.assertTrue(expected.hasSameContent(il));
+        }
+
+        // Copy schema again from g1 to g2 (ignore identical content)
+        g2.schema().copyFrom(g1.schema());
+
+        for (PropertyKey pk : g2.schema().getPropertyKeys()) {
+            PropertyKey expected = g1.schema().getPropertyKey(pk.name());
+            Assert.assertTrue(expected.hasSameContent(pk));
+        }
+        for (VertexLabel vl : schema.getVertexLabels()) {
+            VertexLabel expected = g1.schema().getVertexLabel(vl.name());
+            Assert.assertTrue(expected.hasSameContent(vl));
+        }
+        for (EdgeLabel el : schema.getEdgeLabels()) {
+            EdgeLabel expected = g1.schema().getEdgeLabel(el.name());
+            Assert.assertTrue(expected.hasSameContent(el));
+
+        }
+        for (IndexLabel il : schema.getIndexLabels()) {
+            IndexLabel expected = g1.schema().getIndexLabel(il.name());
+            Assert.assertTrue(expected.hasSameContent(il));
+        }
+
+        for (HugeGraph graph : graphs) {
+            graph.clearBackend();
+        }
+        destoryGraphs(graphs);
+    }
+
+    @Test
+    public void testCopySchemaWithMultiGraphsWithConflict() {
+        List<HugeGraph> graphs = openGraphs("schema_g1", "schema_g2");
+        for (HugeGraph graph : graphs) {
+            graph.initBackend();
+        }
+        HugeGraph g1 = graphs.get(0);
+        HugeGraph g2 = graphs.get(1);
+
+        g1.schema().propertyKey("id").asInt().create();
+        g2.schema().propertyKey("id").asText().create();
+
+        Assert.assertThrows(ExistedException.class, () -> {
+            g2.schema().copyFrom(g1.schema());
+        }, e -> {
+            Assert.assertEquals("The property key 'id' has existed",
+                                e.getMessage());
+        });
+
+        for (HugeGraph graph : graphs) {
             graph.clearBackend();
         }
         destoryGraphs(graphs);
