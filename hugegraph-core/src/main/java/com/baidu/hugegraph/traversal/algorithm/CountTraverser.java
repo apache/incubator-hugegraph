@@ -61,16 +61,20 @@ public class CountTraverser extends HugeTraverser {
         this.containsTraversed = containsTraversed;
         this.dedupSize = dedupSize;
         if (this.containsTraversed) {
-            count.increment();
+            this.count.increment();
         }
 
         int stepNum = steps.size();
         Step firstStep = steps.get(0);
         if (stepNum == 1) {
             // Just one step, query count and return
-            count.add(this.edgesCount(source, firstStep.direction,
-                                      firstStep.labels, firstStep.properties));
-            return count.longValue();
+            long edgesCount = this.edgesCount(source, firstStep.direction,
+                                              firstStep.labels,
+                                              firstStep.properties,
+                                              firstStep.degree,
+                                              firstStep.skipDegree);
+            this.count.add(edgesCount);
+            return this.count.longValue();
         }
 
         // Multiple steps, construct first step to iterator
@@ -92,9 +96,12 @@ public class CountTraverser extends HugeTraverser {
                 continue;
             }
             // Count last layer vertices(without dedup size)
-            this.count.add(this.edgesCount(target, lastStep.direction,
-                                           lastStep.labels,
-                                           lastStep.properties));
+            long edgesCount = this.edgesCount(target, lastStep.direction,
+                                              lastStep.labels,
+                                              lastStep.properties,
+                                              lastStep.degree,
+                                              lastStep.skipDegree);
+            this.count.add(edgesCount);
         }
 
         return this.count.longValue();
@@ -145,14 +152,17 @@ public class CountTraverser extends HugeTraverser {
     }
 
     private long edgesCount(Id source, Directions dir, Map<Id, String> labels,
-                            Map<Id, Object> properties) {
+                            Map<Id, Object> properties, long degree,
+                            long skipDegree) {
+        checkSkipDegree(skipDegree, degree, NO_LIMIT);
         Id[] els = labels.keySet().toArray(new Id[labels.size()]);
         Query query = GraphTransaction.constructEdgesQuery(source, dir, els);
         this.filterBySortKeys(query, labels, properties);
         query.aggregate(Aggregate.AggregateFunc.COUNT, null);
         query.capacity(Query.NO_CAPACITY);
         query.limit(Query.NO_LIMIT);
-        return graph().queryNumber(query).longValue();
+        long count = graph().queryNumber(query).longValue();
+        return degree != NO_LIMIT && count > degree ? degree : count;
     }
 
     private void checkDedupSize(long dedup) {

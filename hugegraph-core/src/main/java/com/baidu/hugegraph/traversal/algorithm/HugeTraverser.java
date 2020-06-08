@@ -50,6 +50,7 @@ import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.iterator.MapperIterator;
+import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaLabel;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
@@ -366,7 +367,7 @@ public class HugeTraverser {
 
     public static void checkSkipDegree(long skipDegree, long degree,
                                        long capacity) {
-        E.checkArgument(skipDegree >= 0L || skipDegree == NO_LIMIT,
+        E.checkArgument(skipDegree >= 0L,
                         "The skipped degree must be >= 0, but got '%s'",
                         skipDegree);
         if (capacity != NO_LIMIT) {
@@ -415,11 +416,13 @@ public class HugeTraverser {
         for (Map.Entry<Id, Object> entry : properties.entrySet()) {
             Id key = entry.getKey();
             Object value = entry.getValue();
+            PropertyKey pk = this.graph().propertyKey(key);
             if (value instanceof String &&
                 ((String) value).startsWith(TraversalUtil.P_CALL)) {
                 String predicate = (String) value;
-                condQuery.query(TraversalUtil.parsePredicate(key, predicate));
+                condQuery.query(TraversalUtil.parsePredicate(pk, predicate));
             } else {
+                value = pk.validValueOrThrow(value);
                 condQuery.query(Condition.eq(key, value));
             }
         }
