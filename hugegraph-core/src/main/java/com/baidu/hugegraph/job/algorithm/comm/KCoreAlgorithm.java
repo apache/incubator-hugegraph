@@ -98,7 +98,7 @@ public class KCoreAlgorithm extends AbstractCommAlgorithm {
         return parameterBoolean(parameters, KEY_MERGED);
     }
 
-    public static class Traverser extends AlgoTraverser {
+    private static class Traverser extends AlgoTraverser {
 
         public Traverser(Job<Object> job, int workers) {
             super(job, "kcore", workers);

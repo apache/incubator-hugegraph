@@ -136,7 +136,7 @@ public class FusiformSimilarityAlgorithm extends AbstractAlgorithm {
         return limit;
     }
 
-    protected static class Traverser extends AlgoTraverser {
+    private static class Traverser extends AlgoTraverser {
 
         public Traverser(Job<Object> job, int workers) {
             super(job, "fusiform", workers);
