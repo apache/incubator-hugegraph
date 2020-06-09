@@ -23,7 +23,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import com.baidu.hugegraph.HugeGraph;
-import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -50,9 +49,9 @@ public class GraphSONSchemaSerializer {
         map.put(HugeKeys.PROPERTIES,
                 graph.mapPkId2Name(vertexLabel.properties()));
         map.put(HugeKeys.TTL, vertexLabel.ttl());
-        if (!IdGenerator.ZERO.equals(vertexLabel.ttlStartTime())) {
-            map.put(HugeKeys.TTL_START_TIME,
-                    graph.propertyKey(vertexLabel.ttlStartTime()).name());
+        String ttlStartTimeName = vertexLabel.ttlStartTimeName();
+        if (ttlStartTimeName != null) {
+            map.put(HugeKeys.TTL_START_TIME, ttlStartTimeName);
         }
         map.put(HugeKeys.ENABLE_LABEL_INDEX, vertexLabel.enableLabelIndex());
         map.put(HugeKeys.USER_DATA, vertexLabel.userdata());
@@ -66,10 +65,8 @@ public class GraphSONSchemaSerializer {
         Map<HugeKeys, Object> map = new LinkedHashMap<>();
         map.put(HugeKeys.ID, edgeLabel.id().asLong());
         map.put(HugeKeys.NAME, edgeLabel.name());
-        map.put(HugeKeys.SOURCE_LABEL,
-                graph.vertexLabel(edgeLabel.sourceLabel()).name());
-        map.put(HugeKeys.TARGET_LABEL,
-                graph.vertexLabel(edgeLabel.targetLabel()).name());
+        map.put(HugeKeys.SOURCE_LABEL, edgeLabel.sourceLabelName());
+        map.put(HugeKeys.TARGET_LABEL, edgeLabel.targetLabelName());
         map.put(HugeKeys.FREQUENCY, edgeLabel.frequency());
         map.put(HugeKeys.SORT_KEYS,
                 graph.mapPkId2Name(edgeLabel.sortKeys()));
@@ -80,9 +77,9 @@ public class GraphSONSchemaSerializer {
         map.put(HugeKeys.PROPERTIES,
                 graph.mapPkId2Name(edgeLabel.properties()));
         map.put(HugeKeys.TTL, edgeLabel.ttl());
-        if (!IdGenerator.ZERO.equals(edgeLabel.ttlStartTime())) {
-            map.put(HugeKeys.TTL_START_TIME,
-                    graph.propertyKey(edgeLabel.ttlStartTime()).name());
+        String ttlStartTimeName = edgeLabel.ttlStartTimeName();
+        if (ttlStartTimeName != null) {
+            map.put(HugeKeys.TTL_START_TIME, ttlStartTimeName);
         }
         map.put(HugeKeys.ENABLE_LABEL_INDEX, edgeLabel.enableLabelIndex());
         map.put(HugeKeys.USER_DATA, edgeLabel.userdata());

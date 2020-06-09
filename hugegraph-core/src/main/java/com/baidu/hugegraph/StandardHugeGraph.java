@@ -482,13 +482,14 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
-    public void addPropertyKey(PropertyKey key) {
-        this.schemaTransaction().addPropertyKey(key);
+    public void addPropertyKey(PropertyKey pkey) {
+        assert pkey.graph() == this;
+        this.schemaTransaction().addPropertyKey(pkey);
     }
 
     @Override
-    public void removePropertyKey(Id key) {
-        this.schemaTransaction().removePropertyKey(key);
+    public void removePropertyKey(Id pkey) {
+        this.schemaTransaction().removePropertyKey(pkey);
     }
 
     @Override
@@ -517,6 +518,7 @@ public class StandardHugeGraph implements HugeGraph {
 
     @Override
     public void addVertexLabel(VertexLabel vertexLabel) {
+        assert vertexLabel.graph() == this;
         this.schemaTransaction().addVertexLabel(vertexLabel);
     }
 
@@ -571,6 +573,7 @@ public class StandardHugeGraph implements HugeGraph {
 
     @Override
     public void addEdgeLabel(EdgeLabel edgeLabel) {
+        assert edgeLabel.graph() == this;
         this.schemaTransaction().addEdgeLabel(edgeLabel);
     }
 
@@ -614,6 +617,8 @@ public class StandardHugeGraph implements HugeGraph {
 
     @Override
     public void addIndexLabel(SchemaLabel schemaLabel, IndexLabel indexLabel) {
+        assert schemaLabel.graph() == this;
+        assert indexLabel.graph() == this;
         this.schemaTransaction().addIndexLabel(schemaLabel, indexLabel);
     }
 

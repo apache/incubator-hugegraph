@@ -149,7 +149,10 @@ public class HugeIndex implements GraphType, Cloneable {
     }
 
     public boolean hasTtl() {
-        return this.indexLabel().ttl() > 0L;
+        if (this.indexLabel.system()) {
+            return false;
+        }
+        return this.indexLabel.baseElement().ttl() > 0L;
     }
 
     public long ttl() {

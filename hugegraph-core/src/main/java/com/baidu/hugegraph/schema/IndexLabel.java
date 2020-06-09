@@ -32,6 +32,7 @@ import com.baidu.hugegraph.schema.builder.SchemaBuilder;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.IndexType;
 import com.baidu.hugegraph.util.E;
+import com.google.common.base.Objects;
 
 public class IndexLabel extends SchemaElement {
 
@@ -39,15 +40,13 @@ public class IndexLabel extends SchemaElement {
     private Id baseValue;
     private IndexType indexType;
     private List<Id> indexFields;
-    private long ttl;
 
     public IndexLabel(final HugeGraph graph, Id id, String name) {
         super(graph, id, name);
         this.baseType = HugeType.SYS_SCHEMA;
-        this.baseValue = null;
+        this.baseValue = NONE_ID;
         this.indexType = IndexType.SECONDARY;
         this.indexFields = new ArrayList<>();
-        this.ttl = 0L;
     }
 
     protected IndexLabel(long id, String name) {
@@ -122,12 +121,16 @@ public class IndexLabel extends SchemaElement {
         return this.indexFields.get(0);
     }
 
-    public void ttl(long ttl) {
-        this.ttl = ttl;
+    public SchemaLabel baseElement() {
+        return getElement(this.graph, this.baseType, this.baseValue);
     }
 
-    public long ttl() {
-        return this.ttl;
+    public boolean hasSameContent(IndexLabel other) {
+        return super.hasSameContent(other) &&
+               this.indexType == other.indexType &&
+               this.baseType == other.baseType &&
+               Objects.equal(this.graph.mapPkId2Name(this.indexFields),
+                             other.graph.mapPkId2Name(other.indexFields));
     }
 
     // ABS of System index id must be below SchemaElement.MAX_PRIMITIVE_SYS_ID
@@ -192,6 +195,44 @@ public class IndexLabel extends SchemaElement {
             }
         }
         return graph.indexLabel(id);
+    }
+
+    public static SchemaLabel getElement(HugeGraph graph,
+                                         HugeType baseType, Object baseValue) {
+        E.checkNotNull(baseType, "base type", "index label");
+        E.checkNotNull(baseValue, "base value", "index label");
+        E.checkArgument(baseValue instanceof String || baseValue instanceof Id,
+                        "The base value must be instance of String or Id, " +
+                        "but got %s(%s)", baseValue,
+                        baseValue.getClass().getSimpleName());
+
+        SchemaLabel label;
+        switch (baseType) {
+            case VERTEX_LABEL:
+                if (baseValue instanceof String) {
+                    label = graph.vertexLabel((String) baseValue);
+                } else {
+                    assert baseValue instanceof Id;
+                    label = graph.vertexLabel((Id) baseValue);
+                }
+                break;
+            case EDGE_LABEL:
+                if (baseValue instanceof String) {
+                    label = graph.edgeLabel((String) baseValue);
+                } else {
+                    assert baseValue instanceof Id;
+                    label = graph.edgeLabel((Id) baseValue);
+                }
+                break;
+            default:
+                throw new AssertionError(String.format(
+                          "Unsupported base type '%s' of index label",
+                          baseType));
+        }
+
+        E.checkArgumentNotNull(label, "Can't find the %s with name '%s'",
+                               baseType.readableName(), baseValue);
+        return label;
     }
 
     public interface Builder extends SchemaBuilder<IndexLabel> {

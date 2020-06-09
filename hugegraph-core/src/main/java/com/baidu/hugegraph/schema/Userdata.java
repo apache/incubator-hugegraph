@@ -31,6 +31,13 @@ public class Userdata extends HashMap<String, Object> {
 
     public static final String CREATE_TIME = "~create_time";
 
+    public Userdata() {
+    }
+
+    public Userdata(Map<String, Object> map) {
+        this.putAll(map);
+    }
+
     public static void check(Userdata userdata, Action action) {
         if (userdata == null) {
             return;

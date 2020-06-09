@@ -83,6 +83,26 @@ public class EdgeLabelBuilder extends AbstractBuilder
         this.checkExist = true;
     }
 
+    public EdgeLabelBuilder(SchemaTransaction transaction,
+                            HugeGraph graph, EdgeLabel copy) {
+        super(transaction, graph);
+        E.checkNotNull(copy, "copy");
+        HugeGraph origin = copy.graph();
+        this.id = null;
+        this.name = copy.name();
+        this.sourceLabel = copy.sourceLabelName();
+        this.targetLabel = copy.targetLabelName();
+        this.frequency = copy.frequency();
+        this.properties = mapPkId2Name(origin, copy.properties());
+        this.sortKeys = mapPkId2Name(origin, copy.sortKeys());
+        this.nullableKeys = mapPkId2Name(origin, copy.nullableKeys());
+        this.ttl = copy.ttl();
+        this.ttlStartTime = copy.ttlStartTimeName();
+        this.enableLabelIndex = copy.enableLabelIndex();
+        this.userdata = new Userdata(copy.userdata());
+        this.checkExist = false;
+    }
+
     @Override
     public EdgeLabel build() {
         Id id = this.validOrGenerateId(HugeType.EDGE_LABEL,
@@ -589,5 +609,13 @@ public class EdgeLabelBuilder extends AbstractBuilder
                 throw new AssertionError(String.format(
                           "Unknown schema action '%s'", action));
         }
+    }
+
+    private static Set<String> mapPkId2Name(HugeGraph graph, Set<Id> ids) {
+        return new HashSet<>(graph.mapPkId2Name(ids));
+    }
+
+    private static List<String> mapPkId2Name(HugeGraph graph, List<Id> ids) {
+        return graph.mapPkId2Name(ids);
     }
 }
