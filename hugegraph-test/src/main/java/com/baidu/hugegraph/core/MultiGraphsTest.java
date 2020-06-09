@@ -81,7 +81,7 @@ public class MultiGraphsTest {
         schema.propertyKey("time").asDate().ifNotExist().create();
 
         schema.vertexLabel("person")
-              .properties("id", "name", "age", "city","weight", "born")
+              .properties("id", "name", "age", "city", "weight", "born")
               .primaryKeys("id").create();
         schema.vertexLabel("person2")
               .properties("id", "name", "age", "city")
@@ -135,43 +135,43 @@ public class MultiGraphsTest {
         Assert.assertTrue(g2.existsIndexLabel("personByAge"));
         Assert.assertTrue(g2.existsIndexLabel("friendByTime"));
 
-        for (PropertyKey pk : g2.schema().getPropertyKeys()) {
-            PropertyKey expected = g1.schema().getPropertyKey(pk.name());
-            Assert.assertTrue(expected.hasSameContent(pk));
+        for (PropertyKey copied : g2.schema().getPropertyKeys()) {
+            PropertyKey origin = g1.schema().getPropertyKey(copied.name());
+            Assert.assertTrue(origin.hasSameContent(copied));
         }
-        for (VertexLabel vl : schema.getVertexLabels()) {
-            VertexLabel expected = g1.schema().getVertexLabel(vl.name());
-            Assert.assertTrue(expected.hasSameContent(vl));
+        for (VertexLabel copied : schema.getVertexLabels()) {
+            VertexLabel origin = g1.schema().getVertexLabel(copied.name());
+            Assert.assertTrue(origin.hasSameContent(copied));
         }
-        for (EdgeLabel el : schema.getEdgeLabels()) {
-            EdgeLabel expected = g1.schema().getEdgeLabel(el.name());
-            Assert.assertTrue(expected.hasSameContent(el));
+        for (EdgeLabel copied : schema.getEdgeLabels()) {
+            EdgeLabel origin = g1.schema().getEdgeLabel(copied.name());
+            Assert.assertTrue(origin.hasSameContent(copied));
 
         }
-        for (IndexLabel il : schema.getIndexLabels()) {
-            IndexLabel expected = g1.schema().getIndexLabel(il.name());
-            Assert.assertTrue(expected.hasSameContent(il));
+        for (IndexLabel copied : schema.getIndexLabels()) {
+            IndexLabel origin = g1.schema().getIndexLabel(copied.name());
+            Assert.assertTrue(origin.hasSameContent(copied));
         }
 
         // Copy schema again from g1 to g2 (ignore identical content)
         g2.schema().copyFrom(g1.schema());
 
-        for (PropertyKey pk : g2.schema().getPropertyKeys()) {
-            PropertyKey expected = g1.schema().getPropertyKey(pk.name());
-            Assert.assertTrue(expected.hasSameContent(pk));
+        for (PropertyKey copied : g2.schema().getPropertyKeys()) {
+            PropertyKey origin = g1.schema().getPropertyKey(copied.name());
+            Assert.assertTrue(origin.hasSameContent(copied));
         }
-        for (VertexLabel vl : schema.getVertexLabels()) {
-            VertexLabel expected = g1.schema().getVertexLabel(vl.name());
-            Assert.assertTrue(expected.hasSameContent(vl));
+        for (VertexLabel copied : schema.getVertexLabels()) {
+            VertexLabel origin = g1.schema().getVertexLabel(copied.name());
+            Assert.assertTrue(origin.hasSameContent(copied));
         }
-        for (EdgeLabel el : schema.getEdgeLabels()) {
-            EdgeLabel expected = g1.schema().getEdgeLabel(el.name());
-            Assert.assertTrue(expected.hasSameContent(el));
+        for (EdgeLabel copied : schema.getEdgeLabels()) {
+            EdgeLabel origin = g1.schema().getEdgeLabel(copied.name());
+            Assert.assertTrue(origin.hasSameContent(copied));
 
         }
-        for (IndexLabel il : schema.getIndexLabels()) {
-            IndexLabel expected = g1.schema().getIndexLabel(il.name());
-            Assert.assertTrue(expected.hasSameContent(il));
+        for (IndexLabel copied : schema.getIndexLabels()) {
+            IndexLabel origin = g1.schema().getIndexLabel(copied.name());
+            Assert.assertTrue(origin.hasSameContent(copied));
         }
 
         for (HugeGraph graph : graphs) {
