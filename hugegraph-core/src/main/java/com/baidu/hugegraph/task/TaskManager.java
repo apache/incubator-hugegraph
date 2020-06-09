@@ -72,6 +72,8 @@ public final class TaskManager {
         this.taskScheduler = ExecutorUtil.newScheduledThreadPool(1, TASK_SCHEDULER);
         this.taskScheduler.scheduleWithFixedDelay(this::scheduleTasks,
                                                   0L, 3, TimeUnit.SECONDS);
+        this.taskScheduler.scheduleWithFixedDelay(this::cancelTasks,
+                                                  0L, 3, TimeUnit.SECONDS);
     }
 
     public void addScheduler(HugeGraphParams graph) {
@@ -206,6 +208,26 @@ public final class TaskManager {
                 page = PageInfo.pageInfo(tasks);
             } while (page != null);
             serverHeartbeat(serverInfo);
+        }
+    }
+
+    private <V> void cancelTasks() {
+        for (Map.Entry<HugeGraphParams, TaskScheduler> entry :
+                 this.schedulers.entrySet()) {
+            ServerInfoManager serverInfo = entry.getKey().serverManager();
+            TaskScheduler scheduler = entry.getValue();
+            String page = PageInfo.PAGE_NONE;
+            do {
+                Iterator<HugeTask<V>> tasks = scheduler.tasks(TaskStatus.CANCELLING,
+                                                              PAGE_SIZE, page);
+                while (tasks.hasNext()) {
+                    HugeTask<V> task = tasks.next();
+                    if (task.server().equals(serverInfo.serverId())) {
+                        task.cancel(true);
+                    }
+                }
+                page = PageInfo.pageInfo(tasks);
+            } while (page != null);
         }
     }
 

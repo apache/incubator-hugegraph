@@ -173,6 +173,7 @@ public class StandardTaskScheduler implements TaskScheduler {
     public <V> void restoreTasks() {
         boolean supportsPaging = this.graph().backendStoreFeatures()
                                              .supportsQueryByPage();
+        HugeServer server = this.serverManager().server();
         // Restore 'RESTORING', 'RUNNING' and 'QUEUED' tasks in order.
         for (TaskStatus status : TaskStatus.PENDING_STATUSES) {
             String page = supportsPaging ? PageInfo.PAGE_NONE : null;
@@ -181,7 +182,9 @@ public class StandardTaskScheduler implements TaskScheduler {
                 for (iter = this.findTask(status, PAGE_SIZE, page);
                      iter.hasNext();) {
                     HugeTask<V> task = iter.next();
-                    this.restore(task);
+                    if (server.id().equals(task.server())) {
+                        this.restore(task);
+                    }
                 }
                 if (page != null) {
                     page = PageInfo.pageInfo(iter);
@@ -245,14 +248,20 @@ public class StandardTaskScheduler implements TaskScheduler {
         int minLoad = HugeServer.MAX_LOAD;
         Long now = DateUtil.now().getTime();
         String page = PageInfo.PAGE_NONE;
+        HugeServer master = null;
+        boolean hasWorker = false;
         do {
             Iterator<HugeServer> servers = this.serverManager()
                                                .servers(100L, page);
             HugeServer server;
             while (servers.hasNext()) {
                 server = servers.next();
-                if (server.updateTime().getTime() + 3000L < now ||
-                    server.load() + task.load() > HugeServer.MAX_LOAD) {
+                if (server.role().master()) {
+                    master = server;
+                    continue;
+                }
+                hasWorker = true;
+                if (!server.suitableFor(task, now)) {
                     continue;
                 }
                 if (server.load() < minLoad) {
@@ -263,6 +272,9 @@ public class StandardTaskScheduler implements TaskScheduler {
             page = PageInfo.pageInfo(servers);
         } while (page != null);
 
+        if (!hasWorker && master.suitableFor(task, now)) {
+            return master;
+        }
         return minServer;
     }
 
@@ -300,7 +312,6 @@ public class StandardTaskScheduler implements TaskScheduler {
     @Override
     public <V> boolean cancel(HugeTask<V> task) {
         E.checkArgumentNotNull(task, "Task can't be null");
-        boolean cancelled = false;
         if (!task.completed()) {
             /*
              * Task may be loaded from backend store and not initialized. like:
@@ -309,11 +320,12 @@ public class StandardTaskScheduler implements TaskScheduler {
              * the task is not in memory, so it's not initialized when canceled.
              */
             this.initTaskCallable(task);
-            cancelled = task.cancel(true);
+            task.status(TaskStatus.CANCELLING);
+            this.save(task);
             this.remove(task.id());
         }
         assert task.completed();
-        return cancelled;
+        return true;
     }
 
     protected void remove(Id id) {

@@ -39,6 +39,7 @@ import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.schema.VertexLabel;
+import com.baidu.hugegraph.task.HugeTask;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
@@ -172,6 +173,14 @@ public class HugeServer {
             server.property(prop.key(), prop.value());
         }
         return server;
+    }
+
+    public <V> boolean suitableFor(HugeTask<V> task, long now) {
+        if (this.updateTime.getTime() + 5000L < now ||
+            this.load() + task.load() > MAX_LOAD) {
+            return false;
+        }
+        return true;
     }
 
     public static Schema schema(HugeGraphParams graph) {
