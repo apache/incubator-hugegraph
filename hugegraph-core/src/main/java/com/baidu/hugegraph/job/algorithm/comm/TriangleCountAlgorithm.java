@@ -49,7 +49,7 @@ public class TriangleCountAlgorithm extends AbstractCommAlgorithm {
     @Override
     public Object call(Job<Object> job, Map<String, Object> parameters) {
         try (Traverser traverser = new Traverser(job)) {
-            return traverser.triangleCount(direction(parameters),
+            return traverser.triangleCount(directionOutIn(parameters),
                                            degree(parameters));
         }
     }

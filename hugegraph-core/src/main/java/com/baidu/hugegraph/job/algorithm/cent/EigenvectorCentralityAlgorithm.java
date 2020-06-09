@@ -73,7 +73,7 @@ public class EigenvectorCentralityAlgorithm extends AbstractCentAlgorithm {
                                             String sourceCLabel,
                                             long topN) {
             assert depth > 0;
-            assert degree > 0L;
+            assert degree > 0L || degree == NO_LIMIT;
             assert topN >= 0L;
 
             // TODO: support parameters: Directions dir, String label

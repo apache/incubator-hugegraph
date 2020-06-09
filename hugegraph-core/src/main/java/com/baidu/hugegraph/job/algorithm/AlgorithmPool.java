@@ -60,6 +60,8 @@ public class AlgorithmPool {
         INSTANCE.register(new KCoreAlgorithm());
 
         INSTANCE.register(new PageRankAlgorithm());
+
+        INSTANCE.register(new SubgraphStatAlgorithm());
     }
 
     private final Map<String, Algorithm> algorithms;

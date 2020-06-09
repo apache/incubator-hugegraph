@@ -132,14 +132,15 @@ public abstract class AbstractAlgorithm implements Algorithm {
     }
 
     protected static Directions directionOutIn(Map<String, Object> parameters) {
-        E.checkArgument(parameters.containsKey(KEY_DIRECTION),
-                        "The direction must be set");
+        if (!parameters.containsKey(KEY_DIRECTION)) {
+            return Directions.OUT;
+        }
         Object direction = parameter(parameters, KEY_DIRECTION);
-        Directions direct = parseDirection(direction);
-        E.checkArgument(direct == Directions.OUT || direct == Directions.IN,
-                        "The direction for triangle_count must be " +
-                        "either OUT or IN, but got: %s", direct);
-        return direct;
+        Directions dir = parseDirection(direction);
+        E.checkArgument(dir == Directions.OUT || dir == Directions.IN,
+                        "The value of %s must be either OUT or IN, but got: %s",
+                        KEY_DIRECTION, dir);
+        return dir;
     }
 
     protected static double alpha(Map<String, Object> parameters) {
@@ -153,8 +154,8 @@ public abstract class AbstractAlgorithm implements Algorithm {
 
     public static void checkAlpha(double alpha) {
         E.checkArgument(alpha > 0 && alpha <= 1.0,
-                        "The alpha of must be in range (0, 1], but got %s",
-                        alpha);
+                        "The value of %s must be in range (0, 1], but got %s",
+                        KEY_ALPHA, alpha);
     }
 
     protected static long top(Map<String, Object> parameters) {

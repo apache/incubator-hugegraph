@@ -65,8 +65,7 @@ public class PageRankAlgorithm extends AbstractCommAlgorithm {
 
     @Override
     public Object call(Job<Object> job, Map<String, Object> parameters) {
-        Traverser traverser = new Traverser(job);
-        try {
+        try (Traverser traverser = new Traverser(job)) {
             return traverser.pageRank(alpha(parameters),
                                       times(parameters),
                                       precision(parameters),
@@ -78,11 +77,13 @@ public class PageRankAlgorithm extends AbstractCommAlgorithm {
         }
     }
 
-    protected static class Traverser extends AlgoTraverser {
+    private static class Traverser extends AlgoTraverser {
 
-        // DoublePair.left is rank computed by previous step, DoublePair.right
-        // is rank computed by current step.
-        private Map<Id, DoublePair> vertexRankMap;
+        /*
+         * DoublePair.left is rank computed by previous step,
+         * DoublePair.right is rank computed by current step.
+         */
+        private final Map<Id, DoublePair> vertexRankMap;
 
         public Traverser(Job<Object> job) {
             super(job);
@@ -100,7 +101,7 @@ public class PageRankAlgorithm extends AbstractCommAlgorithm {
             double changedRank = 0.0;
             long numOfVertices = this.initRankMap();
 
-            for (times = 0; times <= maxTimes; times++) {
+            for (times = 0; times < maxTimes; times++) {
                 Id currentSourceVertexId = null;
                 // the edges are ordered by ownerVertex
                 Iterator<Edge> edges = this.edges(direction);
@@ -134,15 +135,16 @@ public class PageRankAlgorithm extends AbstractCommAlgorithm {
                 double sumRank = this.computeRank(alpha, numOfVertices);
 
                 double compensatedRank = 1.0 - sumRank;
-                changedRank =
-                        this.compensateRank(compensatedRank / numOfVertices);
+                changedRank = this.compensateRank(compensatedRank /
+                                                  numOfVertices);
                 LOG.debug("PageRank execution times:{}, changedRank:{} ",
                           times, changedRank);
                 if (changedRank < precision) {
                     break;
                 }
             }
-            this.writeBackRankValue();
+
+            this.writeBackRankValues();
 
             return ImmutableMap.of("alpha", alpha,
                                    "iteration_times", times,
@@ -212,14 +214,12 @@ public class PageRankAlgorithm extends AbstractCommAlgorithm {
             }
         }
 
-        private void writeBackRankValue() {
-            for (Map.Entry<Id, DoublePair> entry :
-                    this.vertexRankMap.entrySet()) {
-                Id vertexId = entry.getKey();
-                Iterator<Vertex> vertices = this.graph().vertices(vertexId);
-                if (vertices.hasNext()) {
-                    Vertex vertex = vertices.next();
-                    vertex.property(R_RANK, entry.getValue().left());
+        private void writeBackRankValues() {
+            for (Map.Entry<Id, DoublePair> e : this.vertexRankMap.entrySet()) {
+                Id vertexId = e.getKey();
+                Vertex vertex = this.vertex(vertexId);
+                if (vertex != null) {
+                    vertex.property(R_RANK, e.getValue().left());
                     this.commitIfNeeded();
                 }
             }
@@ -258,7 +258,7 @@ public class PageRankAlgorithm extends AbstractCommAlgorithm {
         }
 
         public double left() {
-            return left;
+            return this.left;
         }
 
         public void left(double value) {
@@ -266,17 +266,18 @@ public class PageRankAlgorithm extends AbstractCommAlgorithm {
         }
 
         public double right() {
-            return right;
+            return this.right;
         }
 
         public void right(double value) {
             this.right = value;
         }
 
+        @Override
         public String toString() {
             StringBuilder sb = new StringBuilder();
-            sb.append("left:").append(left)
-              .append(", right: ").append(right);
+            sb.append("left:").append(this.left)
+              .append(", right: ").append(this.right);
             return sb.toString();
         }
 
@@ -286,12 +287,12 @@ public class PageRankAlgorithm extends AbstractCommAlgorithm {
                 return false;
             }
             DoublePair other = (DoublePair) obj;
-            return this.left == other.left && right == other.right;
+            return this.left == other.left && this.right == other.right;
         }
 
         @Override
         public int hashCode() {
-            return Double.hashCode(left) ^ Double.hashCode(right);
+            return Double.hashCode(this.left) ^ Double.hashCode(this.right);
         }
     }
 }

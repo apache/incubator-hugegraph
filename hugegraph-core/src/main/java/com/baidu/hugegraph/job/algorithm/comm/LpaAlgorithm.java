@@ -80,7 +80,7 @@ public class LpaAlgorithm extends AbstractCommAlgorithm {
         }
     }
 
-    public static class Traverser extends AlgoTraverser {
+    private static class Traverser extends AlgoTraverser {
 
         private static final long LIMIT = MAX_QUERY_LIMIT;
 
@@ -242,11 +242,10 @@ public class LpaAlgorithm extends AbstractCommAlgorithm {
 
         private String labelOfVertex(Id vid) {
             // TODO: cache with Map<Id, String>
-            Iterator<Vertex> iter = this.graph().vertices(vid);
-            if (!iter.hasNext()) {
+            Vertex vertex = this.vertex(vid);
+            if (vertex == null) {
                 return null;
             }
-            Vertex vertex = iter.next();
             return this.labelOfVertex(vertex);
         }
 

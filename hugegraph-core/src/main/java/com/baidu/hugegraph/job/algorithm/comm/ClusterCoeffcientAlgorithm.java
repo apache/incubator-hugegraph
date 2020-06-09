@@ -41,7 +41,7 @@ public class ClusterCoeffcientAlgorithm extends AbstractCommAlgorithm {
     @Override
     public Object call(Job<Object> job, Map<String, Object> parameters) {
         try (Traverser traverser = new Traverser(job)) {
-            return traverser.clusterCoeffcient(direction(parameters),
+            return traverser.clusterCoeffcient(directionOutIn(parameters),
                                                degree(parameters));
         }
     }

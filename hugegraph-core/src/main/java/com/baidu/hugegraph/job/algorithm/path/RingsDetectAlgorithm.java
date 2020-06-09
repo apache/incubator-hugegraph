@@ -80,7 +80,7 @@ public class RingsDetectAlgorithm extends AbstractAlgorithm {
         return parameterBoolean(parameters, KEY_COUNT_ONLY);
     }
 
-    public static class Traverser extends AlgoTraverser {
+    private static class Traverser extends AlgoTraverser {
 
         public Traverser(Job<Object> job, int workers) {
             super(job, "ring", workers);

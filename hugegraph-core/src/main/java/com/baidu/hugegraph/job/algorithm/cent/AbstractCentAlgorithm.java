@@ -56,7 +56,7 @@ public abstract class AbstractCentAlgorithm extends AbstractAlgorithm {
         top(parameters);
     }
 
-    public static class Traverser extends AlgoTraverser {
+    protected static class Traverser extends AlgoTraverser {
 
         public Traverser(Job<Object> job) {
             super(job);
