@@ -203,19 +203,18 @@ public class StandardTaskScheduler implements TaskScheduler {
 
     @Override
     public <V> Future<?> schedule(HugeTask<V> task) {
+        if (!this.serverManager().master()) {
+            throw new HugeException("The worker can't schedule task");
+        }
         E.checkArgumentNotNull(task, "Task can't be null");
         task.status(TaskStatus.QUEUED);
         initTaskCallable(task);
-        this.scheduleTask(task);
+        this.save(task);
+        this.scheduleTask();
         return null;
     }
 
-    private synchronized <V> void scheduleTask(HugeTask<V> task) {
-        if (!this.serverManager().master()) {
-            return;
-        }
-        this.save(task);
-
+    protected synchronized <V> void scheduleTask() {
         // Master schedule all queued tasks to suitable servers
         String page = PageInfo.PAGE_NONE;
         do {
@@ -226,10 +225,11 @@ public class StandardTaskScheduler implements TaskScheduler {
                 currentTask = tasks.next();
                 initTaskCallable(currentTask);
 
-                HugeServer server = this.pickWorker(task);
+                HugeServer server = this.pickWorker(currentTask);
                 if (server == null) {
                     LOG.debug("The master can not find suitable server to " +
-                              "execute task: {}, wait for next schedule", task);
+                              "execute task: {}, wait for next schedule",
+                              currentTask);
                     return;
                 }
                 // Found suitable server, update task server and server load
@@ -239,7 +239,7 @@ public class StandardTaskScheduler implements TaskScheduler {
                 this.serverManager().save(server);
                 // The suitable server is master, submit task immediately
                 if (server.role().master()) {
-                    submitTask(currentTask);
+                    this.submitTask(currentTask);
                 }
             }
             page = PageInfo.pageInfo(tasks);
@@ -285,7 +285,7 @@ public class StandardTaskScheduler implements TaskScheduler {
         return minServer;
     }
 
-    private ServerInfoManager serverManager() {
+    protected ServerInfoManager serverManager() {
         return this.graph.serverManager();
     }
 
@@ -299,12 +299,7 @@ public class StandardTaskScheduler implements TaskScheduler {
         return this.taskExecutor.submit(task);
     }
 
-    private <V> void initTaskCallable(HugeTask<V> task) {
-        if (this.tasks.containsKey(task.id())) {
-            // Assume initialized
-            return;
-        }
-
+    public <V> void initTaskCallable(HugeTask<V> task) {
         task.scheduler(this);
 
         TaskCallable<V> callable = task.callable();

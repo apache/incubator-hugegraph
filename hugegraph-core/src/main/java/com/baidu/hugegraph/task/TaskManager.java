@@ -36,6 +36,7 @@ import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraphParams;
+import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.page.PageInfo;
 import com.baidu.hugegraph.cluster.HugeServer;
 import com.baidu.hugegraph.cluster.ServerInfoManager;
@@ -206,11 +207,17 @@ public final class TaskManager {
         for (Map.Entry<HugeGraphParams, TaskScheduler> entry :
                  this.schedulers.entrySet()) {
             ServerInfoManager serverInfo = entry.getKey().serverManager();
-            TaskScheduler scheduler = entry.getValue();
+            StandardTaskScheduler scheduler = (StandardTaskScheduler)
+                                              entry.getValue();
+            Id server = serverInfo.serverId();
 
             // Update server heartbeat
             serverHeartbeat(serverInfo);
 
+            // Master schedule tasks not found suitable server when created
+            if (serverInfo.master()) {
+                scheduler.scheduleTask();
+            }
             // Schedule queued tasks scheduled to current server
             String page = PageInfo.PAGE_NONE;
             do {
@@ -218,7 +225,9 @@ public final class TaskManager {
                                                               PAGE_SIZE, page);
                 while (tasks.hasNext()) {
                     HugeTask<V> task = tasks.next();
-                    if (task.server().equals(serverInfo.serverId())) {
+                    ( scheduler).initTaskCallable(task);
+                    Id taskServer = task.server();
+                    if (taskServer != null && taskServer.equals(server)) {
                         ((StandardTaskScheduler) scheduler).submitTask(task);
                     }
                 }
@@ -232,6 +241,7 @@ public final class TaskManager {
                  this.schedulers.entrySet()) {
             ServerInfoManager serverInfo = entry.getKey().serverManager();
             TaskScheduler scheduler = entry.getValue();
+            Id server = serverInfo.serverId();
 
             // Cancel tasks scheduled to current server
             String page = PageInfo.PAGE_NONE;
@@ -240,7 +250,9 @@ public final class TaskManager {
                                                               PAGE_SIZE, page);
                 while (tasks.hasNext()) {
                     HugeTask<V> task = tasks.next();
-                    if (task.server().equals(serverInfo.serverId())) {
+                    ((StandardTaskScheduler) scheduler).initTaskCallable(task);
+                    Id taskServer = task.server();
+                    if (taskServer != null && taskServer.equals(server)) {
                         task.cancel(true);
                     }
                 }
