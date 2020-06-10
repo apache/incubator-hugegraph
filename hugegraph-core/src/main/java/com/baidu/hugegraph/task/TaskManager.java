@@ -32,6 +32,8 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import org.slf4j.Logger;
+
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.page.PageInfo;
@@ -40,8 +42,11 @@ import com.baidu.hugegraph.cluster.ServerInfoManager;
 import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.ExecutorUtil;
+import com.baidu.hugegraph.util.Log;
 
 public final class TaskManager {
+
+    private static final Logger LOG = Log.logger(TaskManager.class);
 
     public static final String TASK_WORKER = "task-worker-%d";
     public static final String TASK_DB_WORKER = "task-db-worker-%d";
@@ -70,19 +75,17 @@ public final class TaskManager {
         this.dbExecutor = ExecutorUtil.newFixedThreadPool(1, TASK_DB_WORKER);
         // For schedule task to run, just one thread is ok
         this.taskScheduler = ExecutorUtil.newScheduledThreadPool(1, TASK_SCHEDULER);
-        this.taskScheduler.scheduleWithFixedDelay(this::scheduleTasks,
-                                                  0L, 3, TimeUnit.SECONDS);
-        this.taskScheduler.scheduleWithFixedDelay(this::cancelTasks,
-                                                  0L, 3, TimeUnit.SECONDS);
+        // Start after 10s waiting for HugeGraphServer startup
+        this.taskScheduler.scheduleWithFixedDelay(this::scheduledJob,
+                                                  10L, 3, TimeUnit.SECONDS);
     }
 
     public void addScheduler(HugeGraphParams graph) {
         E.checkArgumentNotNull(graph, "The graph can't be null");
         ExecutorService task = this.taskExecutor;
         ExecutorService db = this.dbExecutor;
-        ExecutorService scheduler = this.taskScheduler;
         TaskScheduler taskScheduler = new StandardTaskScheduler(graph, task,
-                                                                db, scheduler);
+                                                                db);
         this.schedulers.put(graph, taskScheduler);
     }
 
@@ -190,11 +193,25 @@ public final class TaskManager {
         return size;
     }
 
-    private <V> void scheduleTasks() {
+    private void scheduledJob() {
+        try {
+            this.heartbeatAndScheduleTasks();
+            this.cancelTasks();
+        } catch (Exception e) {
+            LOG.warn("Exception occurred when schedule job", e);
+        }
+    }
+
+    private <V> void heartbeatAndScheduleTasks() {
         for (Map.Entry<HugeGraphParams, TaskScheduler> entry :
                  this.schedulers.entrySet()) {
             ServerInfoManager serverInfo = entry.getKey().serverManager();
             TaskScheduler scheduler = entry.getValue();
+
+            // Update server heartbeat
+            serverHeartbeat(serverInfo);
+
+            // Schedule queued tasks scheduled to current server
             String page = PageInfo.PAGE_NONE;
             do {
                 Iterator<HugeTask<V>> tasks = scheduler.tasks(TaskStatus.QUEUED,
@@ -207,7 +224,6 @@ public final class TaskManager {
                 }
                 page = PageInfo.pageInfo(tasks);
             } while (page != null);
-            serverHeartbeat(serverInfo);
         }
     }
 
@@ -216,6 +232,8 @@ public final class TaskManager {
                  this.schedulers.entrySet()) {
             ServerInfoManager serverInfo = entry.getKey().serverManager();
             TaskScheduler scheduler = entry.getValue();
+
+            // Cancel tasks scheduled to current server
             String page = PageInfo.PAGE_NONE;
             do {
                 Iterator<HugeTask<V>> tasks = scheduler.tasks(TaskStatus.CANCELLING,

@@ -44,6 +44,7 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.type.define.GraphRole;
+import com.baidu.hugegraph.type.define.SerialEnum;
 import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.E;
 
@@ -114,7 +115,7 @@ public class HugeServer {
     protected boolean property(String key, Object value) {
         switch (key) {
             case P.ROLE:
-                this.role = GraphRole.valueOf((String) value);
+                this.role = SerialEnum.fromCode(GraphRole.class, (byte) value);
                 break;
             case P.LOAD:
                 this.load = (int) value;

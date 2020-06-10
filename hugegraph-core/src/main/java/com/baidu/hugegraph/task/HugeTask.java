@@ -244,6 +244,10 @@ public class HugeTask<V> extends FutureTask<V> {
         return this.status == TaskStatus.CANCELLED || this.isCancelled();
     }
 
+    public boolean cancelling() {
+        return this.status == TaskStatus.CANCELLING;
+    }
+
     @Override
     public String toString() {
         return String.format("HugeTask(%s)%s", this.id, this.asMap());
@@ -448,7 +452,7 @@ public class HugeTask<V> extends FutureTask<V> {
                 this.result = StringEncoding.decompress(((Blob) value).bytes());
                 break;
             case P.NODE:
-                this.server = (Id) value;
+                this.server = IdGenerator.of((String) value);
                 break;
             default:
                 throw new AssertionError("Unsupported key: " + key);
@@ -525,7 +529,7 @@ public class HugeTask<V> extends FutureTask<V> {
 
         if (this.server != null) {
             list.add(P.NODE);
-            list.add(this.server);
+            list.add(this.server.asString());
         }
 
         return list.toArray();
@@ -563,7 +567,7 @@ public class HugeTask<V> extends FutureTask<V> {
         }
 
         if (this.server != null) {
-            map.put(Hidden.unHide(P.NODE), this.server);
+            map.put(Hidden.unHide(P.NODE), this.server.asString());
         }
 
         if (withDetails) {

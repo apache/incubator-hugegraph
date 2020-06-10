@@ -109,6 +109,10 @@ public class ServerInfoManager {
         return this.serverRole;
     }
 
+    public boolean master() {
+        return this.serverRole != null && this.serverRole.master();
+    }
+
     private void initSchemaIfNeeded() {
         HugeServer.schema(this.graph).initSchemaIfNeeded();
     }
