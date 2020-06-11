@@ -183,8 +183,9 @@ public class HugeServerInfo {
         return server;
     }
 
-    public <V> boolean suitableFor(HugeTask<V> task) {
-        if (this.alive() || this.load() + task.load() > MAX_LOAD) {
+    public <V> boolean suitableFor(HugeTask<V> task, long now) {
+        if (this.updateTime.getTime() + EXPIRED_INTERVAL < now ||
+            this.load() + task.load() > MAX_LOAD) {
             return false;
         }
         return true;

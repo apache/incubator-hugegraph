@@ -460,7 +460,7 @@ public class HugeTask<V> extends FutureTask<V> {
             case P.RESULT:
                 this.result = StringEncoding.decompress(((Blob) value).bytes());
                 break;
-            case P.NODE:
+            case P.SERVER:
                 this.server = IdGenerator.of((String) value);
                 break;
             default:
@@ -537,7 +537,7 @@ public class HugeTask<V> extends FutureTask<V> {
         }
 
         if (this.server != null) {
-            list.add(P.NODE);
+            list.add(P.SERVER);
             list.add(this.server.asString());
         }
 
@@ -576,7 +576,7 @@ public class HugeTask<V> extends FutureTask<V> {
         }
 
         if (this.server != null) {
-            map.put(Hidden.unHide(P.NODE), this.server.asString());
+            map.put(Hidden.unHide(P.SERVER), this.server.asString());
         }
 
         if (withDetails) {
@@ -672,7 +672,7 @@ public class HugeTask<V> extends FutureTask<V> {
         public static final String INPUT = "~task_input";
         public static final String RESULT = "~task_result";
         public static final String DEPENDENCIES = "~task_dependencies";
-        public static final String NODE = "~task_node";
+        public static final String SERVER = "~task_server";
 
         //public static final String PARENT = hide("parent");
         //public static final String CHILDREN = hide("children");

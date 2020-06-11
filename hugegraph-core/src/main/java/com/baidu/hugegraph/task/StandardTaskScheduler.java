@@ -65,6 +65,7 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Events;
 import com.baidu.hugegraph.util.Log;
@@ -306,6 +307,7 @@ public class StandardTaskScheduler implements TaskScheduler {
         HugeServerInfo minServer = null;
         int minLoad = HugeServerInfo.MAX_LOAD;
         boolean hasWorker = false;
+        long now = DateUtil.now().getTime();
 
         // Iterate servers to find suitable one
         String page = PageInfo.PAGE_NONE;
@@ -324,7 +326,7 @@ public class StandardTaskScheduler implements TaskScheduler {
                 }
 
                 hasWorker = true;
-                if (!server.suitableFor(task)) {
+                if (!server.suitableFor(task, now)) {
                     continue;
                 }
                 if (server.load() < minLoad) {
@@ -336,7 +338,7 @@ public class StandardTaskScheduler implements TaskScheduler {
         } while (page != null);
 
         // Only schedule to master if there is no workers and master is suitable
-        if (!hasWorker && master.suitableFor(task)) {
+        if (!hasWorker && master.suitableFor(task, now)) {
             return master;
         }
 
@@ -358,7 +360,11 @@ public class StandardTaskScheduler implements TaskScheduler {
                  * initialized when canceled.
                  */
                 this.initTaskCallable(task);
-                this.tasks.put(task.id(), task);
+                @SuppressWarnings("unchecked")
+                HugeTask<V> memTask = (HugeTask<V>) this.tasks.get(task.id());
+                if (memTask != null) {
+                    task = memTask;
+                }
                 Id taskServer = task.server();
                 if (taskServer != null && taskServer.equals(server)) {
                     boolean cancelled = task.cancel(true);
@@ -681,14 +687,14 @@ public class StandardTaskScheduler implements TaskScheduler {
                                      .useCustomizeNumberId()
                                      .nullableKeys(P.DESCRIPTION, P.CONTEXT,
                                                    P.UPDATE, P.INPUT, P.RESULT,
-                                                   P.DEPENDENCIES, P.NODE)
+                                                   P.DEPENDENCIES, P.SERVER)
                                      .enableLabelIndex(true)
                                      .build();
             this.params().schemaTransaction().addVertexLabel(label);
 
             // Create index
             this.createIndexLabel(label, P.STATUS);
-            this.createIndexLabel(label, P.NODE);
+            this.createIndexLabel(label, P.SERVER);
         }
 
         private boolean existVertexLabel(String label) {
@@ -713,7 +719,7 @@ public class StandardTaskScheduler implements TaskScheduler {
             props.add(createPropertyKey(P.RESULT, DataType.BLOB));
             props.add(createPropertyKey(P.DEPENDENCIES, DataType.LONG,
                                         Cardinality.SET));
-            props.add(createPropertyKey(P.NODE));
+            props.add(createPropertyKey(P.SERVER));
 
             return props.toArray(new String[0]);
         }
