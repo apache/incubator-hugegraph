@@ -19,13 +19,18 @@
 
 package com.baidu.hugegraph.unit.rest;
 
+import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiFunction;
 
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLSessionContext;
 import javax.ws.rs.core.MultivaluedHashMap;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
@@ -75,6 +80,17 @@ public class RestClientTest {
                               int timeout, int maxTotal, int maxPerRoute,
                               int status) {
             super(url, user, password, timeout, maxTotal, maxPerRoute);
+            this.status = status;
+            this.headers = ImmutableMultivaluedMap.empty();
+            this.content = "";
+        }
+
+        public RestClientImpl(String url, String user, String password,
+                              int timeout, int maxTotal, int maxPerRoute,
+                              String protocol, String trustStoreFile,
+                              String trustStorePassword, int status) {
+            super(url, user, password, timeout, maxTotal, maxPerRoute, protocol,
+                  trustStoreFile, trustStorePassword);
             this.status = status;
             this.headers = ImmutableMultivaluedMap.empty();
             this.content = "";
@@ -219,6 +235,44 @@ public class RestClientTest {
                                                10, 5, 200);
         RestResult restResult = client.post("path", "body");
         Assert.assertEquals(200, restResult.status());
+    }
+
+    @Test
+    public void testPostHttpsWithAllParams() {
+        String trustStoreFile = "src/test/resources/cacerts.jks";
+        String trustStorePassword = "changeit";
+        RestClient client = new RestClientImpl("/test", "user", "", 1000,
+                                               10, 5, "https", trustStoreFile,
+                                               trustStorePassword, 200);
+        RestResult restResult = client.post("path", "body");
+        Assert.assertEquals(200, restResult.status());
+    }
+
+    @Test
+    public void testHostNameVerifier() {
+        BiFunction<String, String, Boolean> verifer = (url, hostname) -> {
+            RestClient.HostNameVerifier verifier;
+            SSLSession session;
+            try {
+                SSLSessionContext sc = SSLContext.getDefault()
+                                                 .getClientSessionContext();
+                session = sc.getSession(new byte[]{11});
+                verifier = new RestClient.HostNameVerifier(url);
+            } catch (NoSuchAlgorithmException e) {
+                throw new RuntimeException(e);
+            }
+            return verifier.verify(hostname, session);
+        };
+
+        Assert.assertTrue(verifer.apply("http://baidu.com", "baidu.com"));
+        Assert.assertTrue(verifer.apply("http://test1.baidu.com", "baidu.com"));
+        Assert.assertTrue(verifer.apply("http://test2.baidu.com", "baidu.com"));
+        Assert.assertFalse(verifer.apply("http://baidu2.com", "baidu.com"));
+        Assert.assertTrue(verifer.apply("http://baidu.com", ""));
+        Assert.assertTrue(verifer.apply("baidu.com", "baidu.com"));
+        Assert.assertTrue(verifer.apply("http://baidu.com/test/abc", "baidu.com"));
+        Assert.assertTrue(verifer.apply("baidu.com/test/abc", "baidu.com"));
+        Assert.assertFalse(verifer.apply("baidu.com.sina.com", "baidu.com"));
     }
 
     @Test
