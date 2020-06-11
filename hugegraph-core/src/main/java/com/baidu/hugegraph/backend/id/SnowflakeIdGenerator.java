@@ -74,9 +74,9 @@ public class SnowflakeIdGenerator extends IdGenerator {
         long datacenterId = config.get(CoreOptions.SNOWFLAKE_DATACENTER_ID);
         this.forceString = config.get(CoreOptions.SNOWFLAKE_FORCE_STRING);
         this.idWorker = new IdWorker(workerId, datacenterId);
-        LOG.info("SnowflakeId Worker started: datacenter id {}, " +
-                 "worker id {}, forced string id {}",
-                 datacenterId, workerId, this.forceString);
+        LOG.debug("SnowflakeId Worker started: datacenter id {}, " +
+                  "worker id {}, forced string id {}",
+                  datacenterId, workerId, this.forceString);
     }
 
     public Id generate() {
