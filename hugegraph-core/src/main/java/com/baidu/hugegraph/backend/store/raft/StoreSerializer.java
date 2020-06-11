@@ -40,7 +40,7 @@ public class StoreSerializer {
         int sizePerEntry = 32;
         BytesBuffer buffer = BytesBuffer.allocate(mutation.size() * sizePerEntry);
         // write mutation size
-        buffer.writeInt(mutation.size());
+        buffer.writeVInt(mutation.size());
         for (Iterator<BackendAction> items = mutation.mutation();
              items.hasNext();) {
             BackendAction item = items.next();
@@ -59,9 +59,9 @@ public class StoreSerializer {
                 buffer.writeId(IdGenerator.ZERO);
             }
             // write ttl
-            buffer.writeLong(entry.ttl());
+            buffer.writeVLong(entry.ttl());
             // write columns
-            buffer.writeInt(entry.columns().size());
+            buffer.writeVInt(entry.columns().size());
             for (BackendColumn column : entry.columns()) {
                 buffer.writeBytes(column.name);
                 buffer.writeBytes(column.value);
@@ -70,10 +70,9 @@ public class StoreSerializer {
         return buffer.bytes();
     }
 
-    public static BackendMutation deserializeMutation(byte[] bytes) {
+    public static BackendMutation deserializeMutation(BytesBuffer buffer) {
         BackendMutation mutation = new BackendMutation();
-        BytesBuffer buffer = BytesBuffer.wrap(bytes);
-        int size = buffer.readInt();
+        int size = buffer.readVInt();
         for (int i = 0; i < size; i++) {
             // read action
             Action action = SerialEnum.fromCode(Action.class, buffer.read());
@@ -87,13 +86,13 @@ public class StoreSerializer {
                 subId = null;
             }
             // read ttl
-            long ttl = buffer.readLong();
+            long ttl = buffer.readVLong();
 
             BinaryBackendEntry entry = new BinaryBackendEntry(type, idBytes);
             entry.subId(subId);
             entry.ttl(ttl);
             // read columns
-            int columnsSize = buffer.readInt();
+            int columnsSize = buffer.readVInt();
             for (int c = 0; c < columnsSize; c++) {
                 byte[] name = buffer.readBytes();
                 byte[] value = buffer.readBytes();
@@ -107,14 +106,13 @@ public class StoreSerializer {
     public static byte[] serializeIncrCounter(IncrCounter incrCounter) {
         BytesBuffer buffer = BytesBuffer.allocate(1 + BytesBuffer.LONG_LEN);
         buffer.write(incrCounter.type().code());
-        buffer.writeLong(incrCounter.increment());
+        buffer.writeVLong(incrCounter.increment());
         return buffer.bytes();
     }
 
-    public static IncrCounter deserializeIncrCounter(byte[] bytes) {
-        BytesBuffer buffer = BytesBuffer.wrap(bytes);
+    public static IncrCounter deserializeIncrCounter(BytesBuffer buffer) {
         HugeType type = SerialEnum.fromCode(HugeType.class, buffer.read());
-        long increment = buffer.readLong();
+        long increment = buffer.readVLong();
         return new IncrCounter(type, increment);
     }
 }

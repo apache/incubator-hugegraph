@@ -24,6 +24,7 @@ import java.util.Iterator;
 import org.junit.Test;
 
 import com.baidu.hugegraph.backend.serializer.BinaryBackendEntry;
+import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.baidu.hugegraph.backend.store.BackendAction;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendMutation;
@@ -46,7 +47,8 @@ public class StoreSerializerTest {
         origin.add(entry, Action.INSERT);
         byte[] bytes = StoreSerializer.serializeMutation(origin);
 
-        BackendMutation actual = StoreSerializer.deserializeMutation(bytes);
+        BytesBuffer buffer = BytesBuffer.wrap(bytes);
+        BackendMutation actual = StoreSerializer.deserializeMutation(buffer);
         Assert.assertEquals(1, actual.size());
         Iterator<BackendAction> iter = actual.mutation();
         while (iter.hasNext()) {
@@ -75,6 +77,9 @@ public class StoreSerializerTest {
 
         StoreCommand command = new StoreCommand(StoreCommand.MUTATE,
                                                 mutationBytes);
+        Assert.assertEquals(StoreCommand.MUTATE, command.command());
+        Assert.assertArrayEquals(mutationBytes, command.data());
+
         byte[] commandBytes = command.toBytes();
         StoreCommand actual = StoreCommand.fromBytes(commandBytes);
         Assert.assertEquals(command.command(), actual.command());

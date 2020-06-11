@@ -44,48 +44,14 @@ public class RaftBackendStore implements BackendStore {
     public RaftBackendStore(BackendStore store, RaftSharedContext context) {
         this.store = store;
         this.context = context;
-        this.registerCommands();
     }
 
-    private void registerCommands() {
-        // StoreCommand.register(StoreCommand.INIT, this.store::init);
-        StoreCommand.register(StoreCommand.TRUNCATE, this.store::truncate);
-        StoreCommand.register(StoreCommand.BEGIN_TX, this.store::beginTx);
-        StoreCommand.register(StoreCommand.COMMIT_TX, this.store::commitTx);
-        StoreCommand.register(StoreCommand.ROLLBACK_TX, this.store::rollbackTx);
-        // clear
-        StoreCommand.register(StoreCommand.CLEAR, cmd -> {
-            byte[] data = cmd.data();
-            boolean clearSpace = data[0] > 0;
-            this.store.clear(clearSpace);
-            return null;
-        });
-        // mutate
-        StoreCommand.register(StoreCommand.MUTATE, cmd -> {
-            byte[] data = cmd.data();
-            BackendMutation m = StoreSerializer.deserializeMutation(data);
-            this.store.mutate(m);
-            return null;
-        });
-        // increase counter
-        StoreCommand.register(StoreCommand.INCR_COUNTER, cmd -> {
-            byte[] data = cmd.data();
-            IncrCounter counter = StoreSerializer.deserializeIncrCounter(data);
-            this.store.increaseCounter(counter.type(), counter.increment());
-            return null;
-        });
-    }
-
-    public String group() {
+    private String group() {
         return this.database() + "-" + this.store();
     }
 
-    public RaftNode node() {
-        return RaftBackendStoreProvider.RAFT_NODES.get(this.group());
-    }
-
-    public HugeConfig config() {
-        return this.context.config();
+    private RaftNode node() {
+        return this.context.node(this.group());
     }
 
     @Override
@@ -115,16 +81,7 @@ public class RaftBackendStore implements BackendStore {
     }
 
     private void initRaftNodeIfNeeded() {
-        String group = this.group();
-        if (!RaftBackendStoreProvider.RAFT_NODES.containsKey(group)) {
-            synchronized (RaftBackendStoreProvider.RAFT_NODES) {
-                if (!RaftBackendStoreProvider.RAFT_NODES.containsKey(group)) {
-                    LOG.info("Initing raft node for '{}'", group);
-                    RaftNode node = new RaftNode(this.store, this.context);
-                    RaftBackendStoreProvider.RAFT_NODES.put(group, node);
-                }
-            }
-        }
+        this.context.addNode(this.group(), this.store);
     }
 
     @Override

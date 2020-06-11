@@ -19,14 +19,11 @@
 
 package com.baidu.hugegraph.backend.store.raft;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Function;
-
 public class StoreCommand {
 
     private static byte[] EMPTY = new byte[0];
 
+    public static final byte NONE = 0x00;
     public static final byte BEGIN_TX = 0x01;
     public static final byte COMMIT_TX = 0x02;
     public static final byte ROLLBACK_TX = 0x03;
@@ -39,21 +36,6 @@ public class StoreCommand {
 
     private final byte command;
     private final byte[] data;
-    private final Function<StoreCommand, Object> func;
-
-    private static final Map<Byte, Function<StoreCommand, Object>> FUNCS =
-            new ConcurrentHashMap<>();
-
-    public static void register(byte cmd, Function<StoreCommand, Object> func) {
-        FUNCS.put(cmd, func);
-    }
-
-    public static void register(byte cmd, Runnable runnable) {
-        FUNCS.put(cmd, s -> {
-            runnable.run();
-            return null;
-        });
-    }
 
     public StoreCommand(byte command) {
         this(command, EMPTY);
@@ -62,7 +44,6 @@ public class StoreCommand {
     public StoreCommand(byte command, byte[] data) {
         this.command = command;
         this.data = data;
-        this.func = FUNCS.get(command);
     }
 
     public byte command() {
@@ -71,10 +52,6 @@ public class StoreCommand {
 
     public byte[] data() {
         return this.data;
-    }
-
-    public Object apply() {
-        return this.func.apply(this);
     }
 
     public byte[] toBytes() {

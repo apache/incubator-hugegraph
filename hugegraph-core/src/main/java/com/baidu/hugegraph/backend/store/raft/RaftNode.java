@@ -29,7 +29,6 @@ import org.slf4j.Logger;
 
 import com.alipay.sofa.jraft.Node;
 import com.alipay.sofa.jraft.RaftGroupService;
-import com.alipay.sofa.jraft.StateMachine;
 import com.alipay.sofa.jraft.conf.Configuration;
 import com.alipay.sofa.jraft.entity.PeerId;
 import com.alipay.sofa.jraft.entity.Task;
@@ -45,7 +44,7 @@ public class RaftNode {
 
     private static final Logger LOG = Log.logger(RaftNode.class);
 
-    private final StateMachine stateMachine;
+    private final StoreStateMachine stateMachine;
     private final Node node;
 
     public RaftNode(BackendStore store, RaftSharedContext context) {
@@ -55,6 +54,7 @@ public class RaftNode {
         } catch (IOException e) {
             throw new BackendException("Failed to init raft node", e);
         }
+        this.stateMachine.nodeId(this.node.getNodeId());
     }
 
     public Node node() {
@@ -125,7 +125,7 @@ public class RaftNode {
         if (!this.node.isLeader()) {
             PeerId leaderId = this.node.getLeaderId();
             closure.failure(new BackendException("Current node isn't leader, " +
-                                                 "leader is %s", leaderId));
+                                                 "leader is [%s]", leaderId));
             return;
         }
 

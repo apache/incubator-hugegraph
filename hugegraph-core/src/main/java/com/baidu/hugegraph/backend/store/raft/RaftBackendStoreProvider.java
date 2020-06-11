@@ -19,9 +19,6 @@
 
 package com.baidu.hugegraph.backend.store.raft;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
@@ -34,9 +31,6 @@ import com.baidu.hugegraph.util.Log;
 public class RaftBackendStoreProvider implements BackendStoreProvider {
 
     private static final Logger LOG = Log.logger(RaftBackendStoreProvider.class);
-
-    // It will be synchronized wrap
-    public static final Map<String, RaftNode> RAFT_NODES = new HashMap<>();
 
     private final BackendStoreProvider provider;
     private final RaftSharedContext context;
