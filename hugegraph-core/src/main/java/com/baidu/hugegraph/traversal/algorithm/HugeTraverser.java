@@ -452,11 +452,11 @@ public class HugeTraverser {
         if (sorted) {
             map = CollectionUtil.sortByValue(map, false);
         }
-        if (limit == NO_LIMIT) {
+        if (limit == NO_LIMIT || map.size() <= limit) {
             return map;
         }
         Map<K, V> results = InsertionOrderUtil.newMap();
-        long count = 0;
+        long count = 0L;
         for (Map.Entry<K, V> entry : map.entrySet()) {
             results.put(entry.getKey(), entry.getValue());
             if (++count >= limit) {
@@ -580,6 +580,17 @@ public class HugeTraverser {
             } else {
                 return ImmutableMap.of("objects", this.vertices);
             }
+        }
+
+        public boolean ownedBy(Id source) {
+            E.checkNotNull(source, "source");
+            Id min = null;
+            for (Id id : this.vertices) {
+                if (min == null || id.compareTo(min) < 0) {
+                    min = id;
+                }
+            }
+            return source.equals(min);
         }
 
         @Override
