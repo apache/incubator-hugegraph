@@ -336,6 +336,7 @@ public class HugeTask<V> extends FutureTask<V> {
             HugeServer server = manager.server();
             server.load(server.load() - this.load);
             manager.save(server);
+            LOG.info("Server {} finish task {}", server.id(), this.id());
         }
     }
 

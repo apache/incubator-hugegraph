@@ -40,6 +40,7 @@ import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.GraphRole;
 import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Events;
 import com.google.common.collect.ImmutableMap;
@@ -111,6 +112,12 @@ public class ServerInfoManager {
 
     public boolean master() {
         return this.serverRole != null && this.serverRole.master();
+    }
+
+    public void heartbeat() {
+        HugeServer server = this.server();
+        server.updateTime(DateUtil.now());
+        this.save(server);
     }
 
     private void initSchemaIfNeeded() {
