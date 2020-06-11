@@ -48,27 +48,28 @@ import com.baidu.hugegraph.type.define.SerialEnum;
 import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.E;
 
-public class HugeServer {
+public class HugeServerInfo {
 
     public static final int MAX_LOAD = 1000;
+    public static final long EXPIRED_INTERVAL = 5000L;
 
     private Id id;
     private GraphRole role;
     private int load;
     private Date updateTime;
 
-    public HugeServer(String name, GraphRole role) {
+    public HugeServerInfo(String name, GraphRole role) {
         this(IdGenerator.of(name), role);
     }
 
-    public HugeServer(Id id) {
+    public HugeServerInfo(Id id) {
         this.id = id;
         this.load = 0;
         this.role = GraphRole.WORKER;
         this.updateTime = DateUtil.now();
     }
 
-    public HugeServer(Id id, GraphRole role) {
+    public HugeServerInfo(Id id, GraphRole role) {
         this.id = id;
         this.load = 0;
         this.role = role;
@@ -107,9 +108,15 @@ public class HugeServer {
         this.updateTime = updateTime;
     }
 
+    public boolean alive() {
+        long now = DateUtil.now().getTime();
+        return this.updateTime != null &&
+               this.updateTime.getTime() + EXPIRED_INTERVAL > now;
+    }
+
     @Override
     public String toString() {
-        return String.format("HugeServer(%s)%s", this.id, this.asMap());
+        return String.format("HugeServerInfo(%s)%s", this.id, this.asMap());
     }
 
     protected boolean property(String key, Object value) {
@@ -166,8 +173,8 @@ public class HugeServer {
         return map;
     }
 
-    public static HugeServer fromVertex(Vertex vertex) {
-        HugeServer server = new HugeServer((Id) vertex.id());
+    public static HugeServerInfo fromVertex(Vertex vertex) {
+        HugeServerInfo server = new HugeServerInfo((Id) vertex.id());
         for (Iterator<VertexProperty<Object>> iter = vertex.properties();
              iter.hasNext();) {
             VertexProperty<Object> prop = iter.next();
@@ -176,9 +183,8 @@ public class HugeServer {
         return server;
     }
 
-    public <V> boolean suitableFor(HugeTask<V> task, long now) {
-        if (this.updateTime.getTime() + 5000L < now ||
-            this.load() + task.load() > MAX_LOAD) {
+    public <V> boolean suitableFor(HugeTask<V> task) {
+        if (this.alive() || this.load() + task.load() > MAX_LOAD) {
             return false;
         }
         return true;
@@ -239,7 +245,6 @@ public class HugeServer {
 
             // Create index
             this.createIndexLabel(label, P.ROLE);
-            this.createIndexLabel(label, P.UPDATE_TIME);
         }
 
         private String[] initProperties() {

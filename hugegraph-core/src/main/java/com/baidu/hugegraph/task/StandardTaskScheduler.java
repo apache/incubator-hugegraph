@@ -45,7 +45,7 @@ import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
-import com.baidu.hugegraph.cluster.HugeServer;
+import com.baidu.hugegraph.cluster.HugeServerInfo;
 import com.baidu.hugegraph.cluster.ServerInfoManager;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.event.EventListener;
@@ -65,7 +65,6 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.type.define.HugeKeys;
-import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Events;
 import com.baidu.hugegraph.util.Log;
@@ -263,7 +262,7 @@ public class StandardTaskScheduler implements TaskScheduler {
                     // Skip if already scheduled
                     continue;
                 }
-                HugeServer server = this.pickWorker(task);
+                HugeServerInfo server = this.pickWorker(task);
                 if (server == null) {
                     LOG.debug("The master can not find suitable server to " +
                               "execute task: {}, wait for next schedule",
@@ -302,27 +301,30 @@ public class StandardTaskScheduler implements TaskScheduler {
         } while (page != null);
     }
 
-    private synchronized <V> HugeServer pickWorker(HugeTask<V> task) {
-        HugeServer master = null;
-        HugeServer minServer = null;
-        int minLoad = HugeServer.MAX_LOAD;
+    private synchronized <V> HugeServerInfo pickWorker(HugeTask<V> task) {
+        HugeServerInfo master = null;
+        HugeServerInfo minServer = null;
+        int minLoad = HugeServerInfo.MAX_LOAD;
         boolean hasWorker = false;
-        long now = DateUtil.now().getTime();
 
         // Iterate servers to find suitable one
         String page = PageInfo.PAGE_NONE;
-        HugeServer server;
+        HugeServerInfo server;
         do {
-            Iterator<HugeServer> servers = this.serverManager()
-                                               .servers(100L, page);
+            Iterator<HugeServerInfo> servers = this.serverManager()
+                                                   .serverInfos(100L, page);
             while (servers.hasNext()) {
                 server = servers.next();
+                if (!server.alive()) {
+                    continue;
+                }
                 if (server.role().master()) {
                     master = server;
                     continue;
                 }
+
                 hasWorker = true;
-                if (!server.suitableFor(task, now)) {
+                if (!server.suitableFor(task)) {
                     continue;
                 }
                 if (server.load() < minLoad) {
@@ -334,7 +336,7 @@ public class StandardTaskScheduler implements TaskScheduler {
         } while (page != null);
 
         // Only schedule to master if there is no workers and master is suitable
-        if (!hasWorker && master.suitableFor(task, now)) {
+        if (!hasWorker && master.suitableFor(task)) {
             return master;
         }
 
@@ -356,7 +358,7 @@ public class StandardTaskScheduler implements TaskScheduler {
                  * initialized when canceled.
                  */
                 this.initTaskCallable(task);
-                this.remove(task.id());
+                this.tasks.put(task.id(), task);
                 Id taskServer = task.server();
                 if (taskServer != null && taskServer.equals(server)) {
                     boolean cancelled = task.cancel(true);
@@ -476,11 +478,6 @@ public class StandardTaskScheduler implements TaskScheduler {
     public <V> Iterator<HugeTask<V>> findTask(TaskStatus status,
                                               long limit, String page) {
         return this.queryTask(P.STATUS, status.code(), limit, page);
-    }
-
-    public <V> Iterator<HugeTask<V>> findTask(String node, long limit,
-                                              String page) {
-        return this.queryTask(P.NODE, node, limit, page);
     }
 
     @Override

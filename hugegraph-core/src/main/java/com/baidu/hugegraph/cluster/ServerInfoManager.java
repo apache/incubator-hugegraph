@@ -28,6 +28,7 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.QueryResults;
@@ -46,6 +47,7 @@ import com.baidu.hugegraph.util.Events;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
+import static com.baidu.hugegraph.backend.page.PageInfo.PAGE_NONE;
 import static com.baidu.hugegraph.backend.query.Query.NO_LIMIT;
 
 public class ServerInfoManager {
@@ -57,7 +59,6 @@ public class ServerInfoManager {
 
     public ServerInfoManager(HugeGraphParams graph) {
         E.checkNotNull(graph, "graph");
-
         this.graph = graph;
         this.eventListener = this.listenChanges();
     }
@@ -93,13 +94,29 @@ public class ServerInfoManager {
     public void initServerInfo(String server, String role) {
         E.checkArgument(server != null && !server.isEmpty(),
                         "The server name can't be null or empty");
+        HugeServerInfo existed = this.serverInfo(server);
+        E.checkArgument(existed == null || !existed.alive(),
+                        "The server with name '%s' already in cluster",
+                        server);
         E.checkArgument(role != null && !role.isEmpty(),
                         "The server role can't be null or empty");
         GraphRole graphRole = GraphRole.valueOf(role.toUpperCase());
-        HugeServer hugeServer = new HugeServer(server, graphRole);
-        this.serverId = hugeServer.id();
+        if (graphRole.master()) {
+            Iterator<HugeServerInfo> servers = this.serverInfos(ImmutableMap.of(
+                                               HugeServerInfo.P.ROLE,
+                                               GraphRole.MASTER.code()),
+                                               1, PAGE_NONE);
+            if (servers.hasNext()) {
+                existed = servers.next();
+                E.checkArgument(!existed.alive(),
+                                "Already existed master '%s' in current " +
+                                "cluster", existed.id());
+            }
+        }
+        HugeServerInfo serverInfo = new HugeServerInfo(server, graphRole);
+        this.serverId = serverInfo.id();
         this.serverRole = graphRole;
-        this.save(hugeServer);
+        this.save(serverInfo);
     }
 
     public Id serverId() {
@@ -111,24 +128,24 @@ public class ServerInfoManager {
     }
 
     public boolean master() {
-        return this.serverRole != null && this.serverRole.master();
+        return this.serverRole() != null && this.serverRole().master();
     }
 
     public void heartbeat() {
-        HugeServer server = this.server();
+        HugeServerInfo server = this.serverInfo();
         server.updateTime(DateUtil.now());
         this.save(server);
     }
 
     private void initSchemaIfNeeded() {
-        HugeServer.schema(this.graph).initSchemaIfNeeded();
+        HugeServerInfo.schema(this.graph).initSchemaIfNeeded();
     }
 
     private GraphTransaction tx() {
         return this.graph.systemTransaction();
     }
 
-    public Id save(HugeServer server) {
+    public Id save(HugeServerInfo server) {
         // Construct vertex from task
         HugeVertex vertex = this.constructVertex(server);
         // Add or update user in backend store, stale index might exist
@@ -137,11 +154,11 @@ public class ServerInfoManager {
         return vertex.id();
     }
 
-    private HugeVertex constructVertex(HugeServer server) {
-        HugeServer.Schema schema = HugeServer.schema(this.graph);
-        if (!schema.existVertexLabel(HugeServer.P.SERVER)) {
+    private HugeVertex constructVertex(HugeServerInfo server) {
+        HugeServerInfo.Schema schema = HugeServerInfo.schema(this.graph);
+        if (!schema.existVertexLabel(HugeServerInfo.P.SERVER)) {
             throw new HugeException("Schema is missing for %s '%s'",
-                                    HugeServer.P.SERVER, server);
+                                    HugeServerInfo.P.SERVER, server);
         }
         return this.tx().constructVertex(false, server.asArray());
     }
@@ -150,26 +167,40 @@ public class ServerInfoManager {
         this.tx().commitOrRollback();
     }
 
-    public HugeServer server() {
+    public HugeServerInfo serverInfo() {
         Iterator<Vertex> vertices = this.tx().queryVertices(this.serverId);
         Vertex vertex = QueryResults.one(vertices);
         if (vertex == null) {
             return null;
         }
-        return HugeServer.fromVertex(vertex);
+        return HugeServerInfo.fromVertex(vertex);
     }
 
-    public Iterator<HugeServer> servers(long limit, String page) {
-        return this.servers(ImmutableMap.of(), limit, page);
+    public HugeServerInfo serverInfo(String name) {
+        E.checkArgument(name != null && !name.isEmpty(),
+                        "The server name can't be null or emtpy");
+        Id server = IdGenerator.of(name);
+        Iterator<Vertex> vertices = this.tx().queryVertices(server);
+        Vertex vertex = QueryResults.one(vertices);
+        if (vertex == null) {
+            return null;
+        }
+        return HugeServerInfo.fromVertex(vertex);
     }
 
-    private Iterator<HugeServer> servers(Map<String, Object> conditions,
-                                         long limit, String page) {
+    public Iterator<HugeServerInfo> serverInfos(long limit, String page) {
+        return this.serverInfos(ImmutableMap.of(), limit, page);
+    }
+
+    private Iterator<HugeServerInfo> serverInfos(Map<String, Object> conditions,
+                                                 long limit, String page) {
         ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
         if (page != null) {
             query.page(page);
         }
-        VertexLabel vl = this.graph.graph().vertexLabel(HugeServer.P.SERVER);
+        VertexLabel vl = this.graph.graph().vertexLabel(HugeServerInfo.P.SERVER);
+
+
         query.eq(HugeKeys.LABEL, vl.id());
         for (Map.Entry<String, Object> entry : conditions.entrySet()) {
             PropertyKey pk = this.graph.graph().propertyKey(entry.getKey());
@@ -180,8 +211,8 @@ public class ServerInfoManager {
             query.limit(limit);
         }
         Iterator<Vertex> vertices = this.tx().queryVertices(query);
-        Iterator<HugeServer> servers =
-                new MapperIterator<>(vertices, HugeServer::fromVertex);
+        Iterator<HugeServerInfo> servers =
+                new MapperIterator<>(vertices, HugeServerInfo::fromVertex);
         // Convert iterator to list to avoid across thread tx accessed
         return QueryResults.toList(servers);
     }

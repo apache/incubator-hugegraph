@@ -42,7 +42,7 @@ import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
-import com.baidu.hugegraph.cluster.HugeServer;
+import com.baidu.hugegraph.cluster.HugeServerInfo;
 import com.baidu.hugegraph.cluster.ServerInfoManager;
 import com.baidu.hugegraph.exception.LimitExceedException;
 import com.baidu.hugegraph.type.define.SerialEnum;
@@ -333,10 +333,10 @@ public class HugeTask<V> extends FutureTask<V> {
                                               this.scheduler();
             scheduler.remove(this.id);
             ServerInfoManager manager = scheduler.serverManager();
-            HugeServer server = manager.server();
-            server.load(server.load() - this.load);
-            manager.save(server);
-            LOG.info("Server {} finish task {}", server.id(), this.id());
+            HugeServerInfo serverInfo = manager.serverInfo();
+            serverInfo.load(serverInfo.load() - this.load);
+            manager.save(serverInfo);
+            LOG.info("Task {} done on server {}", this.id, serverInfo.id());
         }
     }
 
