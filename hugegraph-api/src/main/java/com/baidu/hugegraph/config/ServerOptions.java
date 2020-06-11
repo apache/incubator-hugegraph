@@ -63,7 +63,7 @@ public class ServerOptions extends OptionHolder {
                     "The role of nodes in the cluster, available type are " +
                     "[master, worker]",
                     disallowEmpty(),
-                    "worker"
+                    "master"
             );
 
     public static final ConfigOption<Integer> MAX_WORKER_THREADS =
