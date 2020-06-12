@@ -53,6 +53,7 @@ import com.baidu.hugegraph.type.define.IndexType;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
 
@@ -189,6 +190,7 @@ public class IndexLabelAPI extends API {
     /**
      * JsonIndexLabel is only used to receive create and append requests
      */
+    @JsonIgnoreProperties(value = {"status"})
     private static class JsonIndexLabel implements Checkable {
 
         @JsonProperty("id")
