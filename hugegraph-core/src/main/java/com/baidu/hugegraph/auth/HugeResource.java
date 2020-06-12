@@ -39,7 +39,7 @@ import org.apache.tinkerpop.shaded.jackson.databind.module.SimpleModule;
 import org.apache.tinkerpop.shaded.jackson.databind.ser.std.StdSerializer;
 
 import com.baidu.hugegraph.HugeException;
-import com.baidu.hugegraph.auth.ResourceObject.ResourceType;
+import com.baidu.hugegraph.auth.ResourceType;
 import com.baidu.hugegraph.auth.SchemaDefine.UserElement;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.traversal.optimize.TraversalUtil;

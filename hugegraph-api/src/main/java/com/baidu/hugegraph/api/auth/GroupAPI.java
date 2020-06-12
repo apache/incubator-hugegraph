@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.api.users;
+package com.baidu.hugegraph.api.auth;
 
 import java.util.List;
 
@@ -39,8 +39,7 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
-import com.baidu.hugegraph.auth.HugeBelong;
-import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.auth.HugeGroup;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.define.Checkable;
@@ -49,11 +48,12 @@ import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-@Path("graphs/{graph}/belongs")
+@Path("graphs/{graph}/auth/groups")
 @Singleton
-public class BelongAPI extends API {
+public class GroupAPI extends API {
 
     private static final Logger LOG = Log.logger(RestServer.class);
 
@@ -64,14 +64,14 @@ public class BelongAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String create(@Context GraphManager manager,
                          @PathParam("graph") String graph,
-                         JsonBelong jsonBelong) {
-        LOG.debug("Graph [{}] create belong: {}", graph, jsonBelong);
-        checkCreatingBody(jsonBelong);
+                         JsonGroup jsonGroup) {
+        LOG.debug("Graph [{}] create group: {}", graph, jsonGroup);
+        checkCreatingBody(jsonGroup);
 
         HugeGraph g = graph(manager, graph);
-        HugeBelong belong = jsonBelong.build();
-        belong.id(manager.userManager().createBelong(belong));
-        return manager.serializer(g).writeUserElement(belong);
+        HugeGroup group = jsonGroup.build();
+        group.id(manager.userManager().createGroup(group));
+        return manager.serializer(g).writeUserElement(group);
     }
 
     @PUT
@@ -82,20 +82,20 @@ public class BelongAPI extends API {
     public String update(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          @PathParam("id") String id,
-                         JsonBelong jsonBelong) {
-        LOG.debug("Graph [{}] update belong: {}", graph, jsonBelong);
-        checkUpdatingBody(jsonBelong);
+                         JsonGroup jsonGroup) {
+        LOG.debug("Graph [{}] update group: {}", graph, jsonGroup);
+        checkUpdatingBody(jsonGroup);
 
         HugeGraph g = graph(manager, graph);
-        HugeBelong belong;
+        HugeGroup group;
         try {
-            belong = manager.userManager().getBelong(UserAPI.parseId(id));
+            group = manager.userManager().getGroup(UserAPI.parseId(id));
         } catch (NotFoundException e) {
-            throw new IllegalArgumentException("Invalid belong id: " + id);
+            throw new IllegalArgumentException("Invalid group id: " + id);
         }
-        belong = jsonBelong.build(belong);
-        manager.userManager().updateBelong(belong);
-        return manager.serializer(g).writeUserElement(belong);
+        group = jsonGroup.build(group);
+        manager.userManager().updateGroup(group);
+        return manager.serializer(g).writeUserElement(group);
     }
 
     @GET
@@ -103,24 +103,12 @@ public class BelongAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String list(@Context GraphManager manager,
                        @PathParam("graph") String graph,
-                       @QueryParam("user") String user,
-                       @QueryParam("group") String group,
                        @QueryParam("limit") @DefaultValue("100") long limit) {
-        LOG.debug("Graph [{}] list belongs by user {} or group {}",
-                  graph, user, group);
+        LOG.debug("Graph [{}] list groups", graph);
 
         HugeGraph g = graph(manager, graph);
-        List<HugeBelong> belongs;
-        if (user != null) {
-            Id id = UserAPI.parseId(user);
-            belongs = manager.userManager().listBelongByUser(id, limit);
-        } else if (group != null) {
-            Id id = UserAPI.parseId(group);
-            belongs = manager.userManager().listBelongByGroup(id, limit);
-        } else {
-            belongs = manager.userManager().listAllBelong(limit);
-        }
-        return manager.serializer(g).writeUserElements("belongs", belongs);
+        List<HugeGroup> groups = manager.userManager().listAllGroups(limit);
+        return manager.serializer(g).writeUserElements("groups", groups);
     }
 
     @GET
@@ -130,11 +118,11 @@ public class BelongAPI extends API {
     public String get(@Context GraphManager manager,
                       @PathParam("graph") String graph,
                       @PathParam("id") String id) {
-        LOG.debug("Graph [{}] get belong: {}", graph, id);
+        LOG.debug("Graph [{}] get group: {}", graph, id);
 
         HugeGraph g = graph(manager, graph);
-        HugeBelong belong = manager.userManager().getBelong(IdGenerator.of(id));
-        return manager.serializer(g).writeUserElement(belong);
+        HugeGroup group = manager.userManager().getGroup(IdGenerator.of(id));
+        return manager.serializer(g).writeUserElement(group);
     }
 
     @DELETE
@@ -144,52 +132,49 @@ public class BelongAPI extends API {
     public void delete(@Context GraphManager manager,
                        @PathParam("graph") String graph,
                        @PathParam("id") String id) {
-        LOG.debug("Graph [{}] delete belong: {}", graph, id);
+        LOG.debug("Graph [{}] delete group: {}", graph, id);
 
-        manager.userManager().deleteBelong(IdGenerator.of(id));
+        try {
+            manager.userManager().deleteGroup(IdGenerator.of(id));
+        } catch (NotFoundException e) {
+            throw new IllegalArgumentException("Invalid group id: " + id);
+        }
     }
 
-    private static class JsonBelong implements Checkable {
+    @JsonIgnoreProperties(value = {"id", "group_creator",
+                                   "group_create", "group_update"})
+    private static class JsonGroup implements Checkable {
 
-        @JsonProperty("user")
-        private String user;
-        @JsonProperty("group")
-        private String group;
-        @JsonProperty("belong_description")
+        @JsonProperty("group_name")
+        private String name;
+        @JsonProperty("group_description")
         private String description;
 
-        public HugeBelong build(HugeBelong belong) {
-            E.checkArgument(this.user == null ||
-                            belong.source().equals(this.user),
-                            "The user of belong can't be updated");
-            E.checkArgument(this.group == null ||
-                            belong.target().equals(this.group),
-                            "The group of belong can't be updated");
+        public HugeGroup build(HugeGroup group) {
+            E.checkArgument(this.name == null || group.name().equals(this.name),
+                            "The name of group can't be updated");
             if (this.description != null) {
-                belong.description(this.description);
+                group.description(this.description);
             }
-            return belong;
+            return group;
         }
 
-        public HugeBelong build() {
-            HugeBelong belong = new HugeBelong(UserAPI.parseId(this.user),
-                                               UserAPI.parseId(this.group));
-            belong.description(this.description);
-            return belong;
+        public HugeGroup build() {
+            HugeGroup group = new HugeGroup(this.name);
+            group.description(this.description);
+            return group;
         }
 
         @Override
         public void checkCreate(boolean isBatch) {
-            E.checkArgumentNotNull(this.user,
-                                   "The user of belong can't be null");
-            E.checkArgumentNotNull(this.group,
-                                   "The group of belong can't be null");
+            E.checkArgumentNotNull(this.name,
+                                   "The name of group can't be null");
         }
 
         @Override
         public void checkUpdate() {
             E.checkArgumentNotNull(this.description,
-                                   "The description of belong can't be null");
+                                   "The description of group can't be null");
         }
     }
 }

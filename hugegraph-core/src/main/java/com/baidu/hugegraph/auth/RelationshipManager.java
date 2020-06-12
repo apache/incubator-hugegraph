@@ -80,13 +80,13 @@ public class RelationshipManager<T extends Relationship> {
 
     public Id add(T relationship) {
         E.checkArgumentNotNull(relationship, "Relationship can't be null");
-        return this.save(relationship);
+        return this.save(relationship, false);
     }
 
     public Id update(T relationship) {
         E.checkArgumentNotNull(relationship, "Relationship can't be null");
         relationship.onUpdate();
-        return this.save(relationship);
+        return this.save(relationship, true);
     }
 
     public T delete(Id id) {
@@ -114,6 +114,17 @@ public class RelationshipManager<T extends Relationship> {
                                         this.unhideLabel(), id);
         }
         return relationship;
+    }
+
+    public boolean exists(Id id) {
+        Iterator<Edge> edges = this.tx().queryEdges(id);
+        if (edges.hasNext()) {
+            Edge edge = edges.next();
+            if (this.label.equals(edge.label())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public List<T> list(List<Id> ids) {
@@ -191,7 +202,7 @@ public class RelationshipManager<T extends Relationship> {
         });
     }
 
-    private Id save(T relationship) {
+    private Id save(T relationship, boolean expectExists) {
         if (!this.graph().existsEdgeLabel(relationship.label())) {
             throw new HugeException("Schema is missing for %s '%s'",
                                     relationship.label(),
@@ -203,6 +214,11 @@ public class RelationshipManager<T extends Relationship> {
                                            relationship.targetLabel());
         HugeEdge edge = source.constructEdge(relationship.label(), target,
                                              relationship.asArray());
+        E.checkArgument(this.exists(edge.id()) == expectExists,
+                        "Can't save %s '%s' that %s exists",
+                        this.unhideLabel(), edge.id(),
+                        expectExists ? "not" : "already");
+
         this.tx().addEdge(edge);
         this.commitOrRollback();
         return edge.id();

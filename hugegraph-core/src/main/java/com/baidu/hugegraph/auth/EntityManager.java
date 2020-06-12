@@ -77,13 +77,13 @@ public class EntityManager<T extends Entity> {
 
     public Id add(T entity) {
         E.checkArgumentNotNull(entity, "Entity can't be null");
-        return this.save(entity);
+        return this.save(entity, false);
     }
 
     public Id update(T entity) {
         E.checkArgumentNotNull(entity, "Entity can't be null");
         entity.onUpdate();
-        return this.save(entity);
+        return this.save(entity, true);
     }
 
     public T delete(Id id) {
@@ -166,9 +166,14 @@ public class EntityManager<T extends Entity> {
         return this.tx().queryVertices(query);
     }
 
-    private Id save(T entity) {
+    private Id save(T entity, boolean expectExists) {
         // Construct vertex from task
         HugeVertex vertex = this.constructVertex(entity);
+        E.checkArgument(this.exists(vertex.id()) == expectExists,
+                        "Can't save %s '%s' that %s exists",
+                        this.unhideLabel(), vertex.id(),
+                        expectExists ? "not" : "already");
+
         // Add or update user in backend store, stale index might exist
         vertex = this.tx().addVertex(vertex);
         this.commitOrRollback();

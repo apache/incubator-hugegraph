@@ -552,6 +552,7 @@ public class GraphTransaction extends IndexableTransaction {
     @Watched("graph.addVertex-instance")
     public HugeVertex addVertex(HugeVertex vertex) {
         this.checkOwnerThread();
+        assert !vertex.removed();
 
         // Override vertices in local `removedVertices`
         this.removedVertices.remove(vertex.id());
@@ -777,6 +778,7 @@ public class GraphTransaction extends IndexableTransaction {
     @Watched(prefix = "graph")
     public HugeEdge addEdge(HugeEdge edge) {
         this.checkOwnerThread();
+        assert !edge.removed();
 
         // Override edges in local `removedEdges`
         this.removedEdges.remove(edge.id());

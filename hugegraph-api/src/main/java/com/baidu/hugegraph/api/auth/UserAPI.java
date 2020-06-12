@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.api.users;
+package com.baidu.hugegraph.api.auth;
 
 import java.util.List;
 
@@ -50,9 +50,10 @@ import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.baidu.hugegraph.util.StringEncoding;
 import com.codahale.metrics.annotation.Timed;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-@Path("graphs/{graph}/users")
+@Path("graphs/{graph}/auth/users")
 @Singleton
 public class UserAPI extends API {
 
@@ -148,13 +149,19 @@ public class UserAPI extends API {
                        @PathParam("id") String id) {
         LOG.debug("Graph [{}] delete user: {}", graph, id);
 
-        manager.userManager().deleteUser(IdGenerator.of(id));
+        try {
+            manager.userManager().deleteUser(IdGenerator.of(id));
+        } catch (NotFoundException e) {
+            throw new IllegalArgumentException("Invalid user id: " + id);
+        }
     }
 
     protected static Id parseId(String id) {
         return IdGenerator.of(id);
     }
 
+    @JsonIgnoreProperties(value = {"id", "user_creator",
+                                   "user_create", "user_update"})
     private static class JsonUser implements Checkable {
 
         @JsonProperty("user_name")
