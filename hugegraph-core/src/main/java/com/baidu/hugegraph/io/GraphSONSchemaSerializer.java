@@ -48,6 +48,7 @@ public class GraphSONSchemaSerializer {
                 graph.mapIlId2Name(vertexLabel.indexLabels()));
         map.put(HugeKeys.PROPERTIES,
                 graph.mapPkId2Name(vertexLabel.properties()));
+        map.put(HugeKeys.STATUS, vertexLabel.status());
         map.put(HugeKeys.TTL, vertexLabel.ttl());
         String ttlStartTimeName = vertexLabel.ttlStartTimeName();
         if (ttlStartTimeName != null) {
@@ -76,6 +77,7 @@ public class GraphSONSchemaSerializer {
                 graph.mapIlId2Name(edgeLabel.indexLabels()));
         map.put(HugeKeys.PROPERTIES,
                 graph.mapPkId2Name(edgeLabel.properties()));
+        map.put(HugeKeys.STATUS, edgeLabel.status());
         map.put(HugeKeys.TTL, edgeLabel.ttl());
         String ttlStartTimeName = edgeLabel.ttlStartTimeName();
         if (ttlStartTimeName != null) {
@@ -98,6 +100,7 @@ public class GraphSONSchemaSerializer {
         map.put(HugeKeys.AGGREGATE_TYPE, propertyKey.aggregateType());
         map.put(HugeKeys.PROPERTIES,
                 graph.mapPkId2Name(propertyKey.properties()));
+        map.put(HugeKeys.STATUS, propertyKey.status());
         map.put(HugeKeys.USER_DATA, propertyKey.userdata());
         return map;
     }
@@ -120,6 +123,7 @@ public class GraphSONSchemaSerializer {
         }
         map.put(HugeKeys.INDEX_TYPE, indexLabel.indexType());
         map.put(HugeKeys.FIELDS, graph.mapPkId2Name(indexLabel.indexFields()));
+        map.put(HugeKeys.STATUS, indexLabel.status());
         map.put(HugeKeys.USER_DATA, indexLabel.userdata());
         return map;
     }
