@@ -212,4 +212,27 @@ public class ServerOptions extends OptionHolder {
                     disallowEmpty(),
                     "hugegraph:9fd95c9c-711b-415b-b85f-d4df46ba5c31"
             );
+    public static final ConfigOption<String> KEYSTORE_SERVER_FILE =
+            new ConfigOption<>(
+                    "server.keystore.file",
+                    "The server keystore file.",
+                    disallowEmpty(),
+                    "server.keystore"
+            );
+
+    public static final ConfigOption<String> KEYSTORE_SERVER_PASSWORD =
+            new ConfigOption<>(
+                    "server.keystore.password",
+                    "The server keystore password.",
+                    disallowEmpty(),
+                    "abc123"
+            );
+
+    public static final ConfigOption<String> SECURITY_PROTOCOL =
+            new ConfigOption<>(
+                    "security.protocol",
+                    "security.protocol.",
+                    disallowEmpty(),
+                    "http"
+            );
 }

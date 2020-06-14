@@ -29,6 +29,8 @@ import javax.ws.rs.core.UriBuilder;
 
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.NetworkListener;
+import org.glassfish.grizzly.ssl.SSLContextConfigurator;
+import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
 import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpServerFactory;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.slf4j.Logger;
@@ -68,8 +70,22 @@ public class RestServer {
     }
 
     private HttpServer configHttpServer(URI uri, ResourceConfig rc) {
-        HttpServer server = GrizzlyHttpServerFactory.createHttpServer(uri, rc,
-                                                                      false);
+        final HttpServer server;
+        String protocol = this.conf.get(ServerOptions.SECURITY_PROTOCOL);
+        String keystoreServerFile = this.conf.get(ServerOptions.KEYSTORE_SERVER_FILE);
+        String keystoreServerPassword = this.conf.get(ServerOptions.KEYSTORE_SERVER_PASSWORD);
+        if (protocol != null && protocol.equals("https")) {
+            SSLContextConfigurator sslContext = new SSLContextConfigurator();
+            // set up security context
+            sslContext.setKeyStoreFile(keystoreServerFile);
+            sslContext.setKeyStorePass(keystoreServerPassword);
+            server = GrizzlyHttpServerFactory.createHttpServer(uri, rc, true,
+                                                               new SSLEngineConfigurator(sslContext)
+                                             .setClientMode(false)
+                                             .setWantClientAuth(true));
+        } else {
+            server = GrizzlyHttpServerFactory.createHttpServer(uri, rc, false);
+        }
         Collection<NetworkListener> listeners = server.getListeners();
         E.checkState(listeners.size() > 0,
                      "Http Server should have some listeners, but now is none");
