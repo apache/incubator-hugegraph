@@ -67,7 +67,7 @@ jobs:
     - stage: tinkerpop-test
       if: branch =~ env(RELEASE_BRANCH)
       env: BACKEND=rocksdb SUITE=tinkerpop
-      script: skip # $TRAVIS_DIR/run-tinkerpop-test.sh
+      script: $TRAVIS_DIR/run-tinkerpop-test.sh
 
     - stage: tinkerpop-test
       if: branch =~ env(RELEASE_BRANCH)
