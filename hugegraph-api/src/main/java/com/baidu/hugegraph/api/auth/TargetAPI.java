@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.api.users;
+package com.baidu.hugegraph.api.auth;
 
 import java.util.List;
 import java.util.Map;
@@ -41,7 +41,6 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.auth.HugeTarget;
-import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.define.Checkable;
 import com.baidu.hugegraph.exception.NotFoundException;
@@ -50,9 +49,10 @@ import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-@Path("graphs/{graph}/targets")
+@Path("graphs/{graph}/auth/targets")
 @Singleton
 public class TargetAPI extends API {
 
@@ -122,7 +122,7 @@ public class TargetAPI extends API {
         LOG.debug("Graph [{}] get target: {}", graph, id);
 
         HugeGraph g = graph(manager, graph);
-        HugeTarget target = manager.userManager().getTarget(IdGenerator.of(id));
+        HugeTarget target = manager.userManager().getTarget(UserAPI.parseId(id));
         return manager.serializer(g).writeUserElement(target);
     }
 
@@ -134,10 +134,15 @@ public class TargetAPI extends API {
                        @PathParam("graph") String graph,
                        @PathParam("id") String id) {
         LOG.debug("Graph [{}] delete target: {}", graph, id);
-
-        manager.userManager().deleteTarget(IdGenerator.of(id));
+        try {
+            manager.userManager().deleteTarget(UserAPI.parseId(id));
+        } catch (NotFoundException e) {
+            throw new IllegalArgumentException("Invalid target id: " + id);
+        }
     }
 
+    @JsonIgnoreProperties(value = {"id", "target_creator",
+                                   "target_create", "target_update"})
     private static class JsonTarget implements Checkable {
 
         @JsonProperty("target_name")

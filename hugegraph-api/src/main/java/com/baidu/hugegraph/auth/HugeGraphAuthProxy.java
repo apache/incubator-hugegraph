@@ -57,7 +57,6 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.auth.HugeAuthenticator.RolePerm;
 import com.baidu.hugegraph.auth.HugeAuthenticator.User;
-import com.baidu.hugegraph.auth.ResourceObject.ResourceType;
 import com.baidu.hugegraph.auth.SchemaDefine.UserElement;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
@@ -388,7 +387,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     @Override
     public void removeEdge(Edge edge) {
         verifyElemPermission(HugePermission.DELETE, edge);
-        this.hugegraph.addEdge(edge);
+        this.hugegraph.removeEdge(edge);
     }
 
     @Override
@@ -999,7 +998,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
         @Override
         public Id createUser(HugeUser user) {
-            E.checkArgument(!user.name().equals(HugeAuthenticator.USER_ADMIN),
+            E.checkArgument(!HugeAuthenticator.USER_ADMIN.equals(user.name()),
                             "Invalid user name '%s'", user.name());
             this.updateCreator(user);
             verifyUserPermission(HugePermission.WRITE, user);
@@ -1020,6 +1019,8 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         @Override
         public HugeUser deleteUser(Id id) {
             HugeUser user = this.userManager.getUser(id);
+            E.checkArgument(!HugeAuthenticator.USER_ADMIN.equals(user.name()),
+                            "Can't delete user '%s'", user.name());
             verifyUserPermission(HugePermission.DELETE, user);
             return this.userManager.deleteUser(id);
         }

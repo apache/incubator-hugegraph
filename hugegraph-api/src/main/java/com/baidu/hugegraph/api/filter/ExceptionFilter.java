@@ -160,6 +160,19 @@ public class ExceptionFilter {
     }
 
     @Provider
+    public static class AssertionErrorMapper extends TracedExceptionMapper
+                  implements ExceptionMapper<AssertionError> {
+
+        @Override
+        public Response toResponse(AssertionError exception) {
+            return Response.status(INTERNAL_SERVER_ERROR)
+                           .type(MediaType.APPLICATION_JSON)
+                           .entity(formatException(exception, true))
+                           .build();
+        }
+    }
+
+    @Provider
     public static class UnknownExceptionMapper extends TracedExceptionMapper
                   implements ExceptionMapper<Throwable> {
 

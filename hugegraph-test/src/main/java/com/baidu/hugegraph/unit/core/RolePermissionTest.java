@@ -28,7 +28,7 @@ import com.baidu.hugegraph.auth.HugeResource.NameObject;
 import com.baidu.hugegraph.auth.HugeTarget;
 import com.baidu.hugegraph.auth.HugeUser;
 import com.baidu.hugegraph.auth.ResourceObject;
-import com.baidu.hugegraph.auth.ResourceObject.ResourceType;
+import com.baidu.hugegraph.auth.ResourceType;
 import com.baidu.hugegraph.auth.RolePermission;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.schema.VertexLabel;

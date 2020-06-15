@@ -29,7 +29,7 @@ import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
 import org.apache.tinkerpop.gremlin.structure.T;
 
 import com.baidu.hugegraph.HugeGraphParams;
-import com.baidu.hugegraph.auth.ResourceObject.ResourceType;
+import com.baidu.hugegraph.auth.ResourceType;
 import com.baidu.hugegraph.auth.SchemaDefine.Relationship;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.schema.EdgeLabel;

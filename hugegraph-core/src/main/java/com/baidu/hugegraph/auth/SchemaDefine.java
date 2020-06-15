@@ -32,7 +32,7 @@ import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.auth.HugeTarget.P;
-import com.baidu.hugegraph.auth.ResourceObject.ResourceType;
+import com.baidu.hugegraph.auth.ResourceType;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;

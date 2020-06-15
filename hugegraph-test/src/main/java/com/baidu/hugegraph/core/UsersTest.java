@@ -92,6 +92,13 @@ public class UsersTest extends BaseCoreTest {
                                         "id", user.id()));
 
         Assert.assertEquals(expected, user.asMap());
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            userManager.createUser(makeUser("tom", "pass1"));
+        }, e -> {
+            Assert.assertContains("Can't save user", e.getMessage());
+            Assert.assertContains("that already exists", e.getMessage());
+        });
     }
 
     @Test
@@ -239,6 +246,13 @@ public class UsersTest extends BaseCoreTest {
         Assert.assertEquals("pass2", user2.password());
         Assert.assertEquals(oldUpdateTime, user2.create());
         Assert.assertNotEquals(oldUpdateTime, user2.update());
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            userManager.updateUser(makeUser("tom2", "pass1"));
+        }, e -> {
+            Assert.assertContains("Can't save user", e.getMessage());
+            Assert.assertContains("that not exists", e.getMessage());
+        });
     }
 
     @Test
@@ -637,24 +651,32 @@ public class UsersTest extends BaseCoreTest {
         Assert.assertEquals(1, belongs.size());
 
         // Create belong with description
-        belong = makeBelong(user, group1);
+        Id user1 = userManager.createUser(makeUser("user1", "pass1"));
+        belong = makeBelong(user1, group1);
         belong.description("something2");
         Id id3 = userManager.createBelong(belong);
         belong = userManager.getBelong(id3);
-        Assert.assertEquals(user, belong.source());
+        Assert.assertEquals(user1, belong.source());
         Assert.assertEquals(group1, belong.target());
         Assert.assertEquals("something2", belong.description());
         Assert.assertEquals(belong.create(), belong.update());
 
         expected = new HashMap<>();
         expected.putAll(ImmutableMap.of("id", belong.id(),
-                                        "user", user,
+                                        "user", user1,
                                         "group", group1));
         expected.putAll(ImmutableMap.of("belong_description", "something2",
                                         "belong_creator", "admin",
                                         "belong_create", belong.create(),
                                         "belong_update", belong.update()));
         Assert.assertEquals(expected, belong.asMap());
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            userManager.createBelong(makeBelong(user, group1));
+        }, e -> {
+            Assert.assertContains("Can't save belong", e.getMessage());
+            Assert.assertContains("that already exists", e.getMessage());
+        });
     }
 
     @Test
@@ -788,6 +810,15 @@ public class UsersTest extends BaseCoreTest {
         Assert.assertEquals("description2", belong.description());
         Assert.assertEquals(oldUpdateTime, belong2.create());
         Assert.assertNotEquals(oldUpdateTime, belong2.update());
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            Id group2 = userManager.createGroup(makeGroup("group2"));
+            HugeBelong belong3 = makeBelong(user, group2);
+            userManager.updateBelong(belong3);
+        }, e -> {
+            Assert.assertContains("Can't save belong", e.getMessage());
+            Assert.assertContains("that not exists", e.getMessage());
+        });
     }
 
     @Test
@@ -851,7 +882,7 @@ public class UsersTest extends BaseCoreTest {
                                         "group", group1,
                                         "target", target1,
                                         "access_permission",
-                                        HugePermission.READ.string(),
+                                        HugePermission.READ,
                                         "access_creator", "admin"));
         expected.putAll(ImmutableMap.of("access_create", access.create(),
                                         "access_update", access.update()));
@@ -868,7 +899,7 @@ public class UsersTest extends BaseCoreTest {
                                         "group", group1,
                                         "target", target1,
                                         "access_permission",
-                                        HugePermission.WRITE.string(),
+                                        HugePermission.WRITE,
                                         "access_creator", "admin"));
         expected.putAll(ImmutableMap.of("access_create", access.create(),
                                         "access_update", access.update()));
@@ -885,7 +916,7 @@ public class UsersTest extends BaseCoreTest {
                                         "group", group1,
                                         "target", target2,
                                         "access_permission",
-                                        HugePermission.READ.string(),
+                                        HugePermission.READ,
                                         "access_creator", "admin"));
         expected.putAll(ImmutableMap.of("access_create", access.create(),
                                         "access_update", access.update()));
@@ -902,7 +933,7 @@ public class UsersTest extends BaseCoreTest {
                                         "group", group2,
                                         "target", target2,
                                         "access_permission",
-                                        HugePermission.READ.string(),
+                                        HugePermission.READ,
                                         "access_creator", "admin"));
         expected.putAll(ImmutableMap.of("access_create", access.create(),
                                         "access_update", access.update()));
@@ -921,27 +952,35 @@ public class UsersTest extends BaseCoreTest {
         Assert.assertEquals(2, accesses.size());
 
         // Create access with description
-        access = makeAccess(group1, target1, HugePermission.READ);
+        access = makeAccess(group2, target2, HugePermission.WRITE);
         access.description("something3");
         Id id5 = userManager.createAccess(access);
         access = userManager.getAccess(id5);
-        Assert.assertEquals(group1, access.source());
-        Assert.assertEquals(target1, access.target());
-        Assert.assertEquals(HugePermission.READ, access.permission());
+        Assert.assertEquals(group2, access.source());
+        Assert.assertEquals(target2, access.target());
+        Assert.assertEquals(HugePermission.WRITE, access.permission());
         Assert.assertEquals("something3", access.description());
         Assert.assertEquals(access.create(), access.update());
 
         expected = new HashMap<>();
         expected.putAll(ImmutableMap.of("id", access.id(),
-                                        "group", group1,
-                                        "target", target1,
+                                        "group", group2,
+                                        "target", target2,
                                         "access_permission",
-                                        HugePermission.READ.string(),
+                                        HugePermission.WRITE,
                                         "access_creator", "admin"));
         expected.putAll(ImmutableMap.of("access_description", "something3",
                                         "access_create", access.create(),
                                         "access_update", access.update()));
         Assert.assertEquals(expected, access.asMap());
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            userManager.createAccess(makeAccess(group1, target1,
+                                                HugePermission.READ));
+        }, e -> {
+            Assert.assertContains("Can't save access", e.getMessage());
+            Assert.assertContains("that already exists", e.getMessage());
+        });
     }
 
     @Test
@@ -1079,20 +1118,34 @@ public class UsersTest extends BaseCoreTest {
         Assert.assertEquals(oldUpdateTime, access2.create());
         Assert.assertNotEquals(oldUpdateTime, access2.update());
 
-        access.permission(HugePermission.WRITE);
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            access.permission(HugePermission.WRITE);
+            userManager.updateAccess(access);
+        }, e -> {
+            Assert.assertContains("Can't save access", e.getMessage());
+            Assert.assertContains("that not exists", e.getMessage());
+        });
+
+        access.permission(HugePermission.READ);
+        access.description("description updated");
         id = userManager.updateAccess(access);
 
         HugeAccess access3 = userManager.getAccess(id);
-        Assert.assertEquals(group, access.source());
-        Assert.assertEquals(target, access.target());
-        Assert.assertEquals(HugePermission.WRITE, access.permission());
+        Assert.assertEquals(group, access3.source());
+        Assert.assertEquals(target, access3.target());
+        Assert.assertEquals("description updated", access3.description());
+        Assert.assertEquals(HugePermission.READ, access3.permission());
         Assert.assertEquals(oldUpdateTime, access3.create());
         Assert.assertNotEquals(access3.create(), access3.update());
 
-        access2 = userManager.getAccess(access2.id());
-        Assert.assertEquals(group, access2.source());
-        Assert.assertEquals(target, access2.target());
-        Assert.assertEquals(HugePermission.READ, access2.permission());
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            HugeAccess access4 = makeAccess(group, target,
+                                            HugePermission.DELETE);
+            userManager.updateAccess(access4);
+        }, e -> {
+            Assert.assertContains("Can't save access", e.getMessage());
+            Assert.assertContains("that not exists", e.getMessage());
+        });
     }
 
     @Test
