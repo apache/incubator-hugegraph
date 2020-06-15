@@ -393,21 +393,20 @@ public class StandardTaskScheduler implements TaskScheduler {
             } catch (NotFoundException e) {
                 if (task != null && task.completed()) {
                     assert task.id().asLong() < 0L : task.id();
+                    sleep(QUERY_INTERVAL);
                     return task;
                 }
                 throw e;
             }
             if (task.completed()) {
+                // Wait for task result being set after status is completed
+                sleep(QUERY_INTERVAL);
                 return task;
             }
             if (pass >= passes) {
                 break;
             }
-            try {
-                Thread.sleep(QUERY_INTERVAL);
-            } catch (InterruptedException ignored) {
-                // Ignore InterruptedException
-            }
+            sleep(QUERY_INTERVAL);
         }
         throw new TimeoutException(String.format(
                   "Task '%s' was not completed in %s seconds", id, seconds));
@@ -421,16 +420,13 @@ public class StandardTaskScheduler implements TaskScheduler {
         for (long pass = 0;; pass++) {
             taskSize = this.pendingTasks();
             if (taskSize == 0) {
+                sleep(QUERY_INTERVAL);
                 return;
             }
             if (pass >= passes) {
                 break;
             }
-            try {
-                Thread.sleep(QUERY_INTERVAL);
-            } catch (InterruptedException ignored) {
-                // Ignore InterruptedException
-            }
+            sleep(QUERY_INTERVAL);
         }
         throw new TimeoutException(String.format(
                   "There are still %s incomplete tasks after %s seconds",
@@ -440,6 +436,16 @@ public class StandardTaskScheduler implements TaskScheduler {
     private <V> Iterator<HugeTask<V>> queryTask(String key, Object value,
                                                 long limit, String page) {
         return this.queryTask(ImmutableMap.of(key, value), limit, page);
+    }
+
+    private static boolean sleep(long ms) {
+        try {
+            Thread.sleep(ms);
+            return true;
+        } catch (InterruptedException ignored) {
+            // Ignore InterruptedException
+            return false;
+        }
     }
 
     private <V> Iterator<HugeTask<V>> queryTask(Map<String, Object> conditions,
