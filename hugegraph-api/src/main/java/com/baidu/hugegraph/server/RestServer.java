@@ -71,18 +71,19 @@ public class RestServer {
 
     private HttpServer configHttpServer(URI uri, ResourceConfig rc) {
         final HttpServer server;
-        String protocol = this.conf.get(ServerOptions.SECURITY_PROTOCOL);
-        String keystoreServerFile = this.conf.get(ServerOptions.KEYSTORE_SERVER_FILE);
-        String keystoreServerPassword = this.conf.get(ServerOptions.KEYSTORE_SERVER_PASSWORD);
+        String protocol = this.conf.get(ServerOptions.SERVER_PROTOCOL);
+        String keystoreServerFile = this.conf.get(ServerOptions.SERVER_KEYSTORE_FILE);
+        String keystoreServerPassword = this.conf.get(ServerOptions.SERVER_KEYSTORE_PASSWORD);
         if (protocol != null && protocol.equals("https")) {
             SSLContextConfigurator sslContext = new SSLContextConfigurator();
             // set up security context
             sslContext.setKeyStoreFile(keystoreServerFile);
             sslContext.setKeyStorePass(keystoreServerPassword);
+            SSLEngineConfigurator sslEngineConfigurator = new SSLEngineConfigurator(sslContext)
+                                                              .setClientMode(false)
+                                                              .setWantClientAuth(true);
             server = GrizzlyHttpServerFactory.createHttpServer(uri, rc, true,
-                                                               new SSLEngineConfigurator(sslContext)
-                                             .setClientMode(false)
-                                             .setWantClientAuth(true));
+                                                               sslEngineConfigurator);
         } else {
             server = GrizzlyHttpServerFactory.createHttpServer(uri, rc, false);
         }
