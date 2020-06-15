@@ -47,6 +47,7 @@ import com.baidu.hugegraph.unit.rest.RestClientTest;
 import com.baidu.hugegraph.unit.rest.RestResultTest;
 import com.baidu.hugegraph.unit.util.BytesTest;
 import com.baidu.hugegraph.unit.util.CollectionUtilTest;
+import com.baidu.hugegraph.unit.util.DateUtilTest;
 import com.baidu.hugegraph.unit.util.HashUtilTest;
 import com.baidu.hugegraph.unit.util.InsertionOrderUtilTest;
 import com.baidu.hugegraph.unit.util.LongEncodingTest;
@@ -57,6 +58,7 @@ import com.baidu.hugegraph.unit.util.StringUtilTest;
 import com.baidu.hugegraph.unit.util.TimeUtilTest;
 import com.baidu.hugegraph.unit.util.VersionUtilTest;
 import com.baidu.hugegraph.unit.version.VersionTest;
+import com.baidu.hugegraph.util.DateUtil;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
@@ -90,6 +92,7 @@ import com.baidu.hugegraph.unit.version.VersionTest;
     VersionUtilTest.class,
     LongEncodingTest.class,
     OrderLimitMapTest.class,
+    DateUtilTest.class,
 
     ExtraParamTest.class,
     LicenseCreateParamTest.class,
