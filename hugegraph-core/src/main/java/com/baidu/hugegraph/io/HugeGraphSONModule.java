@@ -411,6 +411,17 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
 
             generator.writeEndObject();
         }
+
+        @Override
+        public void serializeWithType(HugeVertex value, JsonGenerator generator,
+                                      SerializerProvider provider,
+                                      TypeSerializer typeSer)
+                                      throws IOException {
+            WritableTypeId typeId = typeSer.typeId(value, JsonToken.VALUE_STRING);
+            typeSer.writeTypePrefix(generator, typeId);
+            this.serialize(value, generator, provider);
+            typeSer.writeTypeSuffix(generator, typeId);
+        }
     }
 
     private static class HugeEdgeSerializer
@@ -443,6 +454,17 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
                                       generator, provider);
 
             generator.writeEndObject();
+        }
+
+        @Override
+        public void serializeWithType(HugeEdge value, JsonGenerator generator,
+                                      SerializerProvider provider,
+                                      TypeSerializer typeSer)
+                                      throws IOException {
+            WritableTypeId typeId = typeSer.typeId(value, JsonToken.VALUE_STRING);
+            typeSer.writeTypePrefix(generator, typeId);
+            this.serialize(value, generator, provider);
+            typeSer.writeTypeSuffix(generator, typeId);
         }
     }
 
