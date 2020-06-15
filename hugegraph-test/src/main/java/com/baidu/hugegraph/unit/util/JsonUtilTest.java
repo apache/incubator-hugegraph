@@ -98,7 +98,8 @@ public class JsonUtilTest extends BaseUnitTest {
                             "\"data_type\":\"TEXT\"," +
                             "\"cardinality\":\"SINGLE\"," +
                             "\"aggregate_type\":\"NONE\"," +
-                            "\"properties\":[],\"user_data\":{}}", json);
+                            "\"properties\":[],\"status\":\"CREATED\"," +
+                            "\"user_data\":{}}", json);
 
         PropertyKey rate = fakeObject.newPropertyKey(IdGenerator.of(2), "rate",
                                                      DataType.INT,
@@ -106,8 +107,8 @@ public class JsonUtilTest extends BaseUnitTest {
         json = JsonUtil.toJson(rate);
         Assert.assertEquals("{\"id\":2,\"name\":\"rate\"," +
                             "\"data_type\":\"INT\",\"cardinality\":\"LIST\"," +
-                            "\"aggregate_type\":\"NONE\"," +
-                            "\"properties\":[],\"user_data\":{}}", json);
+                            "\"aggregate_type\":\"NONE\",\"properties\":[]," +
+                            "\"status\":\"CREATED\",\"user_data\":{}}", json);
     }
 
     @Test
@@ -132,6 +133,7 @@ public class JsonUtilTest extends BaseUnitTest {
                             "\"primary_keys\":[],\"nullable_keys\":[]," +
                             "\"index_labels\":[]," +
                             "\"properties\":[\"name\",\"age\",\"city\"]," +
+                            "\"status\":\"CREATED\"," +
                             "\"ttl\":0,\"enable_label_index\":true," +
                             "\"user_data\":{}}", json);
     }
@@ -171,6 +173,7 @@ public class JsonUtilTest extends BaseUnitTest {
                             "\"frequency\":\"SINGLE\",\"sort_keys\":[]," +
                             "\"nullable_keys\":[],\"index_labels\":[]," +
                             "\"properties\":[\"date\",\"weight\"]," +
+                            "\"status\":\"CREATED\"," +
                             "\"ttl\":0,\"enable_label_index\":true," +
                             "\"user_data\":{}}", json);
     }
@@ -207,6 +210,7 @@ public class JsonUtilTest extends BaseUnitTest {
                             "\"base_value\":\"person\"," +
                             "\"index_type\":\"SECONDARY\"," +
                             "\"fields\":[\"age\",\"city\"]," +
+                            "\"status\":\"CREATED\"," +
                             "\"user_data\":{}}", json);
     }
 
