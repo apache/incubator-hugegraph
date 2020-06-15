@@ -111,7 +111,8 @@ public class EdgeLabelBuilder extends AbstractBuilder
         EdgeLabel edgeLabel = new EdgeLabel(graph, id, this.name);
         edgeLabel.sourceLabel(graph.vertexLabel(this.sourceLabel).id());
         edgeLabel.targetLabel(graph.vertexLabel(this.targetLabel).id());
-        edgeLabel.frequency(this.frequency);
+        edgeLabel.frequency(this.frequency == Frequency.DEFAULT ?
+                            Frequency.SINGLE : this.frequency);
         edgeLabel.ttl(this.ttl);
         if (this.ttlStartTime != null) {
             edgeLabel.ttlStartTime(this.graph().propertyKey(
@@ -144,15 +145,13 @@ public class EdgeLabelBuilder extends AbstractBuilder
             EdgeLabel edgeLabel = this.edgeLabelOrNull(this.name);
             if (edgeLabel != null) {
                 if (this.checkExist || !hasSameProperties(edgeLabel)) {
+                    hasSameProperties(edgeLabel);
                     throw new ExistedException(type, this.name);
                 }
                 return edgeLabel;
             }
             this.checkSchemaIdIfRestoringMode(type, this.id);
 
-            if (this.frequency == Frequency.DEFAULT) {
-                this.frequency = Frequency.SINGLE;
-            }
             // These methods will check params and fill to member variables
             this.checkRelation();
             this.checkProperties(Action.INSERT);
@@ -189,7 +188,10 @@ public class EdgeLabelBuilder extends AbstractBuilder
             return false;
         }
 
-        if (this.frequency != existedEdgeLabel.frequency()) {
+        if ((this.frequency == Frequency.DEFAULT &&
+             existedEdgeLabel.frequency() != Frequency.SINGLE) ||
+            (this.frequency != Frequency.DEFAULT &&
+             this.frequency != existedEdgeLabel.frequency())) {
             return false;
         }
 
@@ -481,7 +483,8 @@ public class EdgeLabelBuilder extends AbstractBuilder
     }
 
     private void checkSortKeys() {
-        if (this.frequency == Frequency.SINGLE) {
+        if (this.frequency == Frequency.SINGLE ||
+            this.frequency  == Frequency.DEFAULT) {
             E.checkArgument(this.sortKeys.isEmpty(),
                             "EdgeLabel can't contain sortKeys " +
                             "when the cardinality property is single");

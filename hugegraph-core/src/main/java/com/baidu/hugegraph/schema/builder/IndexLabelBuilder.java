@@ -124,9 +124,10 @@ public class IndexLabelBuilder extends AbstractBuilder
      */
     private boolean hasSameProperties(IndexLabel existedIndexLabel) {
         // baseType is null, it means HugeType.SYS_SCHEMA
-        if (this.baseType == null &&
-            existedIndexLabel.baseType() != HugeType.SYS_SCHEMA ||
-            this.baseType != existedIndexLabel.baseType()) {
+        if ((this.baseType == null &&
+             existedIndexLabel.baseType() != HugeType.SYS_SCHEMA) ||
+            (this.baseType != null &&
+             this.baseType != existedIndexLabel.baseType())) {
             return false;
         }
 
@@ -135,9 +136,10 @@ public class IndexLabelBuilder extends AbstractBuilder
             return false;
         }
 
-        if (this.indexType == null &&
-            existedIndexLabel.indexType() != IndexType.SECONDARY ||
-            this.indexType != existedIndexLabel.indexType()) {
+        if ((this.indexType == null &&
+             existedIndexLabel.indexType() != IndexType.SECONDARY) ||
+            (this.indexType != null &&
+             this.indexType != existedIndexLabel.indexType())) {
             return false;
         }
 
@@ -167,6 +169,7 @@ public class IndexLabelBuilder extends AbstractBuilder
             IndexLabel indexLabel = this.indexLabelOrNull(name);
             if (indexLabel != null) {
                 if (this.checkExist || !hasSameProperties(indexLabel)) {
+                    hasSameProperties(indexLabel);
                     throw new ExistedException(type, name);
                 }
                 return new IndexLabel.CreatedIndexLabel(indexLabel, null);

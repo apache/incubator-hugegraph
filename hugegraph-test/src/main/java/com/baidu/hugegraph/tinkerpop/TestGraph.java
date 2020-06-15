@@ -616,7 +616,6 @@ public class TestGraph implements Graph {
          * datatype String
          */
         schema.propertyKey("short").asText().ifNotExist().create();
-        schema.propertyKey("long").asLong().ifNotExist().create();
         schema.propertyKey("x").asInt().ifNotExist().create();
         schema.propertyKey("y").asInt().ifNotExist().create();
         schema.propertyKey("age").asInt().ifNotExist().create();
@@ -635,7 +634,6 @@ public class TestGraph implements Graph {
         schema.propertyKey("state").ifNotExist().create();
         schema.propertyKey("acl").ifNotExist().create();
         schema.propertyKey("stars").asInt().ifNotExist().create();
-        schema.propertyKey("aKey").asDouble().ifNotExist().create();
         schema.propertyKey("b").asBoolean().ifNotExist().create();
         schema.propertyKey("s").ifNotExist().create();
         schema.propertyKey("n").ifNotExist().create();
@@ -658,6 +656,13 @@ public class TestGraph implements Graph {
               .ifNotExist().create();
         schema.propertyKey("blah").asDouble().ifNotExist().create();
         schema.propertyKey("bloop").asInt().ifNotExist().create();
+
+        if (!this.graph.existsPropertyKey("long")) {
+            schema.propertyKey("long").asLong().ifNotExist().create();
+        }
+        if (!this.graph.existsPropertyKey("aKey")) {
+            schema.propertyKey("aKey").asDouble().ifNotExist().create();
+        }
 
         if (this.ioTest) {
             schema.propertyKey("weight").asFloat().ifNotExist().create();
@@ -737,10 +742,12 @@ public class TestGraph implements Graph {
     private void initBasicVertexLabelAndEdgeLabelExceptV(String defaultVL) {
         SchemaManager schema = this.graph.schema();
 
-        schema.vertexLabel("person")
-              .properties("name", "age")
-              .nullableKeys("name", "age")
-              .ifNotExist().create();
+        if (!defaultVL.equals("person")) {
+            schema.vertexLabel("person")
+                  .properties("name", "age")
+                  .nullableKeys("name", "age")
+                  .ifNotExist().create();
+        }
         schema.vertexLabel("software")
               .properties("name", "lang")
               .nullableKeys("name", "lang")

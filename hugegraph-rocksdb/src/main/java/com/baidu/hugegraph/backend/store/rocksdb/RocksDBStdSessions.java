@@ -534,7 +534,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
         public synchronized void drop() throws RocksDBException {
             // When entering this method, the refs won't increase any more
             final long timeout = TimeUnit.MINUTES.toMillis(30L);
-            final long unit = 100;
+            final long unit = 100L;
             for (long i = 1; this.refs.get() > 1; i++) {
                 try {
                     Thread.sleep(unit);
