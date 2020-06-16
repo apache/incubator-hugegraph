@@ -270,7 +270,12 @@ public class VertexAPI extends BatchAPI {
                                  .limit(limit);
         }
 
-        return manager.serializer(g).writeVertices(traversal, page != null);
+        try {
+            return manager.serializer(g).writeVertices(traversal,
+                                                       page != null);
+        } finally {
+            g.tx().close();
+        }
     }
 
     @GET
@@ -285,9 +290,13 @@ public class VertexAPI extends BatchAPI {
 
         Id id = checkAndParseVertexId(idValue);
         HugeGraph g = graph(manager, graph);
-        Iterator<Vertex> vertices = g.vertices(id);
-        checkExist(vertices, HugeType.VERTEX, idValue);
-        return manager.serializer(g).writeVertex(vertices.next());
+        try {
+            Iterator<Vertex> vertices = g.vertices(id);
+            checkExist(vertices, HugeType.VERTEX, idValue);
+            return manager.serializer(g).writeVertex(vertices.next());
+        } finally {
+            g.tx().close();
+        }
     }
 
     @DELETE
