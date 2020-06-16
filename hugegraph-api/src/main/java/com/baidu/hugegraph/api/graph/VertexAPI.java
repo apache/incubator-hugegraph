@@ -274,7 +274,9 @@ public class VertexAPI extends BatchAPI {
             return manager.serializer(g).writeVertices(traversal,
                                                        page != null);
         } finally {
-            g.tx().close();
+            if (g.tx().isOpen()) {
+                g.tx().close();
+            }
         }
     }
 
@@ -295,7 +297,9 @@ public class VertexAPI extends BatchAPI {
             checkExist(vertices, HugeType.VERTEX, idValue);
             return manager.serializer(g).writeVertex(vertices.next());
         } finally {
-            g.tx().close();
+            if (g.tx().isOpen()) {
+                g.tx().close();
+            }
         }
     }
 

@@ -329,7 +329,9 @@ public class EdgeAPI extends BatchAPI {
         try {
             return manager.serializer(g).writeEdges(traversal, page != null);
         } finally {
-            g.tx().close();
+            if (g.tx().isOpen()) {
+                g.tx().close();
+            }
         }
     }
 
@@ -349,7 +351,9 @@ public class EdgeAPI extends BatchAPI {
             checkExist(edges, HugeType.EDGE, id);
             return manager.serializer(g).writeEdge(edges.next());
         } finally {
-            g.tx().close();
+            if (g.tx().isOpen()) {
+                g.tx().close();
+            }
         }
     }
 
