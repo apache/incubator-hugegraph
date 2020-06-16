@@ -407,7 +407,7 @@ public class SchemaTransaction extends IndexableTransaction {
         E.checkArgument(name.length() < 256,
                         "The length of name must less than 256 bytes.");
         E.checkArgument(!name.matches(illegalReg),
-                        String.format("Illegal schema name '%s'", name));
+                        "Illegal schema name '%s'", name);
 
         final char[] filters = {'#', '>', ':', '!'};
         for (char c : filters) {

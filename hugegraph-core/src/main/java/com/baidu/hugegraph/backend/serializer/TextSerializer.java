@@ -824,14 +824,6 @@ public class TextSerializer extends AbstractSerializer {
         return JsonUtil.toJson(array);
     }
 
-    private static String writeElementId(Id id, long expiredTime) {
-        Object[] array = new Object[1];
-        Object idValue = id.number() ? id.asLong() : id.asString();
-        array[0] = ImmutableMap.of(HugeKeys.ID.string(), idValue,
-                                   HugeKeys.EXPIRED_TIME.string(), expiredTime);
-        return JsonUtil.toJson(array);
-    }
-
     private static Id[] readIds(String str) {
         Object[] values = JsonUtil.fromJson(str, Object[].class);
         Id[] ids = new Id[values.length];
@@ -847,15 +839,35 @@ public class TextSerializer extends AbstractSerializer {
         return ids;
     }
 
+    private static String writeElementId(Id id, long expiredTime) {
+        Object[] array = new Object[1];
+        Object idValue = id.number() ? id.asLong() : id.asString();
+        if (expiredTime <= 0L) {
+            array[0] = id;
+        } else {
+            array[0] = ImmutableMap.of(HugeKeys.ID.string(), idValue,
+                                       HugeKeys.EXPIRED_TIME.string(),
+                                       expiredTime);
+        }
+        return JsonUtil.toJson(array);
+    }
+
     private static IdWithExpiredTime[] readElementIds(String str) {
         Object[] values = JsonUtil.fromJson(str, Object[].class);
         IdWithExpiredTime[] ids = new IdWithExpiredTime[values.length];
         for (int i = 0; i < values.length; i++) {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> map = (Map<String, Object>) values[i];
-            Object idValue = map.get(HugeKeys.ID.string());
-            long expiredTime = ((Number) map.get(
-                               HugeKeys.EXPIRED_TIME.string())).longValue();
+            Object idValue;
+            long expiredTime;
+            if (values[i] instanceof Map) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> map = (Map<String, Object>) values[i];
+                idValue = map.get(HugeKeys.ID.string());
+                expiredTime = ((Number) map.get(
+                              HugeKeys.EXPIRED_TIME.string())).longValue();
+            } else {
+                idValue = values[i];
+                expiredTime = 0L;
+            }
             Id id;
             if (idValue instanceof Number) {
                 id = IdGenerator.of(((Number) idValue).longValue());

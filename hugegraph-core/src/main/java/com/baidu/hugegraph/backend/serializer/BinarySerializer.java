@@ -412,16 +412,13 @@ public class BinarySerializer extends AbstractSerializer {
 
         // Write vertex expired time if needed
         if (vertex.hasTtl()) {
+            entry.ttl(vertex.ttl());
             this.formatExpiredTime(vertex.expiredTime(), buffer);
         }
 
         // Fill column
         byte[] name = this.keyWithIdPrefix ? entry.id().asBytes() : EMPTY_BYTES;
         entry.column(name, buffer.bytes());
-
-        if (vertex.hasTtl()) {
-            entry.ttl(vertex.ttl());
-        }
 
         return entry;
     }

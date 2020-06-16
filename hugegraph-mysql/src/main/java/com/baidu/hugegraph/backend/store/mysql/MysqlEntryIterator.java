@@ -101,7 +101,7 @@ public class MysqlEntryIterator extends BackendEntryIterator {
     protected PageState pageState() {
         byte[] position;
         // There is no latest or no next page
-        if (this.lastest == null || !exceedLimit &&
+        if (this.lastest == null || !this.exceedLimit &&
             this.fetched() <= this.query.limit() && this.next == null) {
             position = PageState.EMPTY_BYTES;
         } else {
@@ -144,8 +144,13 @@ public class MysqlEntryIterator extends BackendEntryIterator {
         ResultSetMetaData metaData = result.getMetaData();
         for (int i = 1; i <= metaData.getColumnCount(); i++) {
             String name = metaData.getColumnLabel(i);
+            HugeKeys key = MysqlTable.parseKey(name);
             Object value = result.getObject(i);
-            entry.column(MysqlTable.parseKey(name), value);
+            if (value == null) {
+                assert key == HugeKeys.EXPIRED_TIME;
+                continue;
+            }
+            entry.column(key, value);
         }
         return entry;
     }

@@ -386,8 +386,13 @@ public abstract class CassandraTable
         List<Definition> cols = row.getColumnDefinitions().asList();
         for (Definition col : cols) {
             String name = col.getName();
+            HugeKeys key = CassandraTable.parseKey(name);
             Object value = row.getObject(name);
-            entry.column(CassandraTable.parseKey(name), value);
+            if (value == null) {
+                assert key == HugeKeys.EXPIRED_TIME;
+                continue;
+            }
+            entry.column(key, value);
         }
 
         return entry;
