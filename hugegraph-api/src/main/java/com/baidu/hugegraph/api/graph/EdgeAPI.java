@@ -326,10 +326,11 @@ public class EdgeAPI extends BatchAPI {
                                  .limit(limit);
         }
 
-        String result = manager.serializer(g).writeEdges(traversal,
-                                                         page != null);
-        g.tx().close();
-        return result;
+        try {
+            return manager.serializer(g).writeEdges(traversal, page != null);
+        } finally {
+            g.tx().close();
+        }
     }
 
     @GET
@@ -343,11 +344,13 @@ public class EdgeAPI extends BatchAPI {
         LOG.debug("Graph [{}] get edge by id '{}'", graph, id);
 
         HugeGraph g = graph(manager, graph);
-        Iterator<Edge> edges = g.edges(id);
-        checkExist(edges, HugeType.EDGE, id);
-        String result = manager.serializer(g).writeEdge(edges.next());
-        g.tx().close();
-        return result;
+        try {
+            Iterator<Edge> edges = g.edges(id);
+            checkExist(edges, HugeType.EDGE, id);
+            return manager.serializer(g).writeEdge(edges.next());
+        } finally {
+            g.tx().close();
+        }
     }
 
     @DELETE
