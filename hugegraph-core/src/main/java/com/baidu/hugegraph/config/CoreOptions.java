@@ -268,7 +268,7 @@ public class CoreOptions extends OptionHolder {
                     "expired.delete_batch",
                     "The batch size used to delete expired data.",
                     rangeInt(1, 500),
-                    10
+                    1
             );
 
     public static final ConfigOption<Long> VERTEX_CACHE_CAPACITY =

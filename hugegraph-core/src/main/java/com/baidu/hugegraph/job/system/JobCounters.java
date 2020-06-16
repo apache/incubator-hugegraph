@@ -68,7 +68,7 @@ public class JobCounters {
             this.jobs.incrementAndGet();
         }
 
-        public Set<HugeElement> edges() {
+        public Set<HugeElement> elements() {
             return this.elements;
         }
 

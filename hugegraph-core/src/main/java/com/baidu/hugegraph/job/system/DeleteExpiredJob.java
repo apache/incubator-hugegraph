@@ -82,7 +82,7 @@ public abstract class DeleteExpiredJob<T> extends EphemeralJob<T> {
     public static <V> EphemeralJob<V> newDeleteExpiredElementJob(
                                       JobCounter jobCounter, V object) {
         if (object instanceof HugeElement) {
-            return new DeleteExpiredElementJob<>(jobCounter.edges());
+            return new DeleteExpiredElementJob<>(jobCounter.elements());
         } else {
             assert object instanceof HugeIndex;
             return new DeleteExpiredIndexJob<>(jobCounter.indexes());
