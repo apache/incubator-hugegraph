@@ -48,6 +48,7 @@ public final class TaskManager {
     public static final String TASK_DB_WORKER = "task-db-worker-%d";
     public static final String TASK_SCHEDULER = "task-scheduler-%d";
 
+    public static final int SCHEDULE_PERIOD = 3;
     private static final int THREADS = 4;
     private static final TaskManager MANAGER = new TaskManager(THREADS);
 
@@ -55,7 +56,7 @@ public final class TaskManager {
 
     private final ExecutorService taskExecutor;
     private final ExecutorService dbExecutor;
-    private final ScheduledExecutorService taskScheduler;
+    private final ScheduledExecutorService schedulerExecutor;
 
     public static TaskManager instance() {
         return MANAGER;
@@ -69,20 +70,20 @@ public final class TaskManager {
         // For save/query task state, just one thread is ok
         this.dbExecutor = ExecutorUtil.newFixedThreadPool(1, TASK_DB_WORKER);
         // For schedule task to run, just one thread is ok
-        this.taskScheduler = ExecutorUtil.newScheduledThreadPool(
-                             1, TASK_SCHEDULER);
+        this.schedulerExecutor = ExecutorUtil.newScheduledThreadPool(
+                                 1, TASK_SCHEDULER);
         // Start after 10s waiting for HugeGraphServer startup
-        this.taskScheduler.scheduleWithFixedDelay(this::periodicJob,
-                                                  10L, 3, TimeUnit.SECONDS);
+        this.schedulerExecutor.scheduleWithFixedDelay(this::scheduleOrExecuteJob,
+                                                      10L, SCHEDULE_PERIOD,
+                                                      TimeUnit.SECONDS);
     }
 
     public void addScheduler(HugeGraphParams graph) {
         E.checkArgumentNotNull(graph, "The graph can't be null");
         ExecutorService task = this.taskExecutor;
         ExecutorService db = this.dbExecutor;
-        TaskScheduler taskScheduler = new StandardTaskScheduler(graph, task,
-                                                                db);
-        this.schedulers.put(graph, taskScheduler);
+        TaskScheduler scheduler = new StandardTaskScheduler(graph, task, db);
+        this.schedulers.put(graph, scheduler);
     }
 
     public void closeScheduler(HugeGraphParams graph) {
@@ -139,13 +140,14 @@ public final class TaskManager {
         assert this.schedulers.isEmpty() : this.schedulers.size();
 
         Throwable ex = null;
-        boolean terminated = this.taskScheduler.isTerminated();
+        boolean terminated = this.schedulerExecutor.isTerminated();
         final TimeUnit unit = TimeUnit.SECONDS;
 
-        if (!this.taskScheduler.isShutdown()) {
-            this.taskScheduler.shutdown();
+        if (!this.schedulerExecutor.isShutdown()) {
+            this.schedulerExecutor.shutdown();
             try {
-                terminated = this.taskScheduler.awaitTermination(timeout, unit);
+                terminated = this.schedulerExecutor.awaitTermination(timeout,
+                                                                     unit);
             } catch (Throwable e) {
                 ex = e;
             }
@@ -189,10 +191,14 @@ public final class TaskManager {
         return size;
     }
 
-    private void periodicJob() {
+    protected void notifyNewTask(HugeTask<?> task) {
+        this.schedulerExecutor.submit(this::scheduleOrExecuteJob);
+    }
+
+    private void scheduleOrExecuteJob() {
         try {
             for (Map.Entry<HugeGraphParams, TaskScheduler> entry :
-                     this.schedulers.entrySet()) {
+                 this.schedulers.entrySet()) {
                 ServerInfoManager server = entry.getKey().serverManager();
                 StandardTaskScheduler scheduler = (StandardTaskScheduler)
                                                   entry.getValue();
@@ -206,10 +212,10 @@ public final class TaskManager {
                 }
 
                 // Schedule queued tasks scheduled to current server
-                scheduler.scheduleTasksForServer(server.serverId());
+                scheduler.executeTasksForWorker(server.serverId());
 
                 // Cancel tasks scheduled to current server
-                scheduler.cancelTasksForServer(server.serverId());
+                scheduler.cancelTasksForWorker(server.serverId());
             }
         } catch (Throwable e) {
             LOG.error("Exception occurred when schedule job", e);

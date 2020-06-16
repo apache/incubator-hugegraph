@@ -64,6 +64,7 @@ public class CoreTestSuite {
         graph = Utils.open();
         graph.clearBackend();
         graph.initBackend();
+        graph.serverStarted("server1", "master");
     }
 
     @AfterClass

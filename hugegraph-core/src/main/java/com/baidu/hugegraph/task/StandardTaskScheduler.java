@@ -53,6 +53,7 @@ import com.baidu.hugegraph.exception.ConnectionException;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.iterator.MapperIterator;
+import com.baidu.hugegraph.job.EphemeralJob;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaManager;
@@ -207,10 +208,19 @@ public class StandardTaskScheduler implements TaskScheduler {
             throw new HugeException("The worker can't schedule task");
         }
         E.checkArgumentNotNull(task, "Task can't be null");
-        // Just queue task to be scheduled by periodic scheduler
+
         task.status(TaskStatus.QUEUED);
+        if (task.callable() instanceof EphemeralJob) {
+            return this.submitTask(task);
+        }
+
+        // Just save task to be scheduled by periodic scheduler
         this.save(task);
-        return null;
+
+        // Notify master server to schedule and execute immediately
+        TaskManager.instance().notifyNewTask(task);
+
+        return task;
     }
 
     public  <V> Future<?> submitTask(HugeTask<V> task) {
@@ -236,10 +246,10 @@ public class StandardTaskScheduler implements TaskScheduler {
     }
 
     @Override
-    public <V> boolean cancel(HugeTask<V> task) {
+    public <V> void cancel(HugeTask<V> task) {
         E.checkArgumentNotNull(task, "Task can't be null");
         if (!this.serverManager().master()) {
-            return false;
+            return;
         }
         if (!task.completed()) {
             // The task scheduled to workers, waiting for worker cancel
@@ -247,10 +257,9 @@ public class StandardTaskScheduler implements TaskScheduler {
             this.save(task);
             this.remove(task.id());
         }
-        return false;
     }
 
-    public synchronized <V> void scheduleTasks() {
+    protected synchronized <V> void scheduleTasks() {
         // Master schedule all queued tasks to suitable servers
         String page = PageInfo.PAGE_NONE;
         do {
@@ -275,7 +284,6 @@ public class StandardTaskScheduler implements TaskScheduler {
                 assert server.id() != null;
                 task.server(server.id());
                 this.save(task);
-                assert server.id().equals(this.findTask(task.id()).server());
                 server.load(server.load() + task.load());
                 this.serverManager().save(server);
                 LOG.info("Schedule task {} to server {}",
@@ -285,7 +293,7 @@ public class StandardTaskScheduler implements TaskScheduler {
         } while (page != null);
     }
 
-    public <V> void scheduleTasksForServer(Id server) {
+    protected <V> void executeTasksForWorker(Id server) {
         String page = PageInfo.PAGE_NONE;
         do {
             Iterator<HugeTask<V>> tasks = this.tasks(TaskStatus.QUEUED,
@@ -305,7 +313,7 @@ public class StandardTaskScheduler implements TaskScheduler {
     private synchronized <V> HugeServerInfo pickWorker(HugeTask<V> task) {
         HugeServerInfo master = null;
         HugeServerInfo minServer = null;
-        int minLoad = HugeServerInfo.MAX_LOAD;
+        int minLoad = Integer.MAX_VALUE;
         boolean hasWorker = false;
         long now = DateUtil.now().getTime();
 
@@ -345,7 +353,7 @@ public class StandardTaskScheduler implements TaskScheduler {
         return minServer;
     }
 
-    public <V> void cancelTasksForServer(Id server) {
+    protected <V> void cancelTasksForWorker(Id server) {
         String page = PageInfo.PAGE_NONE;
         do {
             Iterator<HugeTask<V>> tasks = this.tasks(TaskStatus.CANCELLING,
@@ -376,7 +384,7 @@ public class StandardTaskScheduler implements TaskScheduler {
         } while (page != null);
     }
 
-    public ServerInfoManager serverManager() {
+    protected ServerInfoManager serverManager() {
         return this.graph.serverManager();
     }
 

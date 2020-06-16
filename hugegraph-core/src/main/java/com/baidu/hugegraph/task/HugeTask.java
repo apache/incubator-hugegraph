@@ -39,11 +39,12 @@ import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
+import com.baidu.hugegraph.StandardHugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
-import com.baidu.hugegraph.cluster.HugeServerInfo;
 import com.baidu.hugegraph.cluster.ServerInfoManager;
+import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.exception.LimitExceedException;
 import com.baidu.hugegraph.type.define.SerialEnum;
 import com.baidu.hugegraph.util.Blob;
@@ -106,7 +107,7 @@ public class HugeTask<V> extends FutureTask<V> {
         this.input = null;
         this.result = null;
         this.server = null;
-        this.load = 100;
+        this.load = 1;
     }
 
     public Id id() {
@@ -331,12 +332,17 @@ public class HugeTask<V> extends FutureTask<V> {
         } finally {
             StandardTaskScheduler scheduler = (StandardTaskScheduler)
                                               this.scheduler();
-            scheduler.remove(this.id);
+            boolean syncDelete = ((StandardHugeGraph) scheduler.graph())
+                                 .configuration()
+                                 .get(CoreOptions.TASK_SYNC_DELETION);
+            if (!syncDelete) {
+                scheduler.remove(this.id);
+            }
+
             ServerInfoManager manager = scheduler.serverManager();
-            HugeServerInfo serverInfo = manager.serverInfo();
-            serverInfo.load(serverInfo.load() - this.load);
-            manager.save(serverInfo);
-            LOG.info("Task {} done on server {}", this.id, serverInfo.id());
+            manager.decreaseLoad(this.load);
+
+            LOG.info("Task {} done on server {}", this.id, manager.serverId());
         }
     }
 
@@ -636,9 +642,16 @@ public class HugeTask<V> extends FutureTask<V> {
     }
 
     public void syncWait() {
+        HugeTask task = null;
         try {
-            this.get();
-            assert this.completed();
+            Id id = this.id();
+            do {
+                task = this.scheduler().task(id);
+                if (task.status.code() > TaskStatus.QUEUED.code()) {
+                    task.get();
+                }
+            } while (!task.completed());
+            assert task.completed();
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
             if (cause instanceof RuntimeException) {
@@ -649,6 +662,8 @@ public class HugeTask<V> extends FutureTask<V> {
         } catch (Exception e) {
             throw new HugeException("Async task failed with error: %s",
                                     e, e.getMessage());
+        } finally {
+            ((StandardTaskScheduler) task.scheduler()).remove(id);
         }
     }
 

@@ -84,7 +84,6 @@ import com.baidu.hugegraph.traversal.optimize.HugeScriptTraversal;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.Namifiable;
 import com.baidu.hugegraph.type.define.GraphMode;
-import com.baidu.hugegraph.type.define.GraphRole;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 
@@ -852,9 +851,9 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         }
 
         @Override
-        public <V> boolean cancel(HugeTask<V> task) {
+        public <V> void cancel(HugeTask<V> task) {
             verifyTaskPermission(HugePermission.WRITE, task);
-            return this.taskScheduler.cancel(task);
+            this.taskScheduler.cancel(task);
         }
 
         @Override

@@ -161,11 +161,13 @@ public class TaskAPI extends API {
 
         TaskScheduler scheduler = graph(manager, graph).taskScheduler();
         HugeTask<?> task = scheduler.task(IdGenerator.of(id));
-        if (!task.completed() &&
-            (scheduler.cancel(task) || task.cancelling())) {
+        if (!task.completed() && !task.cancelling()) {
+            scheduler.cancel(task);
+            assert task.cancelling();
             return task.asMap();
         }
 
+        assert task.completed() || task.cancelling();
         throw new BadRequestException(String.format(
                   "Can't cancel task '%s' which is completed", id));
     }

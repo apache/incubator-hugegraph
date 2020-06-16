@@ -40,36 +40,39 @@ import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.task.HugeTask;
+import com.baidu.hugegraph.task.TaskManager;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
-import com.baidu.hugegraph.type.define.GraphRole;
+import com.baidu.hugegraph.type.define.NodeRole;
 import com.baidu.hugegraph.type.define.SerialEnum;
 import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.E;
 
 public class HugeServerInfo {
 
-    public static final int MAX_LOAD = 1000;
-    public static final long EXPIRED_INTERVAL = 5000L;
+    public static final long EXPIRED_INTERVAL =
+                             TaskManager.SCHEDULE_PERIOD * 1000L * 3;
 
     private Id id;
-    private GraphRole role;
+    private NodeRole role;
+    private int maxLoad;
     private int load;
     private Date updateTime;
 
-    public HugeServerInfo(String name, GraphRole role) {
+    public HugeServerInfo(String name, NodeRole role) {
         this(IdGenerator.of(name), role);
     }
 
     public HugeServerInfo(Id id) {
         this.id = id;
+        this.role = NodeRole.WORKER;
+        this.maxLoad = 0;
         this.load = 0;
-        this.role = GraphRole.WORKER;
         this.updateTime = DateUtil.now();
     }
 
-    public HugeServerInfo(Id id, GraphRole role) {
+    public HugeServerInfo(Id id, NodeRole role) {
         this.id = id;
         this.load = 0;
         this.role = role;
@@ -84,12 +87,20 @@ public class HugeServerInfo {
         return this.id.asString();
     }
 
-    public GraphRole role() {
+    public NodeRole role() {
         return this.role;
     }
 
-    public void role(GraphRole role) {
+    public void role(NodeRole role) {
         this.role = role;
+    }
+
+    public int maxLoad() {
+        return this.maxLoad;
+    }
+
+    public void maxLoad(int maxLoad) {
+        this.maxLoad = maxLoad;
     }
 
     public int load() {
@@ -122,7 +133,10 @@ public class HugeServerInfo {
     protected boolean property(String key, Object value) {
         switch (key) {
             case P.ROLE:
-                this.role = SerialEnum.fromCode(GraphRole.class, (byte) value);
+                this.role = SerialEnum.fromCode(NodeRole.class, (byte) value);
+                break;
+            case P.MAX_LOAD:
+                this.maxLoad = (int) value;
                 break;
             case P.LOAD:
                 this.load = (int) value;
@@ -150,6 +164,9 @@ public class HugeServerInfo {
         list.add(P.ROLE);
         list.add(this.role.code());
 
+        list.add(P.MAX_LOAD);
+        list.add(this.maxLoad);
+
         list.add(P.LOAD);
         list.add(this.load);
 
@@ -167,6 +184,7 @@ public class HugeServerInfo {
         map.put(Graph.Hidden.unHide(P.ID), this.id);
         map.put(Graph.Hidden.unHide(P.LABEL), P.SERVER);
         map.put(Graph.Hidden.unHide(P.ROLE), this.role);
+        map.put(Graph.Hidden.unHide(P.MAX_LOAD), this.maxLoad);
         map.put(Graph.Hidden.unHide(P.LOAD), this.load);
         map.put(Graph.Hidden.unHide(P.UPDATE_TIME), this.updateTime);
 
@@ -185,7 +203,7 @@ public class HugeServerInfo {
 
     public <V> boolean suitableFor(HugeTask<V> task, long now) {
         if (this.updateTime.getTime() + EXPIRED_INTERVAL < now ||
-            this.load() + task.load() > MAX_LOAD) {
+            this.load() + task.load() > this.maxLoad) {
             return false;
         }
         return true;
@@ -205,6 +223,7 @@ public class HugeServerInfo {
         public static final String NAME = "~server_name";
         public static final String ROLE = "~server_role";
         public static final String LOAD = "~server_load";
+        public static final String MAX_LOAD = "~server_max_load";
         public static final String UPDATE_TIME = "~server_update_time";
 
         public static String unhide(String key) {
@@ -238,20 +257,18 @@ public class HugeServerInfo {
             VertexLabel label = graph.schema().vertexLabel(SERVER)
                                      .properties(properties)
                                      .useCustomizeStringId()
-                                     .nullableKeys(P.ROLE, P.LOAD,
-                                                   P.UPDATE_TIME)
+                                     .nullableKeys(P.ROLE, P.MAX_LOAD,
+                                                   P.LOAD, P.UPDATE_TIME)
                                      .enableLabelIndex(true)
                                      .build();
             this.graph.schemaTransaction().addVertexLabel(label);
-
-            // Create index
-            this.createIndexLabel(label, P.ROLE);
         }
 
         private String[] initProperties() {
             List<String> props = new ArrayList<>();
 
             props.add(createPropertyKey(P.ROLE, DataType.BYTE));
+            props.add(createPropertyKey(P.MAX_LOAD, DataType.INT));
             props.add(createPropertyKey(P.LOAD, DataType.INT));
             props.add(createPropertyKey(P.UPDATE_TIME, DataType.DATE));
 

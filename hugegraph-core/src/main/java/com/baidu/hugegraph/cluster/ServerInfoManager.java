@@ -24,11 +24,14 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
+import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
+import com.baidu.hugegraph.backend.page.PageInfo;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.QueryResults;
@@ -39,11 +42,12 @@ import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.HugeType;
-import com.baidu.hugegraph.type.define.GraphRole;
+import com.baidu.hugegraph.type.define.NodeRole;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Events;
+import com.baidu.hugegraph.util.Log;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
@@ -52,10 +56,12 @@ import static com.baidu.hugegraph.backend.query.Query.NO_LIMIT;
 
 public class ServerInfoManager {
 
+    private static final Logger LOG = Log.logger(ServerInfoManager.class);
+
     private final HugeGraphParams graph;
     private final EventListener eventListener;
     private Id serverId;
-    private GraphRole serverRole;
+    private NodeRole serverRole;
 
     public ServerInfoManager(HugeGraphParams graph) {
         E.checkNotNull(graph, "graph");
@@ -100,22 +106,26 @@ public class ServerInfoManager {
                         server);
         E.checkArgument(role != null && !role.isEmpty(),
                         "The server role can't be null or empty");
-        GraphRole graphRole = GraphRole.valueOf(role.toUpperCase());
-        if (graphRole.master()) {
-            Iterator<HugeServerInfo> servers = this.serverInfos(ImmutableMap.of(
-                                               HugeServerInfo.P.ROLE,
-                                               GraphRole.MASTER.code()),
-                                               1, PAGE_NONE);
-            if (servers.hasNext()) {
-                existed = servers.next();
-                E.checkArgument(!existed.alive(),
-                                "Already existed master '%s' in current " +
-                                "cluster", existed.id());
-            }
+        NodeRole nodeRole = NodeRole.valueOf(role.toUpperCase());
+        if (nodeRole.master()) {
+            String page = PAGE_NONE;
+            do {
+                Iterator<HugeServerInfo> servers = this.serverInfos(10L, page);
+                while (servers.hasNext()) {
+                    existed = servers.next();
+                    E.checkArgument(existed.role().worker() ||
+                                    !existed.alive(),
+                                    "Already existed master '%s' in current " +
+                                    "cluster", existed.id());
+                }
+                page = PageInfo.pageInfo(servers);
+            } while (page != null);
         }
-        HugeServerInfo serverInfo = new HugeServerInfo(server, graphRole);
+
+        HugeServerInfo serverInfo = new HugeServerInfo(server, nodeRole);
+        serverInfo.maxLoad(this.calcMaxLoad());
         this.serverId = serverInfo.id();
-        this.serverRole = graphRole;
+        this.serverRole = nodeRole;
         this.save(serverInfo);
     }
 
@@ -123,7 +133,7 @@ public class ServerInfoManager {
         return this.serverId;
     }
 
-    public GraphRole serverRole() {
+    public NodeRole serverRole() {
         return this.serverRole;
     }
 
@@ -133,8 +143,26 @@ public class ServerInfoManager {
 
     public void heartbeat() {
         HugeServerInfo server = this.serverInfo();
+        if (server == null) {
+            return;
+        }
         server.updateTime(DateUtil.now());
         this.save(server);
+    }
+
+    public void decreaseLoad(int load) {
+        try {
+            HugeServerInfo serverInfo = this.serverInfo();
+            serverInfo.load(serverInfo.load() - load);
+            this.save(serverInfo);
+        } catch (Throwable t) {
+            LOG.error("Exception occurred when decrease load", t);
+        }
+    }
+
+    public int calcMaxLoad() {
+        // TODO: calc max load based on CPU and Memory resources
+        return 10000;
     }
 
     private void initSchemaIfNeeded() {
@@ -198,12 +226,12 @@ public class ServerInfoManager {
         if (page != null) {
             query.page(page);
         }
-        VertexLabel vl = this.graph.graph().vertexLabel(HugeServerInfo.P.SERVER);
 
-
+        HugeGraph graph = this.graph.graph();
+        VertexLabel vl = graph.vertexLabel(HugeServerInfo.P.SERVER);
         query.eq(HugeKeys.LABEL, vl.id());
         for (Map.Entry<String, Object> entry : conditions.entrySet()) {
-            PropertyKey pk = this.graph.graph().propertyKey(entry.getKey());
+            PropertyKey pk = graph.propertyKey(entry.getKey());
             query.query(Condition.eq(pk.id(), entry.getValue()));
         }
         query.showHidden(true);

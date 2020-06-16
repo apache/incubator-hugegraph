@@ -19,7 +19,7 @@
 
 package com.baidu.hugegraph.type.define;
 
-public enum GraphRole implements SerialEnum {
+public enum NodeRole implements SerialEnum {
 
     MASTER(1, "master"),
 
@@ -28,14 +28,14 @@ public enum GraphRole implements SerialEnum {
     private final byte code;
     private final String name;
 
-    private GraphRole(int code, String name) {
+    private NodeRole(int code, String name) {
         assert code < 256;
         this.code = (byte) code;
         this.name = name;
     }
 
     static {
-        SerialEnum.register(GraphRole.class);
+        SerialEnum.register(NodeRole.class);
     }
 
     public byte code() {

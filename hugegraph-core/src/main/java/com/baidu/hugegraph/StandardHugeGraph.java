@@ -203,6 +203,7 @@ public class StandardHugeGraph implements HugeGraph {
     public void serverStarted(String serverId, String serverRole) {
         LOG.info("Init server info for graph '{}'...", this.name);
         this.serverManager.initServerInfo(serverId, serverRole);
+
         LOG.info("Restoring incomplete tasks for graph '{}'...", this.name);
         this.taskScheduler().restoreTasks();
     }
