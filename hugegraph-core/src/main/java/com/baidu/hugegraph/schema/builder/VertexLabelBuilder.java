@@ -135,7 +135,6 @@ public class VertexLabelBuilder extends AbstractBuilder
             VertexLabel vertexLabel = this.vertexLabelOrNull(name);
             if (vertexLabel != null) {
                 if (this.checkExist || !hasSameProperties(vertexLabel)) {
-                    hasSameProperties(vertexLabel);
                     throw new ExistedException(type, name);
                 }
                 return vertexLabel;

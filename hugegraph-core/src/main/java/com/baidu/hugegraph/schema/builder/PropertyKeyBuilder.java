@@ -95,7 +95,6 @@ public class PropertyKeyBuilder extends AbstractBuilder
             PropertyKey propertyKey = this.propertyKeyOrNull(name);
             if (propertyKey != null) {
                 if (this.checkExist || !hasSameProperties(propertyKey)) {
-                    hasSameProperties(propertyKey);
                     throw new ExistedException(type, name);
                 }
                 return propertyKey;

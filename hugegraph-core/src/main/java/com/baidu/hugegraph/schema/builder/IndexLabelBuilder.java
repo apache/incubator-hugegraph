@@ -169,7 +169,6 @@ public class IndexLabelBuilder extends AbstractBuilder
             IndexLabel indexLabel = this.indexLabelOrNull(name);
             if (indexLabel != null) {
                 if (this.checkExist || !hasSameProperties(indexLabel)) {
-                    hasSameProperties(indexLabel);
                     throw new ExistedException(type, name);
                 }
                 return new IndexLabel.CreatedIndexLabel(indexLabel, null);

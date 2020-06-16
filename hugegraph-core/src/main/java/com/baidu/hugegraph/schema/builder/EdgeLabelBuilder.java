@@ -145,7 +145,6 @@ public class EdgeLabelBuilder extends AbstractBuilder
             EdgeLabel edgeLabel = this.edgeLabelOrNull(this.name);
             if (edgeLabel != null) {
                 if (this.checkExist || !hasSameProperties(edgeLabel)) {
-                    hasSameProperties(edgeLabel);
                     throw new ExistedException(type, this.name);
                 }
                 return edgeLabel;
@@ -484,7 +483,7 @@ public class EdgeLabelBuilder extends AbstractBuilder
 
     private void checkSortKeys() {
         if (this.frequency == Frequency.SINGLE ||
-            this.frequency  == Frequency.DEFAULT) {
+            this.frequency == Frequency.DEFAULT) {
             E.checkArgument(this.sortKeys.isEmpty(),
                             "EdgeLabel can't contain sortKeys " +
                             "when the cardinality property is single");
