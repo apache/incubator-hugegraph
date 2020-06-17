@@ -60,6 +60,14 @@ public class BackendMutation {
     }
 
     /**
+     * Put directly without checking and merging
+     */
+    public void put(BackendEntry entry, Action action) {
+        Id id = entry.id();
+        this.updates.put(entry.type(), id, BackendAction.of(action, entry));
+    }
+
+    /**
      * The optimized scenes include but are not limited to：
      * 1.If you want to delete an entry, the other mutations previously
      *   can be ignored.

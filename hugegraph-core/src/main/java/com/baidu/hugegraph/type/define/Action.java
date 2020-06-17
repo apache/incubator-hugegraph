@@ -50,4 +50,19 @@ public enum Action implements SerialEnum {
     public String string() {
         return this.name;
     }
+
+    public static Action fromCode(byte code) {
+        switch (code) {
+            case 1:
+                return INSERT;
+            case 2:
+                return APPEND;
+            case 3:
+                return ELIMINATE;
+            case 4:
+                return DELETE;
+            default:
+                throw new AssertionError("Unsupported action code: " + code);
+        }
+    }
 }

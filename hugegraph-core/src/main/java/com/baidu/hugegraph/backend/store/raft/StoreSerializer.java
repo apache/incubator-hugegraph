@@ -97,7 +97,7 @@ public class StoreSerializer {
         int size = buffer.readVInt();
         for (int i = 0; i < size; i++) {
             // read action
-            Action action = SerialEnum.fromCode(Action.class, buffer.read());
+            Action action = Action.fromCode(buffer.read());
             // read HugeType
             HugeType type = SerialEnum.fromCode(HugeType.class, buffer.read());
             // read id
@@ -120,7 +120,7 @@ public class StoreSerializer {
                 byte[] value = buffer.readBytes();
                 entry.column(BackendColumn.of(name, value));
             }
-            mutation.add(entry, action);
+            mutation.put(entry, action);
         }
         return mutation;
     }
