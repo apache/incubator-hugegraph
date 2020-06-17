@@ -28,6 +28,7 @@ import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.baidu.hugegraph.backend.store.BackendAction;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendMutation;
+import com.baidu.hugegraph.backend.store.raft.StoreAction;
 import com.baidu.hugegraph.backend.store.raft.StoreCommand;
 import com.baidu.hugegraph.backend.store.raft.StoreSerializer;
 import com.baidu.hugegraph.testutil.Assert;
@@ -45,10 +46,10 @@ public class StoreSerializerTest {
         entry.column(new byte[]{127}, new byte[]{127});
         BackendMutation origin = new BackendMutation();
         origin.add(entry, Action.INSERT);
-        byte[] bytes = StoreSerializer.serializeMutation(origin);
+        byte[] bytes = StoreSerializer.writeMutation(origin);
 
         BytesBuffer buffer = BytesBuffer.wrap(bytes);
-        BackendMutation actual = StoreSerializer.deserializeMutation(buffer);
+        BackendMutation actual = StoreSerializer.readMutation(buffer);
         Assert.assertEquals(1, actual.size());
         Iterator<BackendAction> iter = actual.mutation();
         while (iter.hasNext()) {
@@ -73,16 +74,16 @@ public class StoreSerializerTest {
         entry.column(new byte[]{127}, new byte[]{127});
         BackendMutation origin = new BackendMutation();
         origin.add(entry, Action.INSERT);
-        byte[] mutationBytes = StoreSerializer.serializeMutation(origin);
+        byte[] mutationBytes = StoreSerializer.writeMutation(origin);
 
-        StoreCommand command = new StoreCommand(StoreCommand.MUTATE,
+        StoreCommand command = new StoreCommand(StoreAction.MUTATE,
                                                 mutationBytes);
-        Assert.assertEquals(StoreCommand.MUTATE, command.command());
+        Assert.assertEquals(StoreAction.MUTATE, command.action());
         Assert.assertArrayEquals(mutationBytes, command.data());
 
         byte[] commandBytes = command.toBytes();
         StoreCommand actual = StoreCommand.fromBytes(commandBytes);
-        Assert.assertEquals(command.command(), actual.command());
+        Assert.assertEquals(command.action(), actual.action());
         Assert.assertArrayEquals(command.data(), actual.data());
     }
 }

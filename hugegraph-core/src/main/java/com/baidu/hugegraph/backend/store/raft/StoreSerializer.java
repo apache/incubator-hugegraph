@@ -19,7 +19,9 @@
 
 package com.baidu.hugegraph.backend.store.raft;
 
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
@@ -36,7 +38,27 @@ import com.baidu.hugegraph.type.define.SerialEnum;
 
 public class StoreSerializer {
 
-    public static byte[] serializeMutation(BackendMutation mutation) {
+    public static byte[] writeMutations(List<BackendMutation> mutations) {
+        int estimateSize = mutations.size() * 250 * 32;
+        BytesBuffer buffer = BytesBuffer.allocate(1 + estimateSize);
+        buffer.writeVInt(mutations.size());
+        for (BackendMutation mutation : mutations) {
+            buffer.writeBytes(writeMutation(mutation));
+        }
+        return buffer.bytes();
+    }
+
+    public static List<BackendMutation> readMutations(BytesBuffer buffer) {
+        int size = buffer.readVInt();
+        List<BackendMutation> mutations = new ArrayList<>(size);
+        for (int i = 0; i < size; i++) {
+            BytesBuffer buf = BytesBuffer.wrap(buffer.readBytes());
+            mutations.add(readMutation(buf));
+        }
+        return mutations;
+    }
+
+    public static byte[] writeMutation(BackendMutation mutation) {
         int sizePerEntry = 32;
         BytesBuffer buffer = BytesBuffer.allocate(mutation.size() * sizePerEntry);
         // write mutation size
@@ -70,7 +92,7 @@ public class StoreSerializer {
         return buffer.bytes();
     }
 
-    public static BackendMutation deserializeMutation(BytesBuffer buffer) {
+    public static BackendMutation readMutation(BytesBuffer buffer) {
         BackendMutation mutation = new BackendMutation();
         int size = buffer.readVInt();
         for (int i = 0; i < size; i++) {
@@ -103,14 +125,14 @@ public class StoreSerializer {
         return mutation;
     }
 
-    public static byte[] serializeIncrCounter(IncrCounter incrCounter) {
+    public static byte[] writeIncrCounter(IncrCounter incrCounter) {
         BytesBuffer buffer = BytesBuffer.allocate(1 + BytesBuffer.LONG_LEN);
         buffer.write(incrCounter.type().code());
         buffer.writeVLong(incrCounter.increment());
         return buffer.bytes();
     }
 
-    public static IncrCounter deserializeIncrCounter(BytesBuffer buffer) {
+    public static IncrCounter readIncrCounter(BytesBuffer buffer) {
         HugeType type = SerialEnum.fromCode(HugeType.class, buffer.read());
         long increment = buffer.readVLong();
         return new IncrCounter(type, increment);

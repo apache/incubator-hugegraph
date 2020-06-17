@@ -23,31 +23,20 @@ public class StoreCommand {
 
     private static byte[] EMPTY = new byte[0];
 
-    public static final byte NONE = 0x00;
-    public static final byte BEGIN_TX = 0x01;
-    public static final byte COMMIT_TX = 0x02;
-    public static final byte ROLLBACK_TX = 0x03;
-    public static final byte MUTATE = 0x04;
-    public static final byte INCR_COUNTER = 0x05;
-    public static final byte QUERY = 0x06;
-    public static final byte INIT = 0x07;
-    public static final byte CLEAR = 0x08;
-    public static final byte TRUNCATE = 0x09;
-
-    private final byte command;
+    private final StoreAction action;
     private final byte[] data;
 
-    public StoreCommand(byte command) {
-        this(command, EMPTY);
+    public StoreCommand(StoreAction action) {
+        this(action, EMPTY);
     }
 
-    public StoreCommand(byte command, byte[] data) {
-        this.command = command;
+    public StoreCommand(StoreAction action, byte[] data) {
+        this.action = action;
         this.data = data;
     }
 
-    public byte command() {
-        return this.command;
+    public StoreAction action() {
+        return this.action;
     }
 
     public byte[] data() {
@@ -56,15 +45,15 @@ public class StoreCommand {
 
     public byte[] toBytes() {
         byte[] bytes = new byte[1 + this.data.length];
-        bytes[0] = this.command;
+        bytes[0] = this.action.code();
         System.arraycopy(this.data, 0, bytes, 1, this.data.length);
         return bytes;
     }
 
     public static StoreCommand fromBytes(byte[] bytes) {
-        byte command = bytes[0];
+        StoreAction action = StoreAction.fromCode(bytes[0]);
         byte[] data = new byte[bytes.length - 1];
         System.arraycopy(bytes, 1, data, 0, bytes.length - 1);
-        return new StoreCommand(command, data);
+        return new StoreCommand(action, data);
     }
 }

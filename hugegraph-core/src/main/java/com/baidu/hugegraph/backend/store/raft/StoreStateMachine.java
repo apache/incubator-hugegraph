@@ -19,8 +19,9 @@
 
 package com.baidu.hugegraph.backend.store.raft;
 
+import java.util.EnumMap;
+import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 
@@ -48,50 +49,51 @@ public class StoreStateMachine extends StateMachineAdapter {
     private final RaftSharedContext context;
     private final StoreSnapshotFile snapshotFile;
     private final AtomicLong leaderTerm;
-    private final Map<Byte, Function<BytesBuffer, Object>> funcs;
+    private final Map<StoreAction, Function<BytesBuffer, Object>> funcs;
 
     public StoreStateMachine(BackendStore store, RaftSharedContext context) {
-        this.nodeId = nodeId;
         this.store = store;
         this.context = context;
         this.snapshotFile = new StoreSnapshotFile();
         this.leaderTerm = new AtomicLong(-1);
-        this.funcs = new ConcurrentHashMap<>();
+        this.funcs = new EnumMap<>(StoreAction.class);
         this.registerCommands();
     }
 
     private void registerCommands() {
         // StoreCommand.register(StoreCommand.INIT, this.store::init);
-        this.register(StoreCommand.TRUNCATE, this.store::truncate);
-        this.register(StoreCommand.BEGIN_TX, this.store::beginTx);
-        this.register(StoreCommand.COMMIT_TX, this.store::commitTx);
-        this.register(StoreCommand.ROLLBACK_TX, this.store::rollbackTx);
+        this.register(StoreAction.TRUNCATE, this.store::truncate);
         // clear
-        this.register(StoreCommand.CLEAR, buffer -> {
+        this.register(StoreAction.CLEAR, buffer -> {
             boolean clearSpace = buffer.read() > 0;
             this.store.clear(clearSpace);
             return null;
         });
-        // mutate
-        this.register(StoreCommand.MUTATE, buffer -> {
-            BackendMutation m = StoreSerializer.deserializeMutation(buffer);
-            this.store.mutate(m);
+        this.register(StoreAction.BEGIN_TX, this.store::beginTx);
+        this.register(StoreAction.COMMIT_TX, buffer -> {
+            List<BackendMutation> ms = StoreSerializer.readMutations(buffer);
+            for (BackendMutation mutation : ms) {
+                this.store.mutate(mutation);
+            }
+            this.store.commitTx();
             return null;
         });
+        this.register(StoreAction.ROLLBACK_TX, this.store::rollbackTx);
         // increase counter
-        this.register(StoreCommand.INCR_COUNTER, buffer -> {
-            IncrCounter counter = StoreSerializer.deserializeIncrCounter(buffer);
+        this.register(StoreAction.INCR_COUNTER, buffer -> {
+            IncrCounter counter = StoreSerializer.readIncrCounter(buffer);
             this.store.increaseCounter(counter.type(), counter.increment());
             return null;
         });
     }
 
-    private void register(byte cmd, Function<BytesBuffer, Object> func) {
-        this.funcs.put(cmd, func);
+    private void register(StoreAction action,
+                          Function<BytesBuffer, Object> func) {
+        this.funcs.put(action, func);
     }
 
-    private void register(byte cmd, Runnable runnable) {
-        this.funcs.put(cmd, s -> {
+    private void register(StoreAction action, Runnable runnable) {
+        this.funcs.put(action, s -> {
             runnable.run();
             return null;
         });
@@ -105,21 +107,21 @@ public class StoreStateMachine extends StateMachineAdapter {
     public void onApply(Iterator iter) {
         LOG.debug("Node role: {}", this.isLeader() ? "leader" : "follower");
         while (iter.hasNext()) {
-            byte command;
+            StoreAction action;
             BytesBuffer buffer;
             StoreClosure closure = (StoreClosure) iter.done();
             if (closure != null) {
                 // Leader just take it out from the closure
-                command = closure.command().command();
+                action = closure.command().action();
                 buffer = BytesBuffer.wrap(closure.command().data());
             } else {
-                // Follower need deserializeMutation data
+                // Follower need readMutation data
                 buffer = BytesBuffer.wrap(iter.getData());
-                command = buffer.read();
+                action = StoreAction.fromCode(buffer.read());
             }
 
             try {
-                Object data = this.applyCommand(command, buffer);
+                Object data = this.applyCommand(action, buffer);
                 success(closure, data);
             } catch (Exception e) {
                 failure(closure, e);
@@ -128,11 +130,12 @@ public class StoreStateMachine extends StateMachineAdapter {
         }
     }
 
-    private Object applyCommand(byte command, BytesBuffer buffer)
+    private Object applyCommand(StoreAction action, BytesBuffer buffer)
                                 throws Exception {
-        Function<BytesBuffer, Object> func = this.funcs.get(command);
+        Function<BytesBuffer, Object> func = this.funcs.get(action);
         Object result = func.apply(buffer);
-        LOG.info("The store {} performed command {}", this.store, command);
+        LOG.info("The store {} performed action {}",
+                 this.store, action.string());
         return result;
     }
 

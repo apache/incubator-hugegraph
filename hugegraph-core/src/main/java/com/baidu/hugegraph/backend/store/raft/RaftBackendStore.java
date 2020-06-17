@@ -19,7 +19,9 @@
 
 package com.baidu.hugegraph.backend.store.raft;
 
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
 import org.slf4j.Logger;
 
@@ -40,10 +42,38 @@ public class RaftBackendStore implements BackendStore {
 
     private final BackendStore store;
     private final RaftSharedContext context;
+    private final ThreadLocal<MutateBatch> threadLocalBatch;
+
+    private class MutateBatch {
+
+        private List<BackendMutation> mutations;
+
+        public MutateBatch() {
+            this.mutations = new ArrayList<>();
+        }
+
+        public void add(BackendMutation mutation) {
+            this.mutations.add(mutation);
+        }
+
+        public void clear() {
+            this.mutations = new ArrayList<>();
+        }
+    }
+
+    private MutateBatch getOrNewBatch() {
+        MutateBatch batch = this.threadLocalBatch.get();
+        if (batch == null) {
+            batch = new MutateBatch();
+            this.threadLocalBatch.set(batch);
+        }
+        return batch;
+    }
 
     public RaftBackendStore(BackendStore store, RaftSharedContext context) {
         this.store = store;
         this.context = context;
+        this.threadLocalBatch = new ThreadLocal<>();
     }
 
     private String group() {
@@ -103,7 +133,7 @@ public class RaftBackendStore implements BackendStore {
     @Override
     public void clear(boolean clearSpace) {
         byte[] bytes = new byte[]{clearSpace ? (byte) 1 : (byte) 0};
-        this.submitAndWait(StoreCommand.CLEAR, bytes);
+        this.submitAndWait(StoreAction.CLEAR, bytes);
     }
 
     @Override
@@ -113,14 +143,13 @@ public class RaftBackendStore implements BackendStore {
 
     @Override
     public void truncate() {
-        this.submitAndWait(StoreCommand.TRUNCATE);
+        this.submitAndWait(StoreAction.TRUNCATE);
     }
 
     @Override
     public void mutate(BackendMutation mutation) {
-        // TODO: serialize can be lazy or no need for leader
-        byte[] bytes = StoreSerializer.serializeMutation(mutation);
-        this.submitAndWait(StoreCommand.MUTATE, bytes);
+        // Just add to local buffer
+        this.getOrNewBatch().add(mutation);
     }
 
     @Override
@@ -155,7 +184,7 @@ public class RaftBackendStore implements BackendStore {
 //                         * If 'read index' read fails, try to applying to the
 //                         * state machine at the leader node
 //                         */
-//                        byte[] bytes = QuerySerializer.serializeMutation(query);
+//                        byte[] bytes = QuerySerializer.writeMutation(query);
 //                        queryClosure.complete(submitAndWait(StoreCommand.QUERY,
 //                                                            bytes));
 //                    } else {
@@ -179,17 +208,19 @@ public class RaftBackendStore implements BackendStore {
 
     @Override
     public void beginTx() {
-        this.submitAndWait(StoreCommand.BEGIN_TX);
     }
 
     @Override
     public void commitTx() {
-        this.submitAndWait(StoreCommand.COMMIT_TX);
+        MutateBatch batch = this.getOrNewBatch();
+        byte[] bytes = StoreSerializer.writeMutations(batch.mutations);
+        this.submitAndWait(StoreAction.COMMIT_TX, bytes);
+        batch.clear();
     }
 
     @Override
     public void rollbackTx() {
-        this.submitAndWait(StoreCommand.ROLLBACK_TX);
+        this.submitAndWait(StoreAction.ROLLBACK_TX);
     }
 
     @Override
@@ -205,8 +236,8 @@ public class RaftBackendStore implements BackendStore {
     @Override
     public void increaseCounter(HugeType type, long increment) {
         IncrCounter incrCounter = new IncrCounter(type, increment);
-        byte[] bytes = StoreSerializer.serializeIncrCounter(incrCounter);
-        this.submitAndWait(StoreCommand.INCR_COUNTER, bytes);
+        byte[] bytes = StoreSerializer.writeIncrCounter(incrCounter);
+        this.submitAndWait(StoreAction.INCR_COUNTER, bytes);
     }
 
     @Override
@@ -224,12 +255,12 @@ public class RaftBackendStore implements BackendStore {
         this.store.readSnapshot(snapshotPath);
     }
 
-    private Object submitAndWait(byte command) {
-        return this.submitAndWait(new StoreCommand(command));
+    private Object submitAndWait(StoreAction action) {
+        return this.submitAndWait(new StoreCommand(action));
     }
 
-    private Object submitAndWait(byte command, byte[] data) {
-        return this.submitAndWait(new StoreCommand(command, data));
+    private Object submitAndWait(StoreAction action, byte[] data) {
+        return this.submitAndWait(new StoreCommand(action, data));
     }
 
     private Object submitAndWait(StoreCommand command) {
