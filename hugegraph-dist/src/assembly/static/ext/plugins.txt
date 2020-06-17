@@ -1,8 +1,4 @@
 com.baidu.hugegraph.plugin.HugeGraphGremlinPlugin
-org.apache.tinkerpop.gremlin.console.plugin.DriverGremlinPlugin
-org.apache.tinkerpop.gremlin.console.groovy.plugin.DriverGremlinPlugin
-org.apache.tinkerpop.gremlin.tinkergraph.groovy.plugin.TinkerGraphGremlinPlugin
-org.apache.tinkerpop.gremlin.hadoop.groovy.plugin.HadoopGremlinPlugin
-org.apache.tinkerpop.gremlin.giraph.groovy.plugin.GiraphGremlinPlugin
-org.apache.tinkerpop.gremlin.spark.groovy.plugin.SparkGremlinPlugin
-org.apache.tinkerpop.gremlin.console.groovy.plugin.UtilitiesGremlinPlugin
+org.apache.tinkerpop.gremlin.console.jsr223.DriverGremlinPlugin
+org.apache.tinkerpop.gremlin.console.jsr223.UtilitiesGremlinPlugin
+org.apache.tinkerpop.gremlin.tinkergraph.jsr223.TinkerGraphGremlinPlugin
