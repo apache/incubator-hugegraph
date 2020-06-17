@@ -20,7 +20,6 @@
 package com.baidu.hugegraph.core;
 
 import java.util.Date;
-import java.util.UUID;
 
 import org.junit.Test;
 
@@ -477,31 +476,47 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
     }
 
     @Test
-    public void testDuplicatePropertyWithIdentityProperties() {
+    public void testDuplicatePropertyKeyWithIdentityProperties() {
         SchemaManager schema = graph().schema();
-        String name = UUID.randomUUID().toString();
-        schema.propertyKey(name)
+        schema.propertyKey("fakePropKey")
               .asText()
               .ifNotExist()
               .create();
-        schema.propertyKey(name)
+        schema.propertyKey("fakePropKey")
+              .asText()
+              .checkExist(false)
+              .create();
+        schema.propertyKey("fakePropKey")
+              .userdata("b", "") // won't check userdata
               .asText()
               .checkExist(false)
               .create();
     }
 
     @Test
-    public void testDuplicatePropertyWithDifferentProperties() {
-        String name = UUID.randomUUID().toString();
+    public void testDuplicatePropertyKeyWithDifferentProperties() {
         SchemaManager schema = graph().schema();
-        schema.propertyKey(name)
-              .userdata("a", "")
+        schema.propertyKey("fakePropKey")
               .asText()
               .ifNotExist()
               .create();
         Assert.assertThrows(ExistedException.class, () -> {
-            schema.propertyKey(name)
+            schema.propertyKey("fakePropKey")
                   .asDouble()
+                  .checkExist(false)
+                  .create();
+        });
+        Assert.assertThrows(ExistedException.class, () -> {
+            schema.propertyKey("fakePropKey")
+                  .asText()
+                  .valueList()
+                  .checkExist(false)
+                  .create();
+        });
+        Assert.assertThrows(ExistedException.class, () -> {
+            schema.propertyKey("fakePropKey")
+                  .asText()
+                  .aggregateType(AggregateType.MAX)
                   .checkExist(false)
                   .create();
         });

@@ -21,7 +21,6 @@ package com.baidu.hugegraph.core;
 
 import java.util.Date;
 import java.util.List;
-import java.util.UUID;
 
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.structure.T;
@@ -1116,39 +1115,67 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
     }
 
     @Test
-    public void testDuplicatePropertyWithIdentityProperties() {
+    public void testDuplicateVertexLabelWithIdentityProperties() {
         super.initPropertyKeys();
         SchemaManager schema = graph().schema();
         schema.vertexLabel("person")
               .properties("name", "age", "city")
               .primaryKeys("name")
               .create();
-        String name = UUID.randomUUID().toString();
-        schema.vertexLabel(name)
+        schema.vertexLabel("person")
               .properties("name", "age", "city")
+              .usePrimaryKeyId()
               .primaryKeys("name")
+              .checkExist(false)
               .create();
-        schema.vertexLabel(name)
-              .properties("name", "age", "city")
+        schema.vertexLabel("person")
+              .properties("name", "city", "age")
               .primaryKeys("name")
               .checkExist(false)
               .create();
     }
 
     @Test
-    public void testDuplicatePropertyWithDifferentProperties() {
+    public void testDuplicateVertexLabelWithDifferentProperties() {
         super.initPropertyKeys();
-        String name = UUID.randomUUID().toString();
         SchemaManager schema = graph().schema();
 
-        schema.vertexLabel(name)
+        schema.vertexLabel("person")
               .properties("name", "age", "city")
               .primaryKeys("name")
               .create();
         Assert.assertThrows(ExistedException.class, () -> {
-            schema.vertexLabel(name)
+            schema.vertexLabel("person")
                   .properties("name", "age") // remove city
                   .primaryKeys("name")
+                  .checkExist(false)
+                  .create();
+        });
+        Assert.assertThrows(ExistedException.class, () -> {
+            schema.vertexLabel("person")
+                  .properties("name", "age", "city")
+                  .primaryKeys("name")
+                  .nullableKeys("city") // add nullableKeys
+                  .checkExist(false)
+                  .create();
+        });
+        Assert.assertThrows(ExistedException.class, () -> {
+            schema.vertexLabel("person")
+                  .properties("name", "age", "city")
+                  .useAutomaticId() // not primaryKey
+                  .checkExist(false)
+                  .create();
+        });
+        Assert.assertThrows(ExistedException.class, () -> {
+            schema.vertexLabel("person")
+                  .properties("name", "age", "city") // no primaryKeys
+                  .checkExist(false)
+                  .create();
+        });
+        Assert.assertThrows(ExistedException.class, () -> {
+            schema.vertexLabel("person")
+                  .properties("name", "age", "city")
+                  .primaryKeys("city") // different primaryKeys
                   .checkExist(false)
                   .create();
         });
