@@ -171,7 +171,7 @@ public class EdgeLabelAPI extends API {
     /**
      * JsonEdgeLabel is only used to receive create and append requests
      */
-    @JsonIgnoreProperties(value = {"status"})
+    @JsonIgnoreProperties(value = {"index_labels", "status"})
     private static class JsonEdgeLabel implements Checkable {
 
         @JsonProperty("id")
