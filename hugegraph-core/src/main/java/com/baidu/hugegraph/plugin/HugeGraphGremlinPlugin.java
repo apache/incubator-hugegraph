@@ -49,7 +49,7 @@ public class HugeGraphGremlinPlugin extends AbstractGremlinPlugin {
             classInfos = ReflectionUtil.classes(PACKAGE);
         } catch (IOException e) {
             throw new HugeException("Failed to scan classes under package %s",
-                                    PACKAGE);
+                                    e, PACKAGE);
         }
 
         @SuppressWarnings("rawtypes")
