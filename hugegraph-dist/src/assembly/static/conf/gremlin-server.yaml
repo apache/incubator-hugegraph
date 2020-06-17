@@ -40,12 +40,6 @@ scriptEngines: {
   }
 }
 serializers:
-  - { className: org.apache.tinkerpop.gremlin.driver.ser.GryoLiteMessageSerializerV1d0,
-      config: {
-        serializeResultToString: false,
-        ioRegistries: [com.baidu.hugegraph.io.HugeGraphIoRegistry]
-      }
-  }
   - { className: org.apache.tinkerpop.gremlin.driver.ser.GraphBinaryMessageSerializerV1,
       config: {
         serializeResultToString: false,
