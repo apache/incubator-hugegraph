@@ -63,6 +63,7 @@ public abstract class MysqlTable
 
     // The template for insert and delete statements
     private String insertTemplate;
+    private String insertTemplateTtl;
     private String deleteTemplate;
 
     private final MysqlShardSpliter shardSpliter;
@@ -70,6 +71,7 @@ public abstract class MysqlTable
     public MysqlTable(String table) {
         super(table);
         this.insertTemplate = null;
+        this.insertTemplateTtl = null;
         this.deleteTemplate = null;
         this.shardSpliter = new MysqlShardSpliter(this.table());
     }
@@ -175,10 +177,28 @@ public abstract class MysqlTable
     }
 
     protected String buildInsertTemplate(MysqlBackendEntry.Row entry) {
+        if (entry.ttl() != 0L) {
+            return this.buildInsertTemplateWithTtl(entry);
+        }
         if (this.insertTemplate != null) {
             return this.insertTemplate;
         }
 
+        this.insertTemplate = this.buildInsertTemplateForce(entry);
+        return this.insertTemplate;
+    }
+
+    protected String buildInsertTemplateWithTtl(MysqlBackendEntry.Row entry) {
+        assert entry.ttl() != 0L;
+        if (this.insertTemplateTtl != null) {
+            return this.insertTemplateTtl;
+        }
+
+        this.insertTemplateTtl = this.buildInsertTemplateForce(entry);
+        return this.insertTemplateTtl;
+    }
+
+    protected String buildInsertTemplateForce(MysqlBackendEntry.Row entry) {
         StringBuilder insert = new StringBuilder();
         insert.append("REPLACE INTO ").append(this.table()).append(" (");
 
@@ -200,8 +220,7 @@ public abstract class MysqlTable
         }
         insert.append(")");
 
-        this.insertTemplate = insert.toString();
-        return this.insertTemplate;
+        return insert.toString();
     }
 
     protected String buildDeleteTemplate(List<HugeKeys> idNames) {
@@ -219,18 +238,6 @@ public abstract class MysqlTable
 
         this.deleteTemplate = delete.toString();
         return this.deleteTemplate;
-    }
-
-    protected String buildDeleteTemplateWithoutCache(List<HugeKeys> idNames) {
-        StringBuilder delete = new StringBuilder();
-        delete.append("DELETE FROM ").append(this.table());
-        this.appendPartition(delete);
-
-        WhereBuilder where = this.newWhereBuilder();
-        where.and(formatKeys(idNames), "=");
-        delete.append(where.build());
-
-        return delete.toString();
     }
 
     protected String buildDropTemplate() {
@@ -701,6 +708,7 @@ public abstract class MysqlTable
             super(table);
         }
 
+        @Override
         public List<Shard> getSplits(Session session, long splitSize) {
             E.checkArgument(splitSize >= MIN_SHARD_SIZE,
                             "The split-size must be >= %s bytes, but got %s",

@@ -620,7 +620,7 @@ public class EdgeCoreTest extends BaseCoreTest {
         Vertex java = graph().addVertex(T.label, "book",
                                         "name", "Java in action");
         Edge edge = baby.addEdge("borrow", java, "place", "library of school",
-                                 "date", DateUtil.now().getTime() - 1000L);
+                                 "date", DateUtil.now().getTime() - 2000L);
         graph().tx().commit();
 
         Iterator<Edge> edges = graph().edges(edge);
@@ -629,7 +629,7 @@ public class EdgeCoreTest extends BaseCoreTest {
         graph().tx().commit();
 
         try {
-            Thread.sleep(1100L);
+            Thread.sleep(500L);
         } catch (InterruptedException e) {
             // Ignore
         }
@@ -640,7 +640,7 @@ public class EdgeCoreTest extends BaseCoreTest {
         graph().tx().commit();
 
         try {
-            Thread.sleep(1100L);
+            Thread.sleep(1000L);
         } catch (InterruptedException e) {
             // Ignore
         }
