@@ -21,7 +21,6 @@ package com.baidu.hugegraph.core;
 
 import java.util.Date;
 import java.util.List;
-import java.util.UUID;
 
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -1668,51 +1667,81 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
     }
 
     @Test
-    public void testDuplicatePropertyWithIdentityProperties() {
+    public void testDuplicateIndexLabelWithIdentityProperties() {
         super.initPropertyKeys();
         SchemaManager schema = graph().schema();
         schema.vertexLabel("person")
               .properties("name", "age", "city")
               .primaryKeys("name")
               .create();
-        String name = UUID.randomUUID().toString();
-        schema.indexLabel(name)
+
+        schema.indexLabel("index4Person")
               .onV("person")
               .by("age", "city")
               .secondary()
               .ifNotExist()
               .create();
-
-        // create indexLabel with same properties
-        schema.indexLabel(name)
+        schema.indexLabel("index4Person")
               .onV("person")
               .by("age", "city")
               .secondary()
               .checkExist(false)
               .create();
+        schema.indexLabel("index4Person")
+              .onV("person")
+              .by("age", "city")
+              .ifNotExist()
+              .create();
     }
 
     @Test
-    public void testDuplicatePropertyWithDifferentProperties() {
+    public void testDuplicateIndexLabelWithDifferentProperties() {
         super.initPropertyKeys();
-        String name = UUID.randomUUID().toString();
         SchemaManager schema = graph().schema();
+
         schema.vertexLabel("person")
               .properties("name", "age", "city")
               .primaryKeys("name")
               .create();
-        schema.indexLabel(name)
+        schema.edgeLabel("friend")
+              .link("person", "person")
+              .properties("time")
+              .ifNotExist()
+              .create();
+
+        schema.indexLabel("index4Person")
               .onV("person")
               .by("age", "city")
               .secondary()
               .ifNotExist()
               .create();
-        // create indexLabel with different properties
         Assert.assertThrows(ExistedException.class, () -> {
-            schema.indexLabel(name)
+            schema.indexLabel("index4Person")
                   .onV("person")
                   .by("age") // remove city
                   .secondary()
+                  .checkExist(false)
+                  .create();
+        });
+        Assert.assertThrows(ExistedException.class, () -> {
+            schema.indexLabel("index4Person")
+                  .onE("friend") // not on person
+                  .by("age")
+                  .secondary()
+                  .checkExist(false)
+                  .create();
+        });
+
+        schema.indexLabel("index4Friend")
+              .onE("friend")
+              .search()
+              .by("time")
+              .ifNotExist()
+              .create();
+        Assert.assertThrows(ExistedException.class, () -> {
+            schema.indexLabel("index4Friend")
+                  .onE("friend")
+                  .by("time")
                   .checkExist(false)
                   .create();
         });
