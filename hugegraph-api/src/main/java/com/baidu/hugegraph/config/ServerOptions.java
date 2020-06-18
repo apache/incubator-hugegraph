@@ -237,7 +237,7 @@ public class ServerOptions extends OptionHolder {
                     "server.protocol",
                     "The protocol of rest-server, allowed values are: " +
                     "http or https.",
-                    allowValues("http","https"),
+                    allowValues("http", "https"),
                     "http"
             );
 }
