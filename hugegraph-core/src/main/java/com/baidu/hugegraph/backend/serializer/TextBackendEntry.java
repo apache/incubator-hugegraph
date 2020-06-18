@@ -20,7 +20,6 @@
 package com.baidu.hugegraph.backend.serializer;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -183,11 +182,17 @@ public class TextBackendEntry implements BackendEntry, Cloneable {
             }
 
             // TODO: ensure the old value is a list and json format (for index)
+            if (oldValue.equals("[]")) {
+                this.column(col.getKey(), newValue);
+                continue;
+            }
             List<Object> values = new ArrayList<>();
-            Object[] oldValues = JsonUtil.fromJson(oldValue, Object[].class);
-            Object[] newValues = JsonUtil.fromJson(newValue, Object[].class);
-            values.addAll(Arrays.asList(oldValues));
-            values.addAll(Arrays.asList(newValues));
+            @SuppressWarnings("unchecked")
+            List<Object> oldValues = JsonUtil.fromJson(oldValue, List.class);
+            @SuppressWarnings("unchecked")
+            List<Object> newValues = JsonUtil.fromJson(newValue, List.class);
+            values.addAll(oldValues);
+            values.addAll(newValues);
             // Update the old value
             this.column(col.getKey(), JsonUtil.toJson(values));
         }
@@ -213,10 +218,12 @@ public class TextBackendEntry implements BackendEntry, Cloneable {
 
             // TODO: ensure the old value is a list and json format (for index)
             List<Object> values = new ArrayList<>();
-            Object[] oldValues = JsonUtil.fromJson(oldValue, Object[].class);
-            Object[] newValues = JsonUtil.fromJson(newValue, Object[].class);
-            values.addAll(Arrays.asList(oldValues));
-            values.removeAll(Arrays.asList(newValues));
+            @SuppressWarnings("unchecked")
+            List<Object> oldValues = JsonUtil.fromJson(oldValue, List.class);
+            @SuppressWarnings("unchecked")
+            List<Object> newValues = JsonUtil.fromJson(newValue, List.class);
+            values.addAll(oldValues);
+            values.removeAll(newValues);
             // Update the old value
             this.column(col.getKey(), JsonUtil.toJson(values));
         }

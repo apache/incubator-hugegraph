@@ -49,15 +49,14 @@ public enum HugePermission implements SerialEnum {
     }
 
     public String string() {
-        String string = this.name().toLowerCase();
-        return string;
+        return this.name().toLowerCase();
     }
 
     public boolean match(HugePermission other) {
-        if ((this.code & other.code) != 0) {
-            return true;
+        if (other == ANY) {
+            return this == ANY;
         }
-        return false;
+        return (this.code & other.code) != 0;
     }
 
     public static HugePermission fromCode(byte code) {

@@ -778,8 +778,7 @@ public final class TraversalUtil {
         }
     }
 
-    public static <T> Condition parsePredicate(PropertyKey pk,
-                                               String predicate) {
+    public static Condition parsePredicate(PropertyKey pk, String predicate) {
         Pattern pattern = Pattern.compile("^P\\.([a-z]+)\\(([\\S ]*)\\)$");
         Matcher matcher = pattern.matcher(predicate);
         if (!matcher.find()) {
