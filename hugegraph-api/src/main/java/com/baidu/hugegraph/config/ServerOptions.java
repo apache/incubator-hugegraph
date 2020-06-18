@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.config;
 
+import static com.baidu.hugegraph.config.OptionChecker.allowValues;
 import static com.baidu.hugegraph.config.OptionChecker.disallowEmpty;
 import static com.baidu.hugegraph.config.OptionChecker.nonNegativeInt;
 import static com.baidu.hugegraph.config.OptionChecker.positiveInt;
@@ -211,5 +212,32 @@ public class ServerOptions extends OptionHolder {
                     "only for com.baidu.hugegraph.auth.ConfigAuthenticator.",
                     disallowEmpty(),
                     "hugegraph:9fd95c9c-711b-415b-b85f-d4df46ba5c31"
+            );
+
+    public static final ConfigOption<String> SERVER_KEYSTORE_FILE =
+            new ConfigOption<>(
+                    "ssl.server_keystore_file",
+                    "The path of server keystore file used when https " +
+                    "protocol is enabled.",
+                    disallowEmpty(),
+                    "server.keystore"
+            );
+
+    public static final ConfigOption<String> SERVER_KEYSTORE_PASSWORD =
+            new ConfigOption<>(
+                    "ssl.server_keystore_password",
+                    "The password of the path of the server keystore file " +
+                    "used when the https protocol is enabled.",
+                    null,
+                    ""
+            );
+
+    public static final ConfigOption<String> SERVER_PROTOCOL =
+            new ConfigOption<>(
+                    "server.protocol",
+                    "The protocol of rest-server, allowed values are: " +
+                    "http or https.",
+                    allowValues("http", "https"),
+                    "http"
             );
 }
