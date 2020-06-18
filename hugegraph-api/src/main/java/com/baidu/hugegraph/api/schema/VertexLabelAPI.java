@@ -174,7 +174,7 @@ public class VertexLabelAPI extends API {
     /**
      * JsonVertexLabel is only used to receive create and append requests
      */
-    @JsonIgnoreProperties(value = {"status"})
+    @JsonIgnoreProperties(value = {"index_labels", "status"})
     private static class JsonVertexLabel implements Checkable {
 
         @JsonProperty("id")

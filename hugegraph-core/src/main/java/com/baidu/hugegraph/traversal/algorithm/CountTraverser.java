@@ -162,7 +162,13 @@ public class CountTraverser extends HugeTraverser {
         query.capacity(Query.NO_CAPACITY);
         query.limit(Query.NO_LIMIT);
         long count = graph().queryNumber(query).longValue();
-        return degree != NO_LIMIT && count > degree ? degree : count;
+        if (degree == NO_LIMIT || count < degree) {
+            return count;
+        } else if (skipDegree != 0L && count >= skipDegree) {
+            return 0L;
+        } else {
+            return degree;
+        }
     }
 
     private void checkDedupSize(long dedup) {
