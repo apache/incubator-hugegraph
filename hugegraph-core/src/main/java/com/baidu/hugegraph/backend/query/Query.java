@@ -156,6 +156,10 @@ public class Query implements Cloneable {
         this.limit = limit;
     }
 
+    public boolean nolimit() {
+        return this.limit() == NO_LIMIT;
+    }
+
     public boolean reachLimit(long count) {
         long limit = this.limit();
         if (limit == NO_LIMIT) {
@@ -170,7 +174,7 @@ public class Query implements Cloneable {
      * @param start the range start, include it
      * @param end   the range end, exclude it
      */
-    public void range(long start, long end) {
+    public long range(long start, long end) {
         // Update offset
         long offset = this.offset();
         start = Math.max(start, offset);
@@ -178,7 +182,7 @@ public class Query implements Cloneable {
 
         // Update limit
         if (end != -1L) {
-            if (this.limit() != Query.NO_LIMIT) {
+            if (!this.nolimit()) {
                 end = Math.min(end, offset + this.limit());
             } else {
                 assert end < Query.NO_LIMIT;
@@ -190,6 +194,7 @@ public class Query implements Cloneable {
             // Keep the origin limit
             assert this.limit() <= Query.NO_LIMIT;
         }
+        return this.limit;
     }
 
     public String page() {
