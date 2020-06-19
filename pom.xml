@@ -6,7 +6,7 @@
 
     <groupId>com.baidu.hugegraph</groupId>
     <artifactId>hugegraph-common</artifactId>
-    <version>1.7.7</version>
+    <version>1.7.8</version>
 
     <name>hugegraph-common</name>
     <url>https://github.com/hugegraph/hugegraph-common</url>
@@ -62,7 +62,7 @@
         <commons.collections.version>3.2.2</commons.collections.version>
         <commons.io.version>2.4</commons.io.version>
         <commons.codec.version>1.11</commons.codec.version>
-        <guava.version>19.0</guava.version>
+        <guava.version>25.1-jre</guava.version>
         <javax.json.version>1.0</javax.json.version>
         <jsr305.version>3.0.1</jsr305.version>
         <javassist.version>3.21.0-GA</javassist.version>
@@ -260,7 +260,7 @@
                         <manifestEntries>
                             <!-- Must be on one line, otherwise the automatic
                                  upgrade script cannot replace the version number -->
-                            <Implementation-Version>1.7.7.0</Implementation-Version>
+                            <Implementation-Version>1.7.8.0</Implementation-Version>
                         </manifestEntries>
                     </archive>
                 </configuration>

@@ -58,7 +58,6 @@ import com.baidu.hugegraph.unit.util.StringUtilTest;
 import com.baidu.hugegraph.unit.util.TimeUtilTest;
 import com.baidu.hugegraph.unit.util.VersionUtilTest;
 import com.baidu.hugegraph.unit.version.VersionTest;
-import com.baidu.hugegraph.util.DateUtil;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
