@@ -60,7 +60,6 @@ import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.define.UpdateStrategy;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.VertexLabel;
-import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.traversal.optimize.QueryHolder;
 import com.baidu.hugegraph.traversal.optimize.Text;
@@ -77,7 +76,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @Singleton
 public class VertexAPI extends BatchAPI {
 
-    private static final Logger LOG = Log.logger(RestServer.class);
+    private static final Logger LOG = Log.logger(VertexAPI.class);
 
     @POST
     @Timed(name = "single-create")

@@ -44,7 +44,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class BatchAPI extends API {
 
-    private static final Logger LOG = Log.logger(RestServer.class);
+    private static final Logger LOG = Log.logger(BatchAPI.class);
 
     // NOTE: VertexAPI and EdgeAPI should share a counter
     private static final AtomicInteger batchWriteThreads = new AtomicInteger(0);
