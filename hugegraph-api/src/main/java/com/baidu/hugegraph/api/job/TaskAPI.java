@@ -163,11 +163,12 @@ public class TaskAPI extends API {
         HugeTask<?> task = scheduler.task(IdGenerator.of(id));
         if (!task.completed() && !task.cancelling()) {
             scheduler.cancel(task);
-            assert task.cancelling();
-            return task.asMap();
+            if (task.cancelling()) {
+                return task.asMap();
+            }
         }
 
-        assert task.completed() || task.cancelling();
+        assert task.completed();
         throw new BadRequestException(String.format(
                   "Can't cancel task '%s' which is completed", id));
     }

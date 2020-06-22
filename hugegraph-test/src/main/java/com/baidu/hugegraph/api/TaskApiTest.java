@@ -69,7 +69,7 @@ public class TaskApiTest extends BaseApiTest {
 
     @Test
     public void testCancel() {
-        int taskId = this.rebuild();
+        int taskId = this.gremlinJob();
 
         Map<String, Object> params = ImmutableMap.of("action", "cancel");
         Response r = client().put(path, String.valueOf(taskId), "", params);
@@ -78,7 +78,7 @@ public class TaskApiTest extends BaseApiTest {
                           r.getStatus() == 202 || r.getStatus() == 400);
         if (r.getStatus() == 202) {
             String status = assertJsonContains(content, "task_status");
-            Assert.assertEquals("cancelled", status);
+            Assert.assertEquals("cancelling", status);
         } else {
             assert r.getStatus() == 400;
             String error = String.format(
@@ -107,6 +107,17 @@ public class TaskApiTest extends BaseApiTest {
         Map<String, Object> params = ImmutableMap.of();
         Response r = client().put(rebuildPath, personByCity, "",  params);
         String content = assertResponseStatus(202, r);
+        return assertJsonContains(content, "task_id");
+    }
+
+    private int gremlinJob() {
+        String body = "{"
+                + "\"gremlin\":\"Thread.sleep(1000L)\","
+                + "\"bindings\":{},"
+                + "\"language\":\"gremlin-groovy\","
+                + "\"aliases\":{}}";
+        String path = "/graphs/hugegraph/jobs/gremlin";
+        String content = assertResponseStatus(201, client().post(path, body));
         return assertJsonContains(content, "task_id");
     }
 

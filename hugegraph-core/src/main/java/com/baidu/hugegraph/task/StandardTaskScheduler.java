@@ -246,16 +246,19 @@ public class StandardTaskScheduler implements TaskScheduler {
     }
 
     @Override
-    public <V> void cancel(HugeTask<V> task) {
+    public synchronized <V> void cancel(HugeTask<V> task) {
         E.checkArgumentNotNull(task, "Task can't be null");
         if (!this.serverManager().master()) {
             return;
         }
         if (!task.completed()) {
             // The task scheduled to workers, waiting for worker cancel
+            task = this.task(task.id());
             task.status(TaskStatus.CANCELLING);
             this.save(task);
             this.remove(task.id());
+            // Notify master server to schedule and execute immediately
+            TaskManager.instance().notifyNewTask(task);
         }
     }
 
@@ -322,12 +325,13 @@ public class StandardTaskScheduler implements TaskScheduler {
         HugeServerInfo server;
         do {
             Iterator<HugeServerInfo> servers = this.serverManager()
-                                                   .serverInfos(100L, page);
+                                                   .serverInfos(10L, page);
             while (servers.hasNext()) {
                 server = servers.next();
                 if (!server.alive()) {
                     continue;
                 }
+
                 if (server.role().master()) {
                     master = server;
                     continue;
@@ -388,9 +392,10 @@ public class StandardTaskScheduler implements TaskScheduler {
         return this.graph.serverManager();
     }
 
-    protected void remove(Id id) {
+    public void remove(Id id) {
         HugeTask<?> task = this.tasks.remove(id);
-        assert task == null || task.completed() || task.isCancelled();
+        assert task == null || task.completed() ||
+               task.cancelling() || task.isCancelled();
     }
 
     @Override

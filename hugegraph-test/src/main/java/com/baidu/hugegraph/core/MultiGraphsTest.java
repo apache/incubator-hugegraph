@@ -34,6 +34,7 @@ import org.junit.Test;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.IdGenerator;
+import com.baidu.hugegraph.backend.store.rocksdb.RocksDBOptions;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.exception.ExistedException;
 import com.baidu.hugegraph.schema.EdgeLabel;
@@ -68,7 +69,9 @@ public class MultiGraphsTest {
             graph.initBackend();
         }
         HugeGraph g1 = graphs.get(0);
+        g1.serverStarted("server2", "master");
         HugeGraph g2 = graphs.get(1);
+        g2.serverStarted("server3", "master");
 
         SchemaManager schema = g1.schema();
 
@@ -185,6 +188,7 @@ public class MultiGraphsTest {
         List<HugeGraph> graphs = openGraphs("schema_g1", "schema_g2");
         for (HugeGraph graph : graphs) {
             graph.initBackend();
+            graph.serverStarted("server1", "master");
         }
         HugeGraph g1 = graphs.get(0);
         HugeGraph g2 = graphs.get(1);
@@ -304,16 +308,16 @@ public class MultiGraphsTest {
                        "g/range_int_index:rocksdb-index]");
         g1.initBackend();
         g1.clearBackend();
-        destoryGraphs(ImmutableList.of(g1));
 
+        final HugeGraph[] g2 = new HugeGraph[1];
         Assert.assertThrows(BackendException.class, () -> {
-            HugeGraph g2 = openGraphWithBackend(
-                           "g2", "rocksdb", "binary",
-                           "rocksdb.data_disks",
-                           "[g/secondary_index:/," +
-                           "g/range_int_index:rocksdb-index]");
-            g2.initBackend();
+            g2[0] = openGraphWithBackend("g2", "rocksdb", "binary",
+                                         "rocksdb.data_disks",
+                                         "[g/secondary_index:/," +
+                                         "g/range_int_index:rocksdb-index]");
+            g2[0].initBackend();
         });
+        destoryGraphs(ImmutableList.of(g1, g2[0]));
     }
 
     public static List<HugeGraph> openGraphs(String... graphNames) {
@@ -325,8 +329,17 @@ public class MultiGraphsTest {
             config.setProperty(key, conf.getProperty(key));
         }
         ((BaseConfiguration) config).setDelimiterParsingDisabled(true);
+        String backend = config.getString(CoreOptions.BACKEND.name());
+        String data = config.getString(RocksDBOptions.DATA_PATH.name());
+        String wal = config.getString(RocksDBOptions.DATA_PATH.name());
         for (String graphName : graphNames) {
             config.setProperty(CoreOptions.STORE.name(), graphName);
+            if (backend.equals("rocksdb")) {
+                String dataPath = data + "/" + graphName;
+                config.setProperty(RocksDBOptions.DATA_PATH.name(), dataPath);
+                String walPath = wal + "/" + graphName;
+                config.setProperty(RocksDBOptions.WAL_PATH.name(), walPath);
+            }
             graphs.add((HugeGraph) GraphFactory.open(config));
         }
         return graphs;

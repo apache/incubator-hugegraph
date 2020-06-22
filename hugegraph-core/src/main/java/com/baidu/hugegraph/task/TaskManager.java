@@ -94,6 +94,9 @@ public final class TaskManager {
         if (!this.taskExecutor.isTerminated()) {
             this.closeTaskTx(graph);
         }
+        if (!this.schedulerExecutor.isTerminated()) {
+            this.closeSchedulerTx(graph);
+        }
     }
 
     private void closeTaskTx(HugeGraphParams graph) {
@@ -129,6 +132,19 @@ public final class TaskManager {
             this.taskExecutor.invokeAll(tasks);
         } catch (Exception e) {
             throw new HugeException("Exception when closing task tx", e);
+        }
+    }
+
+    private void closeSchedulerTx(HugeGraphParams graph) {
+        final Callable<Void> closeTx = () -> {
+            graph.closeTx();
+            return null;
+        };
+
+        try {
+            this.schedulerExecutor.submit(closeTx);
+        } catch (Exception e) {
+            throw new HugeException("Exception when closing scheduler tx", e);
         }
     }
 
@@ -192,6 +208,7 @@ public final class TaskManager {
     }
 
     protected void notifyNewTask(HugeTask<?> task) {
+        // Notify to schedule tasks initiatively when have new task
         this.schedulerExecutor.submit(this::scheduleOrExecuteJob);
     }
 
@@ -206,7 +223,10 @@ public final class TaskManager {
                 // Update server heartbeat
                 server.heartbeat();
 
-                // Master schedule tasks not found suitable server when created
+                /*
+                 * Master schedule tasks to suitable servers.
+                 * There is no suitable server when these tasks are created
+                 */
                 if (server.master()) {
                     scheduler.scheduleTasks();
                 }

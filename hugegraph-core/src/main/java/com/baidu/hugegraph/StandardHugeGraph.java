@@ -267,6 +267,8 @@ public class StandardHugeGraph implements HugeGraph {
 
         this.storeProvider.truncate();
         this.storeProvider.initSystemInfo(this);
+        this.serverStarted(this.serverManager.serverId().asString(),
+                           this.serverManager.serverRole().string());
 
         LOG.info("Graph '{}' has been truncated", this.name);
     }

@@ -332,13 +332,7 @@ public class HugeTask<V> extends FutureTask<V> {
         } finally {
             StandardTaskScheduler scheduler = (StandardTaskScheduler)
                                               this.scheduler();
-            boolean syncDelete = ((StandardHugeGraph) scheduler.graph())
-                                 .configuration()
-                                 .get(CoreOptions.TASK_SYNC_DELETION);
-            if (!syncDelete) {
-                scheduler.remove(this.id);
-            }
-
+            scheduler.remove(this.id);
             ServerInfoManager manager = scheduler.serverManager();
             manager.decreaseLoad(this.load);
 
@@ -642,28 +636,14 @@ public class HugeTask<V> extends FutureTask<V> {
     }
 
     public void syncWait() {
-        HugeTask task = null;
+        HugeTask task;
         try {
-            Id id = this.id();
             do {
-                task = this.scheduler().task(id);
-                if (task.status.code() > TaskStatus.QUEUED.code()) {
-                    task.get();
-                }
+                task = this.scheduler().task(this.id());
             } while (!task.completed());
             assert task.completed();
-        } catch (ExecutionException e) {
-            Throwable cause = e.getCause();
-            if (cause instanceof RuntimeException) {
-                throw (RuntimeException) cause;
-            }
-            throw new HugeException("Async task failed with error: %s",
-                                    cause, cause.getMessage());
         } catch (Exception e) {
-            throw new HugeException("Async task failed with error: %s",
-                                    e, e.getMessage());
-        } finally {
-            ((StandardTaskScheduler) task.scheduler()).remove(id);
+            // ignore
         }
     }
 
