@@ -95,7 +95,14 @@ public class RocksDBSstSessions extends RocksDBSessions {
     }
 
     @Override
-    public void createTable(String table) throws RocksDBException {
+    public synchronized void createTable(String... tables)
+                                         throws RocksDBException {
+        for (String table : tables) {
+            this.createTable(table);
+        }
+    }
+
+    private void createTable(String table) throws RocksDBException {
         EnvOptions env = new EnvOptions();
         Options options = new Options();
         RocksDBStdSessions.initOptions(this.config(), options, options,
@@ -109,6 +116,13 @@ public class RocksDBSstSessions extends RocksDBSessions {
     }
 
     @Override
+    public synchronized void dropTable(String... tables)
+                                       throws RocksDBException {
+        for (String table : tables) {
+            this.dropTable(table);
+        }
+    }
+
     public void dropTable(String table) throws RocksDBException {
         this.tables.remove(table);
     }

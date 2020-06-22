@@ -400,9 +400,9 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
     public synchronized void init() {
         this.checkDbOpened();
 
-        for (String table : this.tableNames()) {
-            this.createTable(this.sessions, table);
-        }
+        // Create tables with main disk
+        this.createTable(this.sessions,
+                         this.tableNames().toArray(new String[0]));
 
         // Create table with optimized disk
         Map<String, RocksDBSessions> tableDBMap = this.tableDBMapping();
@@ -413,12 +413,12 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         LOG.debug("Store initialized: {}", this.store);
     }
 
-    private void createTable(RocksDBSessions db, String table) {
+    private void createTable(RocksDBSessions db, String... tables) {
         try {
-            db.createTable(table);
+            db.createTable(tables);
         } catch (RocksDBException e) {
-            throw new BackendException("Failed to create '%s' for '%s'",
-                                       e, table, this.store);
+            throw new BackendException("Failed to create tables %s for '%s'",
+                                       e, Arrays.asList(tables), this.store);
         }
     }
 
@@ -427,9 +427,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         this.checkDbOpened();
 
         // Drop tables with main disk
-        for (String table : this.tableNames()) {
-            this.dropTable(this.sessions, table);
-        }
+        this.dropTable(this.sessions, this.tableNames().toArray(new String[0]));
 
         // Drop tables with optimized disk
         Map<String, RocksDBSessions> tableDBMap = this.tableDBMapping();
@@ -440,17 +438,17 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         LOG.debug("Store cleared: {}", this.store);
     }
 
-    private void dropTable(RocksDBSessions db, String table) {
+    private void dropTable(RocksDBSessions db, String... tables) {
         try {
-            db.dropTable(table);
+            db.dropTable(tables);
         } catch (BackendException e) {
             if (e.getMessage().contains("is not opened")) {
                 return;
             }
             throw e;
         } catch (RocksDBException e) {
-            throw new BackendException("Failed to drop '%s' for '%s'",
-                                       e, table, this.store);
+            throw new BackendException("Failed to drop tables %s for '%s'",
+                                       e, Arrays.asList(tables), this.store);
         }
     }
 
