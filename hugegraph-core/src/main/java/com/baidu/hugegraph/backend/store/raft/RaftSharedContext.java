@@ -49,6 +49,7 @@ public final class RaftSharedContext {
     private final RpcServer rpcServer;
     private final ExecutorService readIndexExecutor;
     private final ExecutorService snapshotExecutor;
+    private final ExecutorService backendExecutor;
 
     public RaftSharedContext(HugeConfig config) {
         this.config = config;
@@ -61,6 +62,8 @@ public final class RaftSharedContext {
         } else {
             this.snapshotExecutor = null;
         }
+        int cpus = Runtime.getRuntime().availableProcessors();
+        this.backendExecutor = this.createBackendExecutor(cpus);
     }
 
     public HugeConfig config() {
@@ -95,6 +98,10 @@ public final class RaftSharedContext {
         return this.snapshotExecutor;
     }
 
+    public ExecutorService backendExecutor() {
+        return this.backendExecutor;
+    }
+
     private RpcServer initAndStartRpcServer() {
         PeerId serverId = new PeerId();
         serverId.parse(this.config.get(CoreOptions.RAFT_PEERID));
@@ -112,6 +119,14 @@ public final class RaftSharedContext {
     private ExecutorService createSnapshotExecutor(int coreThreads) {
         int maxThreads = coreThreads << 2;
         String name = "store-snapshot-executor";
+        RejectedExecutionHandler handler;
+        handler = new ThreadPoolExecutor.CallerRunsPolicy();
+        return newPool(coreThreads, maxThreads, name, handler);
+    }
+
+    private ExecutorService createBackendExecutor(int coreThreads) {
+        int maxThreads = coreThreads << 2;
+        String name = "store-backend-executor";
         RejectedExecutionHandler handler;
         handler = new ThreadPoolExecutor.CallerRunsPolicy();
         return newPool(coreThreads, maxThreads, name, handler);

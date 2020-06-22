@@ -38,6 +38,7 @@ import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
+import com.baidu.hugegraph.util.CodeUtil;
 import com.baidu.hugegraph.util.Log;
 
 public class RaftNode {
@@ -89,6 +90,8 @@ public class RaftNode {
             nodeOptions.setSnapshotUri(snapshotUri);
         }
 
+        nodeOptions.setRpcProcessorThreadPoolSize(32);
+
         RaftGroupService raftGroupService;
         // Shared rpc server
         raftGroupService = new RaftGroupService(groupId, serverId, nodeOptions,
@@ -98,7 +101,7 @@ public class RaftNode {
     }
 
     private NodeOptions initNodeOptions(HugeConfig config) {
-        NodeOptions nodeOptions = new NodeOptions();
+        final NodeOptions nodeOptions = new NodeOptions();
         int electionTimeout = config.get(CoreOptions.RAFT_ELECTION_TIMEOUT_MS);
         nodeOptions.setElectionTimeoutMs(electionTimeout);
         nodeOptions.setDisableCli(false);
@@ -130,8 +133,12 @@ public class RaftNode {
         }
 
         Task task = new Task();
-        task.setData(ByteBuffer.wrap(command.toBytes()));
         task.setDone(closure);
+        // compress return BytesBuffer
+        ByteBuffer buffer = CodeUtil.compress(command.toBytes()).asByteBuffer();
+        LOG.debug("HG ==> The bytes size of command {} is {}",
+                  command.action(), buffer.limit());
+        task.setData(buffer);
         LOG.debug("submit to raft node {}", this.node);
         this.node.apply(task);
     }

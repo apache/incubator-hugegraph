@@ -32,12 +32,15 @@ import com.alipay.sofa.jraft.Iterator;
 import com.alipay.sofa.jraft.Status;
 import com.alipay.sofa.jraft.core.StateMachineAdapter;
 import com.alipay.sofa.jraft.entity.NodeId;
+import com.alipay.sofa.jraft.error.RaftError;
+import com.alipay.sofa.jraft.error.RaftException;
 import com.alipay.sofa.jraft.storage.snapshot.SnapshotReader;
 import com.alipay.sofa.jraft.storage.snapshot.SnapshotWriter;
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.raft.RaftBackendStore.IncrCounter;
+import com.baidu.hugegraph.util.CodeUtil;
 import com.baidu.hugegraph.util.Log;
 
 public class StoreStateMachine extends StateMachineAdapter {
@@ -106,37 +109,49 @@ public class StoreStateMachine extends StateMachineAdapter {
     @Override
     public void onApply(Iterator iter) {
         LOG.debug("Node role: {}", this.isLeader() ? "leader" : "follower");
-        while (iter.hasNext()) {
-            StoreAction action;
-            BytesBuffer buffer;
-            StoreClosure closure = (StoreClosure) iter.done();
-            if (closure != null) {
-                // Leader just take it out from the closure
-                action = closure.command().action();
-                buffer = BytesBuffer.wrap(closure.command().data());
-            } else {
-                // Follower need readMutation data
-                buffer = BytesBuffer.wrap(iter.getData());
-                action = StoreAction.fromCode(buffer.read());
-            }
-
-            try {
+        StoreClosure closure = null;
+        try {
+            while (iter.hasNext()) {
+                StoreAction action;
+                BytesBuffer buffer;
+                closure = (StoreClosure) iter.done();
+                if (closure != null) {
+                    // Leader just take it out from the closure
+                    action = closure.command().action();
+                    buffer = BytesBuffer.wrap(closure.command().data());
+                } else {
+                    // Follower need readMutation data
+                    buffer = CodeUtil.decompress(iter.getData().array());
+                    action = StoreAction.fromCode(buffer.read());
+                }
                 Object data = this.applyCommand(action, buffer);
                 success(closure, data);
-            } catch (Exception e) {
-                failure(closure, e);
+
+                iter.next();
             }
-            iter.next();
+        } catch (Throwable e) {
+            failure(closure, e);
+            LOG.error("StateMachine occured critical error", e);
+            Status status = new Status(RaftError.ESTATEMACHINE,
+                                       "StateMachine occured critical error: %s",
+                                       e.getMessage());
+            // Will cause current node inactive
+            iter.setErrorAndRollback(1L, status);
         }
     }
 
-    private Object applyCommand(StoreAction action, BytesBuffer buffer)
-                                throws Exception {
+    private Object applyCommand(StoreAction action, BytesBuffer buffer) {
         Function<BytesBuffer, Object> func = this.funcs.get(action);
-        Object result = func.apply(buffer);
-        LOG.info("The store {} performed action {}",
-                 this.store, action.string());
-        return result;
+        this.context.backendExecutor().submit(() -> {
+            try {
+                Object result = func.apply(buffer);
+            } catch (Throwable e) {
+                LOG.error("Failed to execute backend command: {}", action, e);
+            }
+        });
+        LOG.debug("The store {} performed action {}",
+                  this.store, action.string());
+        return null;
     }
 
     @Override
@@ -158,16 +173,21 @@ public class StoreStateMachine extends StateMachineAdapter {
 
     @Override
     public void onLeaderStart(long term) {
-        LOG.debug("The node {} become to leader", this.nodeId);
+        LOG.info("The node {} become to leader", this.nodeId);
         this.leaderTerm.set(term);
         super.onLeaderStart(term);
     }
 
     @Override
     public void onLeaderStop(Status status) {
-        LOG.debug("The node {} abdicated from leader", this.nodeId);
+        LOG.info("The node {} abdicated from leader", this.nodeId);
         this.leaderTerm.set(-1);
         super.onLeaderStop(status);
+    }
+
+    @Override
+    public void onError(final RaftException e) {
+        LOG.error("Raft error: {}", e.getMessage(), e);
     }
 
     private boolean isLeader() {
@@ -181,7 +201,7 @@ public class StoreStateMachine extends StateMachineAdapter {
         }
     }
 
-    private static void failure(StoreClosure closure, Exception e) {
+    private static void failure(StoreClosure closure, Throwable e) {
         if (closure != null) {
             closure.failure(e);
         }

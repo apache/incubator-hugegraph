@@ -22,11 +22,16 @@ package com.baidu.hugegraph.backend.store.raft;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
+import org.slf4j.Logger;
+
 import com.alipay.sofa.jraft.Closure;
 import com.alipay.sofa.jraft.Status;
 import com.baidu.hugegraph.backend.BackendException;
+import com.baidu.hugegraph.util.Log;
 
 public class StoreClosure implements Closure {
+
+    private static final Logger LOG = Log.logger(StoreClosure.class);
 
     private final StoreCommand command;
     private final CompletableFuture<RaftResult> future;
@@ -73,6 +78,7 @@ public class StoreClosure implements Closure {
         if (status.isOk()) {
             this.complete(null);
         } else {
+            LOG.error("Failed to apply command: {}", status);
             this.failure(new BackendException("Failed to apply command in " +
                                               "raft node with error : %s",
                                               status.getErrorMsg()));
