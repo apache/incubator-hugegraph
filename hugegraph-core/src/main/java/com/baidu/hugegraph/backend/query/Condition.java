@@ -518,9 +518,9 @@ public abstract class Condition {
         // The value serialized(code/string) by backend store.
         protected Object serialValue;
 
-        protected Set<RelationType> UNFLATTEN_RELATION_TYPES = ImmutableSet.of(
-                                    RelationType.IN, RelationType.NOT_IN,
-                                    RelationType.TEXT_CONTAINS_ANY);
+        protected static final Set<RelationType> UNFLATTEN_RELATION_TYPES =
+                  ImmutableSet.of(RelationType.IN, RelationType.NOT_IN,
+                                  RelationType.TEXT_CONTAINS_ANY);
 
         @Override
         public ConditionType type() {
@@ -558,7 +558,7 @@ public abstract class Condition {
 
         @Override
         public boolean isFlattened() {
-            return !this.UNFLATTEN_RELATION_TYPES.contains(this.relation);
+            return !UNFLATTEN_RELATION_TYPES.contains(this.relation);
         }
 
         @Override
