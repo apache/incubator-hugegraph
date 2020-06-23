@@ -168,9 +168,10 @@ public class TaskAPI extends API {
             }
         }
 
-        assert task.completed();
+        assert task.completed() || task.cancelling();
         throw new BadRequestException(String.format(
-                  "Can't cancel task '%s' which is completed", id));
+                  "Can't cancel task '%s' which is completed or cancelling",
+                  id));
     }
 
     private static TaskStatus parseStatus(String status) {
