@@ -33,6 +33,7 @@ import com.alipay.sofa.jraft.conf.Configuration;
 import com.alipay.sofa.jraft.entity.PeerId;
 import com.alipay.sofa.jraft.entity.Task;
 import com.alipay.sofa.jraft.option.NodeOptions;
+import com.alipay.sofa.jraft.option.RaftOptions;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.store.BackendStore;
@@ -90,7 +91,11 @@ public class RaftNode {
             nodeOptions.setSnapshotUri(snapshotUri);
         }
 
-        nodeOptions.setRpcProcessorThreadPoolSize(32);
+        RaftOptions raftOptions = nodeOptions.getRaftOptions();
+        raftOptions.setDisruptorBufferSize(32768);
+
+        nodeOptions.setRpcProcessorThreadPoolSize(48);
+        nodeOptions.setEnableMetrics(false);
 
         RaftGroupService raftGroupService;
         // Shared rpc server

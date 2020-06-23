@@ -21,6 +21,8 @@ package com.baidu.hugegraph.backend.store.raft;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import org.slf4j.Logger;
 
@@ -32,6 +34,9 @@ import com.baidu.hugegraph.util.Log;
 public class StoreClosure implements Closure {
 
     private static final Logger LOG = Log.logger(StoreClosure.class);
+
+    // seconds
+    private static final int FUTURE_TIMEOUT = 30;
 
     private final StoreCommand command;
     private final CompletableFuture<RaftResult> future;
@@ -59,9 +64,12 @@ public class StoreClosure implements Closure {
 
     private RaftResult get() {
         try {
-            return this.future.get();
+            return this.future.get(FUTURE_TIMEOUT, TimeUnit.SECONDS);
         } catch (InterruptedException | ExecutionException e) {
             throw new BackendException("ExecutionException", e);
+        } catch (TimeoutException e) {
+            throw new BackendException("Wait store command {} timeout",
+                                       this.command.action());
         }
     }
 
