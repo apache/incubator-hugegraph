@@ -84,6 +84,7 @@ import com.baidu.hugegraph.traversal.optimize.HugeScriptTraversal;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.Namifiable;
 import com.baidu.hugegraph.type.define.GraphMode;
+import com.baidu.hugegraph.type.define.NodeRole;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 
@@ -562,7 +563,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     @Override
-    public void serverStarted(String serverId, String serverRole) {
+    public void serverStarted(Id serverId, NodeRole serverRole) {
         verifyAdminPermission();
         this.hugegraph.serverStarted(serverId, serverRole);
     }
@@ -912,6 +913,15 @@ public final class HugeGraphAuthProxy implements HugeGraph {
                                                       throws TimeoutException {
             verifyStatusPermission();
             return this.taskScheduler.waitUntilTaskCompleted(id, seconds);
+        }
+
+        @Override
+        public <V> HugeTask<V> waitUntilTaskCompleted(Id id, long seconds,
+                                                      long intervalMs)
+                                                      throws TimeoutException {
+            verifyStatusPermission();
+            return this.taskScheduler.waitUntilTaskCompleted(id, seconds,
+                                                             intervalMs);
         }
 
         @Override

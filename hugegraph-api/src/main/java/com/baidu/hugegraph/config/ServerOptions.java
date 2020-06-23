@@ -60,7 +60,7 @@ public class ServerOptions extends OptionHolder {
     public static final ConfigOption<String> SERVER_ROLE =
             new ConfigOption<>(
                     "server.role",
-                    "The role of nodes in the cluster, available type are " +
+                    "The role of nodes in the cluster, available types are " +
                     "[master, worker]",
                     allowValues("master", "worker"),
                     "master"

@@ -30,7 +30,6 @@ import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.page.PageInfo;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
@@ -57,6 +56,8 @@ import static com.baidu.hugegraph.backend.query.Query.NO_LIMIT;
 public class ServerInfoManager {
 
     private static final Logger LOG = Log.logger(ServerInfoManager.class);
+
+    public static final long PAGE_SIZE = 10L;
 
     private final HugeGraphParams graph;
     private final EventListener eventListener;
@@ -97,20 +98,19 @@ public class ServerInfoManager {
         return true;
     }
 
-    public void initServerInfo(String server, String role) {
-        E.checkArgument(server != null && !server.isEmpty(),
-                        "The server name can't be null or empty");
+    public void initServerInfo(Id server, NodeRole role) {
+        this.serverId = server;
+        this.serverRole = role;
+
         HugeServerInfo existed = this.serverInfo(server);
         E.checkArgument(existed == null || !existed.alive(),
                         "The server with name '%s' already in cluster",
                         server);
-        E.checkArgument(role != null && !role.isEmpty(),
-                        "The server role can't be null or empty");
-        NodeRole nodeRole = NodeRole.valueOf(role.toUpperCase());
-        if (nodeRole.master()) {
+        if (role.master()) {
             String page = PAGE_NONE;
             do {
-                Iterator<HugeServerInfo> servers = this.serverInfos(10L, page);
+                Iterator<HugeServerInfo> servers = this.serverInfos(PAGE_SIZE,
+                                                                    page);
                 while (servers.hasNext()) {
                     existed = servers.next();
                     E.checkArgument(existed.role().worker() ||
@@ -122,10 +122,8 @@ public class ServerInfoManager {
             } while (page != null);
         }
 
-        HugeServerInfo serverInfo = new HugeServerInfo(server, nodeRole);
+        HugeServerInfo serverInfo = new HugeServerInfo(server, role);
         serverInfo.maxLoad(this.calcMaxLoad());
-        this.serverId = serverInfo.id();
-        this.serverRole = nodeRole;
         this.save(serverInfo);
     }
 
@@ -204,16 +202,17 @@ public class ServerInfoManager {
         return HugeServerInfo.fromVertex(vertex);
     }
 
-    public HugeServerInfo serverInfo(String name) {
-        E.checkArgument(name != null && !name.isEmpty(),
-                        "The server name can't be null or emtpy");
-        Id server = IdGenerator.of(name);
+    public HugeServerInfo serverInfo(Id server) {
         Iterator<Vertex> vertices = this.tx().queryVertices(server);
         Vertex vertex = QueryResults.one(vertices);
         if (vertex == null) {
             return null;
         }
         return HugeServerInfo.fromVertex(vertex);
+    }
+
+    public Iterator<HugeServerInfo> serverInfos(String page) {
+        return this.serverInfos(ImmutableMap.of(), PAGE_SIZE, page);
     }
 
     public Iterator<HugeServerInfo> serverInfos(long limit, String page) {

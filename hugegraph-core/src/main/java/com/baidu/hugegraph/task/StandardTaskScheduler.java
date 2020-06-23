@@ -170,7 +170,7 @@ public class StandardTaskScheduler implements TaskScheduler {
     public <V> void restoreTasks() {
         boolean supportsPaging = this.graph().backendStoreFeatures()
                                              .supportsQueryByPage();
-        Id server = this.serverManager().serverId();
+        Id selfServer = this.serverManager().serverId();
         // Restore 'RESTORING', 'RUNNING' and 'QUEUED' tasks in order.
         for (TaskStatus status : TaskStatus.PENDING_STATUSES) {
             String page = supportsPaging ? PageInfo.PAGE_NONE : null;
@@ -179,7 +179,7 @@ public class StandardTaskScheduler implements TaskScheduler {
                 for (iter = this.findTask(status, PAGE_SIZE, page);
                      iter.hasNext();) {
                     HugeTask<V> task = iter.next();
-                    if (server.equals(task.server())) {
+                    if (selfServer.equals(task.server())) {
                         this.restore(task);
                     }
                 }
@@ -210,6 +210,10 @@ public class StandardTaskScheduler implements TaskScheduler {
         E.checkArgumentNotNull(task, "Task can't be null");
 
         task.status(TaskStatus.QUEUED);
+        /*
+         * Due to EphemeralJob won't be serialized and deserialized through
+         * shared storage, submit EphemeralJob immediately on master
+         */
         if (task.callable() instanceof EphemeralJob) {
             return this.submitTask(task);
         }
@@ -223,7 +227,7 @@ public class StandardTaskScheduler implements TaskScheduler {
         return task;
     }
 
-    public  <V> Future<?> submitTask(HugeTask<V> task) {
+    private <V> Future<?> submitTask(HugeTask<V> task) {
         int size = this.tasks.size() + 1;
         E.checkArgument(size <= MAX_PENDING_TASKS,
                         "Pending tasks size %s has exceeded the max limit %s",
@@ -253,7 +257,6 @@ public class StandardTaskScheduler implements TaskScheduler {
         }
         if (!task.completed()) {
             // The task scheduled to workers, waiting for worker cancel
-            task = this.task(task.id());
             task.status(TaskStatus.CANCELLING);
             this.save(task);
             this.remove(task.id());
@@ -315,7 +318,7 @@ public class StandardTaskScheduler implements TaskScheduler {
 
     private synchronized <V> HugeServerInfo pickWorker(HugeTask<V> task) {
         HugeServerInfo master = null;
-        HugeServerInfo minServer = null;
+        HugeServerInfo serverWithMinLoad = null;
         int minLoad = Integer.MAX_VALUE;
         boolean hasWorker = false;
         long now = DateUtil.now().getTime();
@@ -325,7 +328,7 @@ public class StandardTaskScheduler implements TaskScheduler {
         HugeServerInfo server;
         do {
             Iterator<HugeServerInfo> servers = this.serverManager()
-                                                   .serverInfos(10L, page);
+                                                   .serverInfos(page);
             while (servers.hasNext()) {
                 server = servers.next();
                 if (!server.alive()) {
@@ -343,7 +346,7 @@ public class StandardTaskScheduler implements TaskScheduler {
                 }
                 if (server.load() < minLoad) {
                     minLoad = server.load();
-                    minServer = server;
+                    serverWithMinLoad = server;
                 }
             }
             page = PageInfo.pageInfo(servers);
@@ -354,7 +357,7 @@ public class StandardTaskScheduler implements TaskScheduler {
             return master;
         }
 
-        return minServer;
+        return serverWithMinLoad;
     }
 
     protected <V> void cancelTasksForWorker(Id server) {
@@ -392,7 +395,7 @@ public class StandardTaskScheduler implements TaskScheduler {
         return this.graph.serverManager();
     }
 
-    public void remove(Id id) {
+    protected void remove(Id id) {
         HugeTask<?> task = this.tasks.remove(id);
         assert task == null || task.completed() ||
                task.cancelling() || task.isCancelled();
@@ -535,7 +538,14 @@ public class StandardTaskScheduler implements TaskScheduler {
     @Override
     public <V> HugeTask<V> waitUntilTaskCompleted(Id id, long seconds)
                                                   throws TimeoutException {
-        long passes = seconds * 1000 / QUERY_INTERVAL;
+        return this.waitUntilTaskCompleted(id, seconds, QUERY_INTERVAL);
+    }
+
+    @Override
+    public <V> HugeTask<V> waitUntilTaskCompleted(Id id, long seconds,
+                                                  long intervalMs)
+                                                  throws TimeoutException {
+        long passes = seconds * 1000 / intervalMs;
         HugeTask<V> task = null;
         for (long pass = 0;; pass++) {
             try {
@@ -543,20 +553,20 @@ public class StandardTaskScheduler implements TaskScheduler {
             } catch (NotFoundException e) {
                 if (task != null && task.completed()) {
                     assert task.id().asLong() < 0L : task.id();
-                    sleep(QUERY_INTERVAL);
+                    sleep(intervalMs);
                     return task;
                 }
                 throw e;
             }
             if (task.completed()) {
                 // Wait for task result being set after status is completed
-                sleep(QUERY_INTERVAL);
+                sleep(intervalMs);
                 return task;
             }
             if (pass >= passes) {
                 break;
             }
-            sleep(QUERY_INTERVAL);
+            sleep(intervalMs);
         }
         throw new TimeoutException(String.format(
                   "Task '%s' was not completed in %s seconds", id, seconds));
@@ -707,7 +717,6 @@ public class StandardTaskScheduler implements TaskScheduler {
 
             // Create index
             this.createIndexLabel(label, P.STATUS);
-            this.createIndexLabel(label, P.SERVER);
         }
 
         private boolean existVertexLabel(String label) {

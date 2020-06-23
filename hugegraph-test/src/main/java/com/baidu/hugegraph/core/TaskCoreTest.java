@@ -456,7 +456,9 @@ public class TaskCoreTest extends BaseCoreTest {
 
         HugeTask<Object> task = runGremlinJob("Thread.sleep(1000 * 10);");
 
+
         sleepAWhile();
+        task = scheduler.task(task.id());
         scheduler.cancel(task);
 
         sleepAWhile();
@@ -522,8 +524,11 @@ public class TaskCoreTest extends BaseCoreTest {
                          "  Thread.sleep(1000);" +
                          "}; 100;";
         HugeTask<Object> task = runGremlinJob(gremlin);
+
         Thread.sleep(1000 * 6);
+        task = scheduler.task(task.id());
         scheduler.cancel(task);
+
         sleepAWhile();
         task = scheduler.task(task.id());
         Assert.assertEquals(TaskStatus.CANCELLED, task.status());
@@ -604,9 +609,7 @@ public class TaskCoreTest extends BaseCoreTest {
 
         @Override
         public void done() {
-            StandardTaskScheduler scheduler = Whitebox.getInternalState(
-                                              this.task(), "scheduler");
-            scheduler.save(this.task());
+            this.graph().taskScheduler().save(this.task());
         }
     }
 }

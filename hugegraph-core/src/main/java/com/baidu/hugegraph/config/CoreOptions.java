@@ -114,7 +114,7 @@ public class CoreOptions extends OptionHolder {
                     "Timeout in seconds for waiting for the task to complete," +
                     "such as when truncating or clearing the backend.",
                     rangeInt(0L, Long.MAX_VALUE),
-                    30L
+                    10L
             );
 
     public static final ConfigOption<Long> TASK_INPUT_SIZE_LIMIT =

@@ -636,14 +636,11 @@ public class HugeTask<V> extends FutureTask<V> {
     }
 
     public void syncWait() {
-        HugeTask task;
         try {
-            do {
-                task = this.scheduler().task(this.id());
-            } while (!task.completed());
-            assert task.completed();
+            this.scheduler().waitUntilTaskCompleted(this.id(), 10L, 10);
         } catch (Exception e) {
-            // ignore
+            throw new HugeException("Failed to wait task '%s' completed in " +
+                                    "10 seconds", e, this.id, 10);
         }
     }
 

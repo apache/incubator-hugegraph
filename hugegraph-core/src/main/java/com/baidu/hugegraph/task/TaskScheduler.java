@@ -56,6 +56,10 @@ public interface TaskScheduler {
     public <V> HugeTask<V> waitUntilTaskCompleted(Id id, long seconds)
                                                   throws TimeoutException;
 
+    public <V> HugeTask<V> waitUntilTaskCompleted(Id id, long seconds,
+                                                  long intervalMs)
+                                                  throws TimeoutException;
+
     public void waitUntilAllTasksCompleted(long seconds)
                                            throws TimeoutException;
 }

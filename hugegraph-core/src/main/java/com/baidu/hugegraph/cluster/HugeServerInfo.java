@@ -51,8 +51,9 @@ import com.baidu.hugegraph.util.E;
 
 public class HugeServerInfo {
 
-    public static final long EXPIRED_INTERVAL =
-                             TaskManager.SCHEDULE_PERIOD * 1000L * 3;
+    // Unit millisecond
+    private static final long EXPIRED_INTERVAL =
+                              TaskManager.SCHEDULE_PERIOD * 1000L * 3;
 
     private Id id;
     private NodeRole role;
@@ -153,7 +154,7 @@ public class HugeServerInfo {
     protected Object[] asArray() {
         E.checkState(this.id != null, "Server id can't be null");
 
-        List<Object> list = new ArrayList<>(8);
+        List<Object> list = new ArrayList<>(12);
 
         list.add(T.label);
         list.add(P.SERVER);
@@ -192,13 +193,13 @@ public class HugeServerInfo {
     }
 
     public static HugeServerInfo fromVertex(Vertex vertex) {
-        HugeServerInfo server = new HugeServerInfo((Id) vertex.id());
+        HugeServerInfo serverInfo = new HugeServerInfo((Id) vertex.id());
         for (Iterator<VertexProperty<Object>> iter = vertex.properties();
              iter.hasNext();) {
             VertexProperty<Object> prop = iter.next();
-            server.property(prop.key(), prop.value());
+            serverInfo.property(prop.key(), prop.value());
         }
-        return server;
+        return serverInfo;
     }
 
     public <V> boolean suitableFor(HugeTask<V> task, long now) {

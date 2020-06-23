@@ -77,6 +77,7 @@ import com.baidu.hugegraph.task.TaskManager;
 import com.baidu.hugegraph.task.TaskScheduler;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.GraphMode;
+import com.baidu.hugegraph.type.define.NodeRole;
 import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.LockUtil;
@@ -200,7 +201,7 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
-    public void serverStarted(String serverId, String serverRole) {
+    public void serverStarted(Id serverId, NodeRole serverRole) {
         LOG.info("Init server info for graph '{}'...", this.name);
         this.serverManager.initServerInfo(serverId, serverRole);
 
@@ -267,8 +268,8 @@ public class StandardHugeGraph implements HugeGraph {
 
         this.storeProvider.truncate();
         this.storeProvider.initSystemInfo(this);
-        this.serverStarted(this.serverManager.serverId().asString(),
-                           this.serverManager.serverRole().string());
+        this.serverStarted(this.serverManager.serverId(),
+                           this.serverManager.serverRole());
 
         LOG.info("Graph '{}' has been truncated", this.name);
     }

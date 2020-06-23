@@ -100,7 +100,8 @@ public class GremlinApiTest extends BaseApiTest {
         assertResponseStatus(200, client().post(path, body));
 
         body = "{"
-                + "\"gremlin\":\"hugegraph.serverStarted('server1', 'master')\","
+                + "\"gremlin\":\"hugegraph.serverStarted("
+                + "IdGenerator.of('server1'), NodeRole.MASTER)\","
                 + "\"bindings\":{},"
                 + "\"language\":\"gremlin-groovy\","
                 + "\"aliases\":{\"g\":\"__g_hugegraph\"}}";

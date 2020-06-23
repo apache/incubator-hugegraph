@@ -48,7 +48,7 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
     private EventListener cacheEventListener;
 
     private static final Map<String, CachedTypes> CACHED_TYPES =
-            new ConcurrentHashMap<>();
+                                                  new ConcurrentHashMap<>();
 
     public CachedSchemaTransaction(HugeGraphParams graph, BackendStore store) {
         super(graph, store);
@@ -266,5 +266,5 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
     }
 
     private static class CachedTypes
-            extends ConcurrentHashMap<HugeType, Boolean> {}
+                   extends ConcurrentHashMap<HugeType, Boolean> {}
 }

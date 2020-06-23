@@ -44,6 +44,7 @@ import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.testutil.Utils;
+import com.baidu.hugegraph.type.define.NodeRole;
 
 import jersey.repackaged.com.google.common.collect.ImmutableList;
 
@@ -69,9 +70,9 @@ public class MultiGraphsTest {
             graph.initBackend();
         }
         HugeGraph g1 = graphs.get(0);
-        g1.serverStarted("server2", "master");
+        g1.serverStarted(IdGenerator.of("server2"), NodeRole.MASTER);
         HugeGraph g2 = graphs.get(1);
-        g2.serverStarted("server3", "master");
+        g2.serverStarted(IdGenerator.of("server3"), NodeRole.MASTER);
 
         SchemaManager schema = g1.schema();
 
@@ -188,7 +189,7 @@ public class MultiGraphsTest {
         List<HugeGraph> graphs = openGraphs("schema_g1", "schema_g2");
         for (HugeGraph graph : graphs) {
             graph.initBackend();
-            graph.serverStarted("server1", "master");
+            graph.serverStarted(IdGenerator.of("server1"), NodeRole.MASTER);
         }
         HugeGraph g1 = graphs.get(0);
         HugeGraph g2 = graphs.get(1);
@@ -331,7 +332,7 @@ public class MultiGraphsTest {
         ((BaseConfiguration) config).setDelimiterParsingDisabled(true);
         String backend = config.getString(CoreOptions.BACKEND.name());
         String data = config.getString(RocksDBOptions.DATA_PATH.name());
-        String wal = config.getString(RocksDBOptions.DATA_PATH.name());
+        String wal = config.getString(RocksDBOptions.WAL_PATH.name());
         for (String graphName : graphNames) {
             config.setProperty(CoreOptions.STORE.name(), graphName);
             if (backend.equals("rocksdb")) {

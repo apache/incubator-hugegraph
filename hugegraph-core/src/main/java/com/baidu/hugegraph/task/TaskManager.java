@@ -48,7 +48,7 @@ public final class TaskManager {
     public static final String TASK_DB_WORKER = "task-db-worker-%d";
     public static final String TASK_SCHEDULER = "task-scheduler-%d";
 
-    public static final int SCHEDULE_PERIOD = 3;
+    public static final int SCHEDULE_PERIOD = 3; // Unit second
     private static final int THREADS = 4;
     private static final TaskManager MANAGER = new TaskManager(THREADS);
 

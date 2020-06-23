@@ -918,8 +918,8 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
         task = scheduler.task(id);
         Assert.assertEquals(TaskStatus.FAILED, task.status());
         Assert.assertContains("Not allowed to remove vertex label 'book' " +
-                              "because the edge label 'write' still link with" +
-                              " it", task.result());
+                              "because the edge label 'write' still link " +
+                              "with it", task.result());
     }
 
     @Test

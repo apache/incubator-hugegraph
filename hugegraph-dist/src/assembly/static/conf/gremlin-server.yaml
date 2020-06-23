@@ -17,6 +17,7 @@ scriptEngines: {
       org.apache.tinkerpop.gremlin.jsr223.ImportGremlinPlugin: {
         classImports: [
           java.lang.Math,
+          com.baidu.hugegraph.backend.id.IdGenerator,
           com.baidu.hugegraph.type.define.Directions,
           com.baidu.hugegraph.traversal.algorithm.CustomizePathsTraverser,
           com.baidu.hugegraph.traversal.algorithm.CustomizedCrosspointsTraverser,

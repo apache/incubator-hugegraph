@@ -71,6 +71,7 @@ public class TaskApiTest extends BaseApiTest {
     public void testCancel() {
         int taskId = this.gremlinJob();
 
+        sleepAWhile();
         Map<String, Object> params = ImmutableMap.of("action", "cancel");
         Response r = client().put(path, String.valueOf(taskId), "", params);
         String content = r.readEntity(String.class);
@@ -119,6 +120,14 @@ public class TaskApiTest extends BaseApiTest {
         String path = "/graphs/hugegraph/jobs/gremlin";
         String content = assertResponseStatus(201, client().post(path, body));
         return assertJsonContains(content, "task_id");
+    }
+
+    private void sleepAWhile() {
+        try {
+            Thread.sleep(200L);
+        } catch (InterruptedException e) {
+            // ignore
+        }
     }
 
     private void waitTaskSuccess(int task) {
