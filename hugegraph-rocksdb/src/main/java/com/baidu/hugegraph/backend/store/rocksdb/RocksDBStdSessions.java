@@ -49,7 +49,6 @@ import org.rocksdb.LRUCache;
 import org.rocksdb.MutableColumnFamilyOptionsInterface;
 import org.rocksdb.MutableDBOptionsInterface;
 import org.rocksdb.Options;
-import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.RocksIterator;
@@ -763,11 +762,14 @@ public class RocksDBStdSessions extends RocksDBSessions {
         @Override
         public BackendColumnIterator scan(String table, byte[] prefix) {
             assert !this.hasChanges();
-            ReadOptions options = new ReadOptions();
-            // NOTE: Options.prefix_extractor is a prerequisite
-            options.setPrefixSameAsStart(true);
+            /*
+             * NOTE: Options.prefix_extractor is a prerequisite for
+             * Options.setPrefixSameAsStart(true):
+             * ReadOptions options = new ReadOptions();
+             * options.setPrefixSameAsStart(true);
+             */
             try (CFHandle cf = cf(table)) {
-                RocksIterator iter = rocksdb().newIterator(cf.get(), options);
+                RocksIterator iter = rocksdb().newIterator(cf.get());
                 return new ColumnIterator(table, iter, prefix, null,
                                           SCAN_PREFIX_BEGIN);
             }
@@ -780,10 +782,13 @@ public class RocksDBStdSessions extends RocksDBSessions {
         public BackendColumnIterator scan(String table, byte[] keyFrom,
                                           byte[] keyTo, int scanType) {
             assert !this.hasChanges();
-            ReadOptions options = new ReadOptions();
-            options.setTotalOrderSeek(true); // Not sure if it must be set
+            /*
+             * Not sure if setTotalOrderSeek(true) must be set:
+             * ReadOptions options = new ReadOptions();
+             * options.setTotalOrderSeek(true);
+             */
             try (CFHandle cf = cf(table)) {
-                RocksIterator iter = rocksdb().newIterator(cf.get(), options);
+                RocksIterator iter = rocksdb().newIterator(cf.get());
                 return new ColumnIterator(table, iter, keyFrom,
                                           keyTo, scanType);
             }

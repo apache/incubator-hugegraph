@@ -57,6 +57,7 @@ import com.google.common.base.CharMatcher;
 public final class StringEncoding {
 
     private static final MessageDigest DIGEST;
+    private static final byte[] BYTES_EMPTY = new byte[0];
 
     static {
         final String ALG = "SHA-256";
@@ -133,12 +134,17 @@ public final class StringEncoding {
     }
 
     public static byte[] decodeBase64(String value) {
+        if (value.isEmpty()) {
+            return BYTES_EMPTY;
+        }
         return BASE64_DECODER.decode(value);
     }
 
     public static byte[] compress(String value) {
-        try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
-             GZIPOutputStream out = new GZIPOutputStream(bos, 256)) {
+        final int outputSize = Math.max(32, value.length() / 8);
+        final int gzipBufSize = 4 * (int) Bytes.KB;
+        try (ByteArrayOutputStream bos = new ByteArrayOutputStream(outputSize);
+             GZIPOutputStream out = new GZIPOutputStream(bos, gzipBufSize)) {
             byte[] bytes = encode(value);
             out.write(bytes);
             out.finish();
