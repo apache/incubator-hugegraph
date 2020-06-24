@@ -108,8 +108,8 @@ public final class HugeVertexStep<E extends Element>
         List<HasContainer> conditions = this.hasContainers;
 
         // Query for edge with conditions(else conditions for vertex)
-        boolean withEdgeCond = Edge.class.isAssignableFrom(getReturnClass()) &&
-                               !conditions.isEmpty();
+        boolean withEdgeCond = this.returnsEdge() && !conditions.isEmpty();
+        boolean withVertexCond = this.returnsVertex() && !conditions.isEmpty();
 
         Id vertex = (Id) traverser.get().id();
         Directions direction = Directions.convert(this.getDirection());
@@ -126,9 +126,15 @@ public final class HugeVertexStep<E extends Element>
         // Query by sort-keys
         if (withEdgeCond && edgeLabels.length > 0) {
             TraversalUtil.fillConditionQuery(conditions, query, graph);
-            if (!GraphTransaction.matchEdgeSortKeys(query, graph)) {
+            if (!GraphTransaction.matchEdgeSortKeys(query, false, graph)) {
                 // Can't query by sysprop and by index (HugeGraph-749)
                 query.resetUserpropConditions();
+            } else if (GraphTransaction.matchEdgeSortKeys(query, graph)) {
+                // All sysprop conditions are in sort-keys
+                withEdgeCond = false;
+            } else {
+                // Partial sysprop conditions are in sort-keys
+                assert query.userpropKeys().size() > 0;
             }
         }
 
@@ -138,6 +144,20 @@ public final class HugeVertexStep<E extends Element>
             // FIXME: should check that the edge id matches the `vertex`
             query.resetConditions();
             LOG.warn("It's not recommended to query by has(id)");
+        }
+
+        /*
+         * Unset limit when needed to filter property after store query
+         * like query: outE().has(k,v).limit(n)
+         * NOTE: outE().limit(m).has(k,v).limit(n) will also be unset limit,
+         * Can't unset limit if query by paging due to page position will be
+         * exceeded when reaching the limit in tinkerpop layer
+         */
+        if (withEdgeCond || withVertexCond) {
+            com.baidu.hugegraph.util.E.checkArgument(!this.queryInfo().paging(),
+                                                     "Can't query by paging " +
+                                                     "and filtering");
+            this.queryInfo().limit(Query.NO_LIMIT);
         }
 
         query = this.injectQueryInfo(query);

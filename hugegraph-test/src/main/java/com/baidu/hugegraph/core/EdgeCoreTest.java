@@ -856,6 +856,206 @@ public class EdgeCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testQueryEdgesAdjacentVerticesWithLimitAndFilterProp() {
+        HugeGraph graph = graph();
+
+        Vertex james = graph.addVertex(T.label, "author", "id", 1,
+                                       "name", "James Gosling", "age", 62,
+                                       "lived", "Canadian");
+        Vertex guido =  graph.addVertex(T.label, "author", "id", 2,
+                                        "name", "Guido van Rossum", "age", 62,
+                                        "lived", "California");
+        Vertex marko =  graph.addVertex(T.label, "author", "id", 3,
+                                        "name", "Marko", "age", 61,
+                                        "lived", "California");
+        guido.addEdge("know", james);
+        guido.addEdge("know", marko);
+        marko.addEdge("know", james);
+
+        for (int i = 0; i < 20; i++) {
+            Vertex java = graph.addVertex(T.label, "book", "name", "java-" + i);
+            james.addEdge("authored", java, "score", i % 2);
+            james.addEdge("write", java, "time", "2020-6-" + i);
+
+            marko.addEdge("authored", java, "score", i % 2);
+        }
+
+        Vertex louise = graph.addVertex(T.label, "person", "name", "Louise",
+                                        "city", "Beijing", "age", 62);
+        Vertex java0 = graph.addVertex(T.label, "book", "name", "java-0");
+        louise.addEdge("look", java0, "time", "2020-6-18", "score", 1);
+        louise.addEdge("look", java0, "time", "2020-6-0", "score", 1);
+
+        Vertex jeff = graph.addVertex(T.label, "person", "name", "Jeff",
+                                      "city", "Beijing", "age", 62);
+        Vertex sean = graph.addVertex(T.label, "person", "name", "Sean",
+                                      "city", "Beijing", "age", 61);
+
+        louise.addEdge("friend", jeff);
+        louise.addEdge("friend", sean);
+        jeff.addEdge("friend", sean);
+        jeff.addEdge("follow", marko);
+        sean.addEdge("follow", marko);
+
+        graph.tx().commit();
+
+        // out
+        List<Vertex> vertices = graph.traversal().V()
+                                     .out().has("age", 62)
+                                     .toList();
+        Assert.assertEquals(3, vertices.size());
+        Assert.assertEquals(2, new HashSet<>(vertices).size());
+        Assert.assertTrue(vertices.contains(james));
+        Assert.assertTrue(vertices.contains(jeff));
+
+        vertices = graph.traversal().V()
+                        .out().has("age", 62)
+                        .limit(4).toList();
+        Assert.assertEquals(3, vertices.size());
+
+        vertices = graph.traversal().V()
+                        .out().has("age", 62)
+                        .limit(1).toList();
+        Assert.assertEquals(1, vertices.size());
+
+        vertices = graph.traversal().V()
+                        .out().has("name", "java-0")
+                        .toList();
+        Assert.assertEquals(5, vertices.size());
+
+        vertices = graph.traversal().V()
+                        .out().has("name", "java-0")
+                        .limit(6).toList();
+        Assert.assertEquals(5, vertices.size());
+
+        vertices = graph.traversal().V()
+                        .out().has("name", "java-0")
+                        .limit(3).toList();
+        Assert.assertEquals(3, vertices.size());
+
+        vertices = graph.traversal().V()
+                        .out("write", "look")
+                        .has("name", Text.contains("java-1"))
+                        .toList();
+        Assert.assertEquals(11, vertices.size());
+
+        vertices = graph.traversal().V()
+                        .out("write", "look")
+                        .has("name", Text.contains("java-1"))
+                        .limit(12).toList();
+        Assert.assertEquals(11, vertices.size());
+
+        vertices = graph.traversal().V()
+                        .out("write", "look")
+                        .has("name", Text.contains("java-1"))
+                        .limit(2).toList();
+        Assert.assertEquals(2, vertices.size());
+
+        // in
+        vertices = graph.traversal().V(java0)
+                        .in().has("age", 62)
+                        .toList();
+        Assert.assertEquals(4, vertices.size());
+        Assert.assertEquals(2, new HashSet<>(vertices).size());
+        Assert.assertTrue(vertices.contains(james));
+        Assert.assertTrue(vertices.contains(louise));
+
+        vertices = graph.traversal().V(java0)
+                        .in().has("age", 62)
+                        .limit(5).toList();
+        Assert.assertEquals(4, vertices.size());
+
+        vertices = graph.traversal().V(java0)
+                        .in().has("age", 62)
+                        .limit(3).toList();
+        Assert.assertEquals(3, vertices.size());
+
+        vertices = graph.traversal().V(java0)
+                        .in().has("age", 62)
+                        .limit(1).toList();
+        Assert.assertEquals(1, vertices.size());
+
+        vertices = graph.traversal().V(java0)
+                        .in().has("age", 62)
+                        .dedup().limit(3).toList();
+        Assert.assertEquals(2, vertices.size());
+
+        vertices = graph.traversal().V(java0)
+                        .in().has("age", 62)
+                        .dedup().limit(1).toList();
+        Assert.assertEquals(1, vertices.size());
+
+        vertices = graph.traversal().V(james, jeff)
+                        .in().has("age", 62)
+                        .toList();
+        Assert.assertEquals(2, vertices.size());
+        Assert.assertTrue(vertices.contains(guido));
+        Assert.assertTrue(vertices.contains(louise));
+
+        vertices = graph.traversal().V(james, jeff)
+                        .in().has("age", 62)
+                        .limit(3).toList();
+        Assert.assertEquals(2, vertices.size());
+
+        vertices = graph.traversal().V(james, jeff)
+                        .in().has("age", 62)
+                        .limit(1).toList();
+        Assert.assertEquals(1, vertices.size());
+
+        // both
+        vertices = graph.traversal().V(sean)
+                        .both().has("age", 62)
+                        .toList();
+        Assert.assertEquals(2, vertices.size());
+        Assert.assertTrue(vertices.contains(louise));
+        Assert.assertTrue(vertices.contains(jeff));
+
+        vertices = graph.traversal().V(sean)
+                        .both().has("age", 62)
+                        .limit(3).toList();
+        Assert.assertEquals(2, vertices.size());
+
+        vertices = graph.traversal().V(sean)
+                        .both().has("age", 62)
+                        .limit(1).toList();
+        Assert.assertEquals(1, vertices.size());
+
+        vertices = graph.traversal().V(marko)
+                        .both().has("age", 62)
+                        .toList();
+        Assert.assertEquals(3, vertices.size());
+        Assert.assertTrue(vertices.contains(guido));
+        Assert.assertTrue(vertices.contains(jeff));
+
+        vertices = graph.traversal().V(marko)
+                        .both().has("age", 62)
+                        .limit(4).toList();
+        Assert.assertEquals(3, vertices.size());
+
+        vertices = graph.traversal().V(marko)
+                        .both().has("age", 62)
+                        .limit(1).toList();
+        Assert.assertEquals(1, vertices.size());
+
+        vertices = graph.traversal().V(jeff)
+                        .both().has("age", 61)
+                        .toList();
+        Assert.assertEquals(2, vertices.size());
+        Assert.assertTrue(vertices.contains(sean));
+        Assert.assertTrue(vertices.contains(marko));
+
+        vertices = graph.traversal().V(jeff)
+                        .both().has("age", 61)
+                        .limit(3).toList();
+        Assert.assertEquals(2, vertices.size());
+
+        vertices = graph.traversal().V(jeff)
+                        .both().has("age", 61)
+                        .limit(1).toList();
+        Assert.assertEquals(1, vertices.size());
+    }
+
+    @Test
     public void testQueryEdgesWithLimitAndOrderBy() {
         Assume.assumeTrue("Not support order by",
                           storeFeatures().supportsQueryWithOrderBy());

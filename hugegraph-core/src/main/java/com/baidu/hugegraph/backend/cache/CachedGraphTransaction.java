@@ -21,6 +21,7 @@ package com.baidu.hugegraph.backend.cache;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -37,12 +38,12 @@ import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.event.EventListener;
+import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.Events;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 public final class CachedGraphTransaction extends GraphTransaction {
@@ -178,25 +179,43 @@ public final class CachedGraphTransaction extends GraphTransaction {
     }
 
     @Override
-    protected Iterator<HugeEdge> queryEdgesFromBackend(Query query) {
+    protected final Iterator<HugeEdge> queryEdgesFromBackend(Query query) {
         if (query.empty() || query.paging()) {
             // Query all edges or query edges in paging, don't cache it
             return super.queryEdgesFromBackend(query);
         }
 
-        Id id = new QueryId(query);
+        Id cacheKey = new QueryId(query);
+        Object value = this.edgesCache.get(cacheKey);
         @SuppressWarnings("unchecked")
-        List<HugeEdge> edges = (List<HugeEdge>) this.edgesCache.get(id);
-        if (edges == null) {
-            // Iterator can't be cached, caching list instead
-            edges = ImmutableList.copyOf(super.queryEdgesFromBackend(query));
-            if (edges.size() <= MAX_CACHE_EDGES_PER_QUERY) {
-                this.edgesCache.update(id, edges);
-            }
+        Collection<HugeEdge> edges = (Collection<HugeEdge>) value;
+        if (value != null) {
+            // Not cached or the cache expired
+            return edges.iterator();
         }
-        return edges.iterator();
-    }
 
+        Iterator<HugeEdge> rs = super.queryEdgesFromBackend(query);
+
+        /*
+         * Iterator can't be cached, caching list instead
+         * there may be super node and too many edges in a query,
+         * try fetch a few of the head results and determine whether to cache.
+         */
+        final int tryMax = 1 + MAX_CACHE_EDGES_PER_QUERY;
+        assert tryMax > MAX_CACHE_EDGES_PER_QUERY;
+        edges = new ArrayList<>(tryMax);
+        for (int i = 0; rs.hasNext() && i < tryMax; i++) {
+            edges.add(rs.next());
+        }
+
+        if (edges.size() == 0) {
+            this.edgesCache.update(cacheKey, Collections.emptyList());
+        } else if (edges.size() <= MAX_CACHE_EDGES_PER_QUERY) {
+            this.edgesCache.update(cacheKey, edges);
+        }
+
+        return new ExtendableIterator<>(edges.iterator(), rs);
+    }
 
     @Override
     protected void commitMutation2Backend(BackendMutation... mutations) {
