@@ -27,7 +27,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
@@ -45,7 +44,10 @@ import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.baidu.hugegraph.cluster.ServerInfoManager;
 import com.baidu.hugegraph.config.CoreOptions;
+import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.exception.LimitExceedException;
+import com.baidu.hugegraph.exception.NotFoundException;
+import com.baidu.hugegraph.job.EphemeralJob;
 import com.baidu.hugegraph.type.define.SerialEnum;
 import com.baidu.hugegraph.util.Blob;
 import com.baidu.hugegraph.util.E;
@@ -636,11 +638,22 @@ public class HugeTask<V> extends FutureTask<V> {
     }
 
     public void syncWait() {
+        long timeout = ((HugeConfig) this.scheduler.graph().configuration())
+                       .get(CoreOptions.TASK_WAIT_TIMEOUT);
         try {
-            this.scheduler().waitUntilTaskCompleted(this.id(), 20L, 10);
+            this.scheduler().waitUntilTaskCompleted(this.id(), timeout, 10L);
         } catch (Exception e) {
+            if (this.callable() instanceof EphemeralJob &&
+                e.getClass() == NotFoundException.class &&
+                e.getMessage().contains("Can't find task with id")) {
+                /*
+                 * The task with EphemeralJob won't saved in backends and
+                 * will be removed from memory when completed
+                 */
+                return;
+            }
             throw new HugeException("Failed to wait task '%s' completed in " +
-                                    "20 seconds", e, this.id);
+                                    "%s seconds", e, timeout, this.id);
         }
     }
 

@@ -182,8 +182,10 @@ public class CachedSchemaTransactionTest extends BaseUnitTest {
                                                     "fake-pk-1"));
         Assert.assertEquals(1L, Whitebox.invoke(cache, "idCache", "size"));
         Assert.assertEquals(1, cache.getPropertyKeys().size());
+        Whitebox.invoke(CachedSchemaTransaction.class, "cachedTypes", cache);
         Assert.assertEquals(ImmutableMap.of(HugeType.PROPERTY_KEY, true),
-                            Whitebox.getInternalState(cache, "cachedTypes"));
+                            Whitebox.invoke(CachedSchemaTransaction.class,
+                                            "cachedTypes", cache));
 
         cache.addPropertyKey(objects.newPropertyKey(IdGenerator.of(3),
                                                     "fake-pk-2"));
@@ -193,6 +195,7 @@ public class CachedSchemaTransactionTest extends BaseUnitTest {
         Assert.assertEquals(2L, Whitebox.invoke(cache, "idCache", "size"));
         Assert.assertEquals(3, cache.getPropertyKeys().size());
         Assert.assertEquals(ImmutableMap.of(),
-                            Whitebox.getInternalState(cache, "cachedTypes"));
+                            Whitebox.invoke(CachedSchemaTransaction.class,
+                                            "cachedTypes", cache));
     }
 }

@@ -49,7 +49,7 @@ import com.google.common.collect.ImmutableMap;
 
 public class TaskCoreTest extends BaseCoreTest {
 
-    private static final int SLEEP_TIME = 500;
+    private static final int SLEEP_TIME = 200;
 
     @Before
     @Override
@@ -315,8 +315,7 @@ public class TaskCoreTest extends BaseCoreTest {
                .input("")
                .job(new GremlinJob());
         HugeTask<Object> task = builder.schedule();
-        scheduler.waitUntilTaskCompleted(task.id(), 10);
-        task = scheduler.task(task.id());
+        task = scheduler.waitUntilTaskCompleted(task.id(), 10);
         Assert.assertEquals(TaskStatus.FAILED, task.status());
         Assert.assertContains("Can't read json", task.result());
 
@@ -334,8 +333,7 @@ public class TaskCoreTest extends BaseCoreTest {
                .input("{}")
                .job(new GremlinJob());
         task = builder.schedule();
-        scheduler.waitUntilTaskCompleted(task.id(), 10);
-        task = scheduler.task(task.id());
+        task = scheduler.waitUntilTaskCompleted(task.id(), 10);
         Assert.assertEquals(TaskStatus.FAILED, task.status());
         Assert.assertContains("Invalid gremlin value 'null'", task.result());
 
@@ -344,8 +342,7 @@ public class TaskCoreTest extends BaseCoreTest {
                .input("{\"gremlin\":8}")
                .job(new GremlinJob());
         task = builder.schedule();
-        scheduler.waitUntilTaskCompleted(task.id(), 10);
-        task = scheduler.task(task.id());
+        task = scheduler.waitUntilTaskCompleted(task.id(), 10);
         Assert.assertEquals(TaskStatus.FAILED, task.status());
         Assert.assertContains("Invalid gremlin value '8'", task.result());
 
@@ -354,8 +351,7 @@ public class TaskCoreTest extends BaseCoreTest {
                .input("{\"gremlin\":\"\"}")
                .job(new GremlinJob());
         task = builder.schedule();
-        scheduler.waitUntilTaskCompleted(task.id(), 10);
-        task = scheduler.task(task.id());
+        task = scheduler.waitUntilTaskCompleted(task.id(), 10);
         Assert.assertEquals(TaskStatus.FAILED, task.status());
         Assert.assertContains("Invalid bindings value 'null'", task.result());
 
@@ -364,8 +360,7 @@ public class TaskCoreTest extends BaseCoreTest {
                .input("{\"gremlin\":\"\", \"bindings\":\"\"}")
                .job(new GremlinJob());
         task = builder.schedule();
-        scheduler.waitUntilTaskCompleted(task.id(), 10);
-        task = scheduler.task(task.id());
+        task = scheduler.waitUntilTaskCompleted(task.id(), 10);
         Assert.assertEquals(TaskStatus.FAILED, task.status());
         Assert.assertContains("Invalid bindings value ''", task.result());
 
@@ -374,8 +369,7 @@ public class TaskCoreTest extends BaseCoreTest {
                .input("{\"gremlin\":\"\", \"bindings\":{}}")
                .job(new GremlinJob());
         task = builder.schedule();
-        scheduler.waitUntilTaskCompleted(task.id(), 10);
-        task = scheduler.task(task.id());
+        task = scheduler.waitUntilTaskCompleted(task.id(), 10);
         Assert.assertEquals(TaskStatus.FAILED, task.status());
         Assert.assertContains("Invalid language value 'null'", task.result());
 
@@ -384,8 +378,7 @@ public class TaskCoreTest extends BaseCoreTest {
                .input("{\"gremlin\":\"\", \"bindings\":{}, \"language\":{}}")
                .job(new GremlinJob());
         task = builder.schedule();
-        scheduler.waitUntilTaskCompleted(task.id(), 10);
-        task = scheduler.task(task.id());
+        task = scheduler.waitUntilTaskCompleted(task.id(), 10);
         Assert.assertEquals(TaskStatus.FAILED, task.status());
         Assert.assertContains("Invalid language value '{}'", task.result());
 
@@ -394,8 +387,7 @@ public class TaskCoreTest extends BaseCoreTest {
                .input("{\"gremlin\":\"\", \"bindings\":{}, \"language\":\"\"}")
                .job(new GremlinJob());
         task = builder.schedule();
-        scheduler.waitUntilTaskCompleted(task.id(), 10);
-        task = scheduler.task(task.id());
+        task = scheduler.waitUntilTaskCompleted(task.id(), 10);
         Assert.assertEquals(TaskStatus.FAILED, task.status());
         Assert.assertContains("Invalid aliases value 'null'", task.result());
 
@@ -405,8 +397,7 @@ public class TaskCoreTest extends BaseCoreTest {
                       "\"language\":\"test\", \"aliases\":{}}")
                .job(new GremlinJob());
         task = builder.schedule();
-        scheduler.waitUntilTaskCompleted(task.id(), 10);
-        task = scheduler.task(task.id());
+        task = scheduler.waitUntilTaskCompleted(task.id(), 10);
         Assert.assertEquals(TaskStatus.FAILED, task.status());
         Assert.assertContains("test is not an available GremlinScriptEngine",
                               task.result());
@@ -470,8 +461,7 @@ public class TaskCoreTest extends BaseCoreTest {
 
         // Cancel success task
         HugeTask<Object> task2 = runGremlinJob("1+2");
-        scheduler.waitUntilTaskCompleted(task2.id(), 10);
-        task2 = scheduler.task(task2.id());
+        task2 = scheduler.waitUntilTaskCompleted(task2.id(), 10);
         Assert.assertEquals(TaskStatus.SUCCESS, task2.status());
         scheduler.cancel(task2);
         task2 = scheduler.task(task2.id());
@@ -481,8 +471,7 @@ public class TaskCoreTest extends BaseCoreTest {
         // Cancel failure task with big results (job size exceeded limit)
         String bigList = "def l=[]; for (i in 1..800001) l.add(i); l;";
         HugeTask<Object> task3 = runGremlinJob(bigList);
-        scheduler.waitUntilTaskCompleted(task3.id(), 12);
-        task3 = scheduler.task(task3.id());
+        task3 = scheduler.waitUntilTaskCompleted(task3.id(), 12);
         Assert.assertEquals(TaskStatus.FAILED, task3.status());
         scheduler.cancel(task3);
         task3 = scheduler.task(task3.id());
@@ -502,8 +491,7 @@ public class TaskCoreTest extends BaseCoreTest {
                             "};" +
                             "rs;";
         HugeTask<Object> task4 = runGremlinJob(bigResults);
-        scheduler.waitUntilTaskCompleted(task4.id(), 10);
-        task4 = scheduler.task(task4.id());
+        task4 = scheduler.waitUntilTaskCompleted(task4.id(), 10);
         Assert.assertEquals(TaskStatus.FAILED, task4.status());
         scheduler.cancel(task4);
         task4 = scheduler.task(task4.id());

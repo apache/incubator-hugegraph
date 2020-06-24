@@ -41,12 +41,14 @@ import org.junit.Test;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.job.GremlinJob;
 import com.baidu.hugegraph.job.JobBuilder;
 import com.baidu.hugegraph.security.HugeSecurityManager;
 import com.baidu.hugegraph.task.HugeTask;
 import com.baidu.hugegraph.testutil.Assert;
+import com.baidu.hugegraph.type.define.NodeRole;
 import com.baidu.hugegraph.unit.FakeObjects;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.google.common.collect.ImmutableMap;
@@ -325,6 +327,7 @@ public class SecurityManagerTest {
             graph.clearBackend();
         }
         graph.initBackend();
+        graph.serverStarted(IdGenerator.of("server1"), NodeRole.MASTER);
 
         return graph;
     }

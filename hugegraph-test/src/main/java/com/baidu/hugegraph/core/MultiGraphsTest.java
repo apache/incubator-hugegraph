@@ -34,7 +34,6 @@ import org.junit.Test;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.IdGenerator;
-import com.baidu.hugegraph.backend.store.rocksdb.RocksDBOptions;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.exception.ExistedException;
 import com.baidu.hugegraph.schema.EdgeLabel;
@@ -330,17 +329,8 @@ public class MultiGraphsTest {
             config.setProperty(key, conf.getProperty(key));
         }
         ((BaseConfiguration) config).setDelimiterParsingDisabled(true);
-        String backend = config.getString(CoreOptions.BACKEND.name());
-        String data = config.getString(RocksDBOptions.DATA_PATH.name());
-        String wal = config.getString(RocksDBOptions.WAL_PATH.name());
         for (String graphName : graphNames) {
             config.setProperty(CoreOptions.STORE.name(), graphName);
-            if (backend.equals("rocksdb")) {
-                String dataPath = data + "/" + graphName;
-                config.setProperty(RocksDBOptions.DATA_PATH.name(), dataPath);
-                String walPath = wal + "/" + graphName;
-                config.setProperty(RocksDBOptions.WAL_PATH.name(), walPath);
-            }
             graphs.add((HugeGraph) GraphFactory.open(config));
         }
         return graphs;

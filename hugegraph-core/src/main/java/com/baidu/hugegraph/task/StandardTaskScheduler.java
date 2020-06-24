@@ -280,7 +280,7 @@ public class StandardTaskScheduler implements TaskScheduler {
                 }
                 HugeServerInfo server = this.pickWorker(task);
                 if (server == null) {
-                    LOG.debug("The master can not find suitable server to " +
+                    LOG.debug("The master can't find suitable servers to " +
                               "execute task: {}, wait for next schedule",
                               task.id());
                     return;
