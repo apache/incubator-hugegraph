@@ -41,9 +41,11 @@ import com.google.common.collect.ImmutableMap;
 
 public class LpaAlgorithm extends AbstractCommAlgorithm {
 
+    public static final String ALGO_NAME = "lpa";
+
     @Override
     public String name() {
-        return "lpa";
+        return ALGO_NAME;
     }
 
     @Override
@@ -87,7 +89,7 @@ public class LpaAlgorithm extends AbstractCommAlgorithm {
         private final Random R = new Random();
 
         public Traverser(Job<Object> job, int workers) {
-            super(job, "lpa", workers);
+            super(job, ALGO_NAME, workers);
         }
 
         public Object lpa(String sourceLabel, String edgeLabel,

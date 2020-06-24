@@ -26,9 +26,11 @@ import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
 
 public class LouvainAlgorithm extends AbstractCommAlgorithm {
 
+    public static final String ALGO_NAME = "louvain";
+
     @Override
     public String name() {
-        return "louvain";
+        return ALGO_NAME;
     }
 
     @Override

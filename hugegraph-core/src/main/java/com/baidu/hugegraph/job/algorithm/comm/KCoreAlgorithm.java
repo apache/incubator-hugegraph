@@ -44,6 +44,8 @@ import com.google.common.collect.ImmutableSet;
 
 public class KCoreAlgorithm extends AbstractCommAlgorithm {
 
+    public static final String ALGO_NAME = "k_core";
+
     public static final String KEY_K = "k";
     public static final String KEY_MERGED = "merged";
 
@@ -51,7 +53,7 @@ public class KCoreAlgorithm extends AbstractCommAlgorithm {
 
     @Override
     public String name() {
-        return "k_core";
+        return ALGO_NAME;
     }
 
     @Override
@@ -101,7 +103,7 @@ public class KCoreAlgorithm extends AbstractCommAlgorithm {
     private static class Traverser extends AlgoTraverser {
 
         public Traverser(Job<Object> job, int workers) {
-            super(job, "kcore", workers);
+            super(job, ALGO_NAME, workers);
         }
 
         public Object kcore(String sourceLabel, String sourceCLabel,

@@ -39,6 +39,7 @@ import com.baidu.hugegraph.job.algorithm.comm.ClusterCoeffcientAlgorithm;
 import com.baidu.hugegraph.job.algorithm.path.RingsDetectAlgorithm;
 import com.baidu.hugegraph.job.algorithm.rank.PageRankAlgorithm;
 import com.baidu.hugegraph.task.HugeTask;
+import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
 import com.baidu.hugegraph.traversal.optimize.HugeScriptTraversal;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
@@ -123,6 +124,7 @@ public class SubgraphStatAlgorithm extends AbstractAlgorithm {
                                                     "depth", 10L,
                                                     "degree", -1L,
                                                     "sample", -1L,
+                                                    "top", -1L /* sorted */,
                                                     "workers", 0);
 
         public Traverser(Job<Object> job) {
@@ -158,6 +160,8 @@ public class SubgraphStatAlgorithm extends AbstractAlgorithm {
             parameters = ImmutableMap.<String, Object>builder()
                                      .putAll(PARAMS)
                                      .put("count_only", true)
+                                     .put("each_limit", NO_LIMIT)
+                                     .put("limit", NO_LIMIT)
                                      .build();
             results.put("rings", algo.call(job, parameters));
 
@@ -175,6 +179,7 @@ public class SubgraphStatAlgorithm extends AbstractAlgorithm {
                 Vertex vertex = vertices.next();
                 ranks.put(vertex.id(), vertex.value(R_RANK));
             }
+            ranks = HugeTraverser.topN(ranks, true, NO_LIMIT);
             return ranks;
         }
     }

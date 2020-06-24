@@ -20,12 +20,14 @@
 package com.baidu.hugegraph.job.algorithm.similarity;
 
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.job.Job;
 import com.baidu.hugegraph.job.algorithm.AbstractAlgorithm;
+import com.baidu.hugegraph.job.algorithm.Consumers.StopExecution;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.traversal.algorithm.FusiformSimilarityTraverser;
 import com.baidu.hugegraph.traversal.algorithm.FusiformSimilarityTraverser.SimilarsMap;
@@ -35,20 +37,18 @@ import com.baidu.hugegraph.util.JsonUtil;
 
 public class FusiformSimilarityAlgorithm extends AbstractAlgorithm {
 
+    public static final String ALGO_NAME = "fusiform_similarity";
+
     public static final String KEY_MIN_NEIGHBORS = "min_neighbors";
     public static final String KEY_MIN_SIMILARS = "min_similars";
+    public static final String KEY_TOP_SIMILARS = "top_similars";
     public static final String KEY_GROUP_PROPERTY = "group_property";
     public static final String KEY_MIN_GROUPS = "min_groups";
 
     public static final int DEFAULT_MIN_NEIGHBORS = 10;
     public static final int DEFAULT_MIN_SIMILARS = 6;
+    public static final int DEFAULT_TOP_SIMILARS = 0;
     public static final int DEFAULT_MIN_GROUPS = 1;
-    public static final long DEFAULT_LIMIT = -1L;
-
-    @Override
-    public String name() {
-        return "fusiform_similarity";
-    }
 
     @Override
     public String category() {
@@ -56,15 +56,19 @@ public class FusiformSimilarityAlgorithm extends AbstractAlgorithm {
     }
 
     @Override
+    public String name() {
+        return ALGO_NAME;
+    }
+
+    @Override
     public void checkParameters(Map<String, Object> parameters) {
         minNeighbors(parameters);
         alpha(parameters);
         minSimilars(parameters);
-        top(parameters);
+        topSimilars(parameters);
         groupProperty(parameters);
         minGroups(parameters);
         degree(parameters);
-        capacity(parameters);
         limit(parameters);
         sourceLabel(parameters);
         sourceCLabel(parameters);
@@ -84,11 +88,10 @@ public class FusiformSimilarityAlgorithm extends AbstractAlgorithm {
                                               minNeighbors(parameters),
                                               alpha(parameters),
                                               minSimilars(parameters),
-                                              top(parameters),
+                                              topSimilars(parameters),
                                               groupProperty(parameters),
                                               minGroups(parameters),
                                               degree(parameters),
-                                              capacity(parameters),
                                               limit(parameters));
         }
     }
@@ -98,7 +101,7 @@ public class FusiformSimilarityAlgorithm extends AbstractAlgorithm {
             return DEFAULT_MIN_NEIGHBORS;
         }
         int minNeighbors = parameterInt(parameters, KEY_MIN_NEIGHBORS);
-        HugeTraverser.checkPositive(minNeighbors, "min neighbors");
+        HugeTraverser.checkPositive(minNeighbors, KEY_MIN_NEIGHBORS);
         return minNeighbors;
     }
 
@@ -107,7 +110,16 @@ public class FusiformSimilarityAlgorithm extends AbstractAlgorithm {
             return DEFAULT_MIN_SIMILARS;
         }
         int minSimilars = parameterInt(parameters, KEY_MIN_SIMILARS);
-        HugeTraverser.checkPositive(minSimilars, "min similars");
+        HugeTraverser.checkPositive(minSimilars, KEY_MIN_SIMILARS);
+        return minSimilars;
+    }
+
+    protected static int topSimilars(Map<String, Object> parameters) {
+        if (!parameters.containsKey(KEY_TOP_SIMILARS)) {
+            return DEFAULT_TOP_SIMILARS;
+        }
+        int minSimilars = parameterInt(parameters, KEY_TOP_SIMILARS);
+        HugeTraverser.checkNonNegative(minSimilars, KEY_TOP_SIMILARS);
         return minSimilars;
     }
 
@@ -123,7 +135,7 @@ public class FusiformSimilarityAlgorithm extends AbstractAlgorithm {
             return DEFAULT_MIN_GROUPS;
         }
         int minGroups = parameterInt(parameters, KEY_MIN_GROUPS);
-        HugeTraverser.checkPositive(minGroups, "min groups");
+        HugeTraverser.checkPositive(minGroups, KEY_MIN_GROUPS);
         return minGroups;
     }
 
@@ -139,7 +151,7 @@ public class FusiformSimilarityAlgorithm extends AbstractAlgorithm {
     private static class Traverser extends AlgoTraverser {
 
         public Traverser(Job<Object> job, int workers) {
-            super(job, "fusiform", workers);
+            super(job, ALGO_NAME, workers);
         }
 
         public Object fusiformSimilars(String sourceLabel, String sourceCLabel,
@@ -147,12 +159,14 @@ public class FusiformSimilarityAlgorithm extends AbstractAlgorithm {
                                        int minNeighbors, double alpha,
                                        int minSimilars, long topSimilars,
                                        String groupProperty, int minGroups,
-                                       long degree, long capacity, long limit) {
+                                       long degree, long limit) {
             HugeGraph graph = this.graph();
             EdgeLabel edgeLabel = label == null ? null : graph.edgeLabel(label);
 
             FusiformSimilarityTraverser traverser =
                                         new FusiformSimilarityTraverser(graph);
+
+            AtomicLong count = new AtomicLong(0L);
             JsonMap similarsJson = new JsonMap();
             similarsJson.startObject();
 
@@ -162,16 +176,20 @@ public class FusiformSimilarityAlgorithm extends AbstractAlgorithm {
                                        edgeLabel, minNeighbors, alpha,
                                        minSimilars, (int) topSimilars,
                                        groupProperty, minGroups, degree,
-                                       capacity, NO_LIMIT, true);
+                                       MAX_CAPACITY, NO_LIMIT, true);
                 if (similars.isEmpty()) {
                     return;
                 }
                 String result = JsonUtil.toJson(similars.toMap());
                 result = result.substring(1, result.length() - 1);
                 synchronized (similarsJson) {
+                    if (count.incrementAndGet() > limit && limit != NO_LIMIT) {
+                        throw new StopExecution("exceed limit %s", limit);
+                    }
                     similarsJson.appendRaw(result);
                 }
-            }, null, limit);
+            });
+
             similarsJson.endObject();
 
             return similarsJson.asJson();

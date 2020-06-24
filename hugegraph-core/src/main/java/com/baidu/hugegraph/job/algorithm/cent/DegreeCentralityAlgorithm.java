@@ -64,10 +64,10 @@ public class DegreeCentralityAlgorithm extends AbstractCentAlgorithm {
                                        String label,
                                        long topN) {
             if (direction == null || direction == Directions.BOTH) {
-                return degreeCentrality(label, topN);
+                return this.degreeCentralityForBothDir(label, topN);
             }
             assert direction == Directions.OUT || direction == Directions.IN;
-            assert topN >= 0L;
+            assert topN >= 0L || topN == NO_LIMIT;
 
             Iterator<Edge> edges = this.edges(direction);
 
@@ -76,12 +76,12 @@ public class DegreeCentralityAlgorithm extends AbstractCentAlgorithm {
             Id vertex = null;
             Id labelId = this.getEdgeLabelId(label);
             long degree = 0L;
-            long total = 0L;
+            long totalEdges = 0L;
 
             degrees.startObject();
             while (edges.hasNext()) {
                 HugeEdge edge = (HugeEdge) edges.next();
-                this.updateProgress(++total);
+                this.updateProgress(++totalEdges);
 
                 Id schemaLabel = edge.schemaLabel().id();
                 if (labelId != null && !labelId.equals(schemaLabel)) {
@@ -97,7 +97,7 @@ public class DegreeCentralityAlgorithm extends AbstractCentAlgorithm {
 
                 if (vertex != null) {
                     // next vertex found
-                    if (topN <= 0L) {
+                    if (topN <= 0L && topN != NO_LIMIT) {
                         degrees.append(vertex, degree);
                     } else {
                         tops.put(vertex, degree);
@@ -108,7 +108,7 @@ public class DegreeCentralityAlgorithm extends AbstractCentAlgorithm {
             }
 
             if (vertex != null) {
-                if (topN <= 0L) {
+                if (topN <= 0L && topN != NO_LIMIT) {
                     degrees.append(vertex, degree);
                 } else {
                     tops.put(vertex, degree);
@@ -121,9 +121,9 @@ public class DegreeCentralityAlgorithm extends AbstractCentAlgorithm {
             return degrees.asJson();
         }
 
-        protected Object degreeCentrality(String label, long topN) {
-            assert topN >= 0L;
-            long total = 0L;
+        protected Object degreeCentralityForBothDir(String label, long topN) {
+            assert topN >= 0L || topN == NO_LIMIT;
+            long totalVertices = 0L;
             JsonMap degrees = new JsonMap();
             TopMap<Id> tops = new TopMap<>(topN);
 
@@ -132,11 +132,11 @@ public class DegreeCentralityAlgorithm extends AbstractCentAlgorithm {
             degrees.startObject();
             while (vertices.hasNext()) {
                 Id source = (Id) vertices.next().id();
-                this.updateProgress(++total);
+                this.updateProgress(++totalVertices);
 
                 long degree = this.degree(source, label);
                 if (degree > 0L) {
-                    if (topN <= 0L) {
+                    if (topN <= 0L && topN != NO_LIMIT) {
                         degrees.append(source, degree);
                     } else {
                         tops.put(source, degree);

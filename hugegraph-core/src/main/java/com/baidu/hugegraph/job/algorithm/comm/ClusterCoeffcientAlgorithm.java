@@ -23,33 +23,48 @@ import java.util.Map;
 
 import com.baidu.hugegraph.job.Job;
 import com.baidu.hugegraph.type.define.Directions;
+import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
 
 public class ClusterCoeffcientAlgorithm extends AbstractCommAlgorithm {
 
+    public static final String ALGO_NAME = "cluster_coeffcient";
+
     @Override
     public String name() {
-        return "cluster_coeffcient";
+        return ALGO_NAME;
     }
 
     @Override
     public void checkParameters(Map<String, Object> parameters) {
-        directionOutIn(parameters);
+        direction(parameters);
         degree(parameters);
+        workersWhenBoth(parameters);
     }
 
     @Override
     public Object call(Job<Object> job, Map<String, Object> parameters) {
-        try (Traverser traverser = new Traverser(job)) {
-            return traverser.clusterCoeffcient(directionOutIn(parameters),
+        int workers = workersWhenBoth(parameters);
+        try (Traverser traverser = new Traverser(job, workers)) {
+            return traverser.clusterCoeffcient(direction(parameters),
                                                degree(parameters));
         }
     }
 
+    protected static int workersWhenBoth(Map<String, Object> parameters) {
+        Directions direction = direction(parameters);
+        int workers = workers(parameters);
+        E.checkArgument(direction == Directions.BOTH || workers <= 0,
+                        "The workers must be not set when direction!=BOTH, " +
+                        "but got workers=%s and direction=%s",
+                        workers, direction);
+        return workers;
+    }
+
     private static class Traverser extends TriangleCountAlgorithm.Traverser {
 
-        public Traverser(Job<Object> job) {
-            super(job);
+        public Traverser(Job<Object> job, int workers) {
+            super(job, ALGO_NAME, workers);
         }
 
         public Object clusterCoeffcient(Directions direction, long degree) {

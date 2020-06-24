@@ -24,9 +24,12 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.tinkerpop.gremlin.process.traversal.Order;
 import org.apache.tinkerpop.gremlin.process.traversal.Pop;
+import org.apache.tinkerpop.gremlin.process.traversal.Scope;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
+import org.apache.tinkerpop.gremlin.structure.Column;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
@@ -130,10 +133,10 @@ public abstract class AbstractCentAlgorithm extends AbstractAlgorithm {
             return unit;
         }
 
-        protected GraphTraversal<Vertex, Vertex> filterNonShortestPath(
-                                                 GraphTraversal<Vertex, Vertex>
-                                                 t) {
-            long size = this.graph().traversal().V().limit(MAX_QUERY_LIMIT)
+        protected <V> GraphTraversal<V, V> filterNonShortestPath(
+                                           GraphTraversal<V, V> t,
+                                           boolean keepOneShortestPath) {
+            long size = this.graph().traversal().V().limit(100000L)
                                                     .count().next();
             Map<Pair<Id, Id>, Integer> triples = new HashMap<>((int) size);
             return t.filter(it -> {
@@ -142,15 +145,32 @@ public abstract class AbstractCentAlgorithm extends AbstractAlgorithm {
                 int len = it.<List<?>>path(Pop.all, "v").size();
                 Pair<Id, Id> key = Pair.of(start, end);
                 Integer shortest = triples.get(key);
-                if (shortest != null && shortest != len) {
+                if (shortest != null && len > shortest) {
                     // ignore non shortest path
                     return false;
                 }
                 if (shortest == null) {
                     triples.put(key, len);
+                } else {
+                    assert len == shortest;
+                    if (keepOneShortestPath) {
+                        return false;
+                    }
                 }
                 return true;
             });
+        }
+
+        protected GraphTraversal<Vertex, ?> topN(GraphTraversal<Vertex, ?> t,
+                                                 long topN) {
+            if (topN > 0L || topN == NO_LIMIT) {
+                t = t.order(Scope.local).by(Column.values, Order.desc);
+                if (topN > 0L) {
+                    assert topN != NO_LIMIT;
+                    t = t.limit(Scope.local, topN);
+                }
+            }
+            return t;
         }
     }
 }

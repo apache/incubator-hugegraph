@@ -21,11 +21,8 @@ package com.baidu.hugegraph.job.algorithm.cent;
 
 import java.util.Map;
 
-import org.apache.tinkerpop.gremlin.process.traversal.Order;
-import org.apache.tinkerpop.gremlin.process.traversal.Scope;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
-import org.apache.tinkerpop.gremlin.structure.Column;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
@@ -74,7 +71,7 @@ public class EigenvectorCentralityAlgorithm extends AbstractCentAlgorithm {
                                             long topN) {
             assert depth > 0;
             assert degree > 0L || degree == NO_LIMIT;
-            assert topN >= 0L;
+            assert topN >= 0L || topN == NO_LIMIT;
 
             // TODO: support parameters: Directions dir, String label
             /*
@@ -96,10 +93,8 @@ public class EigenvectorCentralityAlgorithm extends AbstractCentAlgorithm {
             t = t.repeat(__.groupCount("m").by(T.id)
                            .local(unit).simplePath()).times(depth);
 
-            GraphTraversal<Vertex, Object> tCap;
-            tCap = t.cap("m").order(Scope.local).by(Column.values, Order.desc);
-            GraphTraversal<Vertex, ?> tLimit = topN <= 0L ? tCap :
-                                               tCap.limit(Scope.local, topN);
+            GraphTraversal<Vertex, Object> tCap = t.cap("m");
+            GraphTraversal<Vertex, ?> tLimit = topN(tCap, topN);
 
             return this.execute(tLimit, () -> tLimit.next());
         }
