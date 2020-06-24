@@ -163,46 +163,53 @@ public class BaseApiTest {
     protected static void initPropertyKey() {
         String path = URL_PREFIX + SCHEMA_PKS;
 
-        client.post(path, "{\n"
+        createAndAssert(path, "{\n"
                 + "\"name\": \"name\",\n"
                 + "\"data_type\": \"TEXT\",\n"
                 + "\"cardinality\": \"SINGLE\",\n"
+                + "\"check_exist\": false,\n"
                 + "\"properties\":[]\n"
                 + "}");
-        client.post(path, "{\n"
+        createAndAssert(path, "{\n"
                 + "\"name\": \"age\",\n"
                 + "\"data_type\": \"INT\",\n"
                 + "\"cardinality\": \"SINGLE\",\n"
+                + "\"check_exist\": false,\n"
                 + "\"properties\":[]\n"
                 + "}");
-        client.post(path, "{\n"
+        createAndAssert(path, "{\n"
                 + "\"name\": \"city\",\n"
                 + "\"data_type\": \"TEXT\",\n"
                 + "\"cardinality\": \"SINGLE\",\n"
+                + "\"check_exist\": false,\n"
                 + "\"properties\":[]\n"
                 + "}");
-        client.post(path, "{\n"
+        createAndAssert(path, "{\n"
                 + "\"name\": \"lang\",\n"
                 + "\"data_type\": \"TEXT\",\n"
                 + "\"cardinality\": \"SINGLE\",\n"
+                + "\"check_exist\": false,\n"
                 + "\"properties\":[]\n"
                 + "}");
-        client.post(path, "{\n"
+        createAndAssert(path, "{\n"
                 + "\"name\": \"date\",\n"
                 + "\"data_type\": \"TEXT\",\n"
                 + "\"cardinality\": \"SINGLE\",\n"
+                + "\"check_exist\": false,\n"
                 + "\"properties\":[]\n"
                 + "}");
-        client.post(path, "{\n"
+        createAndAssert(path, "{\n"
                 + "\"name\": \"price\",\n"
                 + "\"data_type\": \"INT\",\n"
                 + "\"cardinality\": \"SINGLE\",\n"
+                + "\"check_exist\": false,\n"
                 + "\"properties\":[]\n"
                 + "}");
-        client.post(path, "{\n"
+        createAndAssert(path, "{\n"
                 + "\"name\": \"weight\",\n"
                 + "\"data_type\": \"DOUBLE\",\n"
                 + "\"cardinality\": \"SINGLE\",\n"
+                + "\"check_exist\": false,\n"
                 + "\"properties\":[]\n"
                 + "}");
     }
@@ -210,18 +217,21 @@ public class BaseApiTest {
     protected static void initVertexLabel() {
         String path = URL_PREFIX + SCHEMA_VLS;
 
-        client.post(path, "{\n"
+        createAndAssert(path, "{\n"
                 + "\"primary_keys\":[\"name\"],\n"
                 + "\"id_strategy\": \"PRIMARY_KEY\",\n"
                 + "\"name\": \"person\",\n"
                 + "\"properties\":[\"city\", \"name\", \"age\"],\n"
+                + "\"check_exist\": false,\n"
                 + "\"nullable_keys\":[]\n"
                 + "}");
-        client.post(path, "{\n"
+
+        createAndAssert(path, "{\n"
                 + "\"primary_keys\":[\"name\"],\n"
                 + "\"id_strategy\": \"PRIMARY_KEY\",\n"
                 + "\"name\": \"software\",\n"
                 + "\"properties\":[\"price\", \"name\", \"lang\"],\n"
+                + "\"check_exist\": false,\n"
                 + "\"nullable_keys\":[]\n"
                 + "}");
     }
@@ -229,22 +239,24 @@ public class BaseApiTest {
     protected static void initEdgeLabel() {
         String path = URL_PREFIX + SCHEMA_ELS;
 
-        client.post(path, "{\n"
+        createAndAssert(path, "{\n"
                 + "\"name\": \"created\",\n"
                 + "\"source_label\": \"person\",\n"
                 + "\"target_label\": \"software\",\n"
                 + "\"frequency\": \"SINGLE\",\n"
                 + "\"properties\":[\"date\", \"weight\"],\n"
                 + "\"sort_keys\":[],\n"
+                + "\"check_exist\": false,\n"
                 + "\"nullable_keys\":[]\n"
                 + "}");
-        client.post(path, "{\n"
+        createAndAssert(path, "{\n"
                 + "\"name\": \"knows\",\n"
                 + "\"source_label\": \"person\",\n"
                 + "\"target_label\": \"person\",\n"
                 + "\"frequency\": \"MULTIPLE\",\n"
                 + "\"properties\":[\"date\", \"weight\"],\n"
                 + "\"sort_keys\":[\"date\"],\n"
+                + "\"check_exist\": false,\n"
                 + "\"nullable_keys\":[]\n"
                 + "}");
     }
@@ -252,21 +264,23 @@ public class BaseApiTest {
     protected static void initIndexLabel() {
         String path = URL_PREFIX + SCHEMA_ILS;
 
-        client.post(path, "{\n"
+        Response r = client.post(path, "{\n"
                 + "\"name\": \"personByCity\",\n"
                 + "\"base_type\": \"VERTEX_LABEL\",\n"
                 + "\"base_value\": \"person\",\n"
                 + "\"index_type\": \"SECONDARY\",\n"
+                + "\"check_exist\": false,\n"
                 + "\"fields\": [\n"
                 + "\"city\"\n"
                 + "]\n"
                 + "}");
+        assertResponseStatus(202, r);
     }
 
     protected static void initVertex() {
         String path = URL_PREFIX + GRAPH_VERTEX;
 
-        client.post(path, "{\n"
+        createAndAssert(path, "{\n"
                 + "\"label\": \"person\",\n"
                 + "\"type\": \"vertex\",\n"
                 + "\"properties\":{"
@@ -275,7 +289,7 @@ public class BaseApiTest {
                 + "\"city\": \"Beijing\""
                 + "}\n"
                 + "}");
-        client.post(path, "{\n"
+        createAndAssert(path, "{\n"
                 + "\"label\": \"person\",\n"
                 + "\"type\": \"vertex\",\n"
                 + "\"properties\":{"
@@ -284,7 +298,7 @@ public class BaseApiTest {
                 + "\"city\": \"HongKong\""
                 + "}\n"
                 + "}");
-        client.post(path, "{\n"
+        createAndAssert(path, "{\n"
                 + "\"label\": \"person\",\n"
                 + "\"type\": \"vertex\",\n"
                 + "\"properties\":{"
@@ -293,7 +307,7 @@ public class BaseApiTest {
                 + "\"city\": \"Beijing\""
                 + "}\n"
                 + "}");
-        client.post(path, "{\n"
+        createAndAssert(path, "{\n"
                 + "\"label\": \"person\",\n"
                 + "\"type\": \"vertex\",\n"
                 + "\"properties\":{"
@@ -302,7 +316,7 @@ public class BaseApiTest {
                 + "\"city\": \"Shanghai\""
                 + "}\n"
                 + "}");
-        client.post(path, "{\n"
+        createAndAssert(path, "{\n"
                 + "\"label\": \"software\",\n"
                 + "\"type\": \"vertex\",\n"
                 + "\"properties\":{"
@@ -311,7 +325,7 @@ public class BaseApiTest {
                 + "\"price\": 199"
                 + "}\n"
                 + "}");
-        client.post(path, "{\n"
+        createAndAssert(path, "{\n"
                 + "\"label\": \"software\",\n"
                 + "\"type\": \"vertex\",\n"
                 + "\"properties\":{"
@@ -320,6 +334,12 @@ public class BaseApiTest {
                 + "\"price\": 328"
                 + "}\n"
                 + "}");
+    }
+
+    protected static Response createAndAssert(String path, String body) {
+        Response r = client.post(path, body);
+        assertResponseStatus(201, r);
+        return r;
     }
 
     protected static String getVertexId(String label, String key, String value)
