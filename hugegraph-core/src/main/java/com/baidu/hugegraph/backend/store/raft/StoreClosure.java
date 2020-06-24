@@ -68,7 +68,7 @@ public class StoreClosure implements Closure {
         } catch (InterruptedException | ExecutionException e) {
             throw new BackendException("ExecutionException", e);
         } catch (TimeoutException e) {
-            throw new BackendException("Wait store command {} timeout",
+            throw new BackendException("Wait store command '%s' timeout",
                                        this.command.action());
         }
     }

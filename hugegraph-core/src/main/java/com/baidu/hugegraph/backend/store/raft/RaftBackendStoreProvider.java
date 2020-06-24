@@ -45,6 +45,12 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
         this.schemaStore = null;
         this.graphStore = null;
         this.systemStore = null;
+        this.registerRpcRequestProcessors();
+    }
+
+    private void registerRpcRequestProcessors() {
+        this.context.rpcServer()
+            .registerProcessor(new StoreCommandRequestProcessor(this.context));
     }
 
     @Override

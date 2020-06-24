@@ -23,33 +23,45 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Paths;
+import java.util.concurrent.ExecutionException;
 
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 
 import com.alipay.sofa.jraft.Node;
 import com.alipay.sofa.jraft.RaftGroupService;
+import com.alipay.sofa.jraft.Status;
 import com.alipay.sofa.jraft.conf.Configuration;
+import com.alipay.sofa.jraft.core.NodeImpl;
 import com.alipay.sofa.jraft.entity.PeerId;
 import com.alipay.sofa.jraft.entity.Task;
 import com.alipay.sofa.jraft.option.NodeOptions;
 import com.alipay.sofa.jraft.option.RaftOptions;
+import com.alipay.sofa.jraft.rpc.ClientService;
+import com.alipay.sofa.jraft.rpc.RpcResponseClosure;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.store.BackendStore;
+import com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreAction;
+import com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreCommandRequest;
+import com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreCommandResponse;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.util.CodeUtil;
 import com.baidu.hugegraph.util.Log;
+import com.google.protobuf.ZeroByteStringHelper;
 
 public class RaftNode {
 
     private static final Logger LOG = Log.logger(RaftNode.class);
 
+    private final String group;
     private final StoreStateMachine stateMachine;
     private final Node node;
 
-    public RaftNode(BackendStore store, RaftSharedContext context) {
+    public RaftNode(String group, BackendStore store,
+                    RaftSharedContext context) {
+        this.group = group;
         this.stateMachine = new StoreStateMachine(store, context);
         try {
             this.node = this.initRaftNode(store, context);
@@ -57,6 +69,10 @@ public class RaftNode {
             throw new BackendException("Failed to init raft node", e);
         }
         this.stateMachine.nodeId(this.node.getNodeId());
+    }
+
+    public String group() {
+        return this.group;
     }
 
     public Node node() {
@@ -93,6 +109,7 @@ public class RaftNode {
 
         RaftOptions raftOptions = nodeOptions.getRaftOptions();
         raftOptions.setDisruptorBufferSize(32768);
+//        raftOptions.setReplicatorPipeline(false);
 
         nodeOptions.setRpcProcessorThreadPoolSize(48);
         nodeOptions.setEnableMetrics(false);
@@ -131,9 +148,7 @@ public class RaftNode {
 
     public void submitCommand(StoreCommand command, StoreClosure closure) {
         if (!this.node.isLeader()) {
-            PeerId leaderId = this.node.getLeaderId();
-            closure.failure(new BackendException("Current node isn't leader, " +
-                                                 "leader is [%s]", leaderId));
+            this.forwardToLeader(command, closure);
             return;
         }
 
@@ -141,10 +156,53 @@ public class RaftNode {
         task.setDone(closure);
         // compress return BytesBuffer
         ByteBuffer buffer = CodeUtil.compress(command.toBytes()).asByteBuffer();
-        LOG.debug("HG ==> The bytes size of command {} is {}",
+        LOG.debug("The bytes size of command {} is {}",
                   command.action(), buffer.limit());
         task.setData(buffer);
         LOG.debug("submit to raft node {}", this.node);
         this.node.apply(task);
+    }
+
+    private void forwardToLeader(StoreCommand command, StoreClosure closure) {
+        LOG.info("The node {} forward request to leader {}",
+                 this.node.getNodeId(), this.node.getLeaderId());
+        assert !this.node.isLeader();
+        PeerId leaderId = this.node.getLeaderId();
+        StoreCommandRequest.Builder builder = StoreCommandRequest.newBuilder();
+        builder.setGroupId(this.group);
+        builder.setAction(StoreAction.valueOf(command.action().code()));
+        builder.setData(ZeroByteStringHelper.wrap(command.data()));
+        StoreCommandRequest request = builder.build();
+
+        RpcResponseClosure<StoreCommandResponse> responseClosure;
+        responseClosure = new RpcResponseClosure<StoreCommandResponse>() {
+            @Override
+            public void setResponse(StoreCommandResponse resp) {
+                if (resp.getStatus()) {
+                    LOG.debug("StoreCommandResponse status ok");
+                    closure.complete(null);
+                } else {
+                    LOG.debug("StoreCommandResponse status error");
+                    closure.failure(new BackendException(
+                                    "Current node isn't leader, leader is " +
+                                    "[%s], failed to forward request to " +
+                                    "leader: %s", leaderId, resp.getMessage()));
+                }
+            }
+
+            @Override
+            public void run(Status status) {
+                closure.run(status);
+            }
+        };
+        try {
+            NodeImpl nodeImpl = (NodeImpl) this.node;
+            ClientService rpcClient = nodeImpl.getRpcService();
+            rpcClient.invokeWithDone(leaderId.getEndpoint(), request,
+                                     responseClosure, 3000)
+                     .get();
+        } catch (InterruptedException | ExecutionException e) {
+            throw new BackendException("Failed to invoke rpc request", e);
+        }
     }
 }

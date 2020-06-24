@@ -79,7 +79,7 @@ public final class RaftSharedContext {
             synchronized (this.nodes) {
                 if (!this.nodes.containsKey(group)) {
                     LOG.info("Initing raft node for '{}'", group);
-                    RaftNode node = new RaftNode(store, this);
+                    RaftNode node = new RaftNode(group, store, this);
                     this.nodes.put(group, node);
                 }
             }

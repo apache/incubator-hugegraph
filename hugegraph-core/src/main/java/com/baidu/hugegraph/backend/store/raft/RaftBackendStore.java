@@ -42,33 +42,7 @@ public class RaftBackendStore implements BackendStore {
 
     private final BackendStore store;
     private final RaftSharedContext context;
-    private final ThreadLocal<MutateBatch> threadLocalBatch;
-
-    private class MutateBatch {
-
-        private List<BackendMutation> mutations;
-
-        public MutateBatch() {
-            this.mutations = new ArrayList<>();
-        }
-
-        public void add(BackendMutation mutation) {
-            this.mutations.add(mutation);
-        }
-
-        public void clear() {
-            this.mutations = new ArrayList<>();
-        }
-    }
-
-    private MutateBatch getOrNewBatch() {
-        MutateBatch batch = this.threadLocalBatch.get();
-        if (batch == null) {
-            batch = new MutateBatch();
-            this.threadLocalBatch.set(batch);
-        }
-        return batch;
-    }
+    private final ThreadLocal<MutationBatch> threadLocalBatch;
 
     public RaftBackendStore(BackendStore store, RaftSharedContext context) {
         this.store = store;
@@ -212,10 +186,13 @@ public class RaftBackendStore implements BackendStore {
 
     @Override
     public void commitTx() {
-        MutateBatch batch = this.getOrNewBatch();
-        byte[] bytes = StoreSerializer.writeMutations(batch.mutations);
-        this.submitAndWait(StoreAction.COMMIT_TX, bytes);
-        batch.clear();
+        MutationBatch batch = this.getOrNewBatch();
+        try {
+            byte[] bytes = StoreSerializer.writeMutations(batch.mutations);
+            this.submitAndWait(StoreAction.COMMIT_TX, bytes);
+        } finally {
+            batch.clear();
+        }
     }
 
     @Override
@@ -272,6 +249,32 @@ public class RaftBackendStore implements BackendStore {
         } else {
             return closure.data();
         }
+    }
+
+    private static class MutationBatch {
+
+        private List<BackendMutation> mutations;
+
+        public MutationBatch() {
+            this.mutations = new ArrayList<>();
+        }
+
+        public void add(BackendMutation mutation) {
+            this.mutations.add(mutation);
+        }
+
+        public void clear() {
+            this.mutations = new ArrayList<>();
+        }
+    }
+
+    private MutationBatch getOrNewBatch() {
+        MutationBatch batch = this.threadLocalBatch.get();
+        if (batch == null) {
+            batch = new MutationBatch();
+            this.threadLocalBatch.set(batch);
+        }
+        return batch;
     }
 
     public static class IncrCounter {

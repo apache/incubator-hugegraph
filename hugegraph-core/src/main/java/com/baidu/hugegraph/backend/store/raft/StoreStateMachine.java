@@ -75,6 +75,7 @@ public class StoreStateMachine extends StateMachineAdapter {
         this.register(StoreAction.BEGIN_TX, this.store::beginTx);
         this.register(StoreAction.COMMIT_TX, buffer -> {
             List<BackendMutation> ms = StoreSerializer.readMutations(buffer);
+            this.store.beginTx();
             for (BackendMutation mutation : ms) {
                 this.store.mutate(mutation);
             }
