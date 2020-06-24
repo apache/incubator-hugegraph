@@ -121,6 +121,8 @@ public class VertexLabelApiTest extends BaseApiTest {
 
         String name = "person";
         r = client().delete(path, name);
-        assertResponseStatus(202, r);
+        String content = assertResponseStatus(202, r);
+        int task = assertJsonContains(content, "task_id");
+        waitTaskSuccess(task);
     }
 }

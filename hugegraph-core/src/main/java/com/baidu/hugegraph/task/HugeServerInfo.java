@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.cluster;
+package com.baidu.hugegraph.task;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -39,8 +39,6 @@ import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.schema.VertexLabel;
-import com.baidu.hugegraph.task.HugeTask;
-import com.baidu.hugegraph.task.TaskManager;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;

@@ -420,7 +420,7 @@ public class BaseApiTest {
         consumer.accept(SCHEMA_PKS);
     }
 
-    private static void waitTaskSuccess(int task) {
+    protected static void waitTaskSuccess(int task) {
         String status;
         do {
             Response r = client.get("/graphs/hugegraph/tasks/",

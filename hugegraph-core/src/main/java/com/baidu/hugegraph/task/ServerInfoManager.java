@@ -17,11 +17,13 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.cluster;
+package com.baidu.hugegraph.task;
 
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
 
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
@@ -36,6 +38,7 @@ import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.event.EventListener;
+import com.baidu.hugegraph.exception.ConnectionException;
 import com.baidu.hugegraph.iterator.MapperIterator;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.VertexLabel;
@@ -60,13 +63,16 @@ public class ServerInfoManager {
     public static final long PAGE_SIZE = 10L;
 
     private final HugeGraphParams graph;
+    private final ExecutorService dbExecutor;
     private final EventListener eventListener;
     private Id serverId;
     private NodeRole serverRole;
 
-    public ServerInfoManager(HugeGraphParams graph) {
+    public ServerInfoManager(HugeGraphParams graph,
+                             ExecutorService dbExecutor) {
         E.checkNotNull(graph, "graph");
         this.graph = graph;
+        this.dbExecutor = dbExecutor;
         this.eventListener = this.listenChanges();
     }
 
@@ -95,6 +101,17 @@ public class ServerInfoManager {
 
     public boolean close() {
         this.unlistenChanges();
+        if (!this.dbExecutor.isShutdown()) {
+            this.call(() -> {
+                try {
+                    this.tx().close();
+                } catch (ConnectionException ignored) {
+                    // ConnectionException means no connection established
+                }
+                this.graph.closeTx();
+                return null;
+            });
+        }
         return true;
     }
 
@@ -171,13 +188,27 @@ public class ServerInfoManager {
         return this.graph.systemTransaction();
     }
 
-    public Id save(HugeServerInfo server) {
-        // Construct vertex from task
-        HugeVertex vertex = this.constructVertex(server);
-        // Add or update user in backend store, stale index might exist
-        vertex = this.tx().addVertex(vertex);
-        this.commitOrRollback();
-        return vertex.id();
+    protected Id save(HugeServerInfo server) {
+        return this.call(() -> {
+            // Construct vertex from task
+            HugeVertex vertex = this.constructVertex(server);
+            // Add or update user in backend store, stale index might exist
+            vertex = this.tx().addVertex(vertex);
+            this.tx().commitOrRollback();
+            return vertex.id();
+        });
+    }
+
+    private <V> V call(Callable<V> callable) {
+        try {
+            // Pass task context for db thread
+            callable = new TaskManager.ContextCallable<>(callable);
+            // Ensure all db operations are executed in dbExecutor thread(s)
+            return this.dbExecutor.submit(callable).get();
+        } catch (Throwable e) {
+            throw new HugeException("Failed to update/query server info: %s",
+                                    e, e.toString());
+        }
     }
 
     private HugeVertex constructVertex(HugeServerInfo server) {
@@ -189,26 +220,26 @@ public class ServerInfoManager {
         return this.tx().constructVertex(false, server.asArray());
     }
 
-    private void commitOrRollback() {
-        this.tx().commitOrRollback();
-    }
-
     public HugeServerInfo serverInfo() {
-        Iterator<Vertex> vertices = this.tx().queryVertices(this.serverId);
-        Vertex vertex = QueryResults.one(vertices);
-        if (vertex == null) {
-            return null;
-        }
-        return HugeServerInfo.fromVertex(vertex);
+        return this.call(() -> {
+            Iterator<Vertex> vertices = this.tx().queryVertices(this.serverId);
+            Vertex vertex = QueryResults.one(vertices);
+            if (vertex == null) {
+                return null;
+            }
+            return HugeServerInfo.fromVertex(vertex);
+        });
     }
 
     public HugeServerInfo serverInfo(Id server) {
-        Iterator<Vertex> vertices = this.tx().queryVertices(server);
-        Vertex vertex = QueryResults.one(vertices);
-        if (vertex == null) {
-            return null;
-        }
-        return HugeServerInfo.fromVertex(vertex);
+        return this.call(() -> {
+            Iterator<Vertex> vertices = this.tx().queryVertices(server);
+            Vertex vertex = QueryResults.one(vertices);
+            if (vertex == null) {
+                return null;
+            }
+            return HugeServerInfo.fromVertex(vertex);
+        });
     }
 
     public Iterator<HugeServerInfo> serverInfos(String page) {
@@ -221,26 +252,28 @@ public class ServerInfoManager {
 
     private Iterator<HugeServerInfo> serverInfos(Map<String, Object> conditions,
                                                  long limit, String page) {
-        ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
-        if (page != null) {
-            query.page(page);
-        }
+        return this.call(() -> {
+            ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
+            if (page != null) {
+                query.page(page);
+            }
 
-        HugeGraph graph = this.graph.graph();
-        VertexLabel vl = graph.vertexLabel(HugeServerInfo.P.SERVER);
-        query.eq(HugeKeys.LABEL, vl.id());
-        for (Map.Entry<String, Object> entry : conditions.entrySet()) {
-            PropertyKey pk = graph.propertyKey(entry.getKey());
-            query.query(Condition.eq(pk.id(), entry.getValue()));
-        }
-        query.showHidden(true);
-        if (limit != NO_LIMIT) {
-            query.limit(limit);
-        }
-        Iterator<Vertex> vertices = this.tx().queryVertices(query);
-        Iterator<HugeServerInfo> servers =
-                new MapperIterator<>(vertices, HugeServerInfo::fromVertex);
-        // Convert iterator to list to avoid across thread tx accessed
-        return QueryResults.toList(servers);
+            HugeGraph graph = this.graph.graph();
+            VertexLabel vl = graph.vertexLabel(HugeServerInfo.P.SERVER);
+            query.eq(HugeKeys.LABEL, vl.id());
+            for (Map.Entry<String, Object> entry : conditions.entrySet()) {
+                PropertyKey pk = graph.propertyKey(entry.getKey());
+                query.query(Condition.eq(pk.id(), entry.getValue()));
+            }
+            query.showHidden(true);
+            if (limit != NO_LIMIT) {
+                query.limit(limit);
+            }
+            Iterator<Vertex> vertices = this.tx().queryVertices(query);
+            Iterator<HugeServerInfo> servers =
+                    new MapperIterator<>(vertices, HugeServerInfo::fromVertex);
+            // Convert iterator to list to avoid across thread tx accessed
+            return QueryResults.toList(servers);
+        });
     }
 }

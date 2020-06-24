@@ -20,7 +20,6 @@
 package com.baidu.hugegraph.task;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -35,7 +34,6 @@ import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraphParams;
-import com.baidu.hugegraph.cluster.ServerInfoManager;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.ExecutorUtil;
 import com.baidu.hugegraph.util.Log;
@@ -46,6 +44,8 @@ public final class TaskManager {
 
     public static final String TASK_WORKER = "task-worker-%d";
     public static final String TASK_DB_WORKER = "task-db-worker-%d";
+    public static final String SERVER_INFO_DB_WORKER =
+                               "server-info-db-worker-%d";
     public static final String TASK_SCHEDULER = "task-scheduler-%d";
 
     public static final int SCHEDULE_PERIOD = 3; // Unit second
@@ -53,9 +53,11 @@ public final class TaskManager {
     private static final TaskManager MANAGER = new TaskManager(THREADS);
 
     private final Map<HugeGraphParams, TaskScheduler> schedulers;
+    private final Map<HugeGraphParams, ServerInfoManager> serverInfoManagers;
 
     private final ExecutorService taskExecutor;
-    private final ExecutorService dbExecutor;
+    private final ExecutorService taskDbExecutor;
+    private final ExecutorService serverInfoDbExecutor;
     private final ScheduledExecutorService schedulerExecutor;
 
     public static TaskManager instance() {
@@ -63,12 +65,16 @@ public final class TaskManager {
     }
 
     private TaskManager(int pool) {
-        this.schedulers = new HashMap<>();
+        this.schedulers = new ConcurrentHashMap<>();
+        this.serverInfoManagers = new ConcurrentHashMap<>();
 
         // For execute tasks
         this.taskExecutor = ExecutorUtil.newFixedThreadPool(pool, TASK_WORKER);
         // For save/query task state, just one thread is ok
-        this.dbExecutor = ExecutorUtil.newFixedThreadPool(1, TASK_DB_WORKER);
+        this.taskDbExecutor = ExecutorUtil.newFixedThreadPool(
+                              1, TASK_DB_WORKER);
+        this.serverInfoDbExecutor = ExecutorUtil.newFixedThreadPool(
+                                    1, SERVER_INFO_DB_WORKER);
         // For schedule task to run, just one thread is ok
         this.schedulerExecutor = ExecutorUtil.newScheduledThreadPool(
                                  1, TASK_SCHEDULER);
@@ -80,10 +86,15 @@ public final class TaskManager {
 
     public void addScheduler(HugeGraphParams graph) {
         E.checkArgumentNotNull(graph, "The graph can't be null");
-        ExecutorService task = this.taskExecutor;
-        ExecutorService db = this.dbExecutor;
-        TaskScheduler scheduler = new StandardTaskScheduler(graph, task, db);
+
+        TaskScheduler scheduler = new StandardTaskScheduler(
+                                  graph, this.taskExecutor,
+                                  this.taskDbExecutor);
         this.schedulers.put(graph, scheduler);
+
+        ServerInfoManager serverInfoManager = new ServerInfoManager(
+                                              graph, this.serverInfoDbExecutor);
+        this.serverInfoManagers.put(graph, serverInfoManager);
     }
 
     public void closeScheduler(HugeGraphParams graph) {
@@ -93,6 +104,11 @@ public final class TaskManager {
         }
         if (!this.taskExecutor.isTerminated()) {
             this.closeTaskTx(graph);
+        }
+
+        ServerInfoManager manager = this.serverInfoManagers.get(graph);
+        if (manager != null && manager.close()) {
+            this.serverInfoManagers.remove(graph);
         }
         if (!this.schedulerExecutor.isTerminated()) {
             this.closeSchedulerTx(graph);
@@ -152,6 +168,10 @@ public final class TaskManager {
         return this.schedulers.get(graph);
     }
 
+    public ServerInfoManager getServerInfoManager(HugeGraphParams graph) {
+        return this.serverInfoManagers.get(graph);
+    }
+
     public void shutdown(long timeout) {
         assert this.schedulers.isEmpty() : this.schedulers.size();
 
@@ -178,10 +198,10 @@ public final class TaskManager {
             }
         }
 
-        if (terminated && !this.dbExecutor.isShutdown()) {
-            this.dbExecutor.shutdown();
+        if (terminated && !this.taskDbExecutor.isShutdown()) {
+            this.taskDbExecutor.shutdown();
             try {
-                terminated = this.dbExecutor.awaitTermination(timeout, unit);
+                terminated = this.taskDbExecutor.awaitTermination(timeout, unit);
             } catch (Throwable e) {
                 ex = e;
             }

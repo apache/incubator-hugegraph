@@ -38,11 +38,9 @@ import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
-import com.baidu.hugegraph.StandardHugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
-import com.baidu.hugegraph.cluster.ServerInfoManager;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.exception.LimitExceedException;
