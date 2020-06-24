@@ -51,7 +51,7 @@ public class TaskApiTest extends BaseApiTest {
         List<Map<?, ?>> tasks = assertJsonContains(content, "tasks");
         assertArrayContains(tasks, "id", taskId);
 
-        this.waitTaskSuccess(taskId);
+        waitTaskSuccess(taskId);
         r = client().get(path, ImmutableMap.of("status", "RUNNING"));
         content = assertResponseStatus(200, r);
         tasks = assertJsonContains(content, "tasks");
@@ -97,7 +97,7 @@ public class TaskApiTest extends BaseApiTest {
     public void testDelete() {
         int taskId = this.rebuild();
 
-        this.waitTaskSuccess(taskId);
+        waitTaskSuccess(taskId);
         Response r = client().delete(path, String.valueOf(taskId));
         assertResponseStatus(204, r);
     }
@@ -128,14 +128,5 @@ public class TaskApiTest extends BaseApiTest {
         } catch (InterruptedException e) {
             // ignore
         }
-    }
-
-    private void waitTaskSuccess(int task) {
-        String status;
-        do {
-            Response r = client().get(path, String.valueOf(task));
-            String content = assertResponseStatus(200, r);
-            status = assertJsonContains(content, "task_status");
-        } while (!"success".equals(status));
     }
 }
