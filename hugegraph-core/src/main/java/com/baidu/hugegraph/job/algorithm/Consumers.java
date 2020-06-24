@@ -73,14 +73,14 @@ public class Consumers<V> {
         this.queue = new ArrayBlockingQueue<>(this.queueSize);
     }
 
-    public void start() {
+    public void start(String name) {
         this.ending = false;
         this.exception = null;
         if (this.executor == null) {
             return;
         }
-        LOG.info("Starting {} workers with queue size {}...",
-                 this.workers, this.queueSize);
+        LOG.info("Starting {} workers[{}] with queue size {}...",
+                 this.workers, name, this.queueSize);
         for (int i = 0; i < this.workers; i++) {
             this.executor.submit(() -> {
                 try {
@@ -88,8 +88,10 @@ public class Consumers<V> {
                     this.done();
                 } catch (Throwable e) {
                     // Only the first exception of one thread can be stored
-                    this.exception  = e;
-                    LOG.error("Error when running task", e);
+                    this.exception = e;
+                    if (!(e instanceof StopExecution)) {
+                        LOG.error("Error when running task", e);
+                    }
                     this.done();
                 } finally {
                     this.latch.countDown();
@@ -182,5 +184,18 @@ public class Consumers<V> {
         }
         throw new HugeException("Error when running task: %s",
                                 HugeException.rootCause(e).getMessage(), e);
+    }
+
+    public static class StopExecution extends HugeException {
+
+        private static final long serialVersionUID = -371829356182454517L;
+
+        public StopExecution(String message) {
+            super(message);
+        }
+
+        public StopExecution(String message, Object... args) {
+            super(message, args);
+        }
     }
 }

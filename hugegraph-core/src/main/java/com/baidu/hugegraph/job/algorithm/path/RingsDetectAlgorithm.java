@@ -20,23 +20,21 @@
 package com.baidu.hugegraph.job.algorithm.path;
 
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.job.Job;
 import com.baidu.hugegraph.job.algorithm.AbstractAlgorithm;
+import com.baidu.hugegraph.job.algorithm.Consumers.StopExecution;
 import com.baidu.hugegraph.traversal.algorithm.SubGraphTraverser;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.JsonUtil;
 
 public class RingsDetectAlgorithm extends AbstractAlgorithm {
 
-    public static final String KEY_COUNT_ONLY = "count_only";
+    public static final String ALGO_NAME = "rings";
 
-    @Override
-    public String name() {
-        return "rings_detect";
-    }
+    public static final String KEY_COUNT_ONLY = "count_only";
 
     @Override
     public String category() {
@@ -44,10 +42,15 @@ public class RingsDetectAlgorithm extends AbstractAlgorithm {
     }
 
     @Override
+    public String name() {
+        return ALGO_NAME;
+    }
+
+    @Override
     public void checkParameters(Map<String, Object> parameters) {
         depth(parameters);
         degree(parameters);
-        capacity(parameters);
+        eachLimit(parameters);
         limit(parameters);
         sourceLabel(parameters);
         sourceCLabel(parameters);
@@ -67,13 +70,13 @@ public class RingsDetectAlgorithm extends AbstractAlgorithm {
                                    edgeLabel(parameters),
                                    depth(parameters),
                                    degree(parameters),
-                                   capacity(parameters),
+                                   eachLimit(parameters),
                                    limit(parameters),
                                    countOnly(parameters));
         }
     }
 
-    public boolean countOnly(Map<String, Object> parameters) {
+    protected boolean countOnly(Map<String, Object> parameters) {
         if (!parameters.containsKey(KEY_COUNT_ONLY)) {
             return false;
         }
@@ -83,12 +86,12 @@ public class RingsDetectAlgorithm extends AbstractAlgorithm {
     private static class Traverser extends AlgoTraverser {
 
         public Traverser(Job<Object> job, int workers) {
-            super(job, "ring", workers);
+            super(job, ALGO_NAME, workers);
         }
 
         public Object rings(String sourceLabel, String sourceCLabel,
                             Directions dir, String label, int depth,
-                            long degree, long capacity, long limit,
+                            long degree, long eachLimit, long limit,
                             boolean countOnly) {
             JsonMap ringsJson = new JsonMap();
             ringsJson.startObject();
@@ -100,24 +103,24 @@ public class RingsDetectAlgorithm extends AbstractAlgorithm {
             }
 
             SubGraphTraverser traverser = new SubGraphTraverser(this.graph());
-            AtomicInteger count = new AtomicInteger(0);
+            AtomicLong count = new AtomicLong(0L);
 
             this.traverse(sourceLabel, sourceCLabel, v -> {
                 Id source = (Id) v.id();
                 PathSet rings = traverser.rings(source, dir, label, depth,
-                                                true, degree, capacity, limit);
+                                                true, degree, MAX_CAPACITY,
+                                                eachLimit);
+                assert eachLimit == NO_LIMIT || rings.size() <= eachLimit;
                 for (Path ring : rings) {
-                    Id min = null;
-                    for (Id id : ring.vertices()) {
-                        if (min == null || id.compareTo(min) < 0) {
-                            min = id;
-                        }
+                    if (eachLimit == NO_LIMIT && !ring.ownedBy(source)) {
+                        // Only dedup rings when each_limit!=NO_LIMIT
+                        continue;
                     }
-                    if (source.equals(min)) {
-                        if (countOnly) {
-                            count.incrementAndGet();
-                            continue;
-                        }
+
+                    if (count.incrementAndGet() > limit && limit != NO_LIMIT) {
+                        throw new StopExecution("exceed limit %s", limit);
+                    }
+                    if (!countOnly) {
                         String ringJson = JsonUtil.toJson(ring.vertices());
                         synchronized (ringsJson) {
                             ringsJson.appendRaw(ringJson);
@@ -125,8 +128,14 @@ public class RingsDetectAlgorithm extends AbstractAlgorithm {
                     }
                 }
             });
+
             if (countOnly) {
-                ringsJson.append(count.get());
+                long counted = count.get();
+                if (limit != NO_LIMIT && counted > limit) {
+                    // The count increased by multi threads and exceed limit
+                    counted = limit;
+                }
+                ringsJson.append(counted);
             } else {
                 ringsJson.endList();
             }

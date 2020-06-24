@@ -19,39 +19,57 @@
 
 package com.baidu.hugegraph.job.algorithm.comm;
 
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.commons.lang.mutable.MutableLong;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.job.Job;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.type.define.Directions;
+import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.google.common.collect.ImmutableMap;
 
 public class TriangleCountAlgorithm extends AbstractCommAlgorithm {
 
+    public static final String ALGO_NAME = "triangle_count";
+
     @Override
     public String name() {
-        return "triangle_count";
+        return ALGO_NAME;
     }
 
     @Override
     public void checkParameters(Map<String, Object> parameters) {
-        directionOutIn(parameters);
+        direction4Out(parameters);
         degree(parameters);
+        workersWhenBoth(parameters);
     }
 
     @Override
     public Object call(Job<Object> job, Map<String, Object> parameters) {
-        try (Traverser traverser = new Traverser(job)) {
-            return traverser.triangleCount(directionOutIn(parameters),
+        int workers = workersWhenBoth(parameters);
+        try (Traverser traverser = new Traverser(job, workers)) {
+            return traverser.triangleCount(direction4Out(parameters),
                                            degree(parameters));
         }
+    }
+
+    protected static int workersWhenBoth(Map<String, Object> parameters) {
+        Directions direction = direction4Out(parameters);
+        int workers = workers(parameters);
+        E.checkArgument(direction == Directions.BOTH || workers <= 0,
+                        "The workers must be not set when direction!=BOTH, " +
+                        "but got workers=%s and direction=%s",
+                        workers, direction);
+        return workers;
     }
 
     protected static class Traverser extends AlgoTraverser {
@@ -59,8 +77,12 @@ public class TriangleCountAlgorithm extends AbstractCommAlgorithm {
         protected static final String KEY_TRIANGLES = "triangles";
         protected static final String KEY_TRIADS = "triads";
 
-        public Traverser(Job<Object> job) {
-            super(job);
+        public Traverser(Job<Object> job, int workers) {
+            super(job, ALGO_NAME, workers);
+        }
+
+        protected Traverser(Job<Object> job, String name, int workers) {
+            super(job, name, workers);
         }
 
         public Object triangleCount(Directions direction, long degree) {
@@ -73,22 +95,23 @@ public class TriangleCountAlgorithm extends AbstractCommAlgorithm {
         protected Map<String, Long> triangles(Directions direction,
                                               long degree) {
             if (direction == null || direction == Directions.BOTH) {
-                throw new IllegalArgumentException("Direction must be OUT/IN");
+                return this.trianglesForBothDir(degree);
             }
+
             assert direction == Directions.OUT || direction == Directions.IN;
 
             Iterator<Edge> edges = this.edges(direction);
 
             long triangles = 0L;
             long triads = 0L;
-            long total = 0L;
+            long totalEdges = 0L;
             long totalVertices = 0L;
             Id vertex = null;
 
-            Set<Id> adjVertices = new HashSet<>();
+            Set<Id> adjVertices = newOrderedSet();
             while (edges.hasNext()) {
                 HugeEdge edge = (HugeEdge) edges.next();
-                this.updateProgress(++total);
+                this.updateProgress(++totalEdges);
 
                 Id source = edge.ownerVertex().id();
                 Id target = edge.otherVertex().id();
@@ -108,37 +131,97 @@ public class TriangleCountAlgorithm extends AbstractCommAlgorithm {
                      *      B -> [D,F]
                      *      E -> [B,C,F]
                      */
-                    triangles += this.intersect(direction, degree, adjVertices);
+                    triangles += this.intersect(degree, adjVertices);
                     triads += this.localTriads(adjVertices.size());
                     totalVertices++;
                     // Reset for the next source
-                    adjVertices = new HashSet<>();
+                    adjVertices = newOrderedSet();
                 }
                 vertex = source;
                 adjVertices.add(target);
             }
 
             if (vertex != null) {
-                triangles += this.intersect(direction, degree, adjVertices);
+                triangles += this.intersect(degree, adjVertices);
                 triads += this.localTriads(adjVertices.size());
                 totalVertices++;
             }
 
             String suffix = "_" + direction.string();
-            return ImmutableMap.of("edges" + suffix, total,
+            return ImmutableMap.of("edges" + suffix, totalEdges,
                                    "vertices" + suffix, totalVertices,
                                    KEY_TRIANGLES, triangles,
                                    KEY_TRIADS, triads);
         }
 
-        protected long intersect(Directions dir, long degree,
-                                 Set<Id> adjVertices) {
+        protected Map<String, Long> trianglesForBothDir(long degree) {
+            AtomicLong triangles = new AtomicLong(0L);
+            AtomicLong triads = new AtomicLong(0L);
+            AtomicLong totalEdges = new AtomicLong(0L);
+            AtomicLong totalVertices = new AtomicLong(0L);
+
+            this.traverse(null, null, v -> {
+                Id source = (Id) v.id();
+
+                MutableLong edgesCount = new MutableLong(0L);
+                Set<Id> adjVertices = this.adjacentVertices(source, degree,
+                                                            edgesCount);
+
+                triangles.addAndGet(this.intersect(degree, adjVertices));
+                triads.addAndGet(this.localTriads(adjVertices.size()));
+
+                totalVertices.incrementAndGet();
+                totalEdges.addAndGet(edgesCount.longValue());
+            });
+
+            assert totalEdges.get() % 2L == 0L;
+            assert triangles.get() % 3L == 0L;
+            // totalEdges /= 2L
+            totalEdges.getAndAccumulate(2L, (l, w) -> l / w);
+            // triangles /= 3L
+            triangles.getAndAccumulate(3L, (l, w) -> l / w);
+            // triads -= triangles * 2L
+            triads.addAndGet(triangles.get() * -2L);
+
+            return ImmutableMap.of("edges", totalEdges.get(),
+                                   "vertices", totalVertices.get(),
+                                   KEY_TRIANGLES, triangles.get(),
+                                   KEY_TRIADS, triads.get());
+        }
+
+        private Set<Id> adjacentVertices(Id source, long degree,
+                                         MutableLong edgesCount) {
+            Iterator<Id> adjVertices = this.adjacentVertices(source,
+                                                             Directions.BOTH,
+                                                             null, degree);
+            Set<Id> set = newOrderedSet();
+            while (adjVertices.hasNext()) {
+                edgesCount.increment();
+                set.add(adjVertices.next());
+            }
+            return set;
+        }
+
+        protected long intersect(long degree, Set<Id> adjVertices) {
             long count = 0L;
+            Directions dir = Directions.OUT;
+            Id empty = IdGenerator.of(0);
             Iterator<Id> vertices;
             for (Id v : adjVertices) {
                 vertices = this.adjacentVertices(v, dir, null, degree);
+                Id lastVertex = empty;
                 while (vertices.hasNext()) {
                     Id vertex = vertices.next();
+                    if (lastVertex.equals(vertex)) {
+                        // Skip duplicated target vertex (through sortkeys)
+                        continue;
+                    }
+                    lastVertex = vertex;
+
+                    /*
+                     * FIXME: deduplicate two edges with opposite directions
+                     * between two specified adjacent vertices
+                     */
                     if (adjVertices.contains(vertex)) {
                         count++;
                     }
@@ -149,6 +232,10 @@ public class TriangleCountAlgorithm extends AbstractCommAlgorithm {
 
         protected long localTriads(int size) {
             return size * (size - 1L) / 2L;
+        }
+
+        protected static <V> Set<V> newOrderedSet() {
+            return new TreeSet<>();
         }
     }
 }

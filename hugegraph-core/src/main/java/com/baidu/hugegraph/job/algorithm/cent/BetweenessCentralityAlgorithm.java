@@ -21,13 +21,10 @@ package com.baidu.hugegraph.job.algorithm.cent;
 
 import java.util.Map;
 
-import org.apache.tinkerpop.gremlin.process.traversal.Order;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.Pop;
-import org.apache.tinkerpop.gremlin.process.traversal.Scope;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
-import org.apache.tinkerpop.gremlin.structure.Column;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import com.baidu.hugegraph.job.Job;
@@ -72,7 +69,7 @@ public class BetweenessCentralityAlgorithm extends AbstractCentAlgorithm {
                                            long topN) {
             assert depth > 0;
             assert degree > 0L || degree == NO_LIMIT;
-            assert topN >= 0L;
+            assert topN >= 0L || topN == NO_LIMIT;
 
             GraphTraversal<Vertex, Vertex> t = constructSource(sourceLabel,
                                                                sourceSample,
@@ -80,14 +77,11 @@ public class BetweenessCentralityAlgorithm extends AbstractCentAlgorithm {
             t = constructPath(t, direction, label, degree, sample,
                               sourceLabel, sourceCLabel);
             t = t.emit().until(__.loops().is(P.gte(depth)));
-            t = filterNonShortestPath(t);
+            t = filterNonShortestPath(t, false);
 
             GraphTraversal<Vertex, ?> tg = t.select(Pop.all, "v")
-                                            .unfold().id()
-                                            .groupCount().order(Scope.local)
-                                            .by(Column.values, Order.desc);
-            GraphTraversal<Vertex, ?> tLimit = topN <= 0L ? tg :
-                                               tg.limit(Scope.local, topN);
+                                            .unfold().id().groupCount();
+            GraphTraversal<Vertex, ?> tLimit = topN(tg, topN);
 
             return this.execute(tLimit, () -> tLimit.next());
         }

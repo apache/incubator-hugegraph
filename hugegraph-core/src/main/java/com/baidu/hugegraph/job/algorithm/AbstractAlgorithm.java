@@ -36,6 +36,7 @@ import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.Transaction;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.id.Id;
@@ -44,6 +45,7 @@ import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.iterator.FilterIterator;
 import com.baidu.hugegraph.iterator.FlatMapperIterator;
 import com.baidu.hugegraph.job.Job;
+import com.baidu.hugegraph.job.algorithm.Consumers.StopExecution;
 import com.baidu.hugegraph.testutil.Whitebox;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
 import com.baidu.hugegraph.type.HugeType;
@@ -61,6 +63,7 @@ public abstract class AbstractAlgorithm implements Algorithm {
 
     public static final long MAX_RESULT_SIZE = 100L * Bytes.MB;
     public static final long MAX_QUERY_LIMIT = 100000000L; // about 100GB
+    public static final long MAX_CAPACITY = MAX_QUERY_LIMIT;
     public static final int BATCH = 500;
 
     public static final String CATEGORY_AGGR = "aggregate";
@@ -87,11 +90,13 @@ public abstract class AbstractAlgorithm implements Algorithm {
     public static final String KEY_CLEAR = "clear";
     public static final String KEY_CAPACITY = "capacity";
     public static final String KEY_LIMIT = "limit";
+    public static final String KEY_EACH_LIMIT = "each_limit";
     public static final String KEY_ALPHA = "alpha";
     public static final String KEY_WORKERS = "workers";
 
     public static final long DEFAULT_CAPACITY = 10000000L;
     public static final long DEFAULT_LIMIT = 100L;
+    public static final long DEFAULT_EACH_LIMIT = 1L;
     public static final long DEFAULT_DEGREE = 100L;
     public static final long DEFAULT_SAMPLE = 1L;
     public static final long DEFAULT_TIMES = 20L;
@@ -131,6 +136,14 @@ public abstract class AbstractAlgorithm implements Algorithm {
         return parseDirection(direction);
     }
 
+    protected static Directions direction4Out(Map<String, Object> parameters) {
+        if (!parameters.containsKey(KEY_DIRECTION)) {
+            return Directions.OUT;
+        }
+        Object direction = parameter(parameters, KEY_DIRECTION);
+        return parseDirection(direction);
+    }
+
     protected static Directions directionOutIn(Map<String, Object> parameters) {
         if (!parameters.containsKey(KEY_DIRECTION)) {
             return Directions.OUT;
@@ -148,14 +161,10 @@ public abstract class AbstractAlgorithm implements Algorithm {
             return DEFAULT_ALPHA;
         }
         double alpha = parameterDouble(parameters, KEY_ALPHA);
-        checkAlpha(alpha);
-        return alpha;
-    }
-
-    public static void checkAlpha(double alpha) {
-        E.checkArgument(alpha > 0 && alpha <= 1.0,
+        E.checkArgument(alpha > 0.0 && alpha <= 1.0,
                         "The value of %s must be in range (0, 1], but got %s",
                         KEY_ALPHA, alpha);
+        return alpha;
     }
 
     protected static long top(Map<String, Object> parameters) {
@@ -163,9 +172,7 @@ public abstract class AbstractAlgorithm implements Algorithm {
             return 0L;
         }
         long top = parameterLong(parameters, KEY_TOP);
-        E.checkArgument(top >= 0L,
-                        "The value of %s must be >= 0, but got %s",
-                        KEY_TOP, top);
+        HugeTraverser.checkNonNegativeOrNoLimit(top, KEY_TOP);
         return top;
     }
 
@@ -193,6 +200,15 @@ public abstract class AbstractAlgorithm implements Algorithm {
         }
         long limit = parameterLong(parameters, KEY_LIMIT);
         HugeTraverser.checkLimit(limit);
+        return limit;
+    }
+
+    protected static long eachLimit(Map<String, Object> parameters) {
+        if (!parameters.containsKey(KEY_EACH_LIMIT)) {
+            return DEFAULT_EACH_LIMIT;
+        }
+        long limit = parameterLong(parameters, KEY_EACH_LIMIT);
+        HugeTraverser.checkPositiveOrNoLimit(limit, KEY_EACH_LIMIT);
         return limit;
     }
 
@@ -355,21 +371,24 @@ public abstract class AbstractAlgorithm implements Algorithm {
 
             Consumers<Vertex> consumers = new Consumers<>(this.executor,
                                                           consumer, done);
-            consumers.start();
+            consumers.start("task-" + this.job.task().id());
+            long total = 0L;
             try {
-                long total = 0L;
                 while (vertices.hasNext()) {
                     this.updateProgress(++this.progress);
                     total++;
                     Vertex v = vertices.next();
                     consumers.provide(v);
                 }
-                return total;
+            } catch (StopExecution e) {
+                // pass
             } catch (Throwable e) {
                 throw Consumers.wrapException(e);
             } finally {
                 consumers.await();
+                CloseableIterator.closeIterator(vertices);
             }
+            return total;
         }
 
         protected Iterator<Vertex> vertices() {
@@ -520,9 +539,11 @@ public abstract class AbstractAlgorithm implements Algorithm {
         }
 
         public void put(K key, long value) {
+            assert this.topN != 0L;
             this.tops.put(key, new MutableLong(value));
             // keep 2x buffer
-            if (this.tops.size() > this.topN * 2) {
+            if (this.tops.size() > this.topN * 2 &&
+                this.topN != HugeTraverser.NO_LIMIT) {
                 this.shrinkIfNeeded(this.topN);
             }
         }
@@ -537,7 +558,10 @@ public abstract class AbstractAlgorithm implements Algorithm {
         }
 
         private void shrinkIfNeeded(long limit) {
-            if (this.tops.size() >= limit && limit != HugeTraverser.NO_LIMIT) {
+            assert limit != 0L;
+            if (this.tops.size() >= limit &&
+                (limit > 0L || limit == HugeTraverser.NO_LIMIT)) {
+                // Just do sort if limit=NO_LIMIT, else do sort and shrink
                 this.tops = HugeTraverser.topN(this.tops, true, limit);
             }
         }

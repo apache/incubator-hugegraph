@@ -85,7 +85,7 @@ public class LouvainTraverser extends AlgoTraverser {
 
     public LouvainTraverser(Job<Object> job, int workers, long degree,
                             String sourceLabel, String sourceCLabel) {
-        super(job, "louvain", workers);
+        super(job, LouvainAlgorithm.ALGO_NAME, workers);
         this.g = this.graph().traversal();
         this.sourceLabel = sourceLabel;
         this.sourceCLabel = sourceCLabel;
@@ -422,7 +422,7 @@ public class LouvainTraverser extends AlgoTraverser {
             }
         });
 
-        consumers.start();
+        consumers.start("louvain-move-pass-" + pass);
         try {
             while (vertices.hasNext()) {
                 this.updateProgress(++this.progress);
@@ -460,7 +460,7 @@ public class LouvainTraverser extends AlgoTraverser {
             this.graph().tx().commit();
         });
 
-        consumers.start();
+        consumers.start("louvain-merge-pass-" + pass);
         try {
             for (Pair<Community, Set<Id>> pair : comms) {
                 Community c = pair.getLeft();
