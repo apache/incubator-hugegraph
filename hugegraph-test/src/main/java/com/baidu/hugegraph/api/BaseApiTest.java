@@ -21,8 +21,10 @@ package com.baidu.hugegraph.api;
 
 import java.io.IOException;
 import java.net.URLEncoder;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -398,15 +400,34 @@ public class BaseApiTest {
             List<Map> list = readList(content, type, Map.class);
             List<Object> names = list.stream().map(e -> e.get("name"))
                                      .collect(Collectors.toList());
+            Set<Integer> tasks = new HashSet<>();
             names.forEach(name -> {
-                client.delete(path, (String) name);
+                Response response = client.delete(path, (String) name);
+                if (urlSuffix.equals(SCHEMA_PKS)) {
+                    return;
+                }
+                String result = assertResponseStatus(202, response);
+                tasks.add(assertJsonContains(result, "task_id"));
             });
+            for (Integer task : tasks) {
+                waitTaskSuccess(task);
+            }
         };
 
         consumer.accept(SCHEMA_ILS);
         consumer.accept(SCHEMA_ELS);
         consumer.accept(SCHEMA_VLS);
         consumer.accept(SCHEMA_PKS);
+    }
+
+    private static void waitTaskSuccess(int task) {
+        String status;
+        do {
+            Response r = client.get("/graphs/hugegraph/tasks/",
+                                    String.valueOf(task));
+            String content = assertResponseStatus(200, r);
+            status = assertJsonContains(content, "task_status");
+        } while (!"success".equals(status));
     }
 
     protected static String parseId(String content) throws IOException {
