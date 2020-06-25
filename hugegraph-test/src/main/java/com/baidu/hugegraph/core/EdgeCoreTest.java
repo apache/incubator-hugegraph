@@ -2125,12 +2125,12 @@ public class EdgeCoreTest extends BaseCoreTest {
         Vertex james = graph.addVertex(T.label, "author", "id", 1,
                                        "name", "James Gosling", "age", 62,
                                        "lived", "Canadian");
-        Vertex guido =  graph.addVertex(T.label, "author", "id", 2,
-                                        "name", "Guido van Rossum", "age", 62,
-                                        "lived", "California");
-        Vertex marko =  graph.addVertex(T.label, "author", "id", 3,
-                                        "name", "Marko", "age", 61,
-                                        "lived", "California");
+        Vertex guido = graph.addVertex(T.label, "author", "id", 2,
+                                       "name", "Guido van Rossum", "age", 62,
+                                       "lived", "California");
+        Vertex marko = graph.addVertex(T.label, "author", "id", 3,
+                                       "name", "Marko", "age", 61,
+                                       "lived", "California");
         guido.addEdge("know", james);
         guido.addEdge("know", marko);
         marko.addEdge("know", james);
@@ -2213,6 +2213,20 @@ public class EdgeCoreTest extends BaseCoreTest {
                         .has("name", Text.contains("java-1"))
                         .limit(2).toList();
         Assert.assertEquals(2, vertices.size());
+
+        vertices = graph.traversal().V()
+                        .out("write", "look")
+                        .limit(12)
+                        .has("name", Text.contains("java-1"))
+                        .limit(11).toList();
+        Assert.assertEquals(11, vertices.size());
+
+        vertices = graph.traversal().V(louise, james)
+                        .out("look", "write")
+                        .limit(12)
+                        .has("name", Text.contains("java-1"))
+                        .limit(11).toList();
+        Assert.assertEquals(9, vertices.size()); // two look edges not matched
 
         // in
         vertices = graph.traversal().V(java0)
