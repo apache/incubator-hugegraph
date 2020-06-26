@@ -198,6 +198,16 @@ public final class TaskManager {
             }
         }
 
+        if (terminated && !this.serverInfoDbExecutor.isShutdown()) {
+            this.serverInfoDbExecutor.shutdown();
+            try {
+                terminated = this.serverInfoDbExecutor.awaitTermination(timeout,
+                                                                        unit);
+            } catch (Throwable e) {
+                ex = e;
+            }
+        }
+
         if (terminated && !this.taskDbExecutor.isShutdown()) {
             this.taskDbExecutor.shutdown();
             try {
