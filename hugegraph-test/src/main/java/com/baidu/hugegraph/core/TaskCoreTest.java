@@ -49,7 +49,7 @@ import com.google.common.collect.ImmutableMap;
 
 public class TaskCoreTest extends BaseCoreTest {
 
-    private static final int SLEEP_TIME = 200;
+    private static final int SLEEP_TIME = 500;
 
     @Before
     @Override
