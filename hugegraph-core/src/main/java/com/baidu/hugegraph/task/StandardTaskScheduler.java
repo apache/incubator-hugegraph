@@ -265,7 +265,9 @@ public class StandardTaskScheduler implements TaskScheduler {
 
     protected synchronized <V> void scheduleTasks() {
         // Master schedule all queued tasks to suitable servers
-        String page = PageInfo.PAGE_NONE;
+        boolean supportsPaging = this.graph().backendStoreFeatures()
+                                     .supportsQueryByPage();
+        String page = supportsPaging ? PageInfo.PAGE_NONE : null;
         do {
             Iterator<HugeTask<V>> tasks = this.tasks(TaskStatus.QUEUED,
                                                      PAGE_SIZE, page);
@@ -293,12 +295,16 @@ public class StandardTaskScheduler implements TaskScheduler {
                 LOG.info("Schedule task {} to server {}",
                          task.id(), server.id());
             }
-            page = PageInfo.pageInfo(tasks);
+            if (page != null) {
+                page = PageInfo.pageInfo(tasks);
+            }
         } while (page != null);
     }
 
     protected <V> void executeTasksForWorker(Id server) {
-        String page = PageInfo.PAGE_NONE;
+        boolean supportsPaging = this.graph().backendStoreFeatures()
+                                     .supportsQueryByPage();
+        String page = supportsPaging ? PageInfo.PAGE_NONE : null;
         do {
             Iterator<HugeTask<V>> tasks = this.tasks(TaskStatus.QUEUED,
                                                      PAGE_SIZE, page);
@@ -310,7 +316,9 @@ public class StandardTaskScheduler implements TaskScheduler {
                     this.submitTask(task);
                 }
             }
-            page = PageInfo.pageInfo(tasks);
+            if (page != null) {
+                page = PageInfo.pageInfo(tasks);
+            }
         } while (page != null);
     }
 
@@ -322,7 +330,9 @@ public class StandardTaskScheduler implements TaskScheduler {
         long now = DateUtil.now().getTime();
 
         // Iterate servers to find suitable one
-        String page = PageInfo.PAGE_NONE;
+        boolean supportsPaging = this.graph().backendStoreFeatures()
+                                     .supportsQueryByPage();
+        String page = supportsPaging ? PageInfo.PAGE_NONE : null;
         HugeServerInfo server;
         do {
             Iterator<HugeServerInfo> servers = this.serverManager()
@@ -347,7 +357,9 @@ public class StandardTaskScheduler implements TaskScheduler {
                     serverWithMinLoad = server;
                 }
             }
-            page = PageInfo.pageInfo(servers);
+            if (page != null) {
+                page = PageInfo.pageInfo(servers);
+            }
         } while (page != null);
 
         // Only schedule to master if there is no workers and master is suitable
@@ -359,7 +371,9 @@ public class StandardTaskScheduler implements TaskScheduler {
     }
 
     protected <V> void cancelTasksForWorker(Id server) {
-        String page = PageInfo.PAGE_NONE;
+        boolean supportsPaging = this.graph().backendStoreFeatures()
+                                     .supportsQueryByPage();
+        String page = supportsPaging ? PageInfo.PAGE_NONE : null;
         do {
             Iterator<HugeTask<V>> tasks = this.tasks(TaskStatus.CANCELLING,
                                                      PAGE_SIZE, page);
@@ -385,7 +399,9 @@ public class StandardTaskScheduler implements TaskScheduler {
                              server, task.id(), cancelled);
                 }
             }
-            page = PageInfo.pageInfo(tasks);
+            if (page != null) {
+                page = PageInfo.pageInfo(tasks);
+            }
         } while (page != null);
     }
 

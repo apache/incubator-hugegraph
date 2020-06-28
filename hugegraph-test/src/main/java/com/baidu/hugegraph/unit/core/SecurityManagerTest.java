@@ -312,7 +312,7 @@ public class SecurityManagerTest {
                .job(new GremlinJob());
         HugeTask<?> task = builder.schedule();
         try {
-            graph.taskScheduler().waitUntilTaskCompleted(task.id(), 10);
+            task = graph.taskScheduler().waitUntilTaskCompleted(task.id(), 10);
         } catch (TimeoutException e) {
             throw new HugeException("Wait for task timeout: %s", e, task);
         }

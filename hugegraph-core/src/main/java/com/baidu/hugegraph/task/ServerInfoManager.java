@@ -119,12 +119,14 @@ public class ServerInfoManager {
         this.serverId = server;
         this.serverRole = role;
 
+        boolean supportsPaging = this.graph.graph().backendStoreFeatures()
+                                     .supportsQueryByPage();
         HugeServerInfo existed = this.serverInfo(server);
         E.checkArgument(existed == null || !existed.alive(),
                         "The server with name '%s' already in cluster",
                         server);
         if (role.master()) {
-            String page = PAGE_NONE;
+            String page = supportsPaging ? PageInfo.PAGE_NONE : null;
             do {
                 Iterator<HugeServerInfo> servers = this.serverInfos(PAGE_SIZE,
                                                                     page);
@@ -135,7 +137,9 @@ public class ServerInfoManager {
                                     "Already existed master '%s' in current " +
                                     "cluster", existed.id());
                 }
-                page = PageInfo.pageInfo(servers);
+                if (page != null) {
+                    page = PageInfo.pageInfo(servers);
+                }
             } while (page != null);
         }
 
