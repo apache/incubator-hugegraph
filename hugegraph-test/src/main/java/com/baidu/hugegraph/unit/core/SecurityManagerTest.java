@@ -68,6 +68,7 @@ public class SecurityManagerTest {
     @AfterClass
     public static void clear() throws Exception {
         System.setSecurityManager(null);
+        graph.clearBackend();
         graph.close();
         // Stop daemon thread
         HugeFactory.shutdown(30L);
