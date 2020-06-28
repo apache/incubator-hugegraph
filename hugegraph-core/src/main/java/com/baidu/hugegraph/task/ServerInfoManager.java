@@ -53,7 +53,6 @@ import com.baidu.hugegraph.util.Log;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
-import static com.baidu.hugegraph.backend.page.PageInfo.PAGE_NONE;
 import static com.baidu.hugegraph.backend.query.Query.NO_LIMIT;
 
 public class ServerInfoManager {
@@ -189,6 +188,7 @@ public class ServerInfoManager {
     }
 
     private GraphTransaction tx() {
+        assert Thread.currentThread().getName().contains("server-info-db-worker");
         return this.graph.systemTransaction();
     }
 
@@ -216,12 +216,14 @@ public class ServerInfoManager {
     }
 
     private HugeVertex constructVertex(HugeServerInfo server) {
-        HugeServerInfo.Schema schema = HugeServerInfo.schema(this.graph);
-        if (!schema.existVertexLabel(HugeServerInfo.P.SERVER)) {
-            throw new HugeException("Schema is missing for %s '%s'",
-                                    HugeServerInfo.P.SERVER, server);
-        }
-        return this.tx().constructVertex(false, server.asArray());
+        return this.call(() -> {
+            HugeServerInfo.Schema schema = HugeServerInfo.schema(this.graph);
+            if (!schema.existVertexLabel(HugeServerInfo.P.SERVER)) {
+                throw new HugeException("Schema is missing for %s '%s'",
+                                        HugeServerInfo.P.SERVER, server);
+            }
+            return this.tx().constructVertex(false, server.asArray());
+        });
     }
 
     public HugeServerInfo serverInfo() {
