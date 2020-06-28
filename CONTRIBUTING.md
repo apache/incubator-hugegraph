@@ -36,6 +36,8 @@ Before submitting the code, we need to do some preparation:
 
 5. Sign the HugeGraph CLA: [https://cla-assistant.io/hugegraph/hugegraph](https://cla-assistant.io/hugegraph/hugegraph)
 
+Optional: You can use [Github desktop](https://desktop.github.com/) to greatly simplify the commit and update process.
+
 ## 2. Create an Issue on GitHub
 
 If you encounter bugs or have any questions, please go to [GitHub Issues](https://github.com/hugegraph/hugegraph/issues) to report them and feel free to [create an issue](https://github.com/hugegraph/hugegraph/issues/new).
@@ -66,6 +68,7 @@ vim hugegraph-core/src/main/java/com/baidu/hugegraph/HugeFactory.java
 # run test locally (optional)
 mvn test -Pcore-test,memory
 ```
+Note: In order to be consistent with the code style easily, if you use [IDEA](https://www.jetbrains.com/idea/) as your IDE, you can directly [import](https://www.jetbrains.com/help/idea/configuring-code-style.html) our code style [configuration file](./hugegraph-style.xml). 
 
 #### 3.3 Commit changes to git repo
 
