@@ -26,6 +26,7 @@ import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 
 import com.baidu.hugegraph.config.HugeConfig;
+import com.baidu.hugegraph.rest.AbstractRestClient;
 import com.baidu.hugegraph.rest.RestClient;
 import com.google.common.collect.ImmutableMap;
 
@@ -60,7 +61,7 @@ public class PaloHttpClient {
         this.client.put(path, body, headers, params);
     }
 
-    private static class Client extends RestClient {
+    private static class Client extends AbstractRestClient {
 
         private static final int SECOND = 1000;
 
