@@ -63,7 +63,8 @@ public final class BytesBuffer {
     public static final int ID_LEN_MAX = 0x7f + 1; // 128
     public static final int BIG_ID_LEN_MAX = 0x7fff + 1; // 32768
 
-    public static final byte STRING_ENDING_BYTE = (byte) 0xff;
+    public static final byte STRING_ENDING_BYTE = (byte) 0x00;
+    public static final byte STRING_ENDING_BYTE_FF = (byte) 0xff;
     public static final int STRING_LEN_MAX = UINT16_MAX;
     public static final long BLOB_LEN_MAX = 1 * Bytes.GB;
 
@@ -332,14 +333,27 @@ public final class BytesBuffer {
         return StringEncoding.decode(this.readBytes());
     }
 
-    public BytesBuffer writeStringWithEnding(String val) {
-        if (!val.isEmpty()) {
-            byte[] bytes = StringEncoding.encode(val);
-            // assert '0xff' not exist in string-id-with-ending (utf8 bytes)
-            assert !Bytes.contains(bytes, STRING_ENDING_BYTE);
+    public BytesBuffer writeStringWithEnding(String value) {
+        if (!value.isEmpty()) {
+            byte[] bytes = StringEncoding.encode(value);
+            /*
+             * assert '0x00'/'0xFF' not exist in string index id
+             * NOTE:
+             *   0x00 is NULL in UTF8(or ASCII) bytes
+             *   0xFF is not a valid byte in UTF8 bytes
+             */
+            assert !Bytes.contains(bytes, STRING_ENDING_BYTE_FF) :
+                   "Invalid UTF8 bytes: " + value;
+            if (Bytes.contains(bytes, STRING_ENDING_BYTE)) {
+                E.checkArgument(false,
+                                "Can't contains byte '0x00' in string: '%s'",
+                                value);
+            }
             this.write(bytes);
         }
         /*
+         * Choose 0x00 as ending symbol (see #1057)
+         * The following is out of date:
          * A reasonable ending symbol should be 0x00(to ensure order), but
          * considering that some backends like PG do not support 0x00 string,
          * so choose 0xFF currently.
@@ -718,12 +732,14 @@ public final class BytesBuffer {
 
         this.write(bytes);
         if (type.isStringIndex()) {
-            // Not allow '0xff' exist in string-id-with-ending
-            E.checkArgument(!Bytes.contains(bytes, STRING_ENDING_BYTE),
-                            "The %s type index id can't contains " +
-                            "byte '0x%s', but got: 0x%s", type,
-                            Bytes.toHex(STRING_ENDING_BYTE),
-                            Bytes.toHex(bytes));
+            if (Bytes.contains(bytes, STRING_ENDING_BYTE)) {
+                // Not allow STRING_ENDING_BYTE exist in string index id
+                E.checkArgument(false,
+                                "The %s type index id can't contains " +
+                                "byte '0x%s', but got: 0x%s", type,
+                                Bytes.toHex(STRING_ENDING_BYTE),
+                                Bytes.toHex(bytes));
+            }
             if (withEnding) {
                 this.writeStringWithEnding("");
             }
@@ -887,9 +903,8 @@ public final class BytesBuffer {
     private byte[] readBytesWithEnding() {
         int start = this.buffer.position();
         boolean foundEnding =false;
-        byte current;
         while (this.remaining() > 0) {
-            current = this.read();
+            byte current = this.read();
             if (current == STRING_ENDING_BYTE) {
                 foundEnding = true;
                 break;

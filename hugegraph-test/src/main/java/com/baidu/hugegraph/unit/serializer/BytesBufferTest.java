@@ -1002,26 +1002,38 @@ public class BytesBufferTest extends BaseUnitTest {
         Assert.assertArrayEquals(bytes, buf.writeString("abcd").bytes());
         Assert.assertEquals("abcd", BytesBuffer.wrap(bytes).readString());
 
-        bytes = genBytes("61626364ff");
+        bytes = genBytes("6162636400");
         buf = BytesBuffer.allocate(0);
         Assert.assertArrayEquals(bytes,
                                  buf.writeStringWithEnding("abcd").bytes());
         Assert.assertEquals("abcd",
                             BytesBuffer.wrap(bytes).readStringWithEnding());
 
-        bytes = genBytes("616200ff");
-        buf = BytesBuffer.allocate(0);
-        Assert.assertArrayEquals(bytes,
-                                 buf.writeStringWithEnding("ab\u0000").bytes());
-        Assert.assertEquals("ab\u0000",
-                            BytesBuffer.wrap(bytes).readStringWithEnding());
-
-        bytes = genBytes("616201ff");
+        bytes = genBytes("61620100");
         buf = BytesBuffer.allocate(0);
         Assert.assertArrayEquals(bytes,
                                  buf.writeStringWithEnding("ab\u0001").bytes());
         Assert.assertEquals("ab\u0001",
                             BytesBuffer.wrap(bytes).readStringWithEnding());
+
+        bytes = genBytes("61627f00");
+        buf = BytesBuffer.allocate(0);
+        Assert.assertArrayEquals(bytes,
+                                 buf.writeStringWithEnding("ab\u007f").bytes());
+        Assert.assertEquals("ab\u007f",
+                            BytesBuffer.wrap(bytes).readStringWithEnding());
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            BytesBuffer.allocate(0).writeStringWithEnding("ab\u0000");
+        }, e -> {
+            Assert.assertContains("Can't contains byte '0x00' in string",
+                                  e.getMessage());
+        });
+
+        buf = BytesBuffer.allocate(0);
+        buf.writeStringWithEnding("ab\uffff");
+        buf.forReadWritten();
+        Assert.assertEquals("ab\uffff", buf.readStringWithEnding());
     }
 
     private static String genString(int len) {
