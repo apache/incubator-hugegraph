@@ -490,7 +490,27 @@ public class EdgeCoreTest extends BaseCoreTest {
         graph.tx().commit();
 
         String backend = graph.backend();
-        if (backend.equals("rocksdb") || backend.equals("hbase")) {
+        if (backend.equals("postgresql")) {
+            Assert.assertThrows(BackendException.class, () -> {
+                james.addEdge("write", book, "time", "2017-5-27\u0000");
+                graph.tx().commit();
+            }, e -> {
+                // pgsql need to clear and reset state (like auto-commit)
+                graph.tx().rollback();
+                Assert.assertContains("invalid byte sequence for encoding " +
+                                      "\"UTF8\": 0x00",
+                                      e.getCause().getMessage());
+            });
+
+            Assert.assertThrows(BackendException.class, () -> {
+                graph.traversal().V(james.id())
+                     .outE("write").has("time", "2017-5-27\u0000")
+                     .toList();
+            }, e -> {
+                Assert.assertContains("Zero bytes may not occur in string " +
+                                      "parameters", e.getCause().getMessage());
+            });
+        } else if (backend.equals("rocksdb") || backend.equals("hbase")) {
             Assert.assertThrows(IllegalArgumentException.class, () -> {
                 james.addEdge("write", book, "time", "2017-5-27\u0000");
                 graph.tx().commit();
