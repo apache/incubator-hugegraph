@@ -44,8 +44,8 @@ import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.HugeType;
-import com.baidu.hugegraph.type.define.NodeRole;
 import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.type.define.NodeRole;
 import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Events;
@@ -194,50 +194,26 @@ public class ServerInfoManager {
 
     protected Id save(HugeServerInfo server) {
         return this.call(() -> {
-            // Construct vertex from task
-            HugeVertex vertex = this.constructVertex(server);
-            // Add or update user in backend store, stale index might exist
+            // Construct vertex from server info
+            HugeServerInfo.Schema schema = HugeServerInfo.schema(this.graph);
+            if (!schema.existVertexLabel(HugeServerInfo.P.SERVER)) {
+                throw new HugeException("Schema is missing for %s '%s'",
+                                        HugeServerInfo.P.SERVER, server);
+            }
+            HugeVertex vertex = this.tx().constructVertex(false,
+                                                          server.asArray());
+            // Add or update server info in backend store
             vertex = this.tx().addVertex(vertex);
             this.tx().commitOrRollback();
             return vertex.id();
         });
     }
 
-    private <V> V call(Callable<V> callable) {
-        try {
-            // Pass task context for db thread
-            callable = new TaskManager.ContextCallable<>(callable);
-            // Ensure all db operations are executed in dbExecutor thread(s)
-            return this.dbExecutor.submit(callable).get();
-        } catch (Throwable e) {
-            throw new HugeException("Failed to update/query server info: %s",
-                                    e, e.toString());
-        }
+    private HugeServerInfo serverInfo() {
+        return this.serverInfo(this.serverId);
     }
 
-    private HugeVertex constructVertex(HugeServerInfo server) {
-        return this.call(() -> {
-            HugeServerInfo.Schema schema = HugeServerInfo.schema(this.graph);
-            if (!schema.existVertexLabel(HugeServerInfo.P.SERVER)) {
-                throw new HugeException("Schema is missing for %s '%s'",
-                                        HugeServerInfo.P.SERVER, server);
-            }
-            return this.tx().constructVertex(false, server.asArray());
-        });
-    }
-
-    public HugeServerInfo serverInfo() {
-        return this.call(() -> {
-            Iterator<Vertex> vertices = this.tx().queryVertices(this.serverId);
-            Vertex vertex = QueryResults.one(vertices);
-            if (vertex == null) {
-                return null;
-            }
-            return HugeServerInfo.fromVertex(vertex);
-        });
-    }
-
-    public HugeServerInfo serverInfo(Id server) {
+    private HugeServerInfo serverInfo(Id server) {
         return this.call(() -> {
             Iterator<Vertex> vertices = this.tx().queryVertices(server);
             Vertex vertex = QueryResults.one(vertices);
@@ -281,5 +257,17 @@ public class ServerInfoManager {
             // Convert iterator to list to avoid across thread tx accessed
             return QueryResults.toList(servers);
         });
+    }
+
+    private <V> V call(Callable<V> callable) {
+        try {
+            // Pass context for db thread
+            callable = new TaskManager.ContextCallable<>(callable);
+            // Ensure all db operations are executed in dbExecutor thread(s)
+            return this.dbExecutor.submit(callable).get();
+        } catch (Throwable e) {
+            throw new HugeException("Failed to update/query server info: %s",
+                                    e, e.toString());
+        }
     }
 }
