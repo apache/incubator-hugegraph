@@ -153,7 +153,10 @@ public final class TaskManager {
 
     private void closeSchedulerTx(HugeGraphParams graph) {
         final Callable<Void> closeTx = () -> {
+            // Do close-tx for current thread
             graph.closeTx();
+            // Let other threads run
+            Thread.yield();
             return null;
         };
 
@@ -174,6 +177,7 @@ public final class TaskManager {
 
     public void shutdown(long timeout) {
         assert this.schedulers.isEmpty() : this.schedulers.size();
+        assert this.serverInfoManagers.isEmpty() : this.serverInfoManagers.size();
 
         Throwable ex = null;
         boolean terminated = this.schedulerExecutor.isTerminated();

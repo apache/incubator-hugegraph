@@ -891,7 +891,7 @@ public class StandardHugeGraph implements HugeGraph {
         public RateLimiter rateLimiter() {
             return StandardHugeGraph.this.rateLimiter;
         }
-    };
+    }
 
     private class TinkerpopTransaction extends AbstractThreadLocalTransaction {
 

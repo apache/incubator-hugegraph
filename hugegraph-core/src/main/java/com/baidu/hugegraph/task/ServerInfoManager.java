@@ -70,8 +70,11 @@ public class ServerInfoManager {
     public ServerInfoManager(HugeGraphParams graph,
                              ExecutorService dbExecutor) {
         E.checkNotNull(graph, "graph");
+        E.checkNotNull(dbExecutor, "db executor");
+
         this.graph = graph;
         this.dbExecutor = dbExecutor;
+
         this.eventListener = this.listenChanges();
     }
 
@@ -79,7 +82,7 @@ public class ServerInfoManager {
         // Listen store event: "store.inited"
         Set<String> storeEvents = ImmutableSet.of(Events.STORE_INITED);
         EventListener eventListener = event -> {
-            // Ensure user schema create after system info initialized
+            // Ensure server info schema create after system info initialized
             if (storeEvents.contains(event.name())) {
                 try {
                     this.initSchemaIfNeeded();
@@ -160,12 +163,12 @@ public class ServerInfoManager {
     }
 
     public void heartbeat() {
-        HugeServerInfo server = this.serverInfo();
-        if (server == null) {
+        HugeServerInfo serverInfo = this.serverInfo();
+        if (serverInfo == null) {
             return;
         }
-        server.updateTime(DateUtil.now());
-        this.save(server);
+        serverInfo.updateTime(DateUtil.now());
+        this.save(serverInfo);
     }
 
     public void decreaseLoad(int load) {

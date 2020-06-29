@@ -651,7 +651,7 @@ public class HugeTask<V> extends FutureTask<V> {
                 return;
             }
             throw new HugeException("Failed to wait task '%s' completed in " +
-                                    "%s seconds", e, timeout, this.id);
+                                    "%s seconds", e, this.id, timeout);
         }
     }
 
