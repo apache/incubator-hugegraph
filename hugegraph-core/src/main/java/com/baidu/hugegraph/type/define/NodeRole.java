@@ -23,7 +23,9 @@ public enum NodeRole implements SerialEnum {
 
     MASTER(1, "master"),
 
-    WORKER(2, "worker");
+    WORKER(2, "worker"),
+
+    COMPUTER(3, "computer");
 
     private final byte code;
     private final String name;
@@ -52,5 +54,9 @@ public enum NodeRole implements SerialEnum {
 
     public boolean worker() {
         return this == WORKER;
+    }
+
+    public boolean computer() {
+        return this == COMPUTER;
     }
 }

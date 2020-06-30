@@ -166,12 +166,10 @@ public class StandardTaskScheduler implements TaskScheduler {
 
     @Override
     public <V> void restoreTasks() {
-        boolean supportsPaging = this.graph().backendStoreFeatures()
-                                             .supportsQueryByPage();
         Id selfServer = this.serverManager().serverId();
         // Restore 'RESTORING', 'RUNNING' and 'QUEUED' tasks in order.
         for (TaskStatus status : TaskStatus.PENDING_STATUSES) {
-            String page = supportsPaging ? PageInfo.PAGE_NONE : null;
+            String page = this.supportsPaging() ? PageInfo.PAGE_NONE : null;
             do {
                 Iterator<HugeTask<V>> iter;
                 for (iter = this.findTask(status, PAGE_SIZE, page);
@@ -265,9 +263,7 @@ public class StandardTaskScheduler implements TaskScheduler {
 
     protected synchronized <V> void scheduleTasks() {
         // Master schedule all queued tasks to suitable servers
-        boolean supportsPaging = this.graph().backendStoreFeatures()
-                                     .supportsQueryByPage();
-        String page = supportsPaging ? PageInfo.PAGE_NONE : null;
+        String page = this.supportsPaging() ? PageInfo.PAGE_NONE : null;
         do {
             Iterator<HugeTask<V>> tasks = this.tasks(TaskStatus.QUEUED,
                                                      PAGE_SIZE, page);
@@ -302,9 +298,7 @@ public class StandardTaskScheduler implements TaskScheduler {
     }
 
     protected <V> void executeTasksForWorker(Id server) {
-        boolean supportsPaging = this.graph().backendStoreFeatures()
-                                     .supportsQueryByPage();
-        String page = supportsPaging ? PageInfo.PAGE_NONE : null;
+        String page = this.supportsPaging() ? PageInfo.PAGE_NONE : null;
         do {
             Iterator<HugeTask<V>> tasks = this.tasks(TaskStatus.QUEUED,
                                                      PAGE_SIZE, page);
@@ -330,9 +324,7 @@ public class StandardTaskScheduler implements TaskScheduler {
         long now = DateUtil.now().getTime();
 
         // Iterate servers to find suitable one
-        boolean supportsPaging = this.graph().backendStoreFeatures()
-                                     .supportsQueryByPage();
-        String page = supportsPaging ? PageInfo.PAGE_NONE : null;
+        String page = this.supportsPaging() ? PageInfo.PAGE_NONE : null;
         HugeServerInfo server;
         do {
             Iterator<HugeServerInfo> servers = this.serverManager()
@@ -371,9 +363,7 @@ public class StandardTaskScheduler implements TaskScheduler {
     }
 
     protected <V> void cancelTasksForWorker(Id server) {
-        boolean supportsPaging = this.graph().backendStoreFeatures()
-                                     .supportsQueryByPage();
-        String page = supportsPaging ? PageInfo.PAGE_NONE : null;
+        String page = this.supportsPaging() ? PageInfo.PAGE_NONE : null;
         do {
             Iterator<HugeTask<V>> tasks = this.tasks(TaskStatus.CANCELLING,
                                                      PAGE_SIZE, page);
@@ -556,7 +546,15 @@ public class StandardTaskScheduler implements TaskScheduler {
     }
 
     @Override
-    public <V> HugeTask<V> waitUntilTaskCompleted(Id id, long seconds,
+    public <V> HugeTask<V> waitUntilTaskCompleted(Id id)
+                                                  throws TimeoutException {
+        // This method is just used by tests
+        long timeout = this.graph.configuration()
+                                 .get(CoreOptions.TASK_WAIT_TIMEOUT);
+        return this.waitUntilTaskCompleted(id, timeout, 10L);
+    }
+
+    private  <V> HugeTask<V> waitUntilTaskCompleted(Id id, long seconds,
                                                   long intervalMs)
                                                   throws TimeoutException {
         long passes = seconds * 1000 / intervalMs;
@@ -672,6 +670,10 @@ public class StandardTaskScheduler implements TaskScheduler {
             throw new HugeException("Failed to update/query TaskStore: %s",
                                     e, e.toString());
         }
+    }
+
+    private boolean supportsPaging() {
+        return this.graph().backendStoreFeatures().supportsQueryByPage();
     }
 
     private static class TaskTransaction extends GraphTransaction {

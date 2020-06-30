@@ -41,8 +41,6 @@ import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
-import com.baidu.hugegraph.config.CoreOptions;
-import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.exception.LimitExceedException;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.job.EphemeralJob;
@@ -636,10 +634,8 @@ public class HugeTask<V> extends FutureTask<V> {
     }
 
     public void syncWait() {
-        long timeout = ((HugeConfig) this.scheduler.graph().configuration())
-                       .get(CoreOptions.TASK_WAIT_TIMEOUT);
         try {
-            this.scheduler().waitUntilTaskCompleted(this.id(), timeout, 10L);
+            this.scheduler().waitUntilTaskCompleted(this.id());
         } catch (Exception e) {
             if (this.callable() instanceof EphemeralJob &&
                 e.getClass() == NotFoundException.class &&
@@ -650,8 +646,8 @@ public class HugeTask<V> extends FutureTask<V> {
                  */
                 return;
             }
-            throw new HugeException("Failed to wait task '%s' completed in " +
-                                    "%s seconds", e, this.id, timeout);
+            throw new HugeException("Failed to wait task '%s' completed",
+                                    e, this.id);
         }
     }
 

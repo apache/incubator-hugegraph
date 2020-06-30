@@ -916,12 +916,10 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         }
 
         @Override
-        public <V> HugeTask<V> waitUntilTaskCompleted(Id id, long seconds,
-                                                      long intervalMs)
+        public <V> HugeTask<V> waitUntilTaskCompleted(Id id)
                                                       throws TimeoutException {
             verifyStatusPermission();
-            return this.taskScheduler.waitUntilTaskCompleted(id, seconds,
-                                                             intervalMs);
+            return this.taskScheduler.waitUntilTaskCompleted(id);
         }
 
         @Override

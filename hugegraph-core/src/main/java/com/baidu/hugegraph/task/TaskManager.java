@@ -161,7 +161,7 @@ public final class TaskManager {
         };
 
         try {
-            this.schedulerExecutor.submit(closeTx);
+            this.schedulerExecutor.submit(closeTx).get();
         } catch (Exception e) {
             throw new HugeException("Exception when closing scheduler tx", e);
         }

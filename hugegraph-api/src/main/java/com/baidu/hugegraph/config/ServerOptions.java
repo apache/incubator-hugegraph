@@ -62,7 +62,7 @@ public class ServerOptions extends OptionHolder {
                     "server.role",
                     "The role of nodes in the cluster, available types are " +
                     "[master, worker]",
-                    allowValues("master", "worker"),
+                    allowValues("master", "worker", "computer"),
                     "master"
             );
 
