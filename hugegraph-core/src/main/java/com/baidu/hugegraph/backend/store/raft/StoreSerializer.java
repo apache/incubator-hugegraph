@@ -43,7 +43,7 @@ public class StoreSerializer {
         BytesBuffer buffer = BytesBuffer.allocate(1 + estimateSize);
         buffer.writeVInt(mutations.size());
         for (BackendMutation mutation : mutations) {
-            buffer.writeBytes(writeMutation(mutation));
+            buffer.writeBigBytes(writeMutation(mutation));
         }
         return buffer.bytes();
     }
@@ -52,7 +52,7 @@ public class StoreSerializer {
         int size = buffer.readVInt();
         List<BackendMutation> mutations = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
-            BytesBuffer buf = BytesBuffer.wrap(buffer.readBytes());
+            BytesBuffer buf = BytesBuffer.wrap(buffer.readBigBytes());
             mutations.add(readMutation(buf));
         }
         return mutations;
@@ -93,8 +93,8 @@ public class StoreSerializer {
     }
 
     public static BackendMutation readMutation(BytesBuffer buffer) {
-        BackendMutation mutation = new BackendMutation();
         int size = buffer.readVInt();
+        BackendMutation mutation = new BackendMutation(size);
         for (int i = 0; i < size; i++) {
             // read action
             Action action = Action.fromCode(buffer.read());

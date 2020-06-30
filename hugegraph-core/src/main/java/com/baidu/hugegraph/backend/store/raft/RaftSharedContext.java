@@ -44,7 +44,6 @@ public final class RaftSharedContext {
     private static final Logger LOG = Log.logger(RaftSharedContext.class);
 
     private final HugeConfig config;
-    // It will be synchronized wrap
     private final Map<String, RaftNode> nodes;
     private final RpcServer rpcServer;
     private final ExecutorService readIndexExecutor;
@@ -62,8 +61,13 @@ public final class RaftSharedContext {
         } else {
             this.snapshotExecutor = null;
         }
-        int cpus = Runtime.getRuntime().availableProcessors();
-        this.backendExecutor = this.createBackendExecutor(cpus);
+        int backendThreads = config.get(CoreOptions.RAFT_BACKEND_THREADS);
+        this.backendExecutor = this.createBackendExecutor(backendThreads);
+    }
+
+    public void close() {
+        LOG.info("Stopping rpc server");
+        this.rpcServer.shutdown();
     }
 
     public HugeConfig config() {

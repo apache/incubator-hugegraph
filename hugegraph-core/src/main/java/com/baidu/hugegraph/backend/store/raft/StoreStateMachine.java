@@ -131,11 +131,11 @@ public class StoreStateMachine extends StateMachineAdapter {
                 iter.next();
             }
         } catch (Throwable e) {
-            failure(closure, e);
             LOG.error("StateMachine occured critical error", e);
             Status status = new Status(RaftError.ESTATEMACHINE,
                                        "StateMachine occured critical error: %s",
                                        e.getMessage());
+            failure(closure, status, e);
             // Will cause current node inactive
             iter.setErrorAndRollback(1L, status);
         }
@@ -198,13 +198,14 @@ public class StoreStateMachine extends StateMachineAdapter {
     private static void success(StoreClosure closure, Object data) {
         if (closure != null) {
             // closure is null on follower node
-            closure.complete(data);
+            closure.complete(Status.OK(), data);
         }
     }
 
-    private static void failure(StoreClosure closure, Throwable e) {
+    private static void failure(StoreClosure closure, Status status,
+                                Throwable e) {
         if (closure != null) {
-            closure.failure(e);
+            closure.failure(status, e);
         }
     }
 }

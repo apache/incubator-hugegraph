@@ -164,6 +164,14 @@ public class CoreOptions extends OptionHolder {
                     3600
             );
 
+    public static final ConfigOption<Integer> RAFT_BACKEND_THREADS =
+            new ConfigOption<>(
+                    "raft.backend.threads",
+                    "The thread number used to apply task to bakcend.",
+                    rangeInt(0, Integer.MAX_VALUE),
+                    8
+            );
+
     public static final ConfigOption<Integer> RATE_LIMIT =
             new ConfigOption<>(
                     "rate_limit",

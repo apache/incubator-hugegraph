@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Paths;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
@@ -33,10 +34,11 @@ import com.alipay.sofa.jraft.RaftGroupService;
 import com.alipay.sofa.jraft.Status;
 import com.alipay.sofa.jraft.conf.Configuration;
 import com.alipay.sofa.jraft.core.NodeImpl;
+import com.alipay.sofa.jraft.core.Replicator.ReplicatorStateListener;
 import com.alipay.sofa.jraft.entity.PeerId;
 import com.alipay.sofa.jraft.entity.Task;
+import com.alipay.sofa.jraft.error.RaftError;
 import com.alipay.sofa.jraft.option.NodeOptions;
-import com.alipay.sofa.jraft.option.RaftOptions;
 import com.alipay.sofa.jraft.rpc.ClientService;
 import com.alipay.sofa.jraft.rpc.RpcResponseClosure;
 import com.baidu.hugegraph.HugeException;
@@ -48,6 +50,7 @@ import com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreCommandResponse;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.util.CodeUtil;
+import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.google.protobuf.ZeroByteStringHelper;
 
@@ -59,6 +62,8 @@ public class RaftNode {
     private final StoreStateMachine stateMachine;
     private final Node node;
 
+    private final AtomicInteger busyCounter;
+
     public RaftNode(String group, BackendStore store,
                     RaftSharedContext context) {
         this.group = group;
@@ -68,7 +73,9 @@ public class RaftNode {
         } catch (IOException e) {
             throw new BackendException("Failed to init raft node", e);
         }
+        this.node.addReplicatorStateListener(new RaftNodeStateListener());
         this.stateMachine.nodeId(this.node.getNodeId());
+        this.busyCounter = new AtomicInteger();
     }
 
     public String group() {
@@ -107,12 +114,11 @@ public class RaftNode {
             nodeOptions.setSnapshotUri(snapshotUri);
         }
 
-        RaftOptions raftOptions = nodeOptions.getRaftOptions();
-        raftOptions.setDisruptorBufferSize(32768);
-//        raftOptions.setReplicatorPipeline(false);
-
-        nodeOptions.setRpcProcessorThreadPoolSize(48);
-        nodeOptions.setEnableMetrics(false);
+        // RaftOptions raftOptions = nodeOptions.getRaftOptions();
+        // raftOptions.setDisruptorBufferSize(32768);
+        // raftOptions.setReplicatorPipeline(false);
+        // nodeOptions.setRpcProcessorThreadPoolSize(48);
+        // nodeOptions.setEnableMetrics(false);
 
         RaftGroupService raftGroupService;
         // Shared rpc server
@@ -147,6 +153,9 @@ public class RaftNode {
     }
 
     public void submitCommand(StoreCommand command, StoreClosure closure) {
+        // Sleep a while when raft node is busy
+        this.waitIfBusy();
+
         if (!this.node.isLeader()) {
             this.forwardToLeader(command, closure);
             return;
@@ -156,11 +165,36 @@ public class RaftNode {
         task.setDone(closure);
         // compress return BytesBuffer
         ByteBuffer buffer = CodeUtil.compress(command.toBytes()).asByteBuffer();
-        LOG.debug("The bytes size of command {} is {}",
+        LOG.debug("The bytes size of command(compressed) {} is {}",
                   command.action(), buffer.limit());
         task.setData(buffer);
         LOG.debug("submit to raft node {}", this.node);
         this.node.apply(task);
+    }
+
+    private void waitIfBusy() {
+        int counter = this.busyCounter.get();
+        if (counter <= 0) {
+            return;
+        }
+        // TODO：should sleep or throw exception directly?
+        // It may lead many thread sleep, but this is exactly what I want
+        long time = (1L << counter) * 5000;
+        LOG.info("The node {} will sleep {} ms", this.node, time);
+        try {
+            Thread.sleep(time);
+        } catch (InterruptedException e) {
+            // throw busy exception
+            throw new BackendException("The raft backend store is busy");
+        } finally {
+            if (this.busyCounter.get() > 0) {
+                synchronized (this) {
+                    if (this.busyCounter.get() > 0) {
+                        this.busyCounter.decrementAndGet();
+                    }
+                }
+            }
+        }
     }
 
     private void forwardToLeader(StoreCommand command, StoreClosure closure) {
@@ -180,10 +214,12 @@ public class RaftNode {
             public void setResponse(StoreCommandResponse resp) {
                 if (resp.getStatus()) {
                     LOG.debug("StoreCommandResponse status ok");
-                    closure.complete(null);
+                    closure.complete(Status.OK(), null);
                 } else {
                     LOG.debug("StoreCommandResponse status error");
-                    closure.failure(new BackendException(
+                    Status status = new Status(RaftError.UNKNOWN,
+                                               "fowared request failed");
+                    closure.failure(status, new BackendException(
                                     "Current node isn't leader, leader is " +
                                     "[%s], failed to forward request to " +
                                     "leader: %s", leaderId, resp.getMessage()));
@@ -195,14 +231,45 @@ public class RaftNode {
                 closure.run(status);
             }
         };
+
+        ClientService rpcClient = ((NodeImpl) this.node).getRpcService();
+        E.checkNotNull(rpcClient, "rpc client");
+        E.checkNotNull(leaderId.getEndpoint(), "leader endpoint");
         try {
-            NodeImpl nodeImpl = (NodeImpl) this.node;
-            ClientService rpcClient = nodeImpl.getRpcService();
             rpcClient.invokeWithDone(leaderId.getEndpoint(), request,
-                                     responseClosure, 3000)
-                     .get();
+                                     responseClosure, 3000).get();
         } catch (InterruptedException | ExecutionException e) {
             throw new BackendException("Failed to invoke rpc request", e);
+        }
+    }
+
+    private class RaftNodeStateListener implements ReplicatorStateListener {
+
+        @Override
+        public void onCreated(PeerId peer) {
+            // pass
+        }
+
+        @Override
+        public void onError(PeerId peer, Status status) {
+            LOG.warn("Replicator meet error: {}", status);
+            if (this.isRpcError(status)) {
+                // increment busy counter
+                int count = RaftNode.this.busyCounter.incrementAndGet();
+                LOG.info("Busy counter: [{}]", count);
+            }
+        }
+
+        private boolean isRpcError(Status status) {
+            String expectMsgPrefix = "Fail to send a RPC request";
+            return RaftError.EINTERNAL == status.getRaftError() &&
+                   status.getErrorMsg() != null &&
+                   status.getErrorMsg().startsWith(expectMsgPrefix);
+        }
+
+        @Override
+        public void onDestroyed(PeerId peer) {
+            // pass
         }
     }
 }

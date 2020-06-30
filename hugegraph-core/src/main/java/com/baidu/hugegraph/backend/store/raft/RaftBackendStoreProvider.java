@@ -106,6 +106,7 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
     @Override
     public void close() {
         this.provider.close();
+        this.context.close();
     }
 
     @Override

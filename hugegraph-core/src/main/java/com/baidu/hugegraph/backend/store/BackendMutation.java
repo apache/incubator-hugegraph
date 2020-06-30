@@ -42,6 +42,10 @@ public class BackendMutation {
         this.updates = new MutationTable();
     }
 
+    public BackendMutation(int initialCapacity) {
+        this.updates = new MutationTable(initialCapacity);
+    }
+
     /**
      * Add data entry with an action to collection `updates`
      * @param entry the backend entry
@@ -250,6 +254,11 @@ public class BackendMutation {
         public MutationTable() {
             // NOTE: ensure insert order
             this.mutations = InsertionOrderUtil.newMap();
+        }
+
+        public MutationTable(int initialCapacity) {
+            // NOTE: ensure insert order
+            this.mutations = InsertionOrderUtil.newMap(initialCapacity);
         }
 
         public void put(HugeType type, Id id, BackendAction mutation) {

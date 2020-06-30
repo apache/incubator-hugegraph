@@ -22,9 +22,13 @@ package com.baidu.hugegraph.backend.store.raft;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.function.Function;
 
 import org.slf4j.Logger;
 
+import com.alipay.sofa.jraft.Status;
+import com.alipay.sofa.jraft.closure.ReadIndexClosure;
+import com.alipay.sofa.jraft.util.BytesUtil;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
@@ -32,6 +36,7 @@ import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
+import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.Log;
@@ -127,57 +132,15 @@ public class RaftBackendStore implements BackendStore {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public Iterator<BackendEntry> query(Query query) {
-        return this.store.query(query);
+        return (Iterator<BackendEntry>) this.queryByRaft(
+                                        query, o -> store.query(query));
     }
-
-//    TODO: support readOnlySafe, need serialize Query, it's a bit complicate
-//    @Override
-//    public Iterator<BackendEntry> query(Query query) {
-//        boolean readOnlySafe = this.config().get(CoreOptions.RAFT_READ_SAFE);
-//        if (!readOnlySafe) {
-//            return this.store.query(query);
-//        }
-//
-//        StoreCommand command = new StoreCommand(StoreCommand.QUERY);
-//        StoreClosure queryClosure = new StoreClosure(command);
-//        RaftNode raftNode = this.node();
-//        raftNode.node().readIndex(BytesUtil.EMPTY_BYTES, new ReadIndexClosure() {
-//            @Override
-//            public void run(Status status, long index, byte[] reqCtx) {
-//                if (status.isOk()) {
-//                    queryClosure.complete(store.query(query));
-//                    return;
-//                }
-//                component.readIndexExecutor().execute(() -> {
-//                    if (raftNode.isLeader()) {
-//                        LOG.warn("Failed to [query] with 'ReadIndex': {}, " +
-//                                 "try to applying to the state machine.",
-//                                 status);
-//                        /*
-//                         * If 'read index' read fails, try to applying to the
-//                         * state machine at the leader node
-//                         */
-//                        byte[] bytes = QuerySerializer.writeMutation(query);
-//                        queryClosure.complete(submitAndWait(StoreCommand.QUERY,
-//                                                            bytes));
-//                    } else {
-//                        LOG.warn("Failed to [query] with 'ReadIndex': {}.",
-//                                 status);
-//                        queryClosure.run(status);
-//                    }
-//                });
-//            }
-//        });
-//        if (queryClosure.throwable() != null) {
-//            throw new BackendException("Failed to query", queryClosure.future());
-//        }
-//        return (Iterator<BackendEntry>) queryClosure.data();
-//    }
 
     @Override
     public Number queryNumber(Query query) {
-        return this.store.queryNumber(query);
+        return (Number) this.queryByRaft(query, o -> store.queryNumber(query));
     }
 
     @Override
@@ -249,6 +212,52 @@ public class RaftBackendStore implements BackendStore {
         } else {
             return closure.data();
         }
+    }
+
+    private Object queryByRaft(Query query, Function<Object, Object> func) {
+        if (!this.context.config().get(CoreOptions.RAFT_READ_SAFE)) {
+            return func.apply(query);
+        }
+
+        StoreCommand command = new StoreCommand(StoreAction.QUERY);
+        StoreClosure closure = new StoreClosure(command);
+        RaftNode raftNode = this.node();
+        raftNode.node().readIndex(BytesUtil.EMPTY_BYTES, new ReadIndexClosure() {
+            @Override
+            public void run(Status status, long index, byte[] reqCtx) {
+                if (status.isOk()) {
+                    closure.complete(status, func.apply(query));
+                } else {
+                    LOG.warn("Failed to execute query {} with 'ReadIndex': {}",
+                             query, status);
+                    closure.failure(status, new BackendException(
+                            "Failed to execute query '%s' with 'ReadIndex': %s",
+                            query, status));
+                }
+//                context.readIndexExecutor().execute(() -> {
+//                    if (raftNode.node().isLeader()) {
+//                        LOG.warn("Failed to [query] with 'ReadIndex': {}, " +
+//                                 "try to applying to the state machine.",
+//                                 status);
+//                        /*
+//                         * If 'read index' read fails, try to applying to the
+//                         * state machine at the leader node
+//                         */
+//                        byte[] bytes = QuerySerializer.writeMutation(query);
+//                        closure.complete(submitAndWait(StoreCommand.QUERY,
+//                                                       bytes));
+//                    } else {
+//                        LOG.warn("Failed to [query] with 'ReadIndex': {}.",
+//                                 status);
+//                        closure.run(status);
+//                    }
+//                });
+            }
+        });
+        if (closure.throwable() != null) {
+            throw new BackendException("Failed to query", closure.future());
+        }
+        return closure.data();
     }
 
     private static class MutationBatch {

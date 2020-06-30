@@ -59,10 +59,12 @@ public class StoreCommandRequestProcessor
             node.submitCommand(command, closure);
             return StoreCommandResponse.newBuilder().setStatus(true).build();
         } catch (Throwable e) {
-            return StoreCommandResponse.newBuilder()
-                                       .setStatus(false)
-                                       .setMessage(e.getMessage())
-                                       .build();
+            StoreCommandResponse.Builder builder;
+            builder = StoreCommandResponse.newBuilder().setStatus(false);
+            if (e.getMessage() != null) {
+                builder.setMessage(e.getMessage());
+            }
+            return builder.build();
         }
     }
 

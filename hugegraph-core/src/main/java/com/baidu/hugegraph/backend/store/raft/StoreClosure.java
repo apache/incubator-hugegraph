@@ -29,19 +29,22 @@ import org.slf4j.Logger;
 import com.alipay.sofa.jraft.Closure;
 import com.alipay.sofa.jraft.Status;
 import com.baidu.hugegraph.backend.BackendException;
+import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 
 public class StoreClosure implements Closure {
 
     private static final Logger LOG = Log.logger(StoreClosure.class);
 
-    // seconds
+    // unit seconds
     private static final int FUTURE_TIMEOUT = 30;
 
+    // the command can be null
     private final StoreCommand command;
     private final CompletableFuture<RaftResult> future;
 
     public StoreClosure(StoreCommand command) {
+        E.checkNotNull(command, "store command");
         this.command = command;
         this.future = new CompletableFuture<>();
     }
@@ -52,6 +55,10 @@ public class StoreClosure implements Closure {
 
     public CompletableFuture<RaftResult> future() {
         return this.future;
+    }
+
+    public Status status() {
+        return this.get().status();
     }
 
     public Object data() {
@@ -73,42 +80,23 @@ public class StoreClosure implements Closure {
         }
     }
 
-    public void complete(Object data) {
-        this.future.complete(new RaftResult(data, null));
+    public void complete(Status status, Object data) {
+        this.future.complete(new RaftResult(status, data, null));
     }
 
-    public void failure(Throwable ex) {
-        this.future.complete(new RaftResult(null, ex));
+    public void failure(Status status, Throwable ex) {
+        this.future.complete(new RaftResult(status, null, ex));
     }
 
     @Override
     public void run(Status status) {
         if (status.isOk()) {
-            this.complete(null);
+            this.complete(status, null);
         } else {
             LOG.error("Failed to apply command: {}", status);
-            this.failure(new BackendException("Failed to apply command in " +
-                                              "raft node with error : %s",
-                                              status.getErrorMsg()));
-        }
-    }
-
-    public static class RaftResult {
-
-        private Object data;
-        private Throwable e;
-
-        public RaftResult(Object data, Throwable e) {
-            this.data = data;
-            this.e = e;
-        }
-
-        public Object data() {
-            return this.data;
-        }
-
-        public Throwable throwable() {
-            return this.e;
+            String msg = "Failed to apply command in raft node with error : " +
+                         status.getErrorMsg();
+            this.failure(status, new BackendException(msg));
         }
     }
 }
