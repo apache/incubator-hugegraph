@@ -408,9 +408,10 @@ public class MysqlSessions extends BackendSessionPool {
             /*
              * Can't call endAndLog() in `finally` block here.
              * Because If commit already failed with an exception,
-             * endAndLog() in `finally` block will trigger same exception again.
-             * (endAndLog() change connection from autocommit=false to
-             * autocommit=true will trigger one new commit)
+             * then rollback() should be called. Besides rollback() can only
+             * be called when autocommit=false and rollback() will always set
+             * autocommit=true. Therefore only commit successfully should set
+             * autocommit=true here
              */
             this.endAndLog();
             return updated;
