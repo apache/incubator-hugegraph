@@ -405,6 +405,13 @@ public class MysqlSessions extends BackendSessionPool {
             } catch (SQLException e) {
                 throw new BackendException("Failed to commit", e);
             }
+            /*
+             * Can't call endAndLog() in `finally` block here.
+             * Because If commit already failed with an exception,
+             * endAndLog() in `finally` block will trigger same exception again.
+             * (endAndLog() change connection from autocommit=false to
+             * autocommit=true will trigger one new commit)
+             */
             this.endAndLog();
             return updated;
         }
@@ -466,7 +473,7 @@ public class MysqlSessions extends BackendSessionPool {
              * commit() or rollback() failed to set connection to auto-commit
              * status in prior transaction. Manually set to auto-commit here.
              */
-            if (this.conn.getAutoCommit()) {
+            if (!this.conn.getAutoCommit()) {
                 this.end();
             }
             return this.conn.createStatement().execute(sql);
