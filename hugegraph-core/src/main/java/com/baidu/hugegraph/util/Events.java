@@ -29,4 +29,6 @@ public final class Events {
     public static final String STORE_CLEAR = "store.clear";
     public static final String STORE_TRUNCATE = "store.truncate";
     public static final String STORE_INITED = "store.inited";
+
+    public static final String GRAPH_CREATE = "graph.create";
 }

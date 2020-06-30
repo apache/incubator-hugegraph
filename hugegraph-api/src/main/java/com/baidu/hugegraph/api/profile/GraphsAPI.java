@@ -31,6 +31,7 @@ import javax.ws.rs.DELETE;
 import javax.ws.rs.ForbiddenException;
 import javax.ws.rs.GET;
 import javax.ws.rs.NotSupportedException;
+import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -39,12 +40,14 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.SecurityContext;
 
+import org.apache.commons.configuration.MapConfiguration;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.auth.HugeAuthenticator.RequiredPerm;
 import com.baidu.hugegraph.auth.HugePermission;
+import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.RestServer;
@@ -54,6 +57,7 @@ import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
 
 @Path("graphs")
@@ -98,6 +102,55 @@ public class GraphsAPI extends API {
 
         HugeGraph g = graph(manager, name);
         return ImmutableMap.of("name", g.name(), "backend", g.backend());
+    }
+
+    @POST
+    @Timed
+    @Path("{name}/copy")
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin", "$owner=$name"})
+    public Object copy(@Context GraphManager manager,
+                       @PathParam("name") String name,
+                       JsonGraphParams params) {
+        LOG.debug("Create graph with copied config from '{}'", name);
+        /*
+         * 0. check and modify params
+         * 1. init backend store
+         * 2. inject graph and traversal source into gremlin server context
+         * 3. inject graph into rest server context
+         */
+        E.checkArgumentNotNull(params.name, "The name of graph can't be null");
+        E.checkArgument(!manager.graphs().contains(params.name),
+                        "The name of graph has existed");
+
+        HugeGraph g = graph(manager, name);
+        HugeConfig config = (HugeConfig) g.configuration();
+        HugeConfig copiedConfig = (HugeConfig) config.clone();
+        copiedConfig.setProperty(CoreOptions.STORE.name(), params.name);
+
+        HugeGraph graph = manager.createGraph(copiedConfig);
+        return ImmutableMap.of("name", graph.name(), "backend", graph.backend());
+    }
+
+    @POST
+    @Timed
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin", "$owner=$name"})
+    public Object create(@Context GraphManager manager,
+                         JsonGraphParams params) {
+        LOG.debug("Create graph with params '{}'", params);
+        E.checkArgumentNotNull(params.name, "The name of graph can't be null");
+        E.checkArgument(!manager.graphs().contains(params.name),
+                        "The name of graph has existed");
+        E.checkArgument(params.options != null && !params.options.isEmpty(),
+                        "The options of graph can't be null or empty");
+
+        MapConfiguration mapConfig = new MapConfiguration(params.options);
+        HugeConfig config = new HugeConfig(mapConfig);
+        config.addProperty(CoreOptions.STORE.name(), params.name);
+
+        HugeGraph graph = manager.createGraph(config);
+        return ImmutableMap.of("name", graph.name(), "backend", graph.backend());
     }
 
     @GET
@@ -245,5 +298,19 @@ public class GraphsAPI extends API {
 
         HugeGraph g = graph(manager, name);
         return ImmutableMap.of("graph_read_mode", g.readMode());
+    }
+
+    private static class JsonGraphParams {
+
+        @JsonProperty("name")
+        private String name;
+        @JsonProperty("options")
+        private Map<String, String> options;
+
+        @Override
+        public String toString() {
+            return String.format("JsonGraphParams{name=%s, options=%s}",
+                                 this.name, this.options);
+        }
     }
 }

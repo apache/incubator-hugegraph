@@ -135,6 +135,7 @@ public class ServerOptions extends OptionHolder {
                     2 * CoreOptions.CPUS
             );
 
+    // TODO: Do not allow users to specify
     public static final ConfigListOption<String> GRAPHS =
             new ConfigListOption<>(
                     "graphs",

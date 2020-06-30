@@ -24,6 +24,7 @@ import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeFactory;
+import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.util.Log;
 
@@ -34,14 +35,22 @@ public class HugeGraphServer {
     private final GremlinServer gremlinServer;
     private final RestServer restServer;
 
-    public HugeGraphServer(String gremlinServerConf, String restServerConf)
-                           throws Exception {
+    public static void register() {
+        RegisterUtil.registerBackends();
+        RegisterUtil.registerPlugins();
+    }
+
+    public HugeGraphServer(String gremlinServerConf, String restServerConf,
+                           String graphsDir) throws Exception {
         // Only switch on security manager after HugeGremlinServer started
         SecurityManager securityManager = System.getSecurityManager();
         System.setSecurityManager(null);
+
+        EventHub hub = new EventHub("gremlin=>hub<=rest");
         try {
             // Start GremlinServer
-            this.gremlinServer = HugeGremlinServer.start(gremlinServerConf);
+            this.gremlinServer = HugeGremlinServer.start(gremlinServerConf,
+                                                         graphsDir, hub);
         } catch (Throwable e) {
             LOG.error("HugeGremlinServer start error: ", e);
             HugeFactory.shutdown(30L);
@@ -52,7 +61,8 @@ public class HugeGraphServer {
 
         try {
             // Start HugeRestServer
-            this.restServer = HugeRestServer.start(restServerConf);
+            this.restServer = HugeRestServer.start(restServerConf,
+                                                   graphsDir, hub);
         } catch (Throwable e) {
             LOG.error("HugeRestServer start error: ", e);
             try {
@@ -89,15 +99,19 @@ public class HugeGraphServer {
     }
 
     public static void main(String[] args) throws Throwable {
-        if (args.length != 2) {
-            String msg = "HugeGraphServer can only accept two config files";
+        if (args.length != 3) {
+            String msg = "Start HugeGraphServer need to pass 3 parameters, " +
+                         "they are: the config files of gremlin-server and " +
+                         "rest-server, and the config directory of graphs. " +
+                         "For example: conf/gremlin-server.yaml " +
+                         "conf/rest-server.properties conf/graphs";
             LOG.error(msg);
             throw new HugeException(msg);
         }
 
-        HugeRestServer.register();
+        HugeGraphServer.register();
 
-        HugeGraphServer server = new HugeGraphServer(args[0], args[1]);
+        HugeGraphServer server = new HugeGraphServer(args[0], args[1], args[2]);
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             LOG.info("HugeGraphServer stopping");
             server.stop();

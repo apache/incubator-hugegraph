@@ -37,6 +37,7 @@ import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.define.WorkLoad;
+import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.util.E;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.jersey2.InstrumentedResourceMethodApplicationListener;
@@ -44,7 +45,7 @@ import com.codahale.metrics.jersey2.InstrumentedResourceMethodApplicationListene
 @ApplicationPath("/")
 public class ApplicationConfig extends ResourceConfig {
 
-    public ApplicationConfig(HugeConfig conf) {
+    public ApplicationConfig(HugeConfig conf, String graphsDir, EventHub hub) {
         packages("com.baidu.hugegraph.api");
 
         // Register Jackson to support json
@@ -57,7 +58,7 @@ public class ApplicationConfig extends ResourceConfig {
         register(new ConfFactory(conf));
 
         // Register GraphManager to context
-        register(new GraphManagerFactory(conf));
+        register(new GraphManagerFactory(conf, graphsDir, hub));
 
         // Register WorkLoad to context
         register(new WorkLoadFactory());
@@ -98,7 +99,8 @@ public class ApplicationConfig extends ResourceConfig {
 
         private GraphManager manager = null;
 
-        public GraphManagerFactory(HugeConfig conf) {
+        public GraphManagerFactory(HugeConfig conf, String graphsDir,
+                                   EventHub hub) {
             register(new ApplicationEventListener() {
                 private final ApplicationEvent.Type EVENT_INITED =
                               ApplicationEvent.Type.INITIALIZATION_FINISHED;
@@ -107,7 +109,7 @@ public class ApplicationConfig extends ResourceConfig {
                 @Override
                 public void onEvent(ApplicationEvent event) {
                     if (event.getType() == this.EVENT_INITED) {
-                        manager = new GraphManager(conf);
+                        manager = new GraphManager(conf, graphsDir, hub);
                     } else if (event.getType() == this.EVENT_DESTROY) {
                         if (manager != null) {
                             manager.close();

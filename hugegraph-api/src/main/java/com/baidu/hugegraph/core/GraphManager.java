@@ -47,6 +47,7 @@ import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
+import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.license.LicenseVerifier;
 import com.baidu.hugegraph.metrics.MetricsUtil;
@@ -60,23 +61,31 @@ import com.baidu.hugegraph.serializer.Serializer;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.task.TaskManager;
 import com.baidu.hugegraph.type.define.NodeRole;
+import com.baidu.hugegraph.util.ConfigUtil;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.Events;
 import com.baidu.hugegraph.util.Log;
 
 public final class GraphManager {
 
     private static final Logger LOG = Log.logger(RestServer.class);
 
+    // TODO: any graceful way to record graphsDir?
+    private final String graphsDir;
     private final Map<String, Graph> graphs;
     private final HugeAuthenticator authenticator;
     private final RpcServer rpcServer;
     private final RpcClientProvider rpcClient;
 
-    public GraphManager(HugeConfig conf) {
+    private final EventHub eventHub;
+
+    public GraphManager(HugeConfig conf, String graphsDir, EventHub hub) {
+        this.graphsDir = graphsDir;
         this.graphs = new ConcurrentHashMap<>();
         this.authenticator = HugeAuthenticator.loadAuthenticator(conf);
         this.rpcServer = new RpcServer(conf);
         this.rpcClient = new RpcClientProvider(conf);
+        this.eventHub = hub;
 
         this.loadGraphs(conf.getMap(ServerOptions.GRAPHS));
         // this.installLicense(conf, "");
@@ -106,6 +115,17 @@ public final class GraphManager {
             HugeGraph graph = this.graph(name);
             graph.waitStarted();
         });
+    }
+
+    public HugeGraph createGraph(HugeConfig config) {
+        HugeGraph graph = (HugeGraph) GraphFactory.open(config);
+        graph.initBackend();
+
+        this.eventHub.call(Events.GRAPH_CREATE, graph);
+        this.graphs.put(graph.name(), graph);
+
+        ConfigUtil.writeFile(this.graphsDir, graph.name(), config);
+        return graph;
     }
 
     public Set<String> graphs() {
@@ -248,7 +268,6 @@ public final class GraphManager {
         final Graph graph = GraphFactory.open(path);
         this.graphs.put(name, graph);
         LOG.info("Graph '{}' was successfully configured via '{}'", name, path);
-
         if (this.requireAuthentication() &&
             !(graph instanceof HugeGraphAuthProxy)) {
             LOG.warn("You may need to support access control for '{}' with {}",

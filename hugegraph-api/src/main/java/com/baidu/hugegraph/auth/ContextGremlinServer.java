@@ -34,17 +34,42 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.auth.HugeGraphAuthProxy.Context;
 import com.baidu.hugegraph.auth.HugeGraphAuthProxy.ContextThreadPoolExecutor;
 import com.baidu.hugegraph.config.CoreOptions;
+import com.baidu.hugegraph.event.EventHub;
+import com.baidu.hugegraph.util.Events;
 
 /**
  * GremlinServer with custom ServerGremlinExecutor, which can pass Context
  */
 public class ContextGremlinServer extends GremlinServer {
 
-    public ContextGremlinServer(final Settings settings) {
+    private final EventHub hub;
+
+    public ContextGremlinServer(final Settings settings, EventHub hub) {
         /*
          * pass custom Executor https://github.com/apache/tinkerpop/pull/813
          */
         super(settings, newGremlinExecutorService(settings));
+        this.hub = hub;
+        this.listenChanges();
+    }
+
+    private void listenChanges() {
+        this.hub.listen(Events.GRAPH_CREATE, event -> {
+            event.checkArgs(HugeGraph.class);
+            Object[] args = event.args();
+            HugeGraph graph = (HugeGraph) args[0];
+            this.injectGraph(graph);
+            return null;
+        });
+    }
+
+    public void injectGraph(HugeGraph graph) {
+        String name = graph.name();
+        GraphManager manager = this.getServerGremlinExecutor().getGraphManager();
+        manager.putGraph(name, graph);
+
+        GraphTraversalSource g = manager.getGraph(name).traversal();
+        manager.putTraversalSource("__g_" + name, g);
     }
 
     public void injectAuthGraph() {
