@@ -61,7 +61,7 @@ public class ServerOptions extends OptionHolder {
             new ConfigOption<>(
                     "server.role",
                     "The role of nodes in the cluster, available types are " +
-                    "[master, worker]",
+                    "[master, worker, computer]",
                     allowValues("master", "worker", "computer"),
                     "master"
             );

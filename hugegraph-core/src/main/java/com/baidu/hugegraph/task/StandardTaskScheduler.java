@@ -551,7 +551,7 @@ public class StandardTaskScheduler implements TaskScheduler {
         // This method is just used by tests
         long timeout = this.graph.configuration()
                                  .get(CoreOptions.TASK_WAIT_TIMEOUT);
-        return this.waitUntilTaskCompleted(id, timeout, 10L);
+        return this.waitUntilTaskCompleted(id, timeout, 1L);
     }
 
     private  <V> HugeTask<V> waitUntilTaskCompleted(Id id, long seconds,
