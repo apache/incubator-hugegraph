@@ -1045,7 +1045,6 @@ public class GraphIndexTransaction extends AbstractTransaction {
                              indexType, indexFields);
                 Object fieldValue = query.userpropValue(indexFields.get(0));
                 assert fieldValue instanceof String;
-                // Escape empty String to INDEX_EMPTY_SYM
                 fieldValue = escapeIndexValueIfNeeded((String) fieldValue);
 
                 // Query search index from SECONDARY_INDEX table
@@ -1056,7 +1055,6 @@ public class GraphIndexTransaction extends AbstractTransaction {
             case SECONDARY:
                 List<Id> joinedKeys = indexFields.subList(0, queryKeys.size());
                 String joinedValues = query.userpropValuesString(joinedKeys);
-                // Escape empty String to INDEX_EMPTY_SYM
                 joinedValues = escapeIndexValueIfNeeded(joinedValues);
 
                 indexQuery = new ConditionQuery(indexType.type(), query);
@@ -1255,14 +1253,16 @@ public class GraphIndexTransaction extends AbstractTransaction {
         for (int i = 0; i < value.length(); i++) {
             char ch = value.charAt(i);
             if (ch <= INDEX_SYM_MAX) {
-                E.checkArgument(false,
-                                "Illegal char '\\u000%s' in index property: '%s'",
-                                (int) ch, value);
+                /*
+                 * Escape symbols can't be used due to impossible to parse,
+                 * and treat it as illegal value for the origin text property
+                 */
+                E.checkArgument(false, "Illegal char '\\u000%s' " +
+                                "in index property: '%s'", (int) ch, value);
             }
         }
         if (value.isEmpty()) {
-            // Use `\u0002` as escape for empty String and treat it as
-            // illegal value for the origin text property
+            // Escape empty String to INDEX_SYM_EMPTY (char `\u0002`)
             value = INDEX_SYM_EMPTY;
         }
         return value;
