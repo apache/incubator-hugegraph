@@ -28,9 +28,9 @@ sed -i "s/serializer=.*/serializer=$SERIALIZER/" $CONF
 
 # Set PostgreSQL configurations if needed
 if [ "$BACKEND" == "postgresql" ]; then
-    sed -i "s/#jdbc.driver=com.mysql.jdbc.Driver/jdbc.driver=$POSTGRESQL_DRIVER/" $CONF
-    sed -i "s?#jdbc.url=jdbc:mysql://127.0.0.1:3306?jdbc.url=$POSTGRESQL_URL?" $CONF
-    sed -i "s/#jdbc.username=root/jdbc.username=$POSTGRESQL_USERNAME/" $CONF
+    sed -i "s/#jdbc.driver=org.postgresql.Driver/jdbc.driver=$POSTGRESQL_DRIVER/" $CONF
+    sed -i "s?#jdbc.url=jdbc:postgresql://localhost:5432/?jdbc.url=$POSTGRESQL_URL?" $CONF
+    sed -i "s/#jdbc.username=postgres/jdbc.username=$POSTGRESQL_USERNAME/" $CONF
 fi
 
 # Set timeout for hbase
