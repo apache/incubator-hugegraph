@@ -489,6 +489,7 @@ public class StandardTaskScheduler implements TaskScheduler {
     }
 
     private <V> V call(Callable<V> callable) {
+        assert !Thread.currentThread().getName().startsWith("task-db-worker");
         try {
             // Pass task context for db thread
             callable = new ContextCallable<>(callable);

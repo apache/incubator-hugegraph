@@ -412,8 +412,8 @@ public class HugeTraverser {
 
         ConditionQuery condQuery = (ConditionQuery) query;
         E.checkArgument(edgeLabels.length == 1,
-                        "The properties filter conditions can be set " +
-                        "only if just one edge label be set");
+                        "The properties filter condition can be set " +
+                        "only if just set one edge label");
 
         for (Map.Entry<Id, Object> entry : properties.entrySet()) {
             Id key = entry.getKey();
@@ -434,7 +434,7 @@ public class HugeTraverser {
             E.checkArgument(false, "The properties %s does not match " +
                             "sort keys of edge label '%s'",
                             this.graph().mapPkId2Name(properties.keySet()),
-                            this.graph().propertyKey(label).name());
+                            this.graph().edgeLabel(label).name());
         }
     }
 

@@ -113,6 +113,10 @@ public class SchemaIndexTransaction extends AbstractTransaction {
         }
 
         assert idQuery.ids().size() == 1 : idQuery.ids();
+        if (idQuery.ids().size() > 1) {
+            LOG.warn("Multiple ids are found with same name '{}': {}",
+                     name, idQuery.ids());
+        }
         return super.query(idQuery);
     }
 }
