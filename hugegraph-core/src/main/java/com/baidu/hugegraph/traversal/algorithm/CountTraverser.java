@@ -143,7 +143,7 @@ public class CountTraverser extends HugeTraverser {
                                                  long limit) {
         Id[] els = labels.keySet().toArray(new Id[labels.size()]);
         Query query = GraphTransaction.constructEdgesQuery(source, dir, els);
-        this.filterBySortKeys(query, labels, properties);
+        this.fillFilterBySortKeys(query, els, properties);
         query.capacity(Query.NO_CAPACITY);
         if (limit != NO_LIMIT) {
             query.limit(limit);
@@ -157,7 +157,7 @@ public class CountTraverser extends HugeTraverser {
         checkSkipDegree(skipDegree, degree, NO_LIMIT);
         Id[] els = labels.keySet().toArray(new Id[labels.size()]);
         Query query = GraphTransaction.constructEdgesQuery(source, dir, els);
-        this.filterBySortKeys(query, labels, properties);
+        this.fillFilterBySortKeys(query, els, properties);
         query.aggregate(Aggregate.AggregateFunc.COUNT, null);
         query.capacity(Query.NO_CAPACITY);
         query.limit(Query.NO_LIMIT);

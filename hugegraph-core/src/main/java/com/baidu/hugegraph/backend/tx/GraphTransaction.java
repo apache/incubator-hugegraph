@@ -1174,14 +1174,21 @@ public class GraphTransaction extends IndexableTransaction {
         return query;
     }
 
-    public static boolean matchEdgeSortKeys(ConditionQuery query,
-                                            HugeGraph graph) {
+    public static boolean matchFullEdgeSortKeys(ConditionQuery query,
+                                                HugeGraph graph) {
+        // All queryKeys in sortKeys
         return matchEdgeSortKeys(query, true, graph);
     }
 
-    public static boolean matchEdgeSortKeys(ConditionQuery query,
-                                            boolean matchAll,
-                                            HugeGraph graph) {
+    public static boolean matchPartialEdgeSortKeys(ConditionQuery query,
+                                                   HugeGraph graph) {
+        // Partial queryKeys in sortKeys
+        return matchEdgeSortKeys(query, false, graph);
+    }
+
+    private static boolean matchEdgeSortKeys(ConditionQuery query,
+                                             boolean matchAll,
+                                             HugeGraph graph) {
         assert query.resultType().isEdge();
         Id label = query.condition(HugeKeys.LABEL);
         if (label == null) {
@@ -1196,6 +1203,12 @@ public class GraphTransaction extends IndexableTransaction {
             List<Id> subFields = sortKeys.subList(0, i);
             if (queryKeys.containsAll(subFields)) {
                 if (queryKeys.size() == subFields.size() || !matchAll) {
+                    /*
+                     * Return true if:
+                     * matchAll=true and all queryKeys are in sortKeys
+                     *  or
+                     * partial queryKeys are in sortKeys
+                     */
                     return true;
                 }
             }
