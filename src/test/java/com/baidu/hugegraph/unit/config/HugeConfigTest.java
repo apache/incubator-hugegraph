@@ -27,11 +27,16 @@ import static com.baidu.hugegraph.config.OptionChecker.positiveInt;
 import static com.baidu.hugegraph.config.OptionChecker.rangeDouble;
 import static com.baidu.hugegraph.config.OptionChecker.rangeInt;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
+import org.apache.commons.collections.IteratorUtils;
 import org.apache.commons.configuration.Configuration;
+import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
+import org.apache.commons.io.FileUtils;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -357,6 +362,28 @@ public class HugeConfigTest extends BaseUnitTest {
         Assert.assertThrows(IllegalStateException.class, () -> {
             new HugeConfig(PATH + "test-list-error.conf");
         });
+    }
+
+    @Test
+    public void testSaveHugeConfig() throws ConfigurationException,
+                                            IOException {
+        HugeConfig config = new HugeConfig(CONF);
+        Assert.assertEquals("file-text1-value", config.get(TestOptions.text1));
+
+        File copiedFile = new File("copied.conf");
+        config.save(copiedFile);
+        Assert.assertTrue(copiedFile.exists());
+        Assert.assertTrue(copiedFile.length() > 0);
+
+        try {
+            HugeConfig copiedConfig = new HugeConfig(copiedFile.getPath());
+            Assert.assertEquals(IteratorUtils.toList(config.getKeys()),
+                                IteratorUtils.toList(copiedConfig.getKeys()));
+            Assert.assertEquals(config.get(TestOptions.text1),
+                                copiedConfig.get(TestOptions.text1));
+        } finally {
+            FileUtils.forceDelete(copiedFile);
+        }
     }
 
     public static class TestOptions extends OptionHolder {

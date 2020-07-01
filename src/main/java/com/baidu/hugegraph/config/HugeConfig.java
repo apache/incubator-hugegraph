@@ -44,6 +44,7 @@ public class HugeConfig extends PropertiesConfiguration {
         }
 
         this.reloadIfNeed(config);
+        this.setLayoutIfNeeded(config);
 
         Iterator<String> keys = config.getKeys();
         while (keys.hasNext()) {
@@ -84,6 +85,14 @@ public class HugeConfig extends PropertiesConfiguration {
                                           e, file);
             }
         }
+    }
+
+    private void setLayoutIfNeeded(Configuration conf) {
+        if (!(conf instanceof PropertiesConfiguration)) {
+            return;
+        }
+        PropertiesConfiguration propConf = (PropertiesConfiguration) conf;
+        this.setLayout(propConf.getLayout());
     }
 
     private static PropertiesConfiguration loadConfigFile(String path) {
