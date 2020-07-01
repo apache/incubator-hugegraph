@@ -29,11 +29,10 @@ public class HugeRestServer {
 
     private static final Logger LOG = Log.logger(HugeRestServer.class);
 
-    public static RestServer start(String conf, String graphsDir,
-                                   EventHub hub) throws Exception {
+    public static RestServer start(String conf, EventHub hub) throws Exception {
         RegisterUtil.registerServer();
 
         // Start RestServer
-        return RestServer.start(conf, graphsDir, hub);
+        return RestServer.start(conf, hub);
     }
 }

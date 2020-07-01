@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.auth;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadFactory;
 
@@ -61,6 +62,19 @@ public class ContextGremlinServer extends GremlinServer {
             this.injectGraph(graph);
             return null;
         });
+    }
+
+    private void unlistenChanges() {
+        this.hub.unlisten(Events.GRAPH_CREATE);
+    }
+
+    @Override
+    public synchronized CompletableFuture<Void> stop() {
+        try {
+            return super.stop();
+        } finally {
+            this.unlistenChanges();
+        }
     }
 
     public void injectGraph(HugeGraph graph) {

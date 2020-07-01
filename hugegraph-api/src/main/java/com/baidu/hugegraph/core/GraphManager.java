@@ -27,6 +27,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.commons.configuration.MapConfiguration;
 import org.apache.tinkerpop.gremlin.server.auth.AuthenticationException;
 import org.apache.tinkerpop.gremlin.server.util.MetricManager;
 import org.apache.tinkerpop.gremlin.structure.Graph;
@@ -37,6 +38,7 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.auth.AuthManager;
+import com.baidu.hugegraph.api.profile.GraphsAPI;
 import com.baidu.hugegraph.auth.HugeAuthenticator;
 import com.baidu.hugegraph.auth.HugeFactoryAuthProxy;
 import com.baidu.hugegraph.auth.HugeGraphAuthProxy;
@@ -45,6 +47,7 @@ import com.baidu.hugegraph.backend.cache.Cache;
 import com.baidu.hugegraph.backend.cache.CacheManager;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
+import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.event.EventHub;
@@ -70,7 +73,6 @@ public final class GraphManager {
 
     private static final Logger LOG = Log.logger(RestServer.class);
 
-    // TODO: any graceful way to record graphsDir?
     private final String graphsDir;
     private final Map<String, Graph> graphs;
     private final HugeAuthenticator authenticator;
@@ -79,15 +81,15 @@ public final class GraphManager {
 
     private final EventHub eventHub;
 
-    public GraphManager(HugeConfig conf, String graphsDir, EventHub hub) {
-        this.graphsDir = graphsDir;
+    public GraphManager(HugeConfig conf, EventHub hub) {
+        this.graphsDir = conf.get(ServerOptions.GRAPHS);
         this.graphs = new ConcurrentHashMap<>();
         this.authenticator = HugeAuthenticator.loadAuthenticator(conf);
         this.rpcServer = new RpcServer(conf);
         this.rpcClient = new RpcClientProvider(conf);
         this.eventHub = hub;
 
-        this.loadGraphs(conf.getMap(ServerOptions.GRAPHS));
+        this.loadGraphs(ConfigUtil.scanGraphsDir(this.graphsDir));
         // this.installLicense(conf, "");
         // Raft will load snapshot firstly then launch election and replay log
         this.waitGraphsStarted();
@@ -117,14 +119,46 @@ public final class GraphManager {
         });
     }
 
-    public HugeGraph createGraph(HugeConfig config) {
+    public HugeGraph cloneGraph(String name, GraphsAPI.JsonGraphParams params) {
+        /*
+         * 0. check and modify params
+         * 1. init backend store
+         * 2. inject graph and traversal source into gremlin server context
+         * 3. inject graph into rest server context
+         */
+        E.checkArgumentNotNull(params.name(), "The graph name can't be null");
+        E.checkArgument(!this.graphs().contains(params.name()),
+                        "The graph name '%s' has existed", params.name());
+
+        HugeGraph g = graph(name);
+        HugeConfig config = (HugeConfig) g.configuration();
+        HugeConfig cloneConfig = (HugeConfig) config.clone();
+        cloneConfig.setDelimiterParsingDisabled(true);
+        cloneConfig.setProperty(CoreOptions.STORE.name(), params.name());
+        return this.createGraph(cloneConfig);
+    }
+
+    public HugeGraph createGraph(GraphsAPI.JsonGraphParams params) {
+        E.checkArgumentNotNull(params.name(), "The graph name can't be null");
+        E.checkArgument(!this.graphs().contains(params.name()),
+                        "The graph name '%s' has existed", params.name());
+        E.checkArgument(params.options() != null && !params.options().isEmpty(),
+                        "The options of graph can't be null or empty");
+
+        MapConfiguration mapConfig = new MapConfiguration(params.options());
+        HugeConfig config = new HugeConfig(mapConfig);
+        config.setProperty(CoreOptions.STORE.name(), params.name());
+        return this.createGraph(config);
+    }
+
+    private HugeGraph createGraph(HugeConfig config) {
         HugeGraph graph = (HugeGraph) GraphFactory.open(config);
         graph.initBackend();
-
+        // Inject into gremlin server context
         this.eventHub.call(Events.GRAPH_CREATE, graph);
         this.graphs.put(graph.name(), graph);
 
-        ConfigUtil.writeFile(this.graphsDir, graph.name(), config);
+        ConfigUtil.writeToFile(this.graphsDir, graph.name(), config);
         return graph;
     }
 
@@ -268,6 +302,7 @@ public final class GraphManager {
         final Graph graph = GraphFactory.open(path);
         this.graphs.put(name, graph);
         LOG.info("Graph '{}' was successfully configured via '{}'", name, path);
+
         if (this.requireAuthentication() &&
             !(graph instanceof HugeGraphAuthProxy)) {
             LOG.warn("You may need to support access control for '{}' with {}",

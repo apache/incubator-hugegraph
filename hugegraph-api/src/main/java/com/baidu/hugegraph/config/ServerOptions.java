@@ -135,13 +135,12 @@ public class ServerOptions extends OptionHolder {
                     2 * CoreOptions.CPUS
             );
 
-    // TODO: Do not allow users to specify
-    public static final ConfigListOption<String> GRAPHS =
-            new ConfigListOption<>(
+    public static final ConfigOption<String> GRAPHS =
+            new ConfigOption<>(
                     "graphs",
-                    "The map of graphs' name and config file.",
+                    "The directory store graphs' config file.",
                     disallowEmpty(),
-                    "hugegraph:conf/hugegraph.properties"
+                    "./conf/graphs"
             );
 
     public static final ConfigOption<Integer> MAX_VERTICES_PER_BATCH =

@@ -19,8 +19,6 @@
 
 package com.baidu.hugegraph.dist;
 
-import java.util.Map;
-
 import org.apache.tinkerpop.gremlin.server.GremlinServer;
 import org.apache.tinkerpop.gremlin.server.Settings;
 import org.slf4j.Logger;
@@ -49,12 +47,8 @@ public class HugeGremlinServer {
                       "being parsed properly. [{}]", conf, e.getMessage());
             throw e;
         }
-
-        Map<String, String> graphConfs = ConfigUtil.scanGraphsDir(graphsDir);
-        for (Map.Entry<String, String> entry : graphConfs.entrySet()) {
-            // TODO: handle conflicts
-            settings.graphs.put(entry.getKey(), entry.getValue());
-        }
+        // Scan and merge graph confs
+        settings.graphs.putAll(ConfigUtil.mergeGraphConfs(conf, graphsDir));
 
         LOG.info("Configuring Gremlin Server from {}", conf);
         ContextGremlinServer server = new ContextGremlinServer(settings, hub);

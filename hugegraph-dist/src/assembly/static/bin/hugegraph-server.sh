@@ -10,9 +10,9 @@ abs_path() {
     echo "$(cd -P "$(dirname "$SOURCE")" && pwd)"
 }
 
-if [[ $# -lt 4 ]]; then
-    echo "USAGE: $0 GREMLIN_SERVER_CONF REST_SERVER_CONF GRAPHS_CONF_DIR OPEN_SECURITY_CHECK"
-    echo " e.g.: $0 conf/gremlin-server.yaml conf/rest-server.properties conf/graphs true"
+if [[ $# -lt 3 ]]; then
+    echo "USAGE: $0 GREMLIN_SERVER_CONF REST_SERVER_CONF OPEN_SECURITY_CHECK"
+    echo " e.g.: $0 conf/gremlin-server.yaml conf/rest-server.properties true"
     exit 1;
 fi
 
@@ -30,16 +30,15 @@ export HUGEGRAPH_HOME="$TOP"
 
 GREMLIN_SERVER_CONF="$1"
 REST_SERVER_CONF="$2"
-GRAPHS_CONF_DIR="$3"
-OPEN_SECURITY_CHECK="$4"
+OPEN_SECURITY_CHECK="$3"
 
-if [[ $# -eq 4 ]]; then
+if [[ $# -eq 3 ]]; then
     USER_OPTION=""
     GC_OPTION=""
-elif [[ $# -eq 5 ]]; then
+elif [[ $# -eq 4 ]]; then
     USER_OPTION="$4"
     GC_OPTION=""
-elif [[ $# -eq 6 ]]; then
+elif [[ $# -eq 5 ]]; then
     USER_OPTION="$4"
     GC_OPTION="$5"
 fi
@@ -123,5 +122,5 @@ fi
 
 # Turn on security check
 exec ${JAVA} -Dname="HugeGraphServer" ${JVM_OPTIONS} ${JAVA_OPTIONS} \
-     -cp ${CLASSPATH}: com.baidu.hugegraph.dist.HugeGraphServer ${GREMLIN_SERVER_CONF} ${REST_SERVER_CONF} ${GRAPHS_CONF_DIR} \
+     -cp ${CLASSPATH}: com.baidu.hugegraph.dist.HugeGraphServer ${GREMLIN_SERVER_CONF} ${REST_SERVER_CONF} \
      >> ${OUTPUT} 2>&1

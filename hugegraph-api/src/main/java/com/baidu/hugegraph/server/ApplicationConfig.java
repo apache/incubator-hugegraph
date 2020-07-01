@@ -45,7 +45,7 @@ import com.codahale.metrics.jersey2.InstrumentedResourceMethodApplicationListene
 @ApplicationPath("/")
 public class ApplicationConfig extends ResourceConfig {
 
-    public ApplicationConfig(HugeConfig conf, String graphsDir, EventHub hub) {
+    public ApplicationConfig(HugeConfig conf, EventHub hub) {
         packages("com.baidu.hugegraph.api");
 
         // Register Jackson to support json
@@ -58,7 +58,7 @@ public class ApplicationConfig extends ResourceConfig {
         register(new ConfFactory(conf));
 
         // Register GraphManager to context
-        register(new GraphManagerFactory(conf, graphsDir, hub));
+        register(new GraphManagerFactory(conf, hub));
 
         // Register WorkLoad to context
         register(new WorkLoadFactory());
@@ -99,8 +99,7 @@ public class ApplicationConfig extends ResourceConfig {
 
         private GraphManager manager = null;
 
-        public GraphManagerFactory(HugeConfig conf, String graphsDir,
-                                   EventHub hub) {
+        public GraphManagerFactory(HugeConfig conf, EventHub hub) {
             register(new ApplicationEventListener() {
                 private final ApplicationEvent.Type EVENT_INITED =
                               ApplicationEvent.Type.INITIALIZATION_FINISHED;
@@ -109,7 +108,7 @@ public class ApplicationConfig extends ResourceConfig {
                 @Override
                 public void onEvent(ApplicationEvent event) {
                     if (event.getType() == this.EVENT_INITED) {
-                        manager = new GraphManager(conf, graphsDir, hub);
+                        manager = new GraphManager(conf, hub);
                     } else if (event.getType() == this.EVENT_DESTROY) {
                         if (manager != null) {
                             manager.close();

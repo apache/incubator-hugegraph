@@ -40,14 +40,12 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.SecurityContext;
 
-import org.apache.commons.configuration.MapConfiguration;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.auth.HugeAuthenticator.RequiredPerm;
 import com.baidu.hugegraph.auth.HugePermission;
-import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.RestServer;
@@ -95,7 +93,7 @@ public class GraphsAPI extends API {
     @Timed
     @Path("{name}")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=$name"})
+    @RolesAllowed({"admin"})
     public Object get(@Context GraphManager manager,
                       @PathParam("name") String name) {
         LOG.debug("Get graph by name '{}'", name);
@@ -104,52 +102,37 @@ public class GraphsAPI extends API {
         return ImmutableMap.of("name", g.name(), "backend", g.backend());
     }
 
-    @POST
+    @PUT
     @Timed
-    @Path("{name}/copy")
+    @Path("{name}")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=$name"})
-    public Object copy(@Context GraphManager manager,
-                       @PathParam("name") String name,
-                       JsonGraphParams params) {
-        LOG.debug("Create graph with copied config from '{}'", name);
-        /*
-         * 0. check and modify params
-         * 1. init backend store
-         * 2. inject graph and traversal source into gremlin server context
-         * 3. inject graph into rest server context
-         */
-        E.checkArgumentNotNull(params.name, "The name of graph can't be null");
-        E.checkArgument(!manager.graphs().contains(params.name),
-                        "The name of graph has existed");
-
-        HugeGraph g = graph(manager, name);
-        HugeConfig config = (HugeConfig) g.configuration();
-        HugeConfig copiedConfig = (HugeConfig) config.clone();
-        copiedConfig.setProperty(CoreOptions.STORE.name(), params.name);
-
-        HugeGraph graph = manager.createGraph(copiedConfig);
-        return ImmutableMap.of("name", graph.name(), "backend", graph.backend());
+    @RolesAllowed({"admin"})
+    public Object manage(@Context GraphManager manager,
+                         @PathParam("name") String name,
+                         @QueryParam("action") String action,
+                         JsonGraphParams params) {
+        E.checkArgument(action != null && !action.isEmpty(),
+                        "The param action can't be null");
+        if (action.equals("clone")) {
+            LOG.debug("Create graph {} with copied config from '{}'",
+                      params.name, name);
+            HugeGraph graph = manager.cloneGraph(name, params);
+            return ImmutableMap.of("name", graph.name(),
+                                   "backend", graph.backend());
+        } else if (action.equals("drop")) {
+            LOG.debug("Drop graph} by name '{}'", name);
+            throw new UnsupportedOperationException("");
+        }
+        return null;
     }
 
     @POST
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=$name"})
+    @RolesAllowed({"admin"})
     public Object create(@Context GraphManager manager,
                          JsonGraphParams params) {
-        LOG.debug("Create graph with params '{}'", params);
-        E.checkArgumentNotNull(params.name, "The name of graph can't be null");
-        E.checkArgument(!manager.graphs().contains(params.name),
-                        "The name of graph has existed");
-        E.checkArgument(params.options != null && !params.options.isEmpty(),
-                        "The options of graph can't be null or empty");
-
-        MapConfiguration mapConfig = new MapConfiguration(params.options);
-        HugeConfig config = new HugeConfig(mapConfig);
-        config.addProperty(CoreOptions.STORE.name(), params.name);
-
-        HugeGraph graph = manager.createGraph(config);
+        HugeGraph graph = manager.createGraph(params);
         return ImmutableMap.of("name", graph.name(), "backend", graph.backend());
     }
 
@@ -256,7 +239,7 @@ public class GraphsAPI extends API {
     @Path("{name}/mode")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=$name"})
+    @RolesAllowed({"admin"})
     public Map<String, GraphMode> mode(@Context GraphManager manager,
                                        @PathParam("name") String name) {
         LOG.debug("Get mode of graph '{}'", name);
@@ -300,12 +283,20 @@ public class GraphsAPI extends API {
         return ImmutableMap.of("graph_read_mode", g.readMode());
     }
 
-    private static class JsonGraphParams {
+    public static class JsonGraphParams {
 
         @JsonProperty("name")
         private String name;
         @JsonProperty("options")
         private Map<String, String> options;
+
+        public String name() {
+            return this.name;
+        }
+
+        public Map<String, String> options() {
+            return this.options;
+        }
 
         @Override
         public String toString() {

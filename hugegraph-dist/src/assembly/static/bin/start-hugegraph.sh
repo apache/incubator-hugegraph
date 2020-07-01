@@ -61,7 +61,7 @@ fi
 
 echo "Starting HugeGraphServer..."
 
-${BIN}/hugegraph-server.sh ${CONF}/gremlin-server.yaml ${CONF}/rest-server.properties ${CONF}/graphs \
+${BIN}/hugegraph-server.sh ${CONF}/gremlin-server.yaml ${CONF}/rest-server.properties \
 ${OPEN_SECURITY_CHECK} ${USER_OPTION} ${GC_OPTION} >>${LOGS}/hugegraph-server.log 2>&1 &
 
 PID="$!"
