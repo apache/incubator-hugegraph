@@ -28,7 +28,6 @@ import org.postgresql.core.Utils;
 import org.postgresql.util.PSQLException;
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.store.mysql.MysqlSessions;
 import com.baidu.hugegraph.backend.store.mysql.MysqlStore;
@@ -124,7 +123,7 @@ public class PostgresqlSessions extends MysqlSessions {
         try {
             Utils.escapeLiteral(builder, value, false);
         } catch (SQLException e) {
-            throw new HugeException("Failed to escape '%s'", e, value);
+            throw new BackendException("Failed to escape '%s'", e, value);
         }
         builder.append('\'');
         return builder.toString();

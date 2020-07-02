@@ -1174,8 +1174,21 @@ public class GraphTransaction extends IndexableTransaction {
         return query;
     }
 
-    public static boolean matchEdgeSortKeys(ConditionQuery query,
-                                            HugeGraph graph) {
+    public static boolean matchFullEdgeSortKeys(ConditionQuery query,
+                                                HugeGraph graph) {
+        // All queryKeys in sortKeys
+        return matchEdgeSortKeys(query, true, graph);
+    }
+
+    public static boolean matchPartialEdgeSortKeys(ConditionQuery query,
+                                                   HugeGraph graph) {
+        // Partial queryKeys in sortKeys
+        return matchEdgeSortKeys(query, false, graph);
+    }
+
+    private static boolean matchEdgeSortKeys(ConditionQuery query,
+                                             boolean matchAll,
+                                             HugeGraph graph) {
         assert query.resultType().isEdge();
         Id label = query.condition(HugeKeys.LABEL);
         if (label == null) {
@@ -1189,7 +1202,15 @@ public class GraphTransaction extends IndexableTransaction {
         for (int i = sortKeys.size(); i > 0; i--) {
             List<Id> subFields = sortKeys.subList(0, i);
             if (queryKeys.containsAll(subFields)) {
-                return true;
+                if (queryKeys.size() == subFields.size() || !matchAll) {
+                    /*
+                     * Return true if:
+                     * matchAll=true and all queryKeys are in sortKeys
+                     *  or
+                     * partial queryKeys are in sortKeys
+                     */
+                    return true;
+                }
             }
         }
         return false;
@@ -1327,7 +1348,7 @@ public class GraphTransaction extends IndexableTransaction {
         if (query.resultType().isEdge() && label != null &&
             query.condition(HugeKeys.OWNER_VERTEX) != null &&
             query.condition(HugeKeys.DIRECTION) != null &&
-            matchEdgeSortKeys(query, this.graph())) {
+            matchEdgeSortKeys(query, false, this.graph())) {
             // Query edge by sourceVertex + direction + label + sort-values
             query.optimized(OptimizedType.SORT_KEYS.ordinal());
             query = query.copy();
@@ -1337,6 +1358,10 @@ public class GraphTransaction extends IndexableTransaction {
                             GraphIndexTransaction.constructShardConditions(
                             query, keys, HugeKeys.SORT_VALUES);
             query.query(conditions);
+            /*
+             * Reset all userprop since transfered to sort-keys, ignore other
+             * userprop(if exists) that it will be filtered by queryEdges(Query)
+             */
             query.resetUserpropConditions();
 
             LOG.debug("Query edges by sortKeys: {}", query);
@@ -1570,7 +1595,8 @@ public class GraphTransaction extends IndexableTransaction {
         ConditionQuery cq = (ConditionQuery) query;
         if (cq.optimized() == 0 || cq.test(elem)) {
             /* Return true if:
-             * 1.not query by index or by primary-key/sort-key (just by sysprop)
+             * 1.not query by index or by primary-key/sort-key
+             *   (cq.optimized() == 0 means query just by sysprop)
              * 2.the result match all conditions
              */
             return true;

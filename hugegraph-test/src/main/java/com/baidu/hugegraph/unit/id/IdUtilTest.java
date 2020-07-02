@@ -74,22 +74,22 @@ public class IdUtilTest {
         Assert.assertEquals(id, IdUtil.readBinString(bytes));
 
         id = EdgeId.parse("S1>2>3>L4");
-        bytes = ByteBuffer.wrap(genBytes("7e803182080233ff0804"));
+        bytes = ByteBuffer.wrap(genBytes("7e803182080233000804"));
         Assert.assertEquals(bytes, IdUtil.writeBinString(id));
         Assert.assertEquals(id, IdUtil.readBinString(bytes));
 
         id = EdgeId.parse("S1111>2222>3>L4444");
-        bytes = ByteBuffer.wrap(genBytes("7e8331313131821808ae33ff18115c"));
+        bytes = ByteBuffer.wrap(genBytes("7e8331313131821808ae330018115c"));
         Assert.assertEquals(bytes, IdUtil.writeBinString(id));
         Assert.assertEquals(id, IdUtil.readBinString(bytes));
 
         id = EdgeId.parse("L11111111>2222>3>L44444444");
-        bytes = ByteBuffer.wrap(genBytes("7e28a98ac7821808ae33ff2aa62b1c"));
+        bytes = ByteBuffer.wrap(genBytes("7e28a98ac7821808ae33002aa62b1c"));
         Assert.assertEquals(bytes, IdUtil.writeBinString(id));
         Assert.assertEquals(id, IdUtil.readBinString(bytes));
 
         id = EdgeId.parse("L-1111>2222>33>L4444");
-        bytes = ByteBuffer.wrap(genBytes("7e03a9821808ae3333ff18115c"));
+        bytes = ByteBuffer.wrap(genBytes("7e03a9821808ae33330018115c"));
         Assert.assertEquals(bytes, IdUtil.writeBinString(id));
         Assert.assertEquals(id, IdUtil.readBinString(bytes));
     }

@@ -42,6 +42,7 @@ import com.baidu.hugegraph.backend.query.IdPrefixQuery;
 import com.baidu.hugegraph.backend.query.IdRangeQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
+import com.baidu.hugegraph.backend.tx.GraphIndexTransaction;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -72,6 +73,8 @@ import com.google.common.collect.ImmutableMap;
 public class TextSerializer extends AbstractSerializer {
 
     private static final String VALUE_SPLITOR = TextBackendEntry.VALUE_SPLITOR;
+    private static final String EDGE_NAME_ENDING =
+                                GraphIndexTransaction.INDEX_SYM_ENDING + "";
 
     @Override
     public TextBackendEntry newBackendEntry(HugeType type, Id id) {
@@ -231,7 +234,7 @@ public class TextSerializer extends AbstractSerializer {
         }
 
         HugeEdge edge = new HugeEdge(graph, null, label);
-        edge.name(colParts[2]);
+        edge.name(readEdgeName(colParts[2]));
         edge.vertices(isOutEdge, vertex, otherVertex);
         edge.assignId();
 
@@ -771,7 +774,7 @@ public class TextSerializer extends AbstractSerializer {
         // Edge name: type + edge-label-name + sortKeys + targetVertex
         list.add(writeType(edgeId.direction().type()));
         list.add(writeId(edgeId.edgeLabelId()));
-        list.add(edgeId.sortValues());
+        list.add(writeEdgeName(edgeId.sortValues()));
         list.add(writeEntryId(edgeId.otherVertexId()));
 
         return EdgeId.concat(list.toArray(new String[0]));
@@ -787,6 +790,16 @@ public class TextSerializer extends AbstractSerializer {
 
     private static Id readEntryId(String id) {
         return IdUtil.readString(id);
+    }
+
+    private static String writeEdgeName(String name) {
+        return name + EDGE_NAME_ENDING;
+    }
+
+    private static String readEdgeName(String name) {
+        E.checkState(name.endsWith(EDGE_NAME_ENDING),
+                     "Invalid edge name: %s", name);
+        return name.substring(0, name.length() - 1);
     }
 
     private static String writeId(Id id) {

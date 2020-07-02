@@ -56,6 +56,7 @@ import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Directions;
+import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
@@ -403,16 +404,17 @@ public class HugeTraverser {
         return edgeList.iterator();
     }
 
-    protected void filterBySortKeys(Query query, Map<Id, String> labels,
-                                    Map<Id, Object> properties) {
+    protected void fillFilterBySortKeys(Query query,Id[] edgeLabels,
+                                        Map<Id, Object> properties) {
         if (properties == null || properties.isEmpty()) {
             return;
         }
-        E.checkArgument(labels.size() == 1,
+
+        ConditionQuery condQuery = (ConditionQuery) query;
+        E.checkArgument(edgeLabels.length == 1,
                         "The properties filter condition can be set " +
                         "only if just set one edge label");
 
-        ConditionQuery condQuery = (ConditionQuery) query;
         for (Map.Entry<Id, Object> entry : properties.entrySet()) {
             Id key = entry.getKey();
             Object value = entry.getValue();
@@ -427,10 +429,13 @@ public class HugeTraverser {
             }
         }
 
-        E.checkArgument(GraphTransaction.matchEdgeSortKeys(condQuery, graph()),
-                        "The properties '%s' does not match sort keys of " +
-                        "edge label '%s'",
-                        properties.keySet(), labels.keySet().iterator().next());
+        if (!GraphTransaction.matchFullEdgeSortKeys(condQuery, this.graph())) {
+            Id label = condQuery.condition(HugeKeys.LABEL);
+            E.checkArgument(false, "The properties %s does not match " +
+                            "sort keys of edge label '%s'",
+                            this.graph().mapPkId2Name(properties.keySet()),
+                            this.graph().edgeLabel(label).name());
+        }
     }
 
     protected static <V> Set<V> newSet() {

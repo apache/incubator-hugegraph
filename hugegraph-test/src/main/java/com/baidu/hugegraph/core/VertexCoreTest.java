@@ -4995,9 +4995,9 @@ public class VertexCoreTest extends BaseCoreTest {
             graph.addVertex(T.label, "person", "name", "Baby",
                             "city", "\u0000", "age", 3);
             graph.tx().commit();
-        }, (e) -> {
-            Assert.assertTrue(e.getMessage().contains(
-                              "Illegal value of index property: '\u0000'"));
+        }, e -> {
+            Assert.assertContains("Illegal char '\\u0000' in index property:",
+                                  e.getMessage());
         });
     }
 

@@ -29,7 +29,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
@@ -477,7 +476,7 @@ public abstract class CassandraStore
         try {
             return Integer.valueOf(factor);
         } catch (NumberFormatException e) {
-            throw new HugeException(
+            throw new BackendException(
                       "Expect int factor value for SimpleStrategy, " +
                       "but got '%s'", factor);
         }

@@ -39,7 +39,7 @@ import com.baidu.hugegraph.util.StringEncoding;
 
 public class TextBackendEntry implements BackendEntry, Cloneable {
 
-    public static final String VALUE_SPLITOR = "\u0002";
+    public static final String VALUE_SPLITOR = "\u0003";
 
     private final HugeType type;
     private final Id id;

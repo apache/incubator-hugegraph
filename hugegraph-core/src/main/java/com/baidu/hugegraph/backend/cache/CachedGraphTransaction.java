@@ -240,23 +240,31 @@ public final class CachedGraphTransaction extends GraphTransaction {
         }
 
         if (value != null) {
+            // Not cached or the cache expired
             return edges.iterator();
         }
 
         Iterator<HugeEdge> rs = super.queryEdgesFromBackend(query);
+
         /*
          * Iterator can't be cached, caching list instead
-         * Generally there are not too much data with id query
+         * there may be super node and too many edges in a query,
+         * try fetch a few of the head results and determine whether to cache.
          */
-        ListIterator<HugeEdge> listIterator = QueryResults.toList(rs);
-        edges = listIterator.list();
+        final int tryMax = 1 + MAX_CACHE_EDGES_PER_QUERY;
+        assert tryMax > MAX_CACHE_EDGES_PER_QUERY;
+        edges = new ArrayList<>(tryMax);
+        for (int i = 0; rs.hasNext() && i < tryMax; i++) {
+            edges.add(rs.next());
+        }
+
         if (edges.size() == 0) {
             this.edgesCache.update(cacheKey, Collections.emptyList());
         } else if (edges.size() <= MAX_CACHE_EDGES_PER_QUERY) {
             this.edgesCache.update(cacheKey, edges);
         }
 
-        return listIterator;
+        return new ExtendableIterator<>(edges.iterator(), rs);
     }
 
     @Override

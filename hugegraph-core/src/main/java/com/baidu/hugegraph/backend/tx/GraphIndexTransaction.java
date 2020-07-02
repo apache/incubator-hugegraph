@@ -94,8 +94,10 @@ import com.google.common.collect.ImmutableSet;
 
 public class GraphIndexTransaction extends AbstractTransaction {
 
-    private static final String INDEX_EMPTY_SYM = "\u0000";
-    private static final String INDEX_NULL_SYM = "\u0001";
+    public static final char INDEX_SYM_ENDING = '\u0000';
+    public static final String INDEX_SYM_NULL = "\u0001";
+    public static final String INDEX_SYM_EMPTY = "\u0002";
+    public static final char INDEX_SYM_MAX = '\u0003';
 
     private final Analyzer textAnalyzer;
 
@@ -182,11 +184,11 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 if (firstNullField == fieldsNum) {
                     firstNullField = allPropValues.size();
                 }
-                allPropValues.add(INDEX_NULL_SYM);
+                allPropValues.add(INDEX_SYM_NULL);
             } else {
-                E.checkArgument(!INDEX_NULL_SYM.equals(property.value()),
+                E.checkArgument(!INDEX_SYM_NULL.equals(property.value()),
                                 "Illegal value of index property: '%s'",
-                                INDEX_NULL_SYM);
+                                INDEX_SYM_NULL);
                 allPropValues.add(property.value());
             }
         }
@@ -195,7 +197,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
             // The property value of first index field is null
             return;
         }
-        // Not build index for record with nullable field except unique index
+        // Not build index for record with nullable field (except unique index)
         List<Object> propValues = allPropValues.subList(0, firstNullField);
 
         // Expired time
@@ -228,43 +230,20 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 for (int i = 0, n = propValues.size(); i < n; i++) {
                     List<Object> prefixValues = propValues.subList(0, i + 1);
                     value = ConditionQuery.concatValues(prefixValues);
-
-                    // Use `\u0000` as escape for empty String and treat it as
-                    // illegal value for text property
-                    E.checkArgument(!value.equals(INDEX_EMPTY_SYM),
-                                    "Illegal value of index property: '%s'",
-                                    INDEX_EMPTY_SYM);
-                    if (((String) value).isEmpty()) {
-                        value = INDEX_EMPTY_SYM;
-                    }
-
+                    value = escapeIndexValueIfNeeded((String) value);
                     this.updateIndex(indexLabel, value, element.id(),
                                      expiredTime, removed);
                 }
                 break;
             case SHARD:
                 value = ConditionQuery.concatValues(propValues);
-                // Use `\u0000` as escape for empty String and treat it as
-                // illegal value for text property
-                E.checkArgument(!value.equals(INDEX_EMPTY_SYM),
-                                "Illegal value of index property: '%s'",
-                                INDEX_EMPTY_SYM);
-                if (((String) value).isEmpty()) {
-                    value = INDEX_EMPTY_SYM;
-                }
+                value = escapeIndexValueIfNeeded((String) value);
                 this.updateIndex(indexLabel, value, element.id(),
                                  expiredTime, removed);
                 break;
             case UNIQUE:
                 value = ConditionQuery.concatValues(allPropValues);
-                // Use `\u0000` as escape for empty String and treat it as
-                // illegal value for text property
-                E.checkArgument(!value.equals(INDEX_EMPTY_SYM),
-                                "Illegal value of index property: '%s'",
-                                INDEX_EMPTY_SYM);
-                if (((String) value).isEmpty()) {
-                    value = INDEX_EMPTY_SYM;
-                }
+                assert !value.equals("");
                 Id id = element.id();
                 // TODO: add lock for updating unique index
                 if (!removed && this.existUniqueValue(indexLabel, value, id)) {
@@ -1066,6 +1045,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
                              indexType, indexFields);
                 Object fieldValue = query.userpropValue(indexFields.get(0));
                 assert fieldValue instanceof String;
+                fieldValue = escapeIndexValueIfNeeded((String) fieldValue);
+
                 // Query search index from SECONDARY_INDEX table
                 indexQuery = new ConditionQuery(indexType.type(), query);
                 indexQuery.eq(HugeKeys.INDEX_LABEL_ID, indexLabel.id());
@@ -1074,11 +1055,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
             case SECONDARY:
                 List<Id> joinedKeys = indexFields.subList(0, queryKeys.size());
                 String joinedValues = query.userpropValuesString(joinedKeys);
+                joinedValues = escapeIndexValueIfNeeded(joinedValues);
 
-                // Escape empty String to '\u0000'
-                if (joinedValues.isEmpty()) {
-                    joinedValues = INDEX_EMPTY_SYM;
-                }
                 indexQuery = new ConditionQuery(indexType.type(), query);
                 indexQuery.eq(HugeKeys.INDEX_LABEL_ID, indexLabel.id());
                 indexQuery.eq(HugeKeys.FIELD_VALUES, joinedValues);
@@ -1269,6 +1247,25 @@ public class GraphIndexTransaction extends AbstractTransaction {
             }
         }
         return true;
+    }
+
+    private static String escapeIndexValueIfNeeded(String value) {
+        for (int i = 0; i < value.length(); i++) {
+            char ch = value.charAt(i);
+            if (ch <= INDEX_SYM_MAX) {
+                /*
+                 * Escape symbols can't be used due to impossible to parse,
+                 * and treat it as illegal value for the origin text property
+                 */
+                E.checkArgument(false, "Illegal char '\\u000%s' " +
+                                "in index property: '%s'", (int) ch, value);
+            }
+        }
+        if (value.isEmpty()) {
+            // Escape empty String to INDEX_SYM_EMPTY (char `\u0002`)
+            value = INDEX_SYM_EMPTY;
+        }
+        return value;
     }
 
     private static NoIndexException noIndexException(HugeGraph graph,
