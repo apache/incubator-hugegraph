@@ -33,8 +33,6 @@ public class HugeGremlinServer {
 
     private static final Logger LOG = Log.logger(HugeGremlinServer.class);
 
-    private static final String G_PREFIX = "__g_";
-
     public static GremlinServer start(String conf, String graphsDir,
                                       EventHub hub) throws Exception {
         // Start GremlinServer with inject traversal source
@@ -47,14 +45,14 @@ public class HugeGremlinServer {
                       "being parsed properly. [{}]", conf, e.getMessage());
             throw e;
         }
-        // Scan and merge graph confs
-        settings.graphs.putAll(ConfigUtil.mergeGraphConfs(conf, graphsDir));
+        // Scan graph confs and inject into gremlin server context
+        settings.graphs.putAll(ConfigUtil.scanGraphsDir(graphsDir));
 
         LOG.info("Configuring Gremlin Server from {}", conf);
         ContextGremlinServer server = new ContextGremlinServer(settings, hub);
 
         // Inject customized traversal source
-        server.injectTraversalSource(G_PREFIX);
+        server.injectTraversalSource();
 
         server.start().exceptionally(t -> {
             LOG.error("Gremlin Server was unable to start and will " +

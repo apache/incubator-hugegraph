@@ -53,6 +53,7 @@ import com.baidu.hugegraph.type.define.GraphMode;
 import com.baidu.hugegraph.type.define.GraphReadMode;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
+import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -65,6 +66,9 @@ public class GraphsAPI extends API {
     private static final Logger LOG = Log.logger(RestServer.class);
 
     private static final String CONFIRM_CLEAR = "I'm sure to delete all data";
+
+    private static final String GRAPH_ACTION_CLONE = "clone";
+    private static final String GRAPH_ACTION_DROP = "drop";
 
     @GET
     @Timed
@@ -93,7 +97,7 @@ public class GraphsAPI extends API {
     @Timed
     @Path("{name}")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin"})
+    @RolesAllowed({"admin", "$owner=$name"})
     public Object get(@Context GraphManager manager,
                       @PathParam("name") String name) {
         LOG.debug("Get graph by name '{}'", name);
@@ -106,24 +110,29 @@ public class GraphsAPI extends API {
     @Timed
     @Path("{name}")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin"})
+    @RolesAllowed({"admin", "$owner=$name"})
     public Object manage(@Context GraphManager manager,
                          @PathParam("name") String name,
                          @QueryParam("action") String action,
+                         @QueryParam("confirm_message") String message,
                          JsonGraphParams params) {
-        E.checkArgument(action != null && !action.isEmpty(),
-                        "The param action can't be null");
-        if (action.equals("clone")) {
+        E.checkArgument(GRAPH_ACTION_CLONE.equals(action) ||
+                        GRAPH_ACTION_DROP.equals(action),
+                        "Not support action '%s'", action);
+        if (GRAPH_ACTION_CLONE.equals(action)) {
             LOG.debug("Create graph {} with copied config from '{}'",
                       params.name, name);
-            HugeGraph graph = manager.cloneGraph(name, params);
+            HugeGraph graph = manager.cloneGraph(name, params.name,
+                                                 params.options);
             return ImmutableMap.of("name", graph.name(),
                                    "backend", graph.backend());
-        } else if (action.equals("drop")) {
-            LOG.debug("Drop graph} by name '{}'", name);
-            throw new UnsupportedOperationException("");
+        } else {
+            LOG.debug("Drop graph by name '{}'", name);
+            E.checkArgument(CONFIRM_CLEAR.equals(message),
+                            "Please take the message: %s", CONFIRM_CLEAR);
+            manager.dropGraph(name);
+            return ImmutableMap.of("name", name);
         }
-        return null;
     }
 
     @POST
@@ -132,7 +141,7 @@ public class GraphsAPI extends API {
     @RolesAllowed({"admin"})
     public Object create(@Context GraphManager manager,
                          JsonGraphParams params) {
-        HugeGraph graph = manager.createGraph(params);
+        HugeGraph graph = manager.createGraph(params.name, params.options);
         return ImmutableMap.of("name", graph.name(), "backend", graph.backend());
     }
 
@@ -165,13 +174,9 @@ public class GraphsAPI extends API {
                       @PathParam("name") String name,
                       @QueryParam("confirm_message") String message) {
         LOG.debug("Clear graph by name '{}'", name);
-
+        E.checkArgument(CONFIRM_CLEAR.equals(message),
+                        "Please take the message: %s", CONFIRM_CLEAR);
         HugeGraph g = graph(manager, name);
-
-        if (!CONFIRM_CLEAR.equals(message)) {
-            throw new IllegalArgumentException(String.format(
-                      "Please take the message: %s", CONFIRM_CLEAR));
-        }
         g.truncateBackend();
     }
 
@@ -239,7 +244,7 @@ public class GraphsAPI extends API {
     @Path("{name}/mode")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin"})
+    @RolesAllowed({"admin", "$owner=$name"})
     public Map<String, GraphMode> mode(@Context GraphManager manager,
                                        @PathParam("name") String name) {
         LOG.debug("Get mode of graph '{}'", name);
@@ -288,7 +293,7 @@ public class GraphsAPI extends API {
         @JsonProperty("name")
         private String name;
         @JsonProperty("options")
-        private Map<String, String> options;
+        private Map<String, String> options = InsertionOrderUtil.newMap();
 
         public String name() {
             return this.name;

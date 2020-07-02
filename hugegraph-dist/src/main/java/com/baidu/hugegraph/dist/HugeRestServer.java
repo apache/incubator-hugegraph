@@ -30,8 +30,6 @@ public class HugeRestServer {
     private static final Logger LOG = Log.logger(HugeRestServer.class);
 
     public static RestServer start(String conf, EventHub hub) throws Exception {
-        RegisterUtil.registerServer();
-
         // Start RestServer
         return RestServer.start(conf, hub);
     }

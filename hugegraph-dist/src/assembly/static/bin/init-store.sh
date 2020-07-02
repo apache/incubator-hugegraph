@@ -33,7 +33,6 @@ cd ${TOP}
 echo "Initializing HugeGraph Store..."
 
 ${JAVA} -cp ${LIB}/hugegraph-dist-*.jar -Djava.ext.dirs=${LIB}:${PLUGINS} \
-    com.baidu.hugegraph.cmd.InitStore \
-    ${CONF}/gremlin-server.yaml ${CONF}/rest-server.properties
+    com.baidu.hugegraph.cmd.InitStore ${CONF}/rest-server.properties
 
 echo "Initialization finished."

@@ -38,7 +38,6 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.auth.AuthManager;
-import com.baidu.hugegraph.api.profile.GraphsAPI;
 import com.baidu.hugegraph.auth.HugeAuthenticator;
 import com.baidu.hugegraph.auth.HugeFactoryAuthProxy;
 import com.baidu.hugegraph.auth.HugeGraphAuthProxy;
@@ -119,47 +118,82 @@ public final class GraphManager {
         });
     }
 
-    public HugeGraph cloneGraph(String name, GraphsAPI.JsonGraphParams params) {
+    public HugeGraph cloneGraph(String name, String newName,
+                                Map<String, String> options) {
         /*
          * 0. check and modify params
-         * 1. init backend store
-         * 2. inject graph and traversal source into gremlin server context
-         * 3. inject graph into rest server context
+         * 1. create graph instance
+         * 2. init backend store
+         * 3. inject graph and traversal source into gremlin server context
+         * 4. inject graph into rest server context
          */
-        E.checkArgumentNotNull(params.name(), "The graph name can't be null");
-        E.checkArgument(!this.graphs().contains(params.name()),
-                        "The graph name '%s' has existed", params.name());
-
         HugeGraph g = graph(name);
+        E.checkArgumentNotNull(g, "The origin graph '%s' doesn't exist", name);
+        E.checkArgumentNotNull(newName, "The graph name can't be null");
+        E.checkArgument(!this.graphs().contains(newName),
+                        "The graph '%s' has existed", newName);
         HugeConfig config = (HugeConfig) g.configuration();
         HugeConfig cloneConfig = (HugeConfig) config.clone();
         cloneConfig.setDelimiterParsingDisabled(true);
-        cloneConfig.setProperty(CoreOptions.STORE.name(), params.name());
+        cloneConfig.setProperty(CoreOptions.STORE.name(), newName);
+        for (Map.Entry<String, String> entry : options.entrySet()) {
+            cloneConfig.setProperty(entry.getKey(), entry.getValue());
+        }
         return this.createGraph(cloneConfig);
     }
 
-    public HugeGraph createGraph(GraphsAPI.JsonGraphParams params) {
-        E.checkArgumentNotNull(params.name(), "The graph name can't be null");
-        E.checkArgument(!this.graphs().contains(params.name()),
-                        "The graph name '%s' has existed", params.name());
-        E.checkArgument(params.options() != null && !params.options().isEmpty(),
+    public HugeGraph createGraph(String name, Map<String, String> options) {
+        E.checkArgumentNotNull(name, "The graph name can't be null");
+        E.checkArgument(!this.graphs().contains(name),
+                        "The graph name '%s' has existed", name);
+        E.checkArgument(options != null && !options.isEmpty(),
                         "The options of graph can't be null or empty");
 
-        MapConfiguration mapConfig = new MapConfiguration(params.options());
+        MapConfiguration mapConfig = new MapConfiguration(options);
         HugeConfig config = new HugeConfig(mapConfig);
-        config.setProperty(CoreOptions.STORE.name(), params.name());
+        config.setProperty(CoreOptions.STORE.name(), name);
         return this.createGraph(config);
     }
 
     private HugeGraph createGraph(HugeConfig config) {
         HugeGraph graph = (HugeGraph) GraphFactory.open(config);
+        if (this.requireAuthentication()) {
+            if (graph instanceof HugeGraphAuthProxy) {
+                HugeGraphAuthProxy proxy = (HugeGraphAuthProxy) graph;
+                // TODO：verfiyPermission is private，how to
+                // proxy.verifyPermission(HugePermission.WRITE, ResourceType.STATUS);
+            }
+        }
         graph.initBackend();
+        graph.tx().close();
         // Inject into gremlin server context
         this.eventHub.call(Events.GRAPH_CREATE, graph);
+        // Inject into rest server context
         this.graphs.put(graph.name(), graph);
-
+        // Write config to disk file
         ConfigUtil.writeToFile(this.graphsDir, graph.name(), config);
         return graph;
+    }
+
+    public void dropGraph(String name) {
+        HugeGraph g = graph(name);
+        E.checkArgumentNotNull(g, "The graph '%s' doesn't exist", name);
+        E.checkArgument(this.graphs.size() > 1,
+                        "The graph '%s' is the only one, not allowed to delete",
+                        name);
+        g.clearBackend();
+        try {
+            g.close();
+        } catch (Exception e) {
+            LOG.warn("Failed to close graph", e);
+        }
+        // Inject into gremlin server context
+        this.eventHub.call(Events.GRAPH_DROP, name);
+        // Inject into rest server context
+        this.graphs.remove(name);
+
+        HugeConfig config = (HugeConfig) g.configuration();
+        ConfigUtil.deleteFile(config.getFile());
     }
 
     public Set<String> graphs() {

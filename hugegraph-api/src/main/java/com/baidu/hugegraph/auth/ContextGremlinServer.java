@@ -43,6 +43,8 @@ import com.baidu.hugegraph.util.Events;
  */
 public class ContextGremlinServer extends GremlinServer {
 
+    private static final String G_PREFIX = "__g_";
+
     private final EventHub hub;
 
     public ContextGremlinServer(final Settings settings, EventHub hub) {
@@ -62,10 +64,17 @@ public class ContextGremlinServer extends GremlinServer {
             this.injectGraph(graph);
             return null;
         });
+        this.hub.listen(Events.GRAPH_DROP, event -> {
+            event.checkArgs(String.class);
+            String name = (String) event.args()[0];
+            this.removeGraph(name);
+            return null;
+        });
     }
 
     private void unlistenChanges() {
         this.hub.unlisten(Events.GRAPH_CREATE);
+        this.hub.unlisten(Events.GRAPH_DROP);
     }
 
     @Override
@@ -75,15 +84,6 @@ public class ContextGremlinServer extends GremlinServer {
         } finally {
             this.unlistenChanges();
         }
-    }
-
-    public void injectGraph(HugeGraph graph) {
-        String name = graph.name();
-        GraphManager manager = this.getServerGremlinExecutor().getGraphManager();
-        manager.putGraph(name, graph);
-
-        GraphTraversalSource g = manager.getGraph(name).traversal();
-        manager.putTraversalSource("__g_" + name, g);
     }
 
     public void injectAuthGraph() {
@@ -98,12 +98,12 @@ public class ContextGremlinServer extends GremlinServer {
         }
     }
 
-    public void injectTraversalSource(String prefix) {
+    public void injectTraversalSource() {
         GraphManager manager = this.getServerGremlinExecutor()
                                    .getGraphManager();
         for (String graph : manager.getGraphNames()) {
             GraphTraversalSource g = manager.getGraph(graph).traversal();
-            String gName = prefix + graph;
+            String gName = G_PREFIX + graph;
             if (manager.getTraversalSource(gName) != null) {
                 throw new HugeException(
                           "Found existing name '%s' in global bindings, " +
@@ -112,6 +112,26 @@ public class ContextGremlinServer extends GremlinServer {
             // Add a traversal source for all graphs with customed rule.
             manager.putTraversalSource(gName, g);
         }
+    }
+
+    private void injectGraph(HugeGraph graph) {
+        String name = graph.name();
+        GraphManager manager = this.getServerGremlinExecutor().getGraphManager();
+        manager.putGraph(name, graph);
+
+        GraphTraversalSource g = manager.getGraph(name).traversal();
+        manager.putTraversalSource(G_PREFIX + name, g);
+    }
+
+    private void removeGraph(String name) {
+        GraphManager manager = this.getServerGremlinExecutor().getGraphManager();
+        try {
+            manager.removeGraph(name);
+        } catch (Exception e) {
+            throw new HugeException("Failed to remove graph '%s' from " +
+                                    "gremlin server context", e, name);
+        }
+        manager.removeTraversalSource(G_PREFIX + name);
     }
 
     static ExecutorService newGremlinExecutorService(Settings settings) {

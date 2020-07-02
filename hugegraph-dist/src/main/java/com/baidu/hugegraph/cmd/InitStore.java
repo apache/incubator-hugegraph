@@ -59,18 +59,13 @@ public class InitStore {
     }
 
     public static void main(String[] args) throws Exception {
-        E.checkArgument(args.length == 2,
-                        "HugeGraph init-store need to pass 2 parameters, " +
-                        "they are the config files of GremlinServer and " +
-                        "RestServer, for example: conf/gremlin-server.yaml " +
-                        "conf/rest-server.properties");
-        E.checkArgument(args[0].endsWith(".yaml"),
-                        "Expect the 1st parameter is yaml config file");
-        E.checkArgument(args[1].endsWith(".properties"),
-                        "Expect the 2nd parameter is properties config file");
+        E.checkArgument(args.length == 1,
+                        "HugeGraph init-store need to pass the config file " +
+                        "of RestServer, like: conf/rest-server.properties");
+        E.checkArgument(args[0].endsWith(".properties"),
+                        "Expect the parameter is properties config file.");
 
-        String gremlinConf = args[0];
-        String restConf = args[1];
+        String restConf = args[0];
 
         RegisterUtil.registerBackends();
         RegisterUtil.registerPlugins();
@@ -78,19 +73,11 @@ public class InitStore {
 
         HugeConfig restServerConfig = new HugeConfig(restConf);
         String graphsDir = restServerConfig.get(ServerOptions.GRAPHS);
-
-        Map<String, String> gremlinGraphs = ConfigUtil.parseGremlinGraphs(
-                                            gremlinConf);
         Map<String, String> graphs = ConfigUtil.scanGraphsDir(graphsDir);
-        Map<String, String> mergedGraphs = ConfigUtil.mergeGraphConfs(
-                                           gremlinGraphs, graphs);
 
-        for (Map.Entry<String, String> entry : mergedGraphs.entrySet()) {
+        for (Map.Entry<String, String> entry : graphs.entrySet()) {
             initGraph(entry.getValue());
         }
-        // In order to RestServer can read all the graphs
-        // TODO: after copied, next merge will trigger conflict
-        ConfigUtil.copyFiles(graphsDir, gremlinGraphs);
 
         StandardAuthenticator.initAdminUserIfNeeded(restConf);
 

@@ -28,6 +28,7 @@ import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.server.RestServer;
+import com.baidu.hugegraph.util.ConfigUtil;
 import com.baidu.hugegraph.util.Log;
 
 public class HugeGraphServer {
@@ -40,6 +41,7 @@ public class HugeGraphServer {
     public static void register() {
         RegisterUtil.registerBackends();
         RegisterUtil.registerPlugins();
+        RegisterUtil.registerServer();
     }
 
     public HugeGraphServer(String gremlinServerConf, String restServerConf)
@@ -48,6 +50,7 @@ public class HugeGraphServer {
         SecurityManager securityManager = System.getSecurityManager();
         System.setSecurityManager(null);
 
+        ConfigUtil.checkGremlinConfig(gremlinServerConf);
         HugeConfig restServerConfig = new HugeConfig(restServerConf);
         String graphsDir = restServerConfig.get(ServerOptions.GRAPHS);
         EventHub hub = new EventHub("gremlin=>hub<=rest");

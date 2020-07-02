@@ -31,4 +31,5 @@ public final class Events {
     public static final String STORE_INITED = "store.inited";
 
     public static final String GRAPH_CREATE = "graph.create";
+    public static final String GRAPH_DROP = "graph.drop";
 }
