@@ -266,5 +266,8 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
     }
 
     private static class CachedTypes
-                   extends ConcurrentHashMap<HugeType, Boolean> {}
+                   extends ConcurrentHashMap<HugeType, Boolean> {
+
+        private static final long serialVersionUID = -2215549791679355996L;
+    }
 }
