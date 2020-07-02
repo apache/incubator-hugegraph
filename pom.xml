@@ -56,7 +56,7 @@
         <top.level.dir>${project.basedir}/..</top.level.dir>
         <compiler.source>1.8</compiler.source>
         <compiler.target>1.8</compiler.target>
-        <log4j2.version>2.8.2</log4j2.version>
+        <log4j2.version>2.13.3</log4j2.version>
         <commons.configuration.version>1.10</commons.configuration.version>
         <commons.configuration2.version>2.1.1</commons.configuration2.version>
         <commons.collections.version>3.2.2</commons.collections.version>
