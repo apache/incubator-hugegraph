@@ -35,8 +35,9 @@ public enum TaskStatus implements SerialEnum {
     RESTORING(3, "restoring"),
     RUNNING(4, "running"),
     SUCCESS(5, "success"),
-    CANCELLED(6, "cancelled"),
-    FAILED(7, "failed");
+    CANCELLING(6, "cancelling"),
+    CANCELLED(7, "cancelled"),
+    FAILED(8, "failed");
 
     // NOTE: order is important(RESTORING > RUNNING > QUEUED) when restoring
     public static final List<TaskStatus> PENDING_STATUSES = ImmutableList.of(

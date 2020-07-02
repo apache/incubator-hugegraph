@@ -57,6 +57,15 @@ public class ServerOptions extends OptionHolder {
                     "server-1"
             );
 
+    public static final ConfigOption<String> SERVER_ROLE =
+            new ConfigOption<>(
+                    "server.role",
+                    "The role of nodes in the cluster, available types are " +
+                    "[master, worker, computer]",
+                    allowValues("master", "worker", "computer"),
+                    "master"
+            );
+
     public static final ConfigOption<Integer> MAX_WORKER_THREADS =
             new ConfigOption<>(
                     "restserver.max_worker_threads",
@@ -194,7 +203,6 @@ public class ServerOptions extends OptionHolder {
                     disallowEmpty(),
                     "hugegraph"
             );
-
 
     public static final ConfigOption<String> ADMIN_TOKEN =
             new ConfigOption<>(

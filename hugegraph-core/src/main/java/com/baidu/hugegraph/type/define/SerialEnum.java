@@ -47,7 +47,7 @@ public interface SerialEnum {
         @SuppressWarnings("unchecked")
         T value = (T) table.get(clazz, code);
         if (value == null) {
-            E.checkArgument(false, "Can't consctruct %s from code %s",
+            E.checkArgument(false, "Can't construct %s from code %s",
                             clazz.getSimpleName(), code);
         }
         return value;

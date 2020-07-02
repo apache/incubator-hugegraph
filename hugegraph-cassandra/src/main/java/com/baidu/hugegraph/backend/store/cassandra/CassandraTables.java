@@ -67,7 +67,7 @@ public class CassandraTables {
     private static final DataType TYPE_ID = DataType.blob();
     private static final DataType TYPE_PROP = DataType.blob();
 
-    private static final DataType TYPE_TTL = DataType.cint();
+    private static final DataType TYPE_TTL = DataType.bigint();
     private static final DataType TYPE_EXPIRED_TIME = DataType.bigint();
 
     private static final long COMMIT_DELETE_BATCH = Query.COMMIT_BATCH;

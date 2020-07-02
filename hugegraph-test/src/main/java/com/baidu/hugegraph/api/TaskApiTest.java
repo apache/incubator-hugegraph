@@ -51,7 +51,7 @@ public class TaskApiTest extends BaseApiTest {
         List<Map<?, ?>> tasks = assertJsonContains(content, "tasks");
         assertArrayContains(tasks, "id", taskId);
 
-        this.waitTaskSuccess(taskId);
+        waitTaskSuccess(taskId);
         r = client().get(path, ImmutableMap.of("status", "RUNNING"));
         content = assertResponseStatus(200, r);
         tasks = assertJsonContains(content, "tasks");
@@ -69,8 +69,9 @@ public class TaskApiTest extends BaseApiTest {
 
     @Test
     public void testCancel() {
-        int taskId = this.rebuild();
+        int taskId = this.gremlinJob();
 
+        sleepAWhile();
         Map<String, Object> params = ImmutableMap.of("action", "cancel");
         Response r = client().put(path, String.valueOf(taskId), "", params);
         String content = r.readEntity(String.class);
@@ -78,7 +79,7 @@ public class TaskApiTest extends BaseApiTest {
                           r.getStatus() == 202 || r.getStatus() == 400);
         if (r.getStatus() == 202) {
             String status = assertJsonContains(content, "task_status");
-            Assert.assertEquals("cancelled", status);
+            Assert.assertEquals("cancelling", status);
         } else {
             assert r.getStatus() == 400;
             String error = String.format(
@@ -96,7 +97,7 @@ public class TaskApiTest extends BaseApiTest {
     public void testDelete() {
         int taskId = this.rebuild();
 
-        this.waitTaskSuccess(taskId);
+        waitTaskSuccess(taskId);
         Response r = client().delete(path, String.valueOf(taskId));
         assertResponseStatus(204, r);
     }
@@ -110,12 +111,22 @@ public class TaskApiTest extends BaseApiTest {
         return assertJsonContains(content, "task_id");
     }
 
-    private void waitTaskSuccess(int task) {
-        String status;
-        do {
-            Response r = client().get(path, String.valueOf(task));
-            String content = assertResponseStatus(200, r);
-            status = assertJsonContains(content, "task_status");
-        } while (!"success".equals(status));
+    private int gremlinJob() {
+        String body = "{"
+                + "\"gremlin\":\"Thread.sleep(1000L)\","
+                + "\"bindings\":{},"
+                + "\"language\":\"gremlin-groovy\","
+                + "\"aliases\":{}}";
+        String path = "/graphs/hugegraph/jobs/gremlin";
+        String content = assertResponseStatus(201, client().post(path, body));
+        return assertJsonContains(content, "task_id");
+    }
+
+    private void sleepAWhile() {
+        try {
+            Thread.sleep(200L);
+        } catch (InterruptedException e) {
+            // ignore
+        }
     }
 }

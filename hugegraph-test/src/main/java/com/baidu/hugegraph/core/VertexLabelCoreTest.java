@@ -30,6 +30,7 @@ import org.junit.Test;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.exception.ExistedException;
 import com.baidu.hugegraph.exception.NoIndexException;
@@ -37,6 +38,9 @@ import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.schema.Userdata;
 import com.baidu.hugegraph.schema.VertexLabel;
+import com.baidu.hugegraph.task.HugeTask;
+import com.baidu.hugegraph.task.TaskScheduler;
+import com.baidu.hugegraph.task.TaskStatus;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.util.DateUtil;
@@ -900,13 +904,22 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
 
         marko.addEdge("write", java, "time", "2016-12-12", "weight", 0.3);
 
-        Assert.assertThrows(HugeException.class, () -> {
-            schema.vertexLabel("person").remove();
-        });
+        TaskScheduler scheduler = graph().taskScheduler();
+        Id id = schema.vertexLabel("person").remove();
+        sleepAWhile(1000L);
+        HugeTask task = scheduler.task(id);
+        Assert.assertEquals(TaskStatus.FAILED, task.status());
+        Assert.assertContains("Not allowed to remove vertex label " +
+                              "'person' because the edge label 'write' " +
+                              "still link with it", task.result());
 
-        Assert.assertThrows(HugeException.class, () -> {
-            schema.vertexLabel("book").remove();
-        });
+        id = schema.vertexLabel("book").remove();
+        sleepAWhile(1000L);
+        task = scheduler.task(id);
+        Assert.assertEquals(TaskStatus.FAILED, task.status());
+        Assert.assertContains("Not allowed to remove vertex label 'book' " +
+                              "because the edge label 'write' still link " +
+                              "with it", task.result());
     }
 
     @Test
@@ -1179,5 +1192,13 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
                   .checkExist(false)
                   .create();
         });
+    }
+
+    private static void sleepAWhile(long ms) {
+        try {
+            Thread.sleep(ms);
+        } catch (InterruptedException e) {
+            // ignore
+        }
     }
 }

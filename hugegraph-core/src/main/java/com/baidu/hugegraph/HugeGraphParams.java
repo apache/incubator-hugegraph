@@ -24,6 +24,7 @@ import com.baidu.hugegraph.backend.serializer.AbstractSerializer;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
+import com.baidu.hugegraph.task.ServerInfoManager;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.type.define.GraphMode;
@@ -54,6 +55,8 @@ public interface HugeGraphParams {
     public EventHub indexEventHub();
 
     public HugeConfig configuration();
+
+    public ServerInfoManager serverManager();
 
     public AbstractSerializer serializer();
     public Analyzer analyzer();

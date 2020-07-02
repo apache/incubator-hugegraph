@@ -43,6 +43,7 @@ import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.testutil.Utils;
+import com.baidu.hugegraph.type.define.NodeRole;
 
 import jersey.repackaged.com.google.common.collect.ImmutableList;
 
@@ -68,7 +69,9 @@ public class MultiGraphsTest {
             graph.initBackend();
         }
         HugeGraph g1 = graphs.get(0);
+        g1.serverStarted(IdGenerator.of("server2"), NodeRole.MASTER);
         HugeGraph g2 = graphs.get(1);
+        g2.serverStarted(IdGenerator.of("server3"), NodeRole.MASTER);
 
         SchemaManager schema = g1.schema();
 
@@ -185,6 +188,7 @@ public class MultiGraphsTest {
         List<HugeGraph> graphs = openGraphs("schema_g1", "schema_g2");
         for (HugeGraph graph : graphs) {
             graph.initBackend();
+            graph.serverStarted(IdGenerator.of("server1"), NodeRole.MASTER);
         }
         HugeGraph g1 = graphs.get(0);
         HugeGraph g2 = graphs.get(1);
@@ -304,16 +308,16 @@ public class MultiGraphsTest {
                        "g/range_int_index:rocksdb-index]");
         g1.initBackend();
         g1.clearBackend();
-        destoryGraphs(ImmutableList.of(g1));
 
+        final HugeGraph[] g2 = new HugeGraph[1];
         Assert.assertThrows(BackendException.class, () -> {
-            HugeGraph g2 = openGraphWithBackend(
-                           "g2", "rocksdb", "binary",
-                           "rocksdb.data_disks",
-                           "[g/secondary_index:/," +
-                           "g/range_int_index:rocksdb-index]");
-            g2.initBackend();
+            g2[0] = openGraphWithBackend("g2", "rocksdb", "binary",
+                                         "rocksdb.data_disks",
+                                         "[g/secondary_index:/," +
+                                         "g/range_int_index:rocksdb-index]");
+            g2[0].initBackend();
         });
+        destoryGraphs(ImmutableList.of(g1, g2[0]));
     }
 
     public static List<HugeGraph> openGraphs(String... graphNames) {

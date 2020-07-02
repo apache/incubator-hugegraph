@@ -56,6 +56,7 @@ import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
+import com.baidu.hugegraph.task.ServerInfoManager;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.event.EventHub;
@@ -76,6 +77,7 @@ import com.baidu.hugegraph.task.TaskManager;
 import com.baidu.hugegraph.task.TaskScheduler;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.GraphMode;
+import com.baidu.hugegraph.type.define.NodeRole;
 import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.LockUtil;
@@ -197,6 +199,15 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
+    public void serverStarted(Id serverId, NodeRole serverRole) {
+        LOG.info("Init server info for graph '{}'...", this.name);
+        this.serverInfoManager().initServerInfo(serverId, serverRole);
+
+        LOG.info("Restoring incomplete tasks for graph '{}'...", this.name);
+        this.taskScheduler().restoreTasks();
+    }
+
+    @Override
     public boolean closed() {
         if (this.closed && !this.tx.closed()) {
             LOG.warn("The tx is not closed while graph '{}' is closed", this);
@@ -255,6 +266,8 @@ public class StandardHugeGraph implements HugeGraph {
 
         this.storeProvider.truncate();
         this.storeProvider.initSystemInfo(this);
+        this.serverStarted(this.serverInfoManager().serverId(),
+                           this.serverInfoManager().serverRole());
 
         LOG.info("Graph '{}' has been truncated", this.name);
     }
@@ -721,6 +734,14 @@ public class StandardHugeGraph implements HugeGraph {
         return scheduler;
     }
 
+    private ServerInfoManager serverInfoManager() {
+        ServerInfoManager manager = this.taskManager
+                                        .getServerInfoManager(this.params);
+        E.checkState(manager != null,
+                     "Can't find server info manager for graph '%s'", this);
+        return manager;
+    }
+
     @Override
     public UserManager userManager() {
         // this.userManager.initSchemaIfNeeded();
@@ -851,6 +872,12 @@ public class StandardHugeGraph implements HugeGraph {
         }
 
         @Override
+        public ServerInfoManager serverManager() {
+            // this.serverManager.initSchemaIfNeeded();
+            return StandardHugeGraph.this.serverInfoManager();
+        }
+
+        @Override
         public AbstractSerializer serializer() {
             return StandardHugeGraph.this.serializer();
         }
@@ -864,7 +891,7 @@ public class StandardHugeGraph implements HugeGraph {
         public RateLimiter rateLimiter() {
             return StandardHugeGraph.this.rateLimiter;
         }
-    };
+    }
 
     private class TinkerpopTransaction extends AbstractThreadLocalTransaction {
 

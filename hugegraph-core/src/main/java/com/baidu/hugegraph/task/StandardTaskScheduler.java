@@ -33,6 +33,7 @@ import java.util.concurrent.TimeoutException;
 
 import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
@@ -50,6 +51,7 @@ import com.baidu.hugegraph.exception.ConnectionException;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.iterator.MapperIterator;
+import com.baidu.hugegraph.job.EphemeralJob;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaManager;
@@ -62,12 +64,16 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Events;
+import com.baidu.hugegraph.util.Log;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 public class StandardTaskScheduler implements TaskScheduler {
+
+    private static final Logger LOG = Log.logger(TaskScheduler.class);
 
     private final HugeGraphParams graph;
     private final ExecutorService taskExecutor;
@@ -160,17 +166,18 @@ public class StandardTaskScheduler implements TaskScheduler {
 
     @Override
     public <V> void restoreTasks() {
-        boolean supportsPaging = this.graph().backendStoreFeatures()
-                                             .supportsQueryByPage();
+        Id selfServer = this.serverManager().serverId();
         // Restore 'RESTORING', 'RUNNING' and 'QUEUED' tasks in order.
         for (TaskStatus status : TaskStatus.PENDING_STATUSES) {
-            String page = supportsPaging ? PageInfo.PAGE_NONE : null;
+            String page = this.supportsPaging() ? PageInfo.PAGE_NONE : null;
             do {
                 Iterator<HugeTask<V>> iter;
                 for (iter = this.findTask(status, PAGE_SIZE, page);
                      iter.hasNext();) {
                     HugeTask<V> task = iter.next();
-                    this.restore(task);
+                    if (selfServer.equals(task.server())) {
+                        this.restore(task);
+                    }
                 }
                 if (page != null) {
                     page = PageInfo.pageInfo(iter);
@@ -193,9 +200,27 @@ public class StandardTaskScheduler implements TaskScheduler {
 
     @Override
     public <V> Future<?> schedule(HugeTask<V> task) {
+        if (!this.serverManager().master()) {
+            throw new HugeException("The worker can't schedule task");
+        }
         E.checkArgumentNotNull(task, "Task can't be null");
+
         task.status(TaskStatus.QUEUED);
-        return this.submitTask(task);
+        /*
+         * Due to EphemeralJob won't be serialized and deserialized through
+         * shared storage, submit EphemeralJob immediately on master
+         */
+        if (task.callable() instanceof EphemeralJob) {
+            return this.submitTask(task);
+        }
+
+        // Just save task to be scheduled by periodic scheduler
+        this.save(task);
+
+        // Notify master server to schedule and execute immediately
+        TaskManager.instance().notifyNewTask(task);
+
+        return task;
     }
 
     private <V> Future<?> submitTask(HugeTask<V> task) {
@@ -208,12 +233,7 @@ public class StandardTaskScheduler implements TaskScheduler {
         return this.taskExecutor.submit(task);
     }
 
-    private <V> void initTaskCallable(HugeTask<V> task) {
-        if (this.tasks.containsKey(task.id())) {
-            // Assume initialized
-            return;
-        }
-
+    public <V> void initTaskCallable(HugeTask<V> task) {
         task.scheduler(this);
 
         TaskCallable<V> callable = task.callable();
@@ -226,31 +246,168 @@ public class StandardTaskScheduler implements TaskScheduler {
     }
 
     @Override
-    public <V> boolean cancel(HugeTask<V> task) {
+    public synchronized <V> void cancel(HugeTask<V> task) {
         E.checkArgumentNotNull(task, "Task can't be null");
-        boolean cancelled = false;
-        if (!task.completed()) {
-            /*
-             * Task may be loaded from backend store and not initialized. like:
-             * A task is completed but failed to save in the last step,
-             * resulting in the status of the task not being updated to storage,
-             * the task is not in memory, so it's not initialized when canceled.
-             */
-            this.initTaskCallable(task);
-            cancelled = task.cancel(true);
-            this.remove(task.id());
+        if (!this.serverManager().master()) {
+            return;
         }
-        assert task.completed();
-        return cancelled;
+        if (!task.completed()) {
+            // The task scheduled to workers, waiting for worker cancel
+            task.status(TaskStatus.CANCELLING);
+            this.save(task);
+            this.remove(task.id());
+            // Notify master server to schedule and execute immediately
+            TaskManager.instance().notifyNewTask(task);
+        }
+    }
+
+    protected synchronized <V> void scheduleTasks() {
+        // Master schedule all queued tasks to suitable servers
+        String page = this.supportsPaging() ? PageInfo.PAGE_NONE : null;
+        do {
+            Iterator<HugeTask<V>> tasks = this.tasks(TaskStatus.QUEUED,
+                                                     PAGE_SIZE, page);
+            HugeTask<V> task;
+            while (tasks.hasNext()) {
+                task = tasks.next();
+                if (task.server() != null) {
+                    // Skip if already scheduled
+                    continue;
+                }
+                HugeServerInfo server = this.pickWorker(task);
+                if (server == null) {
+                    LOG.debug("The master can't find suitable servers to " +
+                              "execute task: {}, wait for next schedule",
+                              task.id());
+                    return;
+                }
+
+                // Found suitable server, update task server and server load
+                assert server.id() != null;
+                task.server(server.id());
+                this.save(task);
+                server.load(server.load() + task.load());
+                this.serverManager().save(server);
+                LOG.info("Schedule task {} to server {}",
+                         task.id(), server.id());
+            }
+            if (page != null) {
+                page = PageInfo.pageInfo(tasks);
+            }
+        } while (page != null);
+    }
+
+    protected <V> void executeTasksForWorker(Id server) {
+        String page = this.supportsPaging() ? PageInfo.PAGE_NONE : null;
+        do {
+            Iterator<HugeTask<V>> tasks = this.tasks(TaskStatus.QUEUED,
+                                                     PAGE_SIZE, page);
+            while (tasks.hasNext()) {
+                HugeTask<V> task = tasks.next();
+                this.initTaskCallable(task);
+                Id taskServer = task.server();
+                if (taskServer != null && taskServer.equals(server)) {
+                    this.submitTask(task);
+                }
+            }
+            if (page != null) {
+                page = PageInfo.pageInfo(tasks);
+            }
+        } while (page != null);
+    }
+
+    private synchronized <V> HugeServerInfo pickWorker(HugeTask<V> task) {
+        HugeServerInfo master = null;
+        HugeServerInfo serverWithMinLoad = null;
+        int minLoad = Integer.MAX_VALUE;
+        boolean hasWorker = false;
+        long now = DateUtil.now().getTime();
+
+        // Iterate servers to find suitable one
+        String page = this.supportsPaging() ? PageInfo.PAGE_NONE : null;
+        HugeServerInfo server;
+        do {
+            Iterator<HugeServerInfo> servers = this.serverManager()
+                                                   .serverInfos(page);
+            while (servers.hasNext()) {
+                server = servers.next();
+                if (!server.alive()) {
+                    continue;
+                }
+
+                if (server.role().master()) {
+                    master = server;
+                    continue;
+                }
+
+                hasWorker = true;
+                if (!server.suitableFor(task, now)) {
+                    continue;
+                }
+                if (server.load() < minLoad) {
+                    minLoad = server.load();
+                    serverWithMinLoad = server;
+                }
+            }
+            if (page != null) {
+                page = PageInfo.pageInfo(servers);
+            }
+        } while (page != null);
+
+        // Only schedule to master if there is no workers and master is suitable
+        if (!hasWorker && master.suitableFor(task, now)) {
+            return master;
+        }
+
+        return serverWithMinLoad;
+    }
+
+    protected <V> void cancelTasksForWorker(Id server) {
+        String page = this.supportsPaging() ? PageInfo.PAGE_NONE : null;
+        do {
+            Iterator<HugeTask<V>> tasks = this.tasks(TaskStatus.CANCELLING,
+                                                     PAGE_SIZE, page);
+            while (tasks.hasNext()) {
+                HugeTask<V> task = tasks.next();
+                /*
+                 * Task may be loaded from backend store and not initialized.
+                 * like: A task is completed but failed to save in the last
+                 * step, resulting in the status of the task not being
+                 * updated to storage, the task is not in memory, so it's not
+                 * initialized when canceled.
+                 */
+                this.initTaskCallable(task);
+                @SuppressWarnings("unchecked")
+                HugeTask<V> memTask = (HugeTask<V>) this.tasks.get(task.id());
+                if (memTask != null) {
+                    task = memTask;
+                }
+                Id taskServer = task.server();
+                if (taskServer != null && taskServer.equals(server)) {
+                    boolean cancelled = task.cancel(true);
+                    LOG.info("Server {} cancel task {} with result {}",
+                             server, task.id(), cancelled);
+                }
+            }
+            if (page != null) {
+                page = PageInfo.pageInfo(tasks);
+            }
+        } while (page != null);
+    }
+
+    protected ServerInfoManager serverManager() {
+        return this.graph.serverManager();
     }
 
     protected void remove(Id id) {
         HugeTask<?> task = this.tasks.remove(id);
-        assert task == null || task.completed() || task.isCancelled();
+        assert task == null || task.completed() ||
+               task.cancelling() || task.isCancelled();
     }
 
     @Override
     public <V> void save(HugeTask<V> task) {
+        task.scheduler(this);
         E.checkArgumentNotNull(task, "Task can't be null");
         this.call(() -> {
             // Construct vertex from task
@@ -385,7 +542,22 @@ public class StandardTaskScheduler implements TaskScheduler {
     @Override
     public <V> HugeTask<V> waitUntilTaskCompleted(Id id, long seconds)
                                                   throws TimeoutException {
-        long passes = seconds * 1000 / QUERY_INTERVAL;
+        return this.waitUntilTaskCompleted(id, seconds, QUERY_INTERVAL);
+    }
+
+    @Override
+    public <V> HugeTask<V> waitUntilTaskCompleted(Id id)
+                                                  throws TimeoutException {
+        // This method is just used by tests
+        long timeout = this.graph.configuration()
+                                 .get(CoreOptions.TASK_WAIT_TIMEOUT);
+        return this.waitUntilTaskCompleted(id, timeout, 1L);
+    }
+
+    private  <V> HugeTask<V> waitUntilTaskCompleted(Id id, long seconds,
+                                                  long intervalMs)
+                                                  throws TimeoutException {
+        long passes = seconds * 1000 / intervalMs;
         HugeTask<V> task = null;
         for (long pass = 0;; pass++) {
             try {
@@ -393,20 +565,20 @@ public class StandardTaskScheduler implements TaskScheduler {
             } catch (NotFoundException e) {
                 if (task != null && task.completed()) {
                     assert task.id().asLong() < 0L : task.id();
-                    sleep(QUERY_INTERVAL);
+                    sleep(intervalMs);
                     return task;
                 }
                 throw e;
             }
             if (task.completed()) {
                 // Wait for task result being set after status is completed
-                sleep(QUERY_INTERVAL);
+                sleep(intervalMs);
                 return task;
             }
             if (pass >= passes) {
                 break;
             }
-            sleep(QUERY_INTERVAL);
+            sleep(intervalMs);
         }
         throw new TimeoutException(String.format(
                   "Task '%s' was not completed in %s seconds", id, seconds));
@@ -500,6 +672,10 @@ public class StandardTaskScheduler implements TaskScheduler {
         }
     }
 
+    private boolean supportsPaging() {
+        return this.graph().backendStoreFeatures().supportsQueryByPage();
+    }
+
     private static class TaskTransaction extends GraphTransaction {
 
         public static final String TASK = P.TASK;
@@ -550,7 +726,7 @@ public class StandardTaskScheduler implements TaskScheduler {
                                      .useCustomizeNumberId()
                                      .nullableKeys(P.DESCRIPTION, P.CONTEXT,
                                                    P.UPDATE, P.INPUT, P.RESULT,
-                                                   P.DEPENDENCIES)
+                                                   P.DEPENDENCIES, P.SERVER)
                                      .enableLabelIndex(true)
                                      .build();
             this.params().schemaTransaction().addVertexLabel(label);
@@ -581,6 +757,7 @@ public class StandardTaskScheduler implements TaskScheduler {
             props.add(createPropertyKey(P.RESULT, DataType.BLOB));
             props.add(createPropertyKey(P.DEPENDENCIES, DataType.LONG,
                                         Cardinality.SET));
+            props.add(createPropertyKey(P.SERVER));
 
             return props.toArray(new String[0]);
         }

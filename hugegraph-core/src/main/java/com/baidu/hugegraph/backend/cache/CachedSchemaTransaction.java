@@ -47,15 +47,14 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
     private EventListener storeEventListener;
     private EventListener cacheEventListener;
 
-    private final Map<HugeType, Boolean> cachedTypes;
+    private static final Map<String, CachedTypes> CACHED_TYPES =
+                                                  new ConcurrentHashMap<>();
 
     public CachedSchemaTransaction(HugeGraphParams graph, BackendStore store) {
         super(graph, store);
 
         this.idCache = this.cache("schema-id");
         this.nameCache = this.cache("schema-name");
-
-        this.cachedTypes = new ConcurrentHashMap<>();
 
         this.listenChanges();
     }
@@ -78,6 +77,14 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
         return CacheManager.instance().cache(name, capacity);
     }
 
+    private CachedTypes cachedTypes() {
+        String graph = this.params().name();
+        if (!CACHED_TYPES.containsKey(graph)) {
+            CACHED_TYPES.putIfAbsent(graph, new CachedTypes());
+        }
+        return CACHED_TYPES.get(graph);
+    }
+
     private void listenChanges() {
         // Listen store event: "store.init", "store.clear", ...
         Set<String> storeEvents = ImmutableSet.of(Events.STORE_INIT,
@@ -89,7 +96,7 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
                           this.graph(), event.name());
                 this.idCache.clear();
                 this.nameCache.clear();
-                this.cachedTypes.clear();
+                this.cachedTypes().clear();
                 return true;
             }
             return false;
@@ -119,7 +126,7 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
             } else if ("clear".equals(args[0])) {
                 this.idCache.clear();
                 this.nameCache.clear();
-                this.cachedTypes.clear();
+                this.cachedTypes().clear();
                 return true;
             }
             return false;
@@ -143,7 +150,7 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
         if (this.idCache.size() >= this.idCache.capacity()) {
             LOG.warn("Schema cache reached capacity({}): {}",
                      this.idCache.capacity(), this.idCache.size());
-            this.cachedTypes.clear();
+            this.cachedTypes().clear();
         }
     }
 
@@ -228,7 +235,7 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
 
     @Override
     protected <T extends SchemaElement> List<T> getAllSchema(HugeType type) {
-        Boolean cachedAll = this.cachedTypes.getOrDefault(type, false);
+        Boolean cachedAll = this.cachedTypes().getOrDefault(type, false);
         if (cachedAll) {
             List<T> results = new ArrayList<>();
             // Get from cache
@@ -252,9 +259,12 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
                     Id prefixedName = generateId(schema.type(), schema.name());
                     this.nameCache.update(prefixedName, schema);
                 }
-                this.cachedTypes.putIfAbsent(type, true);
+                this.cachedTypes().putIfAbsent(type, true);
             }
             return results;
         }
     }
+
+    private static class CachedTypes
+                   extends ConcurrentHashMap<HugeType, Boolean> {}
 }
