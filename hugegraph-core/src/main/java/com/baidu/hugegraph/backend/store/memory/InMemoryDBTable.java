@@ -27,6 +27,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.slf4j.Logger;
+
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Aggregate;
@@ -46,9 +48,12 @@ import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
+import com.baidu.hugegraph.util.Log;
 
 public class InMemoryDBTable extends BackendTable<BackendSession,
                                                   TextBackendEntry> {
+
+    private static final Logger LOG = Log.logger(InMemoryDBTable.class);
 
     protected final Map<Id, BackendEntry> store;
     private final InMemoryShardSpliter shardSpliter;
@@ -254,6 +259,7 @@ public class InMemoryDBTable extends BackendTable<BackendSession,
 
         Map<Id, BackendEntry> rs = new HashMap<>();
 
+        LOG.trace("queryByFilter {} size = {}", this.table(), entries.size());
         for (BackendEntry entry : entries.values()) {
             // Query by conditions
             boolean matched = true;

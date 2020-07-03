@@ -241,6 +241,10 @@ public class HugeTask<V> extends FutureTask<V> {
         return TaskStatus.COMPLETED_STATUSES.contains(this.status);
     }
 
+    public boolean success() {
+        return this.status == TaskStatus.SUCCESS;
+    }
+
     public boolean cancelled() {
         return this.status == TaskStatus.CANCELLED || this.isCancelled();
     }
@@ -330,11 +334,7 @@ public class HugeTask<V> extends FutureTask<V> {
         } finally {
             StandardTaskScheduler scheduler = (StandardTaskScheduler)
                                               this.scheduler();
-            scheduler.remove(this.id);
-            ServerInfoManager manager = scheduler.serverManager();
-            manager.decreaseLoad(this.load);
-
-            LOG.info("Task {} done on server {}", this.id, manager.serverId());
+            scheduler.taskDone(this);
         }
     }
 
@@ -634,9 +634,10 @@ public class HugeTask<V> extends FutureTask<V> {
     }
 
     public void syncWait() {
+        HugeTask<?> task = null;
         try {
-            this.scheduler().waitUntilTaskCompleted(this.id());
-        } catch (Exception e) {
+            task = this.scheduler().waitUntilTaskCompleted(this.id());
+        } catch (Throwable e) {
             if (this.callable() instanceof EphemeralJob &&
                 e.getClass() == NotFoundException.class &&
                 e.getMessage().contains("Can't find task with id")) {
@@ -646,8 +647,13 @@ public class HugeTask<V> extends FutureTask<V> {
                  */
                 return;
             }
-            throw new HugeException("Failed to wait task '%s' completed",
+            throw new HugeException("Failed to wait for task '%s' completed",
                                     e, this.id);
+        }
+        assert task != null;
+        if (task.status() != TaskStatus.SUCCESS) {
+            throw new HugeException("Task '%s' is failed with error: %s",
+                                    task.id(), task.result());
         }
     }
 

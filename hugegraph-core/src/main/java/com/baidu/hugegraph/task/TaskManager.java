@@ -248,11 +248,9 @@ public final class TaskManager {
 
     private void scheduleOrExecuteJob() {
         try {
-            for (Map.Entry<HugeGraphParams, TaskScheduler> entry :
-                 this.schedulers.entrySet()) {
-                ServerInfoManager server = entry.getKey().serverManager();
-                StandardTaskScheduler scheduler = (StandardTaskScheduler)
-                                                  entry.getValue();
+            for (TaskScheduler entry : this.schedulers.values()) {
+                StandardTaskScheduler scheduler = (StandardTaskScheduler) entry;
+                ServerInfoManager server = scheduler.serverManager();
 
                 // Update server heartbeat
                 server.heartbeat();
@@ -266,10 +264,10 @@ public final class TaskManager {
                 }
 
                 // Schedule queued tasks scheduled to current server
-                scheduler.executeTasksForWorker(server.serverId());
+                scheduler.executeTasksOnWorker(server.serverId());
 
                 // Cancel tasks scheduled to current server
-                scheduler.cancelTasksForWorker(server.serverId());
+                scheduler.cancelTasksOnWorker(server.serverId());
             }
         } catch (Throwable e) {
             LOG.error("Exception occurred when schedule job", e);

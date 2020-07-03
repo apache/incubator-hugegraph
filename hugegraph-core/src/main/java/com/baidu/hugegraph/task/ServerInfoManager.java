@@ -19,6 +19,9 @@
 
 package com.baidu.hugegraph.task;
 
+import static com.baidu.hugegraph.backend.query.Query.NO_LIMIT;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
@@ -53,8 +56,6 @@ import com.baidu.hugegraph.util.Log;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
-import static com.baidu.hugegraph.backend.query.Query.NO_LIMIT;
-
 public class ServerInfoManager {
 
     private static final Logger LOG = Log.logger(ServerInfoManager.class);
@@ -64,6 +65,7 @@ public class ServerInfoManager {
     private final HugeGraphParams graph;
     private final ExecutorService dbExecutor;
     private final EventListener eventListener;
+    // Self server id and role
     private Id serverId;
     private NodeRole serverRole;
 
@@ -104,6 +106,7 @@ public class ServerInfoManager {
     public boolean close() {
         this.unlistenChanges();
         if (!this.dbExecutor.isShutdown()) {
+            this.removeSelfServerInfo();
             this.call(() -> {
                 try {
                     this.tx().close();
@@ -134,7 +137,7 @@ public class ServerInfoManager {
                                                                     page);
                 while (servers.hasNext()) {
                     existed = servers.next();
-                    E.checkArgument(existed.role().worker() ||
+                    E.checkArgument(!existed.role().master() ||
                                     !existed.alive(),
                                     "Already existed master '%s' in current " +
                                     "cluster", existed.id());
@@ -163,7 +166,7 @@ public class ServerInfoManager {
     }
 
     public void heartbeat() {
-        HugeServerInfo serverInfo = this.serverInfo();
+        HugeServerInfo serverInfo = this.selfServerInfo();
         if (serverInfo == null) {
             return;
         }
@@ -173,17 +176,62 @@ public class ServerInfoManager {
 
     public void decreaseLoad(int load) {
         try {
-            HugeServerInfo serverInfo = this.serverInfo();
+            HugeServerInfo serverInfo = this.selfServerInfo();
             serverInfo.load(serverInfo.load() - load);
             this.save(serverInfo);
         } catch (Throwable t) {
-            LOG.error("Exception occurred when decrease load", t);
+            LOG.error("Exception occurred when decrease server load", t);
         }
     }
 
     public int calcMaxLoad() {
         // TODO: calc max load based on CPU and Memory resources
         return 10000;
+    }
+
+    protected HugeServerInfo pickWorker(HugeTask<?> task) {
+        HugeServerInfo master = null;
+        HugeServerInfo serverWithMinLoad = null;
+        int minLoad = Integer.MAX_VALUE;
+        boolean hasWorker = false;
+        long now = DateUtil.now().getTime();
+
+        // Iterate servers to find suitable one
+        String page = this.supportsPaging() ? PageInfo.PAGE_NONE : null;
+        HugeServerInfo server;
+        do {
+            Iterator<HugeServerInfo> servers = this.serverInfos(page);
+            while (servers.hasNext()) {
+                server = servers.next();
+                if (!server.alive()) {
+                    continue;
+                }
+
+                if (server.role().master()) {
+                    master = server;
+                    continue;
+                }
+
+                hasWorker = true;
+                if (!server.suitableFor(task, now)) {
+                    continue;
+                }
+                if (server.load() < minLoad) {
+                    minLoad = server.load();
+                    serverWithMinLoad = server;
+                }
+            }
+            if (page != null) {
+                page = PageInfo.pageInfo(servers);
+            }
+        } while (page != null);
+
+        // Only schedule to master if there is no workers and master is suitable
+        if (!hasWorker && master.suitableFor(task, now)) {
+            return master;
+        }
+
+        return serverWithMinLoad;
     }
 
     private void initSchemaIfNeeded() {
@@ -195,7 +243,7 @@ public class ServerInfoManager {
         return this.graph.systemTransaction();
     }
 
-    protected Id save(HugeServerInfo server) {
+    private Id save(HugeServerInfo server) {
         return this.call(() -> {
             // Construct vertex from server info
             HugeServerInfo.Schema schema = HugeServerInfo.schema(this.graph);
@@ -212,7 +260,7 @@ public class ServerInfoManager {
         });
     }
 
-    private HugeServerInfo serverInfo() {
+    private HugeServerInfo selfServerInfo() {
         return this.serverInfo(this.serverId);
     }
 
@@ -225,6 +273,31 @@ public class ServerInfoManager {
             }
             return HugeServerInfo.fromVertex(vertex);
         });
+    }
+
+    private HugeServerInfo removeSelfServerInfo() {
+        return this.removeServerInfo(this.serverId);
+    }
+
+    private HugeServerInfo removeServerInfo(Id server) {
+        if (server == null) {
+            return null;
+        }
+        return this.call(() -> {
+            Iterator<Vertex> vertices = this.tx().queryVertices(server);
+            Vertex vertex = QueryResults.one(vertices);
+            if (vertex == null) {
+                return null;
+            }
+            this.tx().removeVertex((HugeVertex) vertex);
+            return HugeServerInfo.fromVertex(vertex);
+        });
+    }
+
+    public void updateServerInfos(Collection<HugeServerInfo> serverInfos) {
+        for (HugeServerInfo server : serverInfos) {
+            this.save(server);
+        }
     }
 
     public Iterator<HugeServerInfo> serverInfos(String page) {
@@ -263,6 +336,8 @@ public class ServerInfoManager {
     }
 
     private <V> V call(Callable<V> callable) {
+        assert !Thread.currentThread().getName().startsWith(
+               "server-info-db-worker") : "can't call by itself";
         try {
             // Pass context for db thread
             callable = new TaskManager.ContextCallable<>(callable);
@@ -272,5 +347,9 @@ public class ServerInfoManager {
             throw new HugeException("Failed to update/query server info: %s",
                                     e, e.toString());
         }
+    }
+
+    private boolean supportsPaging() {
+        return this.graph.graph().backendStoreFeatures().supportsQueryByPage();
     }
 }
