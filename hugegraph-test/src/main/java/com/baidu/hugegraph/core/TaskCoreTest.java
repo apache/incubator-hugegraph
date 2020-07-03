@@ -38,7 +38,6 @@ import com.baidu.hugegraph.job.EphemeralJobBuilder;
 import com.baidu.hugegraph.job.GremlinJob;
 import com.baidu.hugegraph.job.JobBuilder;
 import com.baidu.hugegraph.task.HugeTask;
-import com.baidu.hugegraph.task.StandardTaskScheduler;
 import com.baidu.hugegraph.task.TaskCallable;
 import com.baidu.hugegraph.task.TaskScheduler;
 import com.baidu.hugegraph.task.TaskStatus;

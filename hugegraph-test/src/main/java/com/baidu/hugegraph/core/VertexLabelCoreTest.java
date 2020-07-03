@@ -907,7 +907,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
         TaskScheduler scheduler = graph().taskScheduler();
         Id id = schema.vertexLabel("person").remove();
         sleepAWhile(1000L);
-        HugeTask task = scheduler.task(id);
+        HugeTask<?> task = scheduler.task(id);
         Assert.assertEquals(TaskStatus.FAILED, task.status());
         Assert.assertContains("Not allowed to remove vertex label " +
                               "'person' because the edge label 'write' " +

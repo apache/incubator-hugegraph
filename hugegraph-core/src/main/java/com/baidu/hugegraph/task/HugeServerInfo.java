@@ -279,6 +279,7 @@ public class HugeServerInfo {
                        .getVertexLabel(label) != null;
         }
 
+        @SuppressWarnings("unused")
         private String createPropertyKey(String name) {
             return this.createPropertyKey(name, DataType.TEXT);
         }
@@ -298,6 +299,7 @@ public class HugeServerInfo {
             return name;
         }
 
+        @SuppressWarnings("unused")
         private IndexLabel createIndexLabel(VertexLabel label, String field) {
             SchemaManager schema = this.graph.graph().schema();
             String name = Graph.Hidden.hide("server-index-by-" + field);
@@ -309,6 +311,7 @@ public class HugeServerInfo {
             return indexLabel;
         }
 
+        @SuppressWarnings("unused")
         private IndexLabel indexLabel(String field) {
             String name = Graph.Hidden.hide("server-index-by-" + field);
             return this.graph.graph().indexLabel(name);

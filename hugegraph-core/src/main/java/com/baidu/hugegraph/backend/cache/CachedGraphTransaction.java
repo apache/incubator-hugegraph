@@ -219,7 +219,6 @@ public final class CachedGraphTransaction extends GraphTransaction {
         return results;
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     protected final Iterator<HugeEdge> queryEdgesFromBackend(Query query) {
         if (query.empty() || query.paging() || query.bigCapacity()) {
@@ -229,6 +228,7 @@ public final class CachedGraphTransaction extends GraphTransaction {
 
         Id cacheKey = new QueryId(query);
         Object value = this.edgesCache.get(cacheKey);
+        @SuppressWarnings("unchecked")
         Collection<HugeEdge> edges = (Collection<HugeEdge>) value;
         if (value != null) {
             for (HugeEdge edge : edges) {
