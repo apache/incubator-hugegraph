@@ -69,6 +69,8 @@ public class ServerInfoManager {
     private Id serverId;
     private NodeRole serverRole;
 
+    private volatile boolean onlySingleNode;
+
     public ServerInfoManager(HugeGraphParams graph,
                              ExecutorService dbExecutor) {
         E.checkNotNull(graph, "graph");
@@ -78,6 +80,10 @@ public class ServerInfoManager {
         this.dbExecutor = dbExecutor;
 
         this.eventListener = this.listenChanges();
+
+        this.serverId = null;
+        this.serverRole = null;
+        this.onlySingleNode = false;
     }
 
     private EventListener listenChanges() {
@@ -120,7 +126,7 @@ public class ServerInfoManager {
         return true;
     }
 
-    public void initServerInfo(Id server, NodeRole role) {
+    public synchronized void initServerInfo(Id server, NodeRole role) {
         this.serverId = server;
         this.serverRole = role;
 
@@ -165,6 +171,11 @@ public class ServerInfoManager {
         return this.serverRole() != null && this.serverRole().master();
     }
 
+    public boolean onlySingleNode() {
+        // Only has one master node
+        return this.onlySingleNode;
+    }
+
     public void heartbeat() {
         HugeServerInfo serverInfo = this.selfServerInfo();
         if (serverInfo == null) {
@@ -189,7 +200,7 @@ public class ServerInfoManager {
         return 10000;
     }
 
-    protected HugeServerInfo pickWorker(HugeTask<?> task) {
+    protected synchronized HugeServerInfo pickWorker(HugeTask<?> task) {
         HugeServerInfo master = null;
         HugeServerInfo serverWithMinLoad = null;
         int minLoad = Integer.MAX_VALUE;
@@ -201,6 +212,7 @@ public class ServerInfoManager {
         HugeServerInfo server;
         do {
             Iterator<HugeServerInfo> servers = this.serverInfos(page);
+
             while (servers.hasNext()) {
                 server = servers.next();
                 if (!server.alive()) {
@@ -227,8 +239,11 @@ public class ServerInfoManager {
         } while (page != null);
 
         // Only schedule to master if there is no workers and master is suitable
-        if (!hasWorker && master.suitableFor(task, now)) {
-            return master;
+        if (!hasWorker && master != null) {
+            this.onlySingleNode = true;
+            if (master.suitableFor(task, now)) {
+                serverWithMinLoad = master;
+            }
         }
 
         return serverWithMinLoad;

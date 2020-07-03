@@ -133,6 +133,13 @@ public class StandardTaskScheduler implements TaskScheduler {
     private TaskTransaction tx() {
         // NOTE: only the owner thread can access task tx
         if (this.taskTx == null) {
+            /*
+             * NOTE: don't synchronized(this) due to scheduler thread hold
+             * this lock through scheduleTasks(), then query tasks and wait
+             * for db-worker thread after call(), the tx may not be initialized
+             * but can't catch this lock, then cause dead lock.
+             * We just use this.eventListener ad a monitor here
+             */
             synchronized (this.eventListener) {
                 if (this.taskTx == null) {
                     BackendStore store = this.graph.loadSystemStore();
@@ -201,7 +208,8 @@ public class StandardTaskScheduler implements TaskScheduler {
 
     @Override
     public <V> Future<?> schedule(HugeTask<V> task) {
-        if (!this.serverManager().master()) {
+        ServerInfoManager serverManager = this.serverManager();
+        if (!serverManager.master()) {
             throw new HugeException("Can't schedule task on non-master server");
         }
         E.checkArgumentNotNull(task, "Task can't be null");
@@ -211,7 +219,8 @@ public class StandardTaskScheduler implements TaskScheduler {
          * Due to EphemeralJob won't be serialized and deserialized through
          * shared storage, submit EphemeralJob immediately on master
          */
-        if (task.callable() instanceof EphemeralJob) {
+        if (task.callable() instanceof EphemeralJob ||
+            serverManager.onlySingleNode()) {
             return this.submitTask(task);
         }
 
@@ -250,7 +259,7 @@ public class StandardTaskScheduler implements TaskScheduler {
     public synchronized <V> void cancel(HugeTask<V> task) {
         E.checkArgumentNotNull(task, "Task can't be null");
         if (!this.serverManager().master()) {
-            return;
+            throw new HugeException("Can't cancel task on non-master server");
         }
         if (!task.completed()) {
             // The task scheduled to workers, waiting for worker cancel
@@ -263,7 +272,7 @@ public class StandardTaskScheduler implements TaskScheduler {
     }
 
     protected synchronized void scheduleTasks() {
-        // Master schedule all queued tasks to suitable servers
+        // Master server schedule all queued tasks to suitable worker servers
         Map<HugeServerInfo, MutableInt> scheduleInfos = new HashMap<>();
         ServerInfoManager serverManager = this.serverManager();
         String page = this.supportsPaging() ? PageInfo.PAGE_NONE : null;
@@ -292,8 +301,8 @@ public class StandardTaskScheduler implements TaskScheduler {
 
                 server.load(server.load() + task.load());
 
-                LOG.debug("Scheduled task '{}' to server '{}'",
-                          task.id(), server.id());
+                LOG.info("Scheduled task '{}' to server '{}'",
+                         task.id(), server.id());
 
                 if (!scheduleInfos.containsKey(server)) {
                     scheduleInfos.put(server, new MutableInt(0));
@@ -306,10 +315,6 @@ public class StandardTaskScheduler implements TaskScheduler {
         } while (page != null);
 
         serverManager.updateServerInfos(scheduleInfos.keySet());
-
-        if (!scheduleInfos.isEmpty()) {
-            LOG.info("Scheduled tasks to servers: {}", scheduleInfos);
-        }
     }
 
     protected void executeTasksOnWorker(Id server) {
