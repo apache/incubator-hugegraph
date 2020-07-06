@@ -141,6 +141,8 @@ public class GraphsAPI extends API {
     @RolesAllowed({"admin"})
     public Object create(@Context GraphManager manager,
                          JsonGraphParams params) {
+        LOG.debug("Create graph {} with config options '{}'",
+                  params.name, params.options);
         HugeGraph graph = manager.createGraph(params.name, params.options);
         return ImmutableMap.of("name", graph.name(), "backend", graph.backend());
     }

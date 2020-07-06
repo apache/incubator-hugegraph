@@ -59,8 +59,7 @@ public class ContextGremlinServer extends GremlinServer {
     private void listenChanges() {
         this.hub.listen(Events.GRAPH_CREATE, event -> {
             event.checkArgs(HugeGraph.class);
-            Object[] args = event.args();
-            HugeGraph graph = (HugeGraph) args[0];
+            HugeGraph graph = (HugeGraph) event.args()[0];
             this.injectGraph(graph);
             return null;
         });

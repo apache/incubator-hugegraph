@@ -27,6 +27,7 @@ import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.auth.ContextGremlinServer;
 import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.util.ConfigUtil;
+import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 
 public class HugeGremlinServer {
@@ -46,6 +47,8 @@ public class HugeGremlinServer {
             throw e;
         }
         // Scan graph confs and inject into gremlin server context
+        E.checkState(settings.graphs != null,
+                     "The GremlinServer's settings.graphs is null");
         settings.graphs.putAll(ConfigUtil.scanGraphsDir(graphsDir));
 
         LOG.info("Configuring Gremlin Server from {}", conf);
