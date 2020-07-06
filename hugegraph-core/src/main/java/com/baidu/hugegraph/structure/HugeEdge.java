@@ -90,6 +90,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
 
     @Override
     public EdgeLabel schemaLabel() {
+        assert this.graph() == this.label.graph();
         return this.label;
     }
 

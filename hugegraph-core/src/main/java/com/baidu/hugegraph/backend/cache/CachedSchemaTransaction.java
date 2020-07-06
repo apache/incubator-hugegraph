@@ -64,6 +64,7 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
         try {
             super.close();
         } finally {
+            this.clearCache();
             this.unlistenChanges();
         }
     }
@@ -94,9 +95,7 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
             if (storeEvents.contains(event.name())) {
                 LOG.debug("Graph {} clear schema cache on event '{}'",
                           this.graph(), event.name());
-                this.idCache.clear();
-                this.nameCache.clear();
-                this.cachedTypes().clear();
+                this.clearCache();
                 return true;
             }
             return false;
@@ -124,9 +123,7 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
                 }
                 return true;
             } else if ("clear".equals(args[0])) {
-                this.idCache.clear();
-                this.nameCache.clear();
-                this.cachedTypes().clear();
+                this.clearCache();
                 return true;
             }
             return false;
@@ -135,6 +132,12 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
         if (!schemaEventHub.containsListener(Events.CACHE)) {
             schemaEventHub.listen(Events.CACHE, this.cacheEventListener);
         }
+    }
+
+    private void clearCache() {
+        this.idCache.clear();
+        this.nameCache.clear();
+        this.cachedTypes().clear();
     }
 
     private void unlistenChanges() {
