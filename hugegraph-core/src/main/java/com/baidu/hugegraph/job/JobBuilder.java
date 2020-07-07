@@ -88,7 +88,6 @@ public class JobBuilder<V> {
 
         TaskScheduler scheduler = this.graph.taskScheduler();
         scheduler.schedule(task);
-        scheduler.save(task);
 
         return task;
     }

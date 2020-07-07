@@ -65,9 +65,9 @@ public class ServerInfoManager {
     private final HugeGraphParams graph;
     private final ExecutorService dbExecutor;
     private final EventListener eventListener;
-    // Self server id and role
-    private Id serverId;
-    private NodeRole serverRole;
+
+    private Id selfServerId;
+    private NodeRole selfServerRole;
 
     private volatile boolean onlySingleNode;
 
@@ -81,8 +81,8 @@ public class ServerInfoManager {
 
         this.eventListener = this.listenChanges();
 
-        this.serverId = null;
-        this.serverRole = null;
+        this.selfServerId = null;
+        this.selfServerRole = null;
         this.onlySingleNode = false;
     }
 
@@ -127,17 +127,15 @@ public class ServerInfoManager {
     }
 
     public synchronized void initServerInfo(Id server, NodeRole role) {
-        this.serverId = server;
-        this.serverRole = role;
+        this.selfServerId = server;
+        this.selfServerRole = role;
 
-        boolean supportsPaging = this.graph.graph().backendStoreFeatures()
-                                     .supportsQueryByPage();
         HugeServerInfo existed = this.serverInfo(server);
         E.checkArgument(existed == null || !existed.alive(),
                         "The server with name '%s' already in cluster",
                         server);
         if (role.master()) {
-            String page = supportsPaging ? PageInfo.PAGE_NONE : null;
+            String page = this.supportsPaging() ? PageInfo.PAGE_NONE : null;
             do {
                 Iterator<HugeServerInfo> servers = this.serverInfos(PAGE_SIZE,
                                                                     page);
@@ -159,16 +157,16 @@ public class ServerInfoManager {
         this.save(serverInfo);
     }
 
-    public Id serverId() {
-        return this.serverId;
+    public Id selfServerId() {
+        return this.selfServerId;
     }
 
-    public NodeRole serverRole() {
-        return this.serverRole;
+    public NodeRole selfServerRole() {
+        return this.selfServerRole;
     }
 
     public boolean master() {
-        return this.serverRole() != null && this.serverRole().master();
+        return this.selfServerRole != null && this.selfServerRole.master();
     }
 
     public boolean onlySingleNode() {
@@ -276,7 +274,7 @@ public class ServerInfoManager {
     }
 
     private HugeServerInfo selfServerInfo() {
-        return this.serverInfo(this.serverId);
+        return this.serverInfo(this.selfServerId);
     }
 
     private HugeServerInfo serverInfo(Id server) {
@@ -291,7 +289,11 @@ public class ServerInfoManager {
     }
 
     private HugeServerInfo removeSelfServerInfo() {
-        return this.removeServerInfo(this.serverId);
+        if (this.call(() -> this.graph.graph()
+                                .backendStoreSystemInfo().exists())) {
+            return this.removeServerInfo(this.selfServerId);
+        }
+        return null;
     }
 
     private HugeServerInfo removeServerInfo(Id server) {

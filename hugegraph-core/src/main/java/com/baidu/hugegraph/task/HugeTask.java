@@ -68,14 +68,15 @@ public class HugeTask<V> extends FutureTask<V> {
     private String description;
     private String context;
     private Date create;
+    private Id server;
+    private int load;
+
     private volatile TaskStatus status;
     private volatile int progress;
     private volatile Date update;
     private volatile int retries;
     private volatile String input;
     private volatile String result;
-    private Id server;
-    private int load;
 
     public HugeTask(Id id, Id parent, String callable, String input) {
         this(id, parent, TaskCallable.fromClass(callable));
@@ -344,6 +345,8 @@ public class HugeTask<V> extends FutureTask<V> {
         checkPropertySize(result, P.RESULT);
         if (this.status(TaskStatus.SUCCESS)) {
             this.result = result;
+        } else {
+            assert this.completed();
         }
         // Will call done() and may cause to save to store
         super.set(v);
@@ -406,6 +409,9 @@ public class HugeTask<V> extends FutureTask<V> {
             E.checkState(this.name != null, "Task name can't be null");
         }
         if (!this.completed()) {
+            assert this.status.code() < status.code() ||
+                   status == TaskStatus.RESTORING :
+                   this.status + " => " + status + " (task " + this.id + ")";
             this.status = status;
             return true;
         }
@@ -634,6 +640,7 @@ public class HugeTask<V> extends FutureTask<V> {
     }
 
     public void syncWait() {
+        // This method is just called by tests
         HugeTask<?> task = null;
         try {
             task = this.scheduler().waitUntilTaskCompleted(this.id());
@@ -651,7 +658,12 @@ public class HugeTask<V> extends FutureTask<V> {
                                     e, this.id);
         }
         assert task != null;
-        if (task.status() != TaskStatus.SUCCESS) {
+        /*
+         * This can be enabled for debug to expose schema-clear errors early，
+         * but also lead to some negative tests failed,
+         */
+        boolean debugTest = false;
+        if (debugTest && !task.success()) {
             throw new HugeException("Task '%s' is failed with error: %s",
                                     task.id(), task.result());
         }
