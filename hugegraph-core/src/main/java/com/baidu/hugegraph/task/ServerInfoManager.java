@@ -42,6 +42,7 @@ import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.event.EventListener;
 import com.baidu.hugegraph.exception.ConnectionException;
+import com.baidu.hugegraph.iterator.ListIterator;
 import com.baidu.hugegraph.iterator.MapperIterator;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.VertexLabel;
@@ -60,6 +61,7 @@ public class ServerInfoManager {
 
     private static final Logger LOG = Log.logger(ServerInfoManager.class);
 
+    public static final long MAX_SERVERS = 100000L;
     public static final long PAGE_SIZE = 10L;
 
     private final HugeGraphParams graph;
@@ -186,7 +188,7 @@ public class ServerInfoManager {
     public void decreaseLoad(int load) {
         try {
             HugeServerInfo serverInfo = this.selfServerInfo();
-            serverInfo.load(serverInfo.load() - load);
+            serverInfo.increaseLoad(-load);
             this.save(serverInfo);
         } catch (Throwable t) {
             LOG.error("Exception occurred when decrease server load", t);
@@ -198,7 +200,9 @@ public class ServerInfoManager {
         return 10000;
     }
 
-    protected synchronized HugeServerInfo pickWorker(HugeTask<?> task) {
+    protected synchronized HugeServerInfo pickWorkerNode(
+                                          Collection<HugeServerInfo> servers,
+                                          HugeTask<?> task) {
         HugeServerInfo master = null;
         HugeServerInfo serverWithMinLoad = null;
         int minLoad = Integer.MAX_VALUE;
@@ -206,35 +210,25 @@ public class ServerInfoManager {
         long now = DateUtil.now().getTime();
 
         // Iterate servers to find suitable one
-        String page = this.supportsPaging() ? PageInfo.PAGE_NONE : null;
-        HugeServerInfo server;
-        do {
-            Iterator<HugeServerInfo> servers = this.serverInfos(page);
-
-            while (servers.hasNext()) {
-                server = servers.next();
-                if (!server.alive()) {
-                    continue;
-                }
-
-                if (server.role().master()) {
-                    master = server;
-                    continue;
-                }
-
-                hasWorker = true;
-                if (!server.suitableFor(task, now)) {
-                    continue;
-                }
-                if (server.load() < minLoad) {
-                    minLoad = server.load();
-                    serverWithMinLoad = server;
-                }
+        for (HugeServerInfo server : servers) {
+            if (!server.alive()) {
+                continue;
             }
-            if (page != null) {
-                page = PageInfo.pageInfo(servers);
+
+            if (server.role().master()) {
+                master = server;
+                continue;
             }
-        } while (page != null);
+
+            hasWorker = true;
+            if (!server.suitableFor(task, now)) {
+                continue;
+            }
+            if (server.load() < minLoad) {
+                minLoad = server.load();
+                serverWithMinLoad = server;
+            }
+        }
 
         // Only schedule to master if there is no workers and master is suitable
         if (!hasWorker && master != null) {
@@ -268,9 +262,50 @@ public class ServerInfoManager {
                                                           server.asArray());
             // Add or update server info in backend store
             vertex = this.tx().addVertex(vertex);
-            this.tx().commitOrRollback();
             return vertex.id();
         });
+    }
+
+    private int save(Collection<HugeServerInfo> servers) {
+        return this.call(() -> {
+            if (servers.isEmpty()) {
+                return servers.size();
+            }
+            HugeServerInfo.Schema schema = HugeServerInfo.schema(this.graph);
+            if (!schema.existVertexLabel(HugeServerInfo.P.SERVER)) {
+                throw new HugeException("Schema is missing for %s",
+                                        HugeServerInfo.P.SERVER);
+            }
+            // Save server info in batch
+            GraphTransaction tx = this.tx();
+            int updated = 0;
+            for (HugeServerInfo server : servers) {
+                if (!server.updated()) {
+                    continue;
+                }
+                HugeVertex vertex = tx.constructVertex(false, server.asArray());
+                tx.addVertex(vertex);
+                updated++;
+            }
+            // NOTE: actually it is auto-commit, to be improved
+            tx.commitOrRollback();
+
+            return updated;
+        });
+    }
+
+    private <V> V call(Callable<V> callable) {
+        assert !Thread.currentThread().getName().startsWith(
+               "server-info-db-worker") : "can't call by itself";
+        try {
+            // Pass context for db thread
+            callable = new TaskManager.ContextCallable<>(callable);
+            // Ensure all db operations are executed in dbExecutor thread(s)
+            return this.dbExecutor.submit(callable).get();
+        } catch (Throwable e) {
+            throw new HugeException("Failed to update/query server info: %s",
+                                    e, e.toString());
+        }
     }
 
     private HugeServerInfo selfServerInfo() {
@@ -312,9 +347,14 @@ public class ServerInfoManager {
     }
 
     public void updateServerInfos(Collection<HugeServerInfo> serverInfos) {
-        for (HugeServerInfo server : serverInfos) {
-            this.save(server);
-        }
+        this.save(serverInfos);
+    }
+
+    public Collection<HugeServerInfo> allServerInfos() {
+        @SuppressWarnings("resource")
+        ListIterator<HugeServerInfo> iter = new ListIterator<>(MAX_SERVERS,
+                                            this.serverInfos(NO_LIMIT, null));
+        return iter.list();
     }
 
     public Iterator<HugeServerInfo> serverInfos(String page) {
@@ -350,20 +390,6 @@ public class ServerInfoManager {
             // Convert iterator to list to avoid across thread tx accessed
             return QueryResults.toList(servers);
         });
-    }
-
-    private <V> V call(Callable<V> callable) {
-        assert !Thread.currentThread().getName().startsWith(
-               "server-info-db-worker") : "can't call by itself";
-        try {
-            // Pass context for db thread
-            callable = new TaskManager.ContextCallable<>(callable);
-            // Ensure all db operations are executed in dbExecutor thread(s)
-            return this.dbExecutor.submit(callable).get();
-        } catch (Throwable e) {
-            throw new HugeException("Failed to update/query server info: %s",
-                                    e, e.toString());
-        }
     }
 
     private boolean supportsPaging() {

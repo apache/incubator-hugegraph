@@ -20,7 +20,7 @@
 package com.baidu.hugegraph.task;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -32,7 +32,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
 
-import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
@@ -142,7 +141,7 @@ public class StandardTaskScheduler implements TaskScheduler {
              * this lock through scheduleTasks(), then query tasks and wait
              * for db-worker thread after call(), the tx may not be initialized
              * but can't catch this lock, then cause dead lock.
-             * We just use this.eventListener ad a monitor here
+             * We just use this.eventListener as a monitor here
              */
             synchronized (this.eventListener) {
                 if (this.taskTx == null) {
@@ -198,7 +197,7 @@ public class StandardTaskScheduler implements TaskScheduler {
         }
     }
 
-    public <V> Future<?> restore(HugeTask<V> task) {
+    private <V> Future<?> restore(HugeTask<V> task) {
         E.checkArgumentNotNull(task, "Task can't be null");
         E.checkArgument(!this.tasks.containsKey(task.id()),
                         "Task '%s' is already in the queue", task.id());
@@ -317,9 +316,9 @@ public class StandardTaskScheduler implements TaskScheduler {
     }
 
     protected synchronized void scheduleTasks() {
-        // Master server schedule all queued tasks to suitable worker servers
-        Map<HugeServerInfo, MutableInt> scheduleInfos = new HashMap<>();
-        ServerInfoManager serverManager = this.serverManager();
+        // Master server schedule all scheduling tasks to suitable worker nodes
+        Collection<HugeServerInfo> scheduleInfos = this.serverManager()
+                                                       .allServerInfos();
         String page = this.supportsPaging() ? PageInfo.PAGE_NONE : null;
         do {
             Iterator<HugeTask<Object>> tasks = this.tasks(TaskStatus.SCHEDULING,
@@ -331,36 +330,33 @@ public class StandardTaskScheduler implements TaskScheduler {
                     continue;
                 }
 
-                HugeServerInfo server = serverManager.pickWorker(task);
+                HugeServerInfo server = this.serverManager().pickWorkerNode(
+                                        scheduleInfos, task);
                 if (server == null) {
-                    LOG.debug("The master can't find suitable servers to " +
-                              "execute task '{}', wait for next schedule",
-                              task.id());
+                    LOG.info("The master can't find suitable servers to " +
+                             "execute task '{}', wait for next schedule",
+                             task.id());
                     continue;
                 }
 
-                // Found suitable server, update task server and server load
+                // Found suitable server, update task status
                 assert server.id() != null;
                 task.server(server.id());
                 task.status(TaskStatus.SCHEDULED);
                 this.save(task);
 
-                server.load(server.load() + task.load());
+                // Update server load in memory, it will be saved at the ending
+                server.increaseLoad(task.load());
 
                 LOG.info("Scheduled task '{}' to server '{}'",
                          task.id(), server.id());
-
-                if (!scheduleInfos.containsKey(server)) {
-                    scheduleInfos.put(server, new MutableInt(0));
-                }
-                scheduleInfos.get(server).add(1);
             }
             if (page != null) {
                 page = PageInfo.pageInfo(tasks);
             }
         } while (page != null);
 
-        serverManager.updateServerInfos(scheduleInfos.keySet());
+        this.serverManager().updateServerInfos(scheduleInfos);
     }
 
     protected void executeTasksOnWorker(Id server) {
@@ -394,6 +390,14 @@ public class StandardTaskScheduler implements TaskScheduler {
                                                           PAGE_SIZE, page);
             while (tasks.hasNext()) {
                 HugeTask<?> task = tasks.next();
+                Id taskServer = task.server();
+                if (taskServer == null) {
+                    LOG.warn("Task '{}' may not be scheduled", task.id());
+                    continue;
+                }
+                if (!taskServer.equals(server)) {
+                    continue;
+                }
                 /*
                  * Task may be loaded from backend store and not initialized.
                  * like: A task is completed but failed to save in the last
@@ -406,12 +410,9 @@ public class StandardTaskScheduler implements TaskScheduler {
                 if (memTask != null) {
                     task = memTask;
                 }
-                Id taskServer = task.server();
-                if (taskServer != null && taskServer.equals(server)) {
-                    boolean cancelled = task.cancel(true);
-                    LOG.info("Server '{}' cancel task '{}' with cancelled={}",
-                             server, task.id(), cancelled);
-                }
+                boolean cancelled = task.cancel(true);
+                LOG.info("Server '{}' cancel task '{}' with cancelled={}",
+                         server, task.id(), cancelled);
             }
             if (page != null) {
                 page = PageInfo.pageInfo(tasks);

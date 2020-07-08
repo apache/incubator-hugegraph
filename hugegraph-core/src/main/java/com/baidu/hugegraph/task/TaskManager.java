@@ -240,7 +240,13 @@ public final class TaskManager {
         Queue<Runnable> queue = ((ThreadPoolExecutor) this.schedulerExecutor)
                                                           .getQueue();
         if (queue.size() <= 1) {
-            // Notify to schedule tasks initiatively when have new task
+            /*
+             * Notify to schedule tasks initiatively when have new task
+             * It's OK to not notify again if there are more than one task in
+             * queue(like two, one is timer task, one is immediate task),
+             * we don't want too many immediate tasks to be inserted into queue,
+             * one notify will cause all the tasks to be processed.
+             */
             this.schedulerExecutor.submit(this::scheduleOrExecuteJob);
         }
     }
