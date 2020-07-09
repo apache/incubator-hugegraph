@@ -212,7 +212,6 @@ public class StandardTaskScheduler implements TaskScheduler {
     @Override
     public <V> Future<?> schedule(HugeTask<V> task) {
         E.checkArgumentNotNull(task, "Task can't be null");
-        this.checkOnMasterNode("schedule");
 
         if (task.callable() instanceof EphemeralJob) {
             /*
@@ -221,7 +220,12 @@ public class StandardTaskScheduler implements TaskScheduler {
              */
             task.status(TaskStatus.QUEUED);
             return this.submitTask(task);
-        } else if (this.serverManager().onlySingleNode()) {
+        }
+
+        // Only check if not EphemeralJob
+        this.checkOnMasterNode("schedule");
+
+        if (this.serverManager().onlySingleNode()) {
             /*
              * Speed up for single node, submit task immediately
              * this can be removed without affecting logic

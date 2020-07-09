@@ -206,7 +206,7 @@ public class ServerInfoManager {
         HugeServerInfo master = null;
         HugeServerInfo serverWithMinLoad = null;
         int minLoad = Integer.MAX_VALUE;
-        boolean hasWorker = false;
+        boolean hasWorkerNode = false;
         long now = DateUtil.now().getTime();
 
         // Iterate servers to find suitable one
@@ -220,7 +220,7 @@ public class ServerInfoManager {
                 continue;
             }
 
-            hasWorker = true;
+            hasWorkerNode = true;
             if (!server.suitableFor(task, now)) {
                 continue;
             }
@@ -230,10 +230,11 @@ public class ServerInfoManager {
             }
         }
 
+        this.onlySingleNode = !hasWorkerNode;
+
         // Only schedule to master if there is no workers and master is suitable
-        if (!hasWorker && master != null) {
-            this.onlySingleNode = true;
-            if (master.suitableFor(task, now)) {
+        if (!hasWorkerNode) {
+            if (master != null && master.suitableFor(task, now)) {
                 serverWithMinLoad = master;
             }
         }
