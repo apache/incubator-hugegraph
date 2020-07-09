@@ -453,6 +453,7 @@ public final class ConditionQuery extends IdQuery {
     }
 
     public void optimized(int optimizedType) {
+        assert this.optimizedType <= optimizedType;
         this.optimizedType = optimizedType;
 
         Query originQuery = this.originQuery();
@@ -466,6 +467,7 @@ public final class ConditionQuery extends IdQuery {
     }
 
     public void registerResultsFilter(Function<HugeElement, Boolean> filter) {
+        assert this.resultsFilter == null;
         this.resultsFilter = filter;
 
         Query originQuery = this.originQuery();
