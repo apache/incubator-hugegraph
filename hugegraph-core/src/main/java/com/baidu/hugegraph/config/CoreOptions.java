@@ -210,7 +210,7 @@ public class CoreOptions extends OptionHolder {
                     500
             );
 
-    public static final ConfigOption<Integer> QUERY_INDEX_INTERSECT_THRESHHOLD =
+    public static final ConfigOption<Integer> QUERY_INDEX_INTERSECT_THRESHOLD =
             new ConfigOption<>(
                     "query.index_intersect_threshold",
                     "The maximum number of intermediate results to intersect " +

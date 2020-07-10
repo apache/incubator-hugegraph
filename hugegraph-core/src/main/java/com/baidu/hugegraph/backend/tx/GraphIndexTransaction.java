@@ -112,7 +112,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
         final HugeConfig conf = graph.configuration();
         this.indexIntersectThresh =
-             conf.get(CoreOptions.QUERY_INDEX_INTERSECT_THRESHHOLD);
+             conf.get(CoreOptions.QUERY_INDEX_INTERSECT_THRESHOLD);
     }
 
     protected Id asyncRemoveIndexLeft(ConditionQuery query,
