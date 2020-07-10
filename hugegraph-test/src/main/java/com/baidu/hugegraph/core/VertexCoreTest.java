@@ -4540,6 +4540,24 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertEquals(1L, g.V().hasLabel("author")
                                      .has("age", P.lt(62)).count().next());
 
+        Assert.assertEquals(1L, g.V().hasLabel("author")
+                                     .has("age", P.lt(62))
+                                     .has("lived", "California")
+                                     .count().next());
+        Assert.assertEquals(0L, g.V().hasLabel("author")
+                                     .has("age", P.lt(62))
+                                     .has("lived", "Canadian")
+                                     .count().next());
+        Assert.assertEquals(1L, g.V().hasLabel("author")
+                                     .has("age", P.lt(63))
+                                     .has("lived", "Canadian")
+                                     .count().next());
+        Assert.assertEquals(2L, g.V().hasLabel("author")
+                                     .has("age", P.lt(63))
+                                     .has("lived", P.within("California",
+                                                            "Canadian"))
+                                     .count().next());
+
         Assert.assertEquals(10L, g.V().count().min().next());
         Assert.assertEquals(5L, g.V().hasLabel("book").count().max().next());
 

@@ -453,7 +453,8 @@ public final class ConditionQuery extends IdQuery {
     }
 
     public void optimized(int optimizedType) {
-        assert this.optimizedType <= optimizedType;
+        assert this.optimizedType <= optimizedType :
+               this.optimizedType + " != " + optimizedType;
         this.optimizedType = optimizedType;
 
         Query originQuery = this.originQuery();

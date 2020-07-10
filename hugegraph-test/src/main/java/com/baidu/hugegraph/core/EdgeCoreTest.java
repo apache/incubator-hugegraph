@@ -5074,6 +5074,35 @@ public class EdgeCoreTest extends BaseCoreTest {
         Assert.assertEquals(1L, g.E().hasLabel("look")
                                      .has("score", P.lt(3)).count().next());
 
+        Assert.assertEquals(1L, g.E().hasLabel("look")
+                                     .has("time", "2017-5-27")
+                                     .has("score", 3)
+                                     .count().next());
+        Assert.assertEquals(2L, g.E().hasLabel("look")
+                                     .has("time", "2017-5-27")
+                                     .has("score", P.gte(3))
+                                     .count().next());
+        Assert.assertEquals(2L, g.E().hasLabel("look")
+                                     .has("time", "2017-5-27")
+                                     .has("score", P.gt(0))
+                                     .count().next());
+        Assert.assertEquals(3L, g.E().hasLabel("look")
+                                     .has("time", "2017-5-27")
+                                     .has("score", P.gte(0))
+                                     .count().next());
+        Assert.assertEquals(0L, g.E().hasLabel("look")
+                                     .has("time", "2017-5-27")
+                                     .has("score", P.lt(0))
+                                     .count().next());
+        Assert.assertEquals(1L, g.E().hasLabel("look")
+                                     .has("time", "2017-5-27")
+                                     .has("score", P.lte(0))
+                                     .count().next());
+        Assert.assertEquals(2L, g.E().hasLabel("look")
+                                     .has("time", "2017-5-27")
+                                     .has("score", P.lte(3))
+                                     .count().next());
+
         Assert.assertEquals(18L, g.E().count().min().next());
         Assert.assertEquals(7L, g.E().hasLabel("look").count().max().next());
 

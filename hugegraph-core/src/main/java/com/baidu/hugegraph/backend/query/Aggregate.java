@@ -94,7 +94,7 @@ public class Aggregate {
                 number = results.next();
                 count++;
             } else {
-                return null;
+                return this.defaultValue;
             }
             while (results.hasNext()) {
                 number = this.merger.apply(number, results.next());

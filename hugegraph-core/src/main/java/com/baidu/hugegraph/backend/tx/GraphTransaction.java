@@ -538,10 +538,11 @@ public class GraphTransaction extends IndexableTransaction {
             if (!indexQuery) {
                 result = super.queryNumber(q);
             } else if (optimized == OptimizedType.INDEX.ordinal()) {
-                // Assume no left index, ids count means results size
+                // The number of ids means results size (assume no left index)
                 result = q.ids().size();
             } else {
                 assert optimized == OptimizedType.INDEX_FILTER.ordinal();
+                assert q.resultType().isVertex() || q.resultType().isEdge();
                 result = IteratorUtils.count(q.resultType().isVertex() ?
                                              this.queryVertices(q) :
                                              this.queryEdges(q));
@@ -1581,8 +1582,16 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     private boolean filterResultFromIndexQuery(Query query, HugeElement elem) {
+        /*
+         * If query is ConditionQuery or query.originQuery() is ConditionQuery
+         * means it's index query
+         */
         if (!(query instanceof ConditionQuery)) {
-            return true;
+            if (query.originQuery() instanceof ConditionQuery) {
+                query = query.originQuery();
+            } else {
+                return true;
+            }
         }
 
         ConditionQuery cq = (ConditionQuery) query;

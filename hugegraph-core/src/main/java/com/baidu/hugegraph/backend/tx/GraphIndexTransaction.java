@@ -493,7 +493,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
     @Watched(prefix = "index")
     private IdHolder doJointIndex(IndexQueries queries) {
-        if (queries.bigCapacity()) {
+        if (queries.oomRisk()) {
             LOG.warn("There is OOM risk if the joint operation is based on a " +
                      "large amount of data, please use single index + filter " +
                      "instead of joint index: {}", queries.rootQuery());
@@ -1419,9 +1419,9 @@ public class GraphIndexTransaction extends AbstractTransaction {
             return indexQueries;
         }
 
-        public boolean bigCapacity() {
+        public boolean oomRisk() {
             for (Query subQuery : this.values()) {
-                if (subQuery.bigCapacity()) {
+                if (subQuery.bigCapacity() && subQuery.aggregate() != null) {
                     return true;
                 }
             }
