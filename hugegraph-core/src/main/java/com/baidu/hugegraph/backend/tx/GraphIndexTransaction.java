@@ -63,6 +63,8 @@ import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.serializer.AbstractSerializer;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendStore;
+import com.baidu.hugegraph.config.CoreOptions;
+import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.exception.NoIndexException;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.iterator.Metadatable;
@@ -100,12 +102,17 @@ public class GraphIndexTransaction extends AbstractTransaction {
     public static final char INDEX_SYM_MAX = '\u0003';
 
     private final Analyzer textAnalyzer;
+    private final int indexIntersectThresh;
 
     public GraphIndexTransaction(HugeGraphParams graph, BackendStore store) {
         super(graph, store);
 
         this.textAnalyzer = graph.analyzer();
         assert this.textAnalyzer != null;
+
+        final HugeConfig conf = graph.configuration();
+        this.indexIntersectThresh =
+             conf.get(CoreOptions.QUERY_INDEX_INTERSECT_THRESHHOLD);
     }
 
     protected Id asyncRemoveIndexLeft(ConditionQuery query,
@@ -496,6 +503,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
         for (Map.Entry<IndexLabel, ConditionQuery> e : queries.entrySet()) {
             IndexLabel indexLabel = e.getKey();
             ConditionQuery query = e.getValue();
+            assert !query.paging();
             if (!query.nolimit() && queries.size() > 1) {
                 // Increase limit for intersection
                 increaseLimit(query);
@@ -508,10 +516,11 @@ public class GraphIndexTransaction extends AbstractTransaction {
             if (intersectIds == null) {
                 intersectIds = holder.all();
             } else {
-                // TODO: read from conf
-                int indexIntersectSize = 1000;
-                Set<Id> ids = holder.fetchNext(null, indexIntersectSize).ids();
-                if (ids.size() >= indexIntersectSize) {
+                assert this.indexIntersectThresh > 0; // default value is 1000
+                Set<Id> ids = holder.fetchNext(null, this.indexIntersectThresh)
+                                    .ids();
+                if (ids.size() >= this.indexIntersectThresh) {
+                    // Transform into filter
                     query.optimized(OptimizedType.INDEX_FILTER.ordinal());
                     break;
                 }
@@ -1107,9 +1116,9 @@ public class GraphIndexTransaction extends AbstractTransaction {
         }
 
         /*
-         * Set limit for single index or composite index
-         * to avoid redundant element ids.
-         * Not set offset because this query might be a sub-query,
+         * Set limit for single index or composite index, also for joint index,
+         * to avoid redundant element ids and out of capacity.
+         * NOTE: not set offset because this query might be a sub-query,
          * see queryByUserprop()
          */
         indexQuery.page(query.page());

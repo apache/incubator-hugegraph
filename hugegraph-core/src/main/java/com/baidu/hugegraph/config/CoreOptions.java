@@ -210,6 +210,15 @@ public class CoreOptions extends OptionHolder {
                     500
             );
 
+    public static final ConfigOption<Integer> QUERY_INDEX_INTERSECT_THRESHHOLD =
+            new ConfigOption<>(
+                    "query.index_intersect_threshold",
+                    "The maximum number of intermediate results to intersect " +
+                    "indexes when querying by multiple single index properties.",
+                    rangeInt(1, (int) Query.DEFAULT_CAPACITY),
+                    1000
+            );
+
     public static final ConfigOption<Integer> VERTEX_TX_CAPACITY =
             new ConfigOption<>(
                     "vertex.tx_capacity",
