@@ -756,17 +756,7 @@ public class GraphTransaction extends IndexableTransaction {
 
         Iterator<HugeVertex> vertices = new MapperIterator<>(entries,
                                                              this::parseEntry);
-
-        if (!this.store().features().supportsTtl() && !query.showExpired()) {
-            vertices = new FilterIterator<>(vertices, vertex -> {
-                if (vertex.expired()) {
-                    DeleteExpiredJob.asyncDeleteExpiredObject(this.params(),
-                                                              vertex);
-                    return false;
-                }
-                return true;
-            });
-        }
+        vertices = this.filterExpiredResultFromFromBackend(query, vertices);
 
         if (!this.store().features().supportsQuerySortByInputIds()) {
             // There is no id in BackendEntry, so sort after deserialization
@@ -957,16 +947,7 @@ public class GraphTransaction extends IndexableTransaction {
             return new ListIterator<>(ImmutableList.copyOf(vertex.getEdges()));
         });
 
-        if (!this.store().features().supportsTtl() && !query.showExpired()) {
-            edges = new FilterIterator<>(edges, edge -> {
-                if (edge.expired()) {
-                    DeleteExpiredJob.asyncDeleteExpiredObject(this.params(),
-                                                              edge);
-                    return false;
-                }
-                return true;
-            });
-        }
+        edges = this.filterExpiredResultFromFromBackend(query, edges);
 
         if (!this.store().features().supportsQuerySortByInputIds()) {
             // There is no id in BackendEntry, so sort after deserialization
@@ -1609,38 +1590,54 @@ public class GraphTransaction extends IndexableTransaction {
         return false;
     }
 
+    private <T extends HugeElement> Iterator<T>
+                                    filterExpiredResultFromFromBackend(
+                                    Query query, Iterator<T> results) {
+        if (this.store().features().supportsTtl() || query.showExpired()) {
+            return results;
+        }
+        // Filter expired vertices/edges with TTL
+        return new FilterIterator<>(results, elem -> {
+            if (elem.expired()) {
+                DeleteExpiredJob.asyncDeleteExpiredObject(this.params(), elem);
+                return false;
+            }
+            return true;
+        });
+    }
+
     private Iterator<?> joinTxVertices(Query query,
                                        Iterator<HugeVertex> vertices) {
         assert query.resultType().isVertex();
-        vertices =  this.joinTxRecords(query, vertices,
-                                       (q, v) -> q.test(v) ? v : null,
+        BiFunction<Query, HugeVertex, HugeVertex> matchTxFunc = (q, v) -> {
+            if (v.expired() && !q.showExpired()) {
+                // Filter expired vertices with TTL
+                return null;
+            }
+            // Filter vertices matched conditions
+            return q.test(v) ? v : null;
+        };
+        vertices =  this.joinTxRecords(query, vertices, matchTxFunc,
                                        this.addedVertices, this.removedVertices,
                                        this.updatedVertices);
-        // Filter vertices with ttl
-        if (!query.showExpired()) {
-            vertices = new FilterIterator<>(vertices, vertex -> {
-                return !vertex.expired();
-            });
-        }
         return vertices;
     }
 
     private Iterator<?> joinTxEdges(Query query, Iterator<HugeEdge> edges,
                                     Map<Id, HugeVertex> removingVertices) {
         assert query.resultType().isEdge();
-        final BiFunction<Query, HugeEdge, HugeEdge> matchTxEdges = (q, e) -> {
+        BiFunction<Query, HugeEdge, HugeEdge> matchTxFunc = (q, e) -> {
             assert q.resultType() == HugeType.EDGE;
+            if (e.expired() && !q.showExpired()) {
+                // Filter expired edges with TTL
+                return null;
+            }
+            // Filter edges matched conditions
             return q.test(e) ? e : q.test(e = e.switchOwner()) ? e : null;
         };
-        edges = this.joinTxRecords(query, edges, matchTxEdges,
+        edges = this.joinTxRecords(query, edges, matchTxFunc,
                                    this.addedEdges, this.removedEdges,
                                    this.updatedEdges);
-        // Filter edges with ttl
-        if (!query.showExpired()) {
-            edges = new FilterIterator<>(edges, edge -> {
-                return !edge.expired();
-            });
-        }
         if (removingVertices.isEmpty()) {
             return edges;
         }
@@ -1658,7 +1655,7 @@ public class GraphTransaction extends IndexableTransaction {
     private <V extends HugeElement> Iterator<V> joinTxRecords(
                                     Query query,
                                     Iterator<V> records,
-                                    BiFunction<Query, V, V> match,
+                                    BiFunction<Query, V, V> matchFunc,
                                     Map<Id, V> addedTxRecords,
                                     Map<Id, V> removedTxRecords,
                                     Map<Id, V> updatedTxRecords) {
@@ -1680,7 +1677,7 @@ public class GraphTransaction extends IndexableTransaction {
             if (query.reachLimit(txResults.size())) {
                 break;
             }
-            if ((elem = match.apply(query, elem)) != null) {
+            if ((elem = matchFunc.apply(query, elem)) != null) {
                 txResults.add(elem);
             }
         }
@@ -1688,7 +1685,7 @@ public class GraphTransaction extends IndexableTransaction {
             if (query.reachLimit(txResults.size())) {
                 break;
             }
-            if ((elem = match.apply(query, elem)) != null) {
+            if ((elem = matchFunc.apply(query, elem)) != null) {
                 txResults.add(elem);
             }
         }
