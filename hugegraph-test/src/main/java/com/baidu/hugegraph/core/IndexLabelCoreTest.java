@@ -1692,6 +1692,19 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
               .by("age", "city")
               .ifNotExist()
               .create();
+
+        schema.indexLabel("ageIndex4Person")
+              .onV("person")
+              .by("age")
+              .range()
+              .ifNotExist()
+              .create();
+        schema.indexLabel("ageIndex4Person")
+              .onV("person")
+              .by("age")
+              .range()
+              .checkExist(false)
+              .create();
     }
 
     @Test
@@ -1743,6 +1756,21 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
                   .onE("friend")
                   .by("time")
                   .checkExist(false)
+                  .create();
+        });
+
+        schema.indexLabel("ageIndex4Person")
+              .onV("person")
+              .by("age")
+              .range()
+              .ifNotExist()
+              .create();
+        Assert.assertThrows(ExistedException.class, () -> {
+            schema.indexLabel("ageIndex4Person")
+                  .onV("person")
+                  .by("age")
+                  .secondary()  // different index type
+                  .ifNotExist()
                   .create();
         });
     }
