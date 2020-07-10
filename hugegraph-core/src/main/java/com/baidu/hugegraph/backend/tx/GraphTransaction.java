@@ -533,7 +533,19 @@ public class GraphTransaction extends IndexableTransaction {
 
         QueryList<Number> queries = this.optimizeQueries(query, q -> {
             boolean indexQuery = q.getClass() == IdQuery.class;
-            Number result = indexQuery ? q.ids().size() : super.queryNumber(q);
+            int optimized = ((ConditionQuery) query).optimized();
+            Number result;
+            if (!indexQuery) {
+                result = super.queryNumber(q);
+            } else if (optimized == OptimizedType.INDEX.ordinal()) {
+                // Assume no left index, ids count means results size
+                result = q.ids().size();
+            } else {
+                assert optimized == OptimizedType.INDEX_FILTER.ordinal();
+                result = IteratorUtils.count(q.resultType().isVertex() ?
+                                             this.queryVertices(q) :
+                                             this.queryEdges(q));
+            }
             return new QueryResults<>(IteratorUtils.of(result), q);
         });
 

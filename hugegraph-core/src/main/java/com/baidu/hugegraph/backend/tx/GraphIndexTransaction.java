@@ -1123,6 +1123,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
          */
         indexQuery.page(query.page());
         indexQuery.limit(query.total());
+        indexQuery.capacity(query.capacity());
 
         return indexQuery;
     }
