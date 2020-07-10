@@ -22,6 +22,7 @@ package com.baidu.hugegraph.task;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -53,7 +54,6 @@ public final class TaskManager {
     private static final TaskManager MANAGER = new TaskManager(THREADS);
 
     private final Map<HugeGraphParams, TaskScheduler> schedulers;
-    private final Map<HugeGraphParams, ServerInfoManager> serverInfoManagers;
 
     private final ExecutorService taskExecutor;
     private final ExecutorService taskDbExecutor;
@@ -66,7 +66,6 @@ public final class TaskManager {
 
     private TaskManager(int pool) {
         this.schedulers = new ConcurrentHashMap<>();
-        this.serverInfoManagers = new ConcurrentHashMap<>();
 
         // For execute tasks
         this.taskExecutor = ExecutorUtil.newFixedThreadPool(pool, TASK_WORKER);
@@ -87,14 +86,10 @@ public final class TaskManager {
     public void addScheduler(HugeGraphParams graph) {
         E.checkArgumentNotNull(graph, "The graph can't be null");
 
-        TaskScheduler scheduler = new StandardTaskScheduler(
-                                  graph, this.taskExecutor,
-                                  this.taskDbExecutor);
+        TaskScheduler scheduler = new StandardTaskScheduler(graph,
+                                  this.taskExecutor,this.taskDbExecutor,
+                                  this.serverInfoDbExecutor);
         this.schedulers.put(graph, scheduler);
-
-        ServerInfoManager serverInfoManager = new ServerInfoManager(
-                                              graph, this.serverInfoDbExecutor);
-        this.serverInfoManagers.put(graph, serverInfoManager);
     }
 
     public void closeScheduler(HugeGraphParams graph) {
@@ -106,10 +101,6 @@ public final class TaskManager {
             this.closeTaskTx(graph);
         }
 
-        ServerInfoManager manager = this.serverInfoManagers.get(graph);
-        if (manager != null && manager.close()) {
-            this.serverInfoManagers.remove(graph);
-        }
         if (!this.schedulerExecutor.isTerminated()) {
             this.closeSchedulerTx(graph);
         }
@@ -172,12 +163,16 @@ public final class TaskManager {
     }
 
     public ServerInfoManager getServerInfoManager(HugeGraphParams graph) {
-        return this.serverInfoManagers.get(graph);
+        StandardTaskScheduler scheduler = (StandardTaskScheduler)
+                                          this.getScheduler(graph);
+        if (scheduler == null) {
+            return null;
+        }
+        return scheduler.serverManager();
     }
 
     public void shutdown(long timeout) {
         assert this.schedulers.isEmpty() : this.schedulers.size();
-        assert this.serverInfoManagers.isEmpty() : this.serverInfoManagers.size();
 
         Throwable ex = null;
         boolean terminated = this.schedulerExecutor.isTerminated();
@@ -242,17 +237,25 @@ public final class TaskManager {
     }
 
     protected void notifyNewTask(HugeTask<?> task) {
-        // Notify to schedule tasks initiatively when have new task
-        this.schedulerExecutor.submit(this::scheduleOrExecuteJob);
+        Queue<Runnable> queue = ((ThreadPoolExecutor) this.schedulerExecutor)
+                                                          .getQueue();
+        if (queue.size() <= 1) {
+            /*
+             * Notify to schedule tasks initiatively when have new task
+             * It's OK to not notify again if there are more than one task in
+             * queue(like two, one is timer task, one is immediate task),
+             * we don't want too many immediate tasks to be inserted into queue,
+             * one notify will cause all the tasks to be processed.
+             */
+            this.schedulerExecutor.submit(this::scheduleOrExecuteJob);
+        }
     }
 
     private void scheduleOrExecuteJob() {
         try {
-            for (Map.Entry<HugeGraphParams, TaskScheduler> entry :
-                 this.schedulers.entrySet()) {
-                ServerInfoManager server = entry.getKey().serverManager();
-                StandardTaskScheduler scheduler = (StandardTaskScheduler)
-                                                  entry.getValue();
+            for (TaskScheduler entry : this.schedulers.values()) {
+                StandardTaskScheduler scheduler = (StandardTaskScheduler) entry;
+                ServerInfoManager server = scheduler.serverManager();
 
                 // Update server heartbeat
                 server.heartbeat();
@@ -266,10 +269,10 @@ public final class TaskManager {
                 }
 
                 // Schedule queued tasks scheduled to current server
-                scheduler.executeTasksForWorker(server.serverId());
+                scheduler.executeTasksOnWorker(server.selfServerId());
 
                 // Cancel tasks scheduled to current server
-                scheduler.cancelTasksForWorker(server.serverId());
+                scheduler.cancelTasksOnWorker(server.selfServerId());
             }
         } catch (Throwable e) {
             LOG.error("Exception occurred when schedule job", e);

@@ -906,7 +906,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
 
         TaskScheduler scheduler = graph().taskScheduler();
         Id id = schema.vertexLabel("person").remove();
-        sleepAWhile(1000L);
+        sleepAWhile(100L);
         HugeTask<?> task = scheduler.task(id);
         Assert.assertEquals(TaskStatus.FAILED, task.status());
         Assert.assertContains("Not allowed to remove vertex label " +
@@ -914,7 +914,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
                               "still link with it", task.result());
 
         id = schema.vertexLabel("book").remove();
-        sleepAWhile(1000L);
+        sleepAWhile(100L);
         task = scheduler.task(id);
         Assert.assertEquals(TaskStatus.FAILED, task.status());
         Assert.assertContains("Not allowed to remove vertex label 'book' " +

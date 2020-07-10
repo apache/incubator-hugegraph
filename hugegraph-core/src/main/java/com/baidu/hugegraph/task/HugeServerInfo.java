@@ -59,6 +59,8 @@ public class HugeServerInfo {
     private int load;
     private Date updateTime;
 
+    private transient boolean updated = false;
+
     public HugeServerInfo(String name, NodeRole role) {
         this(IdGenerator.of(name), role);
     }
@@ -110,6 +112,11 @@ public class HugeServerInfo {
         this.load = load;
     }
 
+    public void increaseLoad(int delta) {
+        this.load += delta;
+        this.updated = true;
+    }
+
     public Date updateTime() {
         return this.updateTime;
     }
@@ -122,6 +129,10 @@ public class HugeServerInfo {
         long now = DateUtil.now().getTime();
         return this.updateTime != null &&
                this.updateTime.getTime() + EXPIRED_INTERVAL > now;
+    }
+
+    public boolean updated() {
+        return this.updated;
     }
 
     @Override

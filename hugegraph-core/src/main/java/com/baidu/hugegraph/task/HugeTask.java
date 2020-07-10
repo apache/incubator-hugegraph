@@ -68,14 +68,15 @@ public class HugeTask<V> extends FutureTask<V> {
     private String description;
     private String context;
     private Date create;
+    private Id server;
+    private int load;
+
     private volatile TaskStatus status;
     private volatile int progress;
     private volatile Date update;
     private volatile int retries;
     private volatile String input;
     private volatile String result;
-    private Id server;
-    private int load;
 
     public HugeTask(Id id, Id parent, String callable, String input) {
         this(id, parent, TaskCallable.fromClass(callable));
@@ -241,6 +242,10 @@ public class HugeTask<V> extends FutureTask<V> {
         return TaskStatus.COMPLETED_STATUSES.contains(this.status);
     }
 
+    public boolean success() {
+        return this.status == TaskStatus.SUCCESS;
+    }
+
     public boolean cancelled() {
         return this.status == TaskStatus.CANCELLED || this.isCancelled();
     }
@@ -330,11 +335,7 @@ public class HugeTask<V> extends FutureTask<V> {
         } finally {
             StandardTaskScheduler scheduler = (StandardTaskScheduler)
                                               this.scheduler();
-            scheduler.remove(this.id);
-            ServerInfoManager manager = scheduler.serverManager();
-            manager.decreaseLoad(this.load);
-
-            LOG.info("Task {} done on server {}", this.id, manager.serverId());
+            scheduler.taskDone(this);
         }
     }
 
@@ -344,6 +345,8 @@ public class HugeTask<V> extends FutureTask<V> {
         checkPropertySize(result, P.RESULT);
         if (this.status(TaskStatus.SUCCESS)) {
             this.result = result;
+        } else {
+            assert this.completed();
         }
         // Will call done() and may cause to save to store
         super.set(v);
@@ -406,6 +409,9 @@ public class HugeTask<V> extends FutureTask<V> {
             E.checkState(this.name != null, "Task name can't be null");
         }
         if (!this.completed()) {
+            assert this.status.code() < status.code() ||
+                   status == TaskStatus.RESTORING :
+                   this.status + " => " + status + " (task " + this.id + ")";
             this.status = status;
             return true;
         }
@@ -634,9 +640,11 @@ public class HugeTask<V> extends FutureTask<V> {
     }
 
     public void syncWait() {
+        // This method is just called by tests
+        HugeTask<?> task = null;
         try {
-            this.scheduler().waitUntilTaskCompleted(this.id());
-        } catch (Exception e) {
+            task = this.scheduler().waitUntilTaskCompleted(this.id());
+        } catch (Throwable e) {
             if (this.callable() instanceof EphemeralJob &&
                 e.getClass() == NotFoundException.class &&
                 e.getMessage().contains("Can't find task with id")) {
@@ -646,8 +654,18 @@ public class HugeTask<V> extends FutureTask<V> {
                  */
                 return;
             }
-            throw new HugeException("Failed to wait task '%s' completed",
+            throw new HugeException("Failed to wait for task '%s' completed",
                                     e, this.id);
+        }
+        assert task != null;
+        /*
+         * This can be enabled for debug to expose schema-clear errors early，
+         * but also lead to some negative tests failed,
+         */
+        boolean debugTest = false;
+        if (debugTest && !task.success()) {
+            throw new HugeException("Task '%s' is failed with error: %s",
+                                    task.id(), task.result());
         }
     }
 

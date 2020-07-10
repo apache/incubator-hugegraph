@@ -35,13 +35,17 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.io.Io;
 
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
 import com.baidu.hugegraph.io.HugeGraphIoRegistry;
 import com.baidu.hugegraph.io.HugeGraphSONModule;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaManager;
+import com.baidu.hugegraph.task.TaskScheduler;
 import com.baidu.hugegraph.type.define.IdStrategy;
+import com.baidu.hugegraph.type.define.NodeRole;
 import com.google.common.collect.ImmutableSet;
 
 @Graph.OptIn("com.baidu.hugegraph.tinkerpop.StructureBasicSuite")
@@ -77,7 +81,14 @@ public class TestGraph implements Graph {
         BackendStoreSystemInfo sysInfo = this.graph.backendStoreSystemInfo();
         if (!sysInfo.exists()) {
             this.graph.initBackend();
+        } else {
+            // May reopen a closed graph
+            assert sysInfo.exists() && !this.graph.closed();
         }
+
+        Id id = IdGenerator.of("server-tinkerpop");
+        this.graph.serverStarted(id, NodeRole.MASTER);
+
         this.initedBackend = true;
     }
 
@@ -134,6 +145,11 @@ public class TestGraph implements Graph {
 
         schema.getPropertyKeys().stream().forEach(elem -> {
             schema.propertyKey(elem.name()).remove();
+        });
+
+        TaskScheduler scheduler = this.graph.taskScheduler();
+        scheduler.tasks(null, -1, null).forEachRemaining(elem -> {
+            scheduler.delete(elem.id());
         });
     }
 

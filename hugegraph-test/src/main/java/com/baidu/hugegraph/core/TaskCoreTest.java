@@ -48,8 +48,6 @@ import com.google.common.collect.ImmutableMap;
 
 public class TaskCoreTest extends BaseCoreTest {
 
-    private static final int SLEEP_TIME = 500;
-
     @Before
     @Override
     public void setup() {
@@ -70,7 +68,7 @@ public class TaskCoreTest extends BaseCoreTest {
         TaskScheduler scheduler = graph.taskScheduler();
 
 
-        TaskCallable<Object> callable = new TestTaskCallable<>();
+        TaskCallable<Object> callable = new SleepCallable<>();
 
         Id id = IdGenerator.of(88888);
         HugeTask<?> task = new HugeTask<>(id, null, callable);
@@ -81,7 +79,7 @@ public class TaskCoreTest extends BaseCoreTest {
         Assert.assertEquals(id, task.id());
         Assert.assertFalse(task.completed());
 
-        Assert.assertThrows(HugeException.class, () -> {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
             scheduler.delete(id);
         }, e -> {
             Assert.assertContains("Can't delete incomplete task '88888'",
@@ -128,7 +126,7 @@ public class TaskCoreTest extends BaseCoreTest {
         TaskCallable<Integer> callable = new TaskCallable<Integer>() {
             @Override
             public Integer call() throws Exception {
-                Thread.sleep(SLEEP_TIME);
+                sleepAWhile();
                 return 125;
             }
             @Override
@@ -189,7 +187,7 @@ public class TaskCoreTest extends BaseCoreTest {
                     }
                     @Override
                     public Object execute() throws Exception {
-                        Thread.sleep(SLEEP_TIME);
+                        sleepAWhile();
                         return ImmutableMap.of("k1", 13579, "k2", "24680");
                     }
                });
@@ -446,13 +444,14 @@ public class TaskCoreTest extends BaseCoreTest {
 
         HugeTask<Object> task = runGremlinJob("Thread.sleep(1000 * 10);");
 
-
         sleepAWhile();
         task = scheduler.task(task.id());
         scheduler.cancel(task);
 
-        sleepAWhile();
         task = scheduler.task(task.id());
+        Assert.assertEquals(TaskStatus.CANCELLING, task.status());
+
+        task = scheduler.waitUntilTaskCompleted(task.id(), 10);
         Assert.assertEquals(TaskStatus.CANCELLED, task.status());
         Assert.assertEquals("test-gremlin-job", task.name());
         Assert.assertTrue(task.result(), task.result() == null ||
@@ -506,18 +505,22 @@ public class TaskCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         TaskScheduler scheduler = graph.taskScheduler();
 
-        String gremlin = "for(int i=gremlinJob.progress(); i<=10; i++) {" +
+        String gremlin = "System.out.println('task start');" +
+                         "for(int i=gremlinJob.progress(); i<=10; i++) {" +
                          "  gremlinJob.updateProgress(i);" +
-                         "  Thread.sleep(1000);" +
+                         "  Thread.sleep(200); " +
+                         "  System.out.println('sleep=>'+i);" +
                          "}; 100;";
         HugeTask<Object> task = runGremlinJob(gremlin);
 
-        Thread.sleep(1000 * 6);
+        sleepAWhile(200 * 6);
         task = scheduler.task(task.id());
         scheduler.cancel(task);
 
-        sleepAWhile();
         task = scheduler.task(task.id());
+        Assert.assertEquals(TaskStatus.CANCELLING, task.status());
+
+        task = scheduler.waitUntilTaskCompleted(task.id(), 10);
         Assert.assertEquals(TaskStatus.CANCELLED, task.status());
         Assert.assertTrue("progress=" + task.progress(),
                           0 < task.progress() && task.progress() < 10);
@@ -540,6 +543,7 @@ public class TaskCoreTest extends BaseCoreTest {
             Assert.assertContains("No need to restore completed task",
                                   e.getMessage());
         });
+
         Whitebox.setInternalState(task2, "status", TaskStatus.RUNNING);
         Whitebox.invoke(scheduler.getClass(), "restore", scheduler, task2);
 
@@ -550,7 +554,7 @@ public class TaskCoreTest extends BaseCoreTest {
         });
 
         scheduler.waitUntilTaskCompleted(task2.id(), 10);
-        sleepAWhile(2000L);
+        sleepAWhile(500);
         Assert.assertEquals(10, task2.progress());
         Assert.assertEquals(1, task2.retries());
         Assert.assertEquals("100", task2.result());
@@ -571,7 +575,7 @@ public class TaskCoreTest extends BaseCoreTest {
     }
 
     private static void sleepAWhile() {
-        sleepAWhile(SLEEP_TIME);
+        sleepAWhile(100);
     }
 
     private static void sleepAWhile(long ms) {
@@ -582,15 +586,15 @@ public class TaskCoreTest extends BaseCoreTest {
         }
     }
 
-    public static class TestTaskCallable<V> extends TaskCallable<V> {
+    public static class SleepCallable<V> extends TaskCallable<V> {
 
-        public TestTaskCallable() {
+        public SleepCallable() {
             // pass
         }
 
         @Override
         public V call() throws Exception {
-            Thread.sleep(SLEEP_TIME);
+            Thread.sleep(1000);
             return null;
         }
 
