@@ -41,6 +41,7 @@ function abs_path() {
 BIN=`abs_path`
 TOP="$(cd $BIN/../ && pwd)"
 CONF="$TOP/conf"
+LOG="$TOP/logs"
 PID_FILE="$BIN/pid"
 
 . $BIN/util.sh
@@ -55,13 +56,8 @@ check_port "$GREMLIN_SERVER_URL"
 check_port "$REST_SERVER_URL"
 
 echo "Starting HugeGraphServer..."
-if [ -n "$VERBOSE" ]; then
-    "$BIN"/hugegraph-server.sh "$CONF"/gremlin-server.yaml "$CONF"/rest-server.properties \
-    "$OPEN_SECURITY_CHECK" $USER_OPTION $GC_OPTION &
-else
-    "$BIN"/hugegraph-server.sh "$CONF"/gremlin-server.yaml "$CONF"/rest-server.properties \
-    "$OPEN_SECURITY_CHECK" $USER_OPTION $GC_OPTION >/dev/null 2>&1 &
-fi
+"$BIN"/hugegraph-server.sh "$CONF"/gremlin-server.yaml "$CONF"/rest-server.properties \
+"$OPEN_SECURITY_CHECK" "$USER_OPTION" "$GC_OPTION" >>"$LOG/hugegraph-server.log" 2>&1 &
 
 PID="$!"
 # Write pid to file
