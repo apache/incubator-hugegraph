@@ -125,9 +125,9 @@ public class IndexLabelBuilder extends AbstractBuilder
     private boolean hasSameProperties(IndexLabel existedIndexLabel) {
         // baseType is null, it means HugeType.SYS_SCHEMA
         if ((this.baseType == null &&
-            existedIndexLabel.baseType() != HugeType.SYS_SCHEMA) ||
+             existedIndexLabel.baseType() != HugeType.SYS_SCHEMA) ||
             (this.baseType != null &&
-            this.baseType != existedIndexLabel.baseType())) {
+             this.baseType != existedIndexLabel.baseType())) {
             return false;
         }
 
