@@ -136,11 +136,21 @@ public class IndexLabelBuilder extends AbstractBuilder
             return false;
         }
 
-        if ((this.indexType == null &&
-             existedIndexLabel.indexType() != IndexType.SECONDARY) ||
-            (this.indexType != null &&
-             this.indexType != existedIndexLabel.indexType())) {
-            return false;
+        if (this.indexType == null) {
+            // The default index type is SECONDARY
+            if (existedIndexLabel.indexType() != IndexType.SECONDARY) {
+                return false;
+            }
+        } else {
+            // NOTE: IndexType.RANGE.isRange() return false
+            if (this.indexType == IndexType.RANGE) {
+                // existedIndexLabel index type format: RANGE_INT, RANGE_LONG
+                if (!existedIndexLabel.indexType().isRange()) {
+                    return false;
+                }
+            } else if (this.indexType != existedIndexLabel.indexType()) {
+                return false;
+            }
         }
 
         List<Id> existedIndexFieldIds = existedIndexLabel.indexFields();
