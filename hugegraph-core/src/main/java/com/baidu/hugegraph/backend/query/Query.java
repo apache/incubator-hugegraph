@@ -220,7 +220,8 @@ public class Query implements Cloneable {
         if (this.capacity != NO_CAPACITY) {
             E.checkArgument(this.limit == Query.NO_LIMIT ||
                             this.limit <= this.capacity,
-                            "Invalid limit %s, must be <= capacity", this.limit);
+                            "Invalid limit %s, must be <= capacity(%s)",
+                            this.limit, this.capacity);
         }
         return this.limit;
     }

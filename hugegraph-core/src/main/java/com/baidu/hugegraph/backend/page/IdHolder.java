@@ -70,6 +70,7 @@ public abstract class IdHolder {
 
         public FixedIdHolder(Query query, Set<Id> ids) {
             super(query);
+            E.checkArgumentNotNull(ids, "The ids can't be null");
             this.ids = ids;
         }
 
@@ -135,6 +136,7 @@ public abstract class IdHolder {
         private final Iterator<BackendEntry> entries;
         private final Function<Long, Set<Id>> fetcher;
         private long count;
+        private PageIds currentBatch;
 
         public BatchIdHolder(ConditionQuery query,
                              Iterator<BackendEntry> entries,
@@ -143,6 +145,7 @@ public abstract class IdHolder {
             this.entries = entries;
             this.fetcher = fetcher;
             this.count = 0L;
+            this.currentBatch = null;
         }
 
         @Override
@@ -152,6 +155,9 @@ public abstract class IdHolder {
 
         @Override
         public boolean hasNext() {
+            if (this.currentBatch != null) {
+                return true;
+            }
             if (this.exhausted) {
                 return false;
             }
@@ -177,6 +183,12 @@ public abstract class IdHolder {
             E.checkArgument(batchSize >= 0L,
                             "Invalid batch size value: %s", batchSize);
 
+            if (this.currentBatch != null) {
+                PageIds result = this.currentBatch;
+                this.currentBatch = null;
+                return result;
+            }
+
             if (!this.query.nolimit()) {
                 long remaining = this.remaining();
                 if (remaining < batchSize) {
@@ -201,10 +213,24 @@ public abstract class IdHolder {
 
         @Override
         public Set<Id> all() {
-            Set<Id> ids = this.fetcher.apply(this.remaining());
-            this.count += ids.size();
-            this.close();
-            return ids;
+            try {
+                Set<Id> ids = this.fetcher.apply(this.remaining());
+                if (this.currentBatch != null) {
+                    ids.addAll(this.currentBatch.ids());
+                    this.currentBatch = null;
+                }
+                this.count += ids.size();
+                return ids;
+            } finally {
+                this.close();
+            }
+        }
+
+        public PageIds peekNext(long size) {
+            E.checkArgument(this.currentBatch == null,
+                            "Can't call peekNext() twice");
+            this.currentBatch = this.fetchNext(null, size);
+            return this.currentBatch;
         }
 
         private long remaining() {

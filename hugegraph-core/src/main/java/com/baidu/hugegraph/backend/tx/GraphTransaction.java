@@ -1289,6 +1289,7 @@ public class GraphTransaction extends IndexableTransaction {
         QueryList<R> queries = new QueryList<>(query, fetcher);
         for (ConditionQuery cq: ConditionQueryFlatten.flatten(
                                 (ConditionQuery) query)) {
+            // Optimize by sysprop
             Query q = this.optimizeQuery(cq);
             /*
              * NOTE: There are two possibilities for this query:

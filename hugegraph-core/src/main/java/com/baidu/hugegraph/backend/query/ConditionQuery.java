@@ -398,6 +398,18 @@ public final class ConditionQuery extends IdQuery {
         ConditionQuery query = (ConditionQuery) super.copy();
         query.originQuery(this);
         query.conditions = new LinkedHashSet<>(this.conditions);
+
+        query.optimizedType = 0;
+        query.resultsFilter = null;
+
+        return query;
+    }
+
+    public ConditionQuery copyAndResetUnshared() {
+        ConditionQuery query = this.copy();
+        // These fields should not be shared by multiple sub-query
+        query.optimizedType = 0;
+        query.resultsFilter = null;
         return query;
     }
 
@@ -454,12 +466,19 @@ public final class ConditionQuery extends IdQuery {
 
     public void optimized(int optimizedType) {
         assert this.optimizedType <= optimizedType :
-               this.optimizedType + " != " + optimizedType;
+               this.optimizedType + " !<= " + optimizedType;
         this.optimizedType = optimizedType;
 
         Query originQuery = this.originQuery();
         if (originQuery instanceof ConditionQuery) {
-            ((ConditionQuery) originQuery).optimized(optimizedType);
+            ConditionQuery cq = ((ConditionQuery) originQuery);
+            /*
+             * Two sub-query(flatten) will both set optimized of originQuery,
+             * here we just keep the higher one, this may not be a perfect way
+             */
+            if (optimizedType > cq.optimized()) {
+                cq.optimized(optimizedType);
+            }
         }
     }
 
@@ -473,7 +492,8 @@ public final class ConditionQuery extends IdQuery {
 
         Query originQuery = this.originQuery();
         if (originQuery instanceof ConditionQuery) {
-            ((ConditionQuery) originQuery).registerResultsFilter(filter);
+            ConditionQuery cq = ((ConditionQuery) originQuery);
+            cq.registerResultsFilter(filter);
         }
     }
 

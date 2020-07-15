@@ -461,7 +461,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
         List<ConditionQuery> flatten = ConditionQueryFlatten.flatten(query);
         for (ConditionQuery q : flatten) {
             if (!q.nolimit() && flatten.size() > 1) {
-                // Increase limit for intersection
+                // Increase limit for union operation
                 increaseLimit(q);
             }
             IndexQueries queries = index.constructIndexQueries(q);
@@ -500,37 +500,61 @@ public class GraphIndexTransaction extends AbstractTransaction {
         }
         // All queries are joined with AND
         Set<Id> intersectIds = null;
+        boolean filtering = false;
+        IdHolder resultHolder = null;
         for (Map.Entry<IndexLabel, ConditionQuery> e : queries.entrySet()) {
             IndexLabel indexLabel = e.getKey();
             ConditionQuery query = e.getValue();
             assert !query.paging();
             if (!query.nolimit() && queries.size() > 1) {
-                // Increase limit for intersection
-                increaseLimit(query);
+                // Unset limit for intersection operation
+                query.limit(Query.NO_LIMIT);
             }
             /*
-             * Query all for first index, try query all for tail indexes, or
-             * transform into partial index query, then filter after back-table
+             * Try to query by joint indexes:
+             * 1 If there is any index exceeded the threshold, transform into
+             *   partial index query, then filter after back-table.
+             * 1.1 Return the holder of the first index that not exceeded the
+             *     threshold if there exists one index, this holder will be used
+             *     as the only query condition.
+             * 1.2 Return the holder of the first index if all indexes exceeded
+             *     the threshold.
+             * 2 Else intersect holders for all indexes, and return intersection
+             *   ids of all indexes.
              */
             IdHolder holder = this.doIndexQuery(indexLabel, query);
-            if (intersectIds == null) {
-                intersectIds = holder.all();
+            if (resultHolder == null) {
+                resultHolder = holder;
+            }
+            assert this.indexIntersectThresh > 0; // default value is 1000
+            Set<Id> ids = ((BatchIdHolder) holder).peekNext(
+                          this.indexIntersectThresh).ids();
+            if (ids.size() >= this.indexIntersectThresh) {
+                // Transform into filtering
+                filtering = true;
+                query.optimized(OptimizedType.INDEX_FILTER.ordinal());
+            } else if (filtering) {
+                assert ids.size() < this.indexIntersectThresh;
+                resultHolder = holder;
+                break;
             } else {
-                assert this.indexIntersectThresh > 0; // default value is 1000
-                Set<Id> ids = holder.fetchNext(null, this.indexIntersectThresh)
-                                    .ids();
-                if (ids.size() >= this.indexIntersectThresh) {
-                    // Transform into filter
-                    query.optimized(OptimizedType.INDEX_FILTER.ordinal());
+                if (intersectIds == null) {
+                    intersectIds = ids;
+                } else {
+                    CollectionUtil.intersectWithModify(intersectIds, ids);
+                }
+                if (intersectIds.isEmpty()) {
                     break;
                 }
-                CollectionUtil.intersectWithModify(intersectIds, ids);
-            }
-            if (intersectIds.isEmpty()) {
-                break;
             }
         }
-        return new FixedIdHolder(queries.asJointQuery(), intersectIds);
+
+        if (filtering) {
+            return resultHolder;
+        } else {
+            assert intersectIds != null;
+            return new FixedIdHolder(queries.asJointQuery(), intersectIds);
+        }
     }
 
     @Watched(prefix = "index")

@@ -70,6 +70,7 @@ public class SortByCountIdHolderList extends IdHolderList {
         public void merge(IdHolder holder) {
             for (Id id : holder.all()) {
                 this.ids.compute(id, (k, v) -> v == null ? 1 : v + 1);
+                Query.checkForceCapacity(this.ids.size());
             }
         }
 
