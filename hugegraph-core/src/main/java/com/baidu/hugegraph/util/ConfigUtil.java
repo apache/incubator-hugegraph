@@ -24,9 +24,11 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.configuration.ConfigurationException;
+import org.apache.commons.configuration.tree.ConfigurationNode;
 import org.apache.commons.io.Charsets;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -51,10 +53,17 @@ public final class ConfigUtil {
         } catch (ConfigurationException e) {
             throw new HugeException("Failed to load yaml config file ", conf);
         }
-        int count = yamlConfig.getRootNode().getChildrenCount(NODE_GRAPHS);
-        E.checkArgument(count == 0,
-                        "Don't allow to specify '%s' node in config file '%s'",
-                        NODE_GRAPHS, conf);
+        List<ConfigurationNode> nodes = yamlConfig.getRootNode()
+                                                  .getChildren(NODE_GRAPHS);
+        E.checkArgument(nodes == null || nodes.size() == 1,
+                        "Not allowed to specify multiple '%s' nodes in " +
+                        "config file '%s'", NODE_GRAPHS, conf);
+        if (nodes != null) {
+            List<ConfigurationNode> graphNames = nodes.get(0).getChildren();
+            E.checkArgument(graphNames.isEmpty(),
+                            "Don't allow to fill value for '%s' node in " +
+                            "config file '%s'", NODE_GRAPHS, conf);
+        }
     }
 
     public static Map<String, String> scanGraphsDir(String graphsDirPath) {
