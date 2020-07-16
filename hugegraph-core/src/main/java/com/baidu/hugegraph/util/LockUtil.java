@@ -59,6 +59,7 @@ public final class LockUtil {
     public static final String PROPERTY_KEY_ADD_UPDATE = "pk_add_update";
     public static final String KEY_LOCK = "key_lock";
     public static final String ROW_LOCK = "row_lock";
+    public static final String REENTRANT_LOCK = "reentrant_lock";
 
     public static final long WRITE_WAIT_TIMEOUT = 30L;
 
@@ -160,6 +161,16 @@ public final class LockUtil {
         RowLock<K> rowLock = LockManager.instance().get(join(graph, ROW_LOCK))
                                         .rowLock(group);
         rowLock.unlockAll(rows);
+    }
+
+    public static void lock(String graph, String name) {
+        LockManager.instance().get(join(graph, REENTRANT_LOCK))
+                   .lock(name).lock();
+    }
+
+    public static void unlock(String graph, String name) {
+        LockManager.instance().get(join(graph, REENTRANT_LOCK))
+                   .lock(name).unlock();
     }
 
     public static List<Lock> lock(String... locks) {

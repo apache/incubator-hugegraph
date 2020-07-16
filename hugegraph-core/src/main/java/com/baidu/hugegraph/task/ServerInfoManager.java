@@ -200,6 +200,11 @@ public class ServerInfoManager {
         return 10000;
     }
 
+    protected boolean initialized() {
+        return this.call(() -> this.graph.graph().backendStoreSystemInfo()
+                                         .exists());
+    }
+
     protected synchronized HugeServerInfo pickWorkerNode(
                                           Collection<HugeServerInfo> servers,
                                           HugeTask<?> task) {
@@ -325,8 +330,7 @@ public class ServerInfoManager {
     }
 
     private HugeServerInfo removeSelfServerInfo() {
-        if (this.call(() -> this.graph.graph()
-                                .backendStoreSystemInfo().exists())) {
+        if (this.initialized()) {
             return this.removeServerInfo(this.selfServerId);
         }
         return null;

@@ -231,12 +231,14 @@ public class StandardHugeGraph implements HugeGraph {
         this.loadSystemStore().open(this.configuration);
         this.loadGraphStore().open(this.configuration);
         try {
+            LockUtil.lock(this.name, TaskManager.HEARTBEAT);
             this.storeProvider.init();
             this.storeProvider.initSystemInfo(this);
         } finally {
             this.loadGraphStore().close();
             this.loadSystemStore().close();
             this.loadSchemaStore().close();
+            LockUtil.unlock(this.name, TaskManager.HEARTBEAT);
         }
 
         LOG.info("Graph '{}' has been initialized", this.name);
@@ -250,11 +252,13 @@ public class StandardHugeGraph implements HugeGraph {
         this.loadSystemStore().open(this.configuration);
         this.loadGraphStore().open(this.configuration);
         try {
+            LockUtil.lock(this.name, TaskManager.HEARTBEAT);
             this.storeProvider.clear();
         } finally {
             this.loadGraphStore().close();
             this.loadSystemStore().close();
             this.loadSchemaStore().close();
+            LockUtil.unlock(this.name, TaskManager.HEARTBEAT);
         }
 
         LOG.info("Graph '{}' has been cleared", this.name);
@@ -264,11 +268,15 @@ public class StandardHugeGraph implements HugeGraph {
     public void truncateBackend() {
         this.waitUntilAllTasksCompleted();
 
-        this.storeProvider.truncate();
-        this.storeProvider.initSystemInfo(this);
-        this.serverStarted(this.serverInfoManager().selfServerId(),
-                           this.serverInfoManager().selfServerRole());
-
+        try {
+            LockUtil.lock(this.name, TaskManager.HEARTBEAT);
+            this.storeProvider.truncate();
+            this.storeProvider.initSystemInfo(this);
+            this.serverStarted(this.serverInfoManager().selfServerId(),
+                               this.serverInfoManager().selfServerRole());
+        } finally {
+            LockUtil.unlock(this.name, TaskManager.HEARTBEAT);
+        }
         LOG.info("Graph '{}' has been truncated", this.name);
     }
 

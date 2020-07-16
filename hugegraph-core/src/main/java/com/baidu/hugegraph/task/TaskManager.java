@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.task;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
@@ -37,11 +38,14 @@ import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.ExecutorUtil;
+import com.baidu.hugegraph.util.LockUtil;
 import com.baidu.hugegraph.util.Log;
 
 public final class TaskManager {
 
     private static final Logger LOG = Log.logger(TaskManager.class);
+
+    public static final String HEARTBEAT = "heartbeat";
 
     public static final String TASK_WORKER = "task-worker-%d";
     public static final String TASK_DB_WORKER = "task-db-worker-%d";
@@ -252,10 +256,20 @@ public final class TaskManager {
     }
 
     private void scheduleOrExecuteJob() {
+        List<String> graphs = new ArrayList<>();
         try {
             for (TaskScheduler entry : this.schedulers.values()) {
                 StandardTaskScheduler scheduler = (StandardTaskScheduler) entry;
                 ServerInfoManager server = scheduler.serverManager();
+
+                String graph = scheduler.graph().name();
+                LockUtil.lock(graph, HEARTBEAT);
+                graphs.add(graph);
+
+                // Skip if not initialized(maybe truncated or cleared)
+                if (!server.initialized()) {
+                    continue;
+                }
 
                 // Update server heartbeat
                 server.heartbeat();
@@ -276,6 +290,11 @@ public final class TaskManager {
             }
         } catch (Throwable e) {
             LOG.error("Exception occurred when schedule job", e);
+        } finally {
+            Collections.reverse(graphs);
+            for (String graph : graphs) {
+                LockUtil.unlock(graph, HEARTBEAT);
+            }
         }
     }
 
