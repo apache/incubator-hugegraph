@@ -74,6 +74,7 @@ public final class LockUtil {
         LockManager.instance().create(join(graph, PROPERTY_KEY_ADD_UPDATE));
         LockManager.instance().create(join(graph, KEY_LOCK));
         LockManager.instance().create(join(graph, ROW_LOCK));
+        LockManager.instance().create(join(graph, REENTRANT_LOCK));
     }
 
     public static void destroy(String graph) {
@@ -87,6 +88,7 @@ public final class LockUtil {
         LockManager.instance().destroy(join(graph, PROPERTY_KEY_ADD_UPDATE));
         LockManager.instance().destroy(join(graph, KEY_LOCK));
         LockManager.instance().destroy(join(graph, ROW_LOCK));
+        LockManager.instance().destroy(join(graph, REENTRANT_LOCK));
     }
 
     private static String join(String graph, String group) {
