@@ -45,7 +45,7 @@ public final class TaskManager {
 
     private static final Logger LOG = Log.logger(TaskManager.class);
 
-    public static final String HEARTBEAT = "heartbeat";
+    public static final String GRAPH_LOCK = "graph_lock";
 
     public static final String TASK_WORKER = "task-worker-%d";
     public static final String TASK_DB_WORKER = "task-db-worker-%d";
@@ -263,7 +263,7 @@ public final class TaskManager {
                 ServerInfoManager server = scheduler.serverManager();
 
                 String graph = scheduler.graph().name();
-                LockUtil.lock(graph, HEARTBEAT);
+                LockUtil.lock(graph, GRAPH_LOCK);
                 graphs.add(graph);
 
                 // Skip if not initialized(maybe truncated or cleared)
@@ -293,7 +293,7 @@ public final class TaskManager {
         } finally {
             Collections.reverse(graphs);
             for (String graph : graphs) {
-                LockUtil.unlock(graph, HEARTBEAT);
+                LockUtil.unlock(graph, GRAPH_LOCK);
             }
         }
     }

@@ -230,15 +230,17 @@ public class StandardHugeGraph implements HugeGraph {
         this.loadSchemaStore().open(this.configuration);
         this.loadSystemStore().open(this.configuration);
         this.loadGraphStore().open(this.configuration);
+
+        LockUtil.lock(this.name, TaskManager.GRAPH_LOCK);
+
         try {
-            LockUtil.lock(this.name, TaskManager.HEARTBEAT);
             this.storeProvider.init();
             this.storeProvider.initSystemInfo(this);
         } finally {
+            LockUtil.unlock(this.name, TaskManager.GRAPH_LOCK);
             this.loadGraphStore().close();
             this.loadSystemStore().close();
             this.loadSchemaStore().close();
-            LockUtil.unlock(this.name, TaskManager.HEARTBEAT);
         }
 
         LOG.info("Graph '{}' has been initialized", this.name);
@@ -251,14 +253,16 @@ public class StandardHugeGraph implements HugeGraph {
         this.loadSchemaStore().open(this.configuration);
         this.loadSystemStore().open(this.configuration);
         this.loadGraphStore().open(this.configuration);
+
+        LockUtil.lock(this.name, TaskManager.GRAPH_LOCK);
+
         try {
-            LockUtil.lock(this.name, TaskManager.HEARTBEAT);
             this.storeProvider.clear();
         } finally {
+            LockUtil.unlock(this.name, TaskManager.GRAPH_LOCK);
             this.loadGraphStore().close();
             this.loadSystemStore().close();
             this.loadSchemaStore().close();
-            LockUtil.unlock(this.name, TaskManager.HEARTBEAT);
         }
 
         LOG.info("Graph '{}' has been cleared", this.name);
@@ -268,14 +272,15 @@ public class StandardHugeGraph implements HugeGraph {
     public void truncateBackend() {
         this.waitUntilAllTasksCompleted();
 
+        LockUtil.lock(this.name, TaskManager.GRAPH_LOCK);
+
         try {
-            LockUtil.lock(this.name, TaskManager.HEARTBEAT);
             this.storeProvider.truncate();
             this.storeProvider.initSystemInfo(this);
             this.serverStarted(this.serverInfoManager().selfServerId(),
                                this.serverInfoManager().selfServerRole());
         } finally {
-            LockUtil.unlock(this.name, TaskManager.HEARTBEAT);
+            LockUtil.unlock(this.name, TaskManager.GRAPH_LOCK);
         }
         LOG.info("Graph '{}' has been truncated", this.name);
     }
