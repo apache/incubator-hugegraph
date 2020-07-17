@@ -21,6 +21,7 @@ package com.baidu.hugegraph.backend.store.raft;
 
 import org.slf4j.Logger;
 
+import com.alipay.sofa.jraft.rpc.RpcServer;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
@@ -49,8 +50,9 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
     }
 
     private void registerRpcRequestProcessors() {
-        this.context.rpcServer()
-            .registerProcessor(new StoreCommandRequestProcessor(this.context));
+        RpcServer rpcServer = this.context.rpcServer();
+        rpcServer.registerProcessor(new StoreCommandRequestProcessor(
+                                    this.context));
     }
 
     @Override

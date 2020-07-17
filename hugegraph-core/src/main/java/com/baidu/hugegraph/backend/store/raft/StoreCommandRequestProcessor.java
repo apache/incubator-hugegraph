@@ -56,7 +56,8 @@ public class StoreCommandRequestProcessor
         try {
             StoreCommand command = this.parseStoreCommand(request);
             StoreClosure closure = new StoreClosure(command);
-            node.submitCommand(command, closure);
+            // ignored result
+            node.submitAndWait(command, closure);
             return StoreCommandResponse.newBuilder().setStatus(true).build();
         } catch (Throwable e) {
             StoreCommandResponse.Builder builder;

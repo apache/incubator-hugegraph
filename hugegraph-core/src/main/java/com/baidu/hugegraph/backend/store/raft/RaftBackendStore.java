@@ -205,13 +205,7 @@ public class RaftBackendStore implements BackendStore {
 
     private Object submitAndWait(StoreCommand command) {
         StoreClosure closure = new StoreClosure(command);
-        this.node().submitCommand(command, closure);
-        // Here will wait future complete
-        if (closure.throwable() != null) {
-            throw new BackendException(closure.throwable());
-        } else {
-            return closure.data();
-        }
+        return this.node().submitAndWait(command, closure);
     }
 
     private Object queryByRaft(Query query, Function<Object, Object> func) {

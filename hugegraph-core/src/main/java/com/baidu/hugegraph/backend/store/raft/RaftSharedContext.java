@@ -109,8 +109,10 @@ public final class RaftSharedContext {
     private RpcServer initAndStartRpcServer() {
         PeerId serverId = new PeerId();
         serverId.parse(this.config.get(CoreOptions.RAFT_PEERID));
-        return RaftRpcServerFactory.createAndStartRaftRpcServer(
-                                    serverId.getEndpoint());
+        RpcServer rpcServer = RaftRpcServerFactory.createAndStartRaftRpcServer(
+                                                   serverId.getEndpoint());
+        LOG.info("RPC server is started successfully");
+        return rpcServer;
     }
 
     private ExecutorService createReadIndexExecutor(int coreThreads) {

@@ -57,7 +57,8 @@ public class StoreSnapshotFile {
             this.doSnapshotSave(store, snapshotPath)
                 .whenComplete((metaBuilder, throwable) -> {
                 if (throwable == null) {
-                    executor.execute(() -> compressSnapshot(writer, metaBuilder, done));
+                    executor.execute(() -> compressSnapshot(writer, metaBuilder,
+                                                            done));
                 } else {
                     LOG.error("Failed to save snapshot, path={}, files={}, {}.",
                               writerPath, writer.listFiles(), throwable);

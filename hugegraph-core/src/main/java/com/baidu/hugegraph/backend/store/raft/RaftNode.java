@@ -39,6 +39,7 @@ import com.alipay.sofa.jraft.entity.PeerId;
 import com.alipay.sofa.jraft.entity.Task;
 import com.alipay.sofa.jraft.error.RaftError;
 import com.alipay.sofa.jraft.option.NodeOptions;
+import com.alipay.sofa.jraft.option.RaftOptions;
 import com.alipay.sofa.jraft.rpc.ClientService;
 import com.alipay.sofa.jraft.rpc.RpcResponseClosure;
 import com.baidu.hugegraph.HugeException;
@@ -57,6 +58,10 @@ import com.google.protobuf.ZeroByteStringHelper;
 public class RaftNode {
 
     private static final Logger LOG = Log.logger(RaftNode.class);
+
+    // unit is ms
+    private static final int WAIT_LEADER_TIMEOUT = 30 * 1000;
+    private static final int WAIT_RPC_TIMEOUT = 30 * 1000;
 
     private final String group;
     private final StoreStateMachine stateMachine;
@@ -114,8 +119,8 @@ public class RaftNode {
             nodeOptions.setSnapshotUri(snapshotUri);
         }
 
-        // RaftOptions raftOptions = nodeOptions.getRaftOptions();
-        // raftOptions.setDisruptorBufferSize(32768);
+        RaftOptions raftOptions = nodeOptions.getRaftOptions();
+        raftOptions.setDisruptorBufferSize(1024);
         // raftOptions.setReplicatorPipeline(false);
         // nodeOptions.setRpcProcessorThreadPoolSize(48);
         // nodeOptions.setEnableMetrics(false);
@@ -152,7 +157,9 @@ public class RaftNode {
         return nodeOptions;
     }
 
-    public void submitCommand(StoreCommand command, StoreClosure closure) {
+    private void submitCommand(StoreCommand command, StoreClosure closure) {
+        // Wait leader elected
+        this.waitLeader();
         // Sleep a while when raft node is busy
         this.waitIfBusy();
 
@@ -172,6 +179,43 @@ public class RaftNode {
         this.node.apply(task);
     }
 
+    public Object submitAndWait(StoreCommand command, StoreClosure closure) {
+        this.submitCommand(command, closure);
+        // Here will wait future complete
+        if (closure.throwable() != null) {
+            throw new BackendException(closure.throwable());
+        } else {
+            return closure.data();
+        }
+    }
+
+    private void waitLeader() {
+        if (this.node.getLeaderId() != null) {
+            return;
+        }
+
+        int consumeTime = WAIT_LEADER_TIMEOUT;
+        int sleepInterval = 100;
+        while (consumeTime > 0) {
+            PeerId leaderId = this.node.getLeaderId();
+            if (leaderId != null) {
+                return;
+            } else {
+                try {
+                    Thread.sleep(sleepInterval);
+                } catch (InterruptedException e) {
+                    throw new BackendException(
+                              "Raft group '%s' doesn't elect leader in %s ms",
+                              this.group(), WAIT_LEADER_TIMEOUT - consumeTime);
+                }
+                consumeTime -= sleepInterval;
+            }
+        }
+        throw new BackendException(
+                  "Raft group '%s' doesn't elect leader in %s ms",
+                  this.group(), WAIT_LEADER_TIMEOUT);
+    }
+
     private void waitIfBusy() {
         int counter = this.busyCounter.get();
         if (counter <= 0) {
@@ -179,7 +223,7 @@ public class RaftNode {
         }
         // TODO：should sleep or throw exception directly?
         // It may lead many thread sleep, but this is exactly what I want
-        long time = (1L << counter) * 5000;
+        long time = counter * 3000;
         LOG.info("The node {} will sleep {} ms", this.node, time);
         try {
             Thread.sleep(time);
@@ -198,10 +242,12 @@ public class RaftNode {
     }
 
     private void forwardToLeader(StoreCommand command, StoreClosure closure) {
-        LOG.info("The node {} forward request to leader {}",
-                 this.node.getNodeId(), this.node.getLeaderId());
         assert !this.node.isLeader();
         PeerId leaderId = this.node.getLeaderId();
+        E.checkNotNull(leaderId, "leader id");
+        LOG.debug("The node {} forward request to leader {}",
+                  this.node.getNodeId(), leaderId);
+
         StoreCommandRequest.Builder builder = StoreCommandRequest.newBuilder();
         builder.setGroupId(this.group);
         builder.setAction(StoreAction.valueOf(command.action().code()));
@@ -237,7 +283,8 @@ public class RaftNode {
         E.checkNotNull(leaderId.getEndpoint(), "leader endpoint");
         try {
             rpcClient.invokeWithDone(leaderId.getEndpoint(), request,
-                                     responseClosure, 3000).get();
+                                     responseClosure, WAIT_RPC_TIMEOUT)
+                     .get();
         } catch (InterruptedException | ExecutionException e) {
             throw new BackendException("Failed to invoke rpc request", e);
         }
@@ -248,28 +295,30 @@ public class RaftNode {
         @Override
         public void onCreated(PeerId peer) {
             // pass
+            LOG.info("The node {} replicator has created", peer);
         }
 
         @Override
         public void onError(PeerId peer, Status status) {
             LOG.warn("Replicator meet error: {}", status);
-            if (this.isRpcError(status)) {
+            if (this.isWriteBufferOverflow(status)) {
                 // increment busy counter
                 int count = RaftNode.this.busyCounter.incrementAndGet();
                 LOG.info("Busy counter: [{}]", count);
             }
         }
 
-        private boolean isRpcError(Status status) {
-            String expectMsgPrefix = "Fail to send a RPC request";
+        private boolean isWriteBufferOverflow(Status status) {
+            String expectMsg = "maybe write overflow";
             return RaftError.EINTERNAL == status.getRaftError() &&
                    status.getErrorMsg() != null &&
-                   status.getErrorMsg().startsWith(expectMsgPrefix);
+                   status.getErrorMsg().contains(expectMsg);
         }
 
         @Override
         public void onDestroyed(PeerId peer) {
             // pass
+            LOG.warn("The node {} prepare to offline", peer);
         }
     }
 }

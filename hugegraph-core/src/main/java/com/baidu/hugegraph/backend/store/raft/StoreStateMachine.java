@@ -22,6 +22,10 @@ package com.baidu.hugegraph.backend.store.raft;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 
@@ -36,6 +40,7 @@ import com.alipay.sofa.jraft.error.RaftError;
 import com.alipay.sofa.jraft.error.RaftException;
 import com.alipay.sofa.jraft.storage.snapshot.SnapshotReader;
 import com.alipay.sofa.jraft.storage.snapshot.SnapshotWriter;
+import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
@@ -47,12 +52,16 @@ public class StoreStateMachine extends StateMachineAdapter {
 
     private static final Logger LOG = Log.logger(StoreStateMachine.class);
 
+    private static final int QUEUED_TASK_SIZE = 1024;
+    private static final int QUEUES_TASK_CLEAN_SIZE = 512;
+
     private NodeId nodeId;
     private final BackendStore store;
     private final RaftSharedContext context;
     private final StoreSnapshotFile snapshotFile;
     private final AtomicLong leaderTerm;
     private final Map<StoreAction, Function<BytesBuffer, Object>> funcs;
+    private final BlockingQueue<Future<Object>> queue;
 
     public StoreStateMachine(BackendStore store, RaftSharedContext context) {
         this.store = store;
@@ -60,6 +69,7 @@ public class StoreStateMachine extends StateMachineAdapter {
         this.snapshotFile = new StoreSnapshotFile();
         this.leaderTerm = new AtomicLong(-1);
         this.funcs = new EnumMap<>(StoreAction.class);
+        this.queue = new ArrayBlockingQueue<>(QUEUED_TASK_SIZE);
         this.registerCommands();
     }
 
@@ -142,17 +152,45 @@ public class StoreStateMachine extends StateMachineAdapter {
     }
 
     private Object applyCommand(StoreAction action, BytesBuffer buffer) {
+        this.tryCleanFinishedTasks();
+
         Function<BytesBuffer, Object> func = this.funcs.get(action);
-        this.context.backendExecutor().submit(() -> {
+        Future<Object> future = this.context.backendExecutor().submit(() -> {
             try {
-                Object result = func.apply(buffer);
+                return func.apply(buffer);
             } catch (Throwable e) {
                 LOG.error("Failed to execute backend command: {}", action, e);
+                throw new BackendException("Backend error", e);
             }
         });
+        try {
+            this.queue.put(future);
+        } catch (InterruptedException e) {
+            throw new BackendException("Failed to put command task to queue");
+        }
+
         LOG.debug("The store {} performed action {}",
                   this.store, action.string());
         return null;
+    }
+
+    private void tryCleanFinishedTasks() {
+        if (this.queue.size() <= QUEUES_TASK_CLEAN_SIZE) {
+            return;
+        }
+        // Clean finished task
+        java.util.Iterator<Future<Object>> iter = this.queue.iterator();
+        while (iter.hasNext()) {
+            Future<Object> future = iter.next();
+            if (future.isDone()) {
+                iter.remove();
+                try {
+                    future.get();
+                } catch (InterruptedException | ExecutionException e) {
+                    throw new BackendException(e);
+                }
+            }
+        }
     }
 
     @Override

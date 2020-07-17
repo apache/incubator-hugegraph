@@ -11,7 +11,7 @@
                      filePattern="logs/$${date:yyyy-MM}/hugegraph-server-%d{yyyy-MM-dd}-%i.log">
             <ThresholdFilter level="TRACE" onMatch="ACCEPT" onMismatch="DENY"/>
             <PatternLayout pattern="%-d{yyyy-MM-dd HH:mm:ss} %-5r [%t] [%-5p] %c %x - %m%n"/>
-            <SizeBasedTriggeringPolicy size="10MB"/>
+            <SizeBasedTriggeringPolicy size="50MB"/>
         </RollingFile>
     </appenders>
     <loggers>
