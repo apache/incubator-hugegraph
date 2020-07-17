@@ -231,13 +231,13 @@ public class StandardHugeGraph implements HugeGraph {
         this.loadSystemStore().open(this.configuration);
         this.loadGraphStore().open(this.configuration);
 
-        LockUtil.lock(this.name, TaskManager.GRAPH_LOCK);
+        LockUtil.lock(this.name, LockUtil.GRAPH_LOCK);
 
         try {
             this.storeProvider.init();
             this.storeProvider.initSystemInfo(this);
         } finally {
-            LockUtil.unlock(this.name, TaskManager.GRAPH_LOCK);
+            LockUtil.unlock(this.name, LockUtil.GRAPH_LOCK);
             this.loadGraphStore().close();
             this.loadSystemStore().close();
             this.loadSchemaStore().close();
@@ -254,12 +254,12 @@ public class StandardHugeGraph implements HugeGraph {
         this.loadSystemStore().open(this.configuration);
         this.loadGraphStore().open(this.configuration);
 
-        LockUtil.lock(this.name, TaskManager.GRAPH_LOCK);
+        LockUtil.lock(this.name, LockUtil.GRAPH_LOCK);
 
         try {
             this.storeProvider.clear();
         } finally {
-            LockUtil.unlock(this.name, TaskManager.GRAPH_LOCK);
+            LockUtil.unlock(this.name, LockUtil.GRAPH_LOCK);
             this.loadGraphStore().close();
             this.loadSystemStore().close();
             this.loadSchemaStore().close();
@@ -272,7 +272,7 @@ public class StandardHugeGraph implements HugeGraph {
     public void truncateBackend() {
         this.waitUntilAllTasksCompleted();
 
-        LockUtil.lock(this.name, TaskManager.GRAPH_LOCK);
+        LockUtil.lock(this.name, LockUtil.GRAPH_LOCK);
 
         try {
             this.storeProvider.truncate();
@@ -280,7 +280,7 @@ public class StandardHugeGraph implements HugeGraph {
             this.serverStarted(this.serverInfoManager().selfServerId(),
                                this.serverInfoManager().selfServerRole());
         } finally {
-            LockUtil.unlock(this.name, TaskManager.GRAPH_LOCK);
+            LockUtil.unlock(this.name, LockUtil.GRAPH_LOCK);
         }
         LOG.info("Graph '{}' has been truncated", this.name);
     }

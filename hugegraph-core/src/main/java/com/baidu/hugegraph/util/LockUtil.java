@@ -61,6 +61,8 @@ public final class LockUtil {
     public static final String ROW_LOCK = "row_lock";
     public static final String REENTRANT_LOCK = "reentrant_lock";
 
+    public static final String GRAPH_LOCK = "graph_lock";
+
     public static final long WRITE_WAIT_TIMEOUT = 30L;
 
     public static void init(String graph) {
