@@ -356,7 +356,7 @@ public abstract class MysqlTable
                                     parser) {
         ExtendableIterator<R> rs = new ExtendableIterator<>();
 
-        if (query.limit() == 0L && !query.nolimit()) {
+        if (query.limit() == 0L && !query.noLimit()) {
             LOG.debug("Return empty result(limit=0) for query {}", query);
             return rs;
         }
@@ -427,7 +427,7 @@ public abstract class MysqlTable
                 if (aggregate == null && !hasOrder) {
                     select.append(this.orderByKeys());
                 }
-                if (!query.nolimit() || query.offset() > 0L) {
+                if (!query.noLimit() || query.offset() > 0L) {
                     this.wrapOffset(selection, query);
                 }
             }
@@ -646,7 +646,7 @@ public abstract class MysqlTable
 
     private void wrapLimit(StringBuilder select, Query query) {
         select.append(this.orderByKeys());
-        if (!query.nolimit()) {
+        if (!query.noLimit()) {
             // Fetch `limit + 1` rows for judging whether reached the last page
             select.append(" limit ");
             select.append(query.limit() + 1);
@@ -668,7 +668,7 @@ public abstract class MysqlTable
         select.append(query.offset());
         select.append(";");
 
-        query.skipOffset(query.offset());
+        query.goOffset(query.offset());
     }
 
     protected Iterator<BackendEntry> results2Entries(Query query,

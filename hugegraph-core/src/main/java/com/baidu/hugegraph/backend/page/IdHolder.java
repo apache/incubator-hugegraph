@@ -184,12 +184,10 @@ public abstract class IdHolder {
                             "Invalid batch size value: %s", batchSize);
 
             if (this.currentBatch != null) {
-                PageIds result = this.currentBatch;
-                this.currentBatch = null;
-                return result;
+                return this.getFromCurrentBatch(batchSize);
             }
 
-            if (!this.query.nolimit()) {
+            if (!this.query.noLimit()) {
                 long remaining = this.remaining();
                 if (remaining < batchSize) {
                     batchSize = remaining;
@@ -216,8 +214,7 @@ public abstract class IdHolder {
             try {
                 Set<Id> ids = this.fetcher.apply(this.remaining());
                 if (this.currentBatch != null) {
-                    ids.addAll(this.currentBatch.ids());
-                    this.currentBatch = null;
+                    ids.addAll(this.getFromCurrentBatch(Query.NO_LIMIT).ids());
                 }
                 this.count += ids.size();
                 return ids;
@@ -233,8 +230,15 @@ public abstract class IdHolder {
             return this.currentBatch;
         }
 
+        private PageIds getFromCurrentBatch(long batchSize) {
+            assert this.currentBatch != null;
+            PageIds result = this.currentBatch;
+            this.currentBatch = null;
+            return result;
+        }
+
         private long remaining() {
-            if (this.query.nolimit()) {
+            if (this.query.noLimit()) {
                 return Query.NO_LIMIT;
             } else {
                 return this.query.total() - this.count;

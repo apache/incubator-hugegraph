@@ -460,7 +460,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
         IdHolderList holders = new SortByCountIdHolderList(query.paging());
         List<ConditionQuery> flatten = ConditionQueryFlatten.flatten(query);
         for (ConditionQuery q : flatten) {
-            if (!q.nolimit() && flatten.size() > 1) {
+            if (!q.noLimit() && flatten.size() > 1) {
                 // Increase limit for union operation
                 increaseLimit(q);
             }
@@ -506,7 +506,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
             IndexLabel indexLabel = e.getKey();
             ConditionQuery query = e.getValue();
             assert !query.paging();
-            if (!query.nolimit() && queries.size() > 1) {
+            if (!query.noLimit() && queries.size() > 1) {
                 // Unset limit for intersection operation
                 query.limit(Query.NO_LIMIT);
             }
@@ -1364,7 +1364,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
     }
 
     private static void increaseLimit(Query query) {
-        assert !query.nolimit();
+        assert !query.noLimit();
         /*
          * NOTE: in order to retain enough records after the intersection.
          * The parameters don't make much sense and need to be improved

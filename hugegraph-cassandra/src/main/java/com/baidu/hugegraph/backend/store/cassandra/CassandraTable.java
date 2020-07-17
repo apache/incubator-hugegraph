@@ -128,7 +128,7 @@ public abstract class CassandraTable
                                     parser) {
         ExtendableIterator<R> rs = new ExtendableIterator<>();
 
-        if (query.limit() == 0L && !query.nolimit()) {
+        if (query.limit() == 0L && !query.noLimit()) {
             LOG.debug("Return empty result(limit=0) for query {}", query);
             return rs;
         }
@@ -204,7 +204,7 @@ public abstract class CassandraTable
     }
 
     protected void setPageState(Query query, List<Select> selects) {
-        if (query.nolimit()) {
+        if (query.noLimit()) {
             return;
         }
         for (Select select : selects) {

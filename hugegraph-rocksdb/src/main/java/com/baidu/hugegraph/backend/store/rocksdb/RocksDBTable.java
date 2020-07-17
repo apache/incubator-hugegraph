@@ -128,7 +128,7 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
         }
 
         assert aggregate.func() == AggregateFunc.COUNT;
-        assert query.nolimit();
+        assert query.noLimit();
         Iterator<BackendColumn> results = this.queryBy(session, query);
         if (results instanceof Countable) {
             return ((Countable) results).count();
@@ -138,7 +138,7 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
 
     @Override
     public Iterator<BackendEntry> query(Session session, Query query) {
-        if (query.limit() == 0L && !query.nolimit()) {
+        if (query.limit() == 0L && !query.noLimit()) {
             LOG.debug("Return empty result(limit=0) for query {}", query);
             return Collections.emptyIterator();
         }

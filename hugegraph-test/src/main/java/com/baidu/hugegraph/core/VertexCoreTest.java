@@ -4513,16 +4513,18 @@ public class VertexCoreTest extends BaseCoreTest {
     public void testQueryCount() {
         HugeGraph graph = graph();
 
-        graph.schema().indexLabel("livedByAuthor").onV("author")
+        graph.schema().indexLabel("authorByLived").onV("author")
              .secondary().by("lived").create();
-        graph.schema().indexLabel("ageByAuthor").onV("author")
+        graph.schema().indexLabel("authorByAge").onV("author")
              .range().by("age").create();
-
         init10Vertices();
+
+        initPersonIndex(true);
+        init100Persons();
 
         GraphTraversalSource g = graph.traversal();
 
-        Assert.assertEquals(10L, g.V().count().next());
+        Assert.assertEquals(110L, g.V().count().next());
 
         Assert.assertEquals(2L, g.V().hasLabel("author").count().next());
         Assert.assertEquals(3L, g.V().hasLabel("language").count().next());
@@ -4558,7 +4560,22 @@ public class VertexCoreTest extends BaseCoreTest {
                                                             "Canadian"))
                                      .count().next());
 
-        Assert.assertEquals(10L, g.V().count().min().next());
+        Assert.assertEquals(9L, g.V().hasLabel("person")
+                                      .has("age", 8)
+                                      .count().next());
+        Assert.assertEquals(50L, g.V().hasLabel("person")
+                                      .has("city", "Beijing")
+                                      .count().next());
+        Assert.assertEquals(5L, g.V().hasLabel("person")
+                                     .has("age", 8)
+                                     .has("city", "Beijing")
+                                     .count().next());
+        Assert.assertEquals(3L, g.V().hasLabel("person")
+                                     .has("age", 8)
+                                     .has("city", "Beijing")
+                                     .limit(3).count().next());
+
+        Assert.assertEquals(110L, g.V().count().min().next());
         Assert.assertEquals(5L, g.V().hasLabel("book").count().max().next());
 
         Assert.assertEquals(2L, g.V().hasLabel("author")
@@ -7338,6 +7355,20 @@ public class VertexCoreTest extends BaseCoreTest {
         graph.addVertex(T.label, "person", "name", "Hebe",
                         "city", "Taipei", "age", 21,
                         "birth", Utils.date("2016-01-01 00:00:00.000"));
+
+        graph.tx().commit();
+    }
+
+    private void init100Persons() {
+        HugeGraph graph = graph();
+
+        for (int i = 0; i < 100; i++) {
+            graph.addVertex(T.label, "person", "name", "person-" + i,
+                            "city", i % 2 == 0 ? "Beijing" : "Hongkong",
+                            "birth", i % 10 == 3 ? Utils.date("2012-01-01") :
+                                     Utils.date("2018-01-01"),
+                            "age", i % 11);
+        }
 
         graph.tx().commit();
     }

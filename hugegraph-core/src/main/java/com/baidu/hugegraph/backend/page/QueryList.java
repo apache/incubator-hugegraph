@@ -166,7 +166,7 @@ public final class QueryList<R> {
             Query query = this.query.copy();
             query.page(page);
             // Not set limit to pageSize due to PageEntryIterator.remaining
-            if (this.query.nolimit()) {
+            if (this.query.noLimit()) {
                 query.limit(pageSize);
             }
 
@@ -215,26 +215,27 @@ public final class QueryList<R> {
         }
 
         private QueryResults<R> each(IdHolder holder) {
-            Query parent = parent();
+            Query bindQuery = holder.query();
             assert !holder.paging();
 
             // Iterate by all
             if (holder instanceof FixedIdHolder) {
                 Set<Id> ids = holder.all();
-                ids = parent.skipOffset(ids);
+                ids = bindQuery.skipOffset(ids);
                 if (ids.isEmpty()) {
                     return null;
                 }
 
-                IdQuery query = new IdQuery(parent, ids);
+                IdQuery query = new IdQuery(parent(), ids);
                 return fetcher().apply(query);
             }
 
             // Iterate by batch
             assert holder instanceof BatchIdHolder;
             return QueryResults.flatMap((BatchIdHolder) holder, h -> {
-                long remaining = parent.nolimit() ? Query.NO_LIMIT :
-                                 parent.remaining();
+                assert ((BatchIdHolder) holder).hasNext();
+                long remaining = bindQuery.remaining();
+                assert remaining >= 0L || remaining == Query.NO_LIMIT;
                 if (remaining > this.batchSize || remaining == Query.NO_LIMIT) {
                     /*
                      * Avoid too many ids in one time query,
@@ -243,12 +244,12 @@ public final class QueryList<R> {
                     remaining = this.batchSize;
                 }
                 Set<Id> ids = h.fetchNext(null, remaining).ids();
-                ids = parent.skipOffset(ids);
+                ids = bindQuery.skipOffset(ids);
                 if (ids.isEmpty()) {
                     return null;
                 }
 
-                IdQuery query = new IdQuery(parent, ids);
+                IdQuery query = new IdQuery(parent(), ids);
                 return fetcher().apply(query);
             });
         }
