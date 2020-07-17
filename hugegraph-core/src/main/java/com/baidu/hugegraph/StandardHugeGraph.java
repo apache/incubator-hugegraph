@@ -232,7 +232,6 @@ public class StandardHugeGraph implements HugeGraph {
         this.loadGraphStore().open(this.configuration);
 
         LockUtil.lock(this.name, LockUtil.GRAPH_LOCK);
-
         try {
             this.storeProvider.init();
             this.storeProvider.initSystemInfo(this);
@@ -255,7 +254,6 @@ public class StandardHugeGraph implements HugeGraph {
         this.loadGraphStore().open(this.configuration);
 
         LockUtil.lock(this.name, LockUtil.GRAPH_LOCK);
-
         try {
             this.storeProvider.clear();
         } finally {
@@ -273,7 +271,6 @@ public class StandardHugeGraph implements HugeGraph {
         this.waitUntilAllTasksCompleted();
 
         LockUtil.lock(this.name, LockUtil.GRAPH_LOCK);
-
         try {
             this.storeProvider.truncate();
             this.storeProvider.initSystemInfo(this);
@@ -282,6 +279,7 @@ public class StandardHugeGraph implements HugeGraph {
         } finally {
             LockUtil.unlock(this.name, LockUtil.GRAPH_LOCK);
         }
+
         LOG.info("Graph '{}' has been truncated", this.name);
     }
 
