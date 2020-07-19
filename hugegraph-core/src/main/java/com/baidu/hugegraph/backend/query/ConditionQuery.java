@@ -48,7 +48,7 @@ public final class ConditionQuery extends IdQuery {
     // Conditions will be concated with `and` by default
     private Set<Condition> conditions = new LinkedHashSet<>();
 
-    private int optimizedType = 0;
+    private OptimizedType optimizedType = OptimizedType.NONE;
     private Function<HugeElement, Boolean> resultsFilter = null;
 
     public ConditionQuery(HugeType resultType) {
@@ -399,7 +399,7 @@ public final class ConditionQuery extends IdQuery {
         query.originQuery(this);
         query.conditions = new LinkedHashSet<>(this.conditions);
 
-        query.optimizedType = 0;
+        query.optimizedType = OptimizedType.NONE;
         query.resultsFilter = null;
 
         return query;
@@ -408,7 +408,7 @@ public final class ConditionQuery extends IdQuery {
     public ConditionQuery copyAndResetUnshared() {
         ConditionQuery query = this.copy();
         // These fields should not be shared by multiple sub-query
-        query.optimizedType = 0;
+        query.optimizedType = OptimizedType.NONE;
         query.resultsFilter = null;
         return query;
     }
@@ -464,8 +464,8 @@ public final class ConditionQuery extends IdQuery {
         return false;
     }
 
-    public void optimized(int optimizedType) {
-        assert this.optimizedType <= optimizedType :
+    public void optimized(OptimizedType optimizedType) {
+        assert this.optimizedType.ordinal() <= optimizedType.ordinal() :
                this.optimizedType + " !<= " + optimizedType;
         this.optimizedType = optimizedType;
 
@@ -476,13 +476,13 @@ public final class ConditionQuery extends IdQuery {
              * Two sub-query(flatten) will both set optimized of originQuery,
              * here we just keep the higher one, this may not be a perfect way
              */
-            if (optimizedType > cq.optimized()) {
+            if (optimizedType.ordinal() > cq.optimized().ordinal()) {
                 cq.optimized(optimizedType);
             }
         }
     }
 
-    public int optimized() {
+    public OptimizedType optimized() {
         return this.optimizedType;
     }
 
@@ -511,5 +511,13 @@ public final class ConditionQuery extends IdQuery {
             return LongEncoding.encodeNumber(value);
         }
         return value;
+    }
+
+    public enum OptimizedType {
+        NONE,
+        PRIMARY_KEY,
+        SORT_KEYS,
+        INDEX,
+        INDEX_FILTER
     }
 }

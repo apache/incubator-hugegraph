@@ -54,6 +54,7 @@ import com.baidu.hugegraph.backend.page.QueryList;
 import com.baidu.hugegraph.backend.query.Aggregate;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
+import com.baidu.hugegraph.backend.query.ConditionQuery.OptimizedType;
 import com.baidu.hugegraph.backend.query.ConditionQueryFlatten;
 import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
@@ -61,7 +62,6 @@ import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
-import com.baidu.hugegraph.backend.tx.GraphIndexTransaction.OptimizedType;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.exception.LimitExceedException;
@@ -533,15 +533,15 @@ public class GraphTransaction extends IndexableTransaction {
 
         QueryList<Number> queries = this.optimizeQueries(query, q -> {
             boolean indexQuery = q.getClass() == IdQuery.class;
-            int optimized = ((ConditionQuery) query).optimized();
+            OptimizedType optimized = ((ConditionQuery) query).optimized();
             Number result;
             if (!indexQuery) {
                 result = super.queryNumber(q);
-            } else if (optimized == OptimizedType.INDEX.ordinal()) {
+            } else if (optimized == OptimizedType.INDEX) {
                 // The number of ids means results size (assume no left index)
                 result = q.ids().size();
             } else {
-                assert optimized == OptimizedType.INDEX_FILTER.ordinal();
+                assert optimized == OptimizedType.INDEX_FILTER;
                 assert q.resultType().isVertex() || q.resultType().isEdge();
                 result = IteratorUtils.count(q.resultType().isVertex() ?
                                              this.queryVertices(q) :
@@ -1286,7 +1286,7 @@ public class GraphTransaction extends IndexableTransaction {
                              IdStrategy.PRIMARY_KEY, vertexLabel.name());
                 if (query.matchUserpropKeys(keys)) {
                     // Query vertex by label + primary-values
-                    query.optimized(OptimizedType.PRIMARY_KEY.ordinal());
+                    query.optimized(OptimizedType.PRIMARY_KEY);
                     String primaryValues = query.userpropValuesString(keys);
                     LOG.debug("Query vertices by primaryKeys: {}", query);
                     // Convert {vertex-label + primary-key} to vertex-id
@@ -1307,7 +1307,7 @@ public class GraphTransaction extends IndexableTransaction {
             query.condition(HugeKeys.DIRECTION) != null &&
             matchEdgeSortKeys(query, false, this.graph())) {
             // Query edge by sourceVertex + direction + label + sort-values
-            query.optimized(OptimizedType.SORT_KEYS.ordinal());
+            query.optimized(OptimizedType.SORT_KEYS);
             query = query.copy();
             // Serialize sort-values
             List<Id> keys = this.graph().edgeLabel(label).sortKeys();
@@ -1588,7 +1588,7 @@ public class GraphTransaction extends IndexableTransaction {
         }
 
         ConditionQuery cq = (ConditionQuery) query;
-        if (cq.optimized() == 0 || cq.test(elem)) {
+        if (cq.optimized() == OptimizedType.NONE || cq.test(elem)) {
             /* Return true if:
              * 1.not query by index or by primary-key/sort-key
              *   (cq.optimized() == 0 means query just by sysprop)
@@ -1597,7 +1597,7 @@ public class GraphTransaction extends IndexableTransaction {
             return true;
         }
 
-        if (cq.optimized() == OptimizedType.INDEX.ordinal()) {
+        if (cq.optimized() == OptimizedType.INDEX) {
             LOG.info("Remove left index: {}, query: {}", elem, cq);
             this.indexTx.asyncRemoveIndexLeft(cq, elem);
         }

@@ -57,6 +57,7 @@ import com.baidu.hugegraph.backend.query.Condition.RangeConditions;
 import com.baidu.hugegraph.backend.query.Condition.Relation;
 import com.baidu.hugegraph.backend.query.Condition.RelationType;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
+import com.baidu.hugegraph.backend.query.ConditionQuery.OptimizedType;
 import com.baidu.hugegraph.backend.query.ConditionQueryFlatten;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.query.QueryResults;
@@ -353,7 +354,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
         }
 
         // Query by index
-        query.optimized(OptimizedType.INDEX.ordinal());
+        query.optimized(OptimizedType.INDEX);
         if (query.allSysprop() && conds.size() == 1 &&
             query.containsCondition(HugeKeys.LABEL)) {
             // Query only by label
@@ -445,7 +446,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
              * it here because the query may a sub-query after flatten,
              * so the offset will be handle in QueryList.IndexQuery
              *
-             * TODO: finish early if records exceeds required limit with
+             * TODO: finish early here if records exceeds required limit with
              *       FixedIdHolder.
              */
         }
@@ -532,7 +533,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
             if (ids.size() >= this.indexIntersectThresh) {
                 // Transform into filtering
                 filtering = true;
-                query.optimized(OptimizedType.INDEX_FILTER.ordinal());
+                query.optimized(OptimizedType.INDEX_FILTER);
             } else if (filtering) {
                 assert ids.size() < this.indexIntersectThresh;
                 resultHolder = holder;
@@ -1476,7 +1477,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
             private final Collection<Query> queries;
 
             public JointQuery(HugeType type, Collection<Query> queries) {
-                super(type);
+                super(type, parent(queries));
                 this.queries = queries;
             }
 
@@ -1493,15 +1494,15 @@ public class GraphIndexTransaction extends AbstractTransaction {
             public String toString() {
                 return String.format("JointQuery %s", this.queries);
             }
-        }
-    }
 
-    public enum OptimizedType {
-        NONE,
-        PRIMARY_KEY,
-        SORT_KEYS,
-        INDEX,
-        INDEX_FILTER
+            private static Query parent(Collection<Query> queries) {
+                if (queries.size() > 0) {
+                    // Chose the first one as origin query (any one is OK)
+                    return queries.iterator().next();
+                }
+                return null;
+            }
+        }
     }
 
     public static class RemoveLeftIndexJob extends EphemeralJob<Object> {

@@ -158,6 +158,14 @@ public class Query implements Cloneable {
         this.offset = offset;
     }
 
+    public void copyOffset(Query parent) {
+        assert this.offset == 0L || this.offset == parent.offset;
+        assert this.actualOffset == 0L ||
+               this.actualOffset == parent.actualOffset;
+        this.offset = parent.offset;
+        this.actualOffset = parent.actualOffset;
+    }
+
     public long actualOffset() {
         return this.actualOffset;
     }
@@ -203,13 +211,13 @@ public class Query implements Cloneable {
         return this.actualStoreOffset;
     }
 
-    public <T> Set<T> skipOffset(Set<T> elems) {
-        long fromIndex = this.offset() - this.actualOffset;
-        this.goSelfOffset(elems.size());
-
+    public <T> Set<T> skipOffsetIfNeeded(Set<T> elems) {
+        long fromIndex = this.offset() - this.actualOffset();
         if (fromIndex < 0L) {
             // Skipping offset is overhead, no need to skip
             fromIndex = 0L;
+        } else if (fromIndex > 0L) {
+            this.goOffset(fromIndex);
         }
         E.checkArgument(fromIndex <= Integer.MAX_VALUE,
                         "Offset must be <= 0x7fffffff, but got '%s'",

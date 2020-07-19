@@ -55,7 +55,7 @@ public class QueryResults<R> {
         this.addQuery(query);
     }
 
-    public QueryResults(Iterator<R> results) {
+    private QueryResults(Iterator<R> results) {
         this.results = results;
         this.queries = InsertionOrderUtil.newList();
     }
@@ -73,6 +73,7 @@ public class QueryResults<R> {
     }
 
     private void addQueries(List<Query> queries) {
+        assert !queries.isEmpty();
         for (Query query : queries) {
             this.addQuery(query);
         }
@@ -108,6 +109,7 @@ public class QueryResults<R> {
             /*
              * Return the original iterator if it's paging query or if the
              * query input is less than one id, or don't have to do sort.
+             * NOTE: queryIds() only return the first batch of index query
              */
             return origin;
         }
@@ -122,16 +124,18 @@ public class QueryResults<R> {
     }
 
     private boolean mustSortByInputIds() {
-        if (this.queries.size() == 1) {
-            Query query = this.queries.get(0);
-            if (query instanceof IdQuery) {
-                return ((IdQuery) query).mustSortByInput();
+        assert !this.queries.isEmpty() : this;
+        for (Query query : this.queries) {
+            if (query instanceof IdQuery &&
+                ((IdQuery) query).mustSortByInput()) {
+                return true;
             }
         }
-        return true;
+        return false;
     }
 
     private boolean paging() {
+        assert !this.queries.isEmpty();
         for (Query query : this.queries) {
             Query origin = query.originQuery();
             if (query.paging() || origin != null && origin.paging()) {
@@ -143,6 +147,7 @@ public class QueryResults<R> {
 
     @SuppressWarnings("unused")
     private boolean bigCapacity() {
+        assert !this.queries.isEmpty();
         for (Query query : this.queries) {
             if (query.bigCapacity()) {
                 return true;
@@ -152,6 +157,7 @@ public class QueryResults<R> {
     }
 
     private Set<Id> queryIds() {
+        assert !this.queries.isEmpty();
         if (this.queries.size() == 1) {
             return this.queries.get(0).ids();
         }
@@ -199,9 +205,13 @@ public class QueryResults<R> {
         QueryResults<R>[] qr = new QueryResults[1];
         qr[0] = new QueryResults<>(new FlatMapperIterator<>(iterator, i -> {
             QueryResults<R> results = func.apply(i);
-            if (results == null) {
+            if (results == null || !results.iterator().hasNext()) {
                 return null;
             }
+            /*
+             * NOTE: should call results.iterator().hasNext() before
+             * results.queries() to collect sub-query with index query
+             */
             qr[0].addQueries(results.queries());
             return results.iterator();
         }));

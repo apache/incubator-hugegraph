@@ -27,7 +27,6 @@ import java.util.Set;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.page.IdHolder.FixedIdHolder;
 import com.baidu.hugegraph.backend.query.Query;
-import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.google.common.collect.ImmutableSet;
@@ -51,7 +50,8 @@ public class SortByCountIdHolderList extends IdHolderList {
         this.mergedHolders.add(holder);
 
         if (super.isEmpty()) {
-            super.add(new SortByCountIdHolder());
+            Query parent = holder.query().originQuery();
+            super.add(new SortByCountIdHolder(parent));
         }
         SortByCountIdHolder sortHolder = (SortByCountIdHolder) this.get(0);
         sortHolder.merge(holder);
@@ -62,8 +62,8 @@ public class SortByCountIdHolderList extends IdHolderList {
 
         private final Map<Id, Integer> ids;
 
-        public SortByCountIdHolder() {
-            super(new MergedQuery(HugeType.UNKNOWN), ImmutableSet.of());
+        public SortByCountIdHolder(Query parent) {
+            super(new MergedQuery(parent), ImmutableSet.of());
             this.ids = InsertionOrderUtil.newMap();
         }
 
@@ -88,8 +88,8 @@ public class SortByCountIdHolderList extends IdHolderList {
 
     private class MergedQuery extends Query {
 
-        public MergedQuery(HugeType resultType) {
-            super(resultType);
+        public MergedQuery(Query parent) {
+            super(parent.resultType(), parent);
         }
 
         @Override
