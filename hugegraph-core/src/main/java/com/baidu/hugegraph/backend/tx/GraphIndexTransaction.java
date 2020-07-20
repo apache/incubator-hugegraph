@@ -1494,7 +1494,9 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
             // Check label is matched
             Id label = query.condition(HugeKeys.LABEL);
-            if (!element.schemaLabel().id().equals(label)) {
+            // NOTE: original condition query may not have label condition,
+            // which means possibly label == null.
+            if (label != null && !element.schemaLabel().id().equals(label)) {
                 String labelName = element.type().isVertex() ?
                                    this.graph().vertexLabel(label).name() :
                                    this.graph().edgeLabel(label).name();
