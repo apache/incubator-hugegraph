@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.task;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
@@ -37,6 +38,7 @@ import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.ExecutorUtil;
+import com.baidu.hugegraph.util.LockUtil;
 import com.baidu.hugegraph.util.Log;
 
 public final class TaskManager {
@@ -92,7 +94,16 @@ public final class TaskManager {
         this.schedulers.put(graph, scheduler);
     }
 
-    public void closeScheduler(HugeGraphParams graph) {
+    /*
+     * 'closeScheduler' should sync with 'scheduleOrExecuteJob'. Because
+     * 'closeScheduler' will be called by 'graph.close()' in main thread and
+     * there is gap between 'scheduler.close()'(will close graph tx) and
+     * 'this.schedulers.remove(graph)'. In this gap 'scheduleOrExecuteJob'
+     * may be run in scheduler-db-thread and 'scheduleOrExecuteJob' will
+     * reopen graph tx. As a result, graph tx will mistakenly not be closed
+     * after 'graph.close()'
+     */
+    public synchronized void closeScheduler(HugeGraphParams graph) {
         TaskScheduler scheduler = this.schedulers.get(graph);
         if (scheduler != null && scheduler.close()) {
             this.schedulers.remove(graph);
@@ -251,31 +262,49 @@ public final class TaskManager {
         }
     }
 
-    private void scheduleOrExecuteJob() {
+    private synchronized void scheduleOrExecuteJob() {
+        List<String> graphs = new ArrayList<>();
         try {
             for (TaskScheduler entry : this.schedulers.values()) {
                 StandardTaskScheduler scheduler = (StandardTaskScheduler) entry;
-                ServerInfoManager server = scheduler.serverManager();
+                ServerInfoManager serverManager = scheduler.serverManager();
+
+                String graph = scheduler.graphName();
+                LockUtil.lock(graph, LockUtil.GRAPH_LOCK);
+                graphs.add(graph);
+
+                // Skip if not initialized(maybe truncated or cleared)
+                if (!serverManager.initialized()) {
+                    continue;
+                }
 
                 // Update server heartbeat
-                server.heartbeat();
+                serverManager.heartbeat();
 
                 /*
                  * Master schedule tasks to suitable servers.
                  * There is no suitable server when these tasks are created
                  */
-                if (server.master()) {
+                if (serverManager.master()) {
                     scheduler.scheduleTasks();
+                    if (!serverManager.onlySingleNode()) {
+                        continue;
+                    }
                 }
 
                 // Schedule queued tasks scheduled to current server
-                scheduler.executeTasksOnWorker(server.selfServerId());
+                scheduler.executeTasksOnWorker(serverManager.selfServerId());
 
                 // Cancel tasks scheduled to current server
-                scheduler.cancelTasksOnWorker(server.selfServerId());
+                scheduler.cancelTasksOnWorker(serverManager.selfServerId());
             }
         } catch (Throwable e) {
             LOG.error("Exception occurred when schedule job", e);
+        } finally {
+            Collections.reverse(graphs);
+            for (String graph : graphs) {
+                LockUtil.unlock(graph, LockUtil.GRAPH_LOCK);
+            }
         }
     }
 

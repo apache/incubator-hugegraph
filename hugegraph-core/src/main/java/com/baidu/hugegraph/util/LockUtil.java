@@ -59,6 +59,9 @@ public final class LockUtil {
     public static final String PROPERTY_KEY_ADD_UPDATE = "pk_add_update";
     public static final String KEY_LOCK = "key_lock";
     public static final String ROW_LOCK = "row_lock";
+    public static final String REENTRANT_LOCK = "reentrant_lock";
+
+    public static final String GRAPH_LOCK = "graph_lock";
 
     public static final long WRITE_WAIT_TIMEOUT = 30L;
 
@@ -73,6 +76,7 @@ public final class LockUtil {
         LockManager.instance().create(join(graph, PROPERTY_KEY_ADD_UPDATE));
         LockManager.instance().create(join(graph, KEY_LOCK));
         LockManager.instance().create(join(graph, ROW_LOCK));
+        LockManager.instance().create(join(graph, REENTRANT_LOCK));
     }
 
     public static void destroy(String graph) {
@@ -86,6 +90,7 @@ public final class LockUtil {
         LockManager.instance().destroy(join(graph, PROPERTY_KEY_ADD_UPDATE));
         LockManager.instance().destroy(join(graph, KEY_LOCK));
         LockManager.instance().destroy(join(graph, ROW_LOCK));
+        LockManager.instance().destroy(join(graph, REENTRANT_LOCK));
     }
 
     private static String join(String graph, String group) {
@@ -160,6 +165,16 @@ public final class LockUtil {
         RowLock<K> rowLock = LockManager.instance().get(join(graph, ROW_LOCK))
                                         .rowLock(group);
         rowLock.unlockAll(rows);
+    }
+
+    public static void lock(String graph, String name) {
+        LockManager.instance().get(join(graph, REENTRANT_LOCK))
+                   .lock(name).lock();
+    }
+
+    public static void unlock(String graph, String name) {
+        LockManager.instance().get(join(graph, REENTRANT_LOCK))
+                   .lock(name).unlock();
     }
 
     public static List<Lock> lock(String... locks) {

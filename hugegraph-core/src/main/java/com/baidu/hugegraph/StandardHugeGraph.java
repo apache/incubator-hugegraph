@@ -230,10 +230,13 @@ public class StandardHugeGraph implements HugeGraph {
         this.loadSchemaStore().open(this.configuration);
         this.loadSystemStore().open(this.configuration);
         this.loadGraphStore().open(this.configuration);
+
+        LockUtil.lock(this.name, LockUtil.GRAPH_LOCK);
         try {
             this.storeProvider.init();
             this.storeProvider.initSystemInfo(this);
         } finally {
+            LockUtil.unlock(this.name, LockUtil.GRAPH_LOCK);
             this.loadGraphStore().close();
             this.loadSystemStore().close();
             this.loadSchemaStore().close();
@@ -249,9 +252,12 @@ public class StandardHugeGraph implements HugeGraph {
         this.loadSchemaStore().open(this.configuration);
         this.loadSystemStore().open(this.configuration);
         this.loadGraphStore().open(this.configuration);
+
+        LockUtil.lock(this.name, LockUtil.GRAPH_LOCK);
         try {
             this.storeProvider.clear();
         } finally {
+            LockUtil.unlock(this.name, LockUtil.GRAPH_LOCK);
             this.loadGraphStore().close();
             this.loadSystemStore().close();
             this.loadSchemaStore().close();
@@ -264,10 +270,15 @@ public class StandardHugeGraph implements HugeGraph {
     public void truncateBackend() {
         this.waitUntilAllTasksCompleted();
 
-        this.storeProvider.truncate();
-        this.storeProvider.initSystemInfo(this);
-        this.serverStarted(this.serverInfoManager().selfServerId(),
-                           this.serverInfoManager().selfServerRole());
+        LockUtil.lock(this.name, LockUtil.GRAPH_LOCK);
+        try {
+            this.storeProvider.truncate();
+            this.storeProvider.initSystemInfo(this);
+            this.serverStarted(this.serverInfoManager().selfServerId(),
+                               this.serverInfoManager().selfServerRole());
+        } finally {
+            LockUtil.unlock(this.name, LockUtil.GRAPH_LOCK);
+        }
 
         LOG.info("Graph '{}' has been truncated", this.name);
     }
