@@ -94,6 +94,15 @@ public final class TaskManager {
         this.schedulers.put(graph, scheduler);
     }
 
+    /*
+     * 'closeScheduler' should sync with 'scheduleOrExecuteJob'. Because
+     * 'closeScheduler' will be called by 'graph.close()' in main thread and
+     * there is gap between 'scheduler.close()'(will close graph tx) and
+     * 'this.schedulers.remove(graph)'. In this gap 'scheduleOrExecuteJob'
+     * may be run in scheduler-db-thread and 'scheduleOrExecuteJob' will
+     * reopen graph tx. As a result, graph tx will mistakenly not be closed
+     * after 'graph.close()'
+     */
     public synchronized void closeScheduler(HugeGraphParams graph) {
         TaskScheduler scheduler = this.schedulers.get(graph);
         if (scheduler != null && scheduler.close()) {
