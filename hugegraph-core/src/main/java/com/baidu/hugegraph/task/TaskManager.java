@@ -258,33 +258,36 @@ public final class TaskManager {
         try {
             for (TaskScheduler entry : this.schedulers.values()) {
                 StandardTaskScheduler scheduler = (StandardTaskScheduler) entry;
-                ServerInfoManager server = scheduler.serverManager();
+                ServerInfoManager serverManager = scheduler.serverManager();
 
                 String graph = scheduler.graph().name();
                 LockUtil.lock(graph, LockUtil.GRAPH_LOCK);
                 graphs.add(graph);
 
                 // Skip if not initialized(maybe truncated or cleared)
-                if (!server.initialized()) {
+                if (!serverManager.initialized()) {
                     continue;
                 }
 
                 // Update server heartbeat
-                server.heartbeat();
+                serverManager.heartbeat();
 
                 /*
                  * Master schedule tasks to suitable servers.
                  * There is no suitable server when these tasks are created
                  */
-                if (server.master()) {
+                if (serverManager.master()) {
                     scheduler.scheduleTasks();
+                    if (!serverManager.onlySingleNode()) {
+                        continue;
+                    }
                 }
 
                 // Schedule queued tasks scheduled to current server
-                scheduler.executeTasksOnWorker(server.selfServerId());
+                scheduler.executeTasksOnWorker(serverManager.selfServerId());
 
                 // Cancel tasks scheduled to current server
-                scheduler.cancelTasksOnWorker(server.selfServerId());
+                scheduler.cancelTasksOnWorker(serverManager.selfServerId());
             }
         } catch (Throwable e) {
             LOG.error("Exception occurred when schedule job", e);
