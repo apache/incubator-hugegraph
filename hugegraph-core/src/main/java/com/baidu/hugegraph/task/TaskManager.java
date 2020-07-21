@@ -95,16 +95,21 @@ public final class TaskManager {
     }
 
     public void closeScheduler(HugeGraphParams graph) {
-        TaskScheduler scheduler = this.schedulers.get(graph);
-        if (scheduler != null && scheduler.close()) {
-            this.schedulers.remove(graph);
-        }
-        if (!this.taskExecutor.isTerminated()) {
-            this.closeTaskTx(graph);
-        }
+        LockUtil.lock(graph.name(), LockUtil.GRAPH_LOCK);
+        try {
+            TaskScheduler scheduler = this.schedulers.get(graph);
+            if (scheduler != null && scheduler.close()) {
+                this.schedulers.remove(graph);
+            }
+            if (!this.taskExecutor.isTerminated()) {
+                this.closeTaskTx(graph);
+            }
 
-        if (!this.schedulerExecutor.isTerminated()) {
-            this.closeSchedulerTx(graph);
+            if (!this.schedulerExecutor.isTerminated()) {
+                this.closeSchedulerTx(graph);
+            }
+        } finally {
+            LockUtil.unlock(graph.name(), LockUtil.GRAPH_LOCK);
         }
     }
 
@@ -260,7 +265,7 @@ public final class TaskManager {
                 StandardTaskScheduler scheduler = (StandardTaskScheduler) entry;
                 ServerInfoManager serverManager = scheduler.serverManager();
 
-                String graph = scheduler.graph().name();
+                String graph = scheduler.graphName();
                 LockUtil.lock(graph, LockUtil.GRAPH_LOCK);
                 graphs.add(graph);
 

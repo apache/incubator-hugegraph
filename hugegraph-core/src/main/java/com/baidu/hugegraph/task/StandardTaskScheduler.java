@@ -116,6 +116,10 @@ public class StandardTaskScheduler implements TaskScheduler {
         return this.graph.graph();
     }
 
+    public String graphName() {
+        return this.graph.name();
+    }
+
     @Override
     public int pendingTasks() {
         return this.tasks.size();
