@@ -43,7 +43,7 @@ public class PageEntryIterator<R> implements CIter<R> {
         this.queries = queries;
         this.pageSize = pageSize;
         this.pageInfo = this.parsePageInfo();
-        this.queryResults = new QueryResults<>(this);
+        this.queryResults = new QueryResults<>(this, queries.parent());
 
         this.pageResults = QueryList.PageResults.emptyIterator();
         this.remaining = queries.parent().limit();

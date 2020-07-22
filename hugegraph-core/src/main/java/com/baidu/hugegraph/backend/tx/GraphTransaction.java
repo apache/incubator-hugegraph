@@ -54,6 +54,7 @@ import com.baidu.hugegraph.backend.page.QueryList;
 import com.baidu.hugegraph.backend.query.Aggregate;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
+import com.baidu.hugegraph.backend.query.ConditionQuery.OptimizedType;
 import com.baidu.hugegraph.backend.query.ConditionQueryFlatten;
 import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
@@ -61,7 +62,6 @@ import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
-import com.baidu.hugegraph.backend.tx.GraphIndexTransaction.OptimizedType;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.exception.LimitExceedException;
@@ -533,7 +533,20 @@ public class GraphTransaction extends IndexableTransaction {
 
         QueryList<Number> queries = this.optimizeQueries(query, q -> {
             boolean indexQuery = q.getClass() == IdQuery.class;
-            Number result = indexQuery ? q.ids().size() : super.queryNumber(q);
+            OptimizedType optimized = ((ConditionQuery) query).optimized();
+            Number result;
+            if (!indexQuery) {
+                result = super.queryNumber(q);
+            } else if (optimized == OptimizedType.INDEX) {
+                // The number of ids means results size (assume no left index)
+                result = q.ids().size();
+            } else {
+                assert optimized == OptimizedType.INDEX_FILTER;
+                assert q.resultType().isVertex() || q.resultType().isEdge();
+                result = IteratorUtils.count(q.resultType().isVertex() ?
+                                             this.queryVertices(q) :
+                                             this.queryEdges(q));
+            }
             return new QueryResults<>(IteratorUtils.of(result), q);
         });
 
@@ -711,41 +724,18 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     public Iterator<Vertex> queryVertices(Query query) {
-        E.checkArgument(this.removedVertices.isEmpty() || query.nolimit(),
+        E.checkArgument(this.removedVertices.isEmpty() || query.noLimit(),
                         "It's not allowed to query with limit when " +
                         "there are uncommitted delete records.");
 
-        Iterator<HugeVertex> results = this.queryVerticesFromBackend(query);
+        query.resetActualOffset();
 
-        // Filter unused or incorrect records
-        results = new FilterIterator<>(results, vertex -> {
-            // TODO: Left vertex should to be auto removed via async task
-            if (vertex.schemaLabel().undefined()) {
-                LOG.warn("Left vertex is found: id={}, label={}, properties={}",
-                         vertex.id(), vertex.schemaLabel().id(),
-                         vertex.getPropertiesMap());
-            }
-            // Filter hidden results
-            if (!query.showHidden() && Graph.Hidden.isHidden(vertex.label())) {
-                return false;
-            }
-            // Filter vertices of deleting vertex label
-            if (vertex.schemaLabel().status() == SchemaStatus.DELETING &&
-                !query.showDeleting()) {
-                return false;
-            }
-            // Process results that query from left index or primary-key
-            if (query.resultType().isVertex() &&
-                !filterResultFromIndexQuery(query, vertex)) {
-                // Only index query will come here
-                return false;
-            }
-            return true;
-        });
+        Iterator<HugeVertex> results = this.queryVerticesFromBackend(query);
+        results = this.filterUnmatchedRecords(results, query);
 
         @SuppressWarnings("unchecked")
         Iterator<Vertex> r = (Iterator<Vertex>) joinTxVertices(query, results);
-        return r;
+        return this.filterOffsetLimitRecords(r, query);
     }
 
     protected Iterator<HugeVertex> queryVerticesFromBackend(Query query) {
@@ -870,59 +860,44 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     public Iterator<Edge> queryEdges(Query query) {
-        E.checkArgument(this.removedEdges.isEmpty() || query.nolimit(),
+        E.checkArgument(this.removedEdges.isEmpty() || query.noLimit(),
                         "It's not allowed to query with limit when " +
                         "there are uncommitted delete records.");
 
-        Iterator<HugeEdge> results = this.queryEdgesFromBackend(query);
+        query.resetActualOffset();
 
-        // TODO: any unconsidered case, maybe the query with OR condition?
-        boolean withDuplicatedEdge = false;
-        Set<Id> returnedEdges = withDuplicatedEdge ? new HashSet<>() : null;
-        results = new FilterIterator<>(results, edge -> {
-            // TODO: Left edge should to be auto removed via async task
-            if (edge.schemaLabel().undefined()) {
-                LOG.warn("Left edge is found: id={}, label={}, properties={}",
-                         edge.id(), edge.schemaLabel().id(),
-                         edge.getPropertiesMap());
-            }
-            // Filter hidden results
-            if (!query.showHidden() && Graph.Hidden.isHidden(edge.label())) {
-                return false;
-            }
-            // Filter edges of deleting edge label
-            if (edge.schemaLabel().status() == SchemaStatus.DELETING &&
-                !query.showDeleting()) {
-                return false;
-            }
-            // Process results that query from left index
-            if (!this.filterResultFromIndexQuery(query, edge)) {
-                return false;
-            }
-            // Without repeated edges if not querying by BOTH all edges
-            if (!withDuplicatedEdge) {
-                return true;
-            }
-            // Filter duplicated edges (edge may be repeated query both)
-            if (!returnedEdges.contains(edge.id())) {
-                /*
-                 * NOTE: Maybe some edges are IN and others are OUT
-                 * if querying edges both directions, perhaps it would look
-                 * better if we convert all edges in results to OUT, but
-                 * that would break the logic when querying IN edges.
-                 */
-                returnedEdges.add(edge.id());
-                return true;
-            } else {
-                LOG.debug("Result contains duplicated edge: {}", edge);
-                return false;
-            }
-        });
+        Iterator<HugeEdge> results = this.queryEdgesFromBackend(query);
+        results = this.filterUnmatchedRecords(results, query);
+
+        /*
+         * Without repeated edges if not querying by BOTH all edges
+         * TODO: any unconsidered case, maybe the query with OR condition?
+         */
+        boolean dedupEdge = false;
+        if (dedupEdge) {
+            Set<Id> returnedEdges = new HashSet<>();
+            results = new FilterIterator<>(results, edge -> {
+                // Filter duplicated edges (edge may be repeated query both)
+                if (!returnedEdges.contains(edge.id())) {
+                    /*
+                     * NOTE: Maybe some edges are IN and others are OUT
+                     * if querying edges both directions, perhaps it would look
+                     * better if we convert all edges in results to OUT, but
+                     * that would break the logic when querying IN edges.
+                     */
+                    returnedEdges.add(edge.id());
+                    return true;
+                } else {
+                    LOG.debug("Result contains duplicated edge: {}", edge);
+                    return false;
+                }
+            });
+        }
 
         @SuppressWarnings("unchecked")
         Iterator<Edge> r = (Iterator<Edge>) joinTxEdges(query, results,
                                                         this.removedVertices);
-        return r;
+        return this.filterOffsetLimitRecords(r, query);
     }
 
     protected Iterator<HugeEdge> queryEdgesFromBackend(Query query) {
@@ -1276,6 +1251,7 @@ public class GraphTransaction extends IndexableTransaction {
         QueryList<R> queries = new QueryList<>(query, fetcher);
         for (ConditionQuery cq: ConditionQueryFlatten.flatten(
                                 (ConditionQuery) query)) {
+            // Optimize by sysprop
             Query q = this.optimizeQuery(cq);
             /*
              * NOTE: There are two possibilities for this query:
@@ -1310,7 +1286,7 @@ public class GraphTransaction extends IndexableTransaction {
                              IdStrategy.PRIMARY_KEY, vertexLabel.name());
                 if (query.matchUserpropKeys(keys)) {
                     // Query vertex by label + primary-values
-                    query.optimized(OptimizedType.PRIMARY_KEY.ordinal());
+                    query.optimized(OptimizedType.PRIMARY_KEY);
                     String primaryValues = query.userpropValuesString(keys);
                     LOG.debug("Query vertices by primaryKeys: {}", query);
                     // Convert {vertex-label + primary-key} to vertex-id
@@ -1331,7 +1307,7 @@ public class GraphTransaction extends IndexableTransaction {
             query.condition(HugeKeys.DIRECTION) != null &&
             matchEdgeSortKeys(query, false, this.graph())) {
             // Query edge by sourceVertex + direction + label + sort-values
-            query.optimized(OptimizedType.SORT_KEYS.ordinal());
+            query.optimized(OptimizedType.SORT_KEYS);
             query = query.copy();
             // Serialize sort-values
             List<Id> keys = this.graph().edgeLabel(label).sortKeys();
@@ -1568,13 +1544,51 @@ public class GraphTransaction extends IndexableTransaction {
         }
     }
 
-    private boolean filterResultFromIndexQuery(Query query, HugeElement elem) {
-        if (!(query instanceof ConditionQuery)) {
+    private <T extends HugeElement> Iterator<T> filterUnmatchedRecords(
+                                                Iterator<T> results,
+                                                Query query) {
+        // Filter unused or incorrect records
+        return new FilterIterator<T>(results, elem -> {
+            // TODO: Left vertex/edge should to be auto removed via async task
+            if (elem.schemaLabel().undefined()) {
+                LOG.warn("Left record is found: id={}, label={}, properties={}",
+                         elem.id(), elem.schemaLabel().id(),
+                         elem.getPropertiesMap());
+            }
+            // Filter hidden results
+            if (!query.showHidden() && Graph.Hidden.isHidden(elem.label())) {
+                return false;
+            }
+            // Filter vertices/edges of deleting label
+            if (elem.schemaLabel().status() == SchemaStatus.DELETING &&
+                !query.showDeleting()) {
+                return false;
+            }
+            // Process results that query from left index or primary-key
+            if (query.resultType().isVertex() == elem.type().isVertex() &&
+                !filterResultFromIndexQuery(query, elem)) {
+                // Only index query will come here
+                return false;
+            }
             return true;
+        });
+    }
+
+    private boolean filterResultFromIndexQuery(Query query, HugeElement elem) {
+        /*
+         * If query is ConditionQuery or query.originQuery() is ConditionQuery
+         * means it's index query
+         */
+        if (!(query instanceof ConditionQuery)) {
+            if (query.originQuery() instanceof ConditionQuery) {
+                query = query.originQuery();
+            } else {
+                return true;
+            }
         }
 
         ConditionQuery cq = (ConditionQuery) query;
-        if (cq.optimized() == 0 || cq.test(elem)) {
+        if (cq.optimized() == OptimizedType.NONE || cq.test(elem)) {
             /* Return true if:
              * 1.not query by index or by primary-key/sort-key
              *   (cq.optimized() == 0 means query just by sysprop)
@@ -1583,11 +1597,36 @@ public class GraphTransaction extends IndexableTransaction {
             return true;
         }
 
-        if (cq.optimized() == OptimizedType.INDEX.ordinal()) {
+        if (cq.optimized() == OptimizedType.INDEX) {
             LOG.info("Remove left index: {}, query: {}", elem, cq);
             this.indexTx.asyncRemoveIndexLeft(cq, elem);
         }
         return false;
+    }
+
+    private <T> Iterator<T> filterOffsetLimitRecords(Iterator<T> results,
+                                                     Query query) {
+        if (query.noLimitAndOffset()) {
+            return results;
+        }
+        // Skip offset
+        long offset = query.offset();
+        if (offset > 0L && results.hasNext()) {
+            /*
+             * Must call results.hasNext() before query.actualOffset() due to
+             * some backends will go offset and update query.actualOffset
+             */
+            long current = query.actualOffset();
+            for (; current < offset && results.hasNext(); current++) {
+                results.next();
+                query.goOffset(1L);
+            }
+        }
+        // Filter limit
+        return new FilterIterator<>(results, elem -> {
+            long count = query.goOffset(1L);
+            return !query.reachLimit(count - 1L);
+        });
     }
 
     private <T extends HugeElement> Iterator<T>

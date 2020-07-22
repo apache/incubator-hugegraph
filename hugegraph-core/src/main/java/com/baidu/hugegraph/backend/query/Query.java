@@ -53,6 +53,7 @@ public class Query implements Cloneable {
     private Map<HugeKeys, Order> orders;
     private long offset;
     private long actualOffset;
+    private long actualStoreOffset;
     private long limit;
     private String page;
     private long capacity;
@@ -76,6 +77,7 @@ public class Query implements Cloneable {
 
         this.offset = 0L;
         this.actualOffset = 0L;
+        this.actualStoreOffset = 0L;
         this.limit = NO_LIMIT;
         this.page = null;
 
@@ -156,34 +158,66 @@ public class Query implements Cloneable {
         this.offset = offset;
     }
 
+    public void copyOffset(Query parent) {
+        assert this.offset == 0L || this.offset == parent.offset;
+        assert this.actualOffset == 0L ||
+               this.actualOffset == parent.actualOffset;
+        this.offset = parent.offset;
+        this.actualOffset = parent.actualOffset;
+    }
+
     public long actualOffset() {
-        if (this.originQuery != null) {
-            return this.rootOriginQuery().actualOffset();
-        }
         return this.actualOffset;
     }
 
-    public long skipOffset(long offset) {
+    public void resetActualOffset() {
+        this.actualOffset = 0L;
+        this.actualStoreOffset = 0L;
+    }
+
+    public long goOffset(long offset) {
         E.checkArgument(offset >= 0L, "Invalid offset value: %s", offset);
         if (this.originQuery != null) {
-            return this.rootOriginQuery().skipOffset(offset);
+            this.goParentOffset(offset);
         }
+        return this.goSelfOffset(offset);
+    }
 
+    private void goParentOffset(long offset) {
+        assert offset >= 0L;
+        Query parent = this.originQuery;
+        while (parent != null) {
+            parent.actualOffset += offset;
+            parent = parent.originQuery;
+        }
+    }
+
+    private long goSelfOffset(long offset) {
+        assert offset >= 0L;
+        if (this.originQuery != null) {
+            this.originQuery.goStoreOffsetBySubQuery(offset);
+        }
         this.actualOffset += offset;
         return this.actualOffset;
     }
 
-    public <T> Set<T> skipOffset(Set<T> elems) {
-        if (this.originQuery != null) {
-            return this.rootOriginQuery().skipOffset(elems);
+    private long goStoreOffsetBySubQuery(long offset) {
+        Query parent = this.originQuery;
+        while (parent != null) {
+            parent.actualStoreOffset += offset;
+            parent = parent.originQuery;
         }
+        this.actualStoreOffset += offset;
+        return this.actualStoreOffset;
+    }
 
-        long fromIndex = this.offset() - this.actualOffset;
-        this.actualOffset += elems.size();
-
+    public <T> Set<T> skipOffsetIfNeeded(Set<T> elems) {
+        long fromIndex = this.offset() - this.actualOffset();
         if (fromIndex < 0L) {
             // Skipping offset is overhead, no need to skip
             fromIndex = 0L;
+        } else if (fromIndex > 0L) {
+            this.goOffset(fromIndex);
         }
         E.checkArgument(fromIndex <= Integer.MAX_VALUE,
                         "Offset must be <= 0x7fffffff, but got '%s'",
@@ -193,7 +227,7 @@ public class Query implements Cloneable {
             return ImmutableSet.of();
         }
         long toIndex = this.total();
-        if (this.nolimit() || toIndex > elems.size()) {
+        if (this.noLimit() || toIndex > elems.size()) {
             toIndex = elems.size();
         }
         if (fromIndex == 0L && toIndex == elems.size()) {
@@ -205,7 +239,11 @@ public class Query implements Cloneable {
     }
 
     public long remaining() {
-        return this.total() - this.actualOffset();
+        if (this.limit == NO_LIMIT) {
+            return NO_LIMIT;
+        } else {
+            return this.total() - this.actualOffset();
+        }
     }
 
     public long total() {
@@ -220,7 +258,8 @@ public class Query implements Cloneable {
         if (this.capacity != NO_CAPACITY) {
             E.checkArgument(this.limit == Query.NO_LIMIT ||
                             this.limit <= this.capacity,
-                            "Invalid limit %s, must be <= capacity", this.limit);
+                            "Invalid limit %s, must be <= capacity(%s)",
+                            this.limit, this.capacity);
         }
         return this.limit;
     }
@@ -231,8 +270,12 @@ public class Query implements Cloneable {
         this.limit = limit;
     }
 
-    public boolean nolimit() {
+    public boolean noLimit() {
         return this.limit() == NO_LIMIT;
+    }
+
+    public boolean noLimitAndOffset() {
+        return this.limit() == NO_LIMIT && this.offset() == 0L;
     }
 
     public boolean reachLimit(long count) {
@@ -257,7 +300,7 @@ public class Query implements Cloneable {
 
         // Update limit
         if (end != -1L) {
-            if (!this.nolimit()) {
+            if (!this.noLimit()) {
                 end = Math.min(end, offset + this.limit());
             } else {
                 assert end < Query.NO_LIMIT;

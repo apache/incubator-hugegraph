@@ -30,7 +30,9 @@ import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
 import org.junit.Test;
+import org.rocksdb.RocksDBException;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.IdGenerator;
@@ -305,7 +307,7 @@ public class MultiGraphsTest {
                        "g1", "rocksdb", "binary",
                        "rocksdb.data_disks",
                        "[g/secondary_index:rocksdb-index," +
-                       "g/range_int_index:rocksdb-index]");
+                       " g/range_int_index:rocksdb-index]");
         g1.initBackend();
         g1.clearBackend();
 
@@ -314,9 +316,15 @@ public class MultiGraphsTest {
             g2[0] = openGraphWithBackend("g2", "rocksdb", "binary",
                                          "rocksdb.data_disks",
                                          "[g/secondary_index:/," +
-                                         "g/range_int_index:rocksdb-index]");
+                                         " g/range_int_index:rocksdb-index]");
             g2[0].initBackend();
+        }, e -> {
+            Throwable root = HugeException.rootCause(e);
+            Assert.assertInstanceOf(RocksDBException.class, root);
+            Assert.assertContains("While mkdir if missing: /g",
+                                  root.getMessage());
         });
+
         destoryGraphs(ImmutableList.of(g1, g2[0]));
     }
 

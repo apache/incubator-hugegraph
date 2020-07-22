@@ -59,7 +59,7 @@ public final class ConditionQueryFlatten {
             }
             conditions.add(cond);
         }
-        query = query.copy();
+        query = query.copyAndResetUnshared();
         query.resetConditions(conditions);
 
         // Flatten OR if needed
@@ -218,7 +218,7 @@ public final class ConditionQueryFlatten {
 
     private static ConditionQuery newQueryFromRelations(ConditionQuery query,
                                                         Relations relations) {
-        ConditionQuery cq = query.copy();
+        ConditionQuery cq = query.copyAndResetUnshared();
         cq.resetConditions();
         for (Relation relation : relations) {
             cq.query(relation);
