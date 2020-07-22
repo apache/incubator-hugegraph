@@ -479,7 +479,11 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
 
     @Override
     public void beginTx() {
-        // pass
+        this.checkOpened();
+
+        for (Session session : this.session()) {
+            assert !session.hasChanges();
+        }
     }
 
     @Override
