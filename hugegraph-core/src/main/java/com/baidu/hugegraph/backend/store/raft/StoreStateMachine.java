@@ -22,10 +22,6 @@ package com.baidu.hugegraph.backend.store.raft;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 
@@ -52,16 +48,12 @@ public class StoreStateMachine extends StateMachineAdapter {
 
     private static final Logger LOG = Log.logger(StoreStateMachine.class);
 
-    private static final int QUEUED_TASK_SIZE = 1024;
-    private static final int QUEUES_TASK_CLEAN_SIZE = 512;
-
     private NodeId nodeId;
     private final BackendStore store;
     private final RaftSharedContext context;
     private final StoreSnapshotFile snapshotFile;
     private final AtomicLong leaderTerm;
     private final Map<StoreAction, Function<BytesBuffer, Object>> funcs;
-    private final BlockingQueue<Future<Object>> queue;
 
     public StoreStateMachine(BackendStore store, RaftSharedContext context) {
         this.store = store;
@@ -69,7 +61,6 @@ public class StoreStateMachine extends StateMachineAdapter {
         this.snapshotFile = new StoreSnapshotFile();
         this.leaderTerm = new AtomicLong(-1);
         this.funcs = new EnumMap<>(StoreAction.class);
-        this.queue = new ArrayBlockingQueue<>(QUEUED_TASK_SIZE);
         this.registerCommands();
     }
 
@@ -135,9 +126,22 @@ public class StoreStateMachine extends StateMachineAdapter {
                     buffer = CodeUtil.decompress(iter.getData().array());
                     action = StoreAction.fromCode(buffer.read());
                 }
-                Object data = this.applyCommand(action, buffer);
-                success(closure, data);
-
+                if (closure != null) {
+                    // Closure is null on follower node
+                    closure.complete(Status.OK(),
+                                     () -> this.applyCommand(action, buffer));
+                } else {
+                    // Follower need wait future?
+                    this.context.backendExecutor().submit(() -> {
+                        try {
+                            this.applyCommand(action, buffer);
+                        } catch (Throwable e) {
+                            LOG.error("Failed to execute backend command: {}",
+                                      action, e);
+                            throw new BackendException("Backend error", e);
+                        }
+                    });
+                }
                 iter.next();
             }
         } catch (Throwable e) {
@@ -145,52 +149,17 @@ public class StoreStateMachine extends StateMachineAdapter {
             Status status = new Status(RaftError.ESTATEMACHINE,
                                        "StateMachine occured critical error: %s",
                                        e.getMessage());
-            failure(closure, status, e);
+            if (closure != null) {
+                closure.failure(status, e);
+            }
             // Will cause current node inactive
             iter.setErrorAndRollback(1L, status);
         }
     }
 
     private Object applyCommand(StoreAction action, BytesBuffer buffer) {
-        this.tryCleanFinishedTasks();
-
         Function<BytesBuffer, Object> func = this.funcs.get(action);
-        Future<Object> future = this.context.backendExecutor().submit(() -> {
-            try {
-                return func.apply(buffer);
-            } catch (Throwable e) {
-                LOG.error("Failed to execute backend command: {}", action, e);
-                throw new BackendException("Backend error", e);
-            }
-        });
-        try {
-            this.queue.put(future);
-        } catch (InterruptedException e) {
-            throw new BackendException("Failed to put command task to queue");
-        }
-
-        LOG.debug("The store {} performed action {}",
-                  this.store, action.string());
-        return null;
-    }
-
-    private void tryCleanFinishedTasks() {
-        if (this.queue.size() <= QUEUES_TASK_CLEAN_SIZE) {
-            return;
-        }
-        // Clean finished task
-        java.util.Iterator<Future<Object>> iter = this.queue.iterator();
-        while (iter.hasNext()) {
-            Future<Object> future = iter.next();
-            if (future.isDone()) {
-                iter.remove();
-                try {
-                    future.get();
-                } catch (InterruptedException | ExecutionException e) {
-                    throw new BackendException(e);
-                }
-            }
-        }
+        return func.apply(buffer);
     }
 
     @Override
@@ -231,19 +200,5 @@ public class StoreStateMachine extends StateMachineAdapter {
 
     private boolean isLeader() {
         return this.leaderTerm.get() > 0;
-    }
-
-    private static void success(StoreClosure closure, Object data) {
-        if (closure != null) {
-            // closure is null on follower node
-            closure.complete(Status.OK(), data);
-        }
-    }
-
-    private static void failure(StoreClosure closure, Status status,
-                                Throwable e) {
-        if (closure != null) {
-            closure.failure(status, e);
-        }
     }
 }

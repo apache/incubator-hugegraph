@@ -23,6 +23,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 
@@ -53,20 +54,17 @@ public class StoreClosure implements Closure {
         return this.command;
     }
 
-    public CompletableFuture<RaftResult> future() {
-        return this.future;
+    public Object waitFinished() throws Throwable {
+        RaftResult result = this.get();
+        if (result.status().isOk()) {
+            return result.callback().get();
+        } else {
+            throw result.exception();
+        }
     }
 
     public Status status() {
         return this.get().status();
-    }
-
-    public Object data() {
-        return this.get().data();
-    }
-
-    public Throwable throwable() {
-        return this.get().throwable();
     }
 
     private RaftResult get() {
@@ -80,18 +78,18 @@ public class StoreClosure implements Closure {
         }
     }
 
-    public void complete(Status status, Object data) {
-        this.future.complete(new RaftResult(status, data, null));
+    public void complete(Status status, Supplier<Object> callback) {
+        this.future.complete(new RaftResult(status, callback));
     }
 
-    public void failure(Status status, Throwable ex) {
-        this.future.complete(new RaftResult(status, null, ex));
+    public void failure(Status status, Throwable exception) {
+        this.future.complete(new RaftResult(status, exception));
     }
 
     @Override
     public void run(Status status) {
         if (status.isOk()) {
-            this.complete(status, null);
+            this.complete(status, () -> null);
         } else {
             LOG.error("Failed to apply command: {}", status);
             String msg = "Failed to apply command in raft node with error : " +

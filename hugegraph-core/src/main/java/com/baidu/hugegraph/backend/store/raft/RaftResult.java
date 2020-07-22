@@ -19,29 +19,41 @@
 
 package com.baidu.hugegraph.backend.store.raft;
 
+import java.util.function.Supplier;
+
 import com.alipay.sofa.jraft.Status;
+import com.baidu.hugegraph.util.E;
 
 public class RaftResult {
 
     private final Status status;
-    private final Object data;
-    private final Throwable t;
+    private final Supplier<Object> callback;
+    private final Throwable exception;
 
-    public RaftResult(Status status, Object data, Throwable t) {
+    public RaftResult(Status status, Supplier<Object> callback) {
+        this(status, callback, null);
+    }
+
+    public RaftResult(Status status, Throwable exception) {
+        this(status, () -> null, exception);
+    }
+
+    public RaftResult(Status status, Supplier<Object> callback,
+                      Throwable exception) {
         this.status = status;
-        this.data = data;
-        this.t = t;
+        this.callback = callback;
+        this.exception = exception;
     }
 
     public Status status() {
         return this.status;
     }
 
-    public Object data() {
-        return this.data;
+    public Supplier<Object> callback() {
+        return this.callback;
     }
 
-    public Throwable throwable() {
-        return this.t;
+    public Throwable exception() {
+        return this.exception;
     }
 }

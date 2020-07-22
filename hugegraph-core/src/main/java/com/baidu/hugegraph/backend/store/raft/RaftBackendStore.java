@@ -220,7 +220,7 @@ public class RaftBackendStore implements BackendStore {
             @Override
             public void run(Status status, long index, byte[] reqCtx) {
                 if (status.isOk()) {
-                    closure.complete(status, func.apply(query));
+                    closure.complete(status, () -> func.apply(query));
                 } else {
                     LOG.warn("Failed to execute query {} with 'ReadIndex': {}",
                              query, status);
@@ -248,10 +248,11 @@ public class RaftBackendStore implements BackendStore {
 //                });
             }
         });
-        if (closure.throwable() != null) {
-            throw new BackendException("Failed to query", closure.future());
+        try {
+            return closure.waitFinished();
+        } catch (Throwable t) {
+            throw new BackendException("Failed to query", t);
         }
-        return closure.data();
     }
 
     private static class MutationBatch {

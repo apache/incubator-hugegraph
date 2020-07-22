@@ -120,7 +120,11 @@ public class RaftNode {
         }
 
         RaftOptions raftOptions = nodeOptions.getRaftOptions();
-        raftOptions.setDisruptorBufferSize(1024);
+        /*
+         * NOTE: if buffer size is too small, will throw exception
+         * "LogManager is busy, disk queue overload"
+         */
+        raftOptions.setDisruptorBufferSize(8192);
         // raftOptions.setReplicatorPipeline(false);
         // nodeOptions.setRpcProcessorThreadPoolSize(48);
         // nodeOptions.setEnableMetrics(false);
@@ -181,11 +185,16 @@ public class RaftNode {
 
     public Object submitAndWait(StoreCommand command, StoreClosure closure) {
         this.submitCommand(command, closure);
-        // Here will wait future complete
-        if (closure.throwable() != null) {
-            throw new BackendException(closure.throwable());
-        } else {
-            return closure.data();
+        if (!this.node.isLeader()) {
+            return null;
+        }
+        try {
+            // Here will wait future complete
+            return closure.waitFinished();
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Throwable t) {
+            throw new BackendException(t);
         }
     }
 
