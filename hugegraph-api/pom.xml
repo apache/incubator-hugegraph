@@ -104,7 +104,7 @@
                             </addDefaultSpecificationEntries>
                         </manifest>
                         <manifestEntries>
-                            <Implementation-Version>0.56.0.0</Implementation-Version>
+                            <Implementation-Version>0.57.0.0</Implementation-Version>
                         </manifestEntries>
                     </archive>
                 </configuration>

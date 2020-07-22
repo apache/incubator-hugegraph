@@ -105,10 +105,11 @@ public final class ApiVersion {
      * [0.54] Issue-295: Support ttl for vertex and edge
      * [0.55] Issue-994: Support results count for kneighbor/kout/rings
      * [0.56] Issue-800: Show schema status in schema API
+     * [0.57] Issue-1105: Allow not rebuild index when create index label
      */
 
     // The second parameter of Version.of() is for IDE running without JAR
-    public static final Version VERSION = Version.of(ApiVersion.class, "0.56");
+    public static final Version VERSION = Version.of(ApiVersion.class, "0.57");
 
     public static final void check() {
         // Check version of hugegraph-core. Firstly do check from version 0.3
