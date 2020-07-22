@@ -94,23 +94,10 @@ public final class TaskManager {
         this.schedulers.put(graph, scheduler);
     }
 
-    /*
-     * 'closeScheduler' should sync with 'scheduleOrExecuteJob'. Because
-     * 'closeScheduler' will be called by 'graph.close()' in main thread and
-     * there is gap between 'scheduler.close()'(will close graph tx) and
-     * 'this.schedulers.remove(graph)'. In this gap 'scheduleOrExecuteJob'
-     * may be run in scheduler-db-thread and 'scheduleOrExecuteJob' will
-     * reopen graph tx. As a result, graph tx will mistakenly not be closed
-     * after 'graph.close()'
-     */
     public void closeScheduler(HugeGraphParams graph) {
         TaskScheduler scheduler = this.schedulers.get(graph);
-        if (scheduler != null) {
-            synchronized (this.schedulers) {
-                if (scheduler.close()) {
-                    this.schedulers.remove(graph);
-                }
-            }
+        if (scheduler != null && scheduler.close()) {
+            this.schedulers.remove(graph);
         }
 
         if (!this.taskExecutor.isTerminated()) {
@@ -269,7 +256,7 @@ public final class TaskManager {
 
     private void scheduleOrExecuteJob() {
         List<String> graphs = new ArrayList<>();
-        try { synchronized(this.schedulers) {
+        try {
             for (TaskScheduler entry : this.schedulers.values()) {
                 StandardTaskScheduler scheduler = (StandardTaskScheduler) entry;
                 ServerInfoManager serverManager = scheduler.serverManager();
@@ -278,8 +265,21 @@ public final class TaskManager {
                 LockUtil.lock(graph, LockUtil.GRAPH_LOCK);
                 graphs.add(graph);
 
-                // Skip if not initialized(maybe truncated or cleared)
-                if (!serverManager.initialized()) {
+                /*
+                 * Skip if:
+                 * graph is not initialized(maybe truncated or cleared)
+                 *  or
+                 * graph is closed, details reason:
+                 * 'closeScheduler' should sync with 'scheduleOrExecuteJob'.
+                 * Because 'closeScheduler' will be called by 'graph.close()'
+                 * in main thread and there is gap between 'scheduler.close()'
+                 * (will close graph tx) and 'this.schedulers.remove(graph)'.
+                 * In this gap 'scheduleOrExecuteJob' may be run in
+                 * scheduler-db-thread and 'scheduleOrExecuteJob' will reopen
+                 * graph tx. As a result, graph tx will mistakenly not be closed
+                 * after 'graph.close()'
+                 */
+                if (!serverManager.initialized() || serverManager.closed()) {
                     continue;
                 }
 
@@ -303,7 +303,7 @@ public final class TaskManager {
                 // Cancel tasks scheduled to current server
                 scheduler.cancelTasksOnWorker(serverManager.selfServerId());
             }
-        }} catch (Throwable e) {
+        } catch (Throwable e) {
             LOG.error("Exception occurred when schedule job", e);
         } finally {
             Collections.reverse(graphs);
