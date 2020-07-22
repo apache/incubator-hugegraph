@@ -103,11 +103,16 @@ public final class TaskManager {
      * reopen graph tx. As a result, graph tx will mistakenly not be closed
      * after 'graph.close()'
      */
-    public synchronized void closeScheduler(HugeGraphParams graph) {
+    public void closeScheduler(HugeGraphParams graph) {
         TaskScheduler scheduler = this.schedulers.get(graph);
-        if (scheduler != null && scheduler.close()) {
-            this.schedulers.remove(graph);
+        if (scheduler != null) {
+            synchronized (this.schedulers) {
+                if (scheduler.close()) {
+                    this.schedulers.remove(graph);
+                }
+            }
         }
+
         if (!this.taskExecutor.isTerminated()) {
             this.closeTaskTx(graph);
         }
@@ -262,9 +267,9 @@ public final class TaskManager {
         }
     }
 
-    private synchronized void scheduleOrExecuteJob() {
+    private void scheduleOrExecuteJob() {
         List<String> graphs = new ArrayList<>();
-        try {
+        try { synchronized(this.schedulers) {
             for (TaskScheduler entry : this.schedulers.values()) {
                 StandardTaskScheduler scheduler = (StandardTaskScheduler) entry;
                 ServerInfoManager serverManager = scheduler.serverManager();
@@ -298,7 +303,7 @@ public final class TaskManager {
                 // Cancel tasks scheduled to current server
                 scheduler.cancelTasksOnWorker(serverManager.selfServerId());
             }
-        } catch (Throwable e) {
+        }} catch (Throwable e) {
             LOG.error("Exception occurred when schedule job", e);
         } finally {
             Collections.reverse(graphs);
