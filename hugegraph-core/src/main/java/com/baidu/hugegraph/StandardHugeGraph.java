@@ -692,21 +692,15 @@ public class StandardHugeGraph implements HugeGraph {
         }
 
         LOG.info("Close graph {}", this);
-
-        LockUtil.lock(this.name, LockUtil.GRAPH_LOCK);
+        this.userManager.close();
+        this.taskManager.closeScheduler(this.params);
         try {
-            this.userManager.close();
-            this.taskManager.closeScheduler(this.params);
-
             this.closeTx();
         } finally {
             this.closed = true;
-            LockUtil.unlock(this.name, LockUtil.GRAPH_LOCK);
-            LockUtil.destroy(this.name);
-
             this.storeProvider.close();
+            LockUtil.destroy(this.name);
         }
-
         // Make sure that all transactions are closed in all threads
         E.checkState(this.tx.closed(),
                      "Ensure tx closed in all threads when closing graph '%s'",
