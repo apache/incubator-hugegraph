@@ -277,7 +277,11 @@ public final class TaskManager {
                  * In this gap 'scheduleOrExecuteJob' may be run in
                  * scheduler-db-thread and 'scheduleOrExecuteJob' will reopen
                  * graph tx. As a result, graph tx will mistakenly not be closed
-                 * after 'graph.close()'
+                 * after 'graph.close()'.
+                 * If graph is closing by other thread, current thread get
+                 * serverManager and try lock graph, at the same time graph is
+                 * unlocked by other thread and deleted lock-group, current
+                 * thread would get exception 'LockGroup xx does not exists'.
                  */
                 if (!serverManager.initialized() || serverManager.closed()) {
                     continue;
