@@ -274,7 +274,9 @@ public class IndexLabelAPI extends API {
             if (this.checkExist != null) {
                 builder.checkExist(this.checkExist);
             }
-            builder.rebuild(this.rebuild);
+            if (this.rebuild != null) {
+                builder.rebuild(this.rebuild);
+            }
             return builder;
         }
 
