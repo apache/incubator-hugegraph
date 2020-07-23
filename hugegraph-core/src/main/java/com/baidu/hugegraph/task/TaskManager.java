@@ -293,15 +293,18 @@ public final class TaskManager {
         try {
             /*
              * Skip if:
-             * graph is not initialized(maybe truncated or cleared)
+             * graph is closed (iterate schedulers before graph is closing)
              *  or
-             * graph is closed.
+             * graph is not initialized(maybe truncated or cleared).
+             *
              * If graph is closing by other thread, current thread get
              * serverManager and try lock graph, at the same time other
              * thread deleted the lock-group, current thread would get
              * exception 'LockGroup xx does not exists'.
+             * If graph is closed, don't call serverManager.initialized()
+             * due to it will reopen graph tx.
              */
-            if (!serverManager.initialized() || serverManager.closed()) {
+            if (serverManager.closed() || !serverManager.initialized()) {
                 return;
             }
 
