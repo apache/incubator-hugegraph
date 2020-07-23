@@ -184,7 +184,8 @@ public class IndexLabelBuilder extends AbstractBuilder
                 if (this.checkExist || !hasSameProperties(indexLabel)) {
                     throw new ExistedException(type, name);
                 }
-                return new IndexLabel.CreatedIndexLabel(indexLabel, null);
+                return new IndexLabel.CreatedIndexLabel(indexLabel,
+                                                        IdGenerator.ZERO);
             }
             this.checkSchemaIdIfRestoringMode(type, this.id);
 
@@ -215,7 +216,8 @@ public class IndexLabelBuilder extends AbstractBuilder
             if (!this.rebuild) {
                 indexLabel.status(SchemaStatus.CREATED);
                 this.graph().addIndexLabel(schemaLabel, indexLabel);
-                return new IndexLabel.CreatedIndexLabel(indexLabel, null);
+                return new IndexLabel.CreatedIndexLabel(indexLabel,
+                                                        IdGenerator.ZERO);
             }
 
             // Create index label (just schema)
