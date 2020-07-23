@@ -210,7 +210,7 @@ public class IndexLabelAPI extends API {
         @JsonProperty("check_exist")
         public Boolean checkExist;
         @JsonProperty("rebuild")
-        public Boolean rebuild = true;
+        public Boolean rebuild;
 
         @Override
         public void checkCreate(boolean isBatch) {
