@@ -104,7 +104,7 @@ public class VertexAPI extends BatchAPI {
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin", "$owner=$graph $action=vertex_write"})
-    public List<String> create(@Context HugeConfig config,
+    public List<Object> create(@Context HugeConfig config,
                                @Context GraphManager manager,
                                @PathParam("graph") String graph,
                                List<JsonVertex> jsonVertices) {
@@ -115,9 +115,9 @@ public class VertexAPI extends BatchAPI {
         HugeGraph g = graph(manager, graph);
 
         return this.commit(config, g, jsonVertices.size(), () -> {
-            List<String> ids = new ArrayList<>(jsonVertices.size());
+            List<Object> ids = new ArrayList<>(jsonVertices.size());
             for (JsonVertex vertex : jsonVertices) {
-                ids.add(g.addVertex(vertex.properties()).id().toString());
+                ids.add(g.addVertex(vertex.properties()).id());
             }
             return ids;
         });
