@@ -29,6 +29,7 @@ import javax.security.auth.x500.X500Principal;
 
 import org.apache.commons.codec.Charsets;
 import org.apache.commons.io.FileUtils;
+import org.junit.After;
 import org.junit.Test;
 
 import com.baidu.hugegraph.license.CommonLicenseManager;
@@ -55,6 +56,12 @@ public class LicenseManagerTest {
 
     private static final Charset CHARSET = Charsets.UTF_8;
     private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    @After
+    public void teardown() throws IOException {
+        File lic = new File("src/test/resources/hugegraph-evaluation.license");
+        FileUtils.forceDelete(lic);
+    }
 
     @Test
     public void testCreateInstallVerifyLicense() throws IOException {

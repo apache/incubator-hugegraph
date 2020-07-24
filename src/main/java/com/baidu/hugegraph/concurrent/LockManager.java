@@ -41,21 +41,25 @@ public class LockManager {
     }
 
     public LockGroup create(String group) {
-        if (this.lockGroupMap.containsKey(group)) {
+        if (exists(group)) {
             throw new RuntimeException(String.format(
-                      "LockGroup '%s' already exists!", group));
+                      "LockGroup '%s' already exists", group));
         }
         LockGroup lockGroup = new LockGroup(group);
-        this.lockGroupMap.putIfAbsent(group, lockGroup);
+        LockGroup previous = this.lockGroupMap.putIfAbsent(group, lockGroup);
+        if (previous != null) {
+            return previous;
+        }
         return lockGroup;
     }
 
     public LockGroup get(String group) {
-        if (!exists(group)) {
+        LockGroup lockGroup = this.lockGroupMap.get(group);
+        if (lockGroup == null) {
             throw new RuntimeException(String.format(
                       "LockGroup '%s' does not exists", group));
         }
-        return this.lockGroupMap.get(group);
+        return lockGroup;
     }
 
     public void destroy(String group) {

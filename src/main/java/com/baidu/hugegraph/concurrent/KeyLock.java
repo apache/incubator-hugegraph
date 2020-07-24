@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.locks.Lock;
 
+import com.baidu.hugegraph.util.E;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Striped;
 
@@ -58,6 +59,7 @@ public class KeyLock {
      * @return The lock(locked) of passed key
      */
     public final Lock lock(Object key) {
+        E.checkArgument(key != null, "Lock key can't be null");
         Lock lock = this.locks.get(key);
         lock.lock();
         return lock;
@@ -68,6 +70,7 @@ public class KeyLock {
      * @param key The object to unlock
      */
     public final void unlock(Object key) {
+        E.checkArgument(key != null, "Unlock key can't be null");
         this.locks.get(key).unlock();
     }
 
@@ -77,8 +80,11 @@ public class KeyLock {
      * @return The locks(locked) of keys
      */
     public final List<Lock> lockAll(Object... keys) {
+        E.checkArgument(keys != null && keys.length > 0,
+                        "Lock keys can't be null or empty");
         List<Lock> locks = new ArrayList<>(keys.length);
         for (Object key : keys) {
+            E.checkArgument(key != null, "Lock key can't be null");
             Lock lock = this.locks.get(key);
             locks.add(lock);
         }
@@ -104,6 +110,8 @@ public class KeyLock {
      * @return      locks for the two objects
      */
     public List<Lock> lockAll(Object key1, Object key2) {
+        E.checkArgument(key1 != null, "Lock key can't be null");
+        E.checkArgument(key2 != null, "Lock key can't be null");
         Lock lock1 = this.locks.get(key1);
         Lock lock2 = this.locks.get(key2);
 
@@ -129,6 +137,7 @@ public class KeyLock {
      * @param locks The locks to unlock
      */
     public final void unlockAll(List<Lock> locks) {
+        E.checkArgument(locks != null, "Unlock locks can't be null");
         for (int i = locks.size(); i > 0; i--) {
             assert this.indexOf(locks.get(i - 1)) != -1;
             locks.get(i - 1).unlock();

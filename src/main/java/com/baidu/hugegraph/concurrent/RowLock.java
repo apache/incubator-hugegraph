@@ -38,9 +38,7 @@ public class RowLock<K extends Comparable<K>> {
                   ThreadLocal.withInitial(HashMap::new);
 
     public void lock(K key) {
-        if (key == null) {
-            return;
-        }
+        E.checkArgument(key != null, "Lock key can't be null");
         LocalLock localLock = this.localLocks.get().get(key);
         if (localLock != null) {
             localLock.lockCount++;
@@ -56,9 +54,7 @@ public class RowLock<K extends Comparable<K>> {
     }
 
     public void unlock(K key) {
-        if (key == null) {
-            return;
-        }
+        E.checkArgument(key != null, "Unlock key can't be null");
         LocalLock localLock = this.localLocks.get().get(key);
         if (localLock == null) {
             return;
@@ -74,9 +70,8 @@ public class RowLock<K extends Comparable<K>> {
     }
 
     public void lockAll(Set<K> keys) {
-        if (keys == null) {
-            return;
-        }
+        E.checkArgument(keys != null && keys.size() > 0,
+                        "Lock keys can't be null or empty");
         List<K> list = new ArrayList<>(keys);
         Collections.sort(list);
         for (K key : list) {
@@ -85,9 +80,8 @@ public class RowLock<K extends Comparable<K>> {
     }
 
     public void unlockAll(Set<K> keys) {
-        if (keys == null) {
-            return;
-        }
+        E.checkArgument(keys != null && keys.size() > 0,
+                        "Unlock keys can't be null or empty");
         for (K key : keys) {
             this.unlock(key);
         }

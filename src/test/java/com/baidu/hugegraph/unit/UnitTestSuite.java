@@ -24,7 +24,10 @@ import org.junit.runners.Suite;
 
 import com.baidu.hugegraph.testutil.AssertTest;
 import com.baidu.hugegraph.testutil.WhiteboxTest;
+import com.baidu.hugegraph.unit.concurrent.AtomicLockTest;
+import com.baidu.hugegraph.unit.concurrent.KeyLockTest;
 import com.baidu.hugegraph.unit.concurrent.LockGroupTest;
+import com.baidu.hugegraph.unit.concurrent.LockManagerTest;
 import com.baidu.hugegraph.unit.concurrent.RowLockTest;
 import com.baidu.hugegraph.unit.config.HugeConfigTest;
 import com.baidu.hugegraph.unit.config.OptionSpaceTest;
@@ -61,8 +64,12 @@ import com.baidu.hugegraph.unit.version.VersionTest;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
+    LockManagerTest.class,
     LockGroupTest.class,
+    AtomicLockTest.class,
+    KeyLockTest.class,
     RowLockTest.class,
+
     HugeConfigTest.class,
     OptionSpaceTest.class,
     SafeDateFormatTest.class,

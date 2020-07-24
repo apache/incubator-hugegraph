@@ -25,10 +25,10 @@ import java.util.List;
 import java.util.Random;
 import java.util.Set;
 
-import org.junit.Assert;
 import org.junit.Test;
 
 import com.baidu.hugegraph.concurrent.RowLock;
+import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.unit.BaseUnitTest;
 import com.google.common.collect.ImmutableSet;
 
@@ -53,6 +53,18 @@ public class RowLockTest extends BaseUnitTest {
         lock.lock(1);
         lock.unlock(1);
         lock.unlock(1);
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            lock.lock(null);
+        }, e -> {
+            Assert.assertContains("Lock key can't be null", e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            lock.unlock(null);
+        }, e -> {
+            Assert.assertContains("Unlock key can't be null", e.getMessage());
+        });
     }
 
     @Test
@@ -60,6 +72,32 @@ public class RowLockTest extends BaseUnitTest {
         RowLock<Integer> lock = new RowLock<>();
         lock.lockAll(ImmutableSet.of(1, 2, 3));
         lock.unlockAll(ImmutableSet.of(1, 2, 3));
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            lock.lockAll(null);
+        }, e -> {
+            Assert.assertContains("Lock keys can't be null", e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            lock.unlockAll(null);
+        }, e -> {
+            Assert.assertContains("Unlock keys can't be null", e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            lock.lockAll(ImmutableSet.of());
+        }, e -> {
+            Assert.assertContains("Lock keys can't be null or empty",
+                                  e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            lock.unlockAll(ImmutableSet.of());
+        }, e -> {
+            Assert.assertContains("Unlock keys can't be null or empty",
+                                  e.getMessage());
+        });
     }
 
     @Test

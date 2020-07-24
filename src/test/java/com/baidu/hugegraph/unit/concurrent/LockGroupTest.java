@@ -31,10 +31,11 @@ import com.baidu.hugegraph.concurrent.KeyLock;
 import com.baidu.hugegraph.concurrent.LockGroup;
 import com.baidu.hugegraph.concurrent.RowLock;
 import com.baidu.hugegraph.testutil.Assert;
+import com.baidu.hugegraph.unit.BaseUnitTest;
 
-public class LockGroupTest {
+public class LockGroupTest extends BaseUnitTest {
 
-    private static final String GROUP = "testGroup";
+    private static final String GROUP = "LockGroupTest-test-group";
 
     private LockGroup group = new LockGroup(GROUP);
 
@@ -44,6 +45,19 @@ public class LockGroupTest {
         Assert.assertTrue(lock instanceof ReentrantLock);
         Lock lock1 = this.group.lock("lock");
         Assert.assertSame(lock, lock1);
+
+        lock1.lock();
+        try {
+            // lock again is OK
+            lock1.lock();
+            // lock in other threads
+            runWithThreads(2, () -> {
+                Assert.assertFalse(lock1.tryLock());
+            });
+            lock1.unlock();
+        } finally {
+            lock1.unlock();
+        }
     }
 
     @Test
@@ -52,6 +66,7 @@ public class LockGroupTest {
         Assert.assertNotNull(lock);
         AtomicLock lock1 = this.group.atomicLock("lock");
         Assert.assertSame(lock, lock1);
+        Assert.assertEquals("lock", lock1.name());
     }
 
     @Test

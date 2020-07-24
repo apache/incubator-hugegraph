@@ -43,6 +43,9 @@ public class AtomicLock {
     }
 
     public void unlock() {
+        if (this.sign.get() == null) {
+            return;
+        }
         Thread current = Thread.currentThread();
         if (!this.sign.compareAndSet(current, null)) {
             throw new RuntimeException(String.format(
