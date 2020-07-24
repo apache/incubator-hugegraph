@@ -242,7 +242,10 @@ public class IndexLabelBuilder extends AbstractBuilder
 
         Id task = createdIndexLabel.task();
         if (task == IdGenerator.ZERO) {
-            // Task id will be null if creating index label already exists.
+            /*
+             * Task id will be IdGenerator.ZERO if creating index label
+             * already exists.
+             */
             return createdIndexLabel.indexLabel();
         }
 
