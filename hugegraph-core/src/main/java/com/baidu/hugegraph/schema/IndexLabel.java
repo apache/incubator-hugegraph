@@ -264,6 +264,8 @@ public class IndexLabel extends SchemaElement {
         Builder userdata(String key, Object value);
 
         Builder userdata(Map<String, Object> userdata);
+
+        Builder rebuild(boolean rebuild);
     }
 
     public static class CreatedIndexLabel {

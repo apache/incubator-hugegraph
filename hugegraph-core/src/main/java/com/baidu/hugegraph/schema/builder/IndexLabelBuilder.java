@@ -60,6 +60,7 @@ public class IndexLabelBuilder extends AbstractBuilder
     private List<String> indexFields;
     private Userdata userdata;
     private boolean checkExist;
+    private boolean rebuild;
 
     public IndexLabelBuilder(SchemaTransaction transaction,
                              HugeGraph graph, String name) {
@@ -73,6 +74,7 @@ public class IndexLabelBuilder extends AbstractBuilder
         this.indexFields = new ArrayList<>();
         this.userdata = new Userdata();
         this.checkExist = true;
+        this.rebuild = true;
     }
 
     public IndexLabelBuilder(SchemaTransaction transaction,
@@ -90,6 +92,7 @@ public class IndexLabelBuilder extends AbstractBuilder
         this.indexFields = copy.graph().mapPkId2Name(copy.indexFields());
         this.userdata = new Userdata(copy.userdata());
         this.checkExist = false;
+        this.rebuild = true;
     }
 
     @Override
@@ -181,7 +184,8 @@ public class IndexLabelBuilder extends AbstractBuilder
                 if (this.checkExist || !hasSameProperties(indexLabel)) {
                     throw new ExistedException(type, name);
                 }
-                return new IndexLabel.CreatedIndexLabel(indexLabel, null);
+                return new IndexLabel.CreatedIndexLabel(indexLabel,
+                                                        IdGenerator.ZERO);
             }
             this.checkSchemaIdIfRestoringMode(type, this.id);
 
@@ -202,9 +206,21 @@ public class IndexLabelBuilder extends AbstractBuilder
             // TODO: use event to replace direct call
             Set<Id> removeTasks = this.removeSubIndex(schemaLabel);
 
-            // Create index label (just schema)
             indexLabel = this.build();
             assert indexLabel.name().equals(name);
+
+            /*
+             * If not rebuild, just create index label and return.
+             * The actual indexes may be rebuilt later as needed
+             */
+            if (!this.rebuild) {
+                indexLabel.status(SchemaStatus.CREATED);
+                this.graph().addIndexLabel(schemaLabel, indexLabel);
+                return new IndexLabel.CreatedIndexLabel(indexLabel,
+                                                        IdGenerator.ZERO);
+            }
+
+            // Create index label (just schema)
             indexLabel.status(SchemaStatus.CREATING);
             this.graph().addIndexLabel(schemaLabel, indexLabel);
 
@@ -225,8 +241,11 @@ public class IndexLabelBuilder extends AbstractBuilder
         IndexLabel.CreatedIndexLabel createdIndexLabel = this.createWithTask();
 
         Id task = createdIndexLabel.task();
-        if (task == null) {
-            // Task id will be null if creating index label already exists.
+        if (task == IdGenerator.ZERO) {
+            /*
+             * Task id will be IdGenerator.ZERO if creating index label
+             * already exists.
+             */
             return createdIndexLabel.indexLabel();
         }
 
@@ -389,6 +408,12 @@ public class IndexLabelBuilder extends AbstractBuilder
     @Override
     public IndexLabel.Builder userdata(Map<String, Object> userdata) {
         this.userdata.putAll(userdata);
+        return this;
+    }
+
+    @Override
+    public IndexLabel.Builder rebuild(boolean rebuild) {
+        this.rebuild = rebuild;
         return this;
     }
 

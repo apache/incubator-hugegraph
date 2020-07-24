@@ -209,6 +209,8 @@ public class IndexLabelAPI extends API {
         public Userdata userdata;
         @JsonProperty("check_exist")
         public Boolean checkExist;
+        @JsonProperty("rebuild")
+        public Boolean rebuild;
 
         @Override
         public void checkCreate(boolean isBatch) {
@@ -271,6 +273,9 @@ public class IndexLabelAPI extends API {
             }
             if (this.checkExist != null) {
                 builder.checkExist(this.checkExist);
+            }
+            if (this.rebuild != null) {
+                builder.rebuild(this.rebuild);
             }
             return builder;
         }
