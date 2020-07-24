@@ -34,6 +34,7 @@ import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.auth.SchemaDefine.UserElement;
+import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.page.PageInfo;
 import com.baidu.hugegraph.iterator.Metadatable;
 import com.baidu.hugegraph.schema.EdgeLabel;
@@ -205,6 +206,11 @@ public class JsonSerializer implements Serializer {
     @Override
     public String writeEdges(Iterator<Edge> edges, boolean paging) {
         return this.writeIterator("edges", edges, paging);
+    }
+
+    @Override
+    public String writeIds(List<Id> ids) {
+        return JsonUtil.toJson(ids);
     }
 
     @Override
