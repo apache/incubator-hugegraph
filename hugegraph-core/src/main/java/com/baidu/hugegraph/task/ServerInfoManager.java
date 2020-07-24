@@ -72,6 +72,7 @@ public class ServerInfoManager {
     private NodeRole selfServerRole;
 
     private volatile boolean onlySingleNode;
+    private volatile boolean closed;
 
     public ServerInfoManager(HugeGraphParams graph,
                              ExecutorService dbExecutor) {
@@ -85,7 +86,9 @@ public class ServerInfoManager {
 
         this.selfServerId = null;
         this.selfServerRole = null;
+
         this.onlySingleNode = false;
+        this.closed = false;
     }
 
     private EventListener listenChanges() {
@@ -112,6 +115,7 @@ public class ServerInfoManager {
     }
 
     public boolean close() {
+        this.closed = true;
         this.unlistenChanges();
         if (!this.dbExecutor.isShutdown()) {
             this.removeSelfServerInfo();
@@ -203,6 +207,10 @@ public class ServerInfoManager {
     protected boolean initialized() {
         return this.call(() -> this.graph.graph().backendStoreSystemInfo()
                                          .exists());
+    }
+
+    protected boolean closed() {
+        return this.closed;
     }
 
     protected synchronized HugeServerInfo pickWorkerNode(

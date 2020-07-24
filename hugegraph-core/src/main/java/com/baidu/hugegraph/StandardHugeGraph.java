@@ -686,7 +686,7 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
-    public void close() throws Exception {
+    public synchronized void close() throws Exception {
         if (this.closed()) {
             return;
         }
