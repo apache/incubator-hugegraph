@@ -125,9 +125,11 @@ public final class TaskManager {
     }
 
     private void closeTaskTx(HugeGraphParams graph) {
+        final boolean selfIsTaskWorker = Thread.currentThread().getName()
+                                               .startsWith(TASK_WORKER_PREFIX);
         final Map<Thread, Integer> threadsTimes = new ConcurrentHashMap<>();
         final List<Callable<Void>> tasks = new ArrayList<>();
-        final int totalThreads = THREADS;
+        final int totalThreads = selfIsTaskWorker ? THREADS - 1 : THREADS;
 
         final Callable<Void> closeTx = () -> {
             Thread current = Thread.currentThread();
@@ -144,18 +146,10 @@ public final class TaskManager {
                 E.checkState(tasks.size() == totalThreads,
                              "Bad tasks size: %s", tasks.size());
                 // Let another thread run and wait for it
-                this.taskExecutor.submit(tasks.get(0));
+                this.taskExecutor.submit(tasks.get(0)).get();
             }
             threadsTimes.put(current, ++times);
             return null;
-        };
-
-        final Runnable callCloseTx = () -> {
-            try {
-                this.taskExecutor.invokeAll(tasks);
-            } catch (Exception e) {
-                throw new HugeException("Exception when closing task tx", e);
-            }
         };
 
         // NOTE: expect each task thread to perform a close operation
@@ -163,18 +157,15 @@ public final class TaskManager {
             tasks.add(closeTx);
         }
 
-        final Thread caller = Thread.currentThread();
-        if (!caller.getName().startsWith(TASK_WORKER_PREFIX)) {
-            callCloseTx.run();
-        } else {
-            // Create a new thread to call invokeAll if self is task thread
-            Thread thread = new Thread(callCloseTx);
-            thread.start();
-            try {
-                thread.join();
-            } catch (InterruptedException e) {
-                throw new HugeException("Wait for close error", e);
+        try {
+            if (selfIsTaskWorker) {
+                // Call closeTx directly if myself is task thread(ignore others)
+                closeTx.call();
+            } else {
+                this.taskExecutor.invokeAll(tasks);
             }
+        } catch (Exception e) {
+            throw new HugeException("Exception when closing task tx", e);
         }
     }
 
@@ -365,7 +356,7 @@ public final class TaskManager {
         return contexts.get();
     }
 
-    protected static class ContextCallable<V> implements Callable<V> {
+    public static class ContextCallable<V> implements Callable<V> {
 
         private final Callable<V> callable;
         private final String context;
