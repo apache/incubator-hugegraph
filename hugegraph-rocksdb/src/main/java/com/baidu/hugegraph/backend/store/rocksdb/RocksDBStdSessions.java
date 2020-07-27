@@ -604,12 +604,12 @@ public class RocksDBStdSessions extends RocksDBSessions {
 
         @Override
         public String dataPath() {
-            return dataPath;
+            return RocksDBStdSessions.this.dataPath;
         }
 
         @Override
         public String walPath() {
-            return walPath;
+            return RocksDBStdSessions.this.walPath;
         }
 
         /**

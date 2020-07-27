@@ -366,7 +366,7 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     private BackendStoreProvider loadStoreProvider() {
-        return BackendProviderFactory.open(this.configuration, this.name);
+        return BackendProviderFactory.open(this.configuration);
     }
 
     private AbstractSerializer serializer() {

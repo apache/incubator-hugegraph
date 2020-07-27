@@ -34,6 +34,7 @@ import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.task.TaskManager;
+import com.baidu.hugegraph.type.define.SerialEnum;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 
@@ -42,8 +43,8 @@ public class HugeFactory {
     private static final Logger LOG = Log.logger(HugeGraph.class);
 
     static {
+        SerialEnum.registerInternalEnums();
         HugeGraph.registerTraversalStrategies(StandardHugeGraph.class);
-        HugeGraph.registerEnums();
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             LOG.info("HugeGraph is shutting down");

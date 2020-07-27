@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.type.define;
 
 import com.baidu.hugegraph.backend.BackendException;
+import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 import com.google.common.collect.HashBasedTable;
@@ -51,5 +52,10 @@ public interface SerialEnum {
                             clazz.getSimpleName(), code);
         }
         return value;
+    }
+
+    public static void registerInternalEnums() {
+        SerialEnum.register(Action.class);
+        SerialEnum.register(HugeType.class);
     }
 }

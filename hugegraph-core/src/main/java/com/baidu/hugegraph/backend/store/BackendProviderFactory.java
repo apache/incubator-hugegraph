@@ -41,9 +41,10 @@ public class BackendProviderFactory {
         providers = new ConcurrentHashMap<>();
     }
 
-    public static BackendStoreProvider open(HugeConfig config, String graph) {
+    public static BackendStoreProvider open(HugeConfig config) {
         String backend = config.get(CoreOptions.BACKEND);
         boolean raftMode = config.get(CoreOptions.RAFT_MODE);
+        String graph = config.get(CoreOptions.STORE);
 
         backend = backend.toLowerCase();
         if (InMemoryDBStoreProvider.matchType(backend)) {

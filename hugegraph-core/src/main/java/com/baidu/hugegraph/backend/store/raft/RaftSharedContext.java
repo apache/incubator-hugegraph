@@ -43,6 +43,12 @@ public final class RaftSharedContext {
 
     private static final Logger LOG = Log.logger(RaftSharedContext.class);
 
+    // unit is ms
+    public static final int WAIT_RAFT_LOG_TIMEOUT = 30 * 60 * 1000;
+    public static final int WAIT_LEADER_TIMEOUT = 60 * 1000;
+    public static final int BUSY_SLEEP_FACTOR = 30 * 1000;
+    public static final int WAIT_RPC_TIMEOUT = 30 * 60 * 1000;
+
     private final HugeConfig config;
     private final Map<String, RaftNode> nodes;
     private final RpcServer rpcServer;
@@ -54,7 +60,6 @@ public final class RaftSharedContext {
         this.config = config;
         this.nodes = new HashMap<>();
         this.rpcServer = this.initAndStartRpcServer();
-//        this.readIndexExecutor = this.createReadIndexExecutor(4);
         this.readIndexExecutor = null;
         if (this.config.get(CoreOptions.RAFT_USE_SNAPSHOT)) {
             this.snapshotExecutor = this.createSnapshotExecutor(4);
@@ -94,10 +99,6 @@ public final class RaftSharedContext {
         return this.rpcServer;
     }
 
-    public ExecutorService readIndexExecutor() {
-        return this.readIndexExecutor;
-    }
-
     public ExecutorService snapshotExecutor() {
         return this.snapshotExecutor;
     }
@@ -108,13 +109,14 @@ public final class RaftSharedContext {
 
     private RpcServer initAndStartRpcServer() {
         PeerId serverId = new PeerId();
-        serverId.parse(this.config.get(CoreOptions.RAFT_PEERID));
+        serverId.parse(this.config.get(CoreOptions.RAFT_ENDPOINT));
         RpcServer rpcServer = RaftRpcServerFactory.createAndStartRaftRpcServer(
                                                    serverId.getEndpoint());
         LOG.info("RPC server is started successfully");
         return rpcServer;
     }
 
+    @SuppressWarnings("unused")
     private ExecutorService createReadIndexExecutor(int coreThreads) {
         int maxThreads = coreThreads << 2;
         String name = "store-read-index-callback";

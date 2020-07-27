@@ -19,6 +19,10 @@
 
 package com.baidu.hugegraph.backend.store.raft;
 
+import static com.baidu.hugegraph.backend.store.raft.RaftSharedContext.BUSY_SLEEP_FACTOR;
+import static com.baidu.hugegraph.backend.store.raft.RaftSharedContext.WAIT_LEADER_TIMEOUT;
+import static com.baidu.hugegraph.backend.store.raft.RaftSharedContext.WAIT_RPC_TIMEOUT;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -59,10 +63,6 @@ public class RaftNode {
 
     private static final Logger LOG = Log.logger(RaftNode.class);
 
-    // unit is ms
-    private static final int WAIT_LEADER_TIMEOUT = 30 * 1000;
-    private static final int WAIT_RPC_TIMEOUT = 30 * 1000;
-
     private final String group;
     private final StoreStateMachine stateMachine;
     private final Node node;
@@ -98,7 +98,7 @@ public class RaftNode {
         // TODO: When support sharding, groupId needs to be bound to shard Id
         String groupId = storePath;
         PeerId serverId = new PeerId();
-        serverId.parse(config.get(CoreOptions.RAFT_PEERID));
+        serverId.parse(config.get(CoreOptions.RAFT_ENDPOINT));
 
         NodeOptions nodeOptions = this.initNodeOptions(config);
         nodeOptions.setFsm(this.stateMachine);
@@ -121,10 +121,11 @@ public class RaftNode {
 
         RaftOptions raftOptions = nodeOptions.getRaftOptions();
         /*
-         * NOTE: if buffer size is too small, will throw exception
+         * NOTE: if buffer size is too small(<=1024), will throw exception
          * "LogManager is busy, disk queue overload"
          */
-        raftOptions.setDisruptorBufferSize(8192);
+        int queueSize = config.get(CoreOptions.RAFT_QUEUE_SIZE);
+        raftOptions.setDisruptorBufferSize(queueSize);
         // raftOptions.setReplicatorPipeline(false);
         // nodeOptions.setRpcProcessorThreadPoolSize(48);
         // nodeOptions.setEnableMetrics(false);
@@ -139,15 +140,15 @@ public class RaftNode {
 
     private NodeOptions initNodeOptions(HugeConfig config) {
         final NodeOptions nodeOptions = new NodeOptions();
-        int electionTimeout = config.get(CoreOptions.RAFT_ELECTION_TIMEOUT_MS);
+        int electionTimeout = config.get(CoreOptions.RAFT_ELECTION_TIMEOUT);
         nodeOptions.setElectionTimeoutMs(electionTimeout);
         nodeOptions.setDisableCli(false);
 
-        int snapshotInterval = config.get(CoreOptions.RAFT_SNAPSHOT_INTERVAL_SEC);
+        int snapshotInterval = config.get(CoreOptions.RAFT_SNAPSHOT_INTERVAL);
         nodeOptions.setSnapshotIntervalSecs(snapshotInterval);
 
         PeerId serverId = new PeerId();
-        String serverIdStr = config.get(CoreOptions.RAFT_PEERID);
+        String serverIdStr = config.get(CoreOptions.RAFT_ENDPOINT);
         if (!serverId.parse(serverIdStr)) {
             throw new HugeException("Failed to parse serverId %s", serverIdStr);
         }
@@ -163,7 +164,7 @@ public class RaftNode {
 
     private void submitCommand(StoreCommand command, StoreClosure closure) {
         // Wait leader elected
-        this.waitLeader();
+        this.waitLeaderElected();
         // Sleep a while when raft node is busy
         this.waitIfBusy();
 
@@ -198,7 +199,7 @@ public class RaftNode {
         }
     }
 
-    private void waitLeader() {
+    private void waitLeaderElected() {
         if (this.node.getLeaderId() != null) {
             return;
         }
@@ -232,7 +233,7 @@ public class RaftNode {
         }
         // TODO：should sleep or throw exception directly?
         // It may lead many thread sleep, but this is exactly what I want
-        long time = counter * 3000;
+        long time = counter * BUSY_SLEEP_FACTOR;
         LOG.info("The node {} will sleep {} ms", this.node, time);
         try {
             Thread.sleep(time);
@@ -303,7 +304,6 @@ public class RaftNode {
 
         @Override
         public void onCreated(PeerId peer) {
-            // pass
             LOG.info("The node {} replicator has created", peer);
         }
 
@@ -326,7 +326,6 @@ public class RaftNode {
 
         @Override
         public void onDestroyed(PeerId peer) {
-            // pass
             LOG.warn("The node {} prepare to offline", peer);
         }
     }

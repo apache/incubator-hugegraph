@@ -128,10 +128,12 @@ public class StoreStateMachine extends StateMachineAdapter {
                 }
                 if (closure != null) {
                     // Closure is null on follower node
+                    // Let the producer thread to handle it
                     closure.complete(Status.OK(),
                                      () -> this.applyCommand(action, buffer));
                 } else {
-                    // Follower need wait future?
+                    // Follower seems no way to wait future
+                    // Let the backend thread do it directly
                     this.context.backendExecutor().submit(() -> {
                         try {
                             this.applyCommand(action, buffer);

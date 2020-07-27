@@ -56,7 +56,7 @@ public class StoreCommandRequestProcessor
         try {
             StoreCommand command = this.parseStoreCommand(request);
             StoreClosure closure = new StoreClosure(command);
-            // ignored result
+            // TODO: ignored result, add a field to fill result to response
             node.submitAndWait(command, closure);
             return StoreCommandResponse.newBuilder().setStatus(true).build();
         } catch (Throwable e) {

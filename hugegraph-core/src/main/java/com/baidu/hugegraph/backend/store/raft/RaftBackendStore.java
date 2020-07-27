@@ -209,7 +209,7 @@ public class RaftBackendStore implements BackendStore {
     }
 
     private Object queryByRaft(Query query, Function<Object, Object> func) {
-        if (!this.context.config().get(CoreOptions.RAFT_READ_SAFE)) {
+        if (!this.context.config().get(CoreOptions.RAFT_SAFE_READ)) {
             return func.apply(query);
         }
 
@@ -228,24 +228,6 @@ public class RaftBackendStore implements BackendStore {
                             "Failed to execute query '%s' with 'ReadIndex': %s",
                             query, status));
                 }
-//                context.readIndexExecutor().execute(() -> {
-//                    if (raftNode.node().isLeader()) {
-//                        LOG.warn("Failed to [query] with 'ReadIndex': {}, " +
-//                                 "try to applying to the state machine.",
-//                                 status);
-//                        /*
-//                         * If 'read index' read fails, try to applying to the
-//                         * state machine at the leader node
-//                         */
-//                        byte[] bytes = QuerySerializer.writeMutation(query);
-//                        closure.complete(submitAndWait(StoreCommand.QUERY,
-//                                                       bytes));
-//                    } else {
-//                        LOG.warn("Failed to [query] with 'ReadIndex': {}.",
-//                                 status);
-//                        closure.run(status);
-//                    }
-//                });
             }
         });
         try {

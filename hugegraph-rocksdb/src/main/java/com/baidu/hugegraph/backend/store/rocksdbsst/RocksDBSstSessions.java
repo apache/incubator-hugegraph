@@ -241,12 +241,12 @@ public class RocksDBSstSessions extends RocksDBSessions {
 
         @Override
         public String dataPath() {
-            return dataPath;
+            return RocksDBSstSessions.this.dataPath;
         }
 
         @Override
         public String walPath() {
-            return dataPath;
+            return RocksDBSstSessions.this.dataPath;
         }
 
         /**

@@ -92,7 +92,6 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
     static {
         HugeGraph.registerTraversalStrategies(HugeGraphAuthProxy.class);
-        HugeGraph.registerEnums();
     }
 
     private static final Logger LOG = Log.logger(HugeGraphAuthProxy.class);
