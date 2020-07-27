@@ -25,6 +25,7 @@ import java.util.Map;
 
 import org.apache.commons.collections.map.MultiValueMap;
 import org.apache.commons.configuration.tree.ConfigurationNode;
+import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
 import org.apache.tinkerpop.gremlin.util.config.YamlConfiguration;
 import org.slf4j.Logger;
 
@@ -105,11 +106,10 @@ public class InitStore {
 
     private static void initGraph(String configPath) throws Exception {
         LOG.info("Init graph with config file: {}", configPath);
-        HugeConfig config = new HugeConfig(HugeFactory.getLocalConfig(
-                                           configPath));
+        HugeConfig config = new HugeConfig(configPath);
         // Forced set to false when initializing backend
         config.setProperty(CoreOptions.RAFT_MODE.name(), "false");
-        HugeGraph graph = HugeFactory.open(config);
+        HugeGraph graph = (HugeGraph) GraphFactory.open(config);
 
         BackendStoreSystemInfo sysInfo = graph.backendStoreSystemInfo();
         try {
