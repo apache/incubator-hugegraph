@@ -21,12 +21,13 @@ package com.baidu.hugegraph;
 
 import com.baidu.hugegraph.analyzer.Analyzer;
 import com.baidu.hugegraph.backend.serializer.AbstractSerializer;
+import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
-import com.baidu.hugegraph.task.ServerInfoManager;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.event.EventHub;
+import com.baidu.hugegraph.task.ServerInfoManager;
 import com.baidu.hugegraph.type.define.GraphMode;
 import com.google.common.util.concurrent.RateLimiter;
 
@@ -45,6 +46,9 @@ public interface HugeGraphParams {
 
     public GraphTransaction openTransaction();
     public void closeTx();
+
+    public boolean initialized();
+    public BackendFeatures backendStoreFeatures();
 
     public BackendStore loadSchemaStore();
     public BackendStore loadGraphStore();

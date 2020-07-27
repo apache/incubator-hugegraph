@@ -845,6 +845,16 @@ public class StandardHugeGraph implements HugeGraph {
         }
 
         @Override
+        public boolean initialized() {
+            return StandardHugeGraph.this.backendStoreInitialized();
+        }
+
+        @Override
+        public BackendFeatures backendStoreFeatures() {
+            return StandardHugeGraph.this.backendStoreFeatures();
+        }
+
+        @Override
         public BackendStore loadSchemaStore() {
             return StandardHugeGraph.this.loadSchemaStore();
         }
