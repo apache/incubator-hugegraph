@@ -38,9 +38,12 @@ import com.alipay.sofa.jraft.storage.snapshot.SnapshotReader;
 import com.alipay.sofa.jraft.storage.snapshot.SnapshotWriter;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
+import com.baidu.hugegraph.backend.store.BackendAction;
+import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.raft.RaftBackendStore.IncrCounter;
+import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.CodeUtil;
 import com.baidu.hugegraph.util.Log;
 
@@ -79,6 +82,8 @@ public class StoreStateMachine extends StateMachineAdapter {
             this.store.beginTx();
             for (BackendMutation mutation : ms) {
                 this.store.mutate(mutation);
+                // update cache on follower
+                this.updateCacheIfNeeded(mutation);
             }
             this.store.commitTx();
             return null;
@@ -90,6 +95,24 @@ public class StoreStateMachine extends StateMachineAdapter {
             this.store.increaseCounter(counter.type(), counter.increment());
             return null;
         });
+    }
+
+    private void updateCacheIfNeeded(BackendMutation mutation) {
+        // Only follower need to update cache from store to tx
+        if (this.isLeader()) {
+            return;
+        }
+        for (HugeType type : mutation.types()) {
+            if (!type.isGraph() && type.isSchema()) {
+                continue;
+            }
+            for (java.util.Iterator<BackendAction> it = mutation.mutation(type);
+                 it.hasNext();) {
+                BackendAction item = it.next();
+                BackendEntry entry = item.entry();
+                this.context.notifyCache(type, entry.originId());
+            }
+        }
     }
 
     private void register(StoreAction action,

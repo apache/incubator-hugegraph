@@ -66,6 +66,11 @@ public class BinaryBackendEntry implements BackendEntry {
     }
 
     @Override
+    public Id originId() {
+        return this.id.origin();
+    }
+
+    @Override
     public Id subId() {
         return this.subId;
     }

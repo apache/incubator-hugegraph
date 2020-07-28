@@ -164,6 +164,11 @@ public class TableBackendEntry implements BackendEntry {
         return this.row.id;
     }
 
+    @Override
+    public Id originId() {
+        return this.row.id;
+    }
+
     public void id(Id id) {
         this.row.id = id;
     }

@@ -77,6 +77,8 @@ public interface BackendEntry extends Idfiable {
     @Override
     public Id id();
 
+    public Id originId();
+
     public Id subId();
 
     public long ttl();

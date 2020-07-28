@@ -23,9 +23,9 @@ import org.slf4j.Logger;
 
 import com.alipay.sofa.jraft.rpc.RpcServer;
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
-import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.event.EventListener;
 import com.baidu.hugegraph.util.Log;
 
@@ -40,9 +40,9 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
     private RaftBackendStore systemStore;
 
     public RaftBackendStoreProvider(BackendStoreProvider provider,
-                                    HugeConfig config) {
+                                    HugeGraphParams params) {
         this.provider = provider;
-        this.context = new RaftSharedContext(config);
+        this.context = new RaftSharedContext(params);
         this.schemaStore = null;
         this.graphStore = null;
         this.systemStore = null;
