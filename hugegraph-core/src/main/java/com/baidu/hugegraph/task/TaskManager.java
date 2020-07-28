@@ -44,13 +44,14 @@ public final class TaskManager {
 
     private static final Logger LOG = Log.logger(TaskManager.class);
 
-    public static final String TASK_WORKER = "task-worker-%d";
+    public static final String TASK_WORKER_PREFIX = "task-worker";
+    public static final String TASK_WORKER = TASK_WORKER_PREFIX + "-%d";
     public static final String TASK_DB_WORKER = "task-db-worker-%d";
     public static final String SERVER_INFO_DB_WORKER =
                                "server-info-db-worker-%d";
     public static final String TASK_SCHEDULER = "task-scheduler-%d";
 
-    public static final int SCHEDULE_PERIOD = 3; // Unit second
+    protected static final int SCHEDULE_PERIOD = 3; // Unit second
     private static final int THREADS = 4;
     private static final TaskManager MANAGER = new TaskManager(THREADS);
 
@@ -124,8 +125,11 @@ public final class TaskManager {
     }
 
     private void closeTaskTx(HugeGraphParams graph) {
+        final boolean selfIsTaskWorker = Thread.currentThread().getName()
+                                               .startsWith(TASK_WORKER_PREFIX);
         final Map<Thread, Integer> threadsTimes = new ConcurrentHashMap<>();
         final List<Callable<Void>> tasks = new ArrayList<>();
+        final int totalThreads = selfIsTaskWorker ? THREADS - 1 : THREADS;
 
         final Callable<Void> closeTx = () -> {
             Thread current = Thread.currentThread();
@@ -137,23 +141,29 @@ public final class TaskManager {
                 // Let other threads run
                 Thread.yield();
             } else {
-                assert times < THREADS;
-                assert threadsTimes.size() < THREADS;
-                E.checkState(tasks.size() == THREADS,
+                assert times < totalThreads;
+                assert threadsTimes.size() < totalThreads;
+                E.checkState(tasks.size() == totalThreads,
                              "Bad tasks size: %s", tasks.size());
                 // Let another thread run and wait for it
-                this.taskExecutor.invokeAny(tasks.subList(0, 1));
+                this.taskExecutor.submit(tasks.get(0)).get();
             }
             threadsTimes.put(current, ++times);
             return null;
         };
 
-        // NOTE: expect each thread to perform a close operation
-        for (int i = 0; i < THREADS; i++) {
+        // NOTE: expect each task thread to perform a close operation
+        for (int i = 0; i < totalThreads; i++) {
             tasks.add(closeTx);
         }
+
         try {
-            this.taskExecutor.invokeAll(tasks);
+            if (selfIsTaskWorker) {
+                // Call closeTx directly if myself is task thread(ignore others)
+                closeTx.call();
+            } else {
+                this.taskExecutor.invokeAll(tasks);
+            }
         } catch (Exception e) {
             throw new HugeException("Exception when closing task tx", e);
         }
@@ -346,7 +356,7 @@ public final class TaskManager {
         return contexts.get();
     }
 
-    protected static class ContextCallable<V> implements Callable<V> {
+    public static class ContextCallable<V> implements Callable<V> {
 
         private final Callable<V> callable;
         private final String context;
