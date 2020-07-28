@@ -182,33 +182,67 @@ public class RocksDBStdSessions extends RocksDBSessions {
     }
 
     @Override
-    public synchronized void createTable(String table) throws RocksDBException {
-        if (this.cfs.containsKey(table)) {
-            return;
-        }
-
+    public synchronized void createTable(String... tables)
+                                         throws RocksDBException {
         this.checkValid();
 
-        // Should we use options.setCreateMissingColumnFamilies() to create CF
-        ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(encode(table));
-        ColumnFamilyOptions options = cfd.getOptions();
-        initOptions(this.config(), null, null, options, options);
-        this.cfs.put(table, new CFHandle(this.rocksdb.createColumnFamily(cfd)));
+        List<ColumnFamilyDescriptor> cfds = new ArrayList<>();
+        for (String table : tables) {
+            if (this.cfs.containsKey(table)) {
+                continue;
+            }
+            ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(
+                                         encode(table));
+            ColumnFamilyOptions options = cfd.getOptions();
+            initOptions(this.config(), null, null, options, options);
+            cfds.add(cfd);
+        }
+
+        /*
+         * To speed up the creation of tables, like truncate() for tinkerpop
+         * test, we call createColumnFamilies instead of createColumnFamily.
+         */
+        List<ColumnFamilyHandle> cfhs = this.rocksdb.createColumnFamilies(cfds);
+
+        for (ColumnFamilyHandle cfh : cfhs) {
+            String table = decode(cfh.getName());
+            this.cfs.put(table, new CFHandle(cfh));
+        }
 
         ingestExternalFile();
     }
 
     @Override
-    public synchronized void dropTable(String table) throws RocksDBException {
+    public synchronized void dropTable(String... tables)
+                                       throws RocksDBException {
         this.checkValid();
 
         /*
-         * May cause bug to drop CF when someone is reading and writing this CF
+         * May cause bug to drop CF when someone is reading or writing this CF,
+         * use CFHandle to wait for others and then do drop:
          * https://github.com/hugegraph/hugegraph/issues/697
          */
-        CFHandle cfh = this.cfs.get(table);
-        if (cfh != null) {
-            cfh.drop();
+        List<ColumnFamilyHandle> cfhs = new ArrayList<>();
+        for (String table : tables) {
+            CFHandle cfh = this.cfs.get(table);
+            if (cfh == null) {
+                continue;
+            }
+            cfhs.add(cfh.waitForDrop());
+        }
+
+        /*
+         * To speed up the creation of tables, like truncate() for tinkerpop
+         * test, we call dropColumnFamilies instead of dropColumnFamily.
+         */
+        this.rocksdb.dropColumnFamilies(cfhs);
+
+        for (String table : tables) {
+            CFHandle cfh = this.cfs.get(table);
+            if (cfh == null) {
+                continue;
+            }
+            cfh.destroy();
             this.cfs.remove(table);
         }
     }
@@ -337,6 +371,10 @@ public class RocksDBStdSessions extends RocksDBSessions {
         final boolean optimize = conf.get(RocksDBOptions.OPTIMIZE_MODE);
 
         if (db != null) {
+            /*
+             * Set true then the database will be created if it is missing.
+             * should we use options.setCreateMissingColumnFamilies()?
+             */
             db.setCreateIfMissing(true);
 
             // Optimize RocksDB
@@ -541,7 +579,8 @@ public class RocksDBStdSessions extends RocksDBSessions {
             }
         }
 
-        public synchronized void drop() throws RocksDBException {
+        public synchronized ColumnFamilyHandle waitForDrop() {
+            assert this.refs.get() >= 1;
             // When entering this method, the refs won't increase any more
             final long timeout = TimeUnit.MINUTES.toMillis(30L);
             final long unit = 100L;
@@ -556,7 +595,11 @@ public class RocksDBStdSessions extends RocksDBSessions {
                                                timeout);
                 }
             }
-            rocksdb().dropColumnFamily(this.handle);
+            assert this.refs.get() == 1;
+            return this.handle;
+        }
+
+        public synchronized void destroy() {
             this.close();
             assert this.refs.get() == 0 && !this.handle.isOwningHandle();
         }
