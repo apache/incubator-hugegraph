@@ -461,4 +461,12 @@ public class CoreOptions extends OptionHolder {
                     disallowEmpty(),
                     "smart"
             );
+
+    public static final ConfigOption<String> COMPUTER_CONFIG =
+            new ConfigOption<>(
+                    "computer.config",
+                    "The config file path of computer job",
+                    disallowEmpty(),
+                    "./conf/computer.yaml"
+            );
 }

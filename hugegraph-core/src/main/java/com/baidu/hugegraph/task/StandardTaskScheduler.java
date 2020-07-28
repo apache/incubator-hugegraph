@@ -229,7 +229,7 @@ public class StandardTaskScheduler implements TaskScheduler {
         // Only check if not EphemeralJob
         this.checkOnMasterNode("schedule");
 
-        if (this.serverManager().onlySingleNode()) {
+        if (this.serverManager().onlySingleNode() && !task.computer()) {
             /*
              * Speed up for single node, submit task immediately
              * this can be removed without affecting logic

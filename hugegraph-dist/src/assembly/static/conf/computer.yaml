@@ -1,0 +1,16 @@
+# common parameters
+common : {
+  worker_heap: 10000,
+  vertex_input_dir: /data/data_wdc_600/arc,
+  workers: 51,
+  zookeeper_list: "127.0.0.1:2181",
+  max_edges_per_segment: 10485760,
+  edges_immutable: true,
+  partitions: 255,
+  compute_threads: 5,
+  input_threads: 5,
+  message_async: false,
+  message_queue_size: 1000,
+  message_send_threads: 10,
+  messages_per_segment: 104857600
+}
