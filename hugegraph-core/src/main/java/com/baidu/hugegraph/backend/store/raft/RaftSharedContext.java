@@ -118,12 +118,13 @@ public final class RaftSharedContext {
         int snapshotInterval = config.get(CoreOptions.RAFT_SNAPSHOT_INTERVAL);
         nodeOptions.setSnapshotIntervalSecs(snapshotInterval);
 
-        Configuration initConf = new Configuration();
-        String initConfStr = config.get(CoreOptions.RAFT_GROUP_PEERS);
-        if (!initConf.parse(initConfStr)) {
-            throw new HugeException("Failed to parse initConf %s", initConfStr);
+        Configuration groupPeers = new Configuration();
+        String groupPeersStr = config.get(CoreOptions.RAFT_GROUP_PEERS);
+        if (!groupPeers.parse(groupPeersStr)) {
+            throw new HugeException("Failed to parse group peers %s",
+                                    groupPeersStr);
         }
-        nodeOptions.setInitialConf(initConf);
+        nodeOptions.setInitialConf(groupPeers);
 
         String raftPath = config.get(CoreOptions.RAFT_PATH);
         String logUri = Paths.get(raftPath, "log", storePath).toString();

@@ -138,7 +138,7 @@ public class RaftNode {
         }
     }
 
-    public void waitLeaderElected() {
+    protected void waitLeaderElected() {
         if (this.node.getLeaderId() != null) {
             return;
         }

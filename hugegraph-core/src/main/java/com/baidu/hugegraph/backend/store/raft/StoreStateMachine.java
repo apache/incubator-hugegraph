@@ -103,13 +103,12 @@ public class StoreStateMachine extends StateMachineAdapter {
             return;
         }
         for (HugeType type : mutation.types()) {
-            if (!type.isGraph() && type.isSchema()) {
+            if (!type.isGraph() && !type.isSchema()) {
                 continue;
             }
             for (java.util.Iterator<BackendAction> it = mutation.mutation(type);
                  it.hasNext();) {
-                BackendAction item = it.next();
-                BackendEntry entry = item.entry();
+                BackendEntry entry = it.next().entry();
                 this.context.notifyCache(type, entry.originId());
             }
         }
