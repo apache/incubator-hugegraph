@@ -17,36 +17,36 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.job.compute;
+package com.baidu.hugegraph.job.computer;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class ComputePool {
+public class ComputerPool {
 
-    private static final ComputePool INSTANCE = new ComputePool();
+    private static final ComputerPool INSTANCE = new ComputerPool();
 
     static {
-        INSTANCE.register(new PageRankCompute());
-        INSTANCE.register(new WeakConnectedComponentCompute());
+        INSTANCE.register(new PageRankComputer());
+        INSTANCE.register(new WeakConnectedComponentComputer());
     }
 
-    private final Map<String, Compute> computes;
+    private final Map<String, Computer> computers;
 
-    public ComputePool() {
-        this.computes = new ConcurrentHashMap<>();
+    public ComputerPool() {
+        this.computers = new ConcurrentHashMap<>();
     }
 
-    public Compute register(Compute compute) {
-        assert !this.computes.containsKey(compute.name());
-        return this.computes.put(compute.name(), compute);
+    public Computer register(Computer computer) {
+        assert !this.computers.containsKey(computer.name());
+        return this.computers.put(computer.name(), computer);
     }
 
-    public Compute find(String name) {
-        return this.computes.get(name);
+    public Computer find(String name) {
+        return this.computers.get(name);
     }
 
-    public static ComputePool instance() {
+    public static ComputerPool instance() {
         return INSTANCE;
     }
 }

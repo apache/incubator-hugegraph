@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.job.compute;
+package com.baidu.hugegraph.job.computer;
 
 import java.util.HashMap;
 import java.util.List;
@@ -28,12 +28,12 @@ import org.apache.tinkerpop.gremlin.util.config.YamlConfiguration;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.config.CoreOptions;
-import com.baidu.hugegraph.job.ComputeJob;
+import com.baidu.hugegraph.job.ComputerJob;
 import com.baidu.hugegraph.job.Job;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.ParameterUtil;
 
-public abstract class AbstractCompute implements Compute {
+public abstract class AbstractComputer implements Computer {
 
     private static final String COMMAND_PREFIX =
             "cd $COMPUTER_HOME;" +
@@ -41,21 +41,21 @@ public abstract class AbstractCompute implements Compute {
             "-D libjars=./hugegraph-computer-core.jar";
 
     private static final String COMMON = "common";
-    private static final String EXTRA_ARGS = "extra_args";
-    private static final String EXTRA_ARG_SYMBOL = "C";
+    private static final String ARG_SYMBOL = "C";
     private static final String MINUS = "-";
     private static final String EQUAL = "=";
     private static final String EMPTY = " ";
 
     public static final String MAX_STEPS = "max_steps";
     public static final int DEFAULT_MAX_STEPS = 5;
+    public static final String PRECISION = "precision";
+    public static final double DEFAULT_PRECISION = 0.0001D;
 
     protected static final String CATEGORY_RANK = "rank";
     protected static final String CATEGORY_COMM = "community";
 
     private YamlConfiguration config;
     private Map<String, Object> commonConfig = new HashMap<>();
-    protected Map<String, Object> userDefinedParameters = new HashMap<>();
 
     @Override
     public void checkParameters(Map<String, Object> parameters) {
@@ -66,33 +66,35 @@ public abstract class AbstractCompute implements Compute {
     @SuppressWarnings("unchecked")
     @Override
     public Object call(Job<Object> job, Map<String, Object> parameters) {
+
+        this.checkAndCollectParameters(parameters);
         // Read configuration
         try {
-            this.initializeConfig((ComputeJob) job);
+            this.initializeConfig((ComputerJob) job);
         } catch (Exception e) {
             throw new HugeException(
                       "Failed to initialize computer config file", e);
         }
 
-        // Set current compute job's specified parameters
-        this.setComputeSpecifiedParameters();
+        // Set current computer job's specified parameters
+        this.commonConfig.putAll(this.checkAndCollectParameters(parameters));
 
-        // Construct shell command for compute job
+        // Construct shell command for computer job
         String command = constructShellCommands(this.commonConfig);
 
-        // Execute current compute
+        // Execute current computer
         int exitCode;
         try {
             Process process = Runtime.getRuntime().exec(command);
             exitCode = process.waitFor();
         } catch (Exception e) {
-            throw new HugeException("Failed to execute compute job", e);
+            throw new HugeException("Failed to execute computer job", e);
         }
 
         return exitCode;
     }
 
-    private void initializeConfig(ComputeJob job) throws Exception {
+    private void initializeConfig(ComputerJob job) throws Exception {
         // Load computer config file
         String configPath = job.config().get(CoreOptions.COMPUTER_CONFIG);
         E.checkArgument(configPath.endsWith(".yaml"),
@@ -101,7 +103,7 @@ public abstract class AbstractCompute implements Compute {
         this.config = new YamlConfiguration();
         this.config.load(configPath);
 
-        // Read common and compute specified parameters
+        // Read common and computer specified parameters
         this.commonConfig = this.readCommonConfig();
     }
 
@@ -120,28 +122,10 @@ public abstract class AbstractCompute implements Compute {
         List<ConfigurationNode> subConfigs = nodes.get(0).getChildren();
         Map<String, Object> results = new HashMap<>(subConfigs.size());
         for (ConfigurationNode node : subConfigs) {
-            if (!node.getName().equals(EXTRA_ARGS)) {
-                results.put(node.getName(), node.getValue());
-                continue;
-            }
-            assert node.getName().equals(EXTRA_ARGS);
-            List<ConfigurationNode> extraNodes = node.getChildren();
-            Map<String, Object> extras = new HashMap<>(extraNodes.size());
-            for (ConfigurationNode n : extraNodes) {
-                String key = ((Map.Entry<String, Object>)
-                             n.getReference()).getKey();
-                extras.put(key, n.getValue());
-            }
-            results.put(node.getName(), extras);
+            results.put(node.getName(), node.getValue());
         }
 
         return results;
-    }
-
-    @SuppressWarnings("unchecked")
-    private void setComputeSpecifiedParameters() {
-        ((Map<String, Object>) this.commonConfig.get(EXTRA_ARGS))
-                               .putAll(this.userDefinedParameters);
     }
 
     @SuppressWarnings("unchecked")
@@ -150,20 +134,15 @@ public abstract class AbstractCompute implements Compute {
         builder.append(COMMAND_PREFIX).append(EMPTY)
                .append(this.name()).append(EMPTY);
         for (Map.Entry<String, Object> entry : configs.entrySet()) {
-            if (!entry.getKey().equals(EXTRA_ARGS)) {
-                builder.append(MINUS).append(entry.getKey()).append(EMPTY)
-                       .append(entry.getValue()).append(EMPTY);
-                continue;
-            }
-            Map<String, Object> extras = (Map<String, Object>) entry.getValue();
-            for (Map.Entry<String, Object> extra : extras.entrySet()) {
-                builder.append(MINUS).append(EXTRA_ARG_SYMBOL).append(EMPTY)
-                       .append(extra.getKey()).append(EQUAL)
-                       .append(extra.getValue()).append(EMPTY);
-            }
+            builder.append(MINUS).append(ARG_SYMBOL).append(EMPTY)
+                   .append(entry.getKey()).append(EQUAL)
+                   .append(entry.getValue()).append(EMPTY);
         }
         return builder.toString();
     }
+
+    public abstract Map<String, Object> checkAndCollectParameters(
+                                        Map<String, Object> parameters);
 
     protected static int maxSteps(Map<String, Object> parameters) {
         if (!parameters.containsKey(MAX_STEPS)) {
@@ -174,5 +153,16 @@ public abstract class AbstractCompute implements Compute {
                         "The value of %s must be > 0, but got %s",
                         MAX_STEPS, maxSteps);
         return maxSteps;
+    }
+
+    protected static double precision(Map<String, Object> parameters) {
+        if (!parameters.containsKey(PRECISION)) {
+            return DEFAULT_PRECISION;
+        }
+        double precision = ParameterUtil.parameterDouble(parameters, PRECISION);
+        E.checkArgument(precision > 0 && precision < 1,
+                        "The value of %s must be (0, 1), but got %s",
+                        PRECISION, precision);
+        return precision;
     }
 }

@@ -22,21 +22,21 @@ package com.baidu.hugegraph.job;
 import java.util.Map;
 
 import com.baidu.hugegraph.config.HugeConfig;
-import com.baidu.hugegraph.job.compute.Compute;
-import com.baidu.hugegraph.job.compute.ComputePool;
+import com.baidu.hugegraph.job.computer.Computer;
+import com.baidu.hugegraph.job.computer.ComputerPool;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
 
-public class ComputeJob extends SysJob<Object> {
+public class ComputerJob extends SysJob<Object> {
 
-    public static final String COMPUTE = "compute";
+    public static final String COMPUTER = "computer";
 
     public static boolean check(String name, Map<String, Object> parameters) {
-        Compute algorithm = ComputePool.instance().find(name);
-        if (algorithm == null) {
+        Computer computer = ComputerPool.instance().find(name);
+        if (computer == null) {
             return false;
         }
-        algorithm.checkParameters(parameters);
+        computer.checkParameters(parameters);
         return true;
     }
 
@@ -46,7 +46,7 @@ public class ComputeJob extends SysJob<Object> {
 
     @Override
     public String type() {
-        return COMPUTE;
+        return COMPUTER;
     }
 
     @Override
@@ -56,22 +56,21 @@ public class ComputeJob extends SysJob<Object> {
         @SuppressWarnings("unchecked")
         Map<String, Object> map = JsonUtil.fromJson(input, Map.class);
 
-        Object value = map.get("compute");
+        Object value = map.get("computer");
         E.checkArgument(value instanceof String,
-                        "Invalid compute name '%s'", value);
+                        "Invalid computer name '%s'", value);
         String name = (String) value;
 
         value = map.get("parameters");
         E.checkArgument(value instanceof Map,
-                        "Invalid compute parameters '%s'", value);
+                        "Invalid computer parameters '%s'", value);
         @SuppressWarnings("unchecked")
         Map<String, Object> parameters = (Map<String, Object>) value;
 
-        ComputePool pool = ComputePool.instance();
-        Compute compute = pool.find(name);
-        E.checkArgument(compute != null,
-                        "There is no compute method named '%s'", name);
-        compute.checkParameters(parameters);
-        return compute.call(this, parameters);
+        ComputerPool pool = ComputerPool.instance();
+        Computer computer = pool.find(name);
+        E.checkArgument(computer != null,
+                        "There is no computer method named '%s'", name);
+        return computer.call(this, parameters);
     }
 }

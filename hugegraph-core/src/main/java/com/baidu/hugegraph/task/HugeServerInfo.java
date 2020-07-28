@@ -212,8 +212,7 @@ public class HugeServerInfo {
     }
 
     public <V> boolean suitableFor(HugeTask<V> task, long now) {
-        if (task.compute() && !this.role.computer() ||
-            !task.compute() && this.role.computer()) {
+        if (task.computer() != this.role.computer()) {
             return false;
         }
         if (this.updateTime.getTime() + EXPIRED_INTERVAL < now ||

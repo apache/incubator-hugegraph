@@ -17,19 +17,36 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.job.compute;
+package com.baidu.hugegraph.job.computer;
 
 import java.util.Map;
 
-import com.baidu.hugegraph.job.Job;
+import com.google.common.collect.ImmutableMap;
 
-public interface Compute {
+public class WeakConnectedComponentComputer extends AbstractComputer {
 
-    public String name();
+    public static final String WCC = "weak_connected_component";
 
-    public String category();
+    @Override
+    public String name() {
+        return WCC;
+    }
 
-    public Object call(Job<Object> job, Map<String, Object> parameters);
+    @Override
+    public String category() {
+        return CATEGORY_COMM;
+    }
 
-    public void checkParameters(Map<String, Object> parameters);
+    @Override
+    public void checkParameters(Map<String, Object> parameters) {
+        maxSteps(parameters);
+        precision(parameters);
+    }
+
+    @Override
+    public Map<String, Object> checkAndCollectParameters(
+                               Map<String, Object> parameters) {
+        return ImmutableMap.of(MAX_STEPS, maxSteps(parameters),
+                               PRECISION, precision(parameters));
+    }
 }

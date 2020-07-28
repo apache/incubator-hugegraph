@@ -43,7 +43,7 @@ import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.baidu.hugegraph.exception.LimitExceedException;
 import com.baidu.hugegraph.exception.NotFoundException;
-import com.baidu.hugegraph.job.ComputeJob;
+import com.baidu.hugegraph.job.ComputerJob;
 import com.baidu.hugegraph.job.EphemeralJob;
 import com.baidu.hugegraph.type.define.SerialEnum;
 import com.baidu.hugegraph.util.Blob;
@@ -255,8 +255,8 @@ public class HugeTask<V> extends FutureTask<V> {
         return this.status == TaskStatus.CANCELLING;
     }
 
-    public boolean compute() {
-        return ComputeJob.COMPUTE.equals(this.type);
+    public boolean computer() {
+        return ComputerJob.COMPUTER.equals(this.type);
     }
 
     @Override

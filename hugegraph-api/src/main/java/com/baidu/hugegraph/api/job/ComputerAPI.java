@@ -37,18 +37,19 @@ import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.core.GraphManager;
-import com.baidu.hugegraph.job.ComputeJob;
+import com.baidu.hugegraph.job.ComputerJob;
 import com.baidu.hugegraph.job.JobBuilder;
 import com.baidu.hugegraph.server.RestServer;
+import com.baidu.hugegraph.task.HugeTask;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
 import com.google.common.collect.ImmutableMap;
 
-@Path("graphs/{graph}/jobs/compute")
+@Path("graphs/{graph}/jobs/computer")
 @Singleton
-public class ComputeAPI extends API {
+public class ComputerAPI extends API {
 
     private static final Logger LOG = Log.logger(RestServer.class);
 
@@ -60,25 +61,26 @@ public class ComputeAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public Map<String, Id> post(@Context GraphManager manager,
                                 @PathParam("graph") String graph,
-                                @PathParam("name") String compute,
+                                @PathParam("name") String computer,
                                 Map<String, Object> parameters) {
-        LOG.debug("Graph [{}] schedule compute job: {}", graph, parameters);
-        E.checkArgument(compute != null && !compute.isEmpty(),
-                        "The compute name can't be empty");
+        LOG.debug("Graph [{}] schedule computer job: {}", graph, parameters);
+        E.checkArgument(computer != null && !computer.isEmpty(),
+                        "The computer name can't be empty");
         if (parameters == null) {
             parameters = ImmutableMap.of();
         }
-        if (!ComputeJob.check(compute, parameters)) {
-            throw new NotFoundException("Not found compute: " + compute);
+        if (!ComputerJob.check(computer, parameters)) {
+            throw new NotFoundException("Not found computer: " + computer);
         }
 
         HugeGraph g = graph(manager, graph);
-        Map<String, Object> input = ImmutableMap.of("compute", compute,
+        Map<String, Object> input = ImmutableMap.of("computer", computer,
                                                     "parameters", parameters);
         JobBuilder<Object> builder = JobBuilder.of(g);
-        builder.name("compute:" + compute)
+        builder.name("computer:" + computer)
                .input(JsonUtil.toJson(input))
-               .job(new ComputeJob());
-        return ImmutableMap.of("task_id", builder.schedule().id());
+               .job(new ComputerJob());
+        HugeTask task = builder.schedule();
+        return ImmutableMap.of("task_id", task.id());
     }
 }

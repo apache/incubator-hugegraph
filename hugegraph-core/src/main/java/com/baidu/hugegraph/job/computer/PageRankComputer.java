@@ -17,13 +17,15 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.job.compute;
+package com.baidu.hugegraph.job.computer;
 
 import java.util.Map;
 
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.ParameterUtil;
+import com.google.common.collect.ImmutableMap;
 
-public class PageRankCompute extends AbstractCompute {
+public class PageRankComputer extends AbstractComputer {
 
     public static final String PAGE_RANK = "page_rank";
 
@@ -42,15 +44,24 @@ public class PageRankCompute extends AbstractCompute {
 
     @Override
     public void checkParameters(Map<String, Object> parameters) {
-        this.userDefinedParameters.put(MAX_STEPS, maxSteps(parameters));
-        this.userDefinedParameters.put(ALPHA, alpha(parameters));
+        maxSteps(parameters);
+        alpha(parameters);
+        precision(parameters);
+    }
+
+    @Override
+    public Map<String, Object> checkAndCollectParameters(
+                               Map<String, Object> parameters) {
+        return ImmutableMap.of(MAX_STEPS, maxSteps(parameters),
+                               ALPHA, alpha(parameters),
+                               PRECISION, precision(parameters));
     }
 
     private static double alpha(Map<String, Object> parameters) {
         if (!parameters.containsKey(ALPHA)) {
             return DEFAULT_ALPHA;
         }
-        double alpha = parameterDouble(parameters, ALPHA);
+        double alpha = ParameterUtil.parameterDouble(parameters, ALPHA);
         E.checkArgument(alpha > 0 && alpha < 1,
                         "The value of %s must be (0, 1), but got %s",
                         ALPHA, alpha);
