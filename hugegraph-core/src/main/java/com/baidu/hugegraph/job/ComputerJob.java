@@ -21,7 +21,7 @@ package com.baidu.hugegraph.job;
 
 import java.util.Map;
 
-import com.baidu.hugegraph.config.HugeConfig;
+import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.job.computer.Computer;
 import com.baidu.hugegraph.job.computer.ComputerPool;
 import com.baidu.hugegraph.util.E;
@@ -40,8 +40,8 @@ public class ComputerJob extends SysJob<Object> {
         return true;
     }
 
-    public HugeConfig config() {
-        return this.params().configuration();
+    public String computerConfig() {
+        return this.params().configuration().get(CoreOptions.COMPUTER_CONFIG);
     }
 
     @Override

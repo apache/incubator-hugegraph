@@ -27,7 +27,6 @@ import org.apache.commons.configuration.tree.ConfigurationNode;
 import org.apache.tinkerpop.gremlin.util.config.YamlConfiguration;
 
 import com.baidu.hugegraph.HugeException;
-import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.job.ComputerJob;
 import com.baidu.hugegraph.job.Job;
 import com.baidu.hugegraph.util.E;
@@ -44,7 +43,7 @@ public abstract class AbstractComputer implements Computer {
     private static final String ARG_SYMBOL = "C";
     private static final String MINUS = "-";
     private static final String EQUAL = "=";
-    private static final String EMPTY = " ";
+    private static final String SPACE = " ";
 
     public static final String MAX_STEPS = "max_steps";
     public static final int DEFAULT_MAX_STEPS = 5;
@@ -89,7 +88,7 @@ public abstract class AbstractComputer implements Computer {
         try {
             Process process = Runtime.getRuntime().exec(command);
             exitCode = process.waitFor();
-        } catch (Exception e) {
+        } catch (Throwable e) {
             throw new HugeException("Failed to execute computer job", e);
         }
 
@@ -98,7 +97,7 @@ public abstract class AbstractComputer implements Computer {
 
     private void initializeConfig(ComputerJob job) throws Exception {
         // Load computer config file
-        String configPath = job.config().get(CoreOptions.COMPUTER_CONFIG);
+        String configPath = job.computerConfig();
         E.checkArgument(configPath.endsWith(".yaml"),
                         "Expect a yaml config file.");
 
@@ -133,12 +132,12 @@ public abstract class AbstractComputer implements Computer {
     @SuppressWarnings("unchecked")
     private String constructShellCommands(Map<String, Object> configs) {
         StringBuilder builder = new StringBuilder(1024);
-        builder.append(COMMAND_PREFIX).append(EMPTY)
-               .append(this.name()).append(EMPTY);
+        builder.append(COMMAND_PREFIX).append(SPACE)
+               .append(this.name()).append(SPACE);
         for (Map.Entry<String, Object> entry : configs.entrySet()) {
-            builder.append(MINUS).append(ARG_SYMBOL).append(EMPTY)
+            builder.append(MINUS).append(ARG_SYMBOL).append(SPACE)
                    .append(entry.getKey()).append(EQUAL)
-                   .append(entry.getValue()).append(EMPTY);
+                   .append(entry.getValue()).append(SPACE);
         }
         return builder.toString();
     }
@@ -162,7 +161,7 @@ public abstract class AbstractComputer implements Computer {
             return DEFAULT_PRECISION;
         }
         double precision = ParameterUtil.parameterDouble(parameters, PRECISION);
-        E.checkArgument(precision > 0 && precision < 1,
+        E.checkArgument(precision > 0.0D && precision < 1.0D,
                         "The value of %s must be (0, 1), but got %s",
                         PRECISION, precision);
         return precision;
