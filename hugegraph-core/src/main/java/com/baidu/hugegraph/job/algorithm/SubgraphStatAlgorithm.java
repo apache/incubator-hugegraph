@@ -25,6 +25,7 @@ import java.util.Map;
 import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.StandardHugeGraph;
@@ -40,17 +41,19 @@ import com.baidu.hugegraph.job.algorithm.comm.ClusterCoeffcientAlgorithm;
 import com.baidu.hugegraph.job.algorithm.path.RingsDetectAlgorithm;
 import com.baidu.hugegraph.job.algorithm.rank.PageRankAlgorithm;
 import com.baidu.hugegraph.task.HugeTask;
-import com.baidu.hugegraph.testutil.Whitebox;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
 import com.baidu.hugegraph.traversal.optimize.HugeScriptTraversal;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
+import com.baidu.hugegraph.util.Log;
 import com.google.common.collect.ImmutableMap;
 
 public class SubgraphStatAlgorithm extends AbstractAlgorithm {
 
     public static final String KEY_SUBGRAPH = "subgraph";
     public static final String KEY_COPY_SCHEMA = "copy_schema";
+
+    private static final Logger LOG = Log.logger(SubgraphStatAlgorithm.class);
 
     @Override
     public String name() {
@@ -77,8 +80,12 @@ public class SubgraphStatAlgorithm extends AbstractAlgorithm {
             return traverser.subgraphStat(tmpJob);
         } finally {
             graph.truncateBackend();
-            // FIXME: task thread can't call close() (will hang), use closeTx()
-            Whitebox.invoke(graph.getClass(), "closeTx", graph);
+            try {
+                graph.close();
+            } catch (Throwable e) {
+                LOG.warn("Can't close subgraph_stat temp graph {}: {}",
+                         graph, e.getMessage(), e);
+            }
         }
     }
 

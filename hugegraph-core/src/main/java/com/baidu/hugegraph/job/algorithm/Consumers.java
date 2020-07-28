@@ -30,6 +30,7 @@ import java.util.function.Consumer;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
+import com.baidu.hugegraph.task.TaskManager.ContextCallable;
 import com.baidu.hugegraph.util.ExecutorUtil;
 import com.baidu.hugegraph.util.Log;
 
@@ -82,22 +83,25 @@ public class Consumers<V> {
         LOG.info("Starting {} workers[{}] with queue size {}...",
                  this.workers, name, this.queueSize);
         for (int i = 0; i < this.workers; i++) {
-            this.executor.submit(() -> {
-                try {
-                    this.run();
-                    this.done();
-                } catch (Throwable e) {
-                    // Only the first exception of one thread can be stored
-                    this.exception = e;
-                    if (!(e instanceof StopExecution)) {
-                        LOG.error("Error when running task", e);
-                    }
-                    this.done();
-                } finally {
-                    this.latch.countDown();
-                }
-            });
+            this.executor.submit(new ContextCallable<>(this::runAndDone));
         }
+    }
+
+    private Void runAndDone() {
+        try {
+            this.run();
+            this.done();
+        } catch (Throwable e) {
+            // Only the first exception of one thread can be stored
+            this.exception = e;
+            if (!(e instanceof StopExecution)) {
+                LOG.error("Error when running task", e);
+            }
+            this.done();
+        } finally {
+            this.latch.countDown();
+        }
+        return null;
     }
 
     private void run() {
