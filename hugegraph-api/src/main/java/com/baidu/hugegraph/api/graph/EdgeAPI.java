@@ -124,12 +124,12 @@ public class EdgeAPI extends BatchAPI {
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin", "$owner=$graph $action=edge_write"})
-    public List<String> create(@Context HugeConfig config,
-                               @Context GraphManager manager,
-                               @PathParam("graph") String graph,
-                               @QueryParam("check_vertex")
-                               @DefaultValue("true") boolean checkVertex,
-                               List<JsonEdge> jsonEdges) {
+    public String create(@Context HugeConfig config,
+                         @Context GraphManager manager,
+                         @PathParam("graph") String graph,
+                         @QueryParam("check_vertex")
+                         @DefaultValue("true") boolean checkVertex,
+                         List<JsonEdge> jsonEdges) {
         LOG.debug("Graph [{}] create edges: {}", graph, jsonEdges);
         checkCreatingBody(jsonEdges);
         checkBatchSize(config, jsonEdges);
@@ -140,7 +140,7 @@ public class EdgeAPI extends BatchAPI {
                     checkVertex ? EdgeAPI::getVertex : EdgeAPI::newVertex;
 
         return this.commit(config, g, jsonEdges.size(), () -> {
-            List<String> ids = new ArrayList<>(jsonEdges.size());
+            List<Id> ids = new ArrayList<>(jsonEdges.size());
             for (JsonEdge jsonEdge : jsonEdges) {
                 /*
                  * NOTE: If the query param 'checkVertex' is false,
@@ -153,9 +153,9 @@ public class EdgeAPI extends BatchAPI {
                                                    jsonEdge.targetLabel);
                 Edge edge = srcVertex.addEdge(jsonEdge.label, tgtVertex,
                                               jsonEdge.properties());
-                ids.add(edge.id().toString());
+                ids.add((Id) edge.id());
             }
-            return ids;
+            return manager.serializer(g).writeIds(ids);
         });
     }
 

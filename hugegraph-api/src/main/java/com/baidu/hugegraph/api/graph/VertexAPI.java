@@ -104,10 +104,10 @@ public class VertexAPI extends BatchAPI {
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin", "$owner=$graph $action=vertex_write"})
-    public List<String> create(@Context HugeConfig config,
-                               @Context GraphManager manager,
-                               @PathParam("graph") String graph,
-                               List<JsonVertex> jsonVertices) {
+    public String create(@Context HugeConfig config,
+                         @Context GraphManager manager,
+                         @PathParam("graph") String graph,
+                         List<JsonVertex> jsonVertices) {
         LOG.debug("Graph [{}] create vertices: {}", graph, jsonVertices);
         checkCreatingBody(jsonVertices);
         checkBatchSize(config, jsonVertices);
@@ -115,11 +115,11 @@ public class VertexAPI extends BatchAPI {
         HugeGraph g = graph(manager, graph);
 
         return this.commit(config, g, jsonVertices.size(), () -> {
-            List<String> ids = new ArrayList<>(jsonVertices.size());
+            List<Id> ids = new ArrayList<>(jsonVertices.size());
             for (JsonVertex vertex : jsonVertices) {
-                ids.add(g.addVertex(vertex.properties()).id().toString());
+                ids.add((Id) g.addVertex(vertex.properties()).id());
             }
-            return ids;
+            return manager.serializer(g).writeIds(ids);
         });
     }
 
