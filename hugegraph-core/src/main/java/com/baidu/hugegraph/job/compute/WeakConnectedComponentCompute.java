@@ -46,7 +46,7 @@ public class WeakConnectedComponentCompute extends AbstractCompute {
         this.userDefinedParameters.put(PRECISION, threshold(parameters));
     }
 
-    private static double threshold (Map<String, Object> parameters) {
+    private static double threshold(Map<String, Object> parameters) {
         if (!parameters.containsKey(PRECISION)) {
             return DEFAULT_PRECISION;
         }

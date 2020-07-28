@@ -70,7 +70,7 @@ public class ComputeJob extends SysJob<Object> {
         ComputePool pool = ComputePool.instance();
         Compute compute = pool.find(name);
         E.checkArgument(compute != null,
-                        "There is no compute named '%s'", name);
+                        "There is no compute method named '%s'", name);
         compute.checkParameters(parameters);
         return compute.call(this, parameters);
     }

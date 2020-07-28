@@ -31,6 +31,7 @@ import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.job.ComputeJob;
 import com.baidu.hugegraph.job.Job;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.ParameterUtil;
 
 public abstract class AbstractCompute implements Compute {
 
@@ -41,6 +42,7 @@ public abstract class AbstractCompute implements Compute {
 
     private static final String COMMON = "common";
     private static final String EXTRA_ARGS = "extra_args";
+    private static final String EXTRA_ARG_SYMBOL = "C";
     private static final String MINUS = "-";
     private static final String EQUAL = "=";
     private static final String EMPTY = " ";
@@ -104,7 +106,7 @@ public abstract class AbstractCompute implements Compute {
     }
 
     private Map<String, Object> readCommonConfig() {
-        return readSubConfig(COMMON);
+        return this.readSubConfig(COMMON);
     }
 
     @SuppressWarnings("unchecked")
@@ -155,7 +157,7 @@ public abstract class AbstractCompute implements Compute {
             }
             Map<String, Object> extras = (Map<String, Object>) entry.getValue();
             for (Map.Entry<String, Object> extra : extras.entrySet()) {
-                builder.append(MINUS).append(EXTRA_ARGS).append(EMPTY)
+                builder.append(MINUS).append(EXTRA_ARG_SYMBOL).append(EMPTY)
                        .append(extra.getKey()).append(EQUAL)
                        .append(extra.getValue()).append(EMPTY);
             }
@@ -167,63 +169,10 @@ public abstract class AbstractCompute implements Compute {
         if (!parameters.containsKey(MAX_STEPS)) {
             return DEFAULT_MAX_STEPS;
         }
-        int maxSteps = parameterInt(parameters, MAX_STEPS);
+        int maxSteps = ParameterUtil.parameterInt(parameters, MAX_STEPS);
         E.checkArgument(maxSteps > 0,
                         "The value of %s must be > 0, but got %s",
                         MAX_STEPS, maxSteps);
         return maxSteps;
-    }
-
-    public static Object parameter(Map<String, Object> parameters, String key) {
-        Object value = parameters.get(key);
-        E.checkArgument(value != null,
-                        "Expect '%s' in parameters: %s",
-                        key, parameters);
-        return value;
-    }
-
-    public static String parameterString(Map<String, Object> parameters,
-                                         String key) {
-        Object value = parameter(parameters, key);
-        E.checkArgument(value instanceof String,
-                        "Expect string value for parameter '%s': '%s'",
-                        key, value);
-        return (String) value;
-    }
-
-    public static int parameterInt(Map<String, Object> parameters,
-                                   String key) {
-        Object value = parameter(parameters, key);
-        E.checkArgument(value instanceof Number,
-                        "Expect int value for parameter '%s': '%s'",
-                        key, value);
-        return ((Number) value).intValue();
-    }
-
-    public static long parameterLong(Map<String, Object> parameters,
-                                     String key) {
-        Object value = parameter(parameters, key);
-        E.checkArgument(value instanceof Number,
-                        "Expect long value for parameter '%s': '%s'",
-                        key, value);
-        return ((Number) value).longValue();
-    }
-
-    public static double parameterDouble(Map<String, Object> parameters,
-                                         String key) {
-        Object value = parameter(parameters, key);
-        E.checkArgument(value instanceof Number,
-                        "Expect double value for parameter '%s': '%s'",
-                        key, value);
-        return ((Number) value).doubleValue();
-    }
-
-    public static boolean parameterBoolean(Map<String, Object> parameters,
-                                           String key) {
-        Object value = parameter(parameters, key);
-        E.checkArgument(value instanceof Boolean,
-                        "Expect boolean value for parameter '%s': '%s'",
-                        key, value);
-        return ((Boolean) value);
     }
 }
