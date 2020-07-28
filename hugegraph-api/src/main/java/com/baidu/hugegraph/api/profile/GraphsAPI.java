@@ -28,6 +28,7 @@ import javax.annotation.security.RolesAllowed;
 import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
+import javax.ws.rs.ForbiddenException;
 import javax.ws.rs.GET;
 import javax.ws.rs.NotSupportedException;
 import javax.ws.rs.PUT;
@@ -43,6 +44,7 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.auth.HugeAuthenticator.RoleAction;
+import com.baidu.hugegraph.auth.HugePermission;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.RestServer;
@@ -70,9 +72,14 @@ public class GraphsAPI extends API {
         // Filter by user role
         Set<String> filterGraphs = new HashSet<>();
         for (String graph : graphs) {
-            String role = RoleAction.roleFor(graph);
+            String role = RoleAction.roleFor(graph, HugePermission.READ);
             if (sc.isUserInRole(role)) {
-                filterGraphs.add(graph);
+                try {
+                    HugeGraph g = graph(manager, graph);
+                    filterGraphs.add(g.name());
+                } catch (ForbiddenException ignored) {
+                    // ignore
+                }
             }
         }
         return ImmutableMap.of("graphs", filterGraphs);

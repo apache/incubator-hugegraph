@@ -719,7 +719,7 @@ public class StandardTaskScheduler implements TaskScheduler {
     }
 
     private boolean supportsPaging() {
-        return this.graph().backendStoreFeatures().supportsQueryByPage();
+        return this.graph.backendStoreFeatures().supportsQueryByPage();
     }
 
     private static boolean sleep(long ms) {

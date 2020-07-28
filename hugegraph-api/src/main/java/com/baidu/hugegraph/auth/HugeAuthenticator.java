@@ -467,8 +467,9 @@ public interface HugeAuthenticator extends Authenticator {
             return HugePermission.valueOf(action.toUpperCase());
         }
 
-        public static String roleFor(String owner) {
-            return KEY_OWNER + "=" + owner;
+        public static String roleFor(String owner, HugePermission perm) {
+            return String.format("%s=%s %s=%s", KEY_OWNER, owner,
+                                 KEY_ACTION, perm.string());
         }
 
         public static RoleAction fromJson(String json) {

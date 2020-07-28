@@ -205,8 +205,7 @@ public class ServerInfoManager {
     }
 
     protected boolean initialized() {
-        return this.call(() -> this.graph.graph().backendStoreSystemInfo()
-                                         .exists());
+        return this.call(() -> this.graph.initialized());
     }
 
     protected boolean closed() {
