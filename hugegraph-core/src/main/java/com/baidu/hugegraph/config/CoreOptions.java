@@ -22,6 +22,7 @@ package com.baidu.hugegraph.config;
 import static com.baidu.hugegraph.backend.tx.GraphTransaction.COMMIT_BATCH;
 import static com.baidu.hugegraph.config.OptionChecker.allowValues;
 import static com.baidu.hugegraph.config.OptionChecker.disallowEmpty;
+import static com.baidu.hugegraph.config.OptionChecker.positiveInt;
 import static com.baidu.hugegraph.config.OptionChecker.rangeInt;
 
 import com.baidu.hugegraph.backend.query.Query;
@@ -98,6 +99,87 @@ public class CoreOptions extends OptionHolder {
                     "The serializer for backend store, like: text/binary/cassandra.",
                     disallowEmpty(),
                     "text"
+            );
+
+    public static final ConfigOption<Boolean> RAFT_MODE =
+            new ConfigOption<>(
+                    "raft.mode",
+                    "Whether the backend storage works in raft mode.",
+                    disallowEmpty(),
+                    false
+            );
+
+    public static final ConfigOption<Boolean> RAFT_SAFE_READ =
+            new ConfigOption<>(
+                    "raft.safe_read",
+                    "Whether to use linearly consistent read.",
+                    disallowEmpty(),
+                    false
+            );
+
+    public static final ConfigOption<Boolean> RAFT_USE_SNAPSHOT =
+            new ConfigOption<>(
+                    "raft.use_snapshot",
+                    "Whether to use snapshot.",
+                    disallowEmpty(),
+                    true
+            );
+
+    public static final ConfigOption<Integer> RAFT_QUEUE_SIZE =
+            new ConfigOption<>(
+                    "raft.queue_size",
+                    "The disruptor buffers size for jraft RaftNode, " +
+                    "StateMachine and LogManager",
+                    positiveInt(),
+                    8192
+            );
+
+    public static final ConfigOption<String> RAFT_ENDPOINT =
+            new ConfigOption<>(
+                    "raft.endpoint",
+                    "The peerid of current raft node.",
+                    disallowEmpty(),
+                    "127.0.0.1:8281"
+            );
+
+    public static final ConfigOption<String> RAFT_GROUP_PEERS =
+            new ConfigOption<>(
+                    "raft.group_peers",
+                    "The peers of current raft group.",
+                    disallowEmpty(),
+                    "127.0.0.1:8281,127.0.0.1:8282,127.0.0.1:8283"
+            );
+
+    public static final ConfigOption<String> RAFT_PATH =
+            new ConfigOption<>(
+                    "raft.path",
+                    "The log path of current raft node.",
+                    disallowEmpty(),
+                    "./raftlog"
+            );
+
+    public static final ConfigOption<Integer> RAFT_ELECTION_TIMEOUT =
+            new ConfigOption<>(
+                    "raft.election_timeout",
+                    "Timeout in milliseconds to launch a round of election.",
+                    rangeInt(0, Integer.MAX_VALUE),
+                    3000
+            );
+
+    public static final ConfigOption<Integer> RAFT_SNAPSHOT_INTERVAL =
+            new ConfigOption<>(
+                    "raft.snapshot_interval",
+                    "The interval in seconds to trigger snapshot save.",
+                    rangeInt(0, Integer.MAX_VALUE),
+                    3600
+            );
+
+    public static final ConfigOption<Integer> RAFT_BACKEND_THREADS =
+            new ConfigOption<>(
+                    "raft.backend_threads",
+                    "The thread number used to apply task to bakcend.",
+                    rangeInt(0, Integer.MAX_VALUE),
+                    8
             );
 
     public static final ConfigOption<Integer> RATE_LIMIT =

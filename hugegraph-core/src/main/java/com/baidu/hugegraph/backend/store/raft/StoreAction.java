@@ -17,26 +17,35 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.type.define;
+package com.baidu.hugegraph.backend.store.raft;
 
-public enum Action implements SerialEnum {
+import com.baidu.hugegraph.type.define.SerialEnum;
 
-    INSERT(1, "insert"),
+public enum StoreAction implements SerialEnum {
 
-    APPEND(2, "append"),
+    NONE(0, "none"),
 
-    ELIMINATE(3, "eliminate"),
+    INIT(1, "init"),
+    CLEAR(2, "clear"),
+    TRUNCATE(3, "truncate"),
 
-    DELETE(4, "delete");
+    BEGIN_TX(10, "begin_tx"),
+    COMMIT_TX(11, "commit_tx"),
+    ROLLBACK_TX(12, "rollback_tx"),
+
+    MUTATE(20, "mutate"),
+    INCR_COUNTER(21, "incr_counter"),
+
+    QUERY(30, "query");
 
     private final byte code;
     private final String name;
 
     static {
-        SerialEnum.register(Action.class);
+        SerialEnum.register(StoreAction.class);
     }
 
-    Action(int code, String name) {
+    StoreAction(int code, String name) {
         assert code < 256;
         this.code = (byte) code;
         this.name = name;
@@ -51,18 +60,7 @@ public enum Action implements SerialEnum {
         return this.name;
     }
 
-    public static Action fromCode(byte code) {
-        switch (code) {
-            case 1:
-                return INSERT;
-            case 2:
-                return APPEND;
-            case 3:
-                return ELIMINATE;
-            case 4:
-                return DELETE;
-            default:
-                throw new AssertionError("Unsupported action code: " + code);
-        }
+    public static StoreAction fromCode(byte code) {
+        return SerialEnum.fromCode(StoreAction.class, code);
     }
 }

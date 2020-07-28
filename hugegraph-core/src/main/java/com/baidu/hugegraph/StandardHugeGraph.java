@@ -366,10 +366,7 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     private BackendStoreProvider loadStoreProvider() {
-        String backend = this.configuration.get(CoreOptions.BACKEND);
-        LOG.info("Opening backend store '{}' for graph '{}'",
-                 backend, this.name);
-        return BackendProviderFactory.open(backend, this.name);
+        return BackendProviderFactory.open(this.configuration);
     }
 
     private AbstractSerializer serializer() {

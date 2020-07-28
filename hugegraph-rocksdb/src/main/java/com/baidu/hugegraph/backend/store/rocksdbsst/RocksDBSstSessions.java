@@ -239,6 +239,16 @@ public class RocksDBSstSessions extends RocksDBSessions {
             this.batch.clear();
         }
 
+        @Override
+        public String dataPath() {
+            return RocksDBSstSessions.this.dataPath;
+        }
+
+        @Override
+        public String walPath() {
+            return RocksDBSstSessions.this.dataPath;
+        }
+
         /**
          * Get property value by name from specified table
          */
@@ -343,6 +353,11 @@ public class RocksDBSstSessions extends RocksDBSessions {
                                           int scanType) {
             assert !this.hasChanges();
             return BackendColumnIterator.empty();
+        }
+
+        @Override
+        public void createSnapshot(String snapshotPath) {
+            throw new UnsupportedOperationException("createSnapshot");
         }
     }
 

@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.backend.store.rocksdb;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -38,6 +39,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.rocksdb.RocksDBException;
 import org.slf4j.Logger;
 
@@ -50,10 +52,12 @@ import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
+import com.baidu.hugegraph.backend.store.BackendTable;
 import com.baidu.hugegraph.backend.store.rocksdb.RocksDBSessions.Session;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.exception.ConnectionException;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.util.CodeUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.ExecutorUtil;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
@@ -130,7 +134,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
     }
 
     protected List<String> tableNames() {
-        return this.tables.values().stream().map(t -> t.table())
+        return this.tables.values().stream().map(BackendTable::table)
                                             .collect(Collectors.toList());
     }
 
@@ -516,6 +520,64 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         }
 
         return this.sessions.session();
+    }
+
+    @Override
+    public void writeSnapshot(String parentPath) {
+        for (Session session : this.session()) {
+            session.createSnapshot(parentPath);
+        }
+    }
+
+    @Override
+    public void readSnapshot(String parentPath) {
+        if (!this.opened()) {
+            return;
+        }
+
+        File[] snapshotFiles = new File(parentPath).listFiles();
+        E.checkNotNull(snapshotFiles, "snapshot files");
+        List<Pair<File, File>> fileRenamePairs = new ArrayList<>();
+        for (File snapshotFile : snapshotFiles) {
+            Session session = this.findMatchedSession(snapshotFile);
+            File dataFile = new File(session.dataPath());
+            fileRenamePairs.add(Pair.of(snapshotFile, dataFile));
+        }
+        // Close old sessions, is that right?
+        for (Session session : this.session()) {
+            session.close();
+        }
+        this.sessions.session().close();
+
+        // Copy snapshot file to dest file
+        for (Pair<File, File> pair : fileRenamePairs) {
+            File snapshotFile = pair.getLeft();
+            File dataFile = pair.getRight();
+            try {
+                if (dataFile.exists()) {
+                    LOG.warn("Delete origin data directory {}", dataFile);
+                    FileUtils.deleteDirectory(dataFile);
+                }
+                FileUtils.moveDirectory(snapshotFile, dataFile);
+            } catch (IOException e) {
+                throw new BackendException("Failed to move %s to %s",
+                                           e, snapshotFile, dataFile);
+            }
+        }
+
+        // Reopen the db
+        this.open(this.sessions.config());
+    }
+
+    private Session findMatchedSession(File snapshotFile) {
+        String fileName = snapshotFile.getName();
+        for (Session session : this.session()) {
+            if (fileName.equals(CodeUtil.md5(session.dataPath()))) {
+                return session;
+            }
+        }
+        throw new BackendException("Can't find matched session for " +
+                                   "snapshot file {}", snapshotFile);
     }
 
     private final List<Session> session() {

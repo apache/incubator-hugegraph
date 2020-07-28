@@ -20,6 +20,8 @@
 package com.baidu.hugegraph.backend.store.rocksdb;
 
 import java.io.Closeable;
+import java.io.File;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -33,9 +35,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.rocksdb.BlockBasedTableConfig;
 import org.rocksdb.BloomFilter;
+import org.rocksdb.Checkpoint;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.ColumnFamilyOptions;
@@ -63,11 +67,15 @@ import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumnIterator;
 import com.baidu.hugegraph.backend.store.BackendEntryIterator;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.util.Bytes;
+import com.baidu.hugegraph.util.CodeUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.StringEncoding;
 import com.google.common.collect.ImmutableList;
 
 public class RocksDBStdSessions extends RocksDBSessions {
+
+    private final String dataPath;
+    private final String walPath;
 
     private final RocksDB rocksdb;
     private final SstFileManager sstFileManager;
@@ -79,7 +87,8 @@ public class RocksDBStdSessions extends RocksDBSessions {
                               String dataPath, String walPath)
                               throws RocksDBException {
         super(config, database, store);
-
+        this.dataPath = dataPath;
+        this.walPath = walPath;
         // Init options
         Options options = new Options();
         RocksDBStdSessions.initOptions(config, options, options,
@@ -103,7 +112,8 @@ public class RocksDBStdSessions extends RocksDBSessions {
                               String dataPath, String walPath,
                               List<String> cfNames) throws RocksDBException {
         super(config, database, store);
-
+        this.dataPath = dataPath;
+        this.walPath = walPath;
         // Old CFs should always be opened
         Set<String> mergedCFs = this.mergeOldCFs(dataPath, cfNames);
         List<String> cfs = ImmutableList.copyOf(mergedCFs);
@@ -146,7 +156,8 @@ public class RocksDBStdSessions extends RocksDBSessions {
     private RocksDBStdSessions(HugeConfig config, String database, String store,
                                RocksDBStdSessions origin) {
         super(config, database, store);
-
+        this.dataPath = origin.dataPath;
+        this.walPath = origin.walPath;
         this.rocksdb = origin.rocksdb;
         this.sstFileManager = origin.sstFileManager;
         this.cfs = origin.cfs;
@@ -591,6 +602,16 @@ public class RocksDBStdSessions extends RocksDBSessions {
             return this.batch.count() > 0;
         }
 
+        @Override
+        public String dataPath() {
+            return RocksDBStdSessions.this.dataPath;
+        }
+
+        @Override
+        public String walPath() {
+            return RocksDBStdSessions.this.walPath;
+        }
+
         /**
          * Get property value by name from specified table
          */
@@ -791,6 +812,32 @@ public class RocksDBStdSessions extends RocksDBSessions {
                 RocksIterator iter = rocksdb().newIterator(cf.get());
                 return new ColumnIterator(table, iter, keyFrom,
                                           keyTo, scanType);
+            }
+        }
+
+        @Override
+        public void createSnapshot(String parentPath) {
+            String md5 = CodeUtil.md5(this.dataPath());
+            String snapshotPath = Paths.get(parentPath, md5).toString();
+            // https://github.com/facebook/rocksdb/wiki/Checkpoints
+            try (Checkpoint checkpoint = Checkpoint.create(rocksdb)) {
+                String tempPath = snapshotPath + "_temp";
+                File tempFile = new File(tempPath);
+                FileUtils.deleteDirectory(tempFile);
+
+                FileUtils.forceMkdir(tempFile.getParentFile());
+                checkpoint.createCheckpoint(tempPath);
+                File snapshotFile = new File(snapshotPath);
+                FileUtils.deleteDirectory(snapshotFile);
+                if (!tempFile.renameTo(snapshotFile)) {
+                    throw new IOException(String.format(
+                              "Failed to rename %s to %s",
+                              tempFile, snapshotFile));
+                }
+            } catch (Exception e) {
+                throw new BackendException(
+                          "Failed to write snapshot at path %s",
+                          e, snapshotPath);
             }
         }
     }
