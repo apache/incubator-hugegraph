@@ -68,8 +68,10 @@ public class ShortestPathTraverser extends HugeTraverser {
 
             if (!(paths = traverser.backward(false)).isEmpty() ||
                 --depth <= 0) {
-                Path path = paths.iterator().next();
-                Collections.reverse(path.vertices());
+                if (!paths.isEmpty()) {
+                    Path path = paths.iterator().next();
+                    Collections.reverse(path.vertices());
+                }
                 break;
             }
             checkCapacity(traverser.capacity, traverser.size, "shortest path");
