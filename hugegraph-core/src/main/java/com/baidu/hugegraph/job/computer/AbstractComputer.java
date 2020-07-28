@@ -77,10 +77,12 @@ public abstract class AbstractComputer implements Computer {
         }
 
         // Set current computer job's specified parameters
-        this.commonConfig.putAll(this.checkAndCollectParameters(parameters));
+        Map<String, Object> configs = new HashMap<>();
+        configs.putAll(this.commonConfig);
+        configs.putAll(this.checkAndCollectParameters(parameters));
 
         // Construct shell command for computer job
-        String command = constructShellCommands(this.commonConfig);
+        String command = this.constructShellCommands(configs);
 
         // Execute current computer
         int exitCode;
