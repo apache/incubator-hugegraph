@@ -36,7 +36,6 @@ import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
-import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.Log;
@@ -209,10 +208,11 @@ public class RaftBackendStore implements BackendStore {
     }
 
     private Object queryByRaft(Query query, Function<Object, Object> func) {
-        if (!this.context.config().get(CoreOptions.RAFT_SAFE_READ)) {
+        if (!this.context.isSafeRead()) {
             return func.apply(query);
         }
 
+        this.node().waitLeaderElected();
         StoreCommand command = new StoreCommand(StoreAction.QUERY);
         StoreClosure closure = new StoreClosure(command);
         RaftNode raftNode = this.node();

@@ -33,6 +33,7 @@ import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.testutil.Whitebox;
+import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.unit.BaseUnitTest;
 import com.baidu.hugegraph.unit.FakeObjects;
@@ -85,7 +86,8 @@ public class CachedGraphTransactionTest extends BaseUnitTest {
         Assert.assertEquals(2L,
                             Whitebox.invoke(cache, "verticesCache", "size"));
 
-        this.params.graphEventHub().notify(Events.CACHE, "clear", null).get();
+        this.params.graphEventHub().notify(Events.CACHE, "clear", null, null)
+                   .get();
 
         Assert.assertEquals(0L,
                             Whitebox.invoke(cache, "verticesCache", "size"));
@@ -100,7 +102,6 @@ public class CachedGraphTransactionTest extends BaseUnitTest {
 
     @Test
     public void testEventInvalid() throws Exception {
-
         CachedGraphTransaction cache = this.cache();
 
         cache.addVertex(this.newVertex(IdGenerator.of(1)));
@@ -113,7 +114,8 @@ public class CachedGraphTransactionTest extends BaseUnitTest {
                             Whitebox.invoke(cache, "verticesCache", "size"));
 
         this.params.graphEventHub().notify(Events.CACHE, "invalid",
-                                           IdGenerator.of(1)).get();
+                                           HugeType.VERTEX, IdGenerator.of(1))
+                   .get();
 
         Assert.assertEquals(1L,
                             Whitebox.invoke(cache, "verticesCache", "size"));

@@ -24,6 +24,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
 
+import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.store.memory.InMemoryDBStoreProvider;
 import com.baidu.hugegraph.backend.store.raft.RaftBackendStoreProvider;
@@ -41,12 +42,26 @@ public class BackendProviderFactory {
         providers = new ConcurrentHashMap<>();
     }
 
-    public static BackendStoreProvider open(HugeConfig config) {
-        String backend = config.get(CoreOptions.BACKEND);
+    public static BackendStoreProvider open(HugeGraphParams params) {
+        HugeConfig config = params.configuration();
+        String backend = config.get(CoreOptions.BACKEND).toLowerCase();
+        String graph = config.get(CoreOptions.STORE);
         boolean raftMode = config.get(CoreOptions.RAFT_MODE);
+
+        BackendStoreProvider provider = newProvider(config);
+        if (raftMode) {
+            LOG.info("Opening backend store '{}' in raft mode for graph '{}'",
+                     backend, graph);
+            provider = new RaftBackendStoreProvider(provider, params);
+        }
+        provider.open(graph);
+        return provider;
+    }
+
+    private static BackendStoreProvider newProvider(HugeConfig config) {
+        String backend = config.get(CoreOptions.BACKEND).toLowerCase();
         String graph = config.get(CoreOptions.STORE);
 
-        backend = backend.toLowerCase();
         if (InMemoryDBStoreProvider.matchType(backend)) {
             return InMemoryDBStoreProvider.instance(graph);
         }
@@ -67,19 +82,7 @@ public class BackendProviderFactory {
                                "BackendStoreProvider with type '%s' " +
                                "can't be opened by key '%s'",
                                instance.type(), backend);
-
-        BackendStoreProvider provider;
-        if (raftMode) {
-            LOG.info("Opening backend store '{}' in raft mode for graph '{}'",
-                     backend, graph);
-            provider = new RaftBackendStoreProvider(instance, config);
-        } else {
-            LOG.info("Opening backend store '{}' for graph '{}'",
-                     backend, graph);
-            provider = instance;
-        }
-        provider.open(graph);
-        return provider;
+        return instance;
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })

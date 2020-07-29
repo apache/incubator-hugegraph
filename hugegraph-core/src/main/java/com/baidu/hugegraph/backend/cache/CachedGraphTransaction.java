@@ -135,16 +135,21 @@ public final class CachedGraphTransaction extends GraphTransaction {
         this.cacheEventListener = event -> {
             LOG.debug("Graph {} received graph cache event: {}",
                       this.graph(), event);
-            event.checkArgs(String.class, Id.class);
+            event.checkArgs(String.class, HugeType.class, Id.class);
             Object[] args = event.args();
             if ("invalid".equals(args[0])) {
-                Id id = (Id) args[1];
-                if (this.verticesCache.get(id) != null) {
+                HugeType type = (HugeType) args[1];
+                Id id = (Id) args[2];
+                if (type.isVertex()) {
                     // Invalidate vertex cache
                     this.verticesCache.invalidate(id);
-                } else if (this.edgesCache.get(id) != null) {
-                    // Invalidate edge cache
-                    this.edgesCache.invalidate(id);
+                } else if (type.isEdge()) {
+                    /*
+                     * Invalidate edge cache via clear instead of invalidate
+                     * because of the cacheKey is QueryId not EdgeId
+                     */
+                    // this.edgesCache.invalidate(id);
+                    this.edgesCache.clear();
                 }
                 return true;
             } else if ("clear".equals(args[0])) {

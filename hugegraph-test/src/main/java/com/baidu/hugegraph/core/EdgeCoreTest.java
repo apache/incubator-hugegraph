@@ -3097,7 +3097,7 @@ public class EdgeCoreTest extends BaseCoreTest {
         Assert.assertTrue(adjacent.schemaLabel().undefined());
         Assert.assertEquals("~undefined", adjacent.label());
 
-        params().graphEventHub().notify(Events.CACHE, "clear", null).get();
+        params().graphEventHub().notify(Events.CACHE, "clear", null, null).get();
         vertices = graph.traversal().V(james.id()).outE().otherV().toList();
         Assert.assertEquals(1, vertices.size());
         adjacent = (HugeVertex) vertices.get(0);
