@@ -19,26 +19,36 @@
 
 package com.baidu.hugegraph.job.computer;
 
+import java.io.InputStreamReader;
+import java.io.LineNumberReader;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.configuration.tree.ConfigurationNode;
 import org.apache.tinkerpop.gremlin.util.config.YamlConfiguration;
+import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.job.ComputerJob;
 import com.baidu.hugegraph.job.Job;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.Log;
 import com.baidu.hugegraph.util.ParameterUtil;
 
 public abstract class AbstractComputer implements Computer {
 
-    private static final String COMMAND_PREFIX =
-            "cd $COMPUTER_HOME;" +
-            "hadoop jar hugegraph-computer.jar com.baidu.hugegraph.Computer " +
-            "-D libjars=./hugegraph-computer-core.jar";
+    private static final Logger LOG = Log.logger(Computer.class);
 
+    private static final String MAIN_COMMAND =
+            "HADOOP_HOME/bin/hadoop jar " +
+            "COMPUTER_HOME/hugegraph-computer.jar " +
+            "com.baidu.hugegraph.Computer " +
+            "-D libjars=COMPUTER_HOME/hugegraph-computer-core.jar";
+
+    private static final String HADOOP_HOME = "HADOOP_HOME";
+    private static final String COMPUTER_HOME = "COMPUTER_HOME";
     private static final String COMMON = "common";
     private static final String ARG_SYMBOL = "C";
     private static final String MINUS = "-";
@@ -81,18 +91,33 @@ public abstract class AbstractComputer implements Computer {
         configs.putAll(this.checkAndCollectParameters(parameters));
 
         // Construct shell command for computer job
-        String command = this.constructShellCommands(configs);
+        String[] command = this.constructShellCommands(configs);
+        LOG.info("Execute computer job: {}", command);
 
         // Execute current computer
+        List<String> errors = new ArrayList<>();
         int exitCode;
         try {
             Process process = Runtime.getRuntime().exec(command);
-            exitCode = process.waitFor();
+
+            try(LineNumberReader reader = new LineNumberReader(
+                                          new InputStreamReader(
+                                          process.getErrorStream()))) {
+                exitCode = process.waitFor();
+
+                if (exitCode == 0) {
+                    return 0;
+                }
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    errors.add(line);
+                }
+                throw new HugeException("The computer job exit with code %s: " +
+                                        "%s", exitCode, errors);
+            }
         } catch (Throwable e) {
             throw new HugeException("Failed to execute computer job", e);
         }
-
-        return exitCode;
     }
 
     private void initializeConfig(ComputerJob job) throws Exception {
@@ -130,16 +155,21 @@ public abstract class AbstractComputer implements Computer {
     }
 
     @SuppressWarnings("unchecked")
-    private String constructShellCommands(Map<String, Object> configs) {
+    private String[] constructShellCommands(Map<String, Object> configs) {
         StringBuilder builder = new StringBuilder(1024);
-        builder.append(COMMAND_PREFIX).append(SPACE)
+        String hadoopHome = System.getenv(HADOOP_HOME);
+        String computerHome = System.getenv(COMPUTER_HOME);
+        builder.append(MAIN_COMMAND).append(SPACE)
                .append(this.name()).append(SPACE);
         for (Map.Entry<String, Object> entry : configs.entrySet()) {
             builder.append(MINUS).append(ARG_SYMBOL).append(SPACE)
                    .append(entry.getKey()).append(EQUAL)
                    .append(entry.getValue()).append(SPACE);
         }
-        return builder.toString();
+        String command = builder.toString();
+        command = command.replace(HADOOP_HOME, hadoopHome);
+        command = command.replace(COMPUTER_HOME, computerHome);
+        return command.split(SPACE);
     }
 
     public abstract Map<String, Object> checkAndCollectParameters(
