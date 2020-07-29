@@ -166,7 +166,7 @@ public final class RaftSharedContext {
             return;
         }
         // How to avoid update cache from server info
-        eventHub.notify(Events.CACHE, "invalid", id);
+        eventHub.notify(Events.CACHE, "invalid", type, id);
     }
 
     public PeerId endpoint() {
