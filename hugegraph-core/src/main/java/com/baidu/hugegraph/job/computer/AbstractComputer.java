@@ -44,8 +44,9 @@ public abstract class AbstractComputer implements Computer {
     private static final Logger LOG = Log.logger(Computer.class);
 
     private static final String HADOOP_HOME = "HADOOP_HOME";
-    private static final String COMPUTER_HOME = "COMPUTER_HOME";
+    private static final String COMPUTER_HOME = "computer_home";
     private static final String COMMON = "common";
+    private static final String ENV = "env";
     private static final String MINUS_C = "-C";
     private static final String EQUAL = "=";
     private static final String SPACE = " ";
@@ -143,6 +144,10 @@ public abstract class AbstractComputer implements Computer {
         return this.readSubConfig(COMMON);
     }
 
+    private Map<String, Object> readEnvConfig() {
+        return this.readSubConfig(ENV);
+    }
+
     @SuppressWarnings("unchecked")
     private Map<String, Object> readSubConfig(String sub) {
         List<ConfigurationNode> nodes = this.config.getRootNode()
@@ -198,7 +203,10 @@ public abstract class AbstractComputer implements Computer {
         return precision;
     }
 
-    private static String executeDir() {
-        return System.getenv(COMPUTER_HOME);
+    private String executeDir() {
+        Map<String, Object> envs = this.readEnvConfig();
+        E.checkState(envs.containsKey(COMPUTER_HOME),
+                     "Expect '%s' in '%s' section", COMPUTER_HOME, ENV);
+        return (String) envs.get(COMPUTER_HOME);
     }
 }

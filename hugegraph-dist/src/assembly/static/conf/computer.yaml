@@ -1,5 +1,5 @@
 # common parameters
-common : {
+common: {
   worker_heap: 10000,
   vertex_input_dir: /data,
   workers: 51,
@@ -16,4 +16,8 @@ common : {
   hugegraph_url: "http://127.0.0.1:8080",
   hugegraph_name: hugegraph,
   hugegraph_timeout: 60
+}
+
+env: {
+  computer_home: /home/computer
 }
