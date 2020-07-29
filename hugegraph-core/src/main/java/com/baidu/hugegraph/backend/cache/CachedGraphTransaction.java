@@ -144,9 +144,12 @@ public final class CachedGraphTransaction extends GraphTransaction {
                     // Invalidate vertex cache
                     this.verticesCache.invalidate(id);
                 } else if (type.isEdge()) {
-                    id = new QueryId(new IdQuery(type, id));
-                    // Invalidate edge cache
-                    this.edgesCache.invalidate(id);
+                    /*
+                     * Invalidate edge cache via clear instead of invalidate
+                     * because of the cacheKey is QueryId not EdgeId
+                     */
+                    // this.edgesCache.invalidate(id);
+                    this.edgesCache.clear();
                 }
                 return true;
             } else if ("clear".equals(args[0])) {
