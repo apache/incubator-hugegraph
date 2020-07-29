@@ -19,9 +19,11 @@
 
 package com.baidu.hugegraph.job.computer;
 
+import java.io.File;
 import java.io.InputStreamReader;
 import java.io.LineNumberReader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,19 +43,17 @@ public abstract class AbstractComputer implements Computer {
 
     private static final Logger LOG = Log.logger(Computer.class);
 
-    private static final String MAIN_COMMAND =
-            "HADOOP_HOME/bin/hadoop jar " +
-            "COMPUTER_HOME/hugegraph-computer.jar " +
-            "com.baidu.hugegraph.Computer " +
-            "-D libjars=COMPUTER_HOME/hugegraph-computer-core.jar";
-
     private static final String HADOOP_HOME = "HADOOP_HOME";
     private static final String COMPUTER_HOME = "COMPUTER_HOME";
     private static final String COMMON = "common";
-    private static final String ARG_SYMBOL = "C";
-    private static final String MINUS = "-";
+    private static final String MINUS_C = "-C";
     private static final String EQUAL = "=";
     private static final String SPACE = " ";
+
+    private static final String MAIN_COMMAND =
+            "%s/bin/hadoop jar hugegraph-computer.jar " +
+            "com.baidu.hugegraph.Computer " +
+            "-D libjars=./hugegraph-computer-core.jar";
 
     public static final String MAX_STEPS = "max_steps";
     public static final int DEFAULT_MAX_STEPS = 5;
@@ -92,29 +92,35 @@ public abstract class AbstractComputer implements Computer {
 
         // Construct shell command for computer job
         String[] command = this.constructShellCommands(configs);
-        LOG.info("Execute computer job: {}", command);
+        LOG.info("Execute computer job: {}", String.join(SPACE, command));
 
         // Execute current computer
-        List<String> errors = new ArrayList<>();
-        int exitCode;
         try {
-            Process process = Runtime.getRuntime().exec(command);
+            ProcessBuilder builder = new ProcessBuilder(command);
+            builder.redirectErrorStream(true);
+            builder.directory(new File(executeDir()));
 
+            Process process = builder.start();
+
+            StringBuilder output = new StringBuilder();
             try(LineNumberReader reader = new LineNumberReader(
                                           new InputStreamReader(
-                                          process.getErrorStream()))) {
-                exitCode = process.waitFor();
-
-                if (exitCode == 0) {
-                    return 0;
-                }
+                                          process.getInputStream()))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    errors.add(line);
+                    output.append(line).append("\n");
                 }
-                throw new HugeException("The computer job exit with code %s: " +
-                                        "%s", exitCode, errors);
             }
+
+            int exitCode = process.waitFor();
+            if (exitCode == 0) {
+                return 0;
+            }
+
+            throw new HugeException("The computer job exit with code %s: %s",
+                                    exitCode, output);
+        } catch (HugeException e) {
+            throw e;
         } catch (Throwable e) {
             throw new HugeException("Failed to execute computer job", e);
         }
@@ -154,26 +160,21 @@ public abstract class AbstractComputer implements Computer {
         return results;
     }
 
-    @SuppressWarnings("unchecked")
     private String[] constructShellCommands(Map<String, Object> configs) {
-        StringBuilder builder = new StringBuilder(1024);
         String hadoopHome = System.getenv(HADOOP_HOME);
-        String computerHome = System.getenv(COMPUTER_HOME);
-        builder.append(MAIN_COMMAND).append(SPACE)
-               .append(this.name()).append(SPACE);
+        String commandPrefix = String.format(MAIN_COMMAND, hadoopHome);
+        List<String> command = new ArrayList<>();
+        command.addAll(Arrays.asList(commandPrefix.split(SPACE)));
+        command.add(this.name());
         for (Map.Entry<String, Object> entry : configs.entrySet()) {
-            builder.append(MINUS).append(ARG_SYMBOL).append(SPACE)
-                   .append(entry.getKey()).append(EQUAL)
-                   .append(entry.getValue()).append(SPACE);
+            command.add(MINUS_C);
+            command.add(entry.getKey() + EQUAL + entry.getValue());
         }
-        String command = builder.toString();
-        command = command.replace(HADOOP_HOME, hadoopHome);
-        command = command.replace(COMPUTER_HOME, computerHome);
-        return command.split(SPACE);
+        return command.toArray(new String[0]);
     }
 
-    public abstract Map<String, Object> checkAndCollectParameters(
-                                        Map<String, Object> parameters);
+    protected abstract Map<String, Object> checkAndCollectParameters(
+                                           Map<String, Object> parameters);
 
     protected static int maxSteps(Map<String, Object> parameters) {
         if (!parameters.containsKey(MAX_STEPS)) {
@@ -195,5 +196,9 @@ public abstract class AbstractComputer implements Computer {
                         "The value of %s must be (0, 1), but got %s",
                         PRECISION, precision);
         return precision;
+    }
+
+    private static String executeDir() {
+        return System.getenv(COMPUTER_HOME);
     }
 }
