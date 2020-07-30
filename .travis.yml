@@ -19,6 +19,8 @@ branches:
     - /^test-.*$/
     - /^v[0-9]\..*$/
 
+before_install: mvn install:install-file -Dfile=$STATIC_DIR/lib/jraft-core-1.3.3.jar -DgroupId=com.alipay.sofa -DartifactId=jraft-core -Dversion=1.3.3 -Dpackaging=jar
+
 install: mvn compile -Dmaven.javadoc.skip=true | grep -v "Downloading\|Downloaded"
 
 before_script:
@@ -116,6 +118,7 @@ env:
     - RELEASE_BRANCH=^release-.*$
     - RELEASE_TAG=^v[0-9]\..*$
     - TRAVIS_DIR=hugegraph-dist/src/assembly/travis
+    - STATIC_DIR=hugegraph-dist/src/assembly/static
     - DEPLOYED=0
     - secure: dYmFTVeEtRzLNaHp9ToTV/+CkTD0/rEj+K7dRN8wsv/yg4pbqwnyWbSXcqMlj6iNFzAz3nPbmFLCvAWON9/SMN9iJIT6x/xfcf+LqCT8QWczo2nc9xeX144ij2VHX1Drvtk5fRTMaTXRfWEQIrjqx2yrJTIdrXWzWSaZLFv1CRCUizEiGGCePnzUWxx9dBypNyC6IaH6lIv8uN5E6+10SYhb7UJGjWUMDg1bCeW9X7X2wg4QpsGDzlGFXT2EBPU/dAb5attTAtW8dKxrCZqZJTPWe0BarXDBR4PO15BC+a0V1g8LwexedtDjJeFRcGPaJ5NN4d3jDSusCzt5Jf4U0Wa1gDRMVTU3jT+KYkm5eoV4wOZMySobjh6VpQH/LyL0QTDy5apRPAxw+wO+tc91P+nkJmnlr3pN8abtMZ6NciZizUBYQRgR/m2Ir0stvtbZxBQOATuPtBgNDKiDgVdSYcRJzSqYEMFOn35AvsDZ9aUsyC8k29PCUZ0gQO2Is6cV1ClFBnM52hfU9XX0gu+NviSnYNGvcokod8z9VjGtnM7V3LYjqXSFqO9kkMbOmkME1tD2Bh/klw2/OM+2tBBZiAgxB89st5jSUHI4a2hpUyaQBezJUcU9t2vVT/zAVEIqzw2PDxkMU7t0n6L1x+qUIUTG/WynfIni5msxuR7HoiU=
     - secure: XbX6AX5zDPc2PcWYAMW+6fazqRRUqpgQkt4eXUugLuVIYZBmJ0WqncEhJ4+mdwOGPIhnP2HsOaSeK2eE/O+iLY2XpBFbugoBgm9VaZlCC4CY1gRNHaanYg64Lrm3NPY3n08IHRMazHqMpJwUqNO+OG/6QwkepULQLj5Rluf716AoXHa7IEJhAIrwr+OXQvdEaJdUXlS1lRycXVeYtOewl7qYxCO4dD4RMhPlNykh9KEK7fd5wnPkiUsp1SwF4g5XsaLvGXmT/qQ1nj8oa9Caej/iaj6HMKG3BO057mq4KK5JDxTPWhBueNpEkUwldAnrMhYWLRnNf4IyjUsaB/Pmi6HspzcaiORPLYwPmdvLGGSnYwbtO+fAHebgpgOnj/vGmRmY4YtIkYdFtbPBI0HpbGB77tqNRFCe/5deLrjx0hXJBfoKTy7d42SI1eBhNR0svZYUHkSfuXwly6hMTlH1DN/bumMFxfXDkY9PFHlzV1Mn3vb9BxKTaP88hJsWk7JqgniqUF7EWAc0EhHMbJct2gC0pDc95z4Yy9391n7/XWJErhIdYon1Ukds5+a43xFXoy76gR4LuMDpzzCnutMjhC2yDuGaZx/DfkPBb5JFU7SHtTKj05zb73Moogi7qqbH8jwcwoSfogAKyrIAWTcAgvJ2LVnRzwdsiLTc6MEagiM=

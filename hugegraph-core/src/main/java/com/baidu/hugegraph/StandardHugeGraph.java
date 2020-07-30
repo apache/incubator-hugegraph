@@ -101,6 +101,7 @@ public class StandardHugeGraph implements HugeGraph {
 
     private static final Logger LOG = Log.logger(HugeGraph.class);
 
+    private volatile boolean started;
     private volatile boolean closed;
     private volatile GraphMode mode;
     private volatile HugeVariables variables;
@@ -140,6 +141,7 @@ public class StandardHugeGraph implements HugeGraph {
         this.features = new HugeFeatures(this, true);
 
         this.name = configuration.get(CoreOptions.STORE);
+        this.started = false;
         this.closed = false;
         this.mode = GraphMode.NONE;
 
@@ -208,6 +210,11 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
+    public boolean started() {
+        return this.started;
+    }
+
+    @Override
     public boolean closed() {
         if (this.closed && !this.tx.closed()) {
             LOG.warn("The tx is not closed while graph '{}' is closed", this);
@@ -223,6 +230,14 @@ public class StandardHugeGraph implements HugeGraph {
     @Override
     public void mode(GraphMode mode) {
         this.mode = mode;
+    }
+
+    @Override
+    public void waitStarted() {
+        // Just for trigger Tx.getOrNewTransaction, then load 3 stores
+        this.schemaTransaction();
+        this.storeProvider.waitStoreStarted();
+        this.started = true;
     }
 
     @Override
@@ -842,6 +857,16 @@ public class StandardHugeGraph implements HugeGraph {
         @Override
         public void closeTx() {
             StandardHugeGraph.this.closeTx();
+        }
+
+        @Override
+        public boolean started() {
+            return StandardHugeGraph.this.started();
+        }
+
+        @Override
+        public boolean closed() {
+            return StandardHugeGraph.this.closed();
         }
 
         @Override

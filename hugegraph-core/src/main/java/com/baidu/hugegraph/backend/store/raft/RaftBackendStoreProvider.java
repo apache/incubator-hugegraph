@@ -106,6 +106,13 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
     }
 
     @Override
+    public void waitStoreStarted() {
+        this.schemaStore.waitStoreStarted();
+        this.graphStore.waitStoreStarted();
+        this.systemStore.waitStoreStarted();
+    }
+
+    @Override
     public void close() {
         this.provider.close();
         this.context.close();

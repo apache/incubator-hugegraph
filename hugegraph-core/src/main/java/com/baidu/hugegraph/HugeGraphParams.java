@@ -47,6 +47,8 @@ public interface HugeGraphParams {
     public GraphTransaction openTransaction();
     public void closeTx();
 
+    public boolean started();
+    public boolean closed();
     public boolean initialized();
     public BackendFeatures backendStoreFeatures();
 

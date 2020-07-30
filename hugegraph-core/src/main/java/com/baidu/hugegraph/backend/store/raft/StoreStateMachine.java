@@ -22,7 +22,6 @@ package com.baidu.hugegraph.backend.store.raft;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 
 import org.slf4j.Logger;
@@ -31,7 +30,7 @@ import com.alipay.sofa.jraft.Closure;
 import com.alipay.sofa.jraft.Iterator;
 import com.alipay.sofa.jraft.Status;
 import com.alipay.sofa.jraft.core.StateMachineAdapter;
-import com.alipay.sofa.jraft.entity.NodeId;
+import com.alipay.sofa.jraft.entity.LeaderChangeContext;
 import com.alipay.sofa.jraft.error.RaftError;
 import com.alipay.sofa.jraft.error.RaftException;
 import com.alipay.sofa.jraft.storage.snapshot.SnapshotReader;
@@ -51,18 +50,18 @@ public class StoreStateMachine extends StateMachineAdapter {
 
     private static final Logger LOG = Log.logger(StoreStateMachine.class);
 
-    private NodeId nodeId;
     private final BackendStore store;
+    private final RaftNode node;
     private final RaftSharedContext context;
     private final StoreSnapshotFile snapshotFile;
-    private final AtomicLong leaderTerm;
     private final Map<StoreAction, Function<BytesBuffer, Object>> funcs;
 
-    public StoreStateMachine(BackendStore store, RaftSharedContext context) {
+    public StoreStateMachine(BackendStore store, RaftNode node,
+                             RaftSharedContext context) {
         this.store = store;
+        this.node = node;
         this.context = context;
         this.snapshotFile = new StoreSnapshotFile();
-        this.leaderTerm = new AtomicLong(-1);
         this.funcs = new EnumMap<>(StoreAction.class);
         this.registerCommands();
     }
@@ -126,10 +125,6 @@ public class StoreStateMachine extends StateMachineAdapter {
         });
     }
 
-    public void nodeId(NodeId nodeId) {
-        this.nodeId = nodeId;
-    }
-
     @Override
     public void onApply(Iterator iter) {
         LOG.debug("Node role: {}", this.isLeader() ? "leader" : "follower");
@@ -188,7 +183,7 @@ public class StoreStateMachine extends StateMachineAdapter {
 
     @Override
     public void onSnapshotSave(SnapshotWriter writer, Closure done) {
-        LOG.debug("The node {} start snapshot save", this.nodeId);
+        LOG.debug("The node {} start snapshot save", this.node.nodeId());
         this.snapshotFile.save(this.store, writer, done,
                                this.context.snapshotExecutor());
     }
@@ -199,22 +194,36 @@ public class StoreStateMachine extends StateMachineAdapter {
             LOG.warn("Leader is not supposed to load snapshot.");
             return false;
         }
-        LOG.debug("The node {} start snapshot load", this.nodeId);
+        LOG.debug("The node {} start snapshot load", this.node.nodeId());
         return this.snapshotFile.load(this.store, reader);
     }
 
     @Override
     public void onLeaderStart(long term) {
-        LOG.info("The node {} become to leader", this.nodeId);
-        this.leaderTerm.set(term);
+        LOG.info("The node {} become to leader", this.node.nodeId());
+        this.node.onElected(true);
         super.onLeaderStart(term);
     }
 
     @Override
     public void onLeaderStop(Status status) {
-        LOG.info("The node {} abdicated from leader", this.nodeId);
-        this.leaderTerm.set(-1);
+        LOG.info("The node {} abdicated from leader", this.node.nodeId());
+        this.node.onElected(false);
         super.onLeaderStop(status);
+    }
+
+    @Override
+    public void onStartFollowing(LeaderChangeContext ctx) {
+        LOG.info("The node {} become to follower", this.node.nodeId());
+        this.node.onElected(true);
+        super.onStartFollowing(ctx);
+    }
+
+    @Override
+    public void onStopFollowing(LeaderChangeContext ctx) {
+        LOG.info("The node {} become to follower", this.node.nodeId());
+        this.node.onElected(false);
+        super.onStopFollowing(ctx);
     }
 
     @Override
@@ -223,6 +232,6 @@ public class StoreStateMachine extends StateMachineAdapter {
     }
 
     private boolean isLeader() {
-        return this.leaderTerm.get() > 0;
+        return this.node.node().isLeader();
     }
 }

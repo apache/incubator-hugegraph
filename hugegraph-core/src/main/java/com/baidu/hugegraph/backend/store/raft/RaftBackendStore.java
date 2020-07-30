@@ -86,13 +86,13 @@ public class RaftBackendStore implements BackendStore {
     public synchronized void open(HugeConfig config) {
         this.store.open(config);
         this.initRaftNodeIfNeeded();
+    }
 
+    public void waitStoreStarted() {
         RaftNode node = this.node();
-        node.waitLeaderElected();
+        node.waitLeaderElected(RaftSharedContext.WAIT_LEADER_TIMEOUT);
         if (node.node().isLeader()) {
-            if (!node.waitHeartbeated()) {
-                throw new BackendException("Wait raft node heartbeat failed");
-            }
+            node.waitHeartbeated(-1);
         }
     }
 
@@ -228,8 +228,6 @@ public class RaftBackendStore implements BackendStore {
                 if (status.isOk()) {
                     closure.complete(status, () -> func.apply(query));
                 } else {
-                    LOG.warn("Failed to execute query {} with 'ReadIndex': {}",
-                             query, status);
                     closure.failure(status, new BackendException(
                             "Failed to execute query '%s' with 'ReadIndex': %s",
                             query, status));
@@ -240,6 +238,8 @@ public class RaftBackendStore implements BackendStore {
         try {
             return closure.waitFinished();
         } catch (Throwable t) {
+            LOG.warn("Failed to execute query {} with 'ReadIndex': {}",
+                     query, closure.status());
             throw new BackendException("Failed to execute query", t);
         }
     }

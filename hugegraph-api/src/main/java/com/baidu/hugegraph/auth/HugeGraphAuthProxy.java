@@ -563,9 +563,21 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     @Override
+    public void waitStarted() {
+        this.verifyPermission(HugePermission.READ, ResourceType.STATUS);
+        this.hugegraph.waitStarted();
+    }
+
+    @Override
     public void serverStarted(Id serverId, NodeRole serverRole) {
         verifyAdminPermission();
         this.hugegraph.serverStarted(serverId, serverRole);
+    }
+
+    @Override
+    public boolean started() {
+        verifyAdminPermission();
+        return this.hugegraph.started();
     }
 
     @Override
