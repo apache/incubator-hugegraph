@@ -44,8 +44,8 @@ public class WeakConnectedComponentComputer extends AbstractComputer {
     }
 
     @Override
-    public Map<String, Object> checkAndCollectParameters(
-                               Map<String, Object> parameters) {
+    protected Map<String, Object> checkAndCollectParameters(
+                                  Map<String, Object> parameters) {
         return ImmutableMap.of(MAX_STEPS, maxSteps(parameters),
                                PRECISION, precision(parameters));
     }

@@ -19,31 +19,42 @@
 
 package com.baidu.hugegraph.job.computer;
 
+import java.io.File;
+import java.io.InputStreamReader;
+import java.io.LineNumberReader;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.configuration.tree.ConfigurationNode;
 import org.apache.tinkerpop.gremlin.util.config.YamlConfiguration;
+import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.job.ComputerJob;
 import com.baidu.hugegraph.job.Job;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.Log;
 import com.baidu.hugegraph.util.ParameterUtil;
 
 public abstract class AbstractComputer implements Computer {
 
-    private static final String COMMAND_PREFIX =
-            "cd $COMPUTER_HOME;" +
-            "hadoop jar hugegraph-computer.jar com.baidu.hugegraph.Computer " +
-            "-D libjars=./hugegraph-computer-core.jar";
+    private static final Logger LOG = Log.logger(Computer.class);
 
+    private static final String HADOOP_HOME = "HADOOP_HOME";
     private static final String COMMON = "common";
-    private static final String ARG_SYMBOL = "C";
-    private static final String MINUS = "-";
+    private static final String ENV = "env";
+    private static final String COMPUTER_HOME = "computer_home";
+    private static final String MINUS_C = "-C";
     private static final String EQUAL = "=";
     private static final String SPACE = " ";
+
+    private static final String MAIN_COMMAND =
+            "%s/bin/hadoop jar hugegraph-computer.jar " +
+            "com.baidu.hugegraph.Computer " +
+            "-D libjars=./hugegraph-computer-core.jar";
 
     public static final String MAX_STEPS = "max_steps";
     public static final int DEFAULT_MAX_STEPS = 5;
@@ -81,18 +92,46 @@ public abstract class AbstractComputer implements Computer {
         configs.putAll(this.checkAndCollectParameters(parameters));
 
         // Construct shell command for computer job
-        String command = this.constructShellCommands(configs);
+        String[] command = this.constructShellCommands(configs);
+        LOG.info("Execute computer job: {}", String.join(SPACE, command));
 
         // Execute current computer
-        int exitCode;
         try {
-            Process process = Runtime.getRuntime().exec(command);
-            exitCode = process.waitFor();
+            ProcessBuilder builder = new ProcessBuilder(command);
+            builder.redirectErrorStream(true);
+            builder.directory(new File(executeDir()));
+
+            Process process = builder.start();
+
+            StringBuilder output = new StringBuilder();
+            try(LineNumberReader reader = new LineNumberReader(
+                                          new InputStreamReader(
+                                          process.getInputStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    output.append(line).append("\n");
+                }
+            }
+
+            int exitCode = process.waitFor();
+            if (exitCode == 0) {
+                return 0;
+            }
+
+            throw new HugeException("The computer job exit with code %s: %s",
+                                    exitCode, output);
+        } catch (HugeException e) {
+            throw e;
         } catch (Throwable e) {
             throw new HugeException("Failed to execute computer job", e);
         }
+    }
 
-        return exitCode;
+    private String executeDir() {
+        Map<String, Object> envs = this.readEnvConfig();
+        E.checkState(envs.containsKey(COMPUTER_HOME),
+                     "Expect '%s' in '%s' section", COMPUTER_HOME, ENV);
+        return (String) envs.get(COMPUTER_HOME);
     }
 
     private void initializeConfig(ComputerJob job) throws Exception {
@@ -112,6 +151,10 @@ public abstract class AbstractComputer implements Computer {
         return this.readSubConfig(COMMON);
     }
 
+    private Map<String, Object> readEnvConfig() {
+        return this.readSubConfig(ENV);
+    }
+
     @SuppressWarnings("unchecked")
     private Map<String, Object> readSubConfig(String sub) {
         List<ConfigurationNode> nodes = this.config.getRootNode()
@@ -129,21 +172,21 @@ public abstract class AbstractComputer implements Computer {
         return results;
     }
 
-    @SuppressWarnings("unchecked")
-    private String constructShellCommands(Map<String, Object> configs) {
-        StringBuilder builder = new StringBuilder(1024);
-        builder.append(COMMAND_PREFIX).append(SPACE)
-               .append(this.name()).append(SPACE);
+    private String[] constructShellCommands(Map<String, Object> configs) {
+        String hadoopHome = System.getenv(HADOOP_HOME);
+        String commandPrefix = String.format(MAIN_COMMAND, hadoopHome);
+        List<String> command = new ArrayList<>();
+        command.addAll(Arrays.asList(commandPrefix.split(SPACE)));
+        command.add(this.name());
         for (Map.Entry<String, Object> entry : configs.entrySet()) {
-            builder.append(MINUS).append(ARG_SYMBOL).append(SPACE)
-                   .append(entry.getKey()).append(EQUAL)
-                   .append(entry.getValue()).append(SPACE);
+            command.add(MINUS_C);
+            command.add(entry.getKey() + EQUAL + entry.getValue());
         }
-        return builder.toString();
+        return command.toArray(new String[0]);
     }
 
-    public abstract Map<String, Object> checkAndCollectParameters(
-                                        Map<String, Object> parameters);
+    protected abstract Map<String, Object> checkAndCollectParameters(
+                                           Map<String, Object> parameters);
 
     protected static int maxSteps(Map<String, Object> parameters) {
         if (!parameters.containsKey(MAX_STEPS)) {
