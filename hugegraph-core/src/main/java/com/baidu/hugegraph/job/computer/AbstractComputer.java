@@ -44,9 +44,9 @@ public abstract class AbstractComputer implements Computer {
     private static final Logger LOG = Log.logger(Computer.class);
 
     private static final String HADOOP_HOME = "HADOOP_HOME";
-    private static final String COMPUTER_HOME = "computer_home";
     private static final String COMMON = "common";
     private static final String ENV = "env";
+    private static final String COMPUTER_HOME = "computer_home";
     private static final String MINUS_C = "-C";
     private static final String EQUAL = "=";
     private static final String SPACE = " ";
@@ -127,6 +127,13 @@ public abstract class AbstractComputer implements Computer {
         }
     }
 
+    private String executeDir() {
+        Map<String, Object> envs = this.readEnvConfig();
+        E.checkState(envs.containsKey(COMPUTER_HOME),
+                     "Expect '%s' in '%s' section", COMPUTER_HOME, ENV);
+        return (String) envs.get(COMPUTER_HOME);
+    }
+
     private void initializeConfig(ComputerJob job) throws Exception {
         // Load computer config file
         String configPath = job.computerConfig();
@@ -201,12 +208,5 @@ public abstract class AbstractComputer implements Computer {
                         "The value of %s must be (0, 1), but got %s",
                         PRECISION, precision);
         return precision;
-    }
-
-    private String executeDir() {
-        Map<String, Object> envs = this.readEnvConfig();
-        E.checkState(envs.containsKey(COMPUTER_HOME),
-                     "Expect '%s' in '%s' section", COMPUTER_HOME, ENV);
-        return (String) envs.get(COMPUTER_HOME);
     }
 }
