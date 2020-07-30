@@ -59,6 +59,7 @@ public class RaftNode {
     private final StoreStateMachine stateMachine;
     private final Node node;
 
+    private volatile boolean started;
     private final AtomicInteger busyCounter;
 
     public RaftNode(String group, BackendStore store,
@@ -72,6 +73,7 @@ public class RaftNode {
         }
         this.node.addReplicatorStateListener(new RaftNodeStateListener());
         this.stateMachine.nodeId(this.node.getNodeId());
+        this.started = false;
         this.busyCounter = new AtomicInteger();
     }
 
@@ -83,11 +85,12 @@ public class RaftNode {
         return this.node;
     }
 
-    public int heartbeatInterval() {
-        int electionTimeout = this.node.getOptions().getElectionTimeoutMs();
-        // Raft election:heartbeat timeout factor
-        int factor = this.node.getRaftOptions().getElectionHeartbeatFactor();
-        return electionTimeout / factor;
+    public boolean started() {
+        return this.started;
+    }
+
+    public void shutdown() {
+        this.node.shutdown();
     }
 
     private Node initRaftNode(BackendStore store, RaftSharedContext context)
@@ -172,6 +175,24 @@ public class RaftNode {
                   this.group(), WAIT_LEADER_TIMEOUT);
     }
 
+    protected boolean waitHeartbeated() {
+        int electionTimeout = this.node.getOptions().getElectionTimeoutMs();
+        // Raft election:heartbeat timeout factor
+        int factor = this.node.getRaftOptions().getElectionHeartbeatFactor();
+        int heartbeatInterval = electionTimeout / factor;
+        for (int i = 0; i < RaftSharedContext.QUERY_RETRY_TIMES; i++) {
+            if (this.started) {
+                break;
+            }
+            try {
+                Thread.sleep(heartbeatInterval);
+            } catch (InterruptedException ex) {
+                throw new BackendException("Waiting heartbeated is interrupted");
+            }
+        }
+        return this.started;
+    }
+
     private void waitIfBusy() {
         int counter = this.busyCounter.get();
         if (counter <= 0) {
@@ -254,6 +275,12 @@ public class RaftNode {
         }
 
         @Override
+        public void onHeartbeated(PeerId peer) {
+            LOG.info("The node {} replicator has heartbeated", peer);
+            started = true;
+        }
+
+        @Override
         public void onError(PeerId peer, Status status) {
             LOG.warn("Replicator meet error: {}", status);
             if (this.isWriteBufferOverflow(status)) {
@@ -273,6 +300,7 @@ public class RaftNode {
         @Override
         public void onDestroyed(PeerId peer) {
             LOG.warn("The node {} prepare to offline", peer);
+            started = false;
         }
     }
 }

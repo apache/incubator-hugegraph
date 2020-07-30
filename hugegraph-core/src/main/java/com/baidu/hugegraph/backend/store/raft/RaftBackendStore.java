@@ -28,7 +28,6 @@ import org.slf4j.Logger;
 
 import com.alipay.sofa.jraft.Status;
 import com.alipay.sofa.jraft.closure.ReadIndexClosure;
-import com.alipay.sofa.jraft.error.RaftError;
 import com.alipay.sofa.jraft.util.BytesUtil;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.query.Query;
@@ -87,6 +86,14 @@ public class RaftBackendStore implements BackendStore {
     public synchronized void open(HugeConfig config) {
         this.store.open(config);
         this.initRaftNodeIfNeeded();
+
+        RaftNode node = this.node();
+        node.waitLeaderElected();
+        if (node.node().isLeader()) {
+            if (!node.waitHeartbeated()) {
+                throw new BackendException("Wait raft node heartbeat failed");
+            }
+        }
     }
 
     private void initRaftNodeIfNeeded() {
@@ -213,8 +220,6 @@ public class RaftBackendStore implements BackendStore {
             return func.apply(query);
         }
 
-        RaftNode raftNode = this.node();
-        raftNode.waitLeaderElected();
         StoreCommand command = new StoreCommand(StoreAction.QUERY);
         StoreClosure closure = new StoreClosure(command);
         ReadIndexClosure readIndexClosure = new ReadIndexClosure() {
@@ -231,31 +236,12 @@ public class RaftBackendStore implements BackendStore {
                 }
             }
         };
-        int retryInterval = raftNode.heartbeatInterval();
-        String error = null;
-        for (int i = 0; i < RaftSharedContext.QUERY_RETRY_TIMES; i++) {
-            raftNode.node().readIndex(BytesUtil.EMPTY_BYTES, readIndexClosure);
-            try {
-                return closure.waitFinished();
-            } catch (Throwable t) {
-                error = t.getMessage();
-                if (closure.status().getRaftError() == RaftError.EAGAIN) {
-                    LOG.warn("Failed to execute query {} because of leader " +
-                             "has not committed any log entry at its term",
-                             query);
-                    try {
-                        Thread.sleep(retryInterval);
-                    } catch (InterruptedException ex) {
-                        throw new BackendException("Try to sleep a while for " +
-                                                   "querying is interrupted");
-                    }
-                } else {
-                    throw new BackendException("Failed to execute query", t);
-                }
-            }
+        this.node().node().readIndex(BytesUtil.EMPTY_BYTES, readIndexClosure);
+        try {
+            return closure.waitFinished();
+        } catch (Throwable t) {
+            throw new BackendException("Failed to execute query", t);
         }
-        throw new BackendException("Retried '%s' times with error: %s",
-                                   RaftSharedContext.QUERY_RETRY_TIMES, error);
     }
 
     private static class MutationBatch {

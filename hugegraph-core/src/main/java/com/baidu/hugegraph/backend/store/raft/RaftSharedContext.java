@@ -86,7 +86,8 @@ public final class RaftSharedContext {
     }
 
     public void close() {
-        LOG.info("Stopping rpc server");
+        LOG.info("Stopping raft nodes");
+        this.nodes.values().forEach(RaftNode::shutdown);
         this.rpcServer.shutdown();
     }
 
