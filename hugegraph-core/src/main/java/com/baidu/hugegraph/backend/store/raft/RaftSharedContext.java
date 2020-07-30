@@ -62,7 +62,6 @@ public final class RaftSharedContext {
     public static final int BUSY_SLEEP_FACTOR = 30 * 1000;
     public static final int WAIT_RPC_TIMEOUT = 30 * 60 * 1000;
     public static final int QUERY_RETRY_TIMES = 3;
-    public static final int QUERY_RETRY_INTERVAL = 100;
 
     private final HugeGraphParams params;
     private final Map<String, RaftNode> nodes;

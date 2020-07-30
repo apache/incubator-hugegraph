@@ -83,6 +83,13 @@ public class RaftNode {
         return this.node;
     }
 
+    public int heartbeatInterval() {
+        int electionTimeout = this.node.getOptions().getElectionTimeoutMs();
+        // Raft election:heartbeat timeout factor
+        int factor = this.node.getRaftOptions().getElectionHeartbeatFactor();
+        return electionTimeout / factor;
+    }
+
     private Node initRaftNode(BackendStore store, RaftSharedContext context)
                               throws IOException {
         String storePath = store.database() + "-" + store.store();
