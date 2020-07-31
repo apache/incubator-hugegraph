@@ -27,6 +27,7 @@ import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import com.baidu.hugegraph.event.EventListener;
+import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 
 public class RaftBackendStoreProvider implements BackendStoreProvider {
@@ -107,6 +108,10 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
 
     @Override
     public void waitStoreStarted() {
+        E.checkState(this.schemaStore != null &&
+                     this.graphStore != null &&
+                     this.systemStore != null,
+                     "The store has not been opened");
         this.schemaStore.waitStoreStarted();
         this.graphStore.waitStoreStarted();
         this.systemStore.waitStoreStarted();

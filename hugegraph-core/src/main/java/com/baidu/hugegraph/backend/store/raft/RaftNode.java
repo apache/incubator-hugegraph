@@ -25,7 +25,6 @@ import static com.baidu.hugegraph.backend.store.raft.RaftSharedContext.WAIT_RPC_
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
@@ -63,8 +62,8 @@ public class RaftNode {
     private final Node node;
 
     private final Object electedLock;
-    private AtomicBoolean elected;
-    private AtomicBoolean started;
+    private volatile boolean elected;
+    private volatile boolean started;
     private final AtomicInteger busyCounter;
 
     public RaftNode(String group, BackendStore store,
@@ -78,8 +77,8 @@ public class RaftNode {
         }
         this.node.addReplicatorStateListener(new RaftNodeStateListener());
         this.electedLock = new Object();
-        this.elected = new AtomicBoolean(false);
-        this.started = new AtomicBoolean(false);
+        this.elected = false;
+        this.started = false;
         this.busyCounter = new AtomicInteger();
     }
 
@@ -119,7 +118,7 @@ public class RaftNode {
 
     private void submitCommand(StoreCommand command, StoreClosure closure) {
         // Wait leader elected
-        this.waitLeaderElected(-1);
+        this.waitLeaderElected(RaftSharedContext.NO_TIMEOUT);
 
         if (!this.node.isLeader()) {
             this.forwardToLeader(command, closure);
@@ -156,7 +155,7 @@ public class RaftNode {
 
     public void onElected(boolean value) {
         synchronized(this.electedLock) {
-            this.elected.set(value);
+            this.elected = value;
             this.electedLock.notify();
         }
     }
@@ -168,7 +167,7 @@ public class RaftNode {
         long beginTime = System.currentTimeMillis();
         int internalTimeout = 3000;
         synchronized(this.electedLock) {
-            while (!this.elected.get()) {
+            while (!this.elected) {
                 try {
                     this.electedLock.wait(internalTimeout);
                 } catch (InterruptedException e) {
@@ -177,7 +176,7 @@ public class RaftNode {
                               e, this.group(), "election");
                 }
                 long consumedTime = System.currentTimeMillis() - beginTime;
-                if (timeout != -1 && consumedTime >= timeout) {
+                if (timeout > 0 && consumedTime >= timeout) {
                     throw new BackendException(
                               "Wait raft group '{}' election timeout({}ms)",
                               this.group(), "", consumedTime);
@@ -193,9 +192,9 @@ public class RaftNode {
             @Override
             public void run(Status status, long index, byte[] reqCtx) {
                 if (status.isOk()) {
-                    RaftNode.this.started.set(true);
+                    RaftNode.this.started = true;
                 } else {
-                    RaftNode.this.started.set(false);
+                    RaftNode.this.started = false;
                 }
             }
         };
@@ -203,7 +202,7 @@ public class RaftNode {
         int internalTimeout = 3000;
         while (true) {
             this.node.readIndex(BytesUtil.EMPTY_BYTES, readIndexClosure);
-            if (this.started.get()) {
+            if (this.started) {
                 break;
             }
             try {
@@ -213,7 +212,7 @@ public class RaftNode {
                                            "heartbeat is interrupted");
             }
             long consumedTime = System.currentTimeMillis() - beginTime;
-            if (timeout != -1 && consumedTime >= timeout) {
+            if (timeout > 0 && consumedTime >= timeout) {
                 throw new BackendException(
                           "Wait raft group '{}' heartbeat timeout({}ms)",
                           this.group(), consumedTime);
