@@ -221,7 +221,7 @@ public class StoreStateMachine extends StateMachineAdapter {
 
     @Override
     public void onStopFollowing(LeaderChangeContext ctx) {
-        LOG.info("The node {} become to follower", this.node.nodeId());
+        LOG.info("The node {} abdicated from follower", this.node.nodeId());
         this.node.onElected(false);
         super.onStopFollowing(ctx);
     }

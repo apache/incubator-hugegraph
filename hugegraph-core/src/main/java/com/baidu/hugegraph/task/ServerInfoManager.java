@@ -207,7 +207,11 @@ public class ServerInfoManager {
     protected boolean graphReady() {
         return this.graph.started() &&
                !this.graph.closed() &&
-               this.graph.initialized();
+               this.initialized();
+    }
+
+    protected boolean initialized() {
+        return this.call(this.graph::initialized);
     }
 
     protected synchronized HugeServerInfo pickWorkerNode(
@@ -335,7 +339,7 @@ public class ServerInfoManager {
     }
 
     private HugeServerInfo removeSelfServerInfo() {
-        if (this.graph.initialized()) {
+        if (this.initialized()) {
             return this.removeServerInfo(this.selfServerId);
         }
         return null;

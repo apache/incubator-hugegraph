@@ -92,7 +92,7 @@ public class RaftBackendStore implements BackendStore {
         RaftNode node = this.node();
         node.waitLeaderElected(RaftSharedContext.WAIT_LEADER_TIMEOUT);
         if (node.node().isLeader()) {
-            node.waitHeartbeated(-1);
+            node.waitStarted(-1);
         }
     }
 

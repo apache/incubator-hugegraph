@@ -33,6 +33,7 @@ import org.slf4j.Logger;
 import com.alipay.sofa.jraft.Node;
 import com.alipay.sofa.jraft.RaftGroupService;
 import com.alipay.sofa.jraft.Status;
+import com.alipay.sofa.jraft.closure.ReadIndexClosure;
 import com.alipay.sofa.jraft.core.NodeImpl;
 import com.alipay.sofa.jraft.core.Replicator.ReplicatorStateListener;
 import com.alipay.sofa.jraft.entity.NodeId;
@@ -42,6 +43,7 @@ import com.alipay.sofa.jraft.error.RaftError;
 import com.alipay.sofa.jraft.option.NodeOptions;
 import com.alipay.sofa.jraft.rpc.ClientService;
 import com.alipay.sofa.jraft.rpc.RpcResponseClosure;
+import com.alipay.sofa.jraft.util.BytesUtil;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreAction;
@@ -62,7 +64,6 @@ public class RaftNode {
 
     private final Object electedLock;
     private AtomicBoolean elected;
-    private final Object startedLock;
     private AtomicBoolean started;
     private final AtomicInteger busyCounter;
 
@@ -78,7 +79,6 @@ public class RaftNode {
         this.node.addReplicatorStateListener(new RaftNodeStateListener());
         this.electedLock = new Object();
         this.elected = new AtomicBoolean(false);
-        this.startedLock = new Object();
         this.started = new AtomicBoolean(false);
         this.busyCounter = new AtomicInteger();
     }
@@ -93,13 +93,6 @@ public class RaftNode {
 
     public NodeId nodeId() {
         return this.node.getNodeId();
-    }
-
-    public void onElected(boolean value) {
-        synchronized(this.electedLock) {
-            this.elected.set(value);
-            this.electedLock.notify();
-        }
     }
 
     public void shutdown() {
@@ -161,38 +154,72 @@ public class RaftNode {
         }
     }
 
+    public void onElected(boolean value) {
+        synchronized(this.electedLock) {
+            this.elected.set(value);
+            this.electedLock.notify();
+        }
+    }
+
     protected void waitLeaderElected(int timeout) {
         if (this.node.getLeaderId() != null) {
             return;
         }
-        this.waitFor(this.electedLock, this.elected, true, timeout, "election");
-    }
-
-    protected void waitHeartbeated(int timeout) {
-        this.waitFor(this.startedLock, this.started, true, timeout, "heartbeat");
-    }
-
-    private void waitFor(Object lock, AtomicBoolean watchValue,
-                         boolean expectValue, int timeout, String action) {
+        long beginTime = System.currentTimeMillis();
         int internalTimeout = 3000;
-        // The lock object actually is class field, so it's safe
-        synchronized(lock) {
-            for (int i = 1; watchValue.get() != expectValue; i++) {
+        synchronized(this.electedLock) {
+            while (!this.elected.get()) {
                 try {
-                    lock.wait(internalTimeout);
+                    this.electedLock.wait(internalTimeout);
                 } catch (InterruptedException e) {
-                    throw new BackendException("Wait raft group '%s' %s error",
-                                               e, this.group(), action);
+                    throw new BackendException(
+                              "Wait raft group '%s' election error",
+                              e, this.group(), "election");
                 }
-                int consumedTime = i * internalTimeout;
-                LOG.warn("Waiting raft group '{}' {} cost {}s",
-                         this.group(), action, consumedTime / 1000.0);
+                long consumedTime = System.currentTimeMillis() - beginTime;
                 if (timeout != -1 && consumedTime >= timeout) {
                     throw new BackendException(
-                              "Wait raft group '{}' {} timeout({}ms)",
-                              this.group(), action, consumedTime);
+                              "Wait raft group '{}' election timeout({}ms)",
+                              this.group(), "", consumedTime);
+                }
+                LOG.warn("Waiting raft group '{}' election cost {}s",
+                         this.group(), consumedTime / 1000.0);
+            }
+        }
+    }
+
+    protected void waitStarted(int timeout) {
+        ReadIndexClosure readIndexClosure = new ReadIndexClosure() {
+            @Override
+            public void run(Status status, long index, byte[] reqCtx) {
+                if (status.isOk()) {
+                    RaftNode.this.started.set(true);
+                } else {
+                    RaftNode.this.started.set(false);
                 }
             }
+        };
+        long beginTime = System.currentTimeMillis();
+        int internalTimeout = 3000;
+        while (true) {
+            this.node.readIndex(BytesUtil.EMPTY_BYTES, readIndexClosure);
+            if (this.started.get()) {
+                break;
+            }
+            try {
+                Thread.sleep(internalTimeout);
+            } catch (InterruptedException ex) {
+                throw new BackendException("Try to sleep a while for waiting " +
+                                           "heartbeat is interrupted");
+            }
+            long consumedTime = System.currentTimeMillis() - beginTime;
+            if (timeout != -1 && consumedTime >= timeout) {
+                throw new BackendException(
+                          "Wait raft group '{}' heartbeat timeout({}ms)",
+                          this.group(), consumedTime);
+            }
+            LOG.warn("Waiting raft group '{}' heartbeat cost {}s",
+                     this.group(), consumedTime / 1000.0);
         }
     }
 
@@ -278,15 +305,6 @@ public class RaftNode {
         }
 
         @Override
-        public void onHeartbeated(PeerId peer) {
-            LOG.info("The node {} replicator has heartbeated", peer);
-            synchronized(RaftNode.this.startedLock) {
-                RaftNode.this.started.set(true);
-                RaftNode.this.startedLock.notify();
-            }
-        }
-
-        @Override
         public void onError(PeerId peer, Status status) {
             LOG.warn("Replicator meet error: {}", status);
             if (this.isWriteBufferOverflow(status)) {
@@ -306,10 +324,6 @@ public class RaftNode {
         @Override
         public void onDestroyed(PeerId peer) {
             LOG.warn("The node {} prepare to offline", peer);
-            synchronized(RaftNode.this.startedLock) {
-                RaftNode.this.started.set(false);
-                RaftNode.this.startedLock.notify();
-            }
         }
     }
 }

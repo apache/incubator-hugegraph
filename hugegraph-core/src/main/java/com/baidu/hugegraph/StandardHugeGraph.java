@@ -207,6 +207,8 @@ public class StandardHugeGraph implements HugeGraph {
 
         LOG.info("Restoring incomplete tasks for graph '{}'...", this.name);
         this.taskScheduler().restoreTasks();
+
+        this.started = true;
     }
 
     @Override
@@ -237,7 +239,6 @@ public class StandardHugeGraph implements HugeGraph {
         // Just for trigger Tx.getOrNewTransaction, then load 3 stores
         this.schemaTransaction();
         this.storeProvider.waitStoreStarted();
-        this.started = true;
     }
 
     @Override
