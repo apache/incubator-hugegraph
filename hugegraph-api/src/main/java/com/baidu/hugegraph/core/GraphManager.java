@@ -72,6 +72,7 @@ public final class GraphManager {
 
         this.loadGraphs(conf.getMap(ServerOptions.GRAPHS));
         // this.installLicense(conf, "");
+        this.waitGraphsStarted();
         this.checkBackendVersionOrExit();
         this.serverStarted(conf);
         this.addMetrics(conf);
@@ -88,6 +89,13 @@ public final class GraphManager {
                 LOG.error("Graph '{}' can't be loaded: '{}'", name, path, e);
             }
         }
+    }
+
+    public void waitGraphsStarted() {
+        this.graphs.keySet().forEach(name -> {
+            HugeGraph graph = this.graph(name);
+            graph.waitStarted();
+        });
     }
 
     public Set<String> graphs() {

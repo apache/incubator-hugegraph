@@ -314,7 +314,7 @@ public final class TaskManager {
              * If graph is closed, don't call serverManager.initialized()
              * due to it will reopen graph tx.
              */
-            if (serverManager.closed() || !serverManager.initialized()) {
+            if (!serverManager.graphReady()) {
                 return;
             }
 

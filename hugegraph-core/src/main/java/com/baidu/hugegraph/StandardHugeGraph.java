@@ -101,6 +101,7 @@ public class StandardHugeGraph implements HugeGraph {
 
     private static final Logger LOG = Log.logger(HugeGraph.class);
 
+    private volatile boolean started;
     private volatile boolean closed;
     private volatile GraphMode mode;
     private volatile HugeVariables variables;
@@ -140,6 +141,7 @@ public class StandardHugeGraph implements HugeGraph {
         this.features = new HugeFeatures(this, true);
 
         this.name = configuration.get(CoreOptions.STORE);
+        this.started = false;
         this.closed = false;
         this.mode = GraphMode.NONE;
 
@@ -205,6 +207,13 @@ public class StandardHugeGraph implements HugeGraph {
 
         LOG.info("Restoring incomplete tasks for graph '{}'...", this.name);
         this.taskScheduler().restoreTasks();
+
+        this.started = true;
+    }
+
+    @Override
+    public boolean started() {
+        return this.started;
     }
 
     @Override
@@ -223,6 +232,13 @@ public class StandardHugeGraph implements HugeGraph {
     @Override
     public void mode(GraphMode mode) {
         this.mode = mode;
+    }
+
+    @Override
+    public void waitStarted() {
+        // Just for trigger Tx.getOrNewTransaction, then load 3 stores
+        this.schemaTransaction();
+        this.storeProvider.waitStoreStarted();
     }
 
     @Override
@@ -842,6 +858,16 @@ public class StandardHugeGraph implements HugeGraph {
         @Override
         public void closeTx() {
             StandardHugeGraph.this.closeTx();
+        }
+
+        @Override
+        public boolean started() {
+            return StandardHugeGraph.this.started();
+        }
+
+        @Override
+        public boolean closed() {
+            return StandardHugeGraph.this.closed();
         }
 
         @Override

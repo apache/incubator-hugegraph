@@ -88,6 +88,14 @@ public class RaftBackendStore implements BackendStore {
         this.initRaftNodeIfNeeded();
     }
 
+    public void waitStoreStarted() {
+        RaftNode node = this.node();
+        node.waitLeaderElected(RaftSharedContext.WAIT_LEADER_TIMEOUT);
+        if (node.node().isLeader()) {
+            node.waitStarted(RaftSharedContext.NO_TIMEOUT);
+        }
+    }
+
     private void initRaftNodeIfNeeded() {
         this.context.addNode(this.group(), this.store);
     }
@@ -212,28 +220,27 @@ public class RaftBackendStore implements BackendStore {
             return func.apply(query);
         }
 
-        this.node().waitLeaderElected();
         StoreCommand command = new StoreCommand(StoreAction.QUERY);
-        StoreClosure closure = new StoreClosure(command);
-        RaftNode raftNode = this.node();
-        raftNode.node().readIndex(BytesUtil.EMPTY_BYTES, new ReadIndexClosure() {
+        StoreClosure future = new StoreClosure(command);
+        ReadIndexClosure readIndexClosure = new ReadIndexClosure() {
             @Override
             public void run(Status status, long index, byte[] reqCtx) {
                 if (status.isOk()) {
-                    closure.complete(status, () -> func.apply(query));
+                    future.complete(status, () -> func.apply(query));
                 } else {
-                    LOG.warn("Failed to execute query {} with 'ReadIndex': {}",
-                             query, status);
-                    closure.failure(status, new BackendException(
-                            "Failed to execute query '%s' with 'ReadIndex': %s",
-                            query, status));
+                    future.failure(status, new BackendException(
+                           "Failed to execute query '%s' with read-index: %s",
+                           query, status));
                 }
             }
-        });
+        };
+        this.node().node().readIndex(BytesUtil.EMPTY_BYTES, readIndexClosure);
         try {
-            return closure.waitFinished();
+            return future.waitFinished();
         } catch (Throwable t) {
-            throw new BackendException("Failed to query", t);
+            LOG.warn("Failed to execute query {} with read-index: {}",
+                     query, future.status());
+            throw new BackendException("Failed to execute query", t);
         }
     }
 

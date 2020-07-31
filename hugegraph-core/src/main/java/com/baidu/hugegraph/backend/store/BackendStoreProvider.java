@@ -41,6 +41,8 @@ public interface BackendStoreProvider {
 
     public void open(String name);
 
+    public void waitStoreStarted();
+
     public void close();
 
     public void init();

@@ -57,8 +57,10 @@ public final class RaftSharedContext {
     private static final Logger LOG = Log.logger(RaftSharedContext.class);
 
     // unit is ms
+    public static final int NO_TIMEOUT = -1;
+    public static final int POLL_INTERVAL = 3000;
     public static final int WAIT_RAFT_LOG_TIMEOUT = 30 * 60 * 1000;
-    public static final int WAIT_LEADER_TIMEOUT = 60 * 1000;
+    public static final int WAIT_LEADER_TIMEOUT = 5 * 60 * 1000;
     public static final int BUSY_SLEEP_FACTOR = 30 * 1000;
     public static final int WAIT_RPC_TIMEOUT = 30 * 60 * 1000;
 
@@ -85,7 +87,8 @@ public final class RaftSharedContext {
     }
 
     public void close() {
-        LOG.info("Stopping rpc server");
+        LOG.info("Stopping raft nodes");
+        this.nodes.values().forEach(RaftNode::shutdown);
         this.rpcServer.shutdown();
     }
 

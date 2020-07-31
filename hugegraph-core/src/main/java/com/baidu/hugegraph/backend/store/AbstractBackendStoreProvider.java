@@ -91,6 +91,11 @@ public abstract class AbstractBackendStoreProvider
     }
 
     @Override
+    public void waitStoreStarted() {
+        // pass
+    }
+
+    @Override
     public void close() throws BackendException {
         LOG.debug("Graph '{}' close StoreProvider", this.graph);
         this.checkOpened();
