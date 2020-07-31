@@ -221,25 +221,25 @@ public class RaftBackendStore implements BackendStore {
         }
 
         StoreCommand command = new StoreCommand(StoreAction.QUERY);
-        StoreClosure closure = new StoreClosure(command);
+        StoreClosure future = new StoreClosure(command);
         ReadIndexClosure readIndexClosure = new ReadIndexClosure() {
             @Override
             public void run(Status status, long index, byte[] reqCtx) {
                 if (status.isOk()) {
-                    closure.complete(status, () -> func.apply(query));
+                    future.complete(status, () -> func.apply(query));
                 } else {
-                    closure.failure(status, new BackendException(
-                            "Failed to execute query '%s' with 'ReadIndex': %s",
-                            query, status));
+                    future.failure(status, new BackendException(
+                           "Failed to execute query '%s' with read-index: %s",
+                           query, status));
                 }
             }
         };
         this.node().node().readIndex(BytesUtil.EMPTY_BYTES, readIndexClosure);
         try {
-            return closure.waitFinished();
+            return future.waitFinished();
         } catch (Throwable t) {
-            LOG.warn("Failed to execute query {} with 'ReadIndex': {}",
-                     query, closure.status());
+            LOG.warn("Failed to execute query {} with read-index: {}",
+                     query, future.status());
             throw new BackendException("Failed to execute query", t);
         }
     }

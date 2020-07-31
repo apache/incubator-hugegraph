@@ -138,14 +138,14 @@ public class RaftNode {
         this.node.apply(task);
     }
 
-    public Object submitAndWait(StoreCommand command, StoreClosure closure) {
-        this.submitCommand(command, closure);
+    public Object submitAndWait(StoreCommand command, StoreClosure future) {
+        this.submitCommand(command, future);
         if (!this.node.isLeader()) {
             return null;
         }
         try {
             // Here will wait future complete
-            return closure.waitFinished();
+            return future.waitFinished();
         } catch (RuntimeException e) {
             throw e;
         } catch (Throwable t) {
@@ -165,11 +165,10 @@ public class RaftNode {
             return;
         }
         long beginTime = System.currentTimeMillis();
-        int internalTimeout = 3000;
         synchronized(this.electedLock) {
             while (!this.elected) {
                 try {
-                    this.electedLock.wait(internalTimeout);
+                    this.electedLock.wait(RaftSharedContext.POLL_INTERVAL);
                 } catch (InterruptedException e) {
                     throw new BackendException(
                               "Wait raft group '%s' election error",
@@ -199,17 +198,16 @@ public class RaftNode {
             }
         };
         long beginTime = System.currentTimeMillis();
-        int internalTimeout = 3000;
         while (true) {
             this.node.readIndex(BytesUtil.EMPTY_BYTES, readIndexClosure);
             if (this.started) {
                 break;
             }
             try {
-                Thread.sleep(internalTimeout);
-            } catch (InterruptedException ex) {
+                Thread.sleep(RaftSharedContext.POLL_INTERVAL);
+            } catch (InterruptedException e) {
                 throw new BackendException("Try to sleep a while for waiting " +
-                                           "heartbeat is interrupted");
+                                           "heartbeat is interrupted", e);
             }
             long consumedTime = System.currentTimeMillis() - beginTime;
             if (timeout > 0 && consumedTime >= timeout) {
