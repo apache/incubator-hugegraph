@@ -22,7 +22,6 @@ package com.baidu.hugegraph.backend.store.raft;
 import java.util.function.Supplier;
 
 import com.alipay.sofa.jraft.Status;
-import com.baidu.hugegraph.util.E;
 
 public class RaftResult {
 

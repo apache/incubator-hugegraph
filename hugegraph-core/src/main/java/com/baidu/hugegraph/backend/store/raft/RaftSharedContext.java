@@ -67,6 +67,7 @@ public final class RaftSharedContext {
     private final HugeGraphParams params;
     private final Map<String, RaftNode> nodes;
     private final RpcServer rpcServer;
+    @SuppressWarnings("unused")
     private final ExecutorService readIndexExecutor;
     private final ExecutorService snapshotExecutor;
     private final ExecutorService backendExecutor;

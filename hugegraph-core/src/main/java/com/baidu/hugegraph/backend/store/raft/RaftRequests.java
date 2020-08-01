@@ -203,6 +203,7 @@ public final class RaftRequests {
   /**
    * Protobuf type {@code com.baidu.hugegraph.backend.store.raft.StoreCommandRequest}
    */
+  @SuppressWarnings("unused")
   public static final class StoreCommandRequest extends
       com.google.protobuf.GeneratedMessage
       implements StoreCommandRequestOrBuilder {
@@ -862,6 +863,7 @@ public final class RaftRequests {
   /**
    * Protobuf type {@code com.baidu.hugegraph.backend.store.raft.StoreCommandResponse}
    */
+  @SuppressWarnings("unused")
   public static final class StoreCommandResponse extends
       com.google.protobuf.GeneratedMessage
       implements StoreCommandResponseOrBuilder {

@@ -27,7 +27,6 @@ import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.cache.CachedSchemaTransaction;
-import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.testutil.Whitebox;
