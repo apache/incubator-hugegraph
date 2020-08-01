@@ -380,6 +380,11 @@ public class StandardTaskScheduler implements TaskScheduler {
                     LOG.warn("Task '{}' may not be scheduled", task.id());
                     continue;
                 }
+                HugeTask<?> memTask = this.tasks.get(task.id());
+                if (memTask != null) {
+                    assert memTask.status().code() > task.status().code();
+                    continue;
+                }
                 if (taskServer.equals(server)) {
                     task.status(TaskStatus.QUEUED);
                     this.submitTask(task);
@@ -413,10 +418,11 @@ public class StandardTaskScheduler implements TaskScheduler {
                  * updated to storage, the task is not in memory, so it's not
                  * initialized when canceled.
                  */
-                this.initTaskCallable(task);
                 HugeTask<?> memTask = this.tasks.get(task.id());
                 if (memTask != null) {
                     task = memTask;
+                } else {
+                    this.initTaskCallable(task);
                 }
                 boolean cancelled = task.cancel(true);
                 LOG.info("Server '{}' cancel task '{}' with cancelled={}",
