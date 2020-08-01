@@ -76,6 +76,10 @@
                     <groupId>org.apache.logging.log4j</groupId>
                     <artifactId>log4j-jcl</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>org.rocksdb</groupId>
+                    <artifactId>rocksdbjni</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
 
