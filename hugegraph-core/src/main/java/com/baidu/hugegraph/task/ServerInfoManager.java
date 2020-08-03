@@ -85,7 +85,7 @@ public class ServerInfoManager {
         this.eventListener = this.listenChanges();
 
         this.selfServerId = null;
-        this.selfServerRole = null;
+        this.selfServerRole = NodeRole.MASTER;
 
         this.onlySingleNode = false;
         this.closed = false;
@@ -133,6 +133,8 @@ public class ServerInfoManager {
     }
 
     public synchronized void initServerInfo(Id server, NodeRole role) {
+        E.checkArgument(server != null && role != null,
+                        "The server id or role can't be null");
         this.selfServerId = server;
         this.selfServerRole = role;
 

@@ -73,7 +73,6 @@ public abstract class AbstractComputer implements Computer {
                         "Unnecessary parameters: %s", parameters);
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public Object call(Job<Object> job, Map<String, Object> parameters) {
 
@@ -155,7 +154,6 @@ public abstract class AbstractComputer implements Computer {
         return this.readSubConfig(ENV);
     }
 
-    @SuppressWarnings("unchecked")
     private Map<String, Object> readSubConfig(String sub) {
         List<ConfigurationNode> nodes = this.config.getRootNode()
                                                    .getChildren(sub);

@@ -80,7 +80,7 @@ public class ComputerAPI extends API {
         builder.name("computer:" + computer)
                .input(JsonUtil.toJson(input))
                .job(new ComputerJob());
-        HugeTask task = builder.schedule();
+        HugeTask<Object> task = builder.schedule();
         return ImmutableMap.of("task_id", task.id());
     }
 }
