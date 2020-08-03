@@ -40,6 +40,7 @@ import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
+import com.baidu.hugegraph.util.ParameterUtil;
 import com.google.common.collect.ImmutableSet;
 
 public class KCoreAlgorithm extends AbstractCommAlgorithm {
@@ -88,7 +89,7 @@ public class KCoreAlgorithm extends AbstractCommAlgorithm {
         if (!parameters.containsKey(KEY_K)) {
             return DEFAULT_K;
         }
-        int k = parameterInt(parameters, KEY_K);
+        int k = ParameterUtil.parameterInt(parameters, KEY_K);
         E.checkArgument(k > 1, "The k of kcore must be > 1, but got %s", k);
         return k;
     }
@@ -97,7 +98,7 @@ public class KCoreAlgorithm extends AbstractCommAlgorithm {
         if (!parameters.containsKey(KEY_MERGED)) {
             return false;
         }
-        return parameterBoolean(parameters, KEY_MERGED);
+        return ParameterUtil.parameterBoolean(parameters, KEY_MERGED);
     }
 
     private static class Traverser extends AlgoTraverser {

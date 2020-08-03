@@ -34,6 +34,7 @@ import com.baidu.hugegraph.traversal.algorithm.FusiformSimilarityTraverser.Simil
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.JsonUtil;
+import com.baidu.hugegraph.util.ParameterUtil;
 
 public class FusiformSimilarityAlgorithm extends AbstractAlgorithm {
 
@@ -100,7 +101,8 @@ public class FusiformSimilarityAlgorithm extends AbstractAlgorithm {
         if (!parameters.containsKey(KEY_MIN_NEIGHBORS)) {
             return DEFAULT_MIN_NEIGHBORS;
         }
-        int minNeighbors = parameterInt(parameters, KEY_MIN_NEIGHBORS);
+        int minNeighbors = ParameterUtil.parameterInt(parameters,
+                                                      KEY_MIN_NEIGHBORS);
         HugeTraverser.checkPositive(minNeighbors, KEY_MIN_NEIGHBORS);
         return minNeighbors;
     }
@@ -109,7 +111,8 @@ public class FusiformSimilarityAlgorithm extends AbstractAlgorithm {
         if (!parameters.containsKey(KEY_MIN_SIMILARS)) {
             return DEFAULT_MIN_SIMILARS;
         }
-        int minSimilars = parameterInt(parameters, KEY_MIN_SIMILARS);
+        int minSimilars = ParameterUtil.parameterInt(parameters,
+                                                     KEY_MIN_SIMILARS);
         HugeTraverser.checkPositive(minSimilars, KEY_MIN_SIMILARS);
         return minSimilars;
     }
@@ -118,7 +121,8 @@ public class FusiformSimilarityAlgorithm extends AbstractAlgorithm {
         if (!parameters.containsKey(KEY_TOP_SIMILARS)) {
             return DEFAULT_TOP_SIMILARS;
         }
-        int minSimilars = parameterInt(parameters, KEY_TOP_SIMILARS);
+        int minSimilars = ParameterUtil.parameterInt(parameters,
+                                                     KEY_TOP_SIMILARS);
         HugeTraverser.checkNonNegative(minSimilars, KEY_TOP_SIMILARS);
         return minSimilars;
     }
@@ -127,14 +131,14 @@ public class FusiformSimilarityAlgorithm extends AbstractAlgorithm {
         if (!parameters.containsKey(KEY_GROUP_PROPERTY)) {
             return null;
         }
-        return parameterString(parameters, KEY_GROUP_PROPERTY);
+        return ParameterUtil.parameterString(parameters, KEY_GROUP_PROPERTY);
     }
 
     protected static int minGroups(Map<String, Object> parameters) {
         if (!parameters.containsKey(KEY_MIN_GROUPS)) {
             return DEFAULT_MIN_GROUPS;
         }
-        int minGroups = parameterInt(parameters, KEY_MIN_GROUPS);
+        int minGroups = ParameterUtil.parameterInt(parameters, KEY_MIN_GROUPS);
         HugeTraverser.checkPositive(minGroups, KEY_MIN_GROUPS);
         return minGroups;
     }
@@ -143,7 +147,7 @@ public class FusiformSimilarityAlgorithm extends AbstractAlgorithm {
         if (!parameters.containsKey(KEY_LIMIT)) {
             return DEFAULT_LIMIT;
         }
-        long limit = parameterLong(parameters, KEY_LIMIT);
+        long limit = ParameterUtil.parameterLong(parameters, KEY_LIMIT);
         HugeTraverser.checkLimit(limit);
         return limit;
     }

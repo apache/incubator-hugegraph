@@ -29,6 +29,7 @@ import com.baidu.hugegraph.job.algorithm.Consumers.StopExecution;
 import com.baidu.hugegraph.traversal.algorithm.SubGraphTraverser;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.JsonUtil;
+import com.baidu.hugegraph.util.ParameterUtil;
 
 public class RingsDetectAlgorithm extends AbstractAlgorithm {
 
@@ -80,7 +81,7 @@ public class RingsDetectAlgorithm extends AbstractAlgorithm {
         if (!parameters.containsKey(KEY_COUNT_ONLY)) {
             return false;
         }
-        return parameterBoolean(parameters, KEY_COUNT_ONLY);
+        return ParameterUtil.parameterBoolean(parameters, KEY_COUNT_ONLY);
     }
 
     private static class Traverser extends AlgoTraverser {
