@@ -24,6 +24,7 @@ import java.util.Map;
 import com.baidu.hugegraph.job.algorithm.AbstractAlgorithm;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.ParameterUtil;
 
 public abstract class AbstractCommAlgorithm extends AbstractAlgorithm {
 
@@ -38,7 +39,7 @@ public abstract class AbstractCommAlgorithm extends AbstractAlgorithm {
         if (!parameters.containsKey(KEY_TIMES)) {
             return (int) DEFAULT_TIMES;
         }
-        int times = parameterInt(parameters, KEY_TIMES);
+        int times = ParameterUtil.parameterInt(parameters, KEY_TIMES);
         HugeTraverser.checkPositiveOrNoLimit(times, KEY_TIMES);
         E.checkArgument(times <= MAX_TIMES,
                         "The maximum number of iterations is %s, but got %s",
@@ -50,7 +51,7 @@ public abstract class AbstractCommAlgorithm extends AbstractAlgorithm {
         if (!parameters.containsKey(KEY_STABLE_TIMES)) {
             return (int) DEFAULT_STABLE_TIMES;
         }
-        int times = parameterInt(parameters, KEY_STABLE_TIMES);
+        int times = ParameterUtil.parameterInt(parameters, KEY_STABLE_TIMES);
         HugeTraverser.checkPositiveOrNoLimit(times, KEY_STABLE_TIMES);
         E.checkArgument(times <= MAX_TIMES,
                         "The maximum number of stable iterations is %s, " +
@@ -62,7 +63,8 @@ public abstract class AbstractCommAlgorithm extends AbstractAlgorithm {
         if (!parameters.containsKey(KEY_PRECISION)) {
             return DEFAULT_PRECISION;
         }
-        double precision = parameterDouble(parameters, KEY_PRECISION);
+        double precision = ParameterUtil.parameterDouble(parameters,
+                                                         KEY_PRECISION);
         E.checkArgument(0d < precision && precision < 1d,
                         "The %s parameter must be in range(0,1), but got: %s",
                         KEY_PRECISION, precision);
@@ -73,6 +75,6 @@ public abstract class AbstractCommAlgorithm extends AbstractAlgorithm {
         if (!parameters.containsKey(KEY_SHOW_COMM)) {
             return null;
         }
-        return parameterString(parameters, KEY_SHOW_COMM);
+        return ParameterUtil.parameterString(parameters, KEY_SHOW_COMM);
     }
 }

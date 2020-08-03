@@ -23,6 +23,7 @@ import java.util.Map;
 
 import com.baidu.hugegraph.job.UserJob;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
+import com.baidu.hugegraph.util.ParameterUtil;
 
 public class LouvainAlgorithm extends AbstractCommAlgorithm {
 
@@ -82,7 +83,7 @@ public class LouvainAlgorithm extends AbstractCommAlgorithm {
         if (!parameters.containsKey(KEY_CLEAR)) {
             return null;
         }
-        long pass = parameterLong(parameters, KEY_CLEAR);
+        long pass = ParameterUtil.parameterLong(parameters, KEY_CLEAR);
         HugeTraverser.checkNonNegativeOrNoLimit(pass, KEY_CLEAR);
         return pass;
     }
@@ -91,7 +92,7 @@ public class LouvainAlgorithm extends AbstractCommAlgorithm {
         if (!parameters.containsKey(KEY_SHOW_MOD)) {
             return null;
         }
-        long pass = parameterLong(parameters, KEY_SHOW_MOD);
+        long pass = ParameterUtil.parameterLong(parameters, KEY_SHOW_MOD);
         HugeTraverser.checkNonNegative(pass, KEY_SHOW_MOD);
         return pass;
     }

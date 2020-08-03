@@ -55,6 +55,7 @@ import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
+import com.baidu.hugegraph.util.ParameterUtil;
 
 import jersey.repackaged.com.google.common.base.Objects;
 
@@ -114,7 +115,7 @@ public abstract class AbstractAlgorithm implements Algorithm {
     }
 
     protected static int depth(Map<String, Object> parameters) {
-        int depth = parameterInt(parameters, KEY_DEPTH);
+        int depth = ParameterUtil.parameterInt(parameters, KEY_DEPTH);
         E.checkArgument(depth > 0,
                         "The value of %s must be > 0, but got %s",
                         KEY_DEPTH, depth);
@@ -125,14 +126,14 @@ public abstract class AbstractAlgorithm implements Algorithm {
         if (!parameters.containsKey(KEY_LABEL)) {
             return null;
         }
-        return parameterString(parameters, KEY_LABEL);
+        return ParameterUtil.parameterString(parameters, KEY_LABEL);
     }
 
     protected static Directions direction(Map<String, Object> parameters) {
         if (!parameters.containsKey(KEY_DIRECTION)) {
             return Directions.BOTH;
         }
-        Object direction = parameter(parameters, KEY_DIRECTION);
+        Object direction = ParameterUtil.parameter(parameters, KEY_DIRECTION);
         return parseDirection(direction);
     }
 
@@ -140,7 +141,7 @@ public abstract class AbstractAlgorithm implements Algorithm {
         if (!parameters.containsKey(KEY_DIRECTION)) {
             return Directions.OUT;
         }
-        Object direction = parameter(parameters, KEY_DIRECTION);
+        Object direction = ParameterUtil.parameter(parameters, KEY_DIRECTION);
         return parseDirection(direction);
     }
 
@@ -148,7 +149,7 @@ public abstract class AbstractAlgorithm implements Algorithm {
         if (!parameters.containsKey(KEY_DIRECTION)) {
             return Directions.OUT;
         }
-        Object direction = parameter(parameters, KEY_DIRECTION);
+        Object direction = ParameterUtil.parameter(parameters, KEY_DIRECTION);
         Directions dir = parseDirection(direction);
         E.checkArgument(dir == Directions.OUT || dir == Directions.IN,
                         "The value of %s must be either OUT or IN, but got: %s",
@@ -160,7 +161,7 @@ public abstract class AbstractAlgorithm implements Algorithm {
         if (!parameters.containsKey(KEY_ALPHA)) {
             return DEFAULT_ALPHA;
         }
-        double alpha = parameterDouble(parameters, KEY_ALPHA);
+        double alpha = ParameterUtil.parameterDouble(parameters, KEY_ALPHA);
         E.checkArgument(alpha > 0.0 && alpha <= 1.0,
                         "The value of %s must be in range (0, 1], but got %s",
                         KEY_ALPHA, alpha);
@@ -171,7 +172,7 @@ public abstract class AbstractAlgorithm implements Algorithm {
         if (!parameters.containsKey(KEY_TOP)) {
             return 0L;
         }
-        long top = parameterLong(parameters, KEY_TOP);
+        long top = ParameterUtil.parameterLong(parameters, KEY_TOP);
         HugeTraverser.checkNonNegativeOrNoLimit(top, KEY_TOP);
         return top;
     }
@@ -180,7 +181,7 @@ public abstract class AbstractAlgorithm implements Algorithm {
         if (!parameters.containsKey(KEY_DEGREE)) {
             return DEFAULT_DEGREE;
         }
-        long degree = parameterLong(parameters, KEY_DEGREE);
+        long degree = ParameterUtil.parameterLong(parameters, KEY_DEGREE);
         HugeTraverser.checkDegree(degree);
         return degree;
     }
@@ -189,7 +190,7 @@ public abstract class AbstractAlgorithm implements Algorithm {
         if (!parameters.containsKey(KEY_CAPACITY)) {
             return DEFAULT_CAPACITY;
         }
-        long capacity = parameterLong(parameters, KEY_CAPACITY);
+        long capacity = ParameterUtil.parameterLong(parameters, KEY_CAPACITY);
         HugeTraverser.checkCapacity(capacity);
         return capacity;
     }
@@ -198,7 +199,7 @@ public abstract class AbstractAlgorithm implements Algorithm {
         if (!parameters.containsKey(KEY_LIMIT)) {
             return DEFAULT_LIMIT;
         }
-        long limit = parameterLong(parameters, KEY_LIMIT);
+        long limit = ParameterUtil.parameterLong(parameters, KEY_LIMIT);
         HugeTraverser.checkLimit(limit);
         return limit;
     }
@@ -207,7 +208,7 @@ public abstract class AbstractAlgorithm implements Algorithm {
         if (!parameters.containsKey(KEY_EACH_LIMIT)) {
             return DEFAULT_EACH_LIMIT;
         }
-        long limit = parameterLong(parameters, KEY_EACH_LIMIT);
+        long limit = ParameterUtil.parameterLong(parameters, KEY_EACH_LIMIT);
         HugeTraverser.checkPositiveOrNoLimit(limit, KEY_EACH_LIMIT);
         return limit;
     }
@@ -216,7 +217,7 @@ public abstract class AbstractAlgorithm implements Algorithm {
         if (!parameters.containsKey(KEY_SAMPLE)) {
             return DEFAULT_SAMPLE;
         }
-        long sample = parameterLong(parameters, KEY_SAMPLE);
+        long sample = ParameterUtil.parameterLong(parameters, KEY_SAMPLE);
         HugeTraverser.checkPositiveOrNoLimit(sample, KEY_SAMPLE);
         return sample;
     }
@@ -225,7 +226,8 @@ public abstract class AbstractAlgorithm implements Algorithm {
         if (!parameters.containsKey(KEY_SOURCE_SAMPLE)) {
             return HugeTraverser.NO_LIMIT;
         }
-        long sample = parameterLong(parameters, KEY_SOURCE_SAMPLE);
+        long sample = ParameterUtil.parameterLong(parameters,
+                                                  KEY_SOURCE_SAMPLE);
         HugeTraverser.checkPositiveOrNoLimit(sample, KEY_SOURCE_SAMPLE);
         return sample;
     }
@@ -234,79 +236,26 @@ public abstract class AbstractAlgorithm implements Algorithm {
         if (!parameters.containsKey(KEY_SOURCE_LABEL)) {
             return null;
         }
-        return parameterString(parameters, KEY_SOURCE_LABEL);
+        return ParameterUtil.parameterString(parameters, KEY_SOURCE_LABEL);
     }
 
     protected static String sourceCLabel(Map<String, Object> parameters) {
         if (!parameters.containsKey(KEY_SOURCE_CLABEL)) {
             return null;
         }
-        return parameterString(parameters, KEY_SOURCE_CLABEL);
+        return ParameterUtil.parameterString(parameters, KEY_SOURCE_CLABEL);
     }
 
     protected static int workers(Map<String, Object> parameters) {
         if (!parameters.containsKey(KEY_WORKERS)) {
             return -1;
         }
-        int workers = parameterInt(parameters, KEY_WORKERS);
+        int workers = ParameterUtil.parameterInt(parameters, KEY_WORKERS);
         HugeTraverser.checkNonNegativeOrNoLimit(workers, KEY_WORKERS);
         return workers;
     }
 
-    public static Object parameter(Map<String, Object> parameters, String key) {
-        Object value = parameters.get(key);
-        E.checkArgument(value != null,
-                        "Expect '%s' in parameters: %s",
-                        key, parameters);
-        return value;
-    }
-
-    public static String parameterString(Map<String, Object> parameters,
-                                         String key) {
-        Object value = parameter(parameters, key);
-        E.checkArgument(value instanceof String,
-                        "Expect string value for parameter '%s': '%s'",
-                        key, value);
-        return (String) value;
-    }
-
-    public static int parameterInt(Map<String, Object> parameters,
-                                   String key) {
-        Object value = parameter(parameters, key);
-        E.checkArgument(value instanceof Number,
-                        "Expect int value for parameter '%s': '%s'",
-                        key, value);
-        return ((Number) value).intValue();
-    }
-
-    public static long parameterLong(Map<String, Object> parameters,
-                                     String key) {
-        Object value = parameter(parameters, key);
-        E.checkArgument(value instanceof Number,
-                        "Expect long value for parameter '%s': '%s'",
-                        key, value);
-        return ((Number) value).longValue();
-    }
-
-    public static double parameterDouble(Map<String, Object> parameters,
-                                         String key) {
-        Object value = parameter(parameters, key);
-        E.checkArgument(value instanceof Number,
-                        "Expect double value for parameter '%s': '%s'",
-                        key, value);
-        return ((Number) value).doubleValue();
-    }
-
-    public static boolean parameterBoolean(Map<String, Object> parameters,
-                                           String key) {
-        Object value = parameter(parameters, key);
-        E.checkArgument(value instanceof Boolean,
-                        "Expect boolean value for parameter '%s': '%s'",
-                        key, value);
-        return ((Boolean) value);
-    }
-
-    public static Directions parseDirection(Object direction) {
+    protected static Directions parseDirection(Object direction) {
         if (direction.equals(Directions.BOTH.toString())) {
             return Directions.BOTH;
         } else if (direction.equals(Directions.OUT.toString())) {

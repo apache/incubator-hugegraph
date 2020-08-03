@@ -46,6 +46,7 @@ import com.baidu.hugegraph.traversal.optimize.HugeScriptTraversal;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.Log;
+import com.baidu.hugegraph.util.ParameterUtil;
 import com.google.common.collect.ImmutableMap;
 
 public class SubgraphStatAlgorithm extends AbstractAlgorithm {
@@ -79,7 +80,8 @@ public class SubgraphStatAlgorithm extends AbstractAlgorithm {
             UserJob<Object> tmpJob = new TempJob<>(graph, job, job.task());
             return traverser.subgraphStat(tmpJob);
         } finally {
-            graph.truncateBackend();
+            // Use clearBackend instead of truncateBackend due to no server-id
+            graph.clearBackend();
             try {
                 graph.close();
             } catch (Throwable e) {
@@ -91,10 +93,15 @@ public class SubgraphStatAlgorithm extends AbstractAlgorithm {
 
     private HugeGraph createTempGraph(UserJob<Object> job) {
         Id id = job.task().id();
+        String name = "tmp_" + id;
         PropertiesConfiguration config = new PropertiesConfiguration();
         config.setProperty(CoreOptions.BACKEND.name(), "memory");
-        config.setProperty(CoreOptions.STORE.name(), "tmp_" + id);
+        config.setProperty(CoreOptions.STORE.name(), name);
         config.setDelimiterParsingDisabled(true);
+        /*
+         * NOTE: this temp graph don't need to init backend because no task info
+         * required, also not set started because no task to be scheduled.
+         */
         return new StandardHugeGraph(new HugeConfig(config));
     }
 
@@ -124,7 +131,7 @@ public class SubgraphStatAlgorithm extends AbstractAlgorithm {
         if (!parameters.containsKey(KEY_COPY_SCHEMA)) {
             return false;
         }
-        return parameterBoolean(parameters, KEY_COPY_SCHEMA);
+        return ParameterUtil.parameterBoolean(parameters, KEY_COPY_SCHEMA);
     }
 
     private static class Traverser extends AlgoTraverser {
