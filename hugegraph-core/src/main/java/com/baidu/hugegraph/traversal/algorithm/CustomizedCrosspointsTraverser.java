@@ -81,9 +81,7 @@ public class CustomizedCrosspointsTraverser extends HugeTraverser {
                 // Traversal vertices of previous level
                 for (Map.Entry<Id, List<Node>> entry : sources.entrySet()) {
                     List<Node> adjacency = new ArrayList<>();
-                    edges = edgesOfVertex(entry.getKey(), step.direction,
-                                          step.labels, step.properties,
-                                          step.degree);
+                    edges = this.edgesOfVertex(entry.getKey(), step.edgeStep);
                     while (edges.hasNext()) {
                         HugeEdge edge = (HugeEdge) edges.next();
                         Id target = edge.id().otherVertexId();
@@ -190,17 +188,13 @@ public class CustomizedCrosspointsTraverser extends HugeTraverser {
 
     public static class Step {
 
-        private Directions direction;
-        private Map<Id, String> labels;
-        private Map<String, Object> properties;
-        private long degree;
+        private final EdgeStep edgeStep;
 
-        public Step(Directions direction, Map<Id, String> labels,
-                    Map<String, Object> properties, long degree) {
-            this.direction = direction;
-            this.labels = labels;
-            this.properties = properties;
-            this.degree = degree;
+        public Step(HugeGraph g, Directions direction, List<String> labels,
+                    Map<String, Object> properties, long degree,
+                    long skipDegree) {
+            this.edgeStep = new EdgeStep(g, direction, labels, properties,
+                                         degree, skipDegree);
         }
     }
 

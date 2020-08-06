@@ -20,7 +20,6 @@
 package com.baidu.hugegraph.traversal.algorithm;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -34,23 +33,19 @@ import javax.ws.rs.core.MultivaluedHashMap;
 import javax.ws.rs.core.MultivaluedMap;
 
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.tinkerpop.gremlin.process.traversal.P;
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Edge;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.backend.query.Condition;
+import com.baidu.hugegraph.backend.query.Aggregate;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.iterator.MapperIterator;
-import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaLabel;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
@@ -272,12 +267,12 @@ public class HugeTraverser {
     }
 
     protected Iterator<Edge> edgesOfVertex(Id source, Directions dir,
-                                           Set<Id> labels, long limit) {
+                                           Map<Id, String> labels, long limit) {
         if (labels == null || labels.isEmpty()) {
             return this.edgesOfVertex(source, dir, (Id) null, limit);
         }
         ExtendableIterator<Edge> results = new ExtendableIterator<>();
-        for (Id label : labels) {
+        for (Id label : labels.keySet()) {
             E.checkNotNull(label, "edge label");
             // TODO: limit should be applied to all labels
             results.extend(this.edgesOfVertex(source, dir, label, limit));
@@ -285,27 +280,90 @@ public class HugeTraverser {
         return results;
     }
 
-    protected Iterator<Edge> edgesOfVertex(Id source, Directions dir,
-                                           Map<Id, String> labels,
-                                           Map<String, Object> properties,
-                                           long limit) {
+    protected Iterator<Edge> edgesOfVertex(Id source, EdgeStep edgeStep) {
+        if (edgeStep.properties == null || edgeStep.properties.isEmpty()) {
+            Iterator<Edge> edges = this.edgesOfVertex(source,
+                                                      edgeStep.direction,
+                                                      edgeStep.labels,
+                                                      edgeStep.limit());
+            return edgeStep.skipSuperNodeIfNeeded(edges);
+        }
+        return this.edgesOfVertex(source, edgeStep, false);
+    }
+
+    protected Iterator<Edge> edgesOfVertexWithSK(Id source, EdgeStep edgeStep) {
+        assert edgeStep.properties != null && !edgeStep.properties.isEmpty();
+        return this.edgesOfVertex(source, edgeStep, true);
+    }
+
+    private Iterator<Edge> edgesOfVertex(Id source, EdgeStep edgeStep,
+                                         boolean mustAllSK) {
+        Id[] edgeLabels = edgeStep.edgeLabels();
+        Query query = GraphTransaction.constructEdgesQuery(source,
+                                                           edgeStep.direction,
+                                                           edgeLabels);
+        if (mustAllSK) {
+            this.fillFilterBySortKeys(query, edgeLabels, edgeStep.properties);
+        } else {
+            this.fillFilterByProperties(query, edgeStep.properties);
+        }
+        query.capacity(Query.NO_CAPACITY);
+        if (edgeStep.limit() != NO_LIMIT) {
+            query.limit(edgeStep.limit());
+        }
+        Iterator<Edge> edges = this.graph().edges(query);
+        return edgeStep.skipSuperNodeIfNeeded(edges);
+    }
+
+    private void fillFilterBySortKeys(Query query, Id[] edgeLabels,
+                                      Map<Id, Object> properties) {
         if (properties == null || properties.isEmpty()) {
-            return edgesOfVertex(source, dir, labels.keySet(), limit);
+            return;
         }
-        // Use traversal format if has properties filter
-        String[] els = labels.values().toArray(new String[labels.size()]);
-        GraphTraversal<Vertex, Edge> g;
-        g = this.graph().traversal().V(source).toE(dir.direction(), els);
-        for (Map.Entry<String, Object> entry : properties.entrySet()) {
-            String key = entry.getKey();
-            Object value = entry.getValue();
-            if (value instanceof List) {
-                g = g.has(key, P.within((Collection<?>) value));
-            } else {
-                g = g.has(key, value);
-            }
+
+        E.checkArgument(edgeLabels.length == 1,
+                        "The properties filter condition can be set " +
+                        "only if just set one edge label");
+
+        this.fillFilterByProperties(query, properties);
+
+        ConditionQuery condQuery = (ConditionQuery) query;
+        if (!GraphTransaction.matchFullEdgeSortKeys(condQuery, this.graph())) {
+            Id label = condQuery.condition(HugeKeys.LABEL);
+            E.checkArgument(false, "The properties %s does not match " +
+                            "sort keys of edge label '%s'",
+                            this.graph().mapPkId2Name(properties.keySet()),
+                            this.graph().edgeLabel(label).name());
         }
-        return g.limit(limit);
+    }
+
+    private void fillFilterByProperties(Query query,
+                                        Map<Id, Object> properties) {
+        if (properties == null || properties.isEmpty()) {
+            return;
+        }
+
+        ConditionQuery condQuery = (ConditionQuery) query;
+        TraversalUtil.fillConditionQuery(condQuery, properties, this.graph);
+    }
+
+    protected long edgesCount(Id source, EdgeStep edgeStep) {
+        Id[] edgeLabels = edgeStep.edgeLabels();
+        Query query = GraphTransaction.constructEdgesQuery(source,
+                                                           edgeStep.direction,
+                                                           edgeLabels);
+        this.fillFilterBySortKeys(query, edgeLabels, edgeStep.properties);
+        query.aggregate(Aggregate.AggregateFunc.COUNT, null);
+        query.capacity(Query.NO_CAPACITY);
+        query.limit(Query.NO_LIMIT);
+        long count = graph().queryNumber(query).longValue();
+        if (edgeStep.degree == NO_LIMIT || count < edgeStep.degree) {
+            return count;
+        } else if (edgeStep.skipDegree != 0L && count >= edgeStep.skipDegree) {
+            return 0L;
+        } else {
+            return edgeStep.degree;
+        }
     }
 
     protected Object getVertexLabelId(Object label) {
@@ -385,71 +443,6 @@ public class HugeTraverser {
         }
     }
 
-    public static Iterator<Edge> skipSuperNodeIfNeeded(Iterator<Edge> edges,
-                                                       long degree,
-                                                       long skipDegree) {
-        if (skipDegree <= 0L) {
-            return edges;
-        }
-        List<Edge> edgeList = new ArrayList<>();
-        for (int i = 1; edges.hasNext(); i++) {
-            Edge edge = edges.next();
-            if (i <= degree) {
-                edgeList.add(edge);
-            }
-            if (i >= skipDegree) {
-                return QueryResults.emptyIterator();
-            }
-        }
-        return edgeList.iterator();
-    }
-
-    protected void fillFilterBySortKeys(Query query,Id[] edgeLabels,
-                                        Map<Id, Object> properties) {
-        if (properties == null || properties.isEmpty()) {
-            return;
-        }
-
-        ConditionQuery condQuery = (ConditionQuery) query;
-        E.checkArgument(edgeLabels.length == 1,
-                        "The properties filter condition can be set " +
-                        "only if just set one edge label");
-
-        for (Map.Entry<Id, Object> entry : properties.entrySet()) {
-            Id key = entry.getKey();
-            Object value = entry.getValue();
-            PropertyKey pk = this.graph().propertyKey(key);
-            if (value instanceof String &&
-                ((String) value).startsWith(TraversalUtil.P_CALL)) {
-                String predicate = (String) value;
-                condQuery.query(TraversalUtil.parsePredicate(pk, predicate));
-            } else {
-                value = pk.validValueOrThrow(value);
-                condQuery.query(Condition.eq(key, value));
-            }
-        }
-
-        if (!GraphTransaction.matchFullEdgeSortKeys(condQuery, this.graph())) {
-            Id label = condQuery.condition(HugeKeys.LABEL);
-            E.checkArgument(false, "The properties %s does not match " +
-                            "sort keys of edge label '%s'",
-                            this.graph().mapPkId2Name(properties.keySet()),
-                            this.graph().edgeLabel(label).name());
-        }
-    }
-
-    protected static <V> Set<V> newSet() {
-        return new HashSet<>();
-    }
-
-    protected static <K, V> Map<K, V> newMap() {
-        return new HashMap<>();
-    }
-
-    protected static <K, V> MultivaluedMap<K, V> newMultivalueMap() {
-        return new MultivaluedHashMap<>();
-    }
-
     public static <K, V extends Comparable<? super V>> Map<K, V> topN(
                                                                  Map<K, V> map,
                                                                  boolean sorted,
@@ -469,6 +462,37 @@ public class HugeTraverser {
             }
         }
         return results;
+    }
+
+    public static Iterator<Edge> skipSuperNodeIfNeeded(Iterator<Edge> edges,
+                                                       long degree,
+                                                       long skipDegree) {
+        if (skipDegree <= 0L) {
+            return edges;
+        }
+        List<Edge> edgeList = new ArrayList<>();
+        for (int i = 1; edges.hasNext(); i++) {
+            Edge edge = edges.next();
+            if (i <= degree) {
+                edgeList.add(edge);
+            }
+            if (i >= skipDegree) {
+                return QueryResults.emptyIterator();
+            }
+        }
+        return edgeList.iterator();
+    }
+
+    protected static <V> Set<V> newSet() {
+        return new HashSet<>();
+    }
+
+    protected static <K, V> Map<K, V> newMap() {
+        return new HashMap<>();
+    }
+
+    protected static <K, V> MultivaluedMap<K, V> newMultivalueMap() {
+        return new MultivaluedHashMap<>();
     }
 
     public static class Node {

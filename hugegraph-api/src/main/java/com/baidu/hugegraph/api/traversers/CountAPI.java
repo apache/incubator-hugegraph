@@ -19,8 +19,11 @@
 
 package com.baidu.hugegraph.api.traversers;
 
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_SKIP_DEGREE;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.NO_LIMIT;
+
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -37,8 +40,6 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.core.GraphManager;
-import com.baidu.hugegraph.schema.EdgeLabel;
-import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.traversal.algorithm.CountTraverser;
@@ -48,8 +49,6 @@ import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
-
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.*;
 
 @Path("graphs/{graph}/traversers/count")
 @Singleton
@@ -129,40 +128,18 @@ public class CountAPI extends API {
         @JsonProperty("skip_degree")
         public long skipDegree = Long.valueOf(DEFAULT_SKIP_DEGREE);
 
-        private CountTraverser.Step jsonToStep(HugeGraph graph) {
-            E.checkArgument(this.degree == NO_LIMIT || this.degree > 0,
-                            "The degree must be > 0, but got: %s",
-                            this.degree);
-            E.checkArgument(this.skipDegree == NO_LIMIT ||
-                            this.skipDegree >= 0,
-                            "The skip degree must be >= 0, but got: %s",
-                            this.skipDegree);
-
-            Map<Id, String> labelIds = new HashMap<>();
-            if (this.labels != null) {
-                for (String label : this.labels) {
-                    EdgeLabel el = graph.edgeLabel(label);
-                    labelIds.put(el.id(), label);
-                }
-            }
-            Map<Id, Object> pks = null;
-            if (this.properties != null && !this.properties.isEmpty()) {
-                pks = new HashMap<>(this.properties.size());
-                for (Map.Entry<String, Object> e: this.properties.entrySet()) {
-                    PropertyKey pk = graph.propertyKey(e.getKey());
-                    pks.put(pk.id(), e.getValue());
-                }
-            }
-            return new CountTraverser.Step(this.direction, labelIds,
-                                           pks, this.degree, this.skipDegree);
-        }
-
         @Override
         public String toString() {
             return String.format("Step{direction=%s,labels=%s,properties=%s" +
                                  "degree=%s,skipDegree=%s}",
                                  this.direction, this.labels, this.properties,
                                  this.degree, this.skipDegree);
+        }
+
+        private CountTraverser.Step jsonToStep(HugeGraph graph) {
+            return new CountTraverser.Step(graph, this.direction, this.labels,
+                                           this.properties, this.degree,
+                                           this.skipDegree);
         }
     }
 }

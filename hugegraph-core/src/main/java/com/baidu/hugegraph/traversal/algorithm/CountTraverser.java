@@ -30,10 +30,7 @@ import org.apache.tinkerpop.gremlin.structure.Edge;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.backend.query.Aggregate;
-import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.query.QueryResults;
-import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.iterator.FilterIterator;
 import com.baidu.hugegraph.iterator.FlatMapperIterator;
 import com.baidu.hugegraph.structure.HugeEdge;
@@ -68,11 +65,7 @@ public class CountTraverser extends HugeTraverser {
         Step firstStep = steps.get(0);
         if (stepNum == 1) {
             // Just one step, query count and return
-            long edgesCount = this.edgesCount(source, firstStep.direction,
-                                              firstStep.labels,
-                                              firstStep.properties,
-                                              firstStep.degree,
-                                              firstStep.skipDegree);
+            long edgesCount = this.edgesCount(source, firstStep.edgeStep);
             this.count.add(edgesCount);
             return this.count.longValue();
         }
@@ -96,11 +89,7 @@ public class CountTraverser extends HugeTraverser {
                 continue;
             }
             // Count last layer vertices(without dedup size)
-            long edgesCount = this.edgesCount(target, lastStep.direction,
-                                              lastStep.labels,
-                                              lastStep.properties,
-                                              lastStep.degree,
-                                              lastStep.skipDegree);
+            long edgesCount = this.edgesCount(target, lastStep.edgeStep);
             this.count.add(edgesCount);
         }
 
@@ -111,11 +100,7 @@ public class CountTraverser extends HugeTraverser {
         if (this.dedup(source)) {
             return QueryResults.emptyIterator();
         }
-        Iterator<Edge> flatten = this.edgesOfVertex(source, step.direction,
-                                                    step.labels,
-                                                    step.properties,
-                                                    step.degree,
-                                                    step.skipDegree);
+        Iterator<Edge> flatten = this.edgesOfVertex(source, step.edgeStep);
         return new FilterIterator<>(flatten, e -> {
             if (this.containsTraversed) {
                 // Count intermediate vertices
@@ -123,52 +108,6 @@ public class CountTraverser extends HugeTraverser {
             }
             return true;
         });
-    }
-
-    private Iterator<Edge> edgesOfVertex(Id source, Directions dir,
-                                         Map<Id, String> labels,
-                                         Map<Id, Object> properties,
-                                         long degree, long skipDegree) {
-        checkSkipDegree(skipDegree, degree, NO_LIMIT);
-        long queryLimit = skipDegree > 0 ? skipDegree : degree;
-        Iterator<Edge> edges = this.edgesOfVertexWithSK(source, dir, labels,
-                                                        properties, queryLimit);
-        return ShortestPathTraverser.skipSuperNodeIfNeeded(edges, degree,
-                                                           skipDegree);
-    }
-
-    protected Iterator<Edge> edgesOfVertexWithSK(Id source, Directions dir,
-                                                 Map<Id, String> labels,
-                                                 Map<Id, Object> properties,
-                                                 long limit) {
-        Id[] els = labels.keySet().toArray(new Id[labels.size()]);
-        Query query = GraphTransaction.constructEdgesQuery(source, dir, els);
-        this.fillFilterBySortKeys(query, els, properties);
-        query.capacity(Query.NO_CAPACITY);
-        if (limit != NO_LIMIT) {
-            query.limit(limit);
-        }
-        return this.graph().edges(query);
-    }
-
-    private long edgesCount(Id source, Directions dir, Map<Id, String> labels,
-                            Map<Id, Object> properties, long degree,
-                            long skipDegree) {
-        checkSkipDegree(skipDegree, degree, NO_LIMIT);
-        Id[] els = labels.keySet().toArray(new Id[labels.size()]);
-        Query query = GraphTransaction.constructEdgesQuery(source, dir, els);
-        this.fillFilterBySortKeys(query, els, properties);
-        query.aggregate(Aggregate.AggregateFunc.COUNT, null);
-        query.capacity(Query.NO_CAPACITY);
-        query.limit(Query.NO_LIMIT);
-        long count = graph().queryNumber(query).longValue();
-        if (degree == NO_LIMIT || count < degree) {
-            return count;
-        } else if (skipDegree != 0L && count >= skipDegree) {
-            return 0L;
-        } else {
-            return degree;
-        }
     }
 
     private void checkDedupSize(long dedup) {
@@ -201,19 +140,13 @@ public class CountTraverser extends HugeTraverser {
 
     public static class Step {
 
-        private Directions direction;
-        private Map<Id, String> labels;
-        private Map<Id, Object> properties;
-        private long degree;
-        private long skipDegree;
+        private final EdgeStep edgeStep;
 
-        public Step(Directions direction, Map<Id, String> labels,
-                    Map<Id, Object> properties, long degree, long skipDegree) {
-            this.direction = direction;
-            this.labels = labels;
-            this.properties = properties;
-            this.degree = degree;
-            this.skipDegree = skipDegree;
+        public Step(HugeGraph g, Directions direction, List<String> labels,
+                    Map<String, Object> properties, long degree,
+                    long skipDegree) {
+            this.edgeStep = new EdgeStep(g, direction, labels, properties,
+                                         degree, skipDegree);
         }
     }
 }
