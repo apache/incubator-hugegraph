@@ -65,6 +65,7 @@ import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.exception.LimitExceedException;
+import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.iterator.BatchMapperIterator;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.iterator.FilterIterator;
@@ -663,6 +664,16 @@ public class GraphTransaction extends IndexableTransaction {
         return this.queryVertices(vertexIds, false, false);
     }
 
+    public Vertex queryVertex(Object vertexId) {
+        Iterator<Vertex> iter = this.queryVertices(new Object[]{vertexId},
+                                                   false, true);
+        try {
+            return iter.next();
+        } finally {
+            CloseableIterator.closeIterator(iter);
+        }
+    }
+
     protected Iterator<Vertex> queryVertices(Object[] vertexIds,
                                              boolean adjacentVertex,
                                              boolean checkMustExist) {
@@ -704,7 +715,8 @@ public class GraphTransaction extends IndexableTransaction {
             HugeVertex vertex = vertices.get(id);
             if (vertex == null) {
                 if (checkMustExist) {
-                    throw new HugeException("Vertex '%s' does not exist", id);
+                    throw new NotFoundException(
+                              "Vertex '%s' does not exist", id);
                 } else if (adjacentVertex) {
                     assert !checkMustExist;
                     // Return undefined if adjacentVertex but !checkMustExist
@@ -804,6 +816,20 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     public Iterator<Edge> queryEdges(Object... edgeIds) {
+        return this.queryEdges(edgeIds, false);
+    }
+
+    public Edge queryEdge(Object edgeId) {
+        Iterator<Edge> iter = this.queryEdges(new Object[]{edgeId}, true);
+        try {
+            return iter.next();
+        } finally {
+            CloseableIterator.closeIterator(iter);
+        }
+    }
+
+    protected Iterator<Edge> queryEdges(Object[] edgeIds,
+                                        boolean checkMustExist) {
         Query.checkForceCapacity(edgeIds.length);
 
         // NOTE: allowed duplicated edges if query by duplicated ids
@@ -850,7 +876,12 @@ public class GraphTransaction extends IndexableTransaction {
         }
 
         return new MapperIterator<>(ids.iterator(), id -> {
-            return edges.get(id);
+            Edge edge = edges.get(id);
+            if (edge == null && checkMustExist) {
+                throw new NotFoundException(
+                          "Edge '%s' does not exist", id);
+            }
+            return edge;
         });
     }
 

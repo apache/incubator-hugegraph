@@ -86,7 +86,7 @@ public class BackendStoreSystemInfo {
     }
 
     public boolean exists() {
-        if (!this.schemaTx.graph().backendStoreInitialized()) {
+        if (!this.schemaTx.storeInitialized()) {
             return false;
         }
         return this.info() != null;

@@ -67,7 +67,6 @@ import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.traversal.optimize.QueryHolder;
 import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
-import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
@@ -346,9 +345,8 @@ public class EdgeAPI extends BatchAPI {
 
         HugeGraph g = graph(manager, graph);
         try {
-            Iterator<Edge> edges = g.edges(id);
-            checkExist(edges, HugeType.EDGE, id);
-            return manager.serializer(g).writeEdge(edges.next());
+            Edge edge = g.edge(id);
+            return manager.serializer(g).writeEdge(edge);
         } finally {
             if (g.tx().isOpen()) {
                 g.tx().close();
@@ -371,7 +369,7 @@ public class EdgeAPI extends BatchAPI {
         commit(g, () -> {
             Edge edge;
             try {
-                edge = g.edges(id).next();
+                edge = g.edge(id);
             } catch (NotFoundException e) {
                 throw new IllegalArgumentException(e.getMessage());
             } catch (NoSuchElementException e) {

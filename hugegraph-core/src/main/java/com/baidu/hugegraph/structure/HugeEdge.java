@@ -90,7 +90,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
 
     @Override
     public EdgeLabel schemaLabel() {
-        assert this.graph() == this.label.graph();
+        assert this.graph().sameAs(this.label.graph());
         return this.label;
     }
 
@@ -196,7 +196,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
             E.checkArgument(!this.hasProperty(propertyKey.id()),
                             "Can't update sort key: '%s'", key);
         }
-        return this.addProperty(propertyKey, value, true);
+        return this.addProperty(propertyKey, value, !this.fresh());
     }
 
     @Override

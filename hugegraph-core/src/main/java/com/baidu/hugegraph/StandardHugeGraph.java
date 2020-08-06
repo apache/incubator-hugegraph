@@ -186,11 +186,6 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
-    public boolean backendStoreInitialized() {
-        return this.graphTransaction().initialized();
-    }
-
-    @Override
     public BackendStoreSystemInfo backendStoreSystemInfo() {
         return new BackendStoreSystemInfo(this.schemaTransaction());
     }
@@ -468,6 +463,11 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
+    public Vertex vertex(Object objects) {
+        return this.graphTransaction().queryVertex(objects);
+    }
+
+    @Override
     public Iterator<Vertex> vertices(Object... objects) {
         if (objects.length == 0) {
             return this.graphTransaction().queryVertices();
@@ -488,6 +488,11 @@ public class StandardHugeGraph implements HugeGraph {
     @Override
     public boolean checkAdjacentVertexExist() {
         return this.graphTransaction().checkAdjacentVertexExist();
+    }
+
+    @Override
+    public Edge edge(Object objects) {
+        return this.graphTransaction().queryEdge(objects);
     }
 
     @Override
@@ -782,6 +787,21 @@ public class StandardHugeGraph implements HugeGraph {
         return StringFactory.graphString(this, this.name());
     }
 
+    @Override
+    public final void proxy(HugeGraph graph) {
+        this.params.graph(graph);
+    }
+
+    @Override
+    public boolean sameAs(HugeGraph graph) {
+        return this == graph;
+    }
+
+    @Override
+    public long now() {
+        return ((TinkerpopTransaction) this.tx()).openedTime();
+    }
+
     private void closeTx() {
         try {
             if (this.tx.isOpen()) {
@@ -799,16 +819,6 @@ public class StandardHugeGraph implements HugeGraph {
         } catch (TimeoutException e) {
             throw new HugeException("Failed to wait all tasks to complete", e);
         }
-    }
-
-    @Override
-    public final void proxy(HugeGraph graph) {
-        this.params.graph(graph);
-    }
-
-    @Override
-    public long now() {
-        return ((TinkerpopTransaction) this.tx()).openedTime();
     }
 
     private class StandardHugeGraphParams implements HugeGraphParams {
@@ -872,7 +882,7 @@ public class StandardHugeGraph implements HugeGraph {
 
         @Override
         public boolean initialized() {
-            return StandardHugeGraph.this.backendStoreInitialized();
+            return StandardHugeGraph.this.graphTransaction().storeInitialized();
         }
 
         @Override

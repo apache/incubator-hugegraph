@@ -96,7 +96,7 @@ public abstract class AbstractTransaction implements Transaction {
         return this.store.features();
     }
 
-    public boolean initialized() {
+    public boolean storeInitialized() {
         return this.store.initialized();
     }
 
