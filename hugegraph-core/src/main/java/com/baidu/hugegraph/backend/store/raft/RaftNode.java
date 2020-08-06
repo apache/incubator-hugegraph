@@ -43,6 +43,7 @@ import com.alipay.sofa.jraft.option.NodeOptions;
 import com.alipay.sofa.jraft.rpc.ClientService;
 import com.alipay.sofa.jraft.rpc.RpcResponseClosure;
 import com.alipay.sofa.jraft.util.BytesUtil;
+import com.alipay.sofa.jraft.util.Endpoint;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreAction;
@@ -51,6 +52,7 @@ import com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreCommandResponse;
 import com.baidu.hugegraph.util.CodeUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
+import com.google.protobuf.Message;
 import com.google.protobuf.ZeroByteStringHelper;
 
 public class RaftNode {
@@ -140,11 +142,11 @@ public class RaftNode {
 
     public Object submitAndWait(StoreCommand command, StoreClosure future) {
         this.submitCommand(command, future);
-        if (!this.node.isLeader()) {
-            return null;
-        }
         try {
-            // Here will wait future complete
+            /*
+             * Here will wait future complete, actually the follower has waited
+             * in forwardToLeader, written like this to simplify the code
+             */
             return future.waitFinished();
         } catch (RuntimeException e) {
             throw e;
@@ -173,6 +175,9 @@ public class RaftNode {
                     throw new BackendException(
                               "Wait raft group '%s' election error",
                               e, this.group(), "election");
+                }
+                if (this.elected) {
+                    break;
                 }
                 long consumedTime = System.currentTimeMillis() - beginTime;
                 if (timeout > 0 && consumedTime >= timeout) {
@@ -264,7 +269,7 @@ public class RaftNode {
             public void setResponse(StoreCommandResponse resp) {
                 if (resp.getStatus()) {
                     LOG.debug("StoreCommandResponse status ok");
-                    closure.complete(Status.OK(), null);
+                    closure.complete(Status.OK(), () -> null);
                 } else {
                     LOG.debug("StoreCommandResponse status error");
                     Status status = new Status(RaftError.UNKNOWN,
@@ -281,20 +286,34 @@ public class RaftNode {
                 closure.run(status);
             }
         };
+        this.waitRpc(leaderId.getEndpoint(), request, responseClosure);
+    }
 
+    private <T extends Message> void waitRpc(Endpoint endpoint, Message request,
+                                             RpcResponseClosure<T> done) {
         ClientService rpcClient = ((NodeImpl) this.node).getRpcService();
         E.checkNotNull(rpcClient, "rpc client");
-        E.checkNotNull(leaderId.getEndpoint(), "leader endpoint");
+        E.checkNotNull(endpoint, "leader endpoint");
         try {
-            rpcClient.invokeWithDone(leaderId.getEndpoint(), request,
-                                     responseClosure, WAIT_RPC_TIMEOUT)
+            rpcClient.invokeWithDone(endpoint, request, done, WAIT_RPC_TIMEOUT)
                      .get();
-        } catch (InterruptedException | ExecutionException e) {
+        } catch (InterruptedException e) {
+            throw new BackendException("Invoke rpc request was interrupted, " +
+                                       "please try again later", e);
+        } catch (ExecutionException e) {
             throw new BackendException("Failed to invoke rpc request", e);
         }
     }
 
     private class RaftNodeStateListener implements ReplicatorStateListener {
+
+        // unit is ms
+        private static final long ERROR_PRINT_INTERVAL = 60 * 1000;
+        private volatile long lastPrintTime;
+
+        public RaftNodeStateListener() {
+            this.lastPrintTime = 0L;
+        }
 
         @Override
         public void onCreated(PeerId peer) {
@@ -303,7 +322,11 @@ public class RaftNode {
 
         @Override
         public void onError(PeerId peer, Status status) {
-            LOG.warn("Replicator meet error: {}", status);
+            long now = System.currentTimeMillis();
+            if (now - this.lastPrintTime >= ERROR_PRINT_INTERVAL) {
+                LOG.warn("Replicator meet error: {}", status);
+                this.lastPrintTime = now;
+            }
             if (this.isWriteBufferOverflow(status)) {
                 // increment busy counter
                 int count = RaftNode.this.busyCounter.incrementAndGet();
@@ -320,7 +343,7 @@ public class RaftNode {
 
         @Override
         public void onDestroyed(PeerId peer) {
-            LOG.warn("The node {} prepare to offline", peer);
+            LOG.warn("Replicator {} prepare to offline", peer);
         }
     }
 }

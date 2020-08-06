@@ -22,6 +22,7 @@ package com.baidu.hugegraph.backend.store.raft;
 import java.util.function.Supplier;
 
 import com.alipay.sofa.jraft.Status;
+import com.baidu.hugegraph.util.E;
 
 public class RaftResult {
 
@@ -39,6 +40,8 @@ public class RaftResult {
 
     public RaftResult(Status status, Supplier<Object> callback,
                       Throwable exception) {
+        E.checkNotNull(status, "status");
+        E.checkNotNull(callback, "callback");
         this.status = status;
         this.callback = callback;
         this.exception = exception;
