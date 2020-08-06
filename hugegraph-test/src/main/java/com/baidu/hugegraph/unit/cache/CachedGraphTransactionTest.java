@@ -86,8 +86,8 @@ public class CachedGraphTransactionTest extends BaseUnitTest {
         Assert.assertEquals(2L,
                             Whitebox.invoke(cache, "verticesCache", "size"));
 
-        this.params.graphEventHub().notify(Events.CACHE, "clear", null, null)
-                   .get();
+        this.params.graphEventHub().notify(Events.CACHE, "clear",
+                                           null, null).get();
 
         Assert.assertEquals(0L,
                             Whitebox.invoke(cache, "verticesCache", "size"));

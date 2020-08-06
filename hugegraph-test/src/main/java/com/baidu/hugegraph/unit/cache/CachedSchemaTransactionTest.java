@@ -83,8 +83,8 @@ public class CachedSchemaTransactionTest extends BaseUnitTest {
         Assert.assertEquals(IdGenerator.of(2),
                             cache.getPropertyKey("fake-pk-2").id());
 
-        this.params.schemaEventHub().notify(Events.CACHE, "clear", null, null)
-                   .get();
+        this.params.schemaEventHub().notify(Events.CACHE, "clear",
+                                            null, null).get();
 
         Assert.assertEquals(0L, Whitebox.invoke(cache, "idCache", "size"));
         Assert.assertEquals(0L, Whitebox.invoke(cache, "nameCache", "size"));
@@ -155,13 +155,15 @@ public class CachedSchemaTransactionTest extends BaseUnitTest {
         cache.addPropertyKey(objects.newPropertyKey(IdGenerator.of(1),
                                                     "fake-pk-1"));
 
-        this.params.schemaEventHub().notify(Events.CACHE, "clear", null).get();
+        this.params.schemaEventHub().notify(Events.CACHE, "clear",
+                                            null, null).get();
         Assert.assertEquals("fake-pk-1",
                             cache.getPropertyKey(IdGenerator.of(1)).name());
         Assert.assertEquals(IdGenerator.of(1),
                             cache.getPropertyKey("fake-pk-1").id());
 
-        this.params.schemaEventHub().notify(Events.CACHE, "clear", null).get();
+        this.params.schemaEventHub().notify(Events.CACHE, "clear",
+                                            null, null).get();
         Assert.assertEquals(IdGenerator.of(1),
                             cache.getPropertyKey("fake-pk-1").id());
         Assert.assertEquals("fake-pk-1",
