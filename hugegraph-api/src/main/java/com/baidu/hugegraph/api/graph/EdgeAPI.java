@@ -371,7 +371,8 @@ public class EdgeAPI extends BatchAPI {
             try {
                 edge = g.edge(id);
             } catch (NotFoundException e) {
-                throw new IllegalArgumentException(e.getMessage());
+                throw new IllegalArgumentException(String.format(
+                          "No such edge with id: '%s', %s", id, e));
             } catch (NoSuchElementException e) {
                 throw new IllegalArgumentException(String.format(
                           "No such edge with id: '%s'", id));

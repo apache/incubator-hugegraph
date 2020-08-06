@@ -27,6 +27,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -656,17 +657,17 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     public Iterator<Vertex> queryAdjacentVertices(Object... vertexIds) {
-        return this.queryVertices(vertexIds, true,
-                                  this.checkAdjacentVertexExist);
+        return this.queryVerticesByIds(vertexIds, true,
+                                       this.checkAdjacentVertexExist);
     }
 
     public Iterator<Vertex> queryVertices(Object... vertexIds) {
-        return this.queryVertices(vertexIds, false, false);
+        return this.queryVerticesByIds(vertexIds, false, false);
     }
 
     public Vertex queryVertex(Object vertexId) {
-        Iterator<Vertex> iter = this.queryVertices(new Object[]{vertexId},
-                                                   false, true);
+        Iterator<Vertex> iter = this.queryVerticesByIds(new Object[]{vertexId},
+                                                        false, true);
         try {
             return iter.next();
         } finally {
@@ -674,9 +675,9 @@ public class GraphTransaction extends IndexableTransaction {
         }
     }
 
-    protected Iterator<Vertex> queryVertices(Object[] vertexIds,
-                                             boolean adjacentVertex,
-                                             boolean checkMustExist) {
+    protected Iterator<Vertex> queryVerticesByIds(Object[] vertexIds,
+                                                  boolean adjacentVertex,
+                                                  boolean checkMustExist) {
         Query.checkForceCapacity(vertexIds.length);
 
         // NOTE: allowed duplicated vertices if query by duplicated ids
@@ -816,20 +817,22 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     public Iterator<Edge> queryEdges(Object... edgeIds) {
-        return this.queryEdges(edgeIds, false);
+        return this.queryEdgesByIds(edgeIds, false);
     }
 
     public Edge queryEdge(Object edgeId) {
-        Iterator<Edge> iter = this.queryEdges(new Object[]{edgeId}, true);
+        Iterator<Edge> iter = this.queryEdgesByIds(new Object[]{edgeId}, true);
         try {
             return iter.next();
+        } catch (NoSuchElementException e) {
+            throw new NotFoundException("Edge '%s' does not exist", edgeId);
         } finally {
             CloseableIterator.closeIterator(iter);
         }
     }
 
-    protected Iterator<Edge> queryEdges(Object[] edgeIds,
-                                        boolean checkMustExist) {
+    protected Iterator<Edge> queryEdgesByIds(Object[] edgeIds,
+                                             boolean verifyId) {
         Query.checkForceCapacity(edgeIds.length);
 
         // NOTE: allowed duplicated edges if query by duplicated ids
@@ -839,7 +842,7 @@ public class GraphTransaction extends IndexableTransaction {
         IdQuery query = new IdQuery(HugeType.EDGE);
         for (Object edgeId : edgeIds) {
             HugeEdge edge;
-            Id id = HugeEdge.getIdValue(edgeId, true);
+            Id id = HugeEdge.getIdValue(edgeId, !verifyId);
             if (id == null || this.removedEdges.containsKey(id)) {
                 // The record has been deleted
                 continue;
@@ -877,10 +880,6 @@ public class GraphTransaction extends IndexableTransaction {
 
         return new MapperIterator<>(ids.iterator(), id -> {
             Edge edge = edges.get(id);
-            if (edge == null && checkMustExist) {
-                throw new NotFoundException(
-                          "Edge '%s' does not exist", id);
-            }
             return edge;
         });
     }
