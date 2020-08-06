@@ -619,7 +619,6 @@ public class GraphTransaction extends IndexableTransaction {
         } else {
             vertex.assignId(id);
         }
-        vertex.setExpiredTime();
 
         return vertex;
     }

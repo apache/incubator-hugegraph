@@ -45,6 +45,8 @@ public class DeleteExpiredElementJob<V> extends DeleteExpiredJob<V> {
 
     @Override
     public V execute() throws Exception {
+        LOG.debug("Delete expired elements: {}", this.elements);
+
         HugeGraphParams graph = this.params();
         GraphTransaction tx = graph.graphTransaction();
         try {

@@ -49,6 +49,8 @@ public class DeleteExpiredIndexJob<V> extends DeleteExpiredJob<V> {
 
     @Override
     public V execute() throws Exception {
+        LOG.debug("Delete expired indexes: {}", this.indexes);
+
         HugeGraphParams graph = this.params();
         GraphTransaction tx = graph.graphTransaction();
         try {
@@ -56,7 +58,7 @@ public class DeleteExpiredIndexJob<V> extends DeleteExpiredJob<V> {
                 this.deleteExpiredIndex(graph, index);
             }
             tx.commit();
-        } catch (Exception e) {
+        } catch (Throwable e) {
             tx.rollback();
             LOG.warn("Failed to delete expired indexes: {}", this.indexes);
             throw e;

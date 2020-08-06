@@ -122,9 +122,11 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
 
     public void committed() {
         this.fresh = false;
+        // Set expired time
+        this.setExpiredTimeIfNeeded();
     }
 
-    public void setExpiredTime() {
+    public void setExpiredTimeIfNeeded() {
         SchemaLabel label = this.schemaLabel();
         if (label.ttl() == 0L) {
             return;
