@@ -189,7 +189,7 @@ public class RaftBackendStore implements BackendStore {
 
     @Override
     public long getCounter(HugeType type) {
-        return this.store.getCounter(type);
+        return (Long) this.queryByRaft(type, o -> this.store.getCounter(type));
     }
 
     @Override
@@ -215,13 +215,12 @@ public class RaftBackendStore implements BackendStore {
         return this.node().submitAndWait(command, closure);
     }
 
-    private Object queryByRaft(Query query, Function<Object, Object> func) {
+    private Object queryByRaft(Object query, Function<Object, Object> func) {
         if (!this.context.isSafeRead()) {
             return func.apply(query);
         }
 
-        StoreCommand command = new StoreCommand(StoreAction.QUERY);
-        StoreClosure future = new StoreClosure(command);
+        RaftClosure future = new RaftClosure();
         ReadIndexClosure readIndexClosure = new ReadIndexClosure() {
             @Override
             public void run(Status status, long index, byte[] reqCtx) {

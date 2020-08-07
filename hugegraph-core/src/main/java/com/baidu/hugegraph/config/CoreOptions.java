@@ -114,7 +114,7 @@ public class CoreOptions extends OptionHolder {
                     "raft.safe_read",
                     "Whether to use linearly consistent read.",
                     disallowEmpty(),
-                    false
+                    true
             );
 
     public static final ConfigOption<Boolean> RAFT_USE_SNAPSHOT =
