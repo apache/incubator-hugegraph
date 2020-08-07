@@ -339,16 +339,16 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
             schema.indexLabel("authorByName").onV("author")
                   .by("name").range().create();
         }, e -> {
-            Assert.assertTrue(e.getMessage(), e.getMessage().contains(
-                              "Range index can only build on numeric"));
+            Assert.assertContains("Range index can only build on numeric",
+                                  e.getMessage());
         });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.indexLabel("authoredByAgeAndWeight").onE("authored")
                   .by("age", "weight").range().create();
         }, e -> {
-            Assert.assertTrue(e.getMessage(), e.getMessage().contains(
-                              "Range index can only build on one field"));
+            Assert.assertContains("Range index can only build on one field",
+                                  e.getMessage());
         });
 
         // Invalid search-index
@@ -364,8 +364,8 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
             schema.indexLabel("authorByNameAndAge").onV("author")
                   .by("name", "age").search().create();
         }, e -> {
-            Assert.assertTrue(e.getMessage(), e.getMessage().contains(
-                              "Search index can only build on one field"));
+            Assert.assertContains("Search index can only build on one field",
+                                  e.getMessage());
         });
     }
 
@@ -384,8 +384,8 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
                   .onV("author").by("sumProp").secondary()
                   .ifNotExist().create();
         }, e -> {
-            Assert.assertTrue(e.getMessage(), e.getMessage().contains(
-                              "The aggregate type SUM is not indexable"));
+            Assert.assertContains("The aggregate type SUM is not indexable",
+                                  e.getMessage());
         });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
@@ -393,8 +393,8 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
                   .onV("author").by("sumProp").range()
                   .ifNotExist().create();
         }, e -> {
-            Assert.assertTrue(e.getMessage(), e.getMessage().contains(
-                              "The aggregate type SUM is not indexable"));
+            Assert.assertContains("The aggregate type SUM is not indexable",
+                                  e.getMessage());
         });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
@@ -402,8 +402,8 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
                   .onV("author").by("sumProp").shard()
                   .ifNotExist().create();
         }, e -> {
-            Assert.assertTrue(e.getMessage(), e.getMessage().contains(
-                              "The aggregate type SUM is not indexable"));
+            Assert.assertContains("The aggregate type SUM is not indexable",
+                                  e.getMessage());
         });
     }
 

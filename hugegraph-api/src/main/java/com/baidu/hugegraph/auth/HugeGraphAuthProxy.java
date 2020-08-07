@@ -416,6 +416,13 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     @Override
+    public Vertex vertex(Object object) {
+        Vertex vertex = this.hugegraph.vertex(object);
+        verifyElemPermission(HugePermission.READ, vertex);
+        return vertex;
+    }
+
+    @Override
     public Iterator<Vertex> adjacentVertex(Object id) {
         return verifyElemPermission(HugePermission.READ,
                                     this.hugegraph.adjacentVertex(id));
@@ -443,6 +450,13 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     public Iterator<Edge> edges(Object... objects) {
         return verifyElemPermission(HugePermission.READ,
                                     this.hugegraph.edges(objects));
+    }
+
+    @Override
+    public Edge edge(Object id) {
+        Edge edge = this.hugegraph.edge(id);
+        verifyElemPermission(HugePermission.READ, edge);
+        return edge;
     }
 
     @Override
@@ -509,8 +523,16 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     @Override
+    public boolean sameAs(HugeGraph graph) {
+        if (graph instanceof HugeGraphAuthProxy) {
+            graph = ((HugeGraphAuthProxy) graph).hugegraph;
+        }
+        return this.hugegraph.sameAs(graph);
+    }
+
+    @Override
     public long now() {
-        this.verifyStatusPermission();
+        // It's ok anyone call this method, so not verifyStatusPermission()
         return this.hugegraph.now();
     }
 
@@ -530,12 +552,6 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     public String backendVersion() {
         this.verifyStatusPermission();
         return this.hugegraph.backendVersion();
-    }
-
-    @Override
-    public boolean backendStoreInitialized() {
-        verifyStatusPermission();
-        return this.hugegraph.backendStoreInitialized();
     }
 
     @Override
@@ -1350,6 +1366,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
     class TraversalStrategiesProxy implements TraversalStrategies {
 
+        private static final String REST_WOEKER = "grizzly-http-server";
         private static final long serialVersionUID = -5424364720492307019L;
         private final TraversalStrategies strategies;
 
@@ -1372,8 +1389,21 @@ public final class HugeGraphAuthProxy implements HugeGraph {
                 script = translator.translate(traversal.getBytecode());
             }
 
-            verifyNamePermission(HugePermission.EXECUTE,
-                                 ResourceType.GREMLIN, script);
+            /*
+             * Verify gremlin-execute permission for user gremlin(in gremlin-
+             * server-exec worker) and gremlin job(in task worker).
+             * But don't check permission in rest worker, because the following
+             * places need to call traversal():
+             *  1.vertices/edges rest api
+             *  2.oltp rest api (like crosspointpath/neighborrank)
+             *  3.olap rest api (like centrality/lpa/louvain/subgraph)
+             */
+            String caller = Thread.currentThread().getName();
+            if (!caller.contains(REST_WOEKER)) {
+                verifyNamePermission(HugePermission.EXECUTE,
+                                     ResourceType.GREMLIN, script);
+            }
+
             this.strategies.applyStrategies(traversal);
         }
 

@@ -41,7 +41,7 @@ public class BackendStoreSystemInfoTest {
                .thenThrow(new IllegalStateException("Should not exist schema " +
                           "with same name '~backend_info'"));
         Mockito.when(stx.graph()).thenReturn(graph);
-        Mockito.when(graph.backendStoreInitialized()).thenReturn(true);
+        Mockito.when(stx.storeInitialized()).thenReturn(true);
 
         BackendStoreSystemInfo info = new BackendStoreSystemInfo(stx);
 

@@ -96,7 +96,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
     @Override
     public VertexLabel schemaLabel() {
-        assert this.graph() == this.label.graph();
+        assert this.graph().sameAs(this.label.graph());
         return this.label;
     }
 
@@ -305,9 +305,6 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
             edge.assignId();
         }
 
-        // Set expired time
-        edge.setExpiredTime();
-
         return edge;
     }
 
@@ -404,7 +401,6 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
     @Watched(prefix = "vertex")
     @Override
-    @SuppressWarnings("unchecked") // (VertexProperty<V>) prop
     public <V> VertexProperty<V> property(
                VertexProperty.Cardinality cardinality,
                String key, V value, Object... objects) {
@@ -445,7 +441,11 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
             E.checkArgument(!this.hasProperty(propertyKey.id()),
                             "Can't update primary key: '%s'", key);
         }
-        return (VertexProperty<V>) this.addProperty(propertyKey, value, true);
+
+        @SuppressWarnings("unchecked")
+        VertexProperty<V> prop = (VertexProperty<V>) this.addProperty(
+                                 propertyKey, value, !this.fresh());
+        return prop;
     }
 
     @Override

@@ -118,10 +118,12 @@ public abstract class SchemaLabel extends SchemaElement
     }
 
     public void ttl(long ttl) {
+        assert ttl >= 0L;
         this.ttl = ttl;
     }
 
     public long ttl() {
+        assert this.ttl >= 0L;
         return this.ttl;
     }
 

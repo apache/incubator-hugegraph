@@ -121,8 +121,7 @@ public class HugeIndex implements GraphType, Cloneable {
 
     public Set<IdWithExpiredTime> expiredElementIds() {
         long now = this.graph.now();
-        Set<IdWithExpiredTime> expired = InsertionOrderUtil.newSet(
-                                         this.elementIds.size());
+        Set<IdWithExpiredTime> expired = InsertionOrderUtil.newSet();
         for (IdWithExpiredTime id : this.elementIds) {
             if (0L < id.expiredTime && id.expiredTime < now) {
                 expired.add(id);
@@ -290,6 +289,11 @@ public class HugeIndex implements GraphType, Cloneable {
 
         public long expiredTime() {
             return this.expiredTime;
+        }
+
+        @Override
+        public String toString() {
+            return String.format("%s(%s)", this.id, this.expiredTime);
         }
     }
 }

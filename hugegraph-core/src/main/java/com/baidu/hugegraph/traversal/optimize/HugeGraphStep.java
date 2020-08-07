@@ -150,8 +150,8 @@ public final class HugeGraphStep<S, E extends Element>
             query = new Query(type);
         } else {
             ConditionQuery q = new ConditionQuery(type);
-            query = TraversalUtil.fillConditionQuery(this.hasContainers,
-                                                     q, graph);
+            query = TraversalUtil.fillConditionQuery(q, this.hasContainers,
+                                                     graph);
         }
 
         query = this.injectQueryInfo(query);

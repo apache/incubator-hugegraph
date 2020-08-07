@@ -123,7 +123,7 @@ public final class HugeVertexStep<E extends Element>
                                vertex, direction, edgeLabels);
         // Query by sort-keys
         if (withEdgeCond && edgeLabels.length > 0) {
-            TraversalUtil.fillConditionQuery(conditions, query, graph);
+            TraversalUtil.fillConditionQuery(query, conditions, graph);
             if (!GraphTransaction.matchPartialEdgeSortKeys(query, graph)) {
                 // Can't query by sysprop and by index (HugeGraph-749)
                 query.resetUserpropConditions();

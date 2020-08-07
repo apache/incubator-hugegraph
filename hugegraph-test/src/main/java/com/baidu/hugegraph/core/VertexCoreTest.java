@@ -2830,8 +2830,8 @@ public class VertexCoreTest extends BaseCoreTest {
             graph.traversal().V().hasLabel("person")
                  .has("age", (Object) null).toList();
         }, e -> {
-            String error = "Invalid data type of query value";
-            Assert.assertTrue(e.getMessage(), e.getMessage().contains(error));
+            Assert.assertContains("Invalid data type of query value",
+                                  e.getMessage());
         });
     }
 
@@ -3477,8 +3477,8 @@ public class VertexCoreTest extends BaseCoreTest {
                                  .has("lived", "Bay Area")
                                  .toList();
         }, e -> {
-            Assert.assertTrue(e.getMessage(), e.getMessage().contains(
-                              "may not match secondary condition"));
+            Assert.assertContains("may not match secondary condition",
+                                  e.getMessage());
         });
     }
 
@@ -5502,8 +5502,8 @@ public class VertexCoreTest extends BaseCoreTest {
             schema.indexLabel("studentByTestNum")
                   .onV("student").by("testNum").range().ifNotExist().create();
         }, e -> {
-            Assert.assertTrue(e.getMessage(), e.getMessage().contains(
-                              "The aggregate type SUM is not indexable"));
+            Assert.assertContains("The aggregate type SUM is not indexable",
+                                  e.getMessage());
         });
         schema.indexLabel("studentByNo")
               .onV("student").by("no").secondary().ifNotExist().create();
@@ -5742,8 +5742,8 @@ public class VertexCoreTest extends BaseCoreTest {
             schema.indexLabel("studentByTestNum")
                   .onV("student").by("testNum").range().ifNotExist().create();
         }, e -> {
-            Assert.assertTrue(e.getMessage(), e.getMessage().contains(
-                              "The aggregate type SUM is not indexable"));
+            Assert.assertContains("The aggregate type SUM is not indexable",
+                                  e.getMessage());
         });
         schema.indexLabel("studentByNo")
               .onV("student").by("no").secondary().ifNotExist().create();

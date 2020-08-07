@@ -107,10 +107,16 @@ public interface HugeGraph extends Graph {
     public <V> void addEdgeProperty(Property<V> property);
     public <V> void removeEdgeProperty(Property<V> property);
 
+    public Vertex vertex(Object object);
+    @Override
+    public Iterator<Vertex> vertices(Object... objects);
     public Iterator<Vertex> vertices(Query query);
     public Iterator<Vertex> adjacentVertex(Object id);
     public boolean checkAdjacentVertexExist();
 
+    public Edge edge(Object object);
+    @Override
+    public Iterator<Edge> edges(Object... objects);
     public Iterator<Edge> edges(Query query);
     public Iterator<Vertex> adjacentVertices(Iterator<Edge> edges) ;
     public Iterator<Edge> adjacentEdges(Id vertexId);
@@ -120,7 +126,6 @@ public interface HugeGraph extends Graph {
     public String name();
     public String backend();
     public String backendVersion();
-    public boolean backendStoreInitialized();
     public BackendStoreSystemInfo backendStoreSystemInfo();
     public BackendFeatures backendStoreFeatures();
 
@@ -145,6 +150,8 @@ public interface HugeGraph extends Graph {
     public TaskScheduler taskScheduler();
 
     public void proxy(HugeGraph graph);
+
+    public boolean sameAs(HugeGraph graph);
 
     public long now();
 

@@ -21,8 +21,10 @@ package com.baidu.hugegraph.traversal.optimize;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.regex.Matcher;
@@ -248,8 +250,8 @@ public final class TraversalUtil {
     }
 
     public static ConditionQuery fillConditionQuery(
-                                 List<HasContainer> hasContainers,
                                  ConditionQuery query,
+                                 List<HasContainer> hasContainers,
                                  HugeGraph graph) {
         HugeType resultType = query.resultType();
 
@@ -258,6 +260,30 @@ public final class TraversalUtil {
             query.query(condition);
         }
         return query;
+    }
+
+    public static void fillConditionQuery(ConditionQuery query,
+                                          Map<Id, Object> properties,
+                                          HugeGraph graph) {
+        for (Map.Entry<Id, Object> entry : properties.entrySet()) {
+            Id key = entry.getKey();
+            Object value = entry.getValue();
+            PropertyKey pk = graph.propertyKey(key);
+            if (value instanceof String &&
+                ((String) value).startsWith(TraversalUtil.P_CALL)) {
+                String predicate = (String) value;
+                query.query(TraversalUtil.parsePredicate(pk, predicate));
+            } else if (value instanceof Collection) {
+                List<Object> validValues = new ArrayList<>();
+                for (Object v : (Collection<?>) value) {
+                    validValues.add(TraversalUtil.validPropertyValue(v, pk));
+                }
+                query.query(Condition.in(key, validValues));
+            } else {
+                Object validValue = TraversalUtil.validPropertyValue(value, pk);
+                query.query(Condition.eq(key, validValue));
+            }
+        }
     }
 
     public static Condition convHas2Condition(HasContainer has,
@@ -524,6 +550,18 @@ public final class TraversalUtil {
         return (Iterator<V>) result;
     }
 
+    public static Iterator<Edge> filterResult(Vertex vertex,
+                                              Directions dir,
+                                              Iterator<Edge> edges) {
+        return new FilterIterator<>(edges, edge -> {
+            if (dir == Directions.OUT && vertex.equals(edge.outVertex()) ||
+                dir == Directions.IN && vertex.equals(edge.inVertex())) {
+                return true;
+            }
+            return false;
+        });
+    }
+
     public static void convAllHasSteps(Traversal.Admin<?, ?> traversal) {
         // Extract all has steps in traversal
         @SuppressWarnings("rawtypes")
@@ -603,18 +641,6 @@ public final class TraversalUtil {
             newValues.add(convSysValueIfNeeded(graph, type, key, value));
         }
         return newValues;
-    }
-
-    public static Iterator<Edge> filterResult(Vertex vertex,
-                                              Directions dir,
-                                              Iterator<Edge> edges) {
-        return new FilterIterator<>(edges, edge -> {
-            if (dir == Directions.OUT && vertex.equals(edge.outVertex()) ||
-                dir == Directions.IN && vertex.equals(edge.inVertex())) {
-                return true;
-            }
-            return false;
-        });
     }
 
     public static Query.Order convOrder(Order order) {
@@ -733,6 +759,16 @@ public final class TraversalUtil {
         return predicate.test(actual);
     }
 
+    public static Map<Id, Object> transProperties(HugeGraph graph,
+                                                  Map<String, Object> props) {
+        Map<Id, Object> pks = new HashMap<>(props.size());
+        for (Map.Entry<String, Object> e: props.entrySet()) {
+            PropertyKey pk = graph.propertyKey(e.getKey());
+            pks.put(pk.id(), e.getValue());
+        }
+        return pks;
+    }
+
     public static P<Object> parsePredicate(String predicate) {
         /*
          * Extract P from json string like {"properties": {"age": "P.gt(18)"}}
@@ -826,7 +862,6 @@ public final class TraversalUtil {
                 return Condition.and(Condition.lt(pk.id(), v1),
                                      Condition.gt(pk.id(), v2));
             case "within":
-
                 List<T> values = predicateArgs(value);
                 List<T> validValues = new ArrayList<>(values.size());
                 for (T v : validValues) {

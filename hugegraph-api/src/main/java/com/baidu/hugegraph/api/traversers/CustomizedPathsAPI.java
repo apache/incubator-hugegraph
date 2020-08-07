@@ -24,10 +24,8 @@ import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGR
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PATHS_LIMIT;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_SAMPLE;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_WEIGHT;
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.NO_LIMIT;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -50,8 +48,6 @@ import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.core.GraphManager;
-import com.baidu.hugegraph.schema.EdgeLabel;
-import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.traversal.algorithm.CustomizePathsTraverser;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
@@ -163,51 +159,37 @@ public class CustomizedPathsAPI extends API {
         public List<String> labels;
         @JsonProperty("properties")
         public Map<String, Object> properties;
+        @JsonProperty("degree")
+        public long degree = Long.valueOf(DEFAULT_DEGREE);
+        @JsonProperty("skip_degree")
+        public long skipDegree = 0L;
         @JsonProperty("weight_by")
         public String weightBy;
         @JsonProperty("default_weight")
         public double defaultWeight = Double.valueOf(DEFAULT_WEIGHT);
-        @JsonProperty("degree")
-        public long degree = Long.valueOf(DEFAULT_DEGREE);
         @JsonProperty("sample")
         public long sample = Long.valueOf(DEFAULT_SAMPLE);
 
         @Override
         public String toString() {
             return String.format("Step{direction=%s,labels=%s,properties=%s," +
-                                 "weightBy=%s,defaultWeight=%s,degree=%s," +
-                                 "sample=%s}", this.direction, this.labels,
-                                 this.properties, this.weightBy,
-                                 this.defaultWeight, this.degree, this.sample);
+                                 "degree=%s,skipDegree=%s," +
+                                 "weightBy=%s,defaultWeight=%s,sample=%s}",
+                                 this.direction, this.labels, this.properties,
+                                 this.degree, this.skipDegree,
+                                 this.weightBy, this.defaultWeight,
+                                 this.sample);
         }
 
-        private CustomizePathsTraverser.Step jsonToStep(HugeGraph graph) {
-            E.checkArgument(this.degree > 0 || this.degree == NO_LIMIT,
-                            "The degree must be > 0, but got: %s",
-                            this.degree);
-            E.checkArgument(this.sample > 0 || this.sample == NO_LIMIT,
-                            "The sample must be > 0, but got: %s",
-                            this.sample);
-            E.checkArgument(this.degree == NO_LIMIT ||
-                            this.degree >= this.sample,
-                            "Degree must be greater than or equal to sample," +
-                            " but got degree %s and sample %s",
-                            this.degree, this.sample);
-            Map<Id, String> labelIds = new HashMap<>();
-            if (this.labels != null) {
-                for (String label : this.labels) {
-                    EdgeLabel el = graph.edgeLabel(label);
-                    labelIds.put(el.id(), label);
-                }
-            }
-            PropertyKey weightBy = null;
-            if (this.weightBy != null) {
-                weightBy = graph.propertyKey(this.weightBy);
-            }
-            return new CustomizePathsTraverser.Step(this.direction, labelIds,
-                                                    this.properties, weightBy,
+        private CustomizePathsTraverser.Step jsonToStep(HugeGraph g) {
+            return new CustomizePathsTraverser.Step(g, this.direction,
+                                                    this.labels,
+                                                    this.properties,
+                                                    this.degree,
+                                                    this.skipDegree,
+                                                    this.weightBy,
                                                     this.defaultWeight,
-                                                    this.degree, this.sample);
+                                                    this.sample);
         }
     }
 

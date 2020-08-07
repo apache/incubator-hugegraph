@@ -3097,7 +3097,8 @@ public class EdgeCoreTest extends BaseCoreTest {
         Assert.assertTrue(adjacent.schemaLabel().undefined());
         Assert.assertEquals("~undefined", adjacent.label());
 
-        params().graphEventHub().notify(Events.CACHE, "clear", null, null).get();
+        params().graphEventHub().notify(Events.CACHE, "clear",
+                                        null, null).get();
         vertices = graph.traversal().V(james.id()).outE().otherV().toList();
         Assert.assertEquals(1, vertices.size());
         adjacent = (HugeVertex) vertices.get(0);
@@ -3142,7 +3143,8 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         Whitebox.setInternalState(params().graphTransaction(),
                                   "checkAdjacentVertexExist", true);
-        params().graphEventHub().notify(Events.CACHE, "clear", null).get();
+        params().graphEventHub().notify(Events.CACHE, "clear",
+                                        null, null).get();
         try {
             Assert.assertEquals(0, graph.traversal().V(java).toList().size());
 
@@ -3255,7 +3257,8 @@ public class EdgeCoreTest extends BaseCoreTest {
                                   "lazyLoadAdjacentVertex", false);
         Whitebox.setInternalState(params().graphTransaction(),
                                   "checkAdjacentVertexExist", true);
-        params().graphEventHub().notify(Events.CACHE, "clear", null).get();
+        params().graphEventHub().notify(Events.CACHE, "clear",
+                                        null, null).get();
         try {
             Assert.assertEquals(0, graph.traversal().V(java).toList().size());
 
@@ -5323,8 +5326,8 @@ public class EdgeCoreTest extends BaseCoreTest {
             Assert.assertThrows(LimitExceedException.class, () -> {
                 graph.tx().commit();
             }, e -> {
-                Assert.assertTrue(e.getMessage().contains(
-                                  "Edges size has reached tx capacity"));
+                Assert.assertContains("Edges size has reached tx capacity",
+                                      e.getMessage());
                 graph.tx().rollback();
             });
         } finally {
@@ -5939,8 +5942,8 @@ public class EdgeCoreTest extends BaseCoreTest {
             schema.indexLabel("attackByTimes")
                   .onE("attack").by("times").range().ifNotExist().create();
         }, e -> {
-            Assert.assertTrue(e.getMessage(), e.getMessage().contains(
-                              "The aggregate type SUM is not indexable"));
+            Assert.assertContains("The aggregate type SUM is not indexable",
+                                  e.getMessage());
         });
         schema.indexLabel("attackByFirstTime")
               .onE("attack").by("firstTime").range().ifNotExist().create();
