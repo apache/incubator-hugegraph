@@ -107,14 +107,14 @@ public interface HugeGraph extends Graph {
     public <V> void addEdgeProperty(Property<V> property);
     public <V> void removeEdgeProperty(Property<V> property);
 
-    public Vertex vertex(Object objects);
+    public Vertex vertex(Object object);
     @Override
     public Iterator<Vertex> vertices(Object... objects);
     public Iterator<Vertex> vertices(Query query);
     public Iterator<Vertex> adjacentVertex(Object id);
     public boolean checkAdjacentVertexExist();
 
-    public Edge edge(Object objects);
+    public Edge edge(Object object);
     @Override
     public Iterator<Edge> edges(Object... objects);
     public Iterator<Edge> edges(Query query);

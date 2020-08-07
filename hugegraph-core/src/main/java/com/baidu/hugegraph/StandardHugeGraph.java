@@ -463,8 +463,8 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
-    public Vertex vertex(Object objects) {
-        return this.graphTransaction().queryVertex(objects);
+    public Vertex vertex(Object object) {
+        return this.graphTransaction().queryVertex(object);
     }
 
     @Override
@@ -491,8 +491,8 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
-    public Edge edge(Object objects) {
-        return this.graphTransaction().queryEdge(objects);
+    public Edge edge(Object object) {
+        return this.graphTransaction().queryEdge(object);
     }
 
     @Override
