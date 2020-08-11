@@ -19,6 +19,8 @@
 
 package com.baidu.hugegraph.job.algorithm.rank;
 
+import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -61,6 +63,7 @@ public class PageRankAlgorithm extends AbstractCommAlgorithm {
         precision(parameters);
         degree(parameters);
         directionOutIn(parameters);
+        top(parameters);
     }
 
     @Override
@@ -70,7 +73,8 @@ public class PageRankAlgorithm extends AbstractCommAlgorithm {
                                       times(parameters),
                                       precision(parameters),
                                       degree(parameters),
-                                      directionOutIn(parameters));
+                                      directionOutIn(parameters),
+                                      top(parameters));
         } catch (Throwable e) {
             job.graph().tx().rollback();
             throw e;
@@ -90,11 +94,15 @@ public class PageRankAlgorithm extends AbstractCommAlgorithm {
             this.vertexRankMap = new HashMap<>();
         }
 
-        public Object pageRank(double alpha,
+        /**
+         * If topN > 0, then return topN elements with rank value in json.
+         */
+        private Object pageRank(double alpha,
                                int maxTimes,
                                double precision,
                                long degree,
-                               Directions direction) {
+                               Directions direction,
+                               long topN) {
             this.initSchema();
 
             int times;
@@ -146,10 +154,30 @@ public class PageRankAlgorithm extends AbstractCommAlgorithm {
 
             this.writeBackRankValues();
 
+            if (topN > 0) {
+                Object topNJson = this.getTopRank(topN);
+                return ImmutableMap.of("alpha", alpha,
+                        "iteration_times", times,
+                        "last_changed_rank", changedRank,
+                        "times", maxTimes,
+                        "top", topNJson);
+            }
             return ImmutableMap.of("alpha", alpha,
                                    "iteration_times", times,
                                    "last_changed_rank", changedRank,
                                    "times", maxTimes);
+        }
+
+        private Object getTopRank(long topN) {
+            JsonMap jsonMap = new JsonMap();
+            jsonMap.startObject();
+            Map<Id, DoublePair> topNMap =
+                    HugeTraverser.topN(this.vertexRankMap, true, topN);
+            for (Map.Entry<Id, DoublePair> e : topNMap.entrySet()) {
+                jsonMap.append(e.getKey().toString(), e.getValue().left);
+            }
+            jsonMap.endObject();
+            return jsonMap.asJson();
         }
 
         private long initRankMap() {
@@ -239,12 +267,12 @@ public class PageRankAlgorithm extends AbstractCommAlgorithm {
         }
     }
 
-    public static class DoublePair {
+    public static class DoublePair implements Comparable<DoublePair> {
 
         private double left;
         private double right;
 
-        public DoublePair(double left, double right) {
+        private DoublePair(double left, double right) {
             this.left = left;
             this.right = right;
         }
@@ -293,6 +321,18 @@ public class PageRankAlgorithm extends AbstractCommAlgorithm {
         @Override
         public int hashCode() {
             return Double.hashCode(this.left) ^ Double.hashCode(this.right);
+        }
+
+        // only left saves the rank value.
+        @Override
+        public int compareTo(DoublePair o) {
+            double result = this.left - o.left;
+            if (result > 0.0) {
+                return 1;
+            } else if (result < 0.0) {
+                return -1;
+            }
+            return 0;
         }
     }
 }
