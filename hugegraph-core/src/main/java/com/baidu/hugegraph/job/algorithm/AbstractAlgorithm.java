@@ -88,6 +88,7 @@ public abstract class AbstractAlgorithm implements Algorithm {
     public static final String KEY_PRECISION = "precision";
     public static final String KEY_SHOW_MOD= "show_modularity";
     public static final String KEY_SHOW_COMM = "show_community";
+    public static final String KEY_SKIP_ISOLATED = "skip_isolated";
     public static final String KEY_CLEAR = "clear";
     public static final String KEY_CAPACITY = "capacity";
     public static final String KEY_LIMIT = "limit";

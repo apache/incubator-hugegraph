@@ -44,6 +44,7 @@ public class LouvainAlgorithm extends AbstractCommAlgorithm {
         sourceCLabel(parameters);
         showModularity(parameters);
         showCommunity(parameters);
+        skipIsolated(parameters);
         clearPass(parameters);
         workers(parameters);
     }
@@ -53,6 +54,7 @@ public class LouvainAlgorithm extends AbstractCommAlgorithm {
         String label = sourceLabel(parameters);
         String clabel = sourceCLabel(parameters);
         long degree = degree(parameters);
+        boolean skipIsolated = skipIsolated(parameters);
         int workers = workers(parameters);
 
         Long clearPass = clearPass(parameters);
@@ -61,7 +63,7 @@ public class LouvainAlgorithm extends AbstractCommAlgorithm {
 
         try (LouvainTraverser traverser = new LouvainTraverser(
                                           job, workers, degree,
-                                          label, clabel)) {
+                                          label, clabel, skipIsolated)) {
             if (clearPass != null) {
                 return traverser.clearPass(clearPass.intValue());
             } else if (modPass != null) {
@@ -95,5 +97,12 @@ public class LouvainAlgorithm extends AbstractCommAlgorithm {
         long pass = ParameterUtil.parameterLong(parameters, KEY_SHOW_MOD);
         HugeTraverser.checkNonNegative(pass, KEY_SHOW_MOD);
         return pass;
+    }
+
+    protected static boolean skipIsolated(Map<String, Object> parameters) {
+        if (!parameters.containsKey(KEY_SKIP_ISOLATED)) {
+            return true;
+        }
+        return ParameterUtil.parameterBoolean(parameters, KEY_SKIP_ISOLATED);
     }
 }
