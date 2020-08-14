@@ -78,18 +78,22 @@ public class LouvainTraverser extends AlgoTraverser {
     private final String sourceLabel;
     private final String sourceCLabel;
     private final long degree;
+    private final boolean skipIsolated;
+
     private final Cache cache;
 
     private long m;
     private String passLabel;
 
     public LouvainTraverser(UserJob<Object> job, int workers, long degree,
-                            String sourceLabel, String sourceCLabel) {
+                            String sourceLabel, String sourceCLabel,
+                            boolean skipIsolated) {
         super(job, LouvainAlgorithm.ALGO_NAME, workers);
         this.g = this.graph().traversal();
         this.sourceLabel = sourceLabel;
         this.sourceCLabel = sourceCLabel;
         this.degree = degree;
+        this.skipIsolated = skipIsolated;
         this.m = 1L;
         this.passLabel = "";
 
@@ -355,6 +359,9 @@ public class LouvainTraverser extends AlgoTraverser {
     private boolean moveCommunity(Vertex v, int pass) {
         // move vertex to neighbor community if needed
         List<Edge> nbs = neighbors((Id) v.id());
+        if (this.skipIsolated && pass == 0 && nbs.isEmpty()) {
+            return false;
+        }
         Community c = communityOfVertex(v, nbs);
         double ki = kinOfVertex(v) + weightOfVertex(v, nbs);
         // update community of v if △Q changed
@@ -448,7 +455,7 @@ public class LouvainTraverser extends AlgoTraverser {
         LOG.info("Merge community for pass {}", pass);
         // merge each community as a vertex
         Collection<Pair<Community, Set<Id>>> comms = this.cache.communities();
-        assert this.allMembersExist(comms,  pass - 1);
+        assert this.skipIsolated || this.allMembersExist(comms,  pass - 1);
         this.cache.resetVertexWeight();
 
         Consumers<Pair<Community, Set<Id>>> consumers = new Consumers<>(
@@ -479,7 +486,7 @@ public class LouvainTraverser extends AlgoTraverser {
         }
 
         this.graph().tx().commit();
-        assert this.allMembersExist(pass);
+        assert this.skipIsolated || this.allMembersExist(pass);
 
         // reset communities
         this.cache.reset();
