@@ -94,6 +94,16 @@ public class PropertyKey extends SchemaElement implements Propfiable {
         return this;
     }
 
+    public void defineDefaultValue(Object value) {
+        // TODO add a field default_value
+        this.userdata().put(Userdata.DEFAULT_VALUE, value);
+    }
+
+    public Object defaultValue() {
+        // TODO add a field default_value
+        return this.userdata().get(Userdata.DEFAULT_VALUE);
+    }
+
     public boolean hasSameContent(PropertyKey other) {
         return super.hasSameContent(other) &&
                this.dataType == other.dataType() &&
