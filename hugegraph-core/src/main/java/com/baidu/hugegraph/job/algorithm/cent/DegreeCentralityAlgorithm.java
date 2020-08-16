@@ -19,16 +19,18 @@
 
 package com.baidu.hugegraph.job.algorithm.cent;
 
+import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.job.UserJob;
 import com.baidu.hugegraph.structure.HugeEdge;
+import com.baidu.hugegraph.traversal.algorithm.EdgeStep;
 import com.baidu.hugegraph.type.define.Directions;
 
 public class DegreeCentralityAlgorithm extends AbstractCentAlgorithm {
@@ -153,10 +155,10 @@ public class DegreeCentralityAlgorithm extends AbstractCentAlgorithm {
         }
 
         private long degree(Id source, String label) {
-            Id labelId = this.getEdgeLabelId(label);
-            Iterator<Edge> edges = this.edgesOfVertex(source, Directions.BOTH,
-                                                      labelId, NO_LIMIT);
-            return IteratorUtils.count(edges);
+            List<String> labels = label == null ? null : Arrays.asList(label);
+            EdgeStep step = new EdgeStep(this.graph(), Directions.BOTH,
+                                         labels, null, NO_LIMIT, 0);
+            return this.edgesCount(source, step);
         }
     }
 }
