@@ -49,10 +49,6 @@ public class EdgeStep {
         E.checkArgument(degree == NO_LIMIT || degree > 0L,
                         "The degree must be > 0 or == -1, but got: %s",
                         degree);
-        E.checkArgument(skipDegree == NO_LIMIT ||
-                        skipDegree >= 0L,
-                        "The skip degree must be >= 0 or == -1, but got: %s",
-                        skipDegree);
         HugeTraverser.checkSkipDegree(skipDegree, degree,
                                       HugeTraverser.NO_LIMIT);
         this.direction = direction;
