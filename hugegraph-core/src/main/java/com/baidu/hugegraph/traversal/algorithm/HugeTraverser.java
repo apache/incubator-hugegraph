@@ -46,6 +46,7 @@ import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
+import com.baidu.hugegraph.iterator.FilterIterator;
 import com.baidu.hugegraph.iterator.MapperIterator;
 import com.baidu.hugegraph.schema.SchemaLabel;
 import com.baidu.hugegraph.structure.HugeEdge;
@@ -259,6 +260,27 @@ public class HugeTraverser {
         });
     }
 
+    protected Set<Node> adjacentVertices(Set<Node> vertices, EdgeStep step,
+                                         Set<Node> excluded, long remaining) {
+        Set<Node> neighbors = newSet();
+        for (Node source : vertices) {
+            Iterator<Edge> edges = this.edgesOfVertex(source.id(), step);
+            while (edges.hasNext()) {
+                HugeEdge e = (HugeEdge) edges.next();
+                Id target = e.id().otherVertexId();
+                KNode kNode = new KNode(target, (KNode) source);
+                if (excluded != null && excluded.contains(kNode)) {
+                    continue;
+                }
+                neighbors.add(kNode);
+                if (--remaining <= 0L) {
+                    return neighbors;
+                }
+            }
+        }
+        return neighbors;
+    }
+
     protected Iterator<Edge> edgesOfVertex(Id source, Directions dir,
                                            Id label, long limit) {
         Id[] labels = {};
@@ -309,16 +331,24 @@ public class HugeTraverser {
         Query query = GraphTransaction.constructEdgesQuery(source,
                                                            edgeStep.direction,
                                                            edgeLabels);
+        ConditionQuery filter = null;
         if (mustAllSK) {
             this.fillFilterBySortKeys(query, edgeLabels, edgeStep.properties);
         } else {
-            this.fillFilterByProperties(query, edgeStep.properties);
+            filter = (ConditionQuery) query.copy();
+            this.fillFilterByProperties(filter, edgeStep.properties);
         }
         query.capacity(Query.NO_CAPACITY);
         if (edgeStep.limit() != NO_LIMIT) {
             query.limit(edgeStep.limit());
         }
         Iterator<Edge> edges = this.graph().edges(query);
+        if (filter != null) {
+            ConditionQuery finalFilter = filter;
+            edges = new FilterIterator<>(edges, (e) -> {
+                return finalFilter.test((HugeEdge) e);
+            });
+        }
         return edgeStep.skipSuperNodeIfNeeded(edges);
     }
 
@@ -587,6 +617,22 @@ public class HugeTraverser {
             Node other = (Node) object;
             return Objects.equals(this.id, other.id) &&
                    Objects.equals(this.parent, other.parent);
+        }
+    }
+
+    public static class KNode extends Node {
+
+        public KNode(Id id, KNode parent) {
+            super(id, parent);
+        }
+
+        @Override
+        public boolean equals(Object object) {
+            if (!(object instanceof KNode)) {
+                return false;
+            }
+            KNode other = (KNode) object;
+            return Objects.equals(this.id(), other.id());
         }
     }
 
