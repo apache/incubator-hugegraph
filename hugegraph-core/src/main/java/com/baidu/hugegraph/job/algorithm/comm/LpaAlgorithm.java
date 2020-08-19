@@ -117,9 +117,9 @@ public class LpaAlgorithm extends AbstractCommAlgorithm {
                 }
             }
 
-            long communities = this.graph().traversal().V().limit(100000L)
-                                   .groupCount().by(C_LABEL)
-                                   .count(Scope.local).next();
+            Number communities = tryNext(this.graph().traversal().V()
+                                             .groupCount().by(C_LABEL)
+                                             .count(Scope.local));
             return ImmutableMap.of("iteration_times", times,
                                    "last_precision", changedPercent,
                                    "times", maxTimes,

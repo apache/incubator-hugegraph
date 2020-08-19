@@ -19,7 +19,9 @@
 
 package com.baidu.hugegraph.job.algorithm.cent;
 
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -32,14 +34,20 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.structure.Column;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.slf4j.Logger;
 
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.iterator.MapperIterator;
 import com.baidu.hugegraph.job.UserJob;
 import com.baidu.hugegraph.job.algorithm.AbstractAlgorithm;
 import com.baidu.hugegraph.structure.HugeElement;
+import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.define.Directions;
+import com.baidu.hugegraph.util.Log;
 
 public abstract class AbstractCentAlgorithm extends AbstractAlgorithm {
+
+    private static final Logger LOG = Log.logger(AbstractCentAlgorithm.class);
 
     @Override
     public String category() {
@@ -158,6 +166,33 @@ public abstract class AbstractCentAlgorithm extends AbstractAlgorithm {
                     }
                 }
                 return true;
+            });
+        }
+
+        protected GraphTraversal<Vertex, Id> substractPath(
+                                             GraphTraversal<Vertex, Vertex> t,
+                                             boolean withBoundary) {
+            // t.select(Pop.all, "v").unfold().id()
+            return t.select(Pop.all, "v").flatMap(it -> {
+                List<?> path = (List<?>) it.get();
+                if (withBoundary) {
+                    @SuppressWarnings("unchecked")
+                    Iterator<HugeVertex> items = (Iterator<HugeVertex>)
+                                                 path.iterator();
+                    return new MapperIterator<>(items, v -> v.id());
+                }
+                int len = path.size();
+                if (len < 3) {
+                    return Collections.emptyIterator();
+                }
+
+                LOG.debug("CentAlgorithm substract path: {}", path);
+                path.remove(path.size() -1);
+                path.remove(0);
+                @SuppressWarnings("unchecked")
+                Iterator<HugeVertex> items = (Iterator<HugeVertex>)
+                                             path.iterator();
+                return new MapperIterator<>(items, v -> v.id());
             });
         }
 

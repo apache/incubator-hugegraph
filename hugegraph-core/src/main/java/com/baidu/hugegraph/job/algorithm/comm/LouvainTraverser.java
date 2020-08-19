@@ -28,7 +28,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -647,16 +646,6 @@ public class LouvainTraverser extends AlgoTraverser {
             q += cin / m - Math.pow(cdegree / m, 2);
         }
         return q;
-    }
-
-    private <V extends Number> Number tryNext(GraphTraversal<?, V> iter) {
-        return this.execute(iter, () -> {
-            try {
-                return iter.next();
-            } catch (NoSuchElementException e) {
-                return 0;
-            }
-        });
     }
 
     public Collection<Object> showCommunity(String community) {
