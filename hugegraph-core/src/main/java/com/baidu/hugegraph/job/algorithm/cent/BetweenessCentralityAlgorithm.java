@@ -22,19 +22,27 @@ package com.baidu.hugegraph.job.algorithm.cent;
 import java.util.Map;
 
 import org.apache.tinkerpop.gremlin.process.traversal.P;
-import org.apache.tinkerpop.gremlin.process.traversal.Pop;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import com.baidu.hugegraph.job.UserJob;
 import com.baidu.hugegraph.type.define.Directions;
+import com.baidu.hugegraph.util.ParameterUtil;
 
 public class BetweenessCentralityAlgorithm extends AbstractCentAlgorithm {
+
+    public static final String KEY_WITH_BOUNDARY = "with_boundary";
 
     @Override
     public String name() {
         return "betweeness_centrality";
+    }
+
+    @Override
+    public void checkParameters(Map<String, Object> parameters) {
+        super.checkParameters(parameters);
+        withBoundary(parameters);
     }
 
     @Override
@@ -45,11 +53,19 @@ public class BetweenessCentralityAlgorithm extends AbstractCentAlgorithm {
                                                   depth(parameters),
                                                   degree(parameters),
                                                   sample(parameters),
+                                                  withBoundary(parameters),
                                                   sourceLabel(parameters),
                                                   sourceSample(parameters),
                                                   sourceCLabel(parameters),
                                                   top(parameters));
         }
+    }
+
+    protected static boolean withBoundary(Map<String, Object> parameters) {
+        if (!parameters.containsKey(KEY_WITH_BOUNDARY)) {
+            return false;
+        }
+        return ParameterUtil.parameterBoolean(parameters, KEY_WITH_BOUNDARY);
     }
 
     private static class Traverser extends AbstractCentAlgorithm.Traverser {
@@ -63,6 +79,7 @@ public class BetweenessCentralityAlgorithm extends AbstractCentAlgorithm {
                                            int depth,
                                            long degree,
                                            long sample,
+                                           boolean withBoundary,
                                            String sourceLabel,
                                            long sourceSample,
                                            String sourceCLabel,
@@ -79,8 +96,8 @@ public class BetweenessCentralityAlgorithm extends AbstractCentAlgorithm {
             t = t.emit().until(__.loops().is(P.gte(depth)));
             t = filterNonShortestPath(t, false);
 
-            GraphTraversal<Vertex, ?> tg = t.select(Pop.all, "v")
-                                            .unfold().id().groupCount();
+            GraphTraversal<Vertex, ?> tg = this.substractPath(t, withBoundary)
+                                               .groupCount();
             GraphTraversal<Vertex, ?> tLimit = topN(tg, topN);
 
             return this.execute(tLimit, () -> tLimit.next());

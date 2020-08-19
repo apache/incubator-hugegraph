@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -452,6 +453,16 @@ public abstract class AbstractAlgorithm implements Algorithm {
                     throw new HugeException("Can't close traversal", e);
                 }
             }
+        }
+
+        protected <V extends Number> Number tryNext(GraphTraversal<?, V> iter) {
+            return this.execute(iter, () -> {
+                try {
+                    return iter.next();
+                } catch (NoSuchElementException e) {
+                    return 0;
+                }
+            });
         }
 
         protected void commitIfNeeded() {
