@@ -68,6 +68,9 @@ public abstract class AbstractAlgorithm implements Algorithm {
     public static final long MAX_CAPACITY = MAX_QUERY_LIMIT;
     public static final int BATCH = 500;
 
+    public static final String USER_DIR = System.getProperty("user.dir");
+    public static final String EXPORT_PATH = USER_DIR + "/export";
+
     public static final String CATEGORY_AGGR = "aggregate";
     public static final String CATEGORY_PATH = "path";
     public static final String CATEGORY_RANK = "rank";
@@ -89,6 +92,7 @@ public abstract class AbstractAlgorithm implements Algorithm {
     public static final String KEY_PRECISION = "precision";
     public static final String KEY_SHOW_MOD= "show_modularity";
     public static final String KEY_SHOW_COMM = "show_community";
+    public static final String KEY_EXPORT_COMM = "export_community";
     public static final String KEY_SKIP_ISOLATED = "skip_isolated";
     public static final String KEY_CLEAR = "clear";
     public static final String KEY_CAPACITY = "capacity";
@@ -287,12 +291,16 @@ public abstract class AbstractAlgorithm implements Algorithm {
         protected AlgoTraverser(UserJob<Object> job, String name, int workers) {
             super(job.graph());
             this.job = job;
-            String prefix = name + "-" + job.task().id();
+            String prefix = name + "-" + this.jobId();
             this.executor = Consumers.newThreadPool(prefix, workers);
         }
 
         public void updateProgress(long progress) {
             this.job.updateProgress((int) progress);
+        }
+
+        public Id jobId() {
+            return this.job.task().id();
         }
 
         @Override
