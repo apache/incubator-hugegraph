@@ -44,6 +44,7 @@ public class LouvainAlgorithm extends AbstractCommAlgorithm {
         sourceCLabel(parameters);
         showModularity(parameters);
         showCommunity(parameters);
+        exportCommunity(parameters);
         skipIsolated(parameters);
         clearPass(parameters);
         workers(parameters);
@@ -60,6 +61,7 @@ public class LouvainAlgorithm extends AbstractCommAlgorithm {
         Long clearPass = clearPass(parameters);
         Long modPass = showModularity(parameters);
         String showComm = showCommunity(parameters);
+        Long exportPass = exportCommunity(parameters);
 
         try (LouvainTraverser traverser = new LouvainTraverser(
                                           job, workers, degree,
@@ -68,6 +70,10 @@ public class LouvainAlgorithm extends AbstractCommAlgorithm {
                 return traverser.clearPass(clearPass.intValue());
             } else if (modPass != null) {
                 return traverser.modularity(modPass.intValue());
+            } else if (exportPass != null) {
+                boolean vertexFirst = showComm == null;
+                int pass = exportPass.intValue();
+                return traverser.exportCommunity(pass, vertexFirst);
             } else if (showComm != null) {
                 return traverser.showCommunity(showComm);
             } else {
@@ -96,6 +102,15 @@ public class LouvainAlgorithm extends AbstractCommAlgorithm {
         }
         long pass = ParameterUtil.parameterLong(parameters, KEY_SHOW_MOD);
         HugeTraverser.checkNonNegative(pass, KEY_SHOW_MOD);
+        return pass;
+    }
+
+    protected static Long exportCommunity(Map<String, Object> parameters) {
+        if (!parameters.containsKey(KEY_EXPORT_COMM)) {
+            return null;
+        }
+        long pass = ParameterUtil.parameterLong(parameters, KEY_EXPORT_COMM);
+        HugeTraverser.checkNonNegative(pass, KEY_EXPORT_COMM);
         return pass;
     }
 

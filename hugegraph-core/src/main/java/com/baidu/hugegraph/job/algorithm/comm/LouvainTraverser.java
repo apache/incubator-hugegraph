@@ -19,6 +19,9 @@
 
 package com.baidu.hugegraph.job.algorithm.comm;
 
+import java.io.BufferedOutputStream;
+import java.io.FileOutputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -59,6 +62,7 @@ import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.Log;
+import com.baidu.hugegraph.util.StringEncoding;
 import com.google.common.collect.ImmutableMap;
 
 public class LouvainTraverser extends AlgoTraverser {
@@ -660,12 +664,45 @@ public class LouvainTraverser extends AlgoTraverser {
                 Vertex sub = subComms.next();
                 if (sub.property(C_MEMBERS).isPresent()) {
                     Set<Object> members = sub.value(C_MEMBERS);
-                    reachPass0 =  sub.label().equals(C_PASS0);
+                    reachPass0 = sub.label().equals(C_PASS0);
                     comms.addAll(members);
                 }
             }
         }
         return comms;
+    }
+
+    public long exportCommunity(int pass, boolean vertexFirst) {
+        String exportFile = String.format("%s/louvain-%s.txt",
+                                          LouvainAlgorithm.EXPORT_PATH,
+                                          this.jobId());
+        String label = labelOfPassN(pass);
+        GraphTraversal<Vertex, Vertex> t = this.g.V().hasLabel(label);
+        this.execute(t, () -> {
+            try (OutputStream os = new FileOutputStream(exportFile);
+                 BufferedOutputStream bos = new BufferedOutputStream(os)) {
+                while (t.hasNext()) {
+                    String comm = t.next().id().toString();
+                    Collection<Object> members = this.showCommunity(comm);
+                    if (vertexFirst) {
+                        for (Object member : members) {
+                            bos.write(StringEncoding.encode(member.toString()));
+                            bos.write(StringEncoding.encode("\t"));
+                            bos.write(StringEncoding.encode(comm));
+                            bos.write(StringEncoding.encode("\n"));
+                        }
+                    } else {
+                        bos.write(StringEncoding.encode(comm));
+                        bos.write(StringEncoding.encode(": "));
+                        bos.write(StringEncoding.encode(members.toString()));
+                        bos.write(StringEncoding.encode("\n"));
+                    }
+                }
+            }
+            return null;
+        });
+
+        return this.progress;
     }
 
     public long clearPass(int pass) {
