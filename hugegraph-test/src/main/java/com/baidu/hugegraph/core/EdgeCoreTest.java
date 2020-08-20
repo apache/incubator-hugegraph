@@ -5146,6 +5146,27 @@ public class EdgeCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testRemoveEdgeById() {
+        HugeGraph graph = graph();
+
+        Vertex james = graph.addVertex(T.label, "author", "id", 1,
+                                       "name", "James Gosling", "age", 62,
+                                       "lived", "Canadian");
+        Vertex java = graph.addVertex(T.label, "language", "name", "java");
+        Edge created = james.addEdge("created", java);
+        graph.tx().commit();
+
+        List<Edge> edges = graph.traversal().E().toList();
+        Assert.assertEquals(1, edges.size());
+
+        graph.removeEdge(created.label(), created.id());
+        graph.tx().commit();
+
+        edges = graph.traversal().E().toList();
+        Assert.assertEquals(0, edges.size());
+    }
+
+    @Test
     public void testRemoveEdgeNotExists() {
         HugeGraph graph = graph();
 
@@ -5153,12 +5174,16 @@ public class EdgeCoreTest extends BaseCoreTest {
                                        "name", "James Gosling", "age", 62,
                                        "lived", "Canadian");
         Vertex java = graph.addVertex(T.label, "language", "name", "java");
-
         Edge created = james.addEdge("created", java);
-
-        created.remove();
+        graph.tx().commit();
 
         List<Edge> edges = graph.traversal().E().toList();
+        Assert.assertEquals(1, edges.size());
+
+        created.remove();
+        graph.tx().commit();
+
+        edges = graph.traversal().E().toList();
         Assert.assertEquals(0, edges.size());
         // Remove again
         created.remove();

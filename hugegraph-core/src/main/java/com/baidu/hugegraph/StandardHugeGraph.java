@@ -428,6 +428,22 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
+    public void removeVertex(String label, Object id) {
+        if (label != null) {
+            VertexLabel vl = this.vertexLabel(label);
+            if (!vl.existsIndexLabel() && !vl.existsLinkLabel()) {
+                // Improve perf by removeVertex(id)
+                Id idValue = HugeVertex.getIdValue(id);
+                HugeVertex vertex = new HugeVertex(this, idValue, vl);
+                this.removeVertex(vertex);
+                return;
+            }
+        }
+
+        this.vertex(id).remove();
+    }
+
+    @Override
     public <V> void addVertexProperty(VertexProperty<V> p) {
         this.graphTransaction().addVertexProperty((HugeVertexProperty<V>) p);
     }
@@ -450,6 +466,22 @@ public class StandardHugeGraph implements HugeGraph {
     @Override
     public void removeEdge(Edge edge) {
         this.graphTransaction().removeEdge((HugeEdge) edge);
+    }
+
+    @Override
+    public void removeEdge(String label, Object id) {
+        if (label != null) {
+            EdgeLabel el = this.edgeLabel(label);
+            if (!el.existsIndexLabel()) {
+                // Improve perf by removeEdge(id)
+                Id idValue = HugeEdge.getIdValue(id, false);
+                HugeEdge edge = new HugeEdge(this, idValue, el);
+                this.removeEdge(edge);
+                return;
+            }
+        }
+
+        this.edge(id).remove();
     }
 
     @Override
