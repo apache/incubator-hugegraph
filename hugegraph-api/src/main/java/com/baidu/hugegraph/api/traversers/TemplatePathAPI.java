@@ -19,6 +19,11 @@
 
 package com.baidu.hugegraph.api.traversers;
 
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPACITY;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PATHS_LIMIT;
+
+
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -42,17 +47,15 @@ import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.traversal.algorithm.EdgeStep;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
-import com.baidu.hugegraph.traversal.algorithm.MultiNodeShortestPathTraverser;
+import com.baidu.hugegraph.traversal.algorithm.TemplatePathsTraverser;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPACITY;
-
-@Path("graphs/{graph}/traversers/multinodeshortestpath")
+@Path("graphs/{graph}/traversers/templatepaths")
 @Singleton
-public class MultiNodeShortestPathAPI extends TraverserAPI {
+public class TemplatePathAPI extends TraverserAPI {
 
     private static final Logger LOG = Log.logger(RestServer.class);
 
@@ -64,63 +67,74 @@ public class MultiNodeShortestPathAPI extends TraverserAPI {
                        @PathParam("graph") String graph,
                        Request request) {
         E.checkArgumentNotNull(request, "The request body can't be null");
-        E.checkArgumentNotNull(request.vertices,
-                               "The vertices of request can't be null");
-        E.checkArgument(request.step != null,
-                        "The steps of request can't be null");
+        E.checkArgumentNotNull(request.sources,
+                               "The sources of request can't be null");
+        E.checkArgumentNotNull(request.targets,
+                               "The targets of request can't be null");
+        E.checkArgument(request.steps != null && !request.steps.isEmpty(),
+                        "The steps of request can't be empty");
 
-        LOG.debug("Graph [{}] get multiple node shortest path from " +
-                  "vertices '{}', with step '{}', max_depth '{}', capacity " +
-                  "'{}' and with_vertex '{}'",
-                  graph, request.vertices, request.step, request.maxDepth,
-                  request.capacity, request.withVertex);
+        LOG.debug("Graph [{}] get template paths from source vertices '{}', " +
+                  "target vertices '{}', with steps '{}', " +
+                  "capacity '{}', limit '{}' and with_vertex '{}'",
+                  graph, request.sources, request.targets, request.steps,
+                  request.capacity, request.limit, request.withVertex);
 
         HugeGraph g = graph(manager, graph);
-        Iterator<Vertex> vertices = request.vertices.vertices(g);
+        Iterator<Vertex> sources = request.sources.vertices(g);
+        Iterator<Vertex> targets = request.targets.vertices(g);
+        List<EdgeStep> steps = steps(g, request.steps);
 
-        EdgeStep step = step(g, request.step);
-
-        MultiNodeShortestPathTraverser traverser =
-                                       new MultiNodeShortestPathTraverser(g);
-        List<HugeTraverser.Path> paths;
-        paths = traverser.multiNodeShortestPath(vertices, step,
-                                                request.maxDepth,
-                                                request.capacity);
+        TemplatePathsTraverser traverser = new TemplatePathsTraverser(g);
+        HugeTraverser.PathSet pathSet;
+        pathSet = traverser.templatePaths(sources, targets, steps,
+                                          request.capacity, request.limit);
 
         if (!request.withVertex) {
-            return manager.serializer(g).writePaths("paths", paths, false);
+            return manager.serializer(g).writePaths("paths", pathSet, false);
         }
 
         Set<Id> ids = new HashSet<>();
-        for (HugeTraverser.Path p : paths) {
+        for (HugeTraverser.Path p : pathSet) {
             ids.addAll(p.vertices());
         }
         Iterator<Vertex> iter = QueryResults.emptyIterator();
         if (!ids.isEmpty()) {
             iter = g.vertices(ids.toArray());
         }
-        return manager.serializer(g).writePaths("paths", paths, false, iter);
+        return manager.serializer(g).writePaths("paths", pathSet,
+                                                false, iter);
+    }
+
+    private static List<EdgeStep> steps(HugeGraph g, List<TraverserAPI.Step> steps) {
+        List<EdgeStep> edgeSteps = new ArrayList<>(steps.size());
+        for (TraverserAPI.Step step : steps) {
+            edgeSteps.add(step(g, step));
+        }
+        return edgeSteps;
     }
 
     private static class Request {
 
-        @JsonProperty("vertices")
-        public Vertices vertices;
-        @JsonProperty("step")
-        public Step step;
-        @JsonProperty("max_depth")
-        public int maxDepth;
+        @JsonProperty("sources")
+        public Vertices sources;
+        @JsonProperty("targets")
+        public Vertices targets;
+        @JsonProperty("steps")
+        public List<TraverserAPI.Step> steps;
         @JsonProperty("capacity")
         public long capacity = Long.valueOf(DEFAULT_CAPACITY);
+        @JsonProperty("limit")
+        public long limit = Long.valueOf(DEFAULT_PATHS_LIMIT);
         @JsonProperty("with_vertex")
         public boolean withVertex = false;
 
         @Override
         public String toString() {
-            return String.format("Request{vertices=%s,step=%s,maxDepth=%s" +
-                                 "capacity=%s,withVertex=%s}",
-                                 this.vertices, this.step, this.maxDepth,
-                                 this.capacity, this.withVertex);
+            return String.format("PathRequest{sources=%s,targets=%s,steps=%s," +
+                                 "capacity=%s,limit=%s,withVertex=%s}",
+                                 this.sources, this.targets, this.steps,
+                                 this.capacity, this.limit, this.withVertex);
         }
     }
 }

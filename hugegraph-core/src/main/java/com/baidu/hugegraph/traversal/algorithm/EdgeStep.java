@@ -37,7 +37,7 @@ import com.baidu.hugegraph.util.E;
 
 public class EdgeStep {
 
-    protected final Directions direction;
+    protected Directions direction;
     protected final Map<Id, String> labels;
     protected final Map<Id, Object> properties;
     protected final long degree;
@@ -82,6 +82,10 @@ public class EdgeStep {
         int elsSize = this.labels.size();
         Id[] edgeLabels = this.labels.keySet().toArray(new Id[elsSize]);
         return edgeLabels;
+    }
+
+    public void swithDirection() {
+        this.direction = this.direction.opposite();
     }
 
     public long limit() {

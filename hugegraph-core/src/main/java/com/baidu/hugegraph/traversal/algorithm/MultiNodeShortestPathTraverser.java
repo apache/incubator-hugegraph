@@ -36,8 +36,6 @@ import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.Path.EMPTY_P
 
 public class MultiNodeShortestPathTraverser extends HugeTraverser {
 
-    private static final int MAX_VERTICES = 10;
-
     public MultiNodeShortestPathTraverser(HugeGraph graph) {
         super(graph);
     }

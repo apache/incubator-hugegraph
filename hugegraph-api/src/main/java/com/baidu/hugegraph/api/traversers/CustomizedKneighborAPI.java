@@ -23,7 +23,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import javax.inject.Singleton;
@@ -38,7 +37,6 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
-import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.core.GraphManager;
@@ -47,7 +45,6 @@ import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.traversal.algorithm.CustomizedKneighborTraverser;
 import com.baidu.hugegraph.traversal.algorithm.EdgeStep;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
-import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
@@ -57,7 +54,7 @@ import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.*;
 
 @Path("graphs/{graph}/traversers/customizedkneighbor")
 @Singleton
-public class CustomizedKneighborAPI extends API{
+public class CustomizedKneighborAPI extends TraverserAPI {
 
     private static final Logger LOG = Log.logger(RestServer.class);
 
@@ -82,7 +79,7 @@ public class CustomizedKneighborAPI extends API{
         HugeGraph g = graph(manager, graph);
         Id sourceId = HugeVertex.getIdValue(request.source);
 
-        EdgeStep step = step(g, request);
+        EdgeStep step = step(g, request.step);
 
         CustomizedKneighborTraverser traverser =
                                      new CustomizedKneighborTraverser(g);
@@ -114,18 +111,12 @@ public class CustomizedKneighborAPI extends API{
                                                 paths, iter);
     }
 
-    private static EdgeStep step(HugeGraph graph, Request req) {
-        Step step = req.step;
-        return new EdgeStep(graph, step.direction, step.labels, step.properties,
-                            step.degree, step.skipDegree);
-    }
-
     private static class Request {
 
         @JsonProperty("source")
         public Object source;
         @JsonProperty("step")
-        public Step step;
+        public TraverserAPI.Step step;
         @JsonProperty("max_depth")
         public int maxDepth;
         @JsonProperty("limit")
@@ -141,28 +132,6 @@ public class CustomizedKneighborAPI extends API{
                                  "limit=%s,withVertex=%s,withPath=%s}",
                                  this.source, this.step, this.maxDepth,
                                  this.limit, this.withVertex, this.withPath);
-        }
-    }
-
-    private static class Step {
-
-        @JsonProperty("direction")
-        public Directions direction;
-        @JsonProperty("labels")
-        public List<String> labels;
-        @JsonProperty("properties")
-        public Map<String, Object> properties;
-        @JsonProperty("degree")
-        public long degree = Long.valueOf(DEFAULT_DEGREE);
-        @JsonProperty("skip_degree")
-        public long skipDegree = 0L;
-
-        @Override
-        public String toString() {
-            return String.format("Step{direction=%s,labels=%s,properties=%s," +
-                                 "degree=%s,skipDegree=%s}",
-                                 this.direction, this.labels, this.properties,
-                                 this.degree, this.skipDegree);
         }
     }
 }

@@ -37,7 +37,7 @@ import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public class SourceVertices {
+public class Vertices {
 
     @JsonProperty("ids")
     public Set<Object> ids;
@@ -46,7 +46,7 @@ public class SourceVertices {
     @JsonProperty("properties")
     public Map<String, Object> properties;
 
-    public Iterator<Vertex> sourcesVertices(HugeGraph g) {
+    public Iterator<Vertex> vertices(HugeGraph g) {
         Map<String, Object> props = this.properties;
         E.checkArgument(!((this.ids == null || this.ids.isEmpty()) &&
                         (props == null || props.isEmpty()) &&

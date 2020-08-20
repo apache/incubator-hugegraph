@@ -77,6 +77,8 @@ public class HugeTraverser {
     public static final String DEFAULT_MAX_DEPTH = "50";
     public static final String DEFAULT_WEIGHT = "0";
 
+    protected static final int MAX_VERTICES = 10;
+
     // Empirical value of scan limit, with which results can be returned in 3s
     public static final String DEFAULT_PAGE_LIMIT = "100000";
 
