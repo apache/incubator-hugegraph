@@ -1007,6 +1007,9 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
             User taskUser = User.fromJson(task.context());
             if (taskUser == null) {
+                if (User.ADMIN.equals(currentUser)) {
+                    return true;
+                }
                 return false;
             }
 
