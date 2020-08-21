@@ -102,7 +102,7 @@ public abstract class SchemaLabel extends SchemaElement
     }
 
     public boolean existsIndexLabel() {
-        return this.enableLabelIndex() || !this.indexLabels().isEmpty();
+        return !this.indexLabels().isEmpty();
     }
 
     public void removeIndexLabel(Id id) {

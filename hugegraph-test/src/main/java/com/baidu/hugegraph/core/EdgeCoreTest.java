@@ -5152,14 +5152,24 @@ public class EdgeCoreTest extends BaseCoreTest {
         Vertex james = graph.addVertex(T.label, "author", "id", 1,
                                        "name", "James Gosling", "age", 62,
                                        "lived", "Canadian");
-        Vertex java = graph.addVertex(T.label, "language", "name", "java");
-        Edge created = james.addEdge("created", java);
+        Vertex java = graph.addVertex(T.label, "book", "name", "java");
+        Edge write = james.addEdge("write", java, "time", "2017-6-7");
+        Edge authored = james.addEdge("authored", java);
         graph.tx().commit();
 
         List<Edge> edges = graph.traversal().E().toList();
-        Assert.assertEquals(1, edges.size());
+        Assert.assertEquals(2, edges.size());
 
-        graph.removeEdge(created.label(), created.id());
+        // remove edge without label index
+        graph.removeEdge(write.label(), write.id());
+        graph.tx().commit();
+
+        edges = graph.traversal().E().toList();
+        Assert.assertEquals(1, edges.size());
+        Assert.assertEquals(authored, edges.get(0));
+
+        // remove edge with label index
+        graph.removeEdge(authored.label(), authored.id());
         graph.tx().commit();
 
         edges = graph.traversal().E().toList();

@@ -4816,7 +4816,7 @@ public class VertexCoreTest extends BaseCoreTest {
         graph.addVertex(T.label, "author2", "id", 1,
                         "name", "James Gosling", "age", 62,
                         "lived", "Canadian");
-        graph.addVertex(T.label, "author2", "id", 2,
+        graph.addVertex(T.label, "author", "id", 2,
                         "name", "Guido van Rossum", "age", 61,
                         "lived", "California");
         graph.tx().commit();
@@ -4827,6 +4827,7 @@ public class VertexCoreTest extends BaseCoreTest {
                        T.label, "author2", "id", 1, "name", "James Gosling",
                        "age", 62, "lived", "Canadian");
 
+        // remove vertex without label index
         Vertex vertex = vertex("author2", "id", 1);
         graph.removeVertex(vertex.label(), vertex.id());
         graph.tx().commit();
@@ -4836,6 +4837,14 @@ public class VertexCoreTest extends BaseCoreTest {
         assertNotContains(vertices,
                           T.label, "author2", "id", 1, "name", "James Gosling",
                           "age", 62, "lived", "Canadian");
+
+        // remove vertex with label index
+        vertex = vertex("author", "id", 2);
+        graph.removeVertex(vertex.label(), vertex.id());
+        graph.tx().commit();
+
+        vertices = graph.traversal().V().toList();
+        Assert.assertEquals(0, vertices.size());
     }
 
     @Test

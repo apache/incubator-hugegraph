@@ -431,7 +431,7 @@ public class StandardHugeGraph implements HugeGraph {
     public void removeVertex(String label, Object id) {
         if (label != null) {
             VertexLabel vl = this.vertexLabel(label);
-            // remove `&& !vl.existsLinkLabel()` for poc
+            // It's OK even if exist adjacent edges `vl.existsLinkLabel()`
             if (!vl.existsIndexLabel()) {
                 // Improve perf by removeVertex(id)
                 Id idValue = HugeVertex.getIdValue(id);
