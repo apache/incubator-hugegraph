@@ -63,6 +63,8 @@ public final class RaftSharedContext {
     public static final int WAIT_LEADER_TIMEOUT = 5 * 60 * 1000;
     public static final int BUSY_SLEEP_FACTOR = 30 * 1000;
     public static final int WAIT_RPC_TIMEOUT = 30 * 60 * 1000;
+    // compress block size
+    public static final int BLOCK_SIZE = 4096;
 
     private final HugeGraphParams params;
     private final Map<String, RaftNode> nodes;

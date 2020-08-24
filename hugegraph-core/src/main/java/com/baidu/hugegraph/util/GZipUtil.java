@@ -31,7 +31,7 @@ import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 /**
  * Reference from https://dzone.com/articles/how-compress-and-uncompress
  */
-public final class CodeUtil {
+public final class GZipUtil {
 
     private static final int BUF_SIZE = (int) (4 * Bytes.KB);
 

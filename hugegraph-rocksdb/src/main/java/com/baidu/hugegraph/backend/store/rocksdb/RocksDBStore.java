@@ -57,7 +57,7 @@ import com.baidu.hugegraph.backend.store.rocksdb.RocksDBSessions.Session;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.exception.ConnectionException;
 import com.baidu.hugegraph.type.HugeType;
-import com.baidu.hugegraph.util.CodeUtil;
+import com.baidu.hugegraph.util.GZipUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.ExecutorUtil;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
@@ -574,7 +574,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
     private Session findMatchedSession(File snapshotFile) {
         String fileName = snapshotFile.getName();
         for (Session session : this.session()) {
-            if (fileName.equals(CodeUtil.md5(session.dataPath()))) {
+            if (fileName.equals(GZipUtil.md5(session.dataPath()))) {
                 return session;
             }
         }
