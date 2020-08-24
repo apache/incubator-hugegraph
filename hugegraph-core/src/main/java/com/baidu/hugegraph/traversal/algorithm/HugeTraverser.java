@@ -220,10 +220,12 @@ public class HugeTraverser {
                                   vertex, dir, labelId, degree));
         Set<Id> targetNeighbors = IteratorUtils.set(this.adjacentVertices(
                                   other, dir, labelId, degree));
-        int interNum = CollectionUtil.intersect(sourceNeighbors,
-                                                targetNeighbors).size();
-        int unionNum = CollectionUtil.union(sourceNeighbors,
-                                            targetNeighbors).size();
+        return jaccardSimilarity(sourceNeighbors, targetNeighbors);
+    }
+
+    public double jaccardSimilarity(Set<Id> set1, Set<Id> set2) {
+        int interNum = CollectionUtil.intersect(set1, set2).size();
+        int unionNum = CollectionUtil.union(set1, set2).size();
         return (double) interNum / unionNum;
     }
 
@@ -262,14 +264,22 @@ public class HugeTraverser {
         });
     }
 
+    protected Set<Id> adjacentVertices(Id source, EdgeStep step) {
+        Set<Id> neighbors = new HashSet<>();
+        Iterator<Edge> edges = this.edgesOfVertex(source, step);
+        while (edges.hasNext()) {
+            neighbors.add(((HugeEdge) edges.next()).id().otherVertexId());
+        }
+        return neighbors;
+    }
+
     protected Set<Node> adjacentVertices(Set<Node> vertices, EdgeStep step,
                                          Set<Node> excluded, long remaining) {
         Set<Node> neighbors = newSet();
         for (Node source : vertices) {
             Iterator<Edge> edges = this.edgesOfVertex(source.id(), step);
             while (edges.hasNext()) {
-                HugeEdge e = (HugeEdge) edges.next();
-                Id target = e.id().otherVertexId();
+                Id target = ((HugeEdge) edges.next()).id().otherVertexId();
                 KNode kNode = new KNode(target, (KNode) source);
                 if (excluded != null && excluded.contains(kNode)) {
                     continue;

@@ -33,8 +33,9 @@ public class CustomizedKneighborTraverser extends HugeTraverser {
     }
 
     public Set<Node> customizedKneighbor(Id source, EdgeStep step,
-                                          int maxDepth, long limit) {
+                                         int maxDepth, long limit) {
         E.checkNotNull(source, "source vertex id");
+        this.checkVertexExist(source, "source vertex");
         checkPositive(maxDepth, "k-neighbor max_depth");
         checkLimit(limit);
 

@@ -70,13 +70,18 @@ public class CustomizedKoutAPI extends TraverserAPI {
                                "The source of request can't be null");
         E.checkArgument(request.step != null,
                         "The steps of request can't be null");
+        if (request.countOnly) {
+            E.checkArgument(!request.withVertex && !request.withPath,
+                            "Can't return vertex or path when count only");
+        }
 
         LOG.debug("Graph [{}] get customized kout from source vertex '{}', " +
-                  "with step '{}', max_depth '{}', nearest '{}', capacity " +
-                  "'{}', limit '{}', with_vertex '{}' and with_path '{}'",
+                  "with step '{}', max_depth '{}', nearest '{}', " +
+                  "count_only '{}', capacity '{}', limit '{}', " +
+                  "with_vertex '{}' and with_path '{}'",
                   graph, request.source, request.step, request.maxDepth,
-                  request.nearest, request.capacity, request.limit,
-                  request.withVertex, request.withPath);
+                  request.nearest, request.countOnly, request.capacity,
+                  request.limit, request.withVertex, request.withPath);
 
         HugeGraph g = graph(manager, graph);
         Id sourceId = HugeVertex.getIdValue(request.source);
@@ -84,6 +89,7 @@ public class CustomizedKoutAPI extends TraverserAPI {
         EdgeStep step = step(g, request.step);
 
         CustomizedKoutTraverser traverser = new CustomizedKoutTraverser(g);
+        System.out.println(request);
         Set<Node> results = traverser.customizedKout(sourceId, step,
                                                      request.maxDepth,
                                                      request.nearest,
@@ -111,7 +117,7 @@ public class CustomizedKoutAPI extends TraverserAPI {
             }
         }
         return manager.serializer(g).writeNodes("kout", neighbors,
-                                                paths, iter);
+                                                paths, iter, request.countOnly);
     }
 
     private static class Request {
@@ -124,6 +130,8 @@ public class CustomizedKoutAPI extends TraverserAPI {
         public int maxDepth;
         @JsonProperty("nearest")
         public boolean nearest = true;
+        @JsonProperty("count_only")
+        public boolean countOnly = false;
         @JsonProperty("capacity")
         public long capacity = Long.valueOf(DEFAULT_CAPACITY);
         @JsonProperty("limit")
@@ -136,11 +144,11 @@ public class CustomizedKoutAPI extends TraverserAPI {
         @Override
         public String toString() {
             return String.format("KoutRequest{source=%s,step=%s,maxDepth=%s" +
-                                 "nearest=%s,capacity=%s,limit=%s," +
-                                 "withVertex=%s,withPath=%s}",
+                                 "nearest=%s,countOnly=%s,capacity=%s," +
+                                 "limit=%s,withVertex=%s,withPath=%s}",
                                  this.source, this.step, this.maxDepth,
-                                 this.nearest, this.capacity, this.limit,
-                                 this.withVertex, this.withPath);
+                                 this.nearest, this.countOnly, this.capacity,
+                                 this.limit, this.withVertex, this.withPath);
         }
     }
 }

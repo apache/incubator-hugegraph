@@ -36,7 +36,8 @@ public class CustomizedKoutTraverser extends HugeTraverser {
                                     boolean nearest, long capacity,
                                     long limit) {
         E.checkNotNull(source, "source vertex id");
-        checkPositive(maxDepth, "k-neighbor max_depth");
+        this.checkVertexExist(source, "source vertex");
+        checkPositive(maxDepth, "k-out max_depth");
         checkCapacity(capacity);
         checkLimit(limit);
 

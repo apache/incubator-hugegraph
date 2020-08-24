@@ -70,11 +70,16 @@ public class CustomizedKneighborAPI extends TraverserAPI {
                                "The source of request can't be null");
         E.checkArgument(request.step != null,
                         "The steps of request can't be null");
+        if (request.countOnly) {
+            E.checkArgument(!request.withVertex && !request.withPath,
+                            "Can't return vertex or path when count only");
+        }
 
         LOG.debug("Graph [{}] get customized kneighbor from source vertex " +
-                  "'{}', with step '{}', limit '{}', with_vertex '{}' " +
-                  "and with_path '{}'", graph, request.source, request.step,
-                  request.limit, request.withVertex, request.withPath);
+                  "'{}', with step '{}', limit '{}', count_only '{}', " +
+                  "with_vertex '{}' and with_path '{}'",
+                  graph, request.source, request.step, request.limit,
+                  request.countOnly, request.withVertex, request.withPath);
 
         HugeGraph g = graph(manager, graph);
         Id sourceId = HugeVertex.getIdValue(request.source);
@@ -108,7 +113,7 @@ public class CustomizedKneighborAPI extends TraverserAPI {
             }
         }
         return manager.serializer(g).writeNodes("kneighbor", neighbors,
-                                                paths, iter);
+                                                paths, iter, request.countOnly);
     }
 
     private static class Request {
@@ -121,6 +126,8 @@ public class CustomizedKneighborAPI extends TraverserAPI {
         public int maxDepth;
         @JsonProperty("limit")
         public long limit = Long.valueOf(DEFAULT_PATHS_LIMIT);
+        @JsonProperty("count_only")
+        public boolean countOnly = false;
         @JsonProperty("with_vertex")
         public boolean withVertex = false;
         @JsonProperty("with_path")
@@ -129,9 +136,10 @@ public class CustomizedKneighborAPI extends TraverserAPI {
         @Override
         public String toString() {
             return String.format("PathRequest{source=%s,step=%s,maxDepth=%s" +
-                                 "limit=%s,withVertex=%s,withPath=%s}",
-                                 this.source, this.step, this.maxDepth,
-                                 this.limit, this.withVertex, this.withPath);
+                                 "limit=%s,countOnly=%s,withVertex=%s," +
+                                 "withPath=%s}", this.source, this.step,
+                                 this.maxDepth, this.limit, this.countOnly,
+                                 this.withVertex, this.withPath);
         }
     }
 }
