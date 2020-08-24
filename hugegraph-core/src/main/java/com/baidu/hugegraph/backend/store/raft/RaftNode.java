@@ -49,8 +49,8 @@ import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreAction;
 import com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreCommandRequest;
 import com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreCommandResponse;
-import com.baidu.hugegraph.util.CodeUtil;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.LZ4Util;
 import com.baidu.hugegraph.util.Log;
 import com.google.protobuf.Message;
 import com.google.protobuf.ZeroByteStringHelper;
@@ -132,7 +132,9 @@ public class RaftNode {
         Task task = new Task();
         task.setDone(closure);
         // compress return BytesBuffer
-        ByteBuffer buffer = CodeUtil.compress(command.toBytes()).asByteBuffer();
+        ByteBuffer buffer = LZ4Util.compress(command.toBytes(),
+                                             RaftSharedContext.BLOCK_SIZE)
+                                   .asByteBuffer();
         LOG.debug("The bytes size of command(compressed) {} is {}",
                   command.action(), buffer.limit());
         task.setData(buffer);

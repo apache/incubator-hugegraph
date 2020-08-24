@@ -35,11 +35,14 @@ import com.baidu.hugegraph.backend.store.raft.RaftBackendStore.IncrCounter;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Action;
 import com.baidu.hugegraph.type.define.SerialEnum;
+import com.baidu.hugegraph.util.Bytes;
 
 public class StoreSerializer {
 
+    private static final int MUTATION_SIZE = (int) (1 * Bytes.MB);
+
     public static byte[] writeMutations(List<BackendMutation> mutations) {
-        int estimateSize = mutations.size() * 250 * 32;
+        int estimateSize = mutations.size() * MUTATION_SIZE;
         BytesBuffer buffer = BytesBuffer.allocate(1 + estimateSize);
         buffer.writeVInt(mutations.size());
         for (BackendMutation mutation : mutations) {
@@ -59,8 +62,7 @@ public class StoreSerializer {
     }
 
     public static byte[] writeMutation(BackendMutation mutation) {
-        int sizePerEntry = 32;
-        BytesBuffer buffer = BytesBuffer.allocate(mutation.size() * sizePerEntry);
+        BytesBuffer buffer = BytesBuffer.allocate(MUTATION_SIZE);
         // write mutation size
         buffer.writeVInt(mutation.size());
         for (Iterator<BackendAction> items = mutation.mutation();

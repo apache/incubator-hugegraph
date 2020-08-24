@@ -67,7 +67,7 @@ import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumnIterator;
 import com.baidu.hugegraph.backend.store.BackendEntryIterator;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.util.Bytes;
-import com.baidu.hugegraph.util.CodeUtil;
+import com.baidu.hugegraph.util.GZipUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.StringEncoding;
 import com.google.common.collect.ImmutableList;
@@ -860,7 +860,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
 
         @Override
         public void createSnapshot(String parentPath) {
-            String md5 = CodeUtil.md5(this.dataPath());
+            String md5 = GZipUtil.md5(this.dataPath());
             String snapshotPath = Paths.get(parentPath, md5).toString();
             // https://github.com/facebook/rocksdb/wiki/Checkpoints
             try (Checkpoint checkpoint = Checkpoint.create(rocksdb)) {

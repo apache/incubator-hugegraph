@@ -43,7 +43,7 @@ import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.raft.RaftBackendStore.IncrCounter;
 import com.baidu.hugegraph.type.HugeType;
-import com.baidu.hugegraph.util.CodeUtil;
+import com.baidu.hugegraph.util.LZ4Util;
 import com.baidu.hugegraph.util.Log;
 
 public class StoreStateMachine extends StateMachineAdapter {
@@ -140,7 +140,8 @@ public class StoreStateMachine extends StateMachineAdapter {
                     buffer = BytesBuffer.wrap(closure.command().data());
                 } else {
                     // Follower need readMutation data
-                    buffer = CodeUtil.decompress(iter.getData().array());
+                    buffer = LZ4Util.decompress(iter.getData().array(),
+                                                RaftSharedContext.BLOCK_SIZE);
                     action = StoreAction.fromCode(buffer.read());
                 }
                 if (closure != null) {
