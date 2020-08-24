@@ -155,6 +155,8 @@ public enum DataType implements SerialEnum {
         }
         if (value instanceof Date) {
             return (Date) value;
+        } else if (value instanceof Integer) {
+            return new Date(((Number) value).intValue());
         } else if (value instanceof Long) {
             return new Date(((Number) value).longValue());
         } else if (value instanceof String) {

@@ -586,7 +586,7 @@ public abstract class PropertyCoreTest extends BaseCoreTest {
 
         Assert.assertEquals(expected, property("time", expected.getTime()));
 
-        Date date1 = Utils.date("2018-12-12");
+        Date date1 = Utils.date("1970-01-01");
         Date date2 = Utils.date("2019-12-12");
         Date date3 = Utils.date("2020-5-28");
 
@@ -598,14 +598,7 @@ public abstract class PropertyCoreTest extends BaseCoreTest {
         Assert.assertEquals(set, propertySet("time",
                                              date1, date2, date2, date3));
 
-        Assert.assertThrows(IllegalArgumentException.class, () -> {
-            property("time", 123);
-        }, e -> {
-            Assert.assertContains("Invalid property value '123' " +
-                                  "for key 'time'", e.getMessage());
-            Assert.assertContains(" expect a value of type Date, " +
-                                  "actual type Integer", e.getMessage());
-        });
+        Assert.assertEquals(new Date(123), property("time", 123));
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             property("time", 123f);
