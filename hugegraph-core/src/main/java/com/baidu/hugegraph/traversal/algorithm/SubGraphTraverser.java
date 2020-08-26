@@ -60,7 +60,7 @@ public class SubGraphTraverser extends HugeTraverser {
                                   long limit, boolean rings,
                                   boolean sourceInRing) {
         E.checkNotNull(sourceV, "source vertex id");
-        this.checkVertexExist(sourceV);
+        this.checkVertexExist(sourceV, "source vertex");
         E.checkNotNull(dir, "direction");
         checkPositive(depth, "max depth");
         checkDegree(degree);
