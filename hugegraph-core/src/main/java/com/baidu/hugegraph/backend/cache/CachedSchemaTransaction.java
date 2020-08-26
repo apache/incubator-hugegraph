@@ -75,7 +75,7 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
         final String name = prefix + "-" + this.graphName();
         final long capacity = conf.get(CoreOptions.SCHEMA_CACHE_CAPACITY);
         // NOTE: must disable schema cache-expire due to getAllSchema()
-        return CacheManager.instance().threadLocalCache(name, capacity);
+        return CacheManager.instance().cache(name, capacity);
     }
 
     private CachedTypes cachedTypes() {

@@ -123,6 +123,17 @@ public class CacheManager {
         return cache;
     }
 
+    public <V> Cache<Id, V> optimisticCache(String name, long capacity) {
+        if (!this.caches.containsKey(name)) {
+            this.caches.putIfAbsent(name, new OptimisticCache<>(capacity));
+        }
+        @SuppressWarnings("unchecked")
+        Cache<Id, V> cache = (Cache<Id, V>) this.caches.get(name);
+        E.checkArgument(cache instanceof OptimisticCache,
+                        "Invalid cache implement: %s", cache.getClass());
+        return cache;
+    }
+
     public <V> Cache<Id, V> offheapCache(HugeGraph graph, String name,
                                          long capacity, long avgElemSize) {
         if (!this.caches.containsKey(name)) {
