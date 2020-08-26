@@ -44,6 +44,8 @@ public class ShortestPathTraverser extends HugeTraverser {
                              long skipDegree, long capacity) {
         E.checkNotNull(sourceV, "source vertex id");
         E.checkNotNull(targetV, "target vertex id");
+        this.checkVertexExist(sourceV);
+        this.checkVertexExist(targetV);
         E.checkNotNull(dir, "direction");
         checkPositive(depth, "max depth");
         checkDegree(degree);
@@ -84,6 +86,8 @@ public class ShortestPathTraverser extends HugeTraverser {
                                     long skipDegree, long capacity) {
         E.checkNotNull(sourceV, "source vertex id");
         E.checkNotNull(targetV, "target vertex id");
+        this.checkVertexExist(sourceV);
+        this.checkVertexExist(targetV);
         E.checkNotNull(dir, "direction");
         checkPositive(depth, "max depth");
         checkDegree(degree);

@@ -92,6 +92,7 @@ public class HugeTraverser {
                         int depth, boolean nearest,
                         long degree, long capacity, long limit) {
         E.checkNotNull(sourceV, "source vertex id");
+        this.checkVertexExist(sourceV);
         E.checkNotNull(dir, "direction");
         checkPositive(depth, "k-out max_depth");
         checkDegree(degree);
@@ -148,6 +149,7 @@ public class HugeTraverser {
                              String label, int depth,
                              long degree, long limit) {
         E.checkNotNull(sourceV, "source vertex id");
+        this.checkVertexExist(sourceV);
         E.checkNotNull(dir, "direction");
         checkPositive(depth, "k-neighbor max_depth");
         checkDegree(degree);
@@ -178,6 +180,8 @@ public class HugeTraverser {
                                  String label, long degree, long limit) {
         E.checkNotNull(vertex, "vertex id");
         E.checkNotNull(other, "the other vertex id");
+        this.checkVertexExist(vertex);
+        this.checkVertexExist(other);
         E.checkNotNull(direction, "direction");
         checkDegree(degree);
         checkLimit(limit);
@@ -201,6 +205,8 @@ public class HugeTraverser {
                                     String label, long degree) {
         E.checkNotNull(vertex, "vertex id");
         E.checkNotNull(other, "the other vertex id");
+        this.checkVertexExist(vertex);
+        this.checkVertexExist(other);
         E.checkNotNull(dir, "direction");
         checkDegree(degree);
 
@@ -378,6 +384,11 @@ public class HugeTraverser {
             return null;
         }
         return SchemaLabel.getLabelId(this.graph, HugeType.EDGE, label);
+    }
+
+    protected void checkVertexExist(Id vertexId) {
+        // Throw NotFoundException if not exist vertex with id 'vertexId'
+        this.graph.vertex(vertexId);
     }
 
     public static void checkDegree(long degree) {

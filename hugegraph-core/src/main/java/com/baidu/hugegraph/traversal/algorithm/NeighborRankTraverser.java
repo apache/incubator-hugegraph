@@ -54,6 +54,7 @@ public class NeighborRankTraverser extends HugeTraverser {
 
     public List<Map<Id, Double>> neighborRank(Id source, List<Step> steps) {
         E.checkArgumentNotNull(source, "The source vertex id can't be null");
+        this.checkVertexExist(source);
         E.checkArgument(!steps.isEmpty(), "The steps can't be empty");
 
         MultivaluedMap<Id, Node> sources = newMultivalueMap();
