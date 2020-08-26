@@ -50,7 +50,8 @@ public class CountTraverser extends HugeTraverser {
 
     public long count(Id source, List<Step> steps,
                       boolean containsTraversed, long dedupSize) {
-        E.checkArgumentNotNull(source, "The source can't be null");
+        E.checkNotNull(source, "source vertex id");
+        this.checkVertexExist(source, "source vertex");
         E.checkArgument(steps != null && !steps.isEmpty(),
                         "The steps can't be empty");
         checkDedupSize(dedupSize);

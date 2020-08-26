@@ -46,6 +46,8 @@ public class PathsTraverser extends HugeTraverser {
                          int depth, long degree, long capacity, long limit) {
         E.checkNotNull(sourceV, "source vertex id");
         E.checkNotNull(targetV, "target vertex id");
+        this.checkVertexExist(sourceV, "source vertex");
+        this.checkVertexExist(targetV, "target vertex");
         E.checkNotNull(sourceDir, "source direction");
         E.checkNotNull(targetDir, "target direction");
         E.checkArgument(sourceDir == targetDir ||
