@@ -116,7 +116,8 @@ public class StandardHugeGraph implements HugeGraph {
     private final EventHub graphEventHub;
     private final EventHub indexEventHub;
 
-    private final RateLimiter rateLimiter;
+    private final RateLimiter writeRateLimiter;
+    private final RateLimiter readRateLimiter;
     private final TaskManager taskManager;
     private final UserManager userManager;
 
@@ -133,8 +134,12 @@ public class StandardHugeGraph implements HugeGraph {
         this.graphEventHub = new EventHub("graph");
         this.indexEventHub = new EventHub("index");
 
-        final int limit = configuration.get(CoreOptions.RATE_LIMIT);
-        this.rateLimiter = limit > 0 ? RateLimiter.create(limit) : null;
+        final int writeLimit = configuration.get(CoreOptions.RATE_LIMIT_WRITE);
+        this.writeRateLimiter = writeLimit > 0 ?
+                                RateLimiter.create(writeLimit) : null;
+        final int readLimit = configuration.get(CoreOptions.RATE_LIMIT_READ);
+        this.readRateLimiter = readLimit > 0 ?
+                               RateLimiter.create(readLimit) : null;
 
         this.taskManager = TaskManager.instance();
 
@@ -942,8 +947,13 @@ public class StandardHugeGraph implements HugeGraph {
         }
 
         @Override
-        public RateLimiter rateLimiter() {
-            return StandardHugeGraph.this.rateLimiter;
+        public RateLimiter writeRateLimiter() {
+            return StandardHugeGraph.this.writeRateLimiter;
+        }
+
+        @Override
+        public RateLimiter readRateLimiter() {
+            return StandardHugeGraph.this.readRateLimiter;
         }
     }
 

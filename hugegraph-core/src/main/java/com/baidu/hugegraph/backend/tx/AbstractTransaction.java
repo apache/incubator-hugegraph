@@ -150,6 +150,15 @@ public abstract class AbstractTransaction implements Transaction {
 
         Query squery = this.serializer.writeQuery(query);
 
+        // Do rate limit if needed
+        RateLimiter rateLimiter = this.graph.readRateLimiter();
+        if (rateLimiter != null && query.resultType().isGraph()) {
+            double time = rateLimiter.acquire(1);
+            if (time > 0) {
+                LOG.debug("Waited for {}s to query", time);
+            }
+        }
+
         this.beforeRead();
         try {
             return new QueryResults<>(this.store.query(squery), query);
@@ -195,7 +204,7 @@ public abstract class AbstractTransaction implements Transaction {
         }
 
         // Do rate limit if needed
-        RateLimiter rateLimiter = this.graph.rateLimiter();
+        RateLimiter rateLimiter = this.graph.writeRateLimiter();
         if (rateLimiter != null) {
             int size = this.mutationSize();
             double time = size > 0 ? rateLimiter.acquire(size) : 0.0;

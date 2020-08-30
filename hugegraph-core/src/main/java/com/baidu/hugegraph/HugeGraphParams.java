@@ -66,5 +66,6 @@ public interface HugeGraphParams {
 
     public AbstractSerializer serializer();
     public Analyzer analyzer();
-    public RateLimiter rateLimiter();
+    public RateLimiter writeRateLimiter();
+    public RateLimiter readRateLimiter();
 }
