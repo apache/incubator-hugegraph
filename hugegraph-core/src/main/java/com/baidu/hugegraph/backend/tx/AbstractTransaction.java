@@ -33,6 +33,7 @@ import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.serializer.AbstractSerializer;
 import com.baidu.hugegraph.backend.store.BackendEntry;
+import com.baidu.hugegraph.backend.store.BackendEntryIterator;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
@@ -157,6 +158,7 @@ public abstract class AbstractTransaction implements Transaction {
             if (time > 0) {
                 LOG.debug("Waited for {}s to query", time);
             }
+            BackendEntryIterator.checkInterrupted();
         }
 
         this.beforeRead();
@@ -211,6 +213,7 @@ public abstract class AbstractTransaction implements Transaction {
             if (time > 0) {
                 LOG.debug("Waited for {}s to mutate {} item(s)", time, size);
             }
+            BackendEntryIterator.checkInterrupted();
         }
 
         // Do commit
