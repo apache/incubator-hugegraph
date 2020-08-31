@@ -25,7 +25,6 @@ import java.util.UUID;
 import com.baidu.hugegraph.backend.id.Id.IdType;
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.baidu.hugegraph.structure.HugeVertex;
-import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.LongEncoding;
 import com.baidu.hugegraph.util.NumericUtil;
@@ -106,6 +105,26 @@ public abstract class IdGenerator {
         }
     }
 
+    public final static IdType idType(Id id) {
+        if (id instanceof LongId) {
+            return IdType.LONG;
+        }
+        if (id instanceof UuidId) {
+            return IdType.UUID;
+        }
+        if (id instanceof StringId) {
+            return IdType.STRING;
+        }
+        if (id instanceof EdgeId) {
+            return IdType.EDGE;
+        }
+        return IdType.UNKNOWN;
+    }
+
+    private final static int compareType(Id id1, Id id2) {
+        return idType(id1).ordinal() - idType(id2).ordinal();
+    }
+
     /****************************** id defines ******************************/
 
     public static final class StringId implements Id {
@@ -153,6 +172,10 @@ public abstract class IdGenerator {
 
         @Override
         public int compareTo(Id other) {
+            int cmp = compareType(this, other);
+            if (cmp != 0) {
+                return cmp;
+            }
             return this.id.compareTo(other.asString());
         }
 
@@ -222,6 +245,10 @@ public abstract class IdGenerator {
 
         @Override
         public int compareTo(Id other) {
+            int cmp = compareType(this, other);
+            if (cmp != 0) {
+                return cmp;
+            }
             return Long.compare(this.id, other.asLong());
         }
 
@@ -325,10 +352,11 @@ public abstract class IdGenerator {
         @Override
         public int compareTo(Id other) {
             E.checkNotNull(other, "compare id");
-            if (other instanceof UuidId) {
-                return this.uuid.compareTo(((UuidId) other).uuid);
+            int cmp = compareType(this, other);
+            if (cmp != 0) {
+                return cmp;
             }
-            return Bytes.compare(this.asBytes(), other.asBytes());
+            return this.uuid.compareTo(((UuidId) other).uuid);
         }
 
         @Override
