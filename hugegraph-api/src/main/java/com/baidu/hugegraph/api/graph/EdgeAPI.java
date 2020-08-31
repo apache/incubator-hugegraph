@@ -361,15 +361,14 @@ public class EdgeAPI extends BatchAPI {
     @RolesAllowed({"admin", "$owner=$graph $action=edge_delete"})
     public void delete(@Context GraphManager manager,
                        @PathParam("graph") String graph,
-                       @PathParam("id") String id) {
+                       @PathParam("id") String id,
+                       @QueryParam("label") String label) {
         LOG.debug("Graph [{}] remove vertex by id '{}'", graph, id);
 
         HugeGraph g = graph(manager, graph);
-        // TODO: add removeEdge(id) to improve
         commit(g, () -> {
-            Edge edge;
             try {
-                edge = g.edge(id);
+                g.removeEdge(label, id);
             } catch (NotFoundException e) {
                 throw new IllegalArgumentException(String.format(
                           "No such edge with id: '%s', %s", id, e));
@@ -377,7 +376,6 @@ public class EdgeAPI extends BatchAPI {
                 throw new IllegalArgumentException(String.format(
                           "No such edge with id: '%s'", id));
             }
-            edge.remove();
         });
     }
 

@@ -308,16 +308,15 @@ public class VertexAPI extends BatchAPI {
     @RolesAllowed({"admin", "$owner=$graph $action=vertex_delete"})
     public void delete(@Context GraphManager manager,
                        @PathParam("graph") String graph,
-                       @PathParam("id") String idValue) {
+                       @PathParam("id") String idValue,
+                       @QueryParam("label") String label) {
         LOG.debug("Graph [{}] remove vertex by id '{}'", graph, idValue);
 
         Id id = checkAndParseVertexId(idValue);
         HugeGraph g = graph(manager, graph);
-        // TODO: add removeVertex(id) to improve
         commit(g, () -> {
-            Vertex vertex;
             try {
-                vertex = g.vertex(id);
+                g.removeVertex(label, id);
             } catch (NotFoundException e) {
                 throw new IllegalArgumentException(String.format(
                           "No such vertex with id: '%s', %s", id, e));
@@ -325,7 +324,6 @@ public class VertexAPI extends BatchAPI {
                 throw new IllegalArgumentException(String.format(
                           "No such vertex with id: '%s'", id));
             }
-            vertex.remove();
         });
     }
 

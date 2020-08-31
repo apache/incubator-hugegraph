@@ -5146,6 +5146,37 @@ public class EdgeCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testRemoveEdgeById() {
+        HugeGraph graph = graph();
+
+        Vertex james = graph.addVertex(T.label, "author", "id", 1,
+                                       "name", "James Gosling", "age", 62,
+                                       "lived", "Canadian");
+        Vertex java = graph.addVertex(T.label, "book", "name", "java");
+        Edge write = james.addEdge("write", java, "time", "2017-6-7");
+        Edge authored = james.addEdge("authored", java);
+        graph.tx().commit();
+
+        List<Edge> edges = graph.traversal().E().toList();
+        Assert.assertEquals(2, edges.size());
+
+        // remove edge without label index
+        graph.removeEdge(write.label(), write.id());
+        graph.tx().commit();
+
+        edges = graph.traversal().E().toList();
+        Assert.assertEquals(1, edges.size());
+        Assert.assertEquals(authored, edges.get(0));
+
+        // remove edge with label index
+        graph.removeEdge(authored.label(), authored.id());
+        graph.tx().commit();
+
+        edges = graph.traversal().E().toList();
+        Assert.assertEquals(0, edges.size());
+    }
+
+    @Test
     public void testRemoveEdgeNotExists() {
         HugeGraph graph = graph();
 
@@ -5153,12 +5184,16 @@ public class EdgeCoreTest extends BaseCoreTest {
                                        "name", "James Gosling", "age", 62,
                                        "lived", "Canadian");
         Vertex java = graph.addVertex(T.label, "language", "name", "java");
-
         Edge created = james.addEdge("created", java);
-
-        created.remove();
+        graph.tx().commit();
 
         List<Edge> edges = graph.traversal().E().toList();
+        Assert.assertEquals(1, edges.size());
+
+        created.remove();
+        graph.tx().commit();
+
+        edges = graph.traversal().E().toList();
         Assert.assertEquals(0, edges.size());
         // Remove again
         created.remove();

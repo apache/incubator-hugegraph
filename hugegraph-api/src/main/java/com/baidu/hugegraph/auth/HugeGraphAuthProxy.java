@@ -362,6 +362,11 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     @Override
+    public void removeVertex(String label, Object id) {
+        this.removeVertex(this.vertex(id));
+    }
+
+    @Override
     public <V> void addVertexProperty(VertexProperty<V> property) {
         verifyElemPermission(HugePermission.WRITE, property.element());
         this.hugegraph.addVertexProperty(property);
@@ -389,6 +394,11 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     public void removeEdge(Edge edge) {
         verifyElemPermission(HugePermission.DELETE, edge);
         this.hugegraph.removeEdge(edge);
+    }
+
+    @Override
+    public void removeEdge(String label, Object id) {
+        this.removeEdge(this.edge(id));
     }
 
     @Override
@@ -997,6 +1007,9 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
             User taskUser = User.fromJson(task.context());
             if (taskUser == null) {
+                if (User.ADMIN.equals(currentUser)) {
+                    return true;
+                }
                 return false;
             }
 

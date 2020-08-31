@@ -101,6 +101,10 @@ public abstract class SchemaLabel extends SchemaElement
         this.indexLabels.addAll(Arrays.asList(ids));
     }
 
+    public boolean existsIndexLabel() {
+        return !this.indexLabels().isEmpty();
+    }
+
     public void removeIndexLabel(Id id) {
         this.indexLabels.remove(id);
     }

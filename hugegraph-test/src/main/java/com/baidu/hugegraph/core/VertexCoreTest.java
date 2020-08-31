@@ -4804,6 +4804,50 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testRemoveVertexById() {
+        HugeGraph graph = graph();
+
+        graph.schema().vertexLabel("author2")
+             .properties("id", "name", "age", "lived")
+             .primaryKeys("id")
+             .nullableKeys("age", "lived")
+             .enableLabelIndex(false)
+             .create();
+        graph.addVertex(T.label, "author2", "id", 1,
+                        "name", "James Gosling", "age", 62,
+                        "lived", "Canadian");
+        graph.addVertex(T.label, "author", "id", 2,
+                        "name", "Guido van Rossum", "age", 61,
+                        "lived", "California");
+        graph.tx().commit();
+
+        List<Vertex> vertices = graph.traversal().V().toList();
+        Assert.assertEquals(2, vertices.size());
+        assertContains(vertices,
+                       T.label, "author2", "id", 1, "name", "James Gosling",
+                       "age", 62, "lived", "Canadian");
+
+        // remove vertex without label index
+        Vertex vertex = vertex("author2", "id", 1);
+        graph.removeVertex(vertex.label(), vertex.id());
+        graph.tx().commit();
+
+        vertices = graph.traversal().V().toList();
+        Assert.assertEquals(1, vertices.size());
+        assertNotContains(vertices,
+                          T.label, "author2", "id", 1, "name", "James Gosling",
+                          "age", 62, "lived", "Canadian");
+
+        // remove vertex with label index
+        vertex = vertex("author", "id", 2);
+        graph.removeVertex(vertex.label(), vertex.id());
+        graph.tx().commit();
+
+        vertices = graph.traversal().V().toList();
+        Assert.assertEquals(0, vertices.size());
+    }
+
+    @Test
     public void testRemoveVertexOfNotExists() {
         HugeGraph graph = graph();
         init10Vertices();

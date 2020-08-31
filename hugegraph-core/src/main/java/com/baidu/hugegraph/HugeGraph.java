@@ -98,12 +98,14 @@ public interface HugeGraph extends Graph {
     @Override
     public Vertex addVertex(Object... keyValues);
     public void removeVertex(Vertex vertex);
+    public void removeVertex(String label, Object id);
     public <V> void addVertexProperty(VertexProperty<V> property);
     public <V> void removeVertexProperty(VertexProperty<V> property);
 
     public Edge addEdge(Edge edge);
     public void canAddEdge(Edge edge);
     public void removeEdge(Edge edge);
+    public void removeEdge(String label, Object id);
     public <V> void addEdgeProperty(Property<V> property);
     public <V> void removeEdgeProperty(Property<V> property);
 
