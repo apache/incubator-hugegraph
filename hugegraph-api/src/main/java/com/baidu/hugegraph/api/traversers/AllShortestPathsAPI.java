@@ -19,6 +19,8 @@
 
 package com.baidu.hugegraph.api.traversers;
 
+import java.util.List;
+
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPACITY;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
 
@@ -45,6 +47,7 @@ import com.baidu.hugegraph.traversal.algorithm.ShortestPathTraverser;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
+import com.google.common.collect.ImmutableList;
 
 @Path("graphs/{graph}/traversers/allshortestpaths")
 @Singleton
@@ -81,9 +84,10 @@ public class AllShortestPathsAPI extends API {
         HugeGraph g = graph(manager, graph);
 
         ShortestPathTraverser traverser = new ShortestPathTraverser(g);
+        List<String> edgeLabels = ImmutableList.of(edgeLabel);
         HugeTraverser.PathSet paths = traverser.allShortestPaths(
-                                      sourceId, targetId, dir, edgeLabel, depth,
-                                      degree, skipDegree, capacity);
+                                      sourceId, targetId, dir, edgeLabels,
+                                      depth, degree, skipDegree, capacity);
         return manager.serializer(g).writePaths("paths", paths, false);
     }
 }

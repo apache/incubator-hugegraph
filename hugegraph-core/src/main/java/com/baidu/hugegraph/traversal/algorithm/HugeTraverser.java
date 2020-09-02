@@ -46,6 +46,7 @@ import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
+import com.baidu.hugegraph.iterator.FilterIterator;
 import com.baidu.hugegraph.iterator.MapperIterator;
 import com.baidu.hugegraph.schema.SchemaLabel;
 import com.baidu.hugegraph.structure.HugeEdge;
@@ -75,6 +76,8 @@ public class HugeTraverser {
     public static final String DEFAULT_SAMPLE = "100";
     public static final String DEFAULT_MAX_DEPTH = "50";
     public static final String DEFAULT_WEIGHT = "0";
+
+    protected static final int MAX_VERTICES = 10;
 
     // Empirical value of scan limit, with which results can be returned in 3s
     public static final String DEFAULT_PAGE_LIMIT = "100000";
@@ -217,10 +220,12 @@ public class HugeTraverser {
                                   vertex, dir, labelId, degree));
         Set<Id> targetNeighbors = IteratorUtils.set(this.adjacentVertices(
                                   other, dir, labelId, degree));
-        int interNum = CollectionUtil.intersect(sourceNeighbors,
-                                                targetNeighbors).size();
-        int unionNum = CollectionUtil.union(sourceNeighbors,
-                                            targetNeighbors).size();
+        return jaccardSimilarity(sourceNeighbors, targetNeighbors);
+    }
+
+    public double jaccardSimilarity(Set<Id> set1, Set<Id> set2) {
+        int interNum = CollectionUtil.intersect(set1, set2).size();
+        int unionNum = CollectionUtil.union(set1, set2).size();
         return (double) interNum / unionNum;
     }
 
@@ -257,6 +262,35 @@ public class HugeTraverser {
             HugeEdge edge = (HugeEdge) e;
             return edge.id().otherVertexId();
         });
+    }
+
+    protected Set<Node> adjacentVertices(Set<Node> vertices, EdgeStep step,
+                                         Set<Node> excluded, long remaining) {
+        Set<Node> neighbors = newSet();
+        for (Node source : vertices) {
+            Iterator<Edge> edges = this.edgesOfVertex(source.id(), step);
+            while (edges.hasNext()) {
+                Id target = ((HugeEdge) edges.next()).id().otherVertexId();
+                KNode kNode = new KNode(target, (KNode) source);
+                if (excluded != null && excluded.contains(kNode)) {
+                    continue;
+                }
+                neighbors.add(kNode);
+                if (--remaining <= 0L) {
+                    return neighbors;
+                }
+            }
+        }
+        return neighbors;
+    }
+
+    protected Set<Id> adjacentVertices(Id source, EdgeStep step) {
+        Set<Id> neighbors = new HashSet<>();
+        Iterator<Edge> edges = this.edgesOfVertex(source, step);
+        while (edges.hasNext()) {
+            neighbors.add(((HugeEdge) edges.next()).id().otherVertexId());
+        }
+        return neighbors;
     }
 
     protected Iterator<Edge> edgesOfVertex(Id source, Directions dir,
@@ -309,16 +343,24 @@ public class HugeTraverser {
         Query query = GraphTransaction.constructEdgesQuery(source,
                                                            edgeStep.direction,
                                                            edgeLabels);
+        ConditionQuery filter = null;
         if (mustAllSK) {
             this.fillFilterBySortKeys(query, edgeLabels, edgeStep.properties);
         } else {
-            this.fillFilterByProperties(query, edgeStep.properties);
+            filter = (ConditionQuery) query.copy();
+            this.fillFilterByProperties(filter, edgeStep.properties);
         }
         query.capacity(Query.NO_CAPACITY);
         if (edgeStep.limit() != NO_LIMIT) {
             query.limit(edgeStep.limit());
         }
         Iterator<Edge> edges = this.graph().edges(query);
+        if (filter != null) {
+            ConditionQuery finalFilter = filter;
+            edges = new FilterIterator<>(edges, (e) -> {
+                return finalFilter.test((HugeEdge) e);
+            });
+        }
         return edgeStep.skipSuperNodeIfNeeded(edges);
     }
 
@@ -587,6 +629,22 @@ public class HugeTraverser {
             Node other = (Node) object;
             return Objects.equals(this.id, other.id) &&
                    Objects.equals(this.parent, other.parent);
+        }
+    }
+
+    public static class KNode extends Node {
+
+        public KNode(Id id, KNode parent) {
+            super(id, parent);
+        }
+
+        @Override
+        public boolean equals(Object object) {
+            if (!(object instanceof KNode)) {
+                return false;
+            }
+            KNode other = (KNode) object;
+            return Objects.equals(this.id(), other.id());
         }
     }
 

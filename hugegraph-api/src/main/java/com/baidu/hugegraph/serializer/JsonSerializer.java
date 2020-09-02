@@ -25,6 +25,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -50,6 +51,7 @@ import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
 public class JsonSerializer implements Serializer {
 
@@ -285,5 +287,24 @@ public class JsonSerializer implements Serializer {
                                      Iterator<Vertex> vertices) {
         return JsonUtil.toJson(ImmutableMap.of("paths", paths.toMap(),
                                                "vertices", vertices));
+    }
+
+    @Override
+    public String writeNodesWithPath(String name, Set<Id> nodes,
+                                     Collection<HugeTraverser.Path> paths,
+                                     Iterator<Vertex> iterator,
+                                     boolean countOnly) {
+        List<Map<String, Object>> pathList;
+        pathList = new ArrayList<>();
+        for (HugeTraverser.Path path : paths) {
+            pathList.add(path.toMap(false));
+        }
+
+        Map<String, Object> results;
+        results = ImmutableMap.of("size", nodes.size(),
+                                  name, countOnly ? ImmutableSet.of() : nodes,
+                                  "paths", pathList,
+                                  "vertices", iterator);
+        return JsonUtil.toJson(results);
     }
 }

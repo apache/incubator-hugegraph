@@ -86,7 +86,7 @@ public class CustomizedPathsAPI extends API {
                   request.withVertex);
 
         HugeGraph g = graph(manager, graph);
-        Iterator<Vertex> sources = request.sources.sourcesVertices(g);
+        Iterator<Vertex> sources = request.sources.vertices(g);
         List<CustomizePathsTraverser.Step> steps = step(g, request);
         boolean sorted = request.sortBy != SortBy.NONE;
 
@@ -129,7 +129,7 @@ public class CustomizedPathsAPI extends API {
     private static class PathRequest {
 
         @JsonProperty("sources")
-        public SourceVertices sources;
+        public Vertices sources;
         @JsonProperty("steps")
         public List<Step> steps;
         @JsonProperty("sort_by")
