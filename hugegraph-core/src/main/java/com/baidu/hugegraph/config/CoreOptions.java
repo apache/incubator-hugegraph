@@ -182,10 +182,18 @@ public class CoreOptions extends OptionHolder {
                     8
             );
 
-    public static final ConfigOption<Integer> RATE_LIMIT =
+    public static final ConfigOption<Integer> RATE_LIMIT_WRITE =
             new ConfigOption<>(
-                    "rate_limit",
+                    "rate_limit.write",
                     "The max rate(items/s) to add/update/delete vertices/edges.",
+                    rangeInt(0, Integer.MAX_VALUE),
+                    0
+            );
+
+    public static final ConfigOption<Integer> RATE_LIMIT_READ =
+            new ConfigOption<>(
+                    "rate_limit.read",
+                    "The max rate(times/s) to execute query of vertices/edges.",
                     rangeInt(0, Integer.MAX_VALUE),
                     0
             );
