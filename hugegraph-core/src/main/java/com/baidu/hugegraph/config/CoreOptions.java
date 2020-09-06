@@ -309,6 +309,32 @@ public class CoreOptions extends OptionHolder {
                     1000
             );
 
+    public static final ConfigOption<Boolean> QUERY_RAMTABLE_ENABLE =
+            new ConfigOption<>(
+                    "query.ramtable_enable",
+                    "Whether to enable ramtable for query of adjacent edges.",
+                    disallowEmpty(),
+                    false
+            );
+
+    public static final ConfigOption<Long> QUERY_RAMTABLE_VERTICES_CAPACITY =
+            new ConfigOption<>(
+                    "query.ramtable_vertices_capacity",
+                    "The maximum number of vertices in ramtable, " +
+                    "generally the largest vertex id is used as capacity.",
+                    rangeInt(1L, Integer.MAX_VALUE * 2L),
+                    10000000L
+            );
+
+    public static final ConfigOption<Integer> QUERY_RAMTABLE_EDGES_CAPACITY =
+            new ConfigOption<>(
+                    "query.ramtable_edges_capacity",
+                    "The maximum number of edges in ramtable, " +
+                    "include OUT and IN edges.",
+                    rangeInt(1, Integer.MAX_VALUE),
+                    20000000
+            );
+
     public static final ConfigOption<Integer> VERTEX_TX_CAPACITY =
             new ConfigOption<>(
                     "vertex.tx_capacity",

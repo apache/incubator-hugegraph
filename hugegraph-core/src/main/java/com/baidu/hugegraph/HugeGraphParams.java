@@ -23,6 +23,7 @@ import com.baidu.hugegraph.analyzer.Analyzer;
 import com.baidu.hugegraph.backend.serializer.AbstractSerializer;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendStore;
+import com.baidu.hugegraph.backend.store.ram.RamTable;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.config.HugeConfig;
@@ -68,4 +69,5 @@ public interface HugeGraphParams {
     public Analyzer analyzer();
     public RateLimiter writeRateLimiter();
     public RateLimiter readRateLimiter();
+    public RamTable ramtable();
 }

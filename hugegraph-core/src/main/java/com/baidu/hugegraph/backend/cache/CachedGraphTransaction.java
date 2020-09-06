@@ -34,6 +34,7 @@ import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
+import com.baidu.hugegraph.backend.store.ram.RamTable;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
@@ -226,6 +227,11 @@ public final class CachedGraphTransaction extends GraphTransaction {
 
     @Override
     protected final Iterator<HugeEdge> queryEdgesFromBackend(Query query) {
+        RamTable ramtable = this.params().ramtable();
+        if (ramtable != null && ramtable.matched(query)) {
+            return ramtable.query(query);
+        }
+
         if (query.empty() || query.paging() || query.bigCapacity()) {
             // Query all edges or query edges in paging, don't cache it
             return super.queryEdgesFromBackend(query);

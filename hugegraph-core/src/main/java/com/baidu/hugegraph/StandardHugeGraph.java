@@ -54,6 +54,7 @@ import com.baidu.hugegraph.backend.store.BackendProviderFactory;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
+import com.baidu.hugegraph.backend.store.ram.RamTable;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.config.CoreOptions;
@@ -126,26 +127,37 @@ public class StandardHugeGraph implements HugeGraph {
     private final BackendStoreProvider storeProvider;
     private final TinkerpopTransaction tx;
 
-    public StandardHugeGraph(HugeConfig configuration) {
+    private final RamTable ramtable;
+
+    public StandardHugeGraph(HugeConfig config) {
         this.params = new StandardHugeGraphParams();
-        this.configuration = configuration;
+        this.configuration = config;
 
         this.schemaEventHub = new EventHub("schema");
         this.graphEventHub = new EventHub("graph");
         this.indexEventHub = new EventHub("index");
 
-        final int writeLimit = configuration.get(CoreOptions.RATE_LIMIT_WRITE);
+        final int writeLimit = config.get(CoreOptions.RATE_LIMIT_WRITE);
         this.writeRateLimiter = writeLimit > 0 ?
                                 RateLimiter.create(writeLimit) : null;
-        final int readLimit = configuration.get(CoreOptions.RATE_LIMIT_READ);
+        final int readLimit = config.get(CoreOptions.RATE_LIMIT_READ);
         this.readRateLimiter = readLimit > 0 ?
                                RateLimiter.create(readLimit) : null;
+
+        boolean ramtable = config.get(CoreOptions.QUERY_RAMTABLE_ENABLE);
+        if (!ramtable) {
+            this.ramtable = null;
+        } else {
+            long vc = config.get(CoreOptions.QUERY_RAMTABLE_VERTICES_CAPACITY);
+            int ec = config.get(CoreOptions.QUERY_RAMTABLE_EDGES_CAPACITY);
+            this.ramtable = new RamTable(this, vc, ec);
+        }
 
         this.taskManager = TaskManager.instance();
 
         this.features = new HugeFeatures(this, true);
 
-        this.name = configuration.get(CoreOptions.STORE);
+        this.name = config.get(CoreOptions.STORE);
         this.started = false;
         this.closed = false;
         this.mode = GraphMode.NONE;
@@ -401,6 +413,15 @@ public class StandardHugeGraph implements HugeGraph {
         LOG.debug("Loading text analyzer '{}' with mode '{}' for graph '{}'",
                   name, mode, this.name);
         return AnalyzerFactory.analyzer(name, mode);
+    }
+
+    protected void reloadRamtable() {
+        // Expect triggered manually, like gremlin job
+        if (this.ramtable != null) {
+            this.ramtable.reload();
+        } else {
+            LOG.warn("The ramtable feature is not enabled for graph {}", this);
+        }
     }
 
     @Override
@@ -987,6 +1008,11 @@ public class StandardHugeGraph implements HugeGraph {
         @Override
         public RateLimiter readRateLimiter() {
             return StandardHugeGraph.this.readRateLimiter;
+        }
+
+        @Override
+        public RamTable ramtable() {
+            return StandardHugeGraph.this.ramtable;
         }
     }
 
