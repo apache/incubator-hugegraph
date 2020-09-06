@@ -20,36 +20,33 @@
 package com.baidu.hugegraph.job.computer;
 
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
-public class ComputerPool {
+import com.google.common.collect.ImmutableMap;
 
-    private static final ComputerPool INSTANCE = new ComputerPool();
+public class TriangleCountComputer extends AbstractComputer {
 
-    static {
-        INSTANCE.register(new PageRankComputer());
-        INSTANCE.register(new WeakConnectedComponentComputer());
-        INSTANCE.register(new LpaComputer());
-        INSTANCE.register(new TriangleCountComputer());
-        INSTANCE.register(new LouvainComputer());
+    public static final String TRIANGLE_COUNT = "triangle_count";
+
+    @Override
+    public String name() {
+        return TRIANGLE_COUNT;
     }
 
-    private final Map<String, Computer> computers;
-
-    public ComputerPool() {
-        this.computers = new ConcurrentHashMap<>();
+    @Override
+    public String category() {
+        return CATEGORY_COMM;
     }
 
-    public Computer register(Computer computer) {
-        assert !this.computers.containsKey(computer.name());
-        return this.computers.put(computer.name(), computer);
+    @Override
+    public void checkParameters(Map<String, Object> parameters) {
+        direction(parameters);
+        degree(parameters);
     }
 
-    public Computer find(String name) {
-        return this.computers.get(name);
-    }
-
-    public static ComputerPool instance() {
-        return INSTANCE;
+    @Override
+    protected Map<String, Object> checkAndCollectParameters(
+            Map<String, Object> parameters) {
+        return ImmutableMap.of(DIRECTION, direction(parameters),
+                               DEGREE, degree(parameters));
     }
 }
