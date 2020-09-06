@@ -85,24 +85,23 @@ public class TemplatePathAPI extends TraverserAPI {
         List<EdgeStep> steps = steps(g, request.steps);
 
         TemplatePathsTraverser traverser = new TemplatePathsTraverser(g);
-        HugeTraverser.PathSet pathSet;
-        pathSet = traverser.templatePaths(sources, targets, steps,
-                                          request.capacity, request.limit);
+        Set<HugeTraverser.Path> paths;
+        paths = traverser.templatePaths(sources, targets, steps,
+                                        request.capacity, request.limit);
 
         if (!request.withVertex) {
-            return manager.serializer(g).writePaths("paths", pathSet, false);
+            return manager.serializer(g).writePaths("paths", paths, false);
         }
 
         Set<Id> ids = new HashSet<>();
-        for (HugeTraverser.Path p : pathSet) {
+        for (HugeTraverser.Path p : paths) {
             ids.addAll(p.vertices());
         }
         Iterator<Vertex> iter = QueryResults.emptyIterator();
         if (!ids.isEmpty()) {
             iter = g.vertices(ids.toArray());
         }
-        return manager.serializer(g).writePaths("paths", pathSet,
-                                                false, iter);
+        return manager.serializer(g).writePaths("paths", paths, false, iter);
     }
 
     private static List<EdgeStep> steps(HugeGraph g, List<TraverserAPI.Step> steps) {

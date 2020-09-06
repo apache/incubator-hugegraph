@@ -65,8 +65,6 @@ public class HugeTraverser {
 
     private HugeGraph graph;
 
-    public static final List<Id> PATH_NONE = ImmutableList.of();
-
     public static final String DEFAULT_CAPACITY = "10000000";
     public static final String DEFAULT_ELEMENTS_LIMIT = "10000000";
     public static final String DEFAULT_PATHS_LIMIT = "10";

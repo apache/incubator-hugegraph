@@ -139,4 +139,24 @@ public abstract class TpTraverser extends HugeTraverser
         Property<Object> p = elem.property(key);
         return p.isPresent() && Objects.equal(p.value(), value);
     }
+
+    public class ConcurrentMultiValuedMap<K, V>
+           extends ConcurrentHashMap<K, Set<V>> {
+
+        public ConcurrentMultiValuedMap() {
+            super();
+        }
+
+        public void add(K key, V value) {
+            Set<V> values = this.get(key);
+            if (values == null) {
+                values = ConcurrentHashMap.newKeySet();
+                Set<V> old = this.putIfAbsent(key, values);
+                if (old != null) {
+                    values = old;
+                }
+            }
+            values.add(value);
+        }
+    }
 }
