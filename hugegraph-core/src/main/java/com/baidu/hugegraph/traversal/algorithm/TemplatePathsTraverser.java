@@ -70,7 +70,7 @@ public class TemplatePathsTraverser extends TpTraverser {
                      "The number of target vertices must in [1, %s], " +
                      "but got: %s", MAX_VERTICES, sourceList.size());
 
-        Traverser traverser = steps.size() > 4 ?
+        Traverser traverser = steps.size() > 20 ?
                               new ConcurrentTraverser(sourceList, targetList,
                                                       steps, capacity, limit) :
                               new SingleTraverser(sourceList, targetList,

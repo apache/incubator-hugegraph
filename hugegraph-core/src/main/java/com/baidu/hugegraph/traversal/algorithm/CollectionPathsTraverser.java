@@ -73,7 +73,7 @@ public class CollectionPathsTraverser extends TpTraverser {
                      "but got: %s", MAX_VERTICES, sourceList.size());
         checkPositive(depth, "max depth");
 
-        Traverser traverser = depth > 10 ?
+        Traverser traverser = depth > 20 ?
                               new ConcurrentTraverser(sourceList, targetList,
                                                       step, capacity, limit) :
                               new SingleTraverser(sourceList, targetList, step,

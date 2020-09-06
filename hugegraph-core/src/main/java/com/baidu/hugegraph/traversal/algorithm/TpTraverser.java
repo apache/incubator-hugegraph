@@ -55,7 +55,7 @@ public abstract class TpTraverser extends HugeTraverser
 
     protected TpTraverser(HugeGraph graph, String name) {
         super(graph);
-        int workers = ((HugeConfig) graph.configuration())
+        int workers = ((HugeConfig) graph.hugegraph().configuration())
                       .get(CoreOptions.OLTP_CONCURRENT_THREADS);
         this.executor = Consumers.newThreadPool(name, workers);
     }
