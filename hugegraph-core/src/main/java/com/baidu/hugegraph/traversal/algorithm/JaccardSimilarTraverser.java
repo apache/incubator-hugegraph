@@ -46,7 +46,8 @@ public class JaccardSimilarTraverser extends TpTraverser {
         checkCapacity(capacity);
 
         Map<Id, Double> results;
-        if (step.direction == Directions.BOTH) {
+        if (3 >= this.concurrentDepth() &&
+            step.direction == Directions.BOTH) {
             results = this.jaccardSimilarsConcurrent(source, step, capacity);
         } else {
             results = this.jaccardSimilarsSingle(source, step, capacity);

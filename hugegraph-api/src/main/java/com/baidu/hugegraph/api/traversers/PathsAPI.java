@@ -98,7 +98,8 @@ public class PathsAPI extends TraverserAPI {
         CollectionPathsTraverser traverser = new CollectionPathsTraverser(g);
         Collection<HugeTraverser.Path> paths;
         paths = traverser.paths(sources, targets, step, request.depth,
-                                request.capacity, request.limit);
+                                request.nearest, request.capacity,
+                                request.limit);
 
         if (!request.withVertex) {
             return manager.serializer(g).writePaths("paths", paths, false);
@@ -160,6 +161,8 @@ public class PathsAPI extends TraverserAPI {
         public TraverserAPI.Step step;
         @JsonProperty("max_depth")
         public int depth;
+        @JsonProperty("nearest")
+        public boolean nearest = true;
         @JsonProperty("capacity")
         public long capacity = Long.valueOf(DEFAULT_CAPACITY);
         @JsonProperty("limit")
@@ -170,9 +173,10 @@ public class PathsAPI extends TraverserAPI {
         @Override
         public String toString() {
             return String.format("PathRequest{sources=%s,targets=%s,step=%s," +
-                                 "maxDepth=%s,capacity=%s,limit=%s," +
-                                 "withVertex=%s}", this.sources, this.targets,
-                                 this.step, this.depth, this.capacity,
+                                 "maxDepth=%s,nearest=%s,capacity=%s," +
+                                 "limit=%s,withVertex=%s}", this.sources,
+                                 this.targets, this.step, this.depth,
+                                 this.nearest, this.capacity,
                                  this.limit, this.withVertex);
         }
     }

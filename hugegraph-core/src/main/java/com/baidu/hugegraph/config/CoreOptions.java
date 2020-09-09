@@ -506,9 +506,18 @@ public class CoreOptions extends OptionHolder {
 
     public static final ConfigOption<Integer> OLTP_CONCURRENT_THREADS =
             new ConfigOption<>(
-                    "oltp.concurrent.threads",
+                    "oltp.concurrent_threads",
                     "Thread number to concurrently execute oltp algorithm.",
-                    rangeInt(0, 200),
+                    rangeInt(0, 65535),
                     10
             );
+
+    public static final ConfigOption<Integer> OLTP_CONCURRENT_DEPTH =
+            new ConfigOption<>(
+                    "oltp.concurrent_depth",
+                    "The min depth to enable concurrent oltp algorithm.",
+                    rangeInt(0, 65535),
+                    10
+            );
+
 }

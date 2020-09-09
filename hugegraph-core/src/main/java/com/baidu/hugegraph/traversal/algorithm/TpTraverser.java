@@ -46,24 +46,38 @@ import jersey.repackaged.com.google.common.base.Objects;
 public abstract class TpTraverser extends HugeTraverser
                                   implements AutoCloseable {
 
-    protected final ExecutorService executor;
+    protected static ExecutorService executor;
 
     protected TpTraverser(HugeGraph graph) {
         super(graph);
-        this.executor = null;
     }
 
     protected TpTraverser(HugeGraph graph, String name) {
         super(graph);
-        int workers = ((HugeConfig) graph.hugegraph().configuration())
-                      .get(CoreOptions.OLTP_CONCURRENT_THREADS);
-        this.executor = Consumers.newThreadPool(name, workers);
+        if (executor == null) {
+            int workers = this.config().get(CoreOptions.OLTP_CONCURRENT_THREADS);
+            if (workers > 0) {
+                executor = Consumers.newThreadPool(name, workers);
+            }
+        }
+    }
+
+    protected int concurrentDepth() {
+        if (executor == null) {
+            return Integer.MAX_VALUE;
+        }
+        return this.config().get(CoreOptions.OLTP_CONCURRENT_DEPTH);
+    }
+
+    protected HugeConfig config() {
+        return ((HugeConfig) this.graph().hugegraph().configuration());
     }
 
     @Override
     public void close() {
-        if (this.executor != null) {
-            this.executor.shutdown();
+        if (executor != null) {
+            executor.shutdown();
+            executor = null;
         }
     }
 
@@ -104,8 +118,7 @@ public abstract class TpTraverser extends HugeTraverser
 
     protected <K> long traverse(Iterator<K> iterator, Consumer<K> consumer,
                                 String name) {
-        Consumers<K> consumers = new Consumers<>(this.executor,
-                                                 consumer, null);
+        Consumers<K> consumers = new Consumers<>(executor, consumer, null);
         consumers.start(name);
         long total = 0L;
         try {

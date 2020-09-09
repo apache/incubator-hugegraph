@@ -27,7 +27,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.type.define.Directions;
-import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 
 public class CustomizedKneighborTraverser extends TpTraverser {
@@ -43,7 +42,8 @@ public class CustomizedKneighborTraverser extends TpTraverser {
         checkPositive(maxDepth, "k-neighbor max_depth");
         checkLimit(limit);
 
-        if (step.direction == Directions.BOTH && maxDepth > 3) {
+        if (maxDepth >= this.concurrentDepth() &&
+            step.direction == Directions.BOTH) {
             return this.customizedKneighborConcurrent(source, step,
                                                       maxDepth, limit);
         } else {

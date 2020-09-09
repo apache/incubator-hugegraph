@@ -47,20 +47,22 @@ public class MultiNodeShortestPathTraverser extends TpTraverser {
                                             EdgeStep step, int maxDepth,
                                             long capacity) {
         List<Vertex> vertexList = IteratorUtils.list(vertices);
-        int size = vertexList.size();
-        E.checkState(size >= 2 && size <= MAX_VERTICES,
+        int vertexCount = vertexList.size();
+        E.checkState(vertexCount >= 2 && vertexCount <= MAX_VERTICES,
                      "The number of vertices of multiple node shortest path " +
                      "must in [2, %s], but got: %s",
                      MAX_VERTICES, vertexList.size());
         List<Pair<Id, Id>> pairs = new ArrayList<>();
-        cmn(vertexList, size, 2, 0, null, r -> {
+        cmn(vertexList, vertexCount, 2, 0, null, r -> {
             Id source = ((HugeVertex) r.get(0)).id();
             Id target = ((HugeVertex) r.get(1)).id();
             Pair<Id, Id> pair = Pair.of(source, target);
             pairs.add(pair);
         });
 
-        if (step.direction == Directions.BOTH && maxDepth > 3 || size > 10) {
+        if (maxDepth >= this.concurrentDepth() &&
+            step.direction == Directions.BOTH ||
+            vertexCount > 10) {
             return this.multiNodeShortestPathConcurrent(pairs, step,
                                                         maxDepth, capacity);
         } else {

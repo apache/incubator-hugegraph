@@ -45,8 +45,9 @@ public class CustomizedKoutTraverser extends TpTraverser {
         checkCapacity(capacity);
         checkLimit(limit);
 
-        Set<Node> results = newSet();
-        if (step.direction == Directions.BOTH && maxDepth > 3) {
+        Set<Node> results;
+        if (maxDepth >= this.concurrentDepth() &&
+            step.direction == Directions.BOTH) {
             results = this.customizedKoutConcurrent(source, step, maxDepth,
                                                     nearest, capacity);
         } else {

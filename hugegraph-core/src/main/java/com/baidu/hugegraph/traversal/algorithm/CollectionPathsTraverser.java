@@ -21,6 +21,7 @@ package com.baidu.hugegraph.traversal.algorithm;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -33,15 +34,19 @@ import javax.ws.rs.core.MultivaluedMap;
 
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.Log;
 import com.google.common.collect.ImmutableList;
 
 public class CollectionPathsTraverser extends TpTraverser {
+
+    private static final Logger LOG = Log.logger(CollectionPathsTraverser.class);
 
     public CollectionPathsTraverser(HugeGraph graph) {
         super(graph, "collection-paths");
@@ -50,7 +55,7 @@ public class CollectionPathsTraverser extends TpTraverser {
     @SuppressWarnings("unchecked")
     public Collection<Path> paths(Iterator<Vertex> sources,
                                   Iterator<Vertex> targets,
-                                  EdgeStep step, int depth,
+                                  EdgeStep step, int depth, boolean nearest,
                                   long capacity, long limit) {
         checkCapacity(capacity);
         checkLimit(limit);
@@ -73,11 +78,12 @@ public class CollectionPathsTraverser extends TpTraverser {
                      "but got: %s", MAX_VERTICES, sourceList.size());
         checkPositive(depth, "max depth");
 
-        Traverser traverser = depth > 20 ?
-                              new ConcurrentTraverser(sourceList, targetList,
-                                                      step, capacity, limit) :
-                              new SingleTraverser(sourceList, targetList, step,
-                                                  capacity, limit);
+        Traverser traverser = depth >= this.concurrentDepth() ?
+                              this.concurrentTraverser(sourceList, targetList,
+                                                       step, nearest,
+                                                       capacity, limit) :
+                              this.singleTraverser(sourceList, targetList, step,
+                                                   nearest, capacity, limit);
 
         Collection paths = new HashSet<>();
         while (true) {
@@ -99,6 +105,20 @@ public class CollectionPathsTraverser extends TpTraverser {
         return paths;
     }
 
+    private Traverser singleTraverser(List<Id> sources, List<Id> targets,
+                                      EdgeStep step, boolean nearest,
+                                      long capacity, long limit) {
+        return nearest ? new SingleNearestTraverser(sources, targets, step,
+                                                    capacity, limit) :
+                         new SingleAllTraverser(sources, targets, step,
+                                                capacity, limit);
+    }
+
+    private Traverser concurrentTraverser(List<Id> sources, List<Id> targets,
+                                          EdgeStep step, boolean nearest,
+                                          long capacity, long limit) {
+        return new ConcurrentTraverser(sources, targets, step, capacity, limit);
+    }
 
     private class Traverser {
 
@@ -281,7 +301,7 @@ public class CollectionPathsTraverser extends TpTraverser {
         }
     }
 
-    private class SingleTraverser extends Traverser {
+    private class SingleAllTraverser extends Traverser {
 
         private MultivaluedMap<Id, Node> sources = newMultivalueMap();
         private MultivaluedMap<Id, Node> targets = newMultivalueMap();
@@ -290,8 +310,9 @@ public class CollectionPathsTraverser extends TpTraverser {
 
         private int pathCount;
 
-        public SingleTraverser(Collection<Id> sources, Collection<Id> targets,
-                               EdgeStep step, long capacity, long limit) {
+        public SingleAllTraverser(Collection<Id> sources,
+                                  Collection<Id> targets,
+                                  EdgeStep step, long capacity, long limit) {
             super(step, capacity, limit);
             for (Id id : sources) {
                 this.sources.add(id, new Node(id));
@@ -403,6 +424,152 @@ public class CollectionPathsTraverser extends TpTraverser {
             // Record all passed vertices
             this.targetsAll.putAll(newVertices);
 
+            return paths;
+        }
+
+        @Override
+        public int pathCount() {
+            return this.pathCount;
+        }
+
+        protected int accessedNodes() {
+            return this.sourcesAll.size() + this.targetsAll.size();
+        }
+    }
+
+
+    private class SingleNearestTraverser extends Traverser {
+
+        private Map<Id, Node> sources = new HashMap<>();
+        private Map<Id, Node> targets = new HashMap<>();
+        private Map<Id, Node> sourcesAll = new HashMap<>();
+        private Map<Id, Node> targetsAll = new HashMap<>();
+
+        private int pathCount;
+
+        public SingleNearestTraverser(Collection<Id> sources,
+                                      Collection<Id> targets,
+                                      EdgeStep step, long capacity,
+                                      long limit) {
+            super(step, capacity, limit);
+            for (Id id : sources) {
+                this.sources.put(id, new KNode(id, null));
+            }
+            for (Id id : targets) {
+                this.targets.put(id, new KNode(id, null));
+            }
+            this.sourcesAll.putAll(this.sources);
+            this.targetsAll.putAll(this.targets);
+            this.pathCount = 0;
+        }
+
+        /**
+         * Search forward from sources
+         */
+        public PathSet forward() {
+            LOG.info("Forward with sources size {} and sources all size {}",
+                     this.sources.size(), this.sourcesAll.size());
+            PathSet paths = new PathSet();
+            Map<Id, Node> newVertices = new HashMap<>();
+            Iterator<Edge> edges;
+            // Traversal vertices of previous level
+            for (Map.Entry<Id, Node> entry : this.sources.entrySet()) {
+                Id vid = entry.getKey();
+                edges = edgesOfVertex(vid, this.step);
+
+                while (edges.hasNext()) {
+                    HugeEdge edge = (HugeEdge) edges.next();
+                    Id target = edge.id().otherVertexId();
+
+                    Node n = entry.getValue();
+                    // If have loop, skip target
+                    if (n.contains(target)) {
+                        continue;
+                    }
+
+                    // If cross point exists, path found, concat them
+                    if (this.targetsAll.containsKey(target)) {
+                        Node node = this.targetsAll.get(target);
+                        List<Id> path = n.joinPath(node);
+                        if (!path.isEmpty()) {
+                            paths.add(new Path(target, path));
+                            ++this.pathCount;
+                            if (this.reachLimit()) {
+                                return paths;
+                            }
+                        }
+                    }
+
+                    // Add node to next start-nodes
+                    newVertices.putIfAbsent(target,
+                                            new KNode(target, (KNode) n));
+                }
+            }
+
+            // Re-init targets
+            this.sources = newVertices;
+            // Record all passed vertices
+            for (Map.Entry<Id, Node> entry : newVertices.entrySet()) {
+                this.sourcesAll.putIfAbsent(entry.getKey(), entry.getValue());
+            }
+            LOG.info("Done forward with sources size {} and sources all size {}",
+                     this.sources.size(), this.sourcesAll.size());
+            return paths;
+        }
+
+        /**
+         * Search backward from target
+         */
+        public PathSet backward() {
+            LOG.info("Backward with targets size {} and targets all size {}",
+                     this.targets.size(), this.targetsAll.size());
+            PathSet paths = new PathSet();
+            Map<Id, Node> newVertices = new HashMap<>();
+            this.step.swithDirection();
+            Iterator<Edge> edges;
+            // Traversal vertices of previous level
+            for (Map.Entry<Id, Node> entry : this.targets.entrySet()) {
+                Id vid = entry.getKey();
+                edges = edgesOfVertex(vid, this.step);
+
+                while (edges.hasNext()) {
+                    HugeEdge edge = (HugeEdge) edges.next();
+                    Id target = edge.id().otherVertexId();
+
+                    Node n = entry.getValue();
+                    // If have loop, skip target
+                    if (n.contains(target)) {
+                        continue;
+                    }
+
+                    // If cross point exists, path found, concat them
+                    if (this.sourcesAll.containsKey(target)) {
+                        Node node = this.sourcesAll.get(target);
+                        List<Id> path = n.joinPath(node);
+                        if (!path.isEmpty()) {
+                            paths.add(new Path(target, path));
+                            ++this.pathCount;
+                            if (this.reachLimit()) {
+                                return paths;
+                            }
+                        }
+                    }
+
+                    // Add node to next start-nodes
+                    newVertices.putIfAbsent(target,
+                                            new KNode(target, (KNode) n));
+                }
+            }
+            this.step.swithDirection();
+
+            // Re-init targets
+            this.targets = newVertices;
+            // Record all passed vertices
+            for (Map.Entry<Id, Node> entry : newVertices.entrySet()) {
+                this.targetsAll.putIfAbsent(entry.getKey(), entry.getValue());
+            }
+            LOG.info("Done backward with sources size {} and sources all size {}",
+                     this.targets.size(), this.targetsAll.size());
             return paths;
         }
 
