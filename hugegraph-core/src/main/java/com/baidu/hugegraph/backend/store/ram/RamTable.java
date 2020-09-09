@@ -166,19 +166,19 @@ public final class RamTable {
 
     public void addEdge(boolean newVertex, HugeEdge edge) {
         this.addEdge(newVertex,
-                     (int) edge.id().ownerVertexId().asLong(),
-                     (int) edge.id().otherVertexId().asLong(),
+                     edge.id().ownerVertexId().asLong(),
+                     edge.id().otherVertexId().asLong(),
                      edge.direction(),
                      (int) edge.schemaLabel().id().asLong());
     }
 
-    public void addEdge(boolean newVertex, int owner, int target,
+    public void addEdge(boolean newVertex, long owner, long target,
                         Directions direction, int label) {
         long value = encode(target, direction, label);
         this.addEdge(newVertex, owner, value);
     }
 
-    public void addEdge(boolean newVertex, int owner, long value) {
+    public void addEdge(boolean newVertex, long owner, long value) {
         int position = this.edges.add(value);
         if (newVertex) {
             assert this.vertexAdjPosition(owner) <= NULL : owner;
@@ -247,10 +247,10 @@ public final class RamTable {
         if (label == null) {
             label = IdGenerator.ZERO;
         }
-        return this.query((int) owner.asLong(), dir, (int) label.asLong());
+        return this.query(owner.asLong(), dir, (int) label.asLong());
     }
 
-    public Iterator<HugeEdge> query(int owner, Directions dir, int label) {
+    public Iterator<HugeEdge> query(long owner, Directions dir, int label) {
         if (this.loading) {
             // don't query when loading
             return Collections.emptyIterator();
@@ -269,11 +269,12 @@ public final class RamTable {
         return new EdgeRangeIterator(start, end, dir, label, owner);
     }
 
-    private void vertexAdjPosition(int vertex, int position) {
+    private void vertexAdjPosition(long vertex, int position) {
         if (vertex < this.verticesCapacityHalf) {
             this.verticesLow.put(vertex, position);
         } else if (vertex < this.verticesCapacity) {
             vertex -= this.verticesCapacityHalf;
+            assert vertex < Integer.MAX_VALUE;
             this.verticesHigh.put(vertex, position);
         } else {
             throw new HugeException("Out of vertices capaticy %s",
@@ -281,22 +282,24 @@ public final class RamTable {
         }
     }
 
-    private int vertexAdjPosition(int vertex) {
+    private int vertexAdjPosition(long vertex) {
         if (vertex < this.verticesCapacityHalf) {
             return this.verticesLow.get(vertex);
         } else if (vertex < this.verticesCapacity) {
             vertex -= this.verticesCapacityHalf;
+            assert vertex < Integer.MAX_VALUE;
             return this.verticesHigh.get(vertex);
         } else {
-            throw new HugeException("Out of vertices capaticy %s",
-                                    this.verticesCapacity);
+            throw new HugeException("Out of vertices capaticy %s: %s",
+                                    this.verticesCapacity, vertex);
         }
     }
 
-    private static long encode(int target, Directions direction, int label) {
+    private static long encode(long target, Directions direction, int label) {
         // TODO: support property
         assert (label & 0x0fffffff) == label;
-        long value = target;
+        assert target < 2L * Integer.MAX_VALUE : target;
+        long value = target & 0xffffffff;
         long dir = direction == Directions.OUT ?
                    0x00000000L : 0x80000000L;
         value = (value << 32) | (dir | label);
@@ -313,7 +316,7 @@ public final class RamTable {
         private HugeEdge currentEdge;
 
         public EdgeRangeIterator(int start, int end,
-                                 Directions dir, int label, int owner) {
+                                 Directions dir, int label, long owner) {
             assert 0 < start && start < end;
             this.end = end;
             this.dir = dir;
@@ -354,10 +357,12 @@ public final class RamTable {
                 return null;
             }
             long value = RamTable.this.edges.get(this.current++);
-            long target = value >> 32;
+            long target = value >>> 32;
+            assert target >= 0L : target;
             Directions actualDir = (value & 0x80000000L) == 0L ?
                                    Directions.OUT : Directions.IN;
             int label = (int) value & 0x7fffffff;
+            assert label >= 0;
 
             if (this.dir != actualDir && this.dir != Directions.BOTH) {
                 return null;

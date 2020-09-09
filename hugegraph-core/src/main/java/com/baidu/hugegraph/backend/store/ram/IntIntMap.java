@@ -28,11 +28,13 @@ public final class IntIntMap {
         this.array = new int[capacity];
     }
 
-    public void put(int key, int value) {
-        this.array[key] = value;
+    public void put(long key, int value) {
+        assert 0 <= key && key < Integer.MAX_VALUE;
+        this.array[(int) key] = value;
     }
 
-    public int get(int key) {
-        return this.array[key];
+    public int get(long key) {
+        assert 0 <= key && key < Integer.MAX_VALUE;
+        return this.array[(int) key];
     }
 }

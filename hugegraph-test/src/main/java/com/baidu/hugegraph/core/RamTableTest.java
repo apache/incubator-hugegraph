@@ -389,6 +389,70 @@ public class RamTableTest extends BaseCoreTest {
         }
     }
 
+    @Test
+    public void testReloadAndQueryWithBigVertex() throws Exception {
+        HugeGraph graph = this.graph();
+
+        // only enable this test when ram > 20G
+        boolean enableBigRamTest = false;
+        long big1 = 2400000000L;
+        long big2 = 4200000000L;
+        if (!enableBigRamTest) {
+            big1 = 100L;
+            big2 = 1000L;
+        }
+
+        // insert vertices and edges
+        for (int i = 0; i < 100; i++) {
+            Vertex v1 = graph.addVertex(T.label, "vl1", T.id, i + big1);
+            Vertex v2 = graph.addVertex(T.label, "vl1", T.id, i + big1 + 100);
+            v1.addEdge("el1", v2);
+        }
+        graph.tx().commit();
+
+        for (int i = 0; i < 100; i++) {
+            Vertex v1 = graph.addVertex(T.label, "vl2", T.id, i + big2);
+            Vertex v2 = graph.addVertex(T.label, "vl2", T.id, i + big2);
+            v1.addEdge("el2", v2);
+        }
+        graph.tx().commit();
+
+        // reload ramtable
+        Whitebox.invoke(graph.getClass(), "reloadRamtable", graph);
+
+        // query edges
+        for (int i = 0; i < 100; i++) {
+            long source = i + big1;
+            Iterator<Edge> edges = this.edgesOfVertex(IdGenerator.of(source),
+                                                      Directions.OUT, null);
+            Assert.assertTrue(edges.hasNext());
+            HugeEdge edge = (HugeEdge) edges.next();
+            Assert.assertEquals(source,
+                                edge.id().ownerVertexId().asLong());
+            Assert.assertEquals(i + big1 + 100,
+                                edge.id().otherVertexId().asLong());
+            Assert.assertEquals(Directions.OUT, edge.direction());
+            Assert.assertEquals("el1", edge.label());
+
+            Assert.assertFalse(edges.hasNext());
+        }
+        for (int i = 0; i < 100; i++) {
+            long source = i + big2;
+            Iterator<Edge> edges = this.edgesOfVertex(IdGenerator.of(source),
+                                                      Directions.OUT, null);
+            Assert.assertTrue(edges.hasNext());
+            HugeEdge edge = (HugeEdge) edges.next();
+            Assert.assertEquals(source,
+                                edge.id().ownerVertexId().asLong());
+            Assert.assertEquals(i + big2,
+                                edge.id().otherVertexId().asLong());
+            Assert.assertEquals(Directions.OUT, edge.direction());
+            Assert.assertEquals("el2", edge.label());
+
+            Assert.assertFalse(edges.hasNext());
+        }
+    }
+
     private Iterator<Edge> edgesOfVertex(Id source, Directions dir, Id label) {
         Id[] labels = {};
         if (label != null) {
