@@ -19,13 +19,18 @@
 
 package com.baidu.hugegraph.core;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.Iterator;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -62,6 +67,14 @@ public class RamTableTest extends BaseCoreTest {
                       .sourceLabel("vl2")
                       .targetLabel("vl2")
                       .create();
+    }
+
+    @After
+    public void clearExport() throws IOException {
+        File export = Paths.get(RamTable.EXPORT_PATH).toFile();
+        if (export.exists()) {
+            FileUtils.forceDelete(export);
+        }
     }
 
     @Test
@@ -242,6 +255,80 @@ public class RamTableTest extends BaseCoreTest {
         Whitebox.invoke(graph.getClass(), "reloadRamtable", graph);
 
         // query edges
+        for (int i = 0; i < 100; i++) {
+            Iterator<Edge> edges = this.edgesOfVertex(IdGenerator.of(i),
+                                                      Directions.OUT, null);
+            Assert.assertTrue(edges.hasNext());
+            HugeEdge edge = (HugeEdge) edges.next();
+            Assert.assertEquals(i + 100, edge.id().otherVertexId().asLong());
+            Assert.assertEquals(Directions.OUT, edge.direction());
+            Assert.assertEquals("el1", edge.label());
+
+            Assert.assertFalse(edges.hasNext());
+        }
+        for (int i = 1000; i < 1100; i++) {
+            Iterator<Edge> edges = this.edgesOfVertex(IdGenerator.of(i),
+                                                      Directions.OUT, null);
+            Assert.assertTrue(edges.hasNext());
+            HugeEdge edge = (HugeEdge) edges.next();
+            Assert.assertEquals(i + 100, edge.id().otherVertexId().asLong());
+            Assert.assertEquals(Directions.OUT, edge.direction());
+            Assert.assertEquals("el2", edge.label());
+
+            Assert.assertFalse(edges.hasNext());
+        }
+    }
+
+    @Test
+    public void testReloadFromFileAndQuery() throws Exception {
+        HugeGraph graph = this.graph();
+
+        // insert vertices and edges
+        for (int i = 0; i < 100; i++) {
+            Vertex v1 = graph.addVertex(T.label, "vl1", T.id, i);
+            Vertex v2 = graph.addVertex(T.label, "vl1", T.id, i + 100);
+            v1.addEdge("el1", v2);
+        }
+        graph.tx().commit();
+
+        for (int i = 1000; i < 1100; i++) {
+            Vertex v1 = graph.addVertex(T.label, "vl2", T.id, i);
+            Vertex v2 = graph.addVertex(T.label, "vl2", T.id, i + 100);
+            v1.addEdge("el2", v2);
+        }
+        graph.tx().commit();
+
+        // reload ramtable
+        Whitebox.invoke(graph.getClass(), "reloadRamtable", graph);
+
+        // query edges
+        for (int i = 0; i < 100; i++) {
+            Iterator<Edge> edges = this.edgesOfVertex(IdGenerator.of(i),
+                                                      Directions.OUT, null);
+            Assert.assertTrue(edges.hasNext());
+            HugeEdge edge = (HugeEdge) edges.next();
+            Assert.assertEquals(i + 100, edge.id().otherVertexId().asLong());
+            Assert.assertEquals(Directions.OUT, edge.direction());
+            Assert.assertEquals("el1", edge.label());
+
+            Assert.assertFalse(edges.hasNext());
+        }
+        for (int i = 1000; i < 1100; i++) {
+            Iterator<Edge> edges = this.edgesOfVertex(IdGenerator.of(i),
+                                                      Directions.OUT, null);
+            Assert.assertTrue(edges.hasNext());
+            HugeEdge edge = (HugeEdge) edges.next();
+            Assert.assertEquals(i + 100, edge.id().otherVertexId().asLong());
+            Assert.assertEquals(Directions.OUT, edge.direction());
+            Assert.assertEquals("el2", edge.label());
+
+            Assert.assertFalse(edges.hasNext());
+        }
+
+        // reload ramtable from file
+        Whitebox.invoke(graph.getClass(), "reloadRamtable", graph, true);
+
+        // query edges again
         for (int i = 0; i < 100; i++) {
             Iterator<Edge> edges = this.edgesOfVertex(IdGenerator.of(i),
                                                       Directions.OUT, null);

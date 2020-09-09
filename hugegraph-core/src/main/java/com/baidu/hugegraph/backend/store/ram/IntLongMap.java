@@ -19,9 +19,14 @@
 
 package com.baidu.hugegraph.backend.store.ram;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.util.Arrays;
+
 import com.baidu.hugegraph.HugeException;
 
-public final class IntLongMap {
+public final class IntLongMap implements RamMap {
 
     // TODO: use com.carrotsearch.hppc.IntLongHashMap instead
     private final long[] array;
@@ -56,7 +61,34 @@ public final class IntLongMap {
         return this.array[key];
     }
 
+    @Override
+    public void clear() {
+        Arrays.fill(this.array, 0L);
+    }
+
+    @Override
     public long size() {
         return this.size;
+    }
+
+    @Override
+    public void writeTo(DataOutputStream buffer) throws IOException {
+        buffer.writeInt(this.array.length);
+        for (long value : this.array) {
+            buffer.writeLong(value);
+        }
+    }
+
+    @Override
+    public void readFrom(DataInputStream buffer) throws IOException {
+        int size = buffer.readInt();
+        if (size > this.array.length) {
+            throw new HugeException("Invalid size %s, expect < %s",
+                                    size, this.array.length);
+        }
+        for (int i = 0; i < size; i++) {
+            long value = buffer.readLong();
+            this.array[i] = value;
+        }
     }
 }

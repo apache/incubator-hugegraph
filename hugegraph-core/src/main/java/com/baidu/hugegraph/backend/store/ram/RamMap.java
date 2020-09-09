@@ -22,44 +22,14 @@ package com.baidu.hugegraph.backend.store.ram;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.util.Arrays;
 
-import com.baidu.hugegraph.exception.NotSupportException;
+public interface RamMap {
 
-public final class IntObjectMap<V> implements RamMap {
+    public void clear();
 
-    private final Object[] array;
+    public long size();
 
-    public IntObjectMap(int size) {
-        this.array = new Object[size];
-    }
+    public void writeTo(DataOutputStream buffer) throws IOException;
 
-    @SuppressWarnings("unchecked")
-    public V get(int key) {
-        return (V) this.array[key];
-    }
-
-    public void set(int key, V value) {
-        this.array[key] = value;
-    }
-
-    @Override
-    public void clear() {
-        Arrays.fill(this.array, null);
-    }
-
-    @Override
-    public long size() {
-        return this.array.length;
-    }
-
-    @Override
-    public void writeTo(DataOutputStream buffer) throws IOException {
-        throw new NotSupportException("IntObjectMap.writeTo");
-    }
-
-    @Override
-    public void readFrom(DataInputStream buffer) throws IOException {
-        throw new NotSupportException("IntObjectMap.readFrom");
-    }
+    public void readFrom(DataInputStream buffer) throws IOException;
 }

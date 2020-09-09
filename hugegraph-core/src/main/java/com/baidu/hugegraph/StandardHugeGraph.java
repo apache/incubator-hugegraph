@@ -416,9 +416,13 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     protected void reloadRamtable() {
+        this.reloadRamtable(false);
+    }
+
+    protected void reloadRamtable(boolean loadFromFile) {
         // Expect triggered manually, like gremlin job
         if (this.ramtable != null) {
-            this.ramtable.reload();
+            this.ramtable.reload(loadFromFile, this.name);
         } else {
             LOG.warn("The ramtable feature is not enabled for graph {}", this);
         }

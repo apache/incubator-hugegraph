@@ -19,6 +19,14 @@
 
 package com.baidu.hugegraph.backend.store.ram;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -28,6 +36,7 @@ import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
@@ -53,6 +62,9 @@ import com.baidu.hugegraph.util.Consumers;
 import com.baidu.hugegraph.util.Log;
 
 public final class RamTable {
+
+    public static final String USER_DIR = System.getProperty("user.dir");
+    public static final String EXPORT_PATH = USER_DIR + "/export";
 
     private static final Logger LOG = Log.logger(RamTable.class);
 
@@ -101,7 +113,7 @@ public final class RamTable {
         this.edges.add(0L);
     }
 
-    public void reload() {
+    public void reload(boolean loadFromFile, String file) {
         if (this.loading) {
             throw new HugeException("There is one loading task, " +
                                     "please wait for it to complete");
@@ -110,7 +122,17 @@ public final class RamTable {
         this.loading = true;
         try {
             this.reset();
-            this.load();
+            if (loadFromFile) {
+                this.loadFromFile(file);
+            } else {
+                this.loadFromDB();
+                if (file != null) {
+                    LOG.info("Export graph to file '{}'", file);
+                    if (!this.exportToFile(file)) {
+                        LOG.warn("Can't export graph to file '{}'", file);
+                    }
+                }
+            }
             LOG.info("Loaded {} edges", this.edgesSize());
         } catch (Throwable e) {
             this.reset();
@@ -120,7 +142,44 @@ public final class RamTable {
         }
     }
 
-    private void load() throws Exception {
+    private void loadFromFile(String fileName) throws Exception {
+        File file = Paths.get(EXPORT_PATH, fileName).toFile();
+        if (!file.exists() || !file.isFile() || !file.canRead()) {
+            throw new IllegalArgumentException(String.format(
+                      "File '%s' does not existed or readable", fileName));
+        }
+        try (FileInputStream fis = new FileInputStream(file);
+             BufferedInputStream bis = new BufferedInputStream(fis);
+             DataInputStream input = new DataInputStream(bis)) {
+            // read vertices
+            this.verticesLow.readFrom(input);
+            this.verticesHigh.readFrom(input);
+            // read edges
+            this.edges.readFrom(input);
+        }
+    }
+
+    private boolean exportToFile(String fileName) throws Exception {
+        File file = Paths.get(EXPORT_PATH, fileName).toFile();
+        if (!file.exists()) {
+            FileUtils.forceMkdir(file.getParentFile());
+            if (!file.createNewFile()) {
+                return false;
+            }
+        }
+        try (FileOutputStream fos = new FileOutputStream(file);
+             BufferedOutputStream bos = new BufferedOutputStream(fos);
+             DataOutputStream output = new DataOutputStream(bos)) {
+            // write vertices
+            this.verticesLow.writeTo(output);
+            this.verticesHigh.writeTo(output);
+            // write edges
+            this.edges.writeTo(output);
+        }
+        return true;
+    }
+
+    private void loadFromDB() throws Exception {
         Query query = new Query(HugeType.VERTEX);
         query.capacity(this.verticesCapacityHalf * 2L);
         query.limit(Query.NO_LIMIT);
