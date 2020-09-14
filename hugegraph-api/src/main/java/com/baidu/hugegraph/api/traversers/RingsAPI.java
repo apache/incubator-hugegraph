@@ -72,7 +72,7 @@ public class RingsAPI extends API {
                       @DefaultValue(DEFAULT_PATHS_LIMIT) long limit) {
         LOG.debug("Graph [{}] get rings paths reachable from '{}' with " +
                   "direction '{}', edge label '{}', max depth '{}', " +
-                  "source in withRing '{}', max degree '{}', capacity '{}' " +
+                  "source in ring '{}', max degree '{}', capacity '{}' " +
                   "and limit '{}'",
                   graph, sourceV, direction, edgeLabel, depth, sourceInRing,
                   degree, capacity, limit);

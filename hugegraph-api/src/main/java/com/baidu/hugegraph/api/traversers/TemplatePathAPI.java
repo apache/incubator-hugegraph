@@ -135,7 +135,8 @@ public class TemplatePathAPI extends TraverserAPI {
         @Override
         public String toString() {
             return String.format("PathRequest{sources=%s,targets=%s,steps=%s," +
-                                 "withRing=%s,apacity=%s,limit=%s,withVertex=%s}",
+                                 "withRing=%s,capacity=%s,limit=%s," +
+                                 "withVertex=%s}",
                                  this.sources, this.targets, this.steps,
                                  this.withRing, this.capacity, this.limit,
                                  this.withVertex);

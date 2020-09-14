@@ -165,7 +165,7 @@ public final class GraphManager {
 
     @SuppressWarnings("unused")
     private void installLicense(HugeConfig config, String md5) {
-        LicenseVerifier.instance().install(config, this, md5);
+//        LicenseVerifier.instance().install(config, this, md5);
     }
 
     private void closeTx(final Set<String> graphSourceNamesToCloseTxOn,

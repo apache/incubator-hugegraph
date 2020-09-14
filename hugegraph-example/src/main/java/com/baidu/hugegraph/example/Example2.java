@@ -164,27 +164,27 @@ public class Example2 {
               .nullableKeys("price")
               .ifNotExist()
               .create();
-
-        schema.indexLabel("personByCity")
-              .onV("person")
-              .by("city")
-              .secondary()
-              .ifNotExist()
-              .create();
-
-        schema.indexLabel("personByAgeAndCity")
-              .onV("person")
-              .by("age", "city")
-              .secondary()
-              .ifNotExist()
-              .create();
-
-        schema.indexLabel("softwareByPrice")
-              .onV("software")
-              .by("price")
-              .range()
-              .ifNotExist()
-              .create();
+//
+//        schema.indexLabel("personByCity")
+//              .onV("person")
+//              .by("city")
+//              .secondary()
+//              .ifNotExist()
+//              .create();
+//
+//        schema.indexLabel("personByAgeAndCity")
+//              .onV("person")
+//              .by("age", "city")
+//              .secondary()
+//              .ifNotExist()
+//              .create();
+//
+//        schema.indexLabel("softwareByPrice")
+//              .onV("software")
+//              .by("price")
+//              .range()
+//              .ifNotExist()
+//              .create();
 
         schema.edgeLabel("knows")
               .multiTimes()
@@ -203,26 +203,26 @@ public class Example2 {
               .ifNotExist()
               .create();
 
-        schema.indexLabel("createdByDate")
-              .onE("created")
-              .by("date")
-              .range()
-              .ifNotExist()
-              .create();
-
-        schema.indexLabel("createdByWeight")
-              .onE("created")
-              .by("weight")
-              .range()
-              .ifNotExist()
-              .create();
-
-        schema.indexLabel("knowsByWeight")
-              .onE("knows")
-              .by("weight")
-              .range()
-              .ifNotExist()
-              .create();
+//        schema.indexLabel("createdByDate")
+//              .onE("created")
+//              .by("date")
+//              .range()
+//              .ifNotExist()
+//              .create();
+//
+//        schema.indexLabel("createdByWeight")
+//              .onE("created")
+//              .by("weight")
+//              .range()
+//              .ifNotExist()
+//              .create();
+//
+//        schema.indexLabel("knowsByWeight")
+//              .onE("knows")
+//              .by("weight")
+//              .range()
+//              .ifNotExist()
+//              .create();
 
         graph.tx().open();
 
@@ -247,5 +247,6 @@ public class Example2 {
         peter.addEdge("created", lop, "date", "2017-03-24", "weight", 0.2);
 
         graph.tx().commit();
+        System.exit(0);
     }
 }
