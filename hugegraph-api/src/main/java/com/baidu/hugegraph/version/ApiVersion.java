@@ -106,10 +106,12 @@ public final class ApiVersion {
      * [0.55] Issue-994: Support results count for kneighbor/kout/rings
      * [0.56] Issue-800: Show schema status in schema API
      * [0.57] Issue-1105: Allow not rebuild index when create index label
+     * [0.58] Issue-1173: Supports customized kout/kneighbor,
+     *        multi-node-shortest-path, jaccard-similar and template-paths
      */
 
     // The second parameter of Version.of() is for IDE running without JAR
-    public static final Version VERSION = Version.of(ApiVersion.class, "0.57");
+    public static final Version VERSION = Version.of(ApiVersion.class, "0.58");
 
     public static final void check() {
         // Check version of hugegraph-core. Firstly do check from version 0.3
