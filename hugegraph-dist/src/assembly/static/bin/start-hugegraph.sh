@@ -57,10 +57,10 @@ check_port "$REST_SERVER_URL"
 echo "Starting HugeGraphServer..."
 if [ -n "$VERBOSE" ]; then
     "$BIN"/hugegraph-server.sh "$TOP"/conf/gremlin-server.yaml \
-    "$TOP"/conf/rest-server.properties "$OPEN_SECURITY_CHECK" $USER_OPTION $GC_OPTION &
+    "$TOP"/conf/rest-server.properties "$OPEN_SECURITY_CHECK" "$USER_OPTION" "$GC_OPTION" &
 else
     "$BIN"/hugegraph-server.sh "$TOP"/conf/gremlin-server.yaml \
-    "$TOP"/conf/rest-server.properties "$OPEN_SECURITY_CHECK" $USER_OPTION $GC_OPTION >/dev/null 2>&1 &
+    "$TOP"/conf/rest-server.properties "$OPEN_SECURITY_CHECK" "$USER_OPTION" "$GC_OPTION" >/dev/null 2>&1 &
 fi
 
 PID="$!"
