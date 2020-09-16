@@ -106,7 +106,8 @@ public class JaccardSimilarityAPI extends TraverserAPI {
 
         LOG.debug("Graph [{}] get jaccard similars from source vertex '{}', " +
                   "with step '{}', top '{}' and capacity '{}'",
-                  graph, request.vertex, request.step, request.top);
+                  graph, request.vertex, request.step,
+                  request.top, request.capacity);
 
         HugeGraph g = graph(manager, graph);
         Id sourceId = HugeVertex.getIdValue(request.vertex);

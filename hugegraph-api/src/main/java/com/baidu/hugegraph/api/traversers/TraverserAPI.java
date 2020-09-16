@@ -39,7 +39,7 @@ public class TraverserAPI extends API {
     }
 
     protected static TemplatePathsTraverser.RepeatEdgeStep repeatEdgeStep(
-              HugeGraph graph, TemplatePathAPI.RepeatEdgeStep step) {
+              HugeGraph graph, TemplatePathsAPI.RepeatEdgeStep step) {
         return new TemplatePathsTraverser.RepeatEdgeStep(graph, step.direction,
                                                          step.labels,
                                                          step.properties,

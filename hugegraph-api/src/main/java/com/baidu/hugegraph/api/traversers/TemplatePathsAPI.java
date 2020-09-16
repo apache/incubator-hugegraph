@@ -53,7 +53,7 @@ import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PATH
 
 @Path("graphs/{graph}/traversers/templatepaths")
 @Singleton
-public class TemplatePathAPI extends TraverserAPI {
+public class TemplatePathsAPI extends TraverserAPI {
 
     private static final Logger LOG = Log.logger(RestServer.class);
 
@@ -134,8 +134,8 @@ public class TemplatePathAPI extends TraverserAPI {
 
         @Override
         public String toString() {
-            return String.format("PathRequest{sources=%s,targets=%s,steps=%s," +
-                                 "withRing=%s,capacity=%s,limit=%s," +
+            return String.format("TemplatePathsRequest{sources=%s,targets=%s," +
+                                 "steps=%s,withRing=%s,capacity=%s,limit=%s," +
                                  "withVertex=%s}",
                                  this.sources, this.targets, this.steps,
                                  this.withRing, this.capacity, this.limit,
