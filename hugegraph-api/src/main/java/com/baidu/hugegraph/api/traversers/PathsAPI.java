@@ -65,6 +65,41 @@ public class PathsAPI extends TraverserAPI {
 
     private static final Logger LOG = Log.logger(RestServer.class);
 
+    @GET
+    @Timed
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
+    public String get(@Context GraphManager manager,
+                      @PathParam("graph") String graph,
+                      @QueryParam("source") String source,
+                      @QueryParam("target") String target,
+                      @QueryParam("direction") String direction,
+                      @QueryParam("label") String edgeLabel,
+                      @QueryParam("max_depth") int depth,
+                      @QueryParam("max_degree")
+                      @DefaultValue(DEFAULT_DEGREE) long degree,
+                      @QueryParam("capacity")
+                      @DefaultValue(DEFAULT_CAPACITY) long capacity,
+                      @QueryParam("limit")
+                      @DefaultValue(DEFAULT_PATHS_LIMIT) long limit) {
+        LOG.debug("Graph [{}] get paths from '{}', to '{}' with " +
+                  "direction {}, edge label {}, max depth '{}', " +
+                  "max degree '{}', capacity '{}' and limit '{}'",
+                  graph, source, target, direction, edgeLabel, depth,
+                  degree, capacity, limit);
+
+        Id sourceId = VertexAPI.checkAndParseVertexId(source);
+        Id targetId = VertexAPI.checkAndParseVertexId(target);
+        Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
+
+        HugeGraph g = graph(manager, graph);
+        PathsTraverser traverser = new PathsTraverser(g);
+        HugeTraverser.PathSet paths = traverser.paths(sourceId, dir, targetId,
+                                                      dir.opposite(), edgeLabel,
+                                                      depth, degree, capacity,
+                                                      limit);
+        return manager.serializer(g).writePaths("paths", paths, false);
+    }
+
     @POST
     @Timed
     @Consumes(APPLICATION_JSON)
@@ -114,41 +149,6 @@ public class PathsAPI extends TraverserAPI {
             iter = g.vertices(ids.toArray());
         }
         return manager.serializer(g).writePaths("paths", paths, false, iter);
-    }
-
-    @GET
-    @Timed
-    @Produces(APPLICATION_JSON_WITH_CHARSET)
-    public String get(@Context GraphManager manager,
-                      @PathParam("graph") String graph,
-                      @QueryParam("source") String source,
-                      @QueryParam("target") String target,
-                      @QueryParam("direction") String direction,
-                      @QueryParam("label") String edgeLabel,
-                      @QueryParam("max_depth") int depth,
-                      @QueryParam("max_degree")
-                      @DefaultValue(DEFAULT_DEGREE) long degree,
-                      @QueryParam("capacity")
-                      @DefaultValue(DEFAULT_CAPACITY) long capacity,
-                      @QueryParam("limit")
-                      @DefaultValue(DEFAULT_PATHS_LIMIT) long limit) {
-        LOG.debug("Graph [{}] get paths from '{}', to '{}' with " +
-                  "direction {}, edge label {}, max depth '{}', " +
-                  "max degree '{}', capacity '{}' and limit '{}'",
-                  graph, source, target, direction, edgeLabel, depth,
-                  degree, capacity, limit);
-
-        Id sourceId = VertexAPI.checkAndParseVertexId(source);
-        Id targetId = VertexAPI.checkAndParseVertexId(target);
-        Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
-
-        HugeGraph g = graph(manager, graph);
-        PathsTraverser traverser = new PathsTraverser(g);
-        HugeTraverser.PathSet paths = traverser.paths(sourceId, dir, targetId,
-                                                      dir.opposite(), edgeLabel,
-                                                      depth, degree, capacity,
-                                                      limit);
-        return manager.serializer(g).writePaths("paths", paths, false);
     }
 
     private static class Request {
