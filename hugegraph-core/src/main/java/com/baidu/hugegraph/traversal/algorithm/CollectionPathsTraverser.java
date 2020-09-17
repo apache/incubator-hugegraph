@@ -22,13 +22,11 @@ package com.baidu.hugegraph.traversal.algorithm;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.ws.rs.core.MultivaluedMap;
 
@@ -42,7 +40,6 @@ import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
-import com.google.common.collect.ImmutableList;
 
 public class CollectionPathsTraverser extends TpTraverser {
 
@@ -85,24 +82,18 @@ public class CollectionPathsTraverser extends TpTraverser {
                               this.singleTraverser(sourceList, targetList, step,
                                                    nearest, capacity, limit);
 
-        Collection paths = new HashSet<>();
         while (true) {
             if (--depth < 0 || traverser.reachLimit()) {
                 break;
             }
-            Collection<Path> foundPaths = traverser.forward();
-            paths.addAll(foundPaths);
+            traverser.forward();
 
             if (--depth < 0 || traverser.reachLimit()) {
                 break;
             }
-            foundPaths = traverser.backward();
-            for (Path path : foundPaths) {
-                path.reverse();
-                paths.add(path);
-            }
+            traverser.backward();
         }
-        return paths;
+        return traverser.paths();
     }
 
     private Traverser singleTraverser(List<Id> sources, List<Id> targets,
@@ -132,12 +123,14 @@ public class CollectionPathsTraverser extends TpTraverser {
             this.limit = limit;
         }
 
-        public Collection<Path> forward() {
-            return ImmutableList.of();
+        public void forward() {
         }
 
-        public Collection<Path> backward() {
-            return ImmutableList.of();
+        public void backward() {
+        }
+
+        public Set<Path> paths() {
+            return new PathSet();
         }
 
         public int pathCount() {
@@ -169,7 +162,7 @@ public class CollectionPathsTraverser extends TpTraverser {
         private ConcurrentMultiValuedMap<Id, Node> targetsAll =
                 new ConcurrentMultiValuedMap<>();
 
-        protected AtomicInteger pathCount;
+        private Set<Path> paths;
 
         public ConcurrentTraverser(Collection<Id> sources,
                                    Collection<Id> targets, EdgeStep step,
@@ -183,14 +176,14 @@ public class CollectionPathsTraverser extends TpTraverser {
             }
             this.sourcesAll.putAll(this.sources);
             this.targetsAll.putAll(this.targets);
-            this.pathCount = new AtomicInteger(0);
+
+            this.paths = ConcurrentHashMap.newKeySet();
         }
 
         /**
          * Search forward from sources
          */
-        public Collection<Path> forward() {
-            Set<Path> paths = ConcurrentHashMap.newKeySet();
+        public void forward() {
             ConcurrentMultiValuedMap<Id, Node> newVertices =
                                                new ConcurrentMultiValuedMap<>();
             // Traversal vertices of previous level
@@ -214,8 +207,7 @@ public class CollectionPathsTraverser extends TpTraverser {
                             for (Node node : this.targetsAll.get(target)) {
                                 List<Id> path = n.joinPath(node);
                                 if (!path.isEmpty()) {
-                                    paths.add(new Path(target, path));
-                                    this.pathCount.incrementAndGet();
+                                    this.paths.add(new Path(target, path));
                                     if (this.reachLimit()) {
                                         return;
                                     }
@@ -232,16 +224,15 @@ public class CollectionPathsTraverser extends TpTraverser {
             // Re-init sources
             this.sources = newVertices;
             // Record all passed vertices
-            this.sourcesAll.putAll(newVertices);
-
-            return paths;
+            for (Map.Entry<Id, List<Node>> entry : newVertices.entrySet()) {
+                this.sourcesAll.addAll(entry.getKey(), entry.getValue());
+            }
         }
 
         /**
          * Search backward from target
          */
-        public Set<Path> backward() {
-            Set<Path> paths = ConcurrentHashMap.newKeySet();
+        public void backward() {
             ConcurrentMultiValuedMap<Id, Node> newVertices =
                                                new ConcurrentMultiValuedMap<>();
             this.step.swithDirection();
@@ -267,8 +258,9 @@ public class CollectionPathsTraverser extends TpTraverser {
                             for (Node node : this.sourcesAll.get(target)) {
                                 List<Id> path = n.joinPath(node);
                                 if (!path.isEmpty()) {
-                                    paths.add(new Path(target, path));
-                                    this.pathCount.incrementAndGet();
+                                    Path newPath = new Path(target, path);
+                                    newPath.reverse();
+                                    this.paths.add(newPath);
                                     if (this.reachLimit()) {
                                         return;
                                     }
@@ -286,14 +278,19 @@ public class CollectionPathsTraverser extends TpTraverser {
             // Re-init targets
             this.targets = newVertices;
             // Record all passed vertices
-            this.targetsAll.putAll(newVertices);
+            for (Map.Entry<Id, List<Node>> entry : newVertices.entrySet()) {
+                this.targetsAll.addAll(entry.getKey(), entry.getValue());
+            }
+        }
 
-            return paths;
+        @Override
+        public Set<Path> paths() {
+            return this.paths;
         }
 
         @Override
         public int pathCount() {
-            return this.pathCount.get();
+            return this.paths.size();
         }
 
         protected int accessedNodes() {
@@ -308,7 +305,7 @@ public class CollectionPathsTraverser extends TpTraverser {
         private MultivaluedMap<Id, Node> sourcesAll = newMultivalueMap();
         private MultivaluedMap<Id, Node> targetsAll = newMultivalueMap();
 
-        private int pathCount;
+        private PathSet paths;
 
         public SingleAllTraverser(Collection<Id> sources,
                                   Collection<Id> targets,
@@ -322,14 +319,13 @@ public class CollectionPathsTraverser extends TpTraverser {
             }
             this.sourcesAll.putAll(this.sources);
             this.targetsAll.putAll(this.targets);
-            this.pathCount = 0;
+            this.paths = new PathSet();
         }
 
         /**
          * Search forward from sources
          */
-        public PathSet forward() {
-            PathSet paths = new PathSet();
+        public void forward() {
             MultivaluedMap<Id, Node> newVertices = newMultivalueMap();
             Iterator<Edge> edges;
             // Traversal vertices of previous level
@@ -352,10 +348,9 @@ public class CollectionPathsTraverser extends TpTraverser {
                             for (Node node : this.targetsAll.get(target)) {
                                 List<Id> path = n.joinPath(node);
                                 if (!path.isEmpty()) {
-                                    paths.add(new Path(target, path));
-                                    ++this.pathCount;
+                                    this.paths.add(new Path(target, path));
                                     if (this.reachLimit()) {
-                                        return paths;
+                                        return;
                                     }
                                 }
                             }
@@ -370,15 +365,15 @@ public class CollectionPathsTraverser extends TpTraverser {
             // Re-init targets
             this.sources = newVertices;
             // Record all passed vertices
-            this.sourcesAll.putAll(newVertices);
-
-            return paths;
+            for (Map.Entry<Id, List<Node>> entry : newVertices.entrySet()) {
+                this.sourcesAll.addAll(entry.getKey(), entry.getValue());
+            }
         }
 
         /**
          * Search backward from target
          */
-        public PathSet backward() {
+        public void backward() {
             PathSet paths = new PathSet();
             MultivaluedMap<Id, Node> newVertices = newMultivalueMap();
             this.step.swithDirection();
@@ -403,10 +398,11 @@ public class CollectionPathsTraverser extends TpTraverser {
                             for (Node node : this.sourcesAll.get(target)) {
                                 List<Id> path = n.joinPath(node);
                                 if (!path.isEmpty()) {
-                                    paths.add(new Path(target, path));
-                                    ++this.pathCount;
+                                    Path newPath = new Path(target, path);
+                                    newPath.reverse();
+                                    this.paths.add(newPath);
                                     if (this.reachLimit()) {
-                                        return paths;
+                                        return;
                                     }
                                 }
                             }
@@ -422,14 +418,19 @@ public class CollectionPathsTraverser extends TpTraverser {
             // Re-init targets
             this.targets = newVertices;
             // Record all passed vertices
-            this.targetsAll.putAll(newVertices);
+            for (Map.Entry<Id, List<Node>> entry : newVertices.entrySet()) {
+                this.targetsAll.addAll(entry.getKey(), entry.getValue());
+            }
+        }
 
-            return paths;
+        @Override
+        public Set<Path> paths() {
+            return this.paths;
         }
 
         @Override
         public int pathCount() {
-            return this.pathCount;
+            return this.paths.size();
         }
 
         protected int accessedNodes() {
@@ -445,7 +446,7 @@ public class CollectionPathsTraverser extends TpTraverser {
         private Map<Id, Node> sourcesAll = new HashMap<>();
         private Map<Id, Node> targetsAll = new HashMap<>();
 
-        private int pathCount;
+        private PathSet paths;
 
         public SingleNearestTraverser(Collection<Id> sources,
                                       Collection<Id> targets,
@@ -460,16 +461,15 @@ public class CollectionPathsTraverser extends TpTraverser {
             }
             this.sourcesAll.putAll(this.sources);
             this.targetsAll.putAll(this.targets);
-            this.pathCount = 0;
+            this.paths = new PathSet();
         }
 
         /**
          * Search forward from sources
          */
-        public PathSet forward() {
+        public void forward() {
             LOG.info("Forward with sources size {} and sources all size {}",
                      this.sources.size(), this.sourcesAll.size());
-            PathSet paths = new PathSet();
             Map<Id, Node> newVertices = new HashMap<>();
             Iterator<Edge> edges;
             // Traversal vertices of previous level
@@ -492,10 +492,9 @@ public class CollectionPathsTraverser extends TpTraverser {
                         Node node = this.targetsAll.get(target);
                         List<Id> path = n.joinPath(node);
                         if (!path.isEmpty()) {
-                            paths.add(new Path(target, path));
-                            ++this.pathCount;
+                            this.paths.add(new Path(target, path));
                             if (this.reachLimit()) {
-                                return paths;
+                                return;
                             }
                         }
                     }
@@ -514,16 +513,14 @@ public class CollectionPathsTraverser extends TpTraverser {
             }
             LOG.info("Done forward with sources size {} and sources all size {}",
                      this.sources.size(), this.sourcesAll.size());
-            return paths;
         }
 
         /**
          * Search backward from target
          */
-        public PathSet backward() {
+        public void backward() {
             LOG.info("Backward with targets size {} and targets all size {}",
                      this.targets.size(), this.targetsAll.size());
-            PathSet paths = new PathSet();
             Map<Id, Node> newVertices = new HashMap<>();
             this.step.swithDirection();
             Iterator<Edge> edges;
@@ -547,10 +544,11 @@ public class CollectionPathsTraverser extends TpTraverser {
                         Node node = this.sourcesAll.get(target);
                         List<Id> path = n.joinPath(node);
                         if (!path.isEmpty()) {
-                            paths.add(new Path(target, path));
-                            ++this.pathCount;
+                            Path newPath = new Path(target, path);
+                            newPath.reverse();
+                            this.paths.add(newPath);
                             if (this.reachLimit()) {
-                                return paths;
+                                return;
                             }
                         }
                     }
@@ -570,12 +568,16 @@ public class CollectionPathsTraverser extends TpTraverser {
             }
             LOG.info("Done backward with sources size {} and sources all size {}",
                      this.targets.size(), this.targetsAll.size());
-            return paths;
+        }
+
+        @Override
+        public Set<Path> paths() {
+            return this.paths;
         }
 
         @Override
         public int pathCount() {
-            return this.pathCount;
+            return this.paths.size();
         }
 
         protected int accessedNodes() {

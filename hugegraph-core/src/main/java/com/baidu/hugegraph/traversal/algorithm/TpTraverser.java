@@ -20,8 +20,10 @@
 package com.baidu.hugegraph.traversal.algorithm;
 
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
@@ -154,22 +156,32 @@ public abstract class TpTraverser extends HugeTraverser
     }
 
     public class ConcurrentMultiValuedMap<K, V>
-           extends ConcurrentHashMap<K, Set<V>> {
+           extends ConcurrentHashMap<K, List<V>> {
 
         public ConcurrentMultiValuedMap() {
             super();
         }
 
         public void add(K key, V value) {
-            Set<V> values = this.get(key);
+            List<V> values = this.getValues(key);
+            values.add(value);
+        }
+
+        public void addAll(K key, List<V> value) {
+            List<V> values = this.getValues(key);
+            values.addAll(value);
+        }
+
+        public List<V> getValues(K key) {
+            List<V> values = this.get(key);
             if (values == null) {
-                values = ConcurrentHashMap.newKeySet();
-                Set<V> old = this.putIfAbsent(key, values);
+                values = new CopyOnWriteArrayList<>();
+                List<V> old = this.putIfAbsent(key, values);
                 if (old != null) {
                     values = old;
                 }
             }
-            values.add(value);
+            return values;
         }
     }
 }

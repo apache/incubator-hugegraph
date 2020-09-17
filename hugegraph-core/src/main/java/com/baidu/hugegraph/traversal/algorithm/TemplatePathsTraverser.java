@@ -22,13 +22,11 @@ package com.baidu.hugegraph.traversal.algorithm;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.ws.rs.core.MultivaluedMap;
 
@@ -86,24 +84,23 @@ public class TemplatePathsTraverser extends TpTraverser {
         }
         Traverser traverser = totalSteps >= this.concurrentDepth() ?
                               new ConcurrentTraverser(sourceList, targetList,
-                                                      steps, capacity, limit) :
+                                                      steps, withRing,
+                                                      capacity, limit) :
                               new SingleTraverser(sourceList, targetList,
-                                                  steps, withRing, capacity, limit);
-        Set<Path> paths = new HashSet<>();
+                                                  steps, withRing,
+                                                  capacity, limit);
+
         do {
             // Forward
-            paths.addAll(traverser.forward());
+            traverser.forward();
             if (traverser.finish()) {
-                return paths;
+                return traverser.paths();
             }
 
             // Backward
-            for (Path path : traverser.backward()) {
-                path.reverse();
-                paths.add(path);
-            }
+            traverser.backward();
             if (traverser.finish()) {
-                return paths;
+                return traverser.paths();
             }
         } while (true);
     }
@@ -115,24 +112,35 @@ public class TemplatePathsTraverser extends TpTraverser {
         protected final long capacity;
         protected final long limit;
         protected int totalSteps;
+        protected boolean withRing;
+        protected int sourceIndex;
+        protected int targetIndex;
+
+        protected boolean sourceFinishOneStep = false;
+        protected boolean targetFinishOneStep = false;
 
         public Traverser(List<RepeatEdgeStep> steps,
-                         long capacity, long limit) {
+                         long capacity, long limit, boolean withRing) {
             this.steps = steps;
             this.capacity = capacity;
             this.limit = limit;
+            this.withRing = withRing;
 
             this.stepCount = 0;
             for (RepeatEdgeStep step : steps) {
                 this.totalSteps += step.maxTimes;
             }
+            this.sourceIndex = 0;
+            this.targetIndex = this.steps.size() - 1;
         }
 
-        public Set<Path> forward() {
-            return new PathSet();
+        public void forward() {
         }
 
-        public Set<Path> backward() {
+        public void backward() {
+        }
+
+        public Set<Path> paths() {
             return new PathSet();
         }
 
@@ -141,7 +149,7 @@ public class TemplatePathsTraverser extends TpTraverser {
         }
 
         protected boolean finish() {
-            return this.stepCount == this.totalSteps;
+            return this.stepCount >= this.totalSteps || this.reachLimit();
         }
 
         protected boolean lastStep() {
@@ -160,6 +168,11 @@ public class TemplatePathsTraverser extends TpTraverser {
             }
             return true;
         }
+
+        public boolean lastSuperStep() {
+            return this.targetIndex == this.sourceIndex ||
+                   this.targetIndex == this.sourceIndex + 1;
+        }
     }
 
     private class ConcurrentTraverser extends Traverser {
@@ -168,55 +181,78 @@ public class TemplatePathsTraverser extends TpTraverser {
                 new ConcurrentMultiValuedMap<>();
         private ConcurrentMultiValuedMap<Id, Node> targets =
                 new ConcurrentMultiValuedMap<>();
+        private ConcurrentMultiValuedMap<Id, Node> sourcesAll =
+                new ConcurrentMultiValuedMap<>();
+        private ConcurrentMultiValuedMap<Id, Node> targetsAll =
+                new ConcurrentMultiValuedMap<>();
 
-        protected AtomicInteger pathCount;
+        private Set<Path> paths;
 
         public ConcurrentTraverser(Collection<Id> sources,
                                    Collection<Id> targets,
-                                   List<RepeatEdgeStep> steps,
+                                   List<RepeatEdgeStep> steps, boolean withRing,
                                    long capacity, long limit) {
-            super(steps, capacity, limit);
+            super(steps, capacity, limit, withRing);
             for (Id id : sources) {
                 this.sources.add(id, new Node(id));
             }
             for (Id id : targets) {
                 this.targets.add(id, new Node(id));
             }
-            this.pathCount = new AtomicInteger(0);
+            this.paths = ConcurrentHashMap.newKeySet();
         }
 
         /**
          * Search forward from sources
          */
-        public Set<Path> forward() {
-            Set<Path> paths = ConcurrentHashMap.newKeySet();
+        public void forward() {
             ConcurrentMultiValuedMap<Id, Node> newVertices =
                                                new ConcurrentMultiValuedMap<>();
-            RepeatEdgeStep step = this.steps.get(this.stepCount / 2);
+            RepeatEdgeStep currentStep = null;
+            // Find next step to forward
+            for (int i = 0; i < this.steps.size(); i++) {
+                RepeatEdgeStep step = this.steps.get(i);
+                if (step.remainTimes() > 0) {
+                    currentStep = step;
+                    this.sourceIndex = i;
+                    break;
+                }
+            }
+            if (currentStep == null) {
+                return;
+            }
+
+            // Re-init source all if last forward finished one super step and
+            // not last super step
+            if (this.sourceFinishOneStep && !this.lastSuperStep()) {
+                this.sourcesAll = new ConcurrentMultiValuedMap<>();
+                this.sourceFinishOneStep = false;
+            }
+
             // Traversal vertices of previous level
+            RepeatEdgeStep finalCurrentStep = currentStep;
             traverseIds(this.sources.keySet().iterator(), vid -> {
                 if (this.reachLimit()) {
                     return;
                 }
-                Iterator<Edge> edges = edgesOfVertex(vid, step);
+                Iterator<Edge> edges = edgesOfVertex(vid, finalCurrentStep);
                 while (edges.hasNext()) {
                     HugeEdge edge = (HugeEdge) edges.next();
                     Id target = edge.id().otherVertexId();
 
                     for (Node n : this.sources.get(vid)) {
                         // If have loop, skip target
-                        if (n.contains(target)) {
+                        if (!this.withRing && n.contains(target)) {
                             continue;
                         }
 
                         // If cross point exists, path found, concat them
-                        if (this.lastStep() &&
+                        if (this.lastSuperStep() &&
                             this.targets.containsKey(target)) {
                             for (Node node : this.targets.get(target)) {
                                 List<Id> path = n.joinPath(node);
                                 if (!path.isEmpty()) {
-                                    paths.add(new Path(target, path));
-                                    this.pathCount.incrementAndGet();
+                                    this.paths.add(new Path(target, path));
                                     if (this.reachLimit()) {
                                         return;
                                     }
@@ -230,30 +266,57 @@ public class TemplatePathsTraverser extends TpTraverser {
                 }
             });
 
+            for (Map.Entry<Id, List<Node>> entry : newVertices.entrySet()) {
+                this.sourcesAll.addAll(entry.getKey(), entry.getValue());
+            }
+
+            currentStep.decreaseTimes();
             // Re-init sources
-            this.sources = newVertices;
-
+            if (currentStep.remainTimes() > 0) {
+                this.sources = newVertices;
+            } else {
+                this.sources = this.sourcesAll;
+                this.sourceFinishOneStep = true;
+            }
             this.stepCount++;
-
-            return paths;
         }
 
         /**
          * Search backward from target
          */
-        public Set<Path> backward() {
-            Set<Path> paths = ConcurrentHashMap.newKeySet();
+        public void backward() {
             ConcurrentMultiValuedMap<Id, Node> newVertices =
                                                new ConcurrentMultiValuedMap<>();
-            int index = this.steps.size() - stepCount / 2 - 1;
-            RepeatEdgeStep step = this.steps.get(index);
-            step.swithDirection();
+            RepeatEdgeStep currentStep = null;
+
+            // Find next step to backward
+            for (int i = this.steps.size() - 1; i >= 0; i--) {
+                RepeatEdgeStep step = this.steps.get(i);
+                if (step.remainTimes() > 0) {
+                    currentStep = step;
+                    this.targetIndex = i;
+                    break;
+                }
+            }
+            if (currentStep == null) {
+                return;
+            }
+
+            // Re-init target all if last forward finished one super step and
+            // not last super step
+            if (this.targetFinishOneStep && !this.lastSuperStep()) {
+                this.targetsAll = new ConcurrentMultiValuedMap<>();
+                this.targetFinishOneStep = false;
+            }
+
+            currentStep.swithDirection();
             // Traversal vertices of previous level
+            RepeatEdgeStep finalCurrentStep = currentStep;
             traverseIds(this.targets.keySet().iterator(), vid -> {
                 if (this.reachLimit()) {
                     return;
                 }
-                Iterator<Edge> edges = edgesOfVertex(vid, step);
+                Iterator<Edge> edges = edgesOfVertex(vid, finalCurrentStep);
 
                 while (edges.hasNext()) {
                     HugeEdge edge = (HugeEdge) edges.next();
@@ -271,8 +334,9 @@ public class TemplatePathsTraverser extends TpTraverser {
                             for (Node node : this.sources.get(target)) {
                                 List<Id> path = n.joinPath(node);
                                 if (!path.isEmpty()) {
-                                    paths.add(new Path(target, path));
-                                    this.pathCount.incrementAndGet();
+                                    Path newPath = new Path(target, path);
+                                    newPath.reverse();
+                                    this.paths.add(newPath);
                                     if (this.reachLimit()) {
                                         return;
                                     }
@@ -286,21 +350,42 @@ public class TemplatePathsTraverser extends TpTraverser {
                 }
             });
 
+            currentStep.swithDirection();
+
+            for (Map.Entry<Id, List<Node>> entry : newVertices.entrySet()) {
+                this.targetsAll.addAll(entry.getKey(), entry.getValue());
+            }
+
+            currentStep.decreaseTimes();
             // Re-init targets
-            this.targets = newVertices;
-
+            if (currentStep.remainTimes() > 0) {
+                this.targets = newVertices;
+            } else {
+                this.targets = this.targetsAll;
+                this.targetFinishOneStep = true;
+            }
             this.stepCount++;
+        }
 
-            return paths;
+        @Override
+        public Set<Path> paths() {
+            return this.paths;
         }
 
         @Override
         public int pathCount() {
-            return this.pathCount.get();
+            return this.paths.size();
         }
 
         protected int accessedNodes() {
-            return this.sources.size() + this.targets.size();
+            int size = 0;
+            for (List<Node> value : this.sourcesAll.values()) {
+                size += value.size();
+            }
+            for (List<Node> value : this.targetsAll.values()) {
+                size += value.size();
+            }
+            return size;
         }
     }
 
@@ -311,41 +396,25 @@ public class TemplatePathsTraverser extends TpTraverser {
         private MultivaluedMap<Id, Node> sourcesAll = newMultivalueMap();
         private MultivaluedMap<Id, Node> targetsAll = newMultivalueMap();
 
-        private int sourceIndex;
-        private int targetIndex;
-        private boolean sourceFinishOneStep = false;
-        private boolean targetFinishOneStep = false;
-        private int pathCount;
-        private boolean withRing;
+        private Set<Path> paths;
 
         public SingleTraverser(Collection<Id> sources, Collection<Id> targets,
                                List<RepeatEdgeStep> steps, boolean withRing,
                                long capacity, long limit) {
-            this(sources, targets, steps, capacity, limit);
-            this.withRing = withRing;
-
-        }
-
-        public SingleTraverser(Collection<Id> sources, Collection<Id> targets,
-                               List<RepeatEdgeStep> steps, long capacity,
-                               long limit) {
-            super(steps, capacity, limit);
+            super(steps, capacity, limit, withRing);
             for (Id id : sources) {
                 this.sources.add(id, new Node(id));
             }
             for (Id id : targets) {
                 this.targets.add(id, new Node(id));
             }
-            this.sourceIndex = 0;
-            this.targetIndex = this.steps.size() - 1;
-            this.pathCount = 0;
+            this.paths = new PathSet();
         }
 
         /**
          * Search forward from sources
          */
-        public PathSet forward() {
-            PathSet paths = new PathSet();
+        public void forward() {
             MultivaluedMap<Id, Node> newVertices = newMultivalueMap();
             RepeatEdgeStep currentStep = null;
             // Find next step to forward
@@ -358,7 +427,7 @@ public class TemplatePathsTraverser extends TpTraverser {
                 }
             }
             if (currentStep == null) {
-                return new PathSet();
+                return;
             }
 
             // Re-init source all if last forward finished one super step and
@@ -380,7 +449,7 @@ public class TemplatePathsTraverser extends TpTraverser {
 
                     for (Node n : entry.getValue()) {
                         // If have loop, skip target
-                        if (n.contains(target)) {
+                        if (!this.withRing && n.contains(target)) {
                             continue;
                         }
 
@@ -390,10 +459,9 @@ public class TemplatePathsTraverser extends TpTraverser {
                             for (Node node : this.targetsAll.get(target)) {
                                 List<Id> path = joinPath(n, node, withRing);
                                 if (!path.isEmpty()) {
-                                    paths.add(new Path(target, path));
-                                    ++this.pathCount;
+                                    this.paths.add(new Path(target, path));
                                     if (this.reachLimit()) {
-                                        return paths;
+                                        return;
                                     }
                                 }
                             }
@@ -405,7 +473,9 @@ public class TemplatePathsTraverser extends TpTraverser {
                 }
             }
 
-            this.sourcesAll.putAll(newVertices);
+            for (Map.Entry<Id, List<Node>> entry : newVertices.entrySet()) {
+                this.sourcesAll.addAll(entry.getKey(), entry.getValue());
+            }
 
             currentStep.decreaseTimes();
             // Re-init sources
@@ -415,17 +485,13 @@ public class TemplatePathsTraverser extends TpTraverser {
                 this.sources = this.sourcesAll;
                 this.sourceFinishOneStep = true;
             }
-
             this.stepCount++;
-
-            return paths;
         }
 
         /**
          * Search backward from target
          */
-        public PathSet backward() {
-            PathSet paths = new PathSet();
+        public void backward() {
             MultivaluedMap<Id, Node> newVertices = newMultivalueMap();
             RepeatEdgeStep currentStep = null;
 
@@ -439,7 +505,7 @@ public class TemplatePathsTraverser extends TpTraverser {
                 }
             }
             if (currentStep == null) {
-                return new PathSet();
+                return;
             }
 
             // Re-init target all if last forward finished one super step and
@@ -462,7 +528,7 @@ public class TemplatePathsTraverser extends TpTraverser {
 
                     for (Node n : entry.getValue()) {
                         // If have loop, skip target
-                        if (n.contains(target)) {
+                        if (!this.withRing && n.contains(target)) {
                             continue;
                         }
 
@@ -472,10 +538,11 @@ public class TemplatePathsTraverser extends TpTraverser {
                             for (Node node : this.sourcesAll.get(target)) {
                                 List<Id> path = joinPath(n, node, withRing);
                                 if (!path.isEmpty()) {
-                                    paths.add(new Path(target, path));
-                                    ++this.pathCount;
+                                    Path newPath = new Path(target, path);
+                                    newPath.reverse();
+                                    this.paths.add(newPath);
                                     if (this.reachLimit()) {
-                                        return paths;
+                                        return;
                                     }
                                 }
                             }
@@ -489,7 +556,9 @@ public class TemplatePathsTraverser extends TpTraverser {
 
             currentStep.swithDirection();
 
-            this.targetsAll.putAll(newVertices);
+            for (Map.Entry<Id, List<Node>> entry : newVertices.entrySet()) {
+                this.targetsAll.addAll(entry.getKey(), entry.getValue());
+            }
 
             currentStep.decreaseTimes();
             // Re-init targets
@@ -499,24 +568,28 @@ public class TemplatePathsTraverser extends TpTraverser {
                 this.targets = this.targetsAll;
                 this.targetFinishOneStep = true;
             }
-
             this.stepCount++;
+        }
 
-            return paths;
+        @Override
+        public Set<Path> paths() {
+            return this.paths;
         }
 
         @Override
         public int pathCount() {
-            return this.pathCount;
+            return this.paths.size();
         }
 
         protected int accessedNodes() {
-            return this.sources.size() + this.targets.size();
-        }
-
-        public boolean lastSuperStep() {
-            return this.targetIndex == this.sourceIndex ||
-                   this.targetIndex == this.sourceIndex + 1;
+            int size = 0;
+            for (List<Node> value : this.sourcesAll.values()) {
+                size += value.size();
+            }
+            for (List<Node> value : this.targetsAll.values()) {
+                size += value.size();
+            }
+            return size;
         }
     }
 
