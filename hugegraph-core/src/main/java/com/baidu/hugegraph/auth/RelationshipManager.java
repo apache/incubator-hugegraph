@@ -227,7 +227,7 @@ public class RelationshipManager<T extends Relationship> {
     private HugeVertex newVertex(Object id, String label) {
         VertexLabel vl = this.graph().vertexLabel(label);
         Id idValue = HugeVertex.getIdValue(id);
-        return new HugeVertex(this.tx(), idValue, vl);
+        return HugeVertex.create(this.tx(), idValue, vl);
     }
 
     private void commitOrRollback() {

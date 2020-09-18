@@ -3133,7 +3133,7 @@ public class EdgeCoreTest extends BaseCoreTest {
         vertices = graph.traversal().V(james.id()).outE().otherV().toList();
         Assert.assertEquals(1, vertices.size());
         adjacent = (HugeVertex) vertices.get(0);
-        Assert.assertTrue(adjacent.propLoaded());
+        Assert.assertTrue(adjacent.isPropLoaded());
         Assert.assertTrue(adjacent.schemaLabel().undefined());
         adjacent.forceLoad();
         Assert.assertTrue(adjacent.schemaLabel().undefined());
@@ -3144,7 +3144,7 @@ public class EdgeCoreTest extends BaseCoreTest {
         vertices = graph.traversal().V(james.id()).outE().otherV().toList();
         Assert.assertEquals(1, vertices.size());
         adjacent = (HugeVertex) vertices.get(0);
-        Assert.assertFalse(adjacent.propLoaded());
+        Assert.assertFalse(adjacent.isPropLoaded());
         Assert.assertFalse(adjacent.schemaLabel().undefined());
         adjacent.forceLoad();
         Assert.assertTrue(adjacent.schemaLabel().undefined());
@@ -3235,6 +3235,83 @@ public class EdgeCoreTest extends BaseCoreTest {
             Whitebox.setInternalState(params().graphTransaction(),
                                       "checkAdjacentVertexExist", false);
         }
+    }
+
+    @Test
+    public void testQueryAdjacentVerticesOfEdgesWithInvalidVertexLabel()
+                throws InterruptedException, ExecutionException {
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
+
+        schema.vertexLabel("programmer")
+              .useCustomizeStringId()
+              .properties("name", "age", "city")
+              .create();
+        schema.vertexLabel("designer")
+              .useCustomizeStringId()
+              .properties("name", "age", "city")
+              .create();
+        schema.edgeLabel("call")
+              .sourceLabel("designer").targetLabel("programmer")
+              .create();
+
+        Vertex v1 = graph.addVertex(T.label, "programmer", T.id, "123",
+                                    "name", "marko", "age", 18,
+                                    "city", "Beijing");
+        Vertex v2 = graph.addVertex(T.label, "designer", T.id, "456",
+                                    "name", "marko", "age", 19,
+                                    "city", "Beijing");
+        v2.addEdge("call", v1);
+        graph.tx().commit();
+
+        List<Vertex> vertices = graph.traversal().V(v1).both().toList();
+        Assert.assertEquals(1, vertices.size());
+        Assert.assertEquals(v2, vertices.get(0));
+        Assert.assertEquals(19, vertices.get(0).value("age"));
+        Assert.assertEquals("designer", vertices.get(0).label());
+
+        Assert.assertThrows(HugeException.class, () -> {
+            // try to override vertex designer-456 wirh programmer-456
+            graph.addVertex(T.label, "programmer", T.id, "456",
+                            "name", "marko", "age", 20, "city", "Beijing");
+            graph.tx().commit();
+        }, e -> {
+            String error = "The newly added vertex with id:'456' label:" +
+                           "'programmer' is not allowed to insert, " +
+                           "because already exist a vertex with same id and " +
+                           "different label:'designer'";
+            Assert.assertContains(error, e.getMessage());
+        });
+
+        Whitebox.setInternalState(params().graphTransaction(),
+                                  "checkCustomVertexExist", false);
+        params().graphEventHub().notify(Events.CACHE, "clear",
+                                        null, null).get();
+        try {
+            // override vertex designer-456 wirh programmer-456
+            graph.addVertex(T.label, "programmer", T.id, "456",
+                            "name", "marko", "age", 21, "city", "Beijing");
+            graph.tx().commit();
+        } finally {
+            Whitebox.setInternalState(params().graphTransaction(),
+                                      "checkCustomVertexExist", true);
+        }
+
+        // query by id
+        vertices = graph.traversal().V("456").toList();
+        Assert.assertEquals(1, vertices.size());
+        Assert.assertEquals("456", vertices.get(0).id().toString());
+        Assert.assertEquals(21, vertices.get(0).value("age"));
+        Assert.assertEquals("programmer", vertices.get(0).label());
+
+        // query by adjacent vertex
+        vertices = graph.traversal().V("123").both().toList();
+        Assert.assertEquals(1, vertices.size());
+        Assert.assertEquals("456", vertices.get(0).id().toString());
+        Assert.assertEquals(false, vertices.get(0).property("age").isPresent());
+        Assert.assertEquals("~undefined", vertices.get(0).label());
+
+        assert false;
     }
 
     @Test
