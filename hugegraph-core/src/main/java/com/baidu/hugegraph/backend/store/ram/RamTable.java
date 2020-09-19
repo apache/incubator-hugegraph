@@ -386,10 +386,14 @@ public final class RamTable {
             if (actualDir == Directions.OUT) {
                 HugeVertex owner = new HugeVertex(graph, this.owner, srcLabel);
                 HugeVertex other = new HugeVertex(graph, targetId, tgtLabel);
+                owner.propNotLoaded();
+                other.propNotLoaded();
                 edge.vertices(true, owner, other);
             } else {
                 HugeVertex owner = new HugeVertex(graph, this.owner, tgtLabel);
                 HugeVertex other = new HugeVertex(graph, targetId, srcLabel);
+                owner.propNotLoaded();
+                other.propNotLoaded();
                 edge.vertices(false, owner, other);
             }
             edge.propNotLoaded();

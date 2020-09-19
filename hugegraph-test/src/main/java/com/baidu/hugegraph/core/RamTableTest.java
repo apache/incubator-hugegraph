@@ -21,6 +21,8 @@ package com.baidu.hugegraph.core;
 
 import java.util.Iterator;
 
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
@@ -33,7 +35,9 @@ import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.ram.RamTable;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
+import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.structure.HugeEdge;
+import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.testutil.Whitebox;
 import com.baidu.hugegraph.type.define.Directions;
@@ -451,6 +455,424 @@ public class RamTableTest extends BaseCoreTest {
 
             Assert.assertFalse(edges.hasNext());
         }
+    }
+
+    @Test
+    public void testReloadAndQueryWithProperty() throws Exception {
+        HugeGraph graph = this.graph();
+        SchemaManager schema = graph.schema();
+
+        schema.propertyKey("name")
+              .asText()
+              .create();
+        schema.vertexLabel("person")
+              .properties("name")
+              .useCustomizeNumberId()
+              .create();
+        schema.edgeLabel("next")
+              .sourceLabel("person")
+              .targetLabel("person")
+              .properties("name")
+              .create();
+
+        GraphTraversalSource g = graph.traversal();
+        g.addV("person").property(T.id, 1).property("name", "A").as("a")
+         .addV("person").property(T.id, 2).property("name", "B").as("b")
+         .addV("person").property(T.id, 3).property("name", "C").as("c")
+         .addV("person").property(T.id, 4).property("name", "D").as("d")
+         .addV("person").property(T.id, 5).property("name", "E").as("e")
+         .addV("person").property(T.id, 6).property("name", "F").as("f")
+         .addE("next").from("a").to("b").property("name", "ab")
+         .addE("next").from("b").to("c").property("name", "bc")
+         .addE("next").from("b").to("d").property("name", "bd")
+         .addE("next").from("c").to("d").property("name", "cd")
+         .addE("next").from("c").to("e").property("name", "ce")
+         .addE("next").from("d").to("e").property("name", "de")
+         .addE("next").from("e").to("f").property("name", "ef")
+         .addE("next").from("f").to("d").property("name", "fd")
+         .iterate();
+        graph.tx().commit();
+
+        // reload ramtable
+        Whitebox.invoke(graph.getClass(), "reloadRamtable", graph);
+
+        GraphTraversal<Vertex, Vertex> vertices;
+        HugeVertex vertex;
+        GraphTraversal<Vertex, Edge> edges;
+        HugeEdge edge;
+
+        // A
+        vertices = g.V(1).out();
+        Assert.assertTrue(vertices.hasNext());
+        vertex = (HugeVertex) vertices.next();
+        Assert.assertFalse(vertex.propLoaded());
+        Assert.assertEquals(2L, vertex.id().asObject());
+        Assert.assertEquals("B", vertex.value("name"));
+        Assert.assertFalse(vertices.hasNext());
+
+        edges = g.V(1).outE();
+        Assert.assertTrue(edges.hasNext());
+        edge = (HugeEdge) edges.next();
+        Assert.assertFalse(edge.propLoaded());
+        Assert.assertEquals(Directions.OUT, edge.id().direction());
+        Assert.assertEquals("ab", edge.value("name"));
+        Assert.assertFalse(edges.hasNext());
+
+        vertices = g.V(1).in();
+        Assert.assertFalse(vertices.hasNext());
+
+        edges = g.V(1).inE();
+        Assert.assertFalse(edges.hasNext());
+
+        vertices = g.V(1).both();
+        Assert.assertTrue(vertices.hasNext());
+        vertex = (HugeVertex) vertices.next();
+        Assert.assertEquals(2L, vertex.id().asObject());
+        Assert.assertEquals("B", vertex.value("name"));
+        Assert.assertFalse(vertices.hasNext());
+
+        edges = g.V(1).bothE();
+        Assert.assertTrue(edges.hasNext());
+        edge = (HugeEdge) edges.next();
+        Assert.assertEquals(Directions.OUT, edge.id().direction());
+        Assert.assertEquals("ab", edge.value("name"));
+        Assert.assertFalse(edges.hasNext());
+
+        // B
+        vertices = g.V(2).out();
+        Assert.assertTrue(vertices.hasNext());
+        vertex = (HugeVertex) vertices.next();
+        Assert.assertEquals(3L, vertex.id().asObject());
+        Assert.assertEquals("C", vertex.value("name"));
+        Assert.assertTrue(vertices.hasNext());
+        vertex = (HugeVertex) vertices.next();
+        Assert.assertEquals(4L, vertex.id().asObject());
+        Assert.assertEquals("D", vertex.value("name"));
+        Assert.assertFalse(vertices.hasNext());
+
+        edges = g.V(2).outE();
+        Assert.assertTrue(edges.hasNext());
+        edge = (HugeEdge) edges.next();
+        Assert.assertEquals(Directions.OUT, edge.id().direction());
+        Assert.assertEquals("bc", edge.value("name"));
+        Assert.assertTrue(edges.hasNext());
+        edge = (HugeEdge) edges.next();
+        Assert.assertEquals(Directions.OUT, edge.id().direction());
+        Assert.assertEquals("bd", edge.value("name"));
+        Assert.assertFalse(edges.hasNext());
+
+        vertices = g.V(2).in();
+        Assert.assertTrue(vertices.hasNext());
+        vertex = (HugeVertex) vertices.next();
+        Assert.assertEquals(1L, vertex.id().asObject());
+        Assert.assertEquals("A", vertex.value("name"));
+        Assert.assertFalse(vertices.hasNext());
+
+        edges = g.V(2).inE();
+        Assert.assertTrue(edges.hasNext());
+        edge = (HugeEdge) edges.next();
+        Assert.assertEquals(Directions.IN, edge.id().direction());
+        Assert.assertEquals("ab", edge.value("name"));
+        Assert.assertFalse(edges.hasNext());
+
+        vertices = g.V(2).both();
+        Assert.assertTrue(vertices.hasNext());
+        vertex = (HugeVertex) vertices.next();
+        Assert.assertEquals(3L, vertex.id().asObject());
+        Assert.assertEquals("C", vertex.value("name"));
+        Assert.assertTrue(vertices.hasNext());
+        vertex = (HugeVertex) vertices.next();
+        Assert.assertEquals(4L, vertex.id().asObject());
+        Assert.assertEquals("D", vertex.value("name"));
+        Assert.assertTrue(vertices.hasNext());
+        vertex = (HugeVertex) vertices.next();
+        Assert.assertEquals(1L, vertex.id().asObject());
+        Assert.assertEquals("A", vertex.value("name"));
+        Assert.assertFalse(vertices.hasNext());
+
+        edges = g.V(2).bothE();
+        Assert.assertTrue(edges.hasNext());
+        edge = (HugeEdge) edges.next();
+        Assert.assertEquals(Directions.OUT, edge.id().direction());
+        Assert.assertEquals("bc", edge.value("name"));
+        Assert.assertTrue(edges.hasNext());
+        edge = (HugeEdge) edges.next();
+        Assert.assertEquals(Directions.OUT, edge.id().direction());
+        Assert.assertEquals("bd", edge.value("name"));
+        Assert.assertTrue(edges.hasNext());
+        edge = (HugeEdge) edges.next();
+        Assert.assertEquals(Directions.IN, edge.id().direction());
+        Assert.assertEquals("ab", edge.value("name"));
+        Assert.assertFalse(edges.hasNext());
+
+        // C
+        vertices = g.V(3).out();
+        Assert.assertTrue(vertices.hasNext());
+        vertex = (HugeVertex) vertices.next();
+        Assert.assertEquals(4L, vertex.id().asObject());
+        Assert.assertEquals("D", vertex.value("name"));
+        Assert.assertTrue(vertices.hasNext());
+        vertex = (HugeVertex) vertices.next();
+        Assert.assertEquals(5L, vertex.id().asObject());
+        Assert.assertEquals("E", vertex.value("name"));
+        Assert.assertFalse(vertices.hasNext());
+
+        edges = g.V(3).outE();
+        Assert.assertTrue(edges.hasNext());
+        edge = (HugeEdge) edges.next();
+        Assert.assertEquals(Directions.OUT, edge.id().direction());
+        Assert.assertEquals("cd", edge.value("name"));
+        Assert.assertTrue(edges.hasNext());
+        edge = (HugeEdge) edges.next();
+        Assert.assertEquals(Directions.OUT, edge.id().direction());
+        Assert.assertEquals("ce", edge.value("name"));
+        Assert.assertFalse(edges.hasNext());
+
+        vertices = g.V(3).in();
+        Assert.assertTrue(vertices.hasNext());
+        vertex = (HugeVertex) vertices.next();
+        Assert.assertEquals(2L, vertex.id().asObject());
+        Assert.assertEquals("B", vertex.value("name"));
+        Assert.assertFalse(vertices.hasNext());
+
+        edges = g.V(3).inE();
+        Assert.assertTrue(edges.hasNext());
+        edge = (HugeEdge) edges.next();
+        Assert.assertEquals(Directions.IN, edge.id().direction());
+        Assert.assertEquals("bc", edge.value("name"));
+        Assert.assertFalse(edges.hasNext());
+
+        vertices = g.V(3).both();
+        Assert.assertTrue(vertices.hasNext());
+        vertex = (HugeVertex) vertices.next();
+        Assert.assertEquals(4L, vertex.id().asObject());
+        Assert.assertEquals("D", vertex.value("name"));
+        Assert.assertTrue(vertices.hasNext());
+        vertex = (HugeVertex) vertices.next();
+        Assert.assertEquals(5L, vertex.id().asObject());
+        Assert.assertEquals("E", vertex.value("name"));
+        Assert.assertTrue(vertices.hasNext());
+        vertex = (HugeVertex) vertices.next();
+        Assert.assertEquals(2L, vertex.id().asObject());
+        Assert.assertEquals("B", vertex.value("name"));
+        Assert.assertFalse(vertices.hasNext());
+
+        edges = g.V(3).bothE();
+        Assert.assertTrue(edges.hasNext());
+        edge = (HugeEdge) edges.next();
+        Assert.assertEquals(Directions.OUT, edge.id().direction());
+        Assert.assertEquals("cd", edge.value("name"));
+        Assert.assertTrue(edges.hasNext());
+        edge = (HugeEdge) edges.next();
+        Assert.assertEquals(Directions.OUT, edge.id().direction());
+        Assert.assertEquals("ce", edge.value("name"));
+        Assert.assertTrue(edges.hasNext());
+        edge = (HugeEdge) edges.next();
+        Assert.assertEquals(Directions.IN, edge.id().direction());
+        Assert.assertEquals("bc", edge.value("name"));
+        Assert.assertFalse(edges.hasNext());
+
+        // D
+        vertices = g.V(4).out();
+        Assert.assertTrue(vertices.hasNext());
+        vertex = (HugeVertex) vertices.next();
+        Assert.assertEquals(5L, vertex.id().asObject());
+        Assert.assertEquals("E", vertex.value("name"));
+        Assert.assertFalse(vertices.hasNext());
+
+        edges = g.V(4).outE();
+        Assert.assertTrue(edges.hasNext());
+        edge = (HugeEdge) edges.next();
+        Assert.assertEquals(Directions.OUT, edge.id().direction());
+        Assert.assertEquals("de", edge.value("name"));
+        Assert.assertFalse(edges.hasNext());
+
+        vertices = g.V(4).in();
+        Assert.assertTrue(vertices.hasNext());
+        vertex = (HugeVertex) vertices.next();
+        Assert.assertEquals(2L, vertex.id().asObject());
+        Assert.assertEquals("B", vertex.value("name"));
+        Assert.assertTrue(vertices.hasNext());
+        vertex = (HugeVertex) vertices.next();
+        Assert.assertEquals(3L, vertex.id().asObject());
+        Assert.assertEquals("C", vertex.value("name"));
+        Assert.assertTrue(vertices.hasNext());
+        vertex = (HugeVertex) vertices.next();
+        Assert.assertEquals(6L, vertex.id().asObject());
+        Assert.assertEquals("F", vertex.value("name"));
+        Assert.assertFalse(vertices.hasNext());
+
+        edges = g.V(4).inE();
+        Assert.assertTrue(edges.hasNext());
+        edge = (HugeEdge) edges.next();
+        Assert.assertEquals(Directions.IN, edge.id().direction());
+        Assert.assertEquals("bd", edge.value("name"));
+        Assert.assertTrue(edges.hasNext());
+        edge = (HugeEdge) edges.next();
+        Assert.assertEquals(Directions.IN, edge.id().direction());
+        Assert.assertEquals("cd", edge.value("name"));
+        Assert.assertTrue(edges.hasNext());
+        edge = (HugeEdge) edges.next();
+        Assert.assertEquals(Directions.IN, edge.id().direction());
+        Assert.assertEquals("fd", edge.value("name"));
+        Assert.assertFalse(edges.hasNext());
+
+        vertices = g.V(4).both();
+        Assert.assertTrue(vertices.hasNext());
+        vertex = (HugeVertex) vertices.next();
+        Assert.assertEquals(5L, vertex.id().asObject());
+        Assert.assertEquals("E", vertex.value("name"));
+        Assert.assertTrue(vertices.hasNext());
+        vertex = (HugeVertex) vertices.next();
+        Assert.assertEquals(2L, vertex.id().asObject());
+        Assert.assertEquals("B", vertex.value("name"));
+        Assert.assertTrue(vertices.hasNext());
+        vertex = (HugeVertex) vertices.next();
+        Assert.assertEquals(3L, vertex.id().asObject());
+        Assert.assertEquals("C", vertex.value("name"));
+        Assert.assertTrue(vertices.hasNext());
+        vertex = (HugeVertex) vertices.next();
+        Assert.assertEquals(6L, vertex.id().asObject());
+        Assert.assertEquals("F", vertex.value("name"));
+        Assert.assertFalse(vertices.hasNext());
+
+        edges = g.V(4).bothE();
+        Assert.assertTrue(edges.hasNext());
+        edge = (HugeEdge) edges.next();
+        Assert.assertEquals(Directions.OUT, edge.id().direction());
+        Assert.assertEquals("de", edge.value("name"));
+        Assert.assertTrue(edges.hasNext());
+        edge = (HugeEdge) edges.next();
+        Assert.assertEquals(Directions.IN, edge.id().direction());
+        Assert.assertEquals("bd", edge.value("name"));
+        Assert.assertTrue(edges.hasNext());
+        edge = (HugeEdge) edges.next();
+        Assert.assertEquals(Directions.IN, edge.id().direction());
+        Assert.assertEquals("cd", edge.value("name"));
+        Assert.assertTrue(edges.hasNext());
+        edge = (HugeEdge) edges.next();
+        Assert.assertEquals(Directions.IN, edge.id().direction());
+        Assert.assertEquals("fd", edge.value("name"));
+        Assert.assertFalse(edges.hasNext());
+
+        // E
+        vertices = g.V(5).out();
+        Assert.assertTrue(vertices.hasNext());
+        vertex = (HugeVertex) vertices.next();
+        Assert.assertEquals(6L, vertex.id().asObject());
+        Assert.assertEquals("F", vertex.value("name"));
+        Assert.assertFalse(vertices.hasNext());
+
+        edges = g.V(5).outE();
+        Assert.assertTrue(edges.hasNext());
+        edge = (HugeEdge) edges.next();
+        Assert.assertEquals(Directions.OUT, edge.id().direction());
+        Assert.assertEquals("ef", edge.value("name"));
+        Assert.assertFalse(edges.hasNext());
+
+        vertices = g.V(5).in();
+        Assert.assertTrue(vertices.hasNext());
+        vertex = (HugeVertex) vertices.next();
+        Assert.assertEquals(3L, vertex.id().asObject());
+        Assert.assertEquals("C", vertex.value("name"));
+        Assert.assertTrue(vertices.hasNext());
+        vertex = (HugeVertex) vertices.next();
+        Assert.assertEquals(4L, vertex.id().asObject());
+        Assert.assertEquals("D", vertex.value("name"));
+        Assert.assertFalse(vertices.hasNext());
+
+        edges = g.V(5).inE();
+        Assert.assertTrue(edges.hasNext());
+        edge = (HugeEdge) edges.next();
+        Assert.assertEquals(Directions.IN, edge.id().direction());
+        Assert.assertEquals("ce", edge.value("name"));
+        Assert.assertTrue(edges.hasNext());
+        edge = (HugeEdge) edges.next();
+        Assert.assertEquals(Directions.IN, edge.id().direction());
+        Assert.assertEquals("de", edge.value("name"));
+        Assert.assertFalse(edges.hasNext());
+
+        vertices = g.V(5).both();
+        Assert.assertTrue(vertices.hasNext());
+        vertex = (HugeVertex) vertices.next();
+        Assert.assertEquals(6L, vertex.id().asObject());
+        Assert.assertEquals("F", vertex.value("name"));
+        Assert.assertTrue(vertices.hasNext());
+        Assert.assertTrue(vertices.hasNext());
+        vertex = (HugeVertex) vertices.next();
+        Assert.assertEquals(3L, vertex.id().asObject());
+        Assert.assertEquals("C", vertex.value("name"));
+        Assert.assertTrue(vertices.hasNext());
+        vertex = (HugeVertex) vertices.next();
+        Assert.assertEquals(4L, vertex.id().asObject());
+        Assert.assertEquals("D", vertex.value("name"));
+        Assert.assertFalse(vertices.hasNext());
+
+        edges = g.V(5).bothE();
+        Assert.assertTrue(edges.hasNext());
+        edge = (HugeEdge) edges.next();
+        Assert.assertEquals(Directions.OUT, edge.id().direction());
+        Assert.assertEquals("ef", edge.value("name"));
+        Assert.assertTrue(edges.hasNext());
+        edge = (HugeEdge) edges.next();
+        Assert.assertEquals(Directions.IN, edge.id().direction());
+        Assert.assertEquals("ce", edge.value("name"));
+        Assert.assertTrue(edges.hasNext());
+        edge = (HugeEdge) edges.next();
+        Assert.assertEquals(Directions.IN, edge.id().direction());
+        Assert.assertEquals("de", edge.value("name"));
+        Assert.assertFalse(edges.hasNext());
+
+        // F
+        vertices = g.V(6).out();
+        Assert.assertTrue(vertices.hasNext());
+        vertex = (HugeVertex) vertices.next();
+        Assert.assertEquals(4L, vertex.id().asObject());
+        Assert.assertEquals("D", vertex.value("name"));
+        Assert.assertFalse(vertices.hasNext());
+
+        edges = g.V(6).outE();
+        Assert.assertTrue(edges.hasNext());
+        edge = (HugeEdge) edges.next();
+        Assert.assertEquals(Directions.OUT, edge.id().direction());
+        Assert.assertEquals("fd", edge.value("name"));
+        Assert.assertFalse(edges.hasNext());
+
+        vertices = g.V(6).in();
+        Assert.assertTrue(vertices.hasNext());
+        vertex = (HugeVertex) vertices.next();
+        Assert.assertEquals(5L, vertex.id().asObject());
+        Assert.assertEquals("E", vertex.value("name"));
+        Assert.assertFalse(vertices.hasNext());
+
+        edges = g.V(6).inE();
+        Assert.assertTrue(edges.hasNext());
+        edge = (HugeEdge) edges.next();
+        Assert.assertEquals(Directions.IN, edge.id().direction());
+        Assert.assertEquals("ef", edge.value("name"));
+        Assert.assertFalse(edges.hasNext());
+
+        vertices = g.V(6).both();
+        Assert.assertTrue(vertices.hasNext());
+        vertex = (HugeVertex) vertices.next();
+        Assert.assertEquals(4L, vertex.id().asObject());
+        Assert.assertEquals("D", vertex.value("name"));
+        Assert.assertTrue(vertices.hasNext());
+        vertex = (HugeVertex) vertices.next();
+        Assert.assertEquals(5L, vertex.id().asObject());
+        Assert.assertEquals("E", vertex.value("name"));
+        Assert.assertFalse(vertices.hasNext());
+
+        edges = g.V(6).bothE();
+        Assert.assertTrue(edges.hasNext());
+        edge = (HugeEdge) edges.next();
+        Assert.assertEquals(Directions.OUT, edge.id().direction());
+        Assert.assertEquals("fd", edge.value("name"));
+        Assert.assertTrue(edges.hasNext());
+        edge = (HugeEdge) edges.next();
+        Assert.assertEquals(Directions.IN, edge.id().direction());
+        Assert.assertEquals("ef", edge.value("name"));
+        Assert.assertFalse(edges.hasNext());
     }
 
     private Iterator<Edge> edgesOfVertex(Id source, Directions dir, Id label) {
