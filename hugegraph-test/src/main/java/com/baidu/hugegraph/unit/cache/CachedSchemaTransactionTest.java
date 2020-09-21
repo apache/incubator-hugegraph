@@ -174,28 +174,33 @@ public class CachedSchemaTransactionTest extends BaseUnitTest {
     public void testResetCachedAllIfReachedCapacity() throws Exception {
         CachedSchemaTransaction cache = this.cache();
 
+        Object old = Whitebox.getInternalState(cache, "idCache.capacity");
         Whitebox.setInternalState(cache, "idCache.capacity", 2);
-        Assert.assertEquals(0L, Whitebox.invoke(cache, "idCache", "size"));
+        try {
+            Assert.assertEquals(0L, Whitebox.invoke(cache, "idCache", "size"));
 
-        FakeObjects objects = new FakeObjects("unit-test");
-        cache.addPropertyKey(objects.newPropertyKey(IdGenerator.of(1),
-                                                    "fake-pk-1"));
-        Assert.assertEquals(1L, Whitebox.invoke(cache, "idCache", "size"));
-        Assert.assertEquals(1, cache.getPropertyKeys().size());
-        Whitebox.invoke(CachedSchemaTransaction.class, "cachedTypes", cache);
-        Assert.assertEquals(ImmutableMap.of(HugeType.PROPERTY_KEY, true),
-                            Whitebox.invoke(CachedSchemaTransaction.class,
-                                            "cachedTypes", cache));
+            FakeObjects objects = new FakeObjects("unit-test");
+            cache.addPropertyKey(objects.newPropertyKey(IdGenerator.of(1),
+                                                        "fake-pk-1"));
+            Assert.assertEquals(1L, Whitebox.invoke(cache, "idCache", "size"));
+            Assert.assertEquals(1, cache.getPropertyKeys().size());
+            Whitebox.invoke(CachedSchemaTransaction.class, "cachedTypes", cache);
+            Assert.assertEquals(ImmutableMap.of(HugeType.PROPERTY_KEY, true),
+                                Whitebox.invoke(CachedSchemaTransaction.class,
+                                                "cachedTypes", cache));
 
-        cache.addPropertyKey(objects.newPropertyKey(IdGenerator.of(3),
-                                                    "fake-pk-2"));
-        cache.addPropertyKey(objects.newPropertyKey(IdGenerator.of(2),
-                                                    "fake-pk-3"));
+            cache.addPropertyKey(objects.newPropertyKey(IdGenerator.of(3),
+                                                        "fake-pk-2"));
+            cache.addPropertyKey(objects.newPropertyKey(IdGenerator.of(2),
+                                                        "fake-pk-3"));
 
-        Assert.assertEquals(2L, Whitebox.invoke(cache, "idCache", "size"));
-        Assert.assertEquals(3, cache.getPropertyKeys().size());
-        Assert.assertEquals(ImmutableMap.of(),
-                            Whitebox.invoke(CachedSchemaTransaction.class,
-                                            "cachedTypes", cache));
+            Assert.assertEquals(2L, Whitebox.invoke(cache, "idCache", "size"));
+            Assert.assertEquals(3, cache.getPropertyKeys().size());
+            Assert.assertEquals(ImmutableMap.of(),
+                                Whitebox.invoke(CachedSchemaTransaction.class,
+                                                "cachedTypes", cache));
+        } finally {
+            Whitebox.setInternalState(cache, "idCache.capacity", old);
+        }
     }
 }

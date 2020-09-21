@@ -20,7 +20,6 @@
 package com.baidu.hugegraph.core;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.Iterator;
 
@@ -31,6 +30,7 @@ import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -49,13 +49,22 @@ import com.baidu.hugegraph.type.define.Directions;
 
 public class RamTableTest extends BaseCoreTest {
 
-    // max value is 4 billion
-    private static final int VERTEX_SIZE = 10000000;
-    private static final int EDGE_SIZE = 20000000;
+    private Object ramtable;
 
+    @Override
     @Before
-    public void initSchema() {
+    public void setup() {
+        super.setup();
+
         HugeGraph graph = this.graph();
+
+        Assume.assumeTrue("Ramtable is not supported by backend",
+                          graph.backendStoreFeatures().supportsScanKeyPrefix());
+        this.ramtable = Whitebox.getInternalState(graph, "ramtable");
+        if (this.ramtable == null) {
+            Whitebox.setInternalState(graph, "ramtable",
+                                      new RamTable(graph, 2000, 1200));
+        }
 
         graph.schema().vertexLabel("vl1").useCustomizeNumberId().create();
         graph.schema().vertexLabel("vl2").useCustomizeNumberId().create();
@@ -69,167 +78,18 @@ public class RamTableTest extends BaseCoreTest {
                       .create();
     }
 
+    @Override
     @After
-    public void clearExport() throws IOException {
+    public void teardown() throws Exception {
+        super.teardown();
+
         File export = Paths.get(RamTable.EXPORT_PATH).toFile();
         if (export.exists()) {
             FileUtils.forceDelete(export);
         }
-    }
 
-    @Test
-    public void testAddAndQuery() throws Exception {
         HugeGraph graph = this.graph();
-        int el1 = (int) graph.edgeLabel("el1").id().asLong();
-        int el2 = (int) graph.edgeLabel("el2").id().asLong();
-
-        RamTable table = new RamTable(graph, VERTEX_SIZE, EDGE_SIZE);
-        long oldSize = table.edgesSize();
-        // insert edges
-        for (int i = 0; i < VERTEX_SIZE; i++) {
-            table.addEdge(true, i, i, Directions.OUT, el1);
-            Assert.assertEquals(oldSize + 2 * i + 1, table.edgesSize());
-
-            table.addEdge(false, i, i + 1, Directions.IN, el2);
-            Assert.assertEquals(oldSize + 2 * i + 2, table.edgesSize());
-        }
-
-        // query by BOTH
-        for (int i = 0; i < VERTEX_SIZE; i++) {
-            Iterator<HugeEdge> edges = table.query(i, Directions.BOTH, 0);
-
-            Assert.assertTrue(edges.hasNext());
-            HugeEdge edge1 = edges.next();
-            Assert.assertEquals(i, edge1.id().ownerVertexId().asLong());
-            Assert.assertEquals(i, edge1.id().otherVertexId().asLong());
-            Assert.assertEquals(Directions.OUT, edge1.direction());
-            Assert.assertEquals("el1", edge1.label());
-
-            Assert.assertTrue(edges.hasNext());
-            HugeEdge edge2 = edges.next();
-            Assert.assertEquals(i, edge2.id().ownerVertexId().asLong());
-            Assert.assertEquals(i + 1L, edge2.id().otherVertexId().asLong());
-            Assert.assertEquals(Directions.IN, edge2.direction());
-            Assert.assertEquals("el2", edge2.label());
-
-            Assert.assertFalse(edges.hasNext());
-        }
-        // query by OUT
-        for (int i = 0; i < VERTEX_SIZE; i++) {
-            Iterator<HugeEdge> edges = table.query(i, Directions.OUT, el1);
-
-            Assert.assertTrue(edges.hasNext());
-            HugeEdge edge1 = edges.next();
-            Assert.assertEquals(i, edge1.id().ownerVertexId().asLong());
-            Assert.assertEquals(i, edge1.id().otherVertexId().asLong());
-            Assert.assertEquals(Directions.OUT, edge1.direction());
-            Assert.assertEquals("el1", edge1.label());
-
-            Assert.assertFalse(edges.hasNext());
-        }
-        // query by IN
-        for (int i = 0; i < VERTEX_SIZE; i++) {
-            Iterator<HugeEdge> edges = table.query(i, Directions.IN, el2);
-
-            Assert.assertTrue(edges.hasNext());
-            HugeEdge edge1 = edges.next();
-            Assert.assertEquals(i, edge1.id().ownerVertexId().asLong());
-            Assert.assertEquals(i + 1L, edge1.id().otherVertexId().asLong());
-            Assert.assertEquals(Directions.IN, edge1.direction());
-            Assert.assertEquals("el2", edge1.label());
-
-            Assert.assertFalse(edges.hasNext());
-        }
-
-        // query by BOTH & label 1
-        for (int i = 0; i < VERTEX_SIZE; i++) {
-            Iterator<HugeEdge> edges = table.query(i, Directions.BOTH, el1);
-
-            Assert.assertTrue(edges.hasNext());
-            HugeEdge edge1 = edges.next();
-            Assert.assertEquals(i, edge1.id().ownerVertexId().asLong());
-            Assert.assertEquals(i, edge1.id().otherVertexId().asLong());
-            Assert.assertEquals(Directions.OUT, edge1.direction());
-            Assert.assertEquals("el1", edge1.label());
-
-            Assert.assertFalse(edges.hasNext());
-        }
-        // query by BOTH & label 2
-        for (int i = 0; i < VERTEX_SIZE; i++) {
-            Iterator<HugeEdge> edges = table.query(i, Directions.BOTH, el2);
-
-            Assert.assertTrue(edges.hasNext());
-            HugeEdge edge1 = edges.next();
-            Assert.assertEquals(i, edge1.id().ownerVertexId().asLong());
-            Assert.assertEquals(i + 1L, edge1.id().otherVertexId().asLong());
-            Assert.assertEquals(Directions.IN, edge1.direction());
-            Assert.assertEquals("el2", edge1.label());
-
-            Assert.assertFalse(edges.hasNext());
-        }
-
-        // query non-exist vertex
-        Iterator<HugeEdge> edges = table.query(VERTEX_SIZE, Directions.BOTH, 0);
-        Assert.assertFalse(edges.hasNext());
-    }
-
-    @Test
-    public void testAddAndQueryWithoutAdjEdges() throws Exception {
-        HugeGraph graph = this.graph();
-        int el1 = (int) graph.edgeLabel("el1").id().asLong();
-        int el2 = (int) graph.edgeLabel("el2").id().asLong();
-
-        RamTable table = new RamTable(graph, VERTEX_SIZE, EDGE_SIZE);
-        long oldSize = table.edgesSize();
-        // insert edges
-        for (int i = 0; i < VERTEX_SIZE; i++) {
-            if (i % 3 != 0) {
-                // don't insert edges for 2/3 vertices
-                continue;
-            }
-
-            table.addEdge(true, i, i, Directions.OUT, el1);
-            Assert.assertEquals(oldSize + i + 1, table.edgesSize());
-
-            table.addEdge(false, i, i, Directions.OUT, el2);
-            Assert.assertEquals(oldSize + i + 2, table.edgesSize());
-
-            table.addEdge(false, i, i + 1, Directions.IN, el2);
-            Assert.assertEquals(oldSize + i + 3, table.edgesSize());
-        }
-
-        // query by BOTH
-        for (int i = 0; i < VERTEX_SIZE; i++) {
-            Iterator<HugeEdge> edges = table.query(i, Directions.BOTH, 0);
-
-            if (i % 3 != 0) {
-                Assert.assertFalse(edges.hasNext());
-                continue;
-            }
-
-            Assert.assertTrue(edges.hasNext());
-            HugeEdge edge1 = edges.next();
-            Assert.assertEquals(i, edge1.id().ownerVertexId().asLong());
-            Assert.assertEquals(i, edge1.id().otherVertexId().asLong());
-            Assert.assertEquals(Directions.OUT, edge1.direction());
-            Assert.assertEquals("el1", edge1.label());
-
-            Assert.assertTrue(edges.hasNext());
-            HugeEdge edge2 = edges.next();
-            Assert.assertEquals(i, edge2.id().ownerVertexId().asLong());
-            Assert.assertEquals(i, edge2.id().otherVertexId().asLong());
-            Assert.assertEquals(Directions.OUT, edge2.direction());
-            Assert.assertEquals("el2", edge2.label());
-
-            Assert.assertTrue(edges.hasNext());
-            HugeEdge edge3 = edges.next();
-            Assert.assertEquals(i, edge3.id().ownerVertexId().asLong());
-            Assert.assertEquals(i + 1L, edge3.id().otherVertexId().asLong());
-            Assert.assertEquals(Directions.IN, edge3.direction());
-            Assert.assertEquals("el2", edge3.label());
-
-            Assert.assertFalse(edges.hasNext());
-        }
+        Whitebox.setInternalState(graph, "ramtable", this.ramtable);
     }
 
     @Test
@@ -579,6 +439,9 @@ public class RamTableTest extends BaseCoreTest {
          .addE("next").from("f").to("d").property("name", "fd")
          .iterate();
         graph.tx().commit();
+
+        Object ramtable = Whitebox.getInternalState(graph, "ramtable");
+        Assert.assertNotNull("The ramtable is not enabled", ramtable);
 
         // reload ramtable
         Whitebox.invoke(graph.getClass(), "reloadRamtable", graph);

@@ -31,8 +31,6 @@ import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.task.TaskManager.ContextCallable;
-import com.baidu.hugegraph.util.ExecutorUtil;
-import com.baidu.hugegraph.util.Log;
 
 public class Consumers<V> {
 
@@ -90,15 +88,14 @@ public class Consumers<V> {
     private Void runAndDone() {
         try {
             this.run();
-            this.done();
         } catch (Throwable e) {
             // Only the first exception of one thread can be stored
             this.exception = e;
             if (!(e instanceof StopExecution)) {
                 LOG.error("Error when running task", e);
             }
-            this.done();
         } finally {
+            this.done();
             this.latch.countDown();
         }
         return null;
@@ -132,9 +129,26 @@ public class Consumers<V> {
     }
 
     private void done() {
-        if (this.done != null) {
-            this.done.run();
+        if (this.done == null) {
+            return;
         }
+
+        try {
+            this.done.run();
+        } catch (Throwable e) {
+            if (this.exception == null) {
+                this.exception = e;
+            } else {
+                LOG.warn("Error while calling done()", e);;
+            }
+        }
+    }
+
+    private Throwable throwException() {
+        assert this.exception != null;
+        Throwable e = this.exception;
+        this.exception = null;
+        return e;
     }
 
     public void provide(V v) throws Throwable {
@@ -143,17 +157,17 @@ public class Consumers<V> {
             // do job directly if without thread pool
             this.consumer.accept(v);
         } else if (this.exception != null) {
-            throw this.exception;
+            throw this.throwException();
         } else {
             try {
                 this.queue.put(v);
             } catch (InterruptedException e) {
-                LOG.warn("Interrupted", e);;
+                LOG.warn("Interrupted while enqueue", e);;
             }
         }
     }
 
-    public void await() {
+    public void await() throws Throwable {
         this.ending = true;
         if (this.executor == null) {
             // call done() directly if without thread pool
@@ -162,8 +176,12 @@ public class Consumers<V> {
             try {
                 this.latch.await();
             } catch (InterruptedException e) {
-                LOG.warn("Interrupted", e);
+                LOG.warn("Interrupted while waiting for consumers", e);
             }
+        }
+
+        if (this.exception != null) {
+            throw this.throwException();
         }
     }
 

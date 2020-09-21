@@ -509,8 +509,13 @@ public final class RamTable {
             } catch (Throwable e) {
                 throw Consumers.wrapException(e);
             } finally {
-                consumers.await();
-                CloseableIterator.closeIterator(vertices);
+                try {
+                    consumers.await();
+                } catch (Throwable e) {
+                    throw Consumers.wrapException(e);
+                } finally {
+                    CloseableIterator.closeIterator(vertices);
+                }
             }
             this.addEdgesByBatch();
             return total;

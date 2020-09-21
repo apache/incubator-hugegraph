@@ -144,13 +144,13 @@ public class StandardHugeGraph implements HugeGraph {
         this.readRateLimiter = readLimit > 0 ?
                                RateLimiter.create(readLimit) : null;
 
-        boolean ramtable = config.get(CoreOptions.QUERY_RAMTABLE_ENABLE);
-        if (!ramtable) {
-            this.ramtable = null;
-        } else {
+        boolean ramtableEnable = config.get(CoreOptions.QUERY_RAMTABLE_ENABLE);
+        if (ramtableEnable) {
             long vc = config.get(CoreOptions.QUERY_RAMTABLE_VERTICES_CAPACITY);
             int ec = config.get(CoreOptions.QUERY_RAMTABLE_EDGES_CAPACITY);
             this.ramtable = new RamTable(this, vc, ec);
+        } else {
+            this.ramtable = null;
         }
 
         this.taskManager = TaskManager.instance();
