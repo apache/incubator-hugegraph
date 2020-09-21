@@ -30,13 +30,13 @@ import com.baidu.hugegraph.job.UserJob;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.ParameterUtil;
 
-public class BetweenessCentralityAlgorithm extends AbstractCentAlgorithm {
+public class StressCentralityAlgorithm extends AbstractCentAlgorithm {
 
     public static final String KEY_WITH_BOUNDARY = "with_boundary";
 
     @Override
     public String name() {
-        return "betweeness_centrality";
+        return "stress_centrality";
     }
 
     @Override
@@ -48,16 +48,16 @@ public class BetweenessCentralityAlgorithm extends AbstractCentAlgorithm {
     @Override
     public Object call(UserJob<Object> job, Map<String, Object> parameters) {
         try (Traverser traverser = new Traverser(job)) {
-            return traverser.betweenessCentrality(direction(parameters),
-                                                  edgeLabel(parameters),
-                                                  depth(parameters),
-                                                  degree(parameters),
-                                                  sample(parameters),
-                                                  withBoundary(parameters),
-                                                  sourceLabel(parameters),
-                                                  sourceSample(parameters),
-                                                  sourceCLabel(parameters),
-                                                  top(parameters));
+            return traverser.stressCentrality(direction(parameters),
+                                              edgeLabel(parameters),
+                                              depth(parameters),
+                                              degree(parameters),
+                                              sample(parameters),
+                                              withBoundary(parameters),
+                                              sourceLabel(parameters),
+                                              sourceSample(parameters),
+                                              sourceCLabel(parameters),
+                                              top(parameters));
         }
     }
 
@@ -74,16 +74,16 @@ public class BetweenessCentralityAlgorithm extends AbstractCentAlgorithm {
             super(job);
         }
 
-        public Object betweenessCentrality(Directions direction,
-                                           String label,
-                                           int depth,
-                                           long degree,
-                                           long sample,
-                                           boolean withBoundary,
-                                           String sourceLabel,
-                                           long sourceSample,
-                                           String sourceCLabel,
-                                           long topN) {
+        public Object stressCentrality(Directions direction,
+                                       String label,
+                                       int depth,
+                                       long degree,
+                                       long sample,
+                                       boolean withBoundary,
+                                       String sourceLabel,
+                                       long sourceSample,
+                                       String sourceCLabel,
+                                       long topN) {
             assert depth > 0;
             assert degree > 0L || degree == NO_LIMIT;
             assert topN >= 0L || topN == NO_LIMIT;

@@ -33,7 +33,7 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.job.UserJob;
-import com.baidu.hugegraph.job.algorithm.cent.BetweenessCentralityAlgorithm;
+import com.baidu.hugegraph.job.algorithm.cent.StressCentralityAlgorithm;
 import com.baidu.hugegraph.job.algorithm.cent.ClosenessCentralityAlgorithm;
 import com.baidu.hugegraph.job.algorithm.cent.DegreeCentralityAlgorithm;
 import com.baidu.hugegraph.job.algorithm.cent.EigenvectorCentralityAlgorithm;
@@ -158,8 +158,8 @@ public class SubgraphStatAlgorithm extends AbstractAlgorithm {
             Map<String, Object> parameters = ImmutableMap.copyOf(PARAMS);
             results.put("degrees", algo.call(job, parameters));
 
-            algo = new BetweenessCentralityAlgorithm();
-            results.put("betweeness", algo.call(job, parameters));
+            algo = new StressCentralityAlgorithm();
+            results.put("stress", algo.call(job, parameters));
 
             algo = new EigenvectorCentralityAlgorithm();
             results.put("eigenvectors", algo.call(job, parameters));

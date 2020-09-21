@@ -22,7 +22,7 @@ package com.baidu.hugegraph.job.algorithm;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import com.baidu.hugegraph.job.algorithm.cent.BetweenessCentralityAlgorithm;
+import com.baidu.hugegraph.job.algorithm.cent.StressCentralityAlgorithm;
 import com.baidu.hugegraph.job.algorithm.cent.ClosenessCentralityAlgorithm;
 import com.baidu.hugegraph.job.algorithm.cent.DegreeCentralityAlgorithm;
 import com.baidu.hugegraph.job.algorithm.cent.EigenvectorCentralityAlgorithm;
@@ -45,7 +45,7 @@ public class AlgorithmPool {
         INSTANCE.register(new CountEdgeAlgorithm());
 
         INSTANCE.register(new DegreeCentralityAlgorithm());
-        INSTANCE.register(new BetweenessCentralityAlgorithm());
+        INSTANCE.register(new StressCentralityAlgorithm());
         INSTANCE.register(new ClosenessCentralityAlgorithm());
         INSTANCE.register(new EigenvectorCentralityAlgorithm());
 
