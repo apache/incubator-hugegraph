@@ -40,8 +40,8 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.iterator.FilterIterator;
-import com.baidu.hugegraph.job.algorithm.Consumers;
 import com.baidu.hugegraph.structure.HugeEdge;
+import com.baidu.hugegraph.util.Consumers;
 
 import jersey.repackaged.com.google.common.base.Objects;
 
@@ -134,8 +134,13 @@ public abstract class TpTraverser extends HugeTraverser
         } catch (Throwable e) {
             throw Consumers.wrapException(e);
         } finally {
-            consumers.await();
-            CloseableIterator.closeIterator(iterator);
+            try {
+                consumers.await();
+            } catch (Throwable e) {
+                Consumers.wrapException(e);
+            } finally {
+                CloseableIterator.closeIterator(iterator);
+            }
         }
         return total;
     }
