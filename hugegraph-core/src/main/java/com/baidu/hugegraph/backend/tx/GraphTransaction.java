@@ -27,7 +27,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -667,11 +666,11 @@ public class GraphTransaction extends IndexableTransaction {
     public Vertex queryVertex(Object vertexId) {
         Iterator<Vertex> iter = this.queryVerticesByIds(new Object[]{vertexId},
                                                         false, true);
-        try {
-            return iter.next();
-        } finally {
-            CloseableIterator.closeIterator(iter);
+        Vertex vertex = QueryResults.one(iter);
+        if (vertex == null) {
+            throw new NotFoundException("Vertex '%s' does not exist", vertexId);
         }
+        return vertex;
     }
 
     protected Iterator<Vertex> queryVerticesByIds(Object[] vertexIds,
@@ -821,13 +820,11 @@ public class GraphTransaction extends IndexableTransaction {
 
     public Edge queryEdge(Object edgeId) {
         Iterator<Edge> iter = this.queryEdgesByIds(new Object[]{edgeId}, true);
-        try {
-            return iter.next();
-        } catch (NoSuchElementException e) {
+        Edge edge = QueryResults.one(iter);
+        if (edge == null) {
             throw new NotFoundException("Edge '%s' does not exist", edgeId);
-        } finally {
-            CloseableIterator.closeIterator(iter);
         }
+        return edge;
     }
 
     protected Iterator<Edge> queryEdgesByIds(Object[] edgeIds,
@@ -841,8 +838,14 @@ public class GraphTransaction extends IndexableTransaction {
         IdQuery query = new IdQuery(HugeType.EDGE);
         for (Object edgeId : edgeIds) {
             HugeEdge edge;
-            Id id = HugeEdge.getIdValue(edgeId, !verifyId);
-            if (id == null || this.removedEdges.containsKey(id)) {
+            EdgeId id = HugeEdge.getIdValue(edgeId, !verifyId);
+            if (id == null) {
+                continue;
+            }
+            if (id.direction() == Directions.IN) {
+                id = id.switchDirection();
+            }
+            if (this.removedEdges.containsKey(id)) {
                 // The record has been deleted
                 continue;
             } else if ((edge = this.addedEdges.get(id)) != null ||
