@@ -157,6 +157,7 @@ public abstract class AbstractCentAlgorithm extends AbstractAlgorithm {
                     // ignore non shortest path
                     return false;
                 }
+                // TODO: len may be smaller than shortest
                 if (shortest == null) {
                     triples.put(key, len);
                 } else {
