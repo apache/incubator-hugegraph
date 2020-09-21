@@ -162,7 +162,7 @@ public class PathsAPI extends TraverserAPI {
         @JsonProperty("max_depth")
         public int depth;
         @JsonProperty("nearest")
-        public boolean nearest = true;
+        public boolean nearest = false;
         @JsonProperty("capacity")
         public long capacity = Long.valueOf(DEFAULT_CAPACITY);
         @JsonProperty("limit")

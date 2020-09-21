@@ -148,6 +148,9 @@ public class KoutAPI extends TraverserAPI {
         Iterator<Vertex> iter = QueryResults.emptyIterator();
         if (request.withVertex) {
             Set<Id> ids = new HashSet<>();
+            for (Node node : results) {
+                ids.add(node.id());
+            }
             for (HugeTraverser.Path p : paths) {
                 ids.addAll(p.vertices());
             }
