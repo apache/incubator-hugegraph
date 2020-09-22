@@ -49,6 +49,7 @@ import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.GraphMode;
 import com.baidu.hugegraph.util.Events;
 import com.baidu.hugegraph.util.Log;
 
@@ -198,6 +199,10 @@ public final class RaftSharedContext {
 
     public ExecutorService backendExecutor() {
         return this.backendExecutor;
+    }
+
+    public GraphMode graphMode() {
+        return this.params.mode();
     }
 
     private HugeConfig config() {

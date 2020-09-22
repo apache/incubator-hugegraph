@@ -43,6 +43,7 @@ import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.raft.RaftBackendStore.IncrCounter;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.GraphMode;
 import com.baidu.hugegraph.util.LZ4Util;
 import com.baidu.hugegraph.util.Log;
 
@@ -81,8 +82,10 @@ public class StoreStateMachine extends StateMachineAdapter {
             this.store.beginTx();
             for (BackendMutation mutation : ms) {
                 this.store.mutate(mutation);
-                // update cache on follower
-                this.updateCacheIfNeeded(mutation);
+                // update cache on follower when graph run in general mode
+                if (this.context.graphMode() == GraphMode.NONE) {
+                    this.updateCacheIfNeeded(mutation);
+                }
             }
             this.store.commitTx();
             return null;
