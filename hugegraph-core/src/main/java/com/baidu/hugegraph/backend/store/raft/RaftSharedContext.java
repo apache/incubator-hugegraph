@@ -125,7 +125,7 @@ public final class RaftSharedContext {
         nodeOptions.setEnableMetrics(false);
         nodeOptions.setRpcProcessorThreadPoolSize(
                     config.get(CoreOptions.RAFT_RPC_THREADS));
-        nodeOptions.setRpcDefaultTimeout(
+        nodeOptions.setRpcConnectTimeoutMs(
                     config.get(CoreOptions.RAFT_RPC_CONNECT_TIMEOUT));
         nodeOptions.setRpcDefaultTimeout(
                     config.get(CoreOptions.RAFT_RPC_TIMEOUT));
@@ -173,8 +173,6 @@ public final class RaftSharedContext {
                     config.get(CoreOptions.RAFT_QUEUE_PUBLISH_TIMEOUT));
         raftOptions.setReplicatorPipeline(
                     config.get(CoreOptions.RAFT_REPLICATOR_PIPELINE));
-        raftOptions.setStepDownWhenVoteTimedout(
-                    config.get(CoreOptions.RAFT_STEPDOWN_WHEN_VOTE_TIMEOUT));
         raftOptions.setOpenStatistics(false);
 
         return nodeOptions;

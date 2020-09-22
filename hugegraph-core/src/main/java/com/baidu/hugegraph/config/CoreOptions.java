@@ -116,7 +116,7 @@ public class CoreOptions extends OptionHolder {
                     "raft.safe_read",
                     "Whether to use linearly consistent read.",
                     disallowEmpty(),
-                    true
+                    false
             );
 
     public static final ConfigOption<Boolean> RAFT_USE_SNAPSHOT =
@@ -124,7 +124,7 @@ public class CoreOptions extends OptionHolder {
                     "raft.use_snapshot",
                     "Whether to use snapshot.",
                     disallowEmpty(),
-                    true
+                    false
             );
 
     public static final ConfigOption<String> RAFT_ENDPOINT =
@@ -151,18 +151,13 @@ public class CoreOptions extends OptionHolder {
                     "./raftlog"
             );
 
-    public static final ConfigOption<Boolean> RAFT_STEPDOWN_WHEN_VOTE_TIMEOUT =
-            new ConfigOption<>(
-                    "raft.stepdown_when_vote_timeout",
-                    "Whether the leader stepped down when vote timeout.",
-                    disallowEmpty(),
-                    true
-            );
-
     public static final ConfigOption<Boolean> RAFT_REPLICATOR_PIPELINE =
             new ConfigOption<>(
                     "raft.use_replicator_pipeline",
-                    "Whether to use replicator line.",
+                    "Whether to use replicator line, when turned on it " +
+                    "multiple logs can be sent in parallel, and the next log " +
+                    "doesn't have to wait for the ack message of the current " +
+                    "log to be sent",
                     disallowEmpty(),
                     true
             );
@@ -194,7 +189,7 @@ public class CoreOptions extends OptionHolder {
     public static final ConfigOption<Integer> RAFT_READ_INDEX_THREADS =
             new ConfigOption<>(
                     "raft.read_index_threads",
-                    "The thread number used to execute read index.",
+                    "The thread number used to execute reading index.",
                     rangeInt(0, Integer.MAX_VALUE),
                     8
             );
@@ -215,7 +210,7 @@ public class CoreOptions extends OptionHolder {
                     "StateMachine and LogManager",
                     positiveInt(),
                     // jraft default value is 16384
-                    8192
+                    16384
             );
 
     public static final ConfigOption<Integer> RAFT_QUEUE_PUBLISH_TIMEOUT =
@@ -233,7 +228,7 @@ public class CoreOptions extends OptionHolder {
                     "The rpc threads for jraft RPC layer",
                     positiveInt(),
                     // jraft default value is 80
-                    48
+                    Math.max(CPUS * 2, 80)
             );
 
     public static final ConfigOption<Integer> RAFT_RPC_CONNECT_TIMEOUT =
@@ -241,8 +236,8 @@ public class CoreOptions extends OptionHolder {
                     "raft.rpc_connect_timeout",
                     "The rpc connect timeout for jraft rpc",
                     positiveInt(),
-                    // jraft default value is 1000
-                    3000
+                    // jraft default value is 1000(ms)
+                    5000
             );
 
     public static final ConfigOption<Integer> RAFT_RPC_TIMEOUT =
@@ -250,7 +245,7 @@ public class CoreOptions extends OptionHolder {
                     "raft.rpc_timeout",
                     "The rpc timeout for jraft rpc",
                     positiveInt(),
-                    // jraft default value is 5000
+                    // jraft default value is 5000(ms)
                     60000
             );
 
