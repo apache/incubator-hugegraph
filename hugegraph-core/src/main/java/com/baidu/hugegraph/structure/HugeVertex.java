@@ -495,6 +495,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     @Override
     protected boolean ensureFilledProperties(boolean throwIfNotExist) {
         if (this.propLoaded) {
+            this.updateToDefaultValueIfNone();
             return true;
         }
 
@@ -516,6 +517,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
             this.label = vertex.schemaLabel();
         }
         this.copyProperties(vertex);
+        this.updateToDefaultValueIfNone();
         return true;
     }
 

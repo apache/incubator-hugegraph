@@ -62,6 +62,7 @@ import com.baidu.hugegraph.exception.LimitExceedException;
 import com.baidu.hugegraph.exception.NoIndexException;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaManager;
+import com.baidu.hugegraph.schema.Userdata;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.testutil.Assert;
@@ -494,6 +495,41 @@ public class VertexCoreTest extends BaseCoreTest {
         // Absent 'age' and 'city'
         Vertex vertex = graph().addVertex(T.label, "person", "name", "Baby");
         Assert.assertEquals("Baby", vertex.value("name"));
+    }
+
+    @Test
+    public void testAddVertexWithDefaultPropertyValue() {
+        SchemaManager schema = graph().schema();
+
+        schema.propertyKey("fav").asText()
+              .userdata(Userdata.DEFAULT_VALUE, "Movie").create();
+        schema.propertyKey("cnt").asInt()
+              .userdata(Userdata.DEFAULT_VALUE, 123).create();
+        schema.vertexLabel("person")
+              .properties("fav", "cnt")
+              .nullableKeys("fav", "cnt").append();
+
+        // No 'fav'
+        Vertex vertex = graph().addVertex(T.label, "person",
+                                          "name", "Baby", "city", "Shanghai");
+        Assert.assertEquals("Baby", vertex.value("name"));
+        Assert.assertFalse(vertex.values("fav").hasNext());
+        Assert.assertFalse(vertex.values("age").hasNext());
+
+        vertex = graph().vertex(vertex.id());
+        Assert.assertEquals("Baby", vertex.value("name"));
+        Assert.assertFalse(vertex.values("fav").hasNext());
+        Assert.assertFalse(vertex.values("cnt").hasNext());
+        Assert.assertFalse(vertex.values("age").hasNext());
+
+        graph().tx().commit();
+
+        // Exist 'fav' after commit then query
+        vertex = graph().vertex(vertex.id());
+        Assert.assertEquals("Baby", vertex.value("name"));
+        Assert.assertEquals("Movie", vertex.value("fav"));
+        Assert.assertEquals(123, vertex.value("cnt"));
+        Assert.assertFalse(vertex.values("age").hasNext());
     }
 
     @Test

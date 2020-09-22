@@ -234,6 +234,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     @Override
     protected boolean ensureFilledProperties(boolean throwIfNotExist) {
         if (this.propLoaded) {
+            this.updateToDefaultValueIfNone();
             return true;
         }
 
@@ -251,6 +252,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         }
         E.checkState(edge != null, "Edge '%s' does not exist", this.id);
         this.copyProperties((HugeEdge) edge);
+        this.updateToDefaultValueIfNone();
         return true;
     }
 

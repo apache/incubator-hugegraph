@@ -67,6 +67,7 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
     protected boolean removed;
     protected boolean fresh;
     protected boolean propLoaded;
+    protected boolean defaultValueUpdated;
 
     public HugeElement(final HugeGraph graph, Id id) {
         E.checkArgument(graph != null, "HugeElement graph can't be null");
@@ -77,6 +78,7 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
         this.removed = false;
         this.fresh = false;
         this.propLoaded = true;
+        this.defaultValueUpdated = false;
     }
 
     public abstract SchemaLabel schemaLabel();
@@ -89,6 +91,24 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
                                                  HugeProperty<V> prop);
 
     protected abstract boolean ensureFilledProperties(boolean throwIfNotExist);
+
+    protected void updateToDefaultValueIfNone() {
+        if (this.fresh() || this.defaultValueUpdated) {
+            return;
+        }
+        this.defaultValueUpdated = true;
+        // Set default value if needed
+        for (Id pkeyId : this.schemaLabel().properties()) {
+            if (this.properties.containsKey(pkeyId)) {
+                continue;
+            }
+            PropertyKey pkey = this.graph().propertyKey(pkeyId);
+            Object value = pkey.defaultValue();
+            if (value != null) {
+                this.setProperty(this.newProperty(pkey, value));
+            }
+        }
+    }
 
     @Override
     public Id id() {

@@ -64,6 +64,7 @@ import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.exception.LimitExceedException;
 import com.baidu.hugegraph.exception.NoIndexException;
 import com.baidu.hugegraph.schema.SchemaManager;
+import com.baidu.hugegraph.schema.Userdata;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.testutil.Assert;
@@ -615,6 +616,47 @@ public class EdgeCoreTest extends BaseCoreTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             james.addEdge("authored", book, "score", "5");
         });
+    }
+
+    @Test
+    public void testAddEdgeWithDefaultPropertyValue() {
+        SchemaManager schema = graph().schema();
+
+        schema.propertyKey("fav").asText()
+              .userdata(Userdata.DEFAULT_VALUE, "Movie").create();
+        schema.propertyKey("cnt").asInt()
+              .userdata(Userdata.DEFAULT_VALUE, 123).create();
+        schema.edgeLabel("authored")
+              .properties("fav", "cnt")
+              .nullableKeys("fav", "cnt").append();
+
+        Vertex marko = graph().addVertex(T.label, "author", "id", 1,
+                                         "name", "marko", "age", 28,
+                                         "lived", "Beijing");
+        Vertex java = graph().addVertex(T.label, "book",
+                                        "name", "Java in action");
+
+        Edge edge = marko.addEdge("authored", java,
+                                  "contribution", "2010-01-01",
+                                  "score", 99);
+
+        // No 'fav'
+        Assert.assertEquals("2010-01-01", edge.value("contribution"));
+        Assert.assertFalse(edge.values("fav").hasNext());
+        Assert.assertFalse(edge.values("age").hasNext());
+
+        edge = graph().edge(edge.id());
+        Assert.assertEquals("2010-01-01", edge.value("contribution"));
+        Assert.assertFalse(edge.values("fav").hasNext());
+        Assert.assertFalse(edge.values("age").hasNext());
+
+        graph().tx().commit();
+
+        // Exist 'fav' after commit then query
+        edge = graph().edge(edge.id());
+        Assert.assertEquals("2010-01-01", edge.value("contribution"));
+        Assert.assertEquals("Movie", edge.value("fav"));
+        Assert.assertEquals(123, edge.value("cnt"));
     }
 
     @Test
