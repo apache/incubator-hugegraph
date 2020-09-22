@@ -35,6 +35,9 @@ import java.util.concurrent.ThreadPoolExecutor;
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 
+import com.alipay.sofa.jraft.CliService;
+import com.alipay.sofa.jraft.RaftServiceFactory;
+import com.alipay.sofa.jraft.Status;
 import com.alipay.sofa.jraft.conf.Configuration;
 import com.alipay.sofa.jraft.entity.PeerId;
 import com.alipay.sofa.jraft.option.CliOptions;
@@ -86,6 +89,7 @@ public final class RaftSharedContext {
     private final ExecutorService backendExecutor;
 
     private RaftNode raftNode;
+    private CliService cliService;
 
     public RaftSharedContext(HugeGraphParams params) {
         this.params = params;
@@ -118,10 +122,12 @@ public final class RaftSharedContext {
         CliOptions cliOptions = new CliOptions();
         cliOptions.setTimeoutMs(WAIT_LEADER_TIMEOUT);
         cliOptions.setMaxRetry(1);
+        this.cliService = RaftServiceFactory.createAndInitCliService(cliOptions);
     }
 
     public void waitRaftNodeStarted() {
         RaftNode node = this.node();
+        this.tryAddCurrentPeer();
         node.waitLeaderElected(RaftSharedContext.WAIT_LEADER_TIMEOUT);
         if (node.isRaftLeader()) {
             node.waitStarted(RaftSharedContext.NO_TIMEOUT);
@@ -280,6 +286,17 @@ public final class RaftSharedContext {
 
     private HugeConfig config() {
         return this.params.configuration();
+    }
+
+    private boolean tryAddCurrentPeer() {
+        Configuration peerConf = this.raftNode.node().getOptions()
+                                              .getInitialConf();
+        if (peerConf.getPeers().size() <= 1) {
+            return true;
+        }
+        Status status = this.cliService.addPeer(this.group(), peerConf,
+                                                this.node().nodeId());
+        return status.isOk();
     }
 
     private RpcServer initAndStartRpcServer() {

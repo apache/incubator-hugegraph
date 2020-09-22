@@ -61,6 +61,7 @@ import com.baidu.hugegraph.auth.SchemaDefine.UserElement;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
+import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.exception.NotSupportException;
@@ -550,6 +551,12 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     public String name() {
         this.verifyStatusPermission();
         return this.hugegraph.name();
+    }
+
+    @Override
+    public BackendStoreProvider storeProvider() {
+        this.verifyAdminPermission();
+        return this.hugegraph.storeProvider();
     }
 
     @Override

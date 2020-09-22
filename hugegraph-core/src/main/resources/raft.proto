@@ -38,3 +38,12 @@ message StoreCommandResponse {
     required bool status = 1;
     optional string message = 2;
 }
+
+message SetLeaderRequest {
+    required string endpoint = 1;
+}
+
+message SetLeaderResponse {
+    required bool status = 1;
+    optional string message = 2;
+}

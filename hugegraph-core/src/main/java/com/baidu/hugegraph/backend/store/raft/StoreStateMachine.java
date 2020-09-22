@@ -218,7 +218,6 @@ public class StoreStateMachine extends StateMachineAdapter {
     public void onLeaderStart(long term) {
         LOG.info("The node {} become to leader", this.node().nodeId());
         this.node().leaderTerm(term);
-        this.node().onElected(true);
         super.onLeaderStart(term);
     }
 
@@ -226,21 +225,18 @@ public class StoreStateMachine extends StateMachineAdapter {
     public void onLeaderStop(Status status) {
         LOG.info("The node {} abdicated from leader", this.node().nodeId());
         this.node().leaderTerm(-1);
-        this.node().onElected(false);
         super.onLeaderStop(status);
     }
 
     @Override
     public void onStartFollowing(LeaderChangeContext ctx) {
         LOG.info("The node {} become to follower", this.node().nodeId());
-        this.node().onElected(true);
         super.onStartFollowing(ctx);
     }
 
     @Override
     public void onStopFollowing(LeaderChangeContext ctx) {
         LOG.info("The node {} abdicated from follower", this.node().nodeId());
-        this.node().onElected(false);
         super.onStopFollowing(ctx);
     }
 

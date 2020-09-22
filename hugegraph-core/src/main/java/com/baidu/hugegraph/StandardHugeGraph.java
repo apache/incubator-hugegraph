@@ -188,6 +188,11 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
+    public BackendStoreProvider storeProvider() {
+        return this.storeProvider;
+    }
+
+    @Override
     public HugeGraph hugegraph() {
         return this;
     }

@@ -46,6 +46,8 @@ import com.alipay.sofa.jraft.rpc.RpcServer;
 import com.alipay.sofa.jraft.util.BytesUtil;
 import com.alipay.sofa.jraft.util.Endpoint;
 import com.baidu.hugegraph.backend.BackendException;
+import com.baidu.hugegraph.backend.store.raft.RaftRequests.SetLeaderRequest;
+import com.baidu.hugegraph.backend.store.raft.RaftRequests.SetLeaderResponse;
 import com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreCommandRequest;
 import com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreCommandResponse;
 import com.baidu.hugegraph.util.E;
@@ -63,8 +65,6 @@ public class RaftNode {
     private final StoreStateMachine stateMachine;
     private final AtomicLong leaderTerm;
 
-    private final Object electedLock;
-    private volatile boolean elected;
     private volatile boolean started;
     private final AtomicInteger busyCounter;
 
@@ -78,8 +78,6 @@ public class RaftNode {
         }
         this.node.addReplicatorStateListener(new RaftNodeStateListener());
         this.leaderTerm = new AtomicLong(-1);
-        this.electedLock = new Object();
-        this.elected = false;
         this.started = false;
         this.busyCounter = new AtomicInteger();
     }
@@ -110,6 +108,65 @@ public class RaftNode {
 
     public void shutdown() {
         this.node.shutdown();
+    }
+
+    public void transferLeaderTo(PeerId peerId) {
+        Status status = this.node.transferLeadershipTo(peerId);
+        if (!status.isOk()) {
+            throw new BackendException("Failed to transafer leader to '%s', " +
+                                       "raft error : %s",
+                                       peerId, status.getErrorMsg());
+        }
+    }
+
+    public void setLeader(PeerId newLeaderId) {
+        // No need to re-elect if already is new leader
+        if (this.node.getLeaderId().equals(newLeaderId)) {
+            return;
+        }
+        if (this.isRaftLeader()) {
+            // If current node is the leader, transfer directly
+            this.transferLeaderTo(newLeaderId);
+        } else {
+            // If current node is not leader, forward request to leader
+            String endpoint = newLeaderId.toString();
+            SetLeaderRequest request = SetLeaderRequest.newBuilder()
+                                                       .setEndpoint(endpoint)
+                                                       .build();
+            RaftClosure future = new RaftClosure();
+            this.forwardToLeader(request, future);
+            try {
+                future.waitFinished();
+            } catch (RuntimeException e) {
+                throw e;
+            } catch (Throwable t) {
+                throw new BackendException(t);
+            }
+        }
+    }
+
+    public void addPeer(PeerId peerId) {
+        RaftClosure future = new RaftClosure();
+        this.node.addPeer(peerId, future);
+        try {
+            future.waitFinished();
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Throwable t) {
+            throw new BackendException(t);
+        }
+    }
+
+    public void removePeer(PeerId peerId) {
+        RaftClosure future = new RaftClosure();
+        this.node.removePeer(peerId, future);
+        try {
+            future.waitFinished();
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Throwable t) {
+            throw new BackendException(t);
+        }
     }
 
     private Node initRaftNode() throws IOException {
@@ -166,40 +223,28 @@ public class RaftNode {
         }
     }
 
-    public void onElected(boolean value) {
-        synchronized(this.electedLock) {
-            this.elected = value;
-            this.electedLock.notify();
-        }
-    }
-
     protected void waitLeaderElected(int timeout) {
         String group = this.context.group();
         if (this.node.getLeaderId() != null) {
             return;
         }
         long beginTime = System.currentTimeMillis();
-        synchronized(this.electedLock) {
-            while (!this.elected) {
-                try {
-                    this.electedLock.wait(RaftSharedContext.POLL_INTERVAL);
-                } catch (InterruptedException e) {
-                    throw new BackendException(
-                              "Interrupted while waiting raft group '%s' " +
-                              "election", e, group);
-                }
-                if (this.elected) {
-                    break;
-                }
-                long consumedTime = System.currentTimeMillis() - beginTime;
-                if (timeout > 0 && consumedTime >= timeout) {
-                    throw new BackendException(
-                              "Wait raft group '{}' election timeout({}ms)",
-                              group, consumedTime);
-                }
-                LOG.warn("Waiting raft group '{}' election cost {}s",
-                         group, consumedTime / 1000.0);
+        while (this.node.getLeaderId() == null) {
+            try {
+                Thread.sleep(RaftSharedContext.POLL_INTERVAL);
+            } catch (InterruptedException e) {
+                throw new BackendException(
+                          "Wait raft group '%s' election error",
+                          e, group, "election");
             }
+            long consumedTime = System.currentTimeMillis() - beginTime;
+            if (timeout > 0 && consumedTime >= timeout) {
+                throw new BackendException(
+                          "Wait raft group '{}' election timeout({}ms)",
+                          group, "", consumedTime);
+            }
+            LOG.warn("Waiting raft group '{}' election cost {}s",
+                     group, consumedTime / 1000.0);
         }
     }
 
@@ -208,11 +253,7 @@ public class RaftNode {
         ReadIndexClosure readIndexClosure = new ReadIndexClosure() {
             @Override
             public void run(Status status, long index, byte[] reqCtx) {
-                if (status.isOk()) {
-                    RaftNode.this.started = true;
-                } else {
-                    RaftNode.this.started = false;
-                }
+                RaftNode.this.started = status.isOk();
             }
         };
         long beginTime = System.currentTimeMillis();
@@ -297,6 +338,39 @@ public class RaftNode {
             @Override
             public void run(Status status) {
                 closure.run(status);
+            }
+        };
+        this.waitRpc(leaderId.getEndpoint(), request, responseClosure);
+    }
+
+    private void forwardToLeader(SetLeaderRequest request, RaftClosure future) {
+        assert !this.node.isLeader();
+        PeerId leaderId = this.node.getLeaderId();
+        E.checkNotNull(leaderId, "leader id");
+        LOG.debug("The node {} forward request to leader {}",
+                  this.node.getNodeId(), leaderId);
+
+        RpcResponseClosure<SetLeaderResponse> responseClosure;
+        responseClosure = new RpcResponseClosure<SetLeaderResponse>() {
+            @Override
+            public void setResponse(SetLeaderResponse resp) {
+                if (resp.getStatus()) {
+                    LOG.debug("SetLeaderResponse status ok");
+                    future.complete(Status.OK(), () -> null);
+                } else {
+                    LOG.debug("SetLeaderResponse status error");
+                    Status status = new Status(RaftError.UNKNOWN,
+                                               "fowared request failed");
+                    future.failure(status, new BackendException(
+                                   "Current node isn't leader, leader is " +
+                                   "[%s], failed to forward request to " +
+                                   "leader: %s", leaderId, resp.getMessage()));
+                }
+            }
+
+            @Override
+            public void run(Status status) {
+                future.run(status);
             }
         };
         this.waitRpc(leaderId.getEndpoint(), request, responseClosure);
