@@ -153,8 +153,12 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
         if (this.idCache.size() >= this.idCache.capacity()) {
             LOG.warn("Schema cache reached capacity({}): {}",
                      this.idCache.capacity(), this.idCache.size());
-            this.arrayCaches.cachedTypes().clear();
+            this.cachedTypes().clear();
         }
+    }
+
+    private CachedTypes cachedTypes() {
+        return this.arrayCaches.cachedTypes();
     }
 
     private static Id generateId(HugeType type, Id id) {
@@ -257,8 +261,7 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
 
     @Override
     protected <T extends SchemaElement> List<T> getAllSchema(HugeType type) {
-        Boolean cachedAll = this.arrayCaches.cachedTypes()
-                                            .getOrDefault(type, false);
+        Boolean cachedAll = this.cachedTypes().getOrDefault(type, false);
         if (cachedAll) {
             List<T> results = new ArrayList<>();
             // Get from cache
@@ -282,7 +285,7 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
                     Id prefixedName = generateId(schema.type(), schema.name());
                     this.nameCache.update(prefixedName, schema);
                 }
-                this.arrayCaches.cachedTypes().putIfAbsent(type, true);
+                this.cachedTypes().putIfAbsent(type, true);
             }
             return results;
         }
