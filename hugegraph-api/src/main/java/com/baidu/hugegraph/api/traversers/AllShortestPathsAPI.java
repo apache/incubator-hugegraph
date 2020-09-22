@@ -84,7 +84,8 @@ public class AllShortestPathsAPI extends API {
         HugeGraph g = graph(manager, graph);
 
         ShortestPathTraverser traverser = new ShortestPathTraverser(g);
-        List<String> edgeLabels = ImmutableList.of(edgeLabel);
+        List<String> edgeLabels = edgeLabel == null ? ImmutableList.of() :
+                                  ImmutableList.of(edgeLabel);
         HugeTraverser.PathSet paths = traverser.allShortestPaths(
                                       sourceId, targetId, dir, edgeLabels,
                                       depth, degree, skipDegree, capacity);
