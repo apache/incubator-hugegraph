@@ -19,6 +19,9 @@
 
 package com.baidu.hugegraph.backend.store.raft;
 
+import java.util.Set;
+import java.util.concurrent.Future;
+
 import org.slf4j.Logger;
 
 import com.alipay.sofa.jraft.rpc.RpcServer;
@@ -26,9 +29,13 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
+import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
+import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.event.EventListener;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.Events;
 import com.baidu.hugegraph.util.Log;
+import com.google.common.collect.ImmutableSet;
 
 public class RaftBackendStoreProvider implements BackendStoreProvider {
 
@@ -50,10 +57,23 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
         this.registerRpcRequestProcessors();
     }
 
+    private Set<RaftBackendStore> stores() {
+        return ImmutableSet.of(this.schemaStore, this.graphStore,
+                               this.systemStore);
+    }
+
     private void registerRpcRequestProcessors() {
         RpcServer rpcServer = this.context.rpcServer();
         rpcServer.registerProcessor(new StoreCommandRequestProcessor(
                                     this.context));
+    }
+
+    private void checkOpened() {
+        E.checkState(this.graph() != null &&
+                     this.schemaStore != null &&
+                     this.graphStore != null &&
+                     this.systemStore != null,
+                     "The RaftBackendStoreProvider has not been opened");
     }
 
     @Override
@@ -77,6 +97,7 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
             LOG.info("Init raft backend schema store");
             BackendStore store = this.provider.loadSchemaStore(name);
             this.schemaStore = new RaftBackendStore(store, this.context);
+            this.context.addStore(name, this.schemaStore);
         }
         return this.schemaStore;
     }
@@ -87,6 +108,7 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
             LOG.info("Init raft backend graph store");
             BackendStore store = this.provider.loadGraphStore(name);
             this.graphStore = new RaftBackendStore(store, this.context);
+            this.context.addStore(name, this.graphStore);
         }
         return this.graphStore;
     }
@@ -97,6 +119,7 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
             LOG.info("Init raft backend system store");
             BackendStore store = this.provider.loadSystemStore(name);
             this.systemStore = new RaftBackendStore(store, this.context);
+            this.context.addStore(name, this.systemStore);
         }
         return this.systemStore;
     }
@@ -108,13 +131,8 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
 
     @Override
     public void waitStoreStarted() {
-        E.checkState(this.schemaStore != null &&
-                     this.graphStore != null &&
-                     this.systemStore != null,
-                     "The store has not been opened");
-        this.schemaStore.waitStoreStarted();
-        this.graphStore.waitStoreStarted();
-        this.systemStore.waitStoreStarted();
+        this.context.initRaftNode();
+        this.context.waitRaftNodeStarted();
     }
 
     @Override
@@ -125,22 +143,50 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
 
     @Override
     public void init() {
-        this.provider.init();
+        this.checkOpened();
+        for (RaftBackendStore store : this.stores()) {
+            store.init();
+        }
+        this.notifyAndWaitEvent(Events.STORE_INITED);
+
+        LOG.debug("Graph '{}' store has been initialized", this.graph());
     }
 
     @Override
     public void clear() {
-        this.provider.clear();
+        this.checkOpened();
+        for (RaftBackendStore store : this.stores()) {
+            // Just clear tables of store, not clear space
+            store.clear(false);
+        }
+        for (RaftBackendStore store : this.stores()) {
+            // Only clear space of store
+            store.clear(true);
+        }
+        this.notifyAndWaitEvent(Events.STORE_CLEAR);
+
+        LOG.debug("Graph '{}' store has been cleared", this.graph());
     }
 
     @Override
     public void truncate() {
-        this.provider.truncate();
+        this.checkOpened();
+        for (RaftBackendStore store : this.stores()) {
+            store.truncate();
+        }
+        this.notifyAndWaitEvent(Events.STORE_TRUNCATE);
+
+        LOG.debug("Graph '{}' store has been truncated", this.graph());
     }
 
     @Override
     public void initSystemInfo(HugeGraph graph) {
-        this.provider.initSystemInfo(graph);
+        this.checkOpened();
+        BackendStoreSystemInfo info = graph.backendStoreSystemInfo();
+        info.init();
+
+        this.notifyAndWaitEvent(Events.STORE_INITED);
+        LOG.debug("Graph '{}' system info has been initialized", this.graph());
     }
 
     @Override
@@ -151,5 +197,19 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
     @Override
     public void unlisten(EventListener listener) {
         this.provider.unlisten(listener);
+    }
+
+    @Override
+    public EventHub storeEventHub() {
+        return this.provider.storeEventHub();
+    }
+
+    protected final void notifyAndWaitEvent(String event) {
+        Future<?> future = this.storeEventHub().notify(event, this);
+        try {
+            future.get();
+        } catch (Throwable e) {
+            LOG.warn("Error when waiting for event execution: {}", event, e);
+        }
     }
 }

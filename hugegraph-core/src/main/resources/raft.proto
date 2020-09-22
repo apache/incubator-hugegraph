@@ -5,6 +5,12 @@ package com.baidu.hugegraph.backend.store.raft;
 option java_package="com.baidu.hugegraph.backend.store.raft";
 option java_outer_classname = "RaftRequests";
 
+enum StoreType {
+    SCHEMA = 1;
+    GRAPH = 2;
+    SYSTEM = 3;
+}
+
 enum StoreAction {
     NONE = 0;
     INIT = 1;
@@ -22,7 +28,7 @@ enum StoreAction {
 };
 
 message StoreCommandRequest {
-    required string group_id = 1;
+    required StoreType type = 1;
     required StoreAction action = 2;
     required bytes data = 3;
 }

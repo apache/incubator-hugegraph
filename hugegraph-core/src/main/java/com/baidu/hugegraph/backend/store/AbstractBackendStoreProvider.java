@@ -186,4 +186,9 @@ public abstract class AbstractBackendStoreProvider
     public BackendStore loadSystemStore(String name) {
         return this.loadGraphStore(name);
     }
+
+    @Override
+    public EventHub storeEventHub() {
+        return this.storeEventHub;
+    }
 }

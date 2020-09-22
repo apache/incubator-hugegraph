@@ -19,20 +19,29 @@
 
 package com.baidu.hugegraph.backend.store.raft;
 
+import com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreAction;
+import com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreType;
+
 public class StoreCommand {
 
     private static byte[] EMPTY = new byte[0];
 
+    private final StoreType type;
     private final StoreAction action;
     private final byte[] data;
 
-    public StoreCommand(StoreAction action) {
-        this(action, EMPTY);
+    public StoreCommand(StoreType type, StoreAction action) {
+        this(type, action, EMPTY);
     }
 
-    public StoreCommand(StoreAction action, byte[] data) {
+    public StoreCommand(StoreType type, StoreAction action, byte[] data) {
+        this.type = type;
         this.action = action;
         this.data = data;
+    }
+
+    public StoreType type() {
+        return this.type;
     }
 
     public StoreAction action() {
@@ -44,16 +53,18 @@ public class StoreCommand {
     }
 
     public byte[] toBytes() {
-        byte[] bytes = new byte[1 + this.data.length];
-        bytes[0] = this.action.code();
-        System.arraycopy(this.data, 0, bytes, 1, this.data.length);
+        byte[] bytes = new byte[1 + 1 + this.data.length];
+        bytes[0] = (byte) this.type.getNumber();
+        bytes[1] = (byte) this.action.getNumber();
+        System.arraycopy(this.data, 0, bytes, 2, this.data.length);
         return bytes;
     }
 
     public static StoreCommand fromBytes(byte[] bytes) {
-        StoreAction action = StoreAction.fromCode(bytes[0]);
-        byte[] data = new byte[bytes.length - 1];
-        System.arraycopy(bytes, 1, data, 0, bytes.length - 1);
-        return new StoreCommand(action, data);
+        StoreType type = StoreType.valueOf(bytes[0]);
+        StoreAction action = StoreAction.valueOf(bytes[1]);
+        byte[] data = new byte[bytes.length - 2];
+        System.arraycopy(bytes, 2, data, 0, bytes.length - 2);
+        return new StoreCommand(type, action, data);
     }
 }

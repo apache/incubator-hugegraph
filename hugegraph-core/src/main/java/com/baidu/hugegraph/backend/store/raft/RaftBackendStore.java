@@ -36,6 +36,8 @@ import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
+import com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreAction;
+import com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreType;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.Log;
@@ -54,12 +56,12 @@ public class RaftBackendStore implements BackendStore {
         this.threadLocalBatch = new ThreadLocal<>();
     }
 
-    private String group() {
-        return this.database() + "-" + this.store();
+    public BackendStore originStore() {
+        return this.store;
     }
 
     private RaftNode node() {
-        return this.context.node(this.group());
+        return this.context.node();
     }
 
     @Override
@@ -85,19 +87,6 @@ public class RaftBackendStore implements BackendStore {
     @Override
     public synchronized void open(HugeConfig config) {
         this.store.open(config);
-        this.initRaftNodeIfNeeded();
-    }
-
-    public void waitStoreStarted() {
-        RaftNode node = this.node();
-        node.waitLeaderElected(RaftSharedContext.WAIT_LEADER_TIMEOUT);
-        if (node.node().isLeader()) {
-            node.waitStarted(RaftSharedContext.NO_TIMEOUT);
-        }
-    }
-
-    private void initRaftNodeIfNeeded() {
-        this.context.addNode(this.group(), this.store);
     }
 
     @Override
@@ -203,11 +192,13 @@ public class RaftBackendStore implements BackendStore {
     }
 
     private Object submitAndWait(StoreAction action) {
-        return this.submitAndWait(new StoreCommand(action));
+        StoreType type = this.context.storeType(this.store());
+        return this.submitAndWait(new StoreCommand(type, action));
     }
 
     private Object submitAndWait(StoreAction action, byte[] data) {
-        return this.submitAndWait(new StoreCommand(action, data));
+        StoreType type = this.context.storeType(this.store());
+        return this.submitAndWait(new StoreCommand(type, action, data));
     }
 
     private Object submitAndWait(StoreCommand command) {
