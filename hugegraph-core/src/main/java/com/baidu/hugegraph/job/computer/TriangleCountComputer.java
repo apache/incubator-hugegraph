@@ -45,7 +45,7 @@ public class TriangleCountComputer extends AbstractComputer {
 
     @Override
     protected Map<String, Object> checkAndCollectParameters(
-            Map<String, Object> parameters) {
+                                  Map<String, Object> parameters) {
         return ImmutableMap.of(DIRECTION, direction(parameters),
                                DEGREE, degree(parameters));
     }

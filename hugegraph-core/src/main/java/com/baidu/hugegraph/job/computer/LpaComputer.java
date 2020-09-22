@@ -53,7 +53,7 @@ public class LpaComputer extends AbstractComputer {
 
     @Override
     protected Map<String, Object> checkAndCollectParameters(
-            Map<String, Object> parameters) {
+                                  Map<String, Object> parameters) {
         return ImmutableMap.of(TIMES, times(parameters),
                                PROPERTY, property(parameters),
                                PRECISION, precision(parameters),
