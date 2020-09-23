@@ -25,10 +25,16 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.store.ram.RamTable;
+import com.baidu.hugegraph.schema.EdgeLabel;
+import com.baidu.hugegraph.schema.SchemaManager;
+import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.structure.HugeEdge;
+import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.unit.FakeObjects;
@@ -44,16 +50,29 @@ public class RamTableTest {
     @Before
     public void setup() {
         this.graph = HugeFactory.open(FakeObjects.newConfig());
-        this.graph.schema().vertexLabel("vl1").create();
-        this.graph.schema().vertexLabel("vl2").create();
-        this.graph.schema().edgeLabel("el1")
-                           .sourceLabel("vl1")
-                           .targetLabel("vl1")
-                           .create();
-        this.graph.schema().edgeLabel("el2")
-                           .sourceLabel("vl2")
-                           .targetLabel("vl2")
-                           .create();
+        SchemaManager schema = this.graph.schema();
+
+        schema.propertyKey("p3").asText().create();
+
+        schema.vertexLabel("vl1").useCustomizeNumberId().create();
+        schema.vertexLabel("vl2").useCustomizeNumberId().create();
+        schema.vertexLabel("vl3").useCustomizeStringId().create();
+
+        schema.edgeLabel("el1")
+              .sourceLabel("vl1")
+              .targetLabel("vl1")
+              .create();
+        schema.edgeLabel("el2")
+              .sourceLabel("vl2")
+              .targetLabel("vl2")
+              .create();
+        schema.edgeLabel("el3")
+              .sourceLabel("vl3")
+              .targetLabel("vl3")
+              .properties("p3")
+              .multiTimes()
+              .sortKeys("p3")
+              .create();
     }
 
     @After
@@ -218,5 +237,48 @@ public class RamTableTest {
 
             Assert.assertFalse(edges.hasNext());
         }
+    }
+
+    @Test
+    public void testAddInvalidVertexOrEdge() {
+        HugeGraph graph = this.graph();
+        VertexLabel vl3 = graph.vertexLabel("vl3");
+        EdgeLabel el3 = graph.edgeLabel("el3");
+
+        VertexLabel vl2 = graph.vertexLabel("vl2");
+        EdgeLabel el2 = graph.edgeLabel("el2");
+
+        RamTable table = new RamTable(graph, VERTEX_SIZE, EDGE_SIZE);
+
+        HugeVertex ownerVertex = new HugeVertex(graph, IdGenerator.of(1), vl3);
+        HugeEdge edge1 = HugeEdge.constructEdge(ownerVertex, true, el3, "marko",
+                                               IdGenerator.of(2));
+        Assert.assertThrows(HugeException.class, () -> {
+            table.addEdge(true, edge1);
+        }, e -> {
+            Assert.assertContains("Only edge label without sortkey is " +
+                                  "supported by ramtable, but got 'el3(id=3)'",
+                                  e.getMessage());
+        });
+
+        HugeVertex v1 = new HugeVertex(graph, IdGenerator.of("s1"), vl2);
+        HugeEdge edge2 = HugeEdge.constructEdge(v1, true, el2, "marko",
+                                                IdGenerator.of("s2"));
+        Assert.assertThrows(HugeException.class, () -> {
+            table.addEdge(true, edge2);
+        }, e -> {
+            Assert.assertContains("Only number id is supported by ramtable, " +
+                                  "but got string id 's1'", e.getMessage());
+        });
+
+        HugeVertex v2 = new HugeVertex(graph, IdGenerator.of(2), vl2);
+        HugeEdge edge3 = HugeEdge.constructEdge(v2, true, el2, "marko",
+                                                IdGenerator.of("s2"));
+        Assert.assertThrows(HugeException.class, () -> {
+            table.addEdge(true, edge3);
+        }, e -> {
+            Assert.assertContains("Only number id is supported by ramtable, " +
+                                  "but got string id 's2'", e.getMessage());
+        });
     }
 }

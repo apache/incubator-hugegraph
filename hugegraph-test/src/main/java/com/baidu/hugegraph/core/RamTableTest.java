@@ -455,7 +455,7 @@ public class RamTableTest extends BaseCoreTest {
         vertices = g.V(1).out();
         Assert.assertTrue(vertices.hasNext());
         vertex = (HugeVertex) vertices.next();
-        Assert.assertFalse(vertex.propLoaded());
+        Assert.assertFalse(vertex.isPropLoaded());
         Assert.assertEquals(2L, vertex.id().asObject());
         Assert.assertEquals("B", vertex.value("name"));
         Assert.assertFalse(vertices.hasNext());
@@ -463,7 +463,7 @@ public class RamTableTest extends BaseCoreTest {
         edges = g.V(1).outE();
         Assert.assertTrue(edges.hasNext());
         edge = (HugeEdge) edges.next();
-        Assert.assertFalse(edge.propLoaded());
+        Assert.assertFalse(edge.isPropLoaded());
         Assert.assertEquals(Directions.OUT, edge.id().direction());
         Assert.assertEquals("ab", edge.value("name"));
         Assert.assertFalse(edges.hasNext());

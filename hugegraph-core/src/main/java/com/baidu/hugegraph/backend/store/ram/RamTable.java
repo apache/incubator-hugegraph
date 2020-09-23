@@ -202,12 +202,7 @@ public final class RamTable {
                                         "supported by %s backend",
                                         this.graph.backend());
             }
-            if (!vertex.number()) {
-                throw new HugeException("Only number id is supported by " +
-                                        "ramtable, but got %s id '%s'",
-                                        vertex.type().name().toLowerCase(),
-                                        vertex);
-            }
+            checkIsNumberId(vertex);
             lastId = vertex;
 
             adjEdges = this.graph.adjacentEdges(vertex);
@@ -223,6 +218,14 @@ public final class RamTable {
     }
 
     public void addEdge(boolean newVertex, HugeEdge edge) {
+        if (edge.schemaLabel().existSortKeys()) {
+            throw new HugeException("Only edge label without sortkey is " +
+                                    "supported by ramtable, but got '%s'",
+                                    edge.schemaLabel());
+        }
+        checkIsNumberId(edge.id().ownerVertexId());
+        checkIsNumberId(edge.id().otherVertexId());
+
         this.addEdge(newVertex,
                      edge.id().ownerVertexId().asLong(),
                      edge.id().otherVertexId().asLong(),
@@ -353,6 +356,14 @@ public final class RamTable {
         }
     }
 
+    private static void checkIsNumberId(Id id) {
+        if (!id.number()) {
+            throw new HugeException("Only number id is supported by " +
+                                    "ramtable, but got %s id '%s'",
+                                    id.type().name().toLowerCase(), id);
+        }
+    }
+
     private static long encode(long target, Directions direction, int label) {
         // TODO: support property
         assert (label & 0x0fffffff) == label;
@@ -431,14 +442,18 @@ public final class RamTable {
             }
 
             HugeGraph graph = RamTable.this.graph;
+            this.owner.correctVertexLabel(VertexLabel.NONE);
             boolean direction = actualDir == Directions.OUT;
             Id labelId = IdGenerator.of(label);
             Id otherVertexId = IdGenerator.of(otherV);
             String sortValues = "";
             EdgeLabel edgeLabel = graph.edgeLabel(labelId);
 
-            return HugeEdge.constructEdge(this.owner, direction, edgeLabel,
-                                          sortValues, otherVertexId);
+            HugeEdge edge = HugeEdge.constructEdge(this.owner, direction,
+                                                   edgeLabel, sortValues,
+                                                   otherVertexId);
+            edge.propNotLoaded();
+            return edge;
         }
     }
 
