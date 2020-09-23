@@ -45,7 +45,6 @@ import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
-import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.query.Condition;
@@ -370,7 +369,7 @@ public final class RamTable {
         private final int end;
         private final Directions dir;
         private final int label;
-        private final Id owner;
+        private final HugeVertex owner;
         private int current;
         private HugeEdge currentEdge;
 
@@ -380,8 +379,9 @@ public final class RamTable {
             this.end = end;
             this.dir = dir;
             this.label = label;
-            this.owner = IdGenerator.of(owner);
-
+            this.owner = new HugeVertex(RamTable.this.graph,
+                                        IdGenerator.of(owner),
+                                        VertexLabel.NONE);
             this.current = start;
             this.currentEdge = null;
         }
@@ -416,8 +416,8 @@ public final class RamTable {
                 return null;
             }
             long value = RamTable.this.edges.get(this.current++);
-            long target = value >>> 32;
-            assert target >= 0L : target;
+            long otherV = value >>> 32;
+            assert otherV >= 0L : otherV;
             Directions actualDir = (value & 0x80000000L) == 0L ?
                                    Directions.OUT : Directions.IN;
             int label = (int) value & 0x7fffffff;
@@ -430,33 +430,15 @@ public final class RamTable {
                 return null;
             }
 
-            Id labelId = IdGenerator.of(label);
-            Id targetId = IdGenerator.of(target);
-            EdgeId id = new EdgeId(this.owner, actualDir, labelId,
-                                   "", targetId);
             HugeGraph graph = RamTable.this.graph;
+            boolean direction = actualDir == Directions.OUT;
+            Id labelId = IdGenerator.of(label);
+            Id otherVertexId = IdGenerator.of(otherV);
+            String sortValues = "";
             EdgeLabel edgeLabel = graph.edgeLabel(labelId);
-            VertexLabel srcLabel = graph.vertexLabelOrNone(
-                                   edgeLabel.sourceLabel());
-            VertexLabel tgtLabel = graph.vertexLabelOrNone(
-                                   edgeLabel.targetLabel());
 
-            HugeEdge edge = new HugeEdge(graph, id, edgeLabel);
-            if (actualDir == Directions.OUT) {
-                HugeVertex owner = new HugeVertex(graph, this.owner, srcLabel);
-                HugeVertex other = new HugeVertex(graph, targetId, tgtLabel);
-                owner.propNotLoaded();
-                other.propNotLoaded();
-                edge.vertices(true, owner, other);
-            } else {
-                HugeVertex owner = new HugeVertex(graph, this.owner, tgtLabel);
-                HugeVertex other = new HugeVertex(graph, targetId, srcLabel);
-                owner.propNotLoaded();
-                other.propNotLoaded();
-                edge.vertices(false, owner, other);
-            }
-            edge.propNotLoaded();
-            return edge;
+            return HugeEdge.constructEdge(this.owner, direction, edgeLabel,
+                                          sortValues, otherVertexId);
         }
     }
 

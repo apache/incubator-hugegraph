@@ -3310,8 +3310,6 @@ public class EdgeCoreTest extends BaseCoreTest {
         Assert.assertEquals("456", vertices.get(0).id().toString());
         Assert.assertEquals(false, vertices.get(0).property("age").isPresent());
         Assert.assertEquals("~undefined", vertices.get(0).label());
-
-        assert false;
     }
 
     @Test

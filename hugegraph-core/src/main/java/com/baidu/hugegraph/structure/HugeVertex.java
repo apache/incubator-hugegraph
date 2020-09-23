@@ -180,6 +180,12 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
     public void correctVertexLabel(VertexLabel correctLabel) {
         E.checkArgumentNotNull(correctLabel, "Vertex label can't be null");
+        if (this.label != null && !this.label.undefined() &&
+            !correctLabel.undefined()) {
+            E.checkArgument(this.label.equals(correctLabel),
+                            "Vertex label can't be changed from '%s' to '%s'",
+                            this.label, correctLabel);
+        }
         this.label = correctLabel;
     }
 
