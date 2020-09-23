@@ -14,40 +14,49 @@ public final class RaftRequests {
   public enum StoreType
       implements com.google.protobuf.ProtocolMessageEnum {
     /**
-     * <code>SCHEMA = 1;</code>
+     * <code>SCHEMA = 0;</code>
      */
-    SCHEMA(0, 1),
+    SCHEMA(0, 0),
     /**
-     * <code>GRAPH = 2;</code>
+     * <code>GRAPH = 1;</code>
      */
-    GRAPH(1, 2),
+    GRAPH(1, 1),
     /**
-     * <code>SYSTEM = 3;</code>
+     * <code>SYSTEM = 2;</code>
      */
-    SYSTEM(2, 3),
+    SYSTEM(2, 2),
+    /**
+     * <code>SIZE = 3;</code>
+     */
+    SIZE(3, 3),
     ;
 
     /**
-     * <code>SCHEMA = 1;</code>
+     * <code>SCHEMA = 0;</code>
      */
-    public static final int SCHEMA_VALUE = 1;
+    public static final int SCHEMA_VALUE = 0;
     /**
-     * <code>GRAPH = 2;</code>
+     * <code>GRAPH = 1;</code>
      */
-    public static final int GRAPH_VALUE = 2;
+    public static final int GRAPH_VALUE = 1;
     /**
-     * <code>SYSTEM = 3;</code>
+     * <code>SYSTEM = 2;</code>
      */
-    public static final int SYSTEM_VALUE = 3;
+    public static final int SYSTEM_VALUE = 2;
+    /**
+     * <code>SIZE = 3;</code>
+     */
+    public static final int SIZE_VALUE = 3;
 
 
     public final int getNumber() { return value; }
 
     public static StoreType valueOf(int value) {
       switch (value) {
-        case 1: return SCHEMA;
-        case 2: return GRAPH;
-        case 3: return SYSTEM;
+        case 0: return SCHEMA;
+        case 1: return GRAPH;
+        case 2: return SYSTEM;
+        case 3: return SIZE;
         default: return null;
       }
     }
@@ -1442,14 +1451,14 @@ public final class RaftRequests {
       ".raft.StoreType\022C\n\006action\030\002 \002(\01623.com.ba" +
       "idu.hugegraph.backend.store.raft.StoreAc" +
       "tion\022\014\n\004data\030\003 \002(\014\"7\n\024StoreCommandRespon" +
-      "se\022\016\n\006status\030\001 \002(\010\022\017\n\007message\030\002 \001(\t*.\n\tS" +
-      "toreType\022\n\n\006SCHEMA\020\001\022\t\n\005GRAPH\020\002\022\n\n\006SYSTE" +
-      "M\020\003*\221\001\n\013StoreAction\022\010\n\004NONE\020\000\022\010\n\004INIT\020\001\022",
-      "\t\n\005CLEAR\020\002\022\014\n\010TRUNCATE\020\003\022\014\n\010BEGIN_TX\020\n\022\r" +
-      "\n\tCOMMIT_TX\020\013\022\017\n\013ROLLBACK_TX\020\014\022\n\n\006MUTATE" +
-      "\020\024\022\020\n\014INCR_COUNTER\020\025\022\t\n\005QUERY\020\036B6\n&com.b" +
-      "aidu.hugegraph.backend.store.raftB\014RaftR" +
-      "equests"
+      "se\022\016\n\006status\030\001 \002(\010\022\017\n\007message\030\002 \001(\t*8\n\tS" +
+      "toreType\022\n\n\006SCHEMA\020\000\022\t\n\005GRAPH\020\001\022\n\n\006SYSTE" +
+      "M\020\002\022\010\n\004SIZE\020\003*\221\001\n\013StoreAction\022\010\n\004NONE\020\000\022",
+      "\010\n\004INIT\020\001\022\t\n\005CLEAR\020\002\022\014\n\010TRUNCATE\020\003\022\014\n\010BE" +
+      "GIN_TX\020\n\022\r\n\tCOMMIT_TX\020\013\022\017\n\013ROLLBACK_TX\020\014" +
+      "\022\n\n\006MUTATE\020\024\022\020\n\014INCR_COUNTER\020\025\022\t\n\005QUERY\020" +
+      "\036B6\n&com.baidu.hugegraph.backend.store.r" +
+      "aftB\014RaftRequests"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
       new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {

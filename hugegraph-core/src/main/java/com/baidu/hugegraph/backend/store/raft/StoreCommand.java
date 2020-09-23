@@ -24,20 +24,21 @@ import com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreType;
 
 public class StoreCommand {
 
-    private static byte[] EMPTY = new byte[0];
-
     private final StoreType type;
     private final StoreAction action;
     private final byte[] data;
 
-    public StoreCommand(StoreType type, StoreAction action) {
-        this(type, action, EMPTY);
-    }
-
     public StoreCommand(StoreType type, StoreAction action, byte[] data) {
         this.type = type;
         this.action = action;
-        this.data = data;
+        if (data == null) {
+            this.data = new byte[2];
+        } else {
+            assert data.length >= 2;
+            this.data = data;
+        }
+        this.data[0] = (byte) this.type.getNumber();
+        this.data[1] = (byte) this.action.getNumber();
     }
 
     public StoreType type() {
@@ -52,19 +53,15 @@ public class StoreCommand {
         return this.data;
     }
 
-    public byte[] toBytes() {
-        byte[] bytes = new byte[1 + 1 + this.data.length];
-        bytes[0] = (byte) this.type.getNumber();
-        bytes[1] = (byte) this.action.getNumber();
-        System.arraycopy(this.data, 0, bytes, 2, this.data.length);
+    public static byte[] wrap(byte value) {
+        byte[] bytes = new byte[3];
+        bytes[2] = value;
         return bytes;
     }
 
     public static StoreCommand fromBytes(byte[] bytes) {
         StoreType type = StoreType.valueOf(bytes[0]);
         StoreAction action = StoreAction.valueOf(bytes[1]);
-        byte[] data = new byte[bytes.length - 2];
-        System.arraycopy(bytes, 2, data, 0, bytes.length - 2);
-        return new StoreCommand(type, action, data);
+        return new StoreCommand(type, action, bytes);
     }
 }

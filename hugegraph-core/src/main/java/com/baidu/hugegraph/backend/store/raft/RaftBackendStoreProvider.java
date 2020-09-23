@@ -30,6 +30,7 @@ import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
+import com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreType;
 import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.event.EventListener;
 import com.baidu.hugegraph.util.E;
@@ -97,7 +98,7 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
             LOG.info("Init raft backend schema store");
             BackendStore store = this.provider.loadSchemaStore(name);
             this.schemaStore = new RaftBackendStore(store, this.context);
-            this.context.addStore(name, this.schemaStore);
+            this.context.addStore(StoreType.SCHEMA, this.schemaStore);
         }
         return this.schemaStore;
     }
@@ -108,7 +109,7 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
             LOG.info("Init raft backend graph store");
             BackendStore store = this.provider.loadGraphStore(name);
             this.graphStore = new RaftBackendStore(store, this.context);
-            this.context.addStore(name, this.graphStore);
+            this.context.addStore(StoreType.GRAPH, this.graphStore);
         }
         return this.graphStore;
     }
@@ -119,7 +120,7 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
             LOG.info("Init raft backend system store");
             BackendStore store = this.provider.loadSystemStore(name);
             this.systemStore = new RaftBackendStore(store, this.context);
-            this.context.addStore(name, this.systemStore);
+            this.context.addStore(StoreType.SYSTEM, this.systemStore);
         }
         return this.systemStore;
     }

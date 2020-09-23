@@ -107,7 +107,8 @@ public class RaftBackendStore implements BackendStore {
 
     @Override
     public void clear(boolean clearSpace) {
-        byte[] bytes = new byte[]{clearSpace ? (byte) 1 : (byte) 0};
+        byte value = clearSpace ? (byte) 1 : (byte) 0;
+        byte[] bytes = StoreCommand.wrap(value);
         this.submitAndWait(StoreAction.CLEAR, bytes);
     }
 
@@ -118,7 +119,7 @@ public class RaftBackendStore implements BackendStore {
 
     @Override
     public void truncate() {
-        this.submitAndWait(StoreAction.TRUNCATE);
+        this.submitAndWait(StoreAction.TRUNCATE, null);
     }
 
     @Override
@@ -156,7 +157,7 @@ public class RaftBackendStore implements BackendStore {
 
     @Override
     public void rollbackTx() {
-        this.submitAndWait(StoreAction.ROLLBACK_TX);
+        this.submitAndWait(StoreAction.ROLLBACK_TX, null);
     }
 
     @Override
@@ -189,11 +190,6 @@ public class RaftBackendStore implements BackendStore {
     @Override
     public void readSnapshot(String snapshotPath) {
         this.store.readSnapshot(snapshotPath);
-    }
-
-    private Object submitAndWait(StoreAction action) {
-        StoreType type = this.context.storeType(this.store());
-        return this.submitAndWait(new StoreCommand(type, action));
     }
 
     private Object submitAndWait(StoreAction action, byte[] data) {

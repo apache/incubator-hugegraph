@@ -83,7 +83,7 @@ public class StoreSerializerTest {
         Assert.assertEquals(StoreAction.MUTATE, command.action());
         Assert.assertArrayEquals(mutationBytes, command.data());
 
-        byte[] commandBytes = command.toBytes();
+        byte[] commandBytes = command.data();
         StoreCommand actual = StoreCommand.fromBytes(commandBytes);
         Assert.assertEquals(StoreType.GRAPH, command.type());
         Assert.assertEquals(command.action(), actual.action());

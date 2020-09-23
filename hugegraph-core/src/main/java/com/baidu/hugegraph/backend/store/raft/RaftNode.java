@@ -115,7 +115,7 @@ public class RaftNode {
     private Node initRaftNode() throws IOException {
         NodeOptions nodeOptions = this.context.nodeOptions();
         nodeOptions.setFsm(this.stateMachine);
-
+        // TODO: When support sharding, groupId needs to be bound to shard Id
         String groupId = this.context.group();
         PeerId endpoint = this.context.endpoint();
         RpcServer rpcServer = this.context.rpcServer();
@@ -141,7 +141,7 @@ public class RaftNode {
         Task task = new Task();
         task.setDone(closure);
         // compress return BytesBuffer
-        ByteBuffer buffer = LZ4Util.compress(command.toBytes(),
+        ByteBuffer buffer = LZ4Util.compress(command.data(),
                                              RaftSharedContext.BLOCK_SIZE)
                                    .asByteBuffer();
         LOG.debug("The bytes size of command(compressed) {} is {}",
@@ -185,8 +185,8 @@ public class RaftNode {
                     this.electedLock.wait(RaftSharedContext.POLL_INTERVAL);
                 } catch (InterruptedException e) {
                     throw new BackendException(
-                              "Wait raft group '%s' election error",
-                              e, group, "election");
+                              "Interrupted while waiting raft group '%s' " +
+                              "election", e, group);
                 }
                 if (this.elected) {
                     break;
@@ -195,7 +195,7 @@ public class RaftNode {
                 if (timeout > 0 && consumedTime >= timeout) {
                     throw new BackendException(
                               "Wait raft group '{}' election timeout({}ms)",
-                              group, "", consumedTime);
+                              group, consumedTime);
                 }
                 LOG.warn("Waiting raft group '{}' election cost {}s",
                          group, consumedTime / 1000.0);
@@ -287,6 +287,7 @@ public class RaftNode {
                     LOG.debug("StoreCommandResponse status error");
                     Status status = new Status(RaftError.UNKNOWN,
                                                "fowared request failed");
+                    System.out.println("失败的请求：" + request);
                     closure.failure(status, new BackendException(
                                     "Current node isn't leader, leader is " +
                                     "[%s], failed to forward request to " +

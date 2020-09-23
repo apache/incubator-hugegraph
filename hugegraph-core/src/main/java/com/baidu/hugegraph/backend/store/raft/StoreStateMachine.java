@@ -139,16 +139,15 @@ public class StoreStateMachine extends StateMachineAdapter {
                 closure = (StoreClosure) iter.done();
                 if (closure != null) {
                     // Leader just take it out from the closure
-                    type = closure.command().type();
-                    action = closure.command().action();
                     buffer = BytesBuffer.wrap(closure.command().data());
                 } else {
                     // Follower need readMutation data
                     buffer = LZ4Util.decompress(iter.getData().array(),
                                                 RaftSharedContext.BLOCK_SIZE);
-                    type = StoreType.valueOf(buffer.read());
-                    action = StoreAction.valueOf(buffer.read());
                 }
+                // The first two bytes are StoreType and StoreAction
+                type = StoreType.valueOf(buffer.read());
+                action = StoreAction.valueOf(buffer.read());
                 if (closure != null) {
                     // Closure is null on follower node
                     // Let the producer thread to handle it

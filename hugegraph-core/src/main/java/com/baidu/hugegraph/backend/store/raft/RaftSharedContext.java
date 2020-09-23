@@ -22,16 +22,15 @@ package com.baidu.hugegraph.backend.store.raft;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
@@ -78,7 +77,7 @@ public final class RaftSharedContext {
     private final String schemaStoreName;
     private final String graphStoreName;
     private final String systemStoreName;
-    private final Map<String, RaftBackendStore> stores;
+    private final RaftBackendStore[] stores;
     private final RpcServer rpcServer;
     @SuppressWarnings("unused")
     private final ExecutorService readIndexExecutor;
@@ -94,7 +93,7 @@ public final class RaftSharedContext {
         this.schemaStoreName = config.get(CoreOptions.STORE_SCHEMA);
         this.graphStoreName = config.get(CoreOptions.STORE_GRAPH);
         this.systemStoreName = config.get(CoreOptions.STORE_SYSTEM);
-        this.stores = new HashMap<>();
+        this.stores = new RaftBackendStore[StoreType.SIZE.getNumber()];
         this.rpcServer = this.initAndStartRpcServer();
         if (config.get(CoreOptions.RAFT_SAFE_READ)) {
             int readIndexThreads = config.get(CoreOptions.RAFT_READ_INDEX_THREADS);
@@ -141,8 +140,8 @@ public final class RaftSharedContext {
         return DEFAULT_GROUP;
     }
 
-    public void addStore(String name, RaftBackendStore store) {
-        this.stores.put(name, store);
+    public void addStore(StoreType type, RaftBackendStore store) {
+        this.stores[type.ordinal()] = store;
     }
 
     public StoreType storeType(String store) {
@@ -157,18 +156,15 @@ public final class RaftSharedContext {
     }
 
     public BackendStore originStore(StoreType storeType) {
-        if (storeType == StoreType.SCHEMA) {
-            return this.stores.get(this.schemaStoreName).originStore();
-        } else if (storeType == StoreType.GRAPH) {
-            return this.stores.get(this.graphStoreName).originStore();
-        } else {
-            return this.stores.get(this.systemStoreName).originStore();
-        }
+        return this.stores[storeType.getNumber()].originStore();
     }
 
     public Collection<BackendStore> originStores() {
-        return this.stores.values().stream().map(RaftBackendStore::originStore)
-                          .collect(Collectors.toList());
+        List<BackendStore> originStores = new ArrayList<>();
+        for (RaftBackendStore store : this.stores) {
+            originStores.add(store.originStore());
+        }
+        return originStores;
     }
 
     public NodeOptions nodeOptions() throws IOException {

@@ -6,9 +6,10 @@ option java_package="com.baidu.hugegraph.backend.store.raft";
 option java_outer_classname = "RaftRequests";
 
 enum StoreType {
-    SCHEMA = 1;
-    GRAPH = 2;
-    SYSTEM = 3;
+    SCHEMA = 0;
+    GRAPH = 1;
+    SYSTEM = 2;
+    SIZE = 3;
 }
 
 enum StoreAction {
