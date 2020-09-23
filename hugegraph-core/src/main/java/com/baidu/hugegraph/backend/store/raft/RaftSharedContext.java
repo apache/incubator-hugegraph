@@ -26,8 +26,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionHandler;
-import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 
 import org.apache.commons.io.FileUtils;
@@ -61,7 +61,7 @@ public final class RaftSharedContext {
     public static final int POLL_INTERVAL = 3000;
     public static final int WAIT_RAFT_LOG_TIMEOUT = 30 * 60 * 1000;
     public static final int WAIT_LEADER_TIMEOUT = 5 * 60 * 1000;
-    public static final int BUSY_SLEEP_FACTOR = 30 * 1000;
+    public static final int BUSY_SLEEP_FACTOR = 3 * 1000;
     public static final int WAIT_RPC_TIMEOUT = 30 * 60 * 1000;
     // compress block size
     public static final int BLOCK_SIZE = 4096;
@@ -76,10 +76,15 @@ public final class RaftSharedContext {
 
     public RaftSharedContext(HugeGraphParams params) {
         this.params = params;
+        HugeConfig config = params.configuration();
         this.nodes = new HashMap<>();
         this.rpcServer = this.initAndStartRpcServer();
-        this.readIndexExecutor = null;
-        HugeConfig config = params.configuration();
+        if (config.get(CoreOptions.RAFT_SAFE_READ)) {
+            int readIndexThreads = config.get(CoreOptions.RAFT_READ_INDEX_THREADS);
+            this.readIndexExecutor = this.createReadIndexExecutor(readIndexThreads);
+        } else {
+            this.readIndexExecutor = null;
+        }
         if (config.get(CoreOptions.RAFT_USE_SNAPSHOT)) {
             this.snapshotExecutor = this.createSnapshotExecutor(4);
         } else {
@@ -117,6 +122,14 @@ public final class RaftSharedContext {
         selfId.parse(config.get(CoreOptions.RAFT_ENDPOINT));
 
         NodeOptions nodeOptions = new NodeOptions();
+        nodeOptions.setEnableMetrics(false);
+        nodeOptions.setRpcProcessorThreadPoolSize(
+                    config.get(CoreOptions.RAFT_RPC_THREADS));
+        nodeOptions.setRpcConnectTimeoutMs(
+                    config.get(CoreOptions.RAFT_RPC_CONNECT_TIMEOUT));
+        nodeOptions.setRpcDefaultTimeout(
+                    config.get(CoreOptions.RAFT_RPC_TIMEOUT));
+
         int electionTimeout = config.get(CoreOptions.RAFT_ELECTION_TIMEOUT);
         nodeOptions.setElectionTimeoutMs(electionTimeout);
         nodeOptions.setDisableCli(false);
@@ -153,11 +166,14 @@ public final class RaftSharedContext {
          * NOTE: if buffer size is too small(<=1024), will throw exception
          * "LogManager is busy, disk queue overload"
          */
-        int queueSize = config.get(CoreOptions.RAFT_QUEUE_SIZE);
-        raftOptions.setDisruptorBufferSize(queueSize);
-        // raftOptions.setReplicatorPipeline(false);
-        // nodeOptions.setRpcProcessorThreadPoolSize(48);
-        // nodeOptions.setEnableMetrics(false);
+        raftOptions.setApplyBatch(config.get(CoreOptions.RAFT_APPLY_BATCH));
+        raftOptions.setDisruptorBufferSize(
+                    config.get(CoreOptions.RAFT_QUEUE_SIZE));
+        raftOptions.setDisruptorPublishEventWaitTimeoutSecs(
+                    config.get(CoreOptions.RAFT_QUEUE_PUBLISH_TIMEOUT));
+        raftOptions.setReplicatorPipeline(
+                    config.get(CoreOptions.RAFT_REPLICATOR_PIPELINE));
+        raftOptions.setOpenStatistics(false);
 
         return nodeOptions;
     }
@@ -229,24 +245,23 @@ public final class RaftSharedContext {
         return newPool(coreThreads, maxThreads, name, handler);
     }
 
-    private ExecutorService createBackendExecutor(int coreThreads) {
-        int maxThreads = coreThreads << 2;
+    private ExecutorService createBackendExecutor(int threads) {
         String name = "store-backend-executor";
         RejectedExecutionHandler handler;
         handler = new ThreadPoolExecutor.CallerRunsPolicy();
-        return newPool(coreThreads, maxThreads, name, handler);
+        return newPool(threads, threads, name, handler);
     }
 
     private static ExecutorService newPool(int coreThreads, int maxThreads,
                                            String name,
                                            RejectedExecutionHandler handler) {
-        BlockingQueue<Runnable> workQueue = new SynchronousQueue<>();
+        BlockingQueue<Runnable> workQueue = new LinkedBlockingQueue<>();
         return ThreadPoolUtil.newBuilder()
                              .poolName(name)
                              .enableMetric(true)
                              .coreThreads(coreThreads)
                              .maximumThreads(maxThreads)
-                             .keepAliveSeconds(60L)
+                             .keepAliveSeconds(300L)
                              .workQueue(workQueue)
                              .threadFactory(new NamedThreadFactory(name, true))
                              .rejectedHandler(handler)

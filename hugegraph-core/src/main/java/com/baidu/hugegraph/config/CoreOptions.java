@@ -36,6 +36,8 @@ public class CoreOptions extends OptionHolder {
 
     private static volatile CoreOptions instance;
 
+    private static final int CPUS = Runtime.getRuntime().availableProcessors();
+
     public static synchronized CoreOptions instance() {
         if (instance == null) {
             instance = new CoreOptions();
@@ -114,7 +116,7 @@ public class CoreOptions extends OptionHolder {
                     "raft.safe_read",
                     "Whether to use linearly consistent read.",
                     disallowEmpty(),
-                    true
+                    false
             );
 
     public static final ConfigOption<Boolean> RAFT_USE_SNAPSHOT =
@@ -122,16 +124,7 @@ public class CoreOptions extends OptionHolder {
                     "raft.use_snapshot",
                     "Whether to use snapshot.",
                     disallowEmpty(),
-                    true
-            );
-
-    public static final ConfigOption<Integer> RAFT_QUEUE_SIZE =
-            new ConfigOption<>(
-                    "raft.queue_size",
-                    "The disruptor buffers size for jraft RaftNode, " +
-                    "StateMachine and LogManager",
-                    positiveInt(),
-                    8192
+                    false
             );
 
     public static final ConfigOption<String> RAFT_ENDPOINT =
@@ -158,12 +151,23 @@ public class CoreOptions extends OptionHolder {
                     "./raftlog"
             );
 
+    public static final ConfigOption<Boolean> RAFT_REPLICATOR_PIPELINE =
+            new ConfigOption<>(
+                    "raft.use_replicator_pipeline",
+                    "Whether to use replicator line, when turned on it " +
+                    "multiple logs can be sent in parallel, and the next log " +
+                    "doesn't have to wait for the ack message of the current " +
+                    "log to be sent",
+                    disallowEmpty(),
+                    true
+            );
+
     public static final ConfigOption<Integer> RAFT_ELECTION_TIMEOUT =
             new ConfigOption<>(
                     "raft.election_timeout",
                     "Timeout in milliseconds to launch a round of election.",
                     rangeInt(0, Integer.MAX_VALUE),
-                    3000
+                    10000
             );
 
     public static final ConfigOption<Integer> RAFT_SNAPSHOT_INTERVAL =
@@ -179,7 +183,70 @@ public class CoreOptions extends OptionHolder {
                     "raft.backend_threads",
                     "The thread number used to apply task to bakcend.",
                     rangeInt(0, Integer.MAX_VALUE),
+                    CPUS
+            );
+
+    public static final ConfigOption<Integer> RAFT_READ_INDEX_THREADS =
+            new ConfigOption<>(
+                    "raft.read_index_threads",
+                    "The thread number used to execute reading index.",
+                    rangeInt(0, Integer.MAX_VALUE),
                     8
+            );
+
+    public static final ConfigOption<Integer> RAFT_APPLY_BATCH =
+            new ConfigOption<>(
+                    "raft.apply_batch",
+                    "The apply batch size to trigger disruptor event handler.",
+                    positiveInt(),
+                    // jraft default value is 32
+                    1
+            );
+
+    public static final ConfigOption<Integer> RAFT_QUEUE_SIZE =
+            new ConfigOption<>(
+                    "raft.queue_size",
+                    "The disruptor buffers size for jraft RaftNode, " +
+                    "StateMachine and LogManager",
+                    positiveInt(),
+                    // jraft default value is 16384
+                    16384
+            );
+
+    public static final ConfigOption<Integer> RAFT_QUEUE_PUBLISH_TIMEOUT =
+            new ConfigOption<>(
+                    "raft.queue_publish_timeout",
+                    "The timeout in second when publish event into disruptor",
+                    positiveInt(),
+                    // jraft default value is 10(sec)
+                    60
+            );
+
+    public static final ConfigOption<Integer> RAFT_RPC_THREADS =
+            new ConfigOption<>(
+                    "raft.rpc_threads",
+                    "The rpc threads for jraft RPC layer",
+                    positiveInt(),
+                    // jraft default value is 80
+                    Math.max(CPUS * 2, 80)
+            );
+
+    public static final ConfigOption<Integer> RAFT_RPC_CONNECT_TIMEOUT =
+            new ConfigOption<>(
+                    "raft.rpc_connect_timeout",
+                    "The rpc connect timeout for jraft rpc",
+                    positiveInt(),
+                    // jraft default value is 1000(ms)
+                    5000
+            );
+
+    public static final ConfigOption<Integer> RAFT_RPC_TIMEOUT =
+            new ConfigOption<>(
+                    "raft.rpc_timeout",
+                    "The rpc timeout for jraft rpc",
+                    positiveInt(),
+                    // jraft default value is 5000(ms)
+                    60000
             );
 
     public static final ConfigOption<Integer> RATE_LIMIT_WRITE =
