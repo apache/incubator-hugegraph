@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.backend.cache;
 
 import java.util.Iterator;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
 import org.slf4j.Logger;
@@ -45,6 +46,9 @@ public abstract class AbstractCache<K, V> implements Cache<K, V> {
     private final long capacity;
     private final long halfCapacity;
 
+    // For user attachment
+    private final AtomicReference<Object> attachment;
+
     public AbstractCache() {
         this(DEFAULT_SIZE);
     }
@@ -55,6 +59,7 @@ public abstract class AbstractCache<K, V> implements Cache<K, V> {
         }
         this.capacity = capacity;
         this.halfCapacity = this.capacity >> 1;
+        this.attachment = new AtomicReference<>();
     }
 
     @Watched(prefix = "cache")
@@ -202,6 +207,19 @@ public abstract class AbstractCache<K, V> implements Cache<K, V> {
     @Override
     public final long capacity() {
         return this.capacity;
+    }
+
+    @Override
+    public <T> T attachment(T object) {
+        this.attachment.compareAndSet(null, object);
+        return this.attachment();
+    }
+
+    @Override
+    public <T> T attachment() {
+        @SuppressWarnings("unchecked")
+        T attachment = (T) this.attachment.get();
+        return attachment;
     }
 
     protected final long halfCapacity() {
