@@ -320,7 +320,9 @@ public class GraphTransaction extends IndexableTransaction {
             v.committed();
             this.checkAggregateProperty(v);
             // Check whether passed all non-null properties
-            this.checkNonnullProperty(v);
+            if (!this.graphMode().loading()) {
+                this.checkNonnullProperty(v);
+            }
 
             // Add vertex entry
             this.doInsert(this.serializer.writeVertex(v));

@@ -40,7 +40,12 @@ public enum GraphMode {
      * 1. Not allowed create schema with specified id
      * 2. Support create vertex with id for AUTOMATIC id strategy
      */
-    MERGING(3, "merging");
+    MERGING(3, "merging"),
+
+    /*
+     * LOADING mode used to load data via hugegraph-loader.
+     */
+    LOADING(4, "loading");
 
     private final byte code;
     private final String name;
@@ -61,5 +66,9 @@ public enum GraphMode {
 
     public boolean maintaining() {
         return this == RESTORING || this == MERGING;
+    }
+
+    public boolean loading() {
+        return this == LOADING;
     }
 }

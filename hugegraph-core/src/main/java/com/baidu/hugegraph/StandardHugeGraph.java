@@ -243,6 +243,7 @@ public class StandardHugeGraph implements HugeGraph {
 
     @Override
     public void mode(GraphMode mode) {
+        LOG.info("Graph {} will work in {} mode", this, mode);
         this.mode = mode;
     }
 
