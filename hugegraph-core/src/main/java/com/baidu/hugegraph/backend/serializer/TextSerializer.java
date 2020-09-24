@@ -76,6 +76,8 @@ public class TextSerializer extends AbstractSerializer {
     private static final String EDGE_NAME_ENDING =
                                 GraphIndexTransaction.INDEX_SYM_ENDING + "";
 
+    private static final String EDGE_OUT_TYPE = writeType(HugeType.EDGE_OUT);
+
     @Override
     public TextBackendEntry newBackendEntry(HugeType type, Id id) {
         return new TextBackendEntry(type, id);
@@ -216,38 +218,13 @@ public class TextSerializer extends AbstractSerializer {
         String[] colParts = EdgeId.split(colName);
 
         HugeGraph graph = vertex.graph();
-        EdgeLabel label = graph.edgeLabelOrNone(readId(colParts[1]));
-
-        VertexLabel sourceLabel = graph.vertexLabelOrNone(label.sourceLabel());
-        VertexLabel targetLabel = graph.vertexLabelOrNone(label.targetLabel());
-
+        boolean direction = colParts[0].equals(EDGE_OUT_TYPE);
+        String sortValues = readEdgeName(colParts[2]);
+        EdgeLabel edgeLabel = graph.edgeLabelOrNone(readId(colParts[1]));
         Id otherVertexId = readEntryId(colParts[3]);
-
-        boolean isOutEdge = colParts[0].equals(writeType(HugeType.EDGE_OUT));
-        HugeVertex otherVertex;
-        if (isOutEdge) {
-            vertex.vertexLabel(sourceLabel);
-            otherVertex = new HugeVertex(graph, otherVertexId, targetLabel);
-        } else {
-            vertex.vertexLabel(targetLabel);
-            otherVertex = new HugeVertex(graph, otherVertexId, sourceLabel);
-        }
-
-        HugeEdge edge = new HugeEdge(graph, null, label);
-        edge.name(readEdgeName(colParts[2]));
-        edge.vertices(isOutEdge, vertex, otherVertex);
-        edge.assignId();
-
-        if (isOutEdge) {
-            vertex.addOutEdge(edge);
-            otherVertex.addInEdge(edge.switchOwner());
-        } else {
-            vertex.addInEdge(edge);
-            otherVertex.addOutEdge(edge.switchOwner());
-        }
-
-        vertex.propNotLoaded();
-        otherVertex.propNotLoaded();
+        // Construct edge
+        HugeEdge edge = HugeEdge.constructEdge(vertex, direction, edgeLabel,
+                                               sortValues, otherVertexId);
 
         String[] valParts = colValue.split(VALUE_SPLITOR);
         // Parse edge expired time

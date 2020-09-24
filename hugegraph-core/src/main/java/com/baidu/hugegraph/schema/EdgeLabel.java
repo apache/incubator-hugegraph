@@ -105,6 +105,10 @@ public class EdgeLabel extends SchemaLabel {
                this.targetLabel.equals(targetLabel);
     }
 
+    public boolean existSortKeys() {
+        return this.sortKeys.size() > 0;
+    }
+
     public List<Id> sortKeys() {
         return Collections.unmodifiableList(this.sortKeys);
     }

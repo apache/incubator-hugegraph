@@ -56,24 +56,23 @@ import com.google.common.collect.ImmutableMap;
 
 public abstract class HugeElement implements Element, GraphType, Idfiable {
 
-    private static final Map<Id, HugeProperty<?>> EMPTY = ImmutableMap.of();
+    private static final Map<Id, HugeProperty<?>> EMPTY_MAP = ImmutableMap.of();
     private static final int MAX_PROPERTIES = BytesBuffer.UINT16_MAX;
 
     private final HugeGraph graph;
+    private Map<Id, HugeProperty<?>> properties;
 
-    protected Id id;
-    protected Map<Id, HugeProperty<?>> properties;
-    protected long expiredTime;
-    protected boolean removed;
-    protected boolean fresh;
-    protected boolean propLoaded;
-    protected boolean defaultValueUpdated;
+    private long expiredTime; // TODO: move into properties to keep small object
 
-    public HugeElement(final HugeGraph graph, Id id) {
+    private boolean removed;
+    private boolean fresh;
+    private boolean propLoaded;
+    private boolean defaultValueUpdated;
+
+    public HugeElement(final HugeGraph graph) {
         E.checkArgument(graph != null, "HugeElement graph can't be null");
         this.graph = graph;
-        this.id = id;
-        this.properties = EMPTY;
+        this.properties = EMPTY_MAP;
         this.expiredTime = 0L;
         this.removed = false;
         this.fresh = false;
@@ -108,11 +107,7 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
                 this.setProperty(this.newProperty(pkey, value));
             }
         }
-    }
-
-    @Override
-    public Id id() {
-        return this.id;
+        this.defaultValueUpdated = true;
     }
 
     @Override
@@ -120,16 +115,28 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
         return this.graph;
     }
 
+    protected void removed(boolean removed) {
+        this.removed = removed;
+    }
+
     public boolean removed() {
         return this.removed;
+    }
+
+    protected void fresh(boolean fresh) {
+        this.fresh = fresh;
     }
 
     public boolean fresh() {
         return this.fresh;
     }
 
-    public boolean propLoaded() {
+    public boolean isPropLoaded() {
         return this.propLoaded;
+    }
+
+    protected void propLoaded() {
+        this.propLoaded = true;
     }
 
     public void propNotLoaded() {
@@ -258,7 +265,7 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
 
     @Watched(prefix = "element")
     public <V> HugeProperty<?> setProperty(HugeProperty<V> prop) {
-        if (this.properties == EMPTY) {
+        if (this.properties == EMPTY_MAP) {
             this.properties = new HashMap<>();
         }
         PropertyKey pkey = prop.propertyKey();
@@ -350,8 +357,12 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
         this.propLoaded = false;
     }
 
-    public void copyProperties(HugeElement element) {
-        this.properties = new HashMap<>(element.properties);
+    protected void copyProperties(HugeElement element) {
+        if (element.properties == EMPTY_MAP) {
+            this.properties = EMPTY_MAP;
+        } else {
+            this.properties = new HashMap<>(element.properties);
+        }
         this.propLoaded = true;
     }
 

@@ -162,7 +162,7 @@ public abstract class TableSerializer extends AbstractSerializer {
                                  HugeVertex vertex, HugeGraph graph) {
         Object ownerVertexId = row.column(HugeKeys.OWNER_VERTEX);
         Number dir = row.column(HugeKeys.DIRECTION);
-        Directions direction = EdgeId.directionFromCode(dir.byteValue());
+        boolean direction = EdgeId.isOutDirectionFromCode(dir.byteValue());
         Number label = row.column(HugeKeys.LABEL);
         String sortValues = row.column(HugeKeys.SORT_VALUES);
         Object otherVertexId = row.column(HugeKeys.OTHER_VERTEX);
@@ -170,39 +170,15 @@ public abstract class TableSerializer extends AbstractSerializer {
 
         if (vertex == null) {
             Id ownerId = this.readId(ownerVertexId);
-            vertex = new HugeVertex(graph, ownerId, null);
+            vertex = new HugeVertex(graph, ownerId, VertexLabel.NONE);
         }
 
         EdgeLabel edgeLabel = graph.edgeLabelOrNone(this.toId(label));
-        VertexLabel srcLabel = graph.vertexLabelOrNone(edgeLabel.sourceLabel());
-        VertexLabel tgtLabel = graph.vertexLabelOrNone(edgeLabel.targetLabel());
-
         Id otherId = this.readId(otherVertexId);
-        boolean isOutEdge = direction == Directions.OUT;
-        HugeVertex otherVertex;
-        if (isOutEdge) {
-            vertex.vertexLabel(srcLabel);
-            otherVertex = new HugeVertex(graph, otherId, tgtLabel);
-        } else {
-            vertex.vertexLabel(tgtLabel);
-            otherVertex = new HugeVertex(graph, otherId, srcLabel);
-        }
 
-        HugeEdge edge = new HugeEdge(graph, null, edgeLabel);
-        edge.name(sortValues);
-        edge.vertices(isOutEdge, vertex, otherVertex);
-        edge.assignId();
-
-        if (isOutEdge) {
-            vertex.addOutEdge(edge);
-            otherVertex.addInEdge(edge.switchOwner());
-        } else {
-            vertex.addInEdge(edge);
-            otherVertex.addOutEdge(edge.switchOwner());
-        }
-
-        vertex.propNotLoaded();
-        otherVertex.propNotLoaded();
+        // Construct edge
+        HugeEdge edge = HugeEdge.constructEdge(vertex, direction, edgeLabel,
+                                               sortValues, otherId);
 
         // Parse edge properties
         this.parseProperties(edge, row);

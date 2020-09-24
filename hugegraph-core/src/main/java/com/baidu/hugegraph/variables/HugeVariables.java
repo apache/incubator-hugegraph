@@ -335,7 +335,7 @@ public class HugeVariables implements Graph.Variables {
         VertexLabel vl = this.graph.vertexLabel(Hidden.hide(VARIABLES));
         GraphTransaction tx = this.params.graphTransaction();
 
-        HugeVertex vertex = new HugeVertex(tx, null, vl);
+        HugeVertex vertex = HugeVertex.create(tx, null, vl);
         try {
             this.setProperty(vertex, key, value);
         } catch (IllegalArgumentException e) {

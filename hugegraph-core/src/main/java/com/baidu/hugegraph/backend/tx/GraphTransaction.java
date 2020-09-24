@@ -607,7 +607,7 @@ public class GraphTransaction extends IndexableTransaction {
         this.checkId(id, keys, vertexLabel);
 
         // Create HugeVertex
-        HugeVertex vertex = new HugeVertex(this, null, vertexLabel);
+        HugeVertex vertex = HugeVertex.create(this, null, vertexLabel);
 
         // Set properties
         ElementHelper.attachProperties(vertex, keyValues);
