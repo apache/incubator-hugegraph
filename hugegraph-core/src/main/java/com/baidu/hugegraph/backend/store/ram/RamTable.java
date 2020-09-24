@@ -202,7 +202,7 @@ public final class RamTable {
                                         "supported by %s backend",
                                         this.graph.backend());
             }
-            checkIsNumberId(vertex);
+            ensureNumberId(vertex);
             lastId = vertex;
 
             adjEdges = this.graph.adjacentEdges(vertex);
@@ -223,8 +223,8 @@ public final class RamTable {
                                     "supported by ramtable, but got '%s'",
                                     edge.schemaLabel());
         }
-        checkIsNumberId(edge.id().ownerVertexId());
-        checkIsNumberId(edge.id().otherVertexId());
+        ensureNumberId(edge.id().ownerVertexId());
+        ensureNumberId(edge.id().otherVertexId());
 
         this.addEdge(newVertex,
                      edge.id().ownerVertexId().asLong(),
@@ -356,7 +356,7 @@ public final class RamTable {
         }
     }
 
-    private static void checkIsNumberId(Id id) {
+    private static void ensureNumberId(Id id) {
         if (!id.number()) {
             throw new HugeException("Only number id is supported by " +
                                     "ramtable, but got %s id '%s'",
