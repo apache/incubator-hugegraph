@@ -287,7 +287,6 @@ public class RaftNode {
                     LOG.debug("StoreCommandResponse status error");
                     Status status = new Status(RaftError.UNKNOWN,
                                                "fowared request failed");
-                    System.out.println("失败的请求：" + request);
                     closure.failure(status, new BackendException(
                                     "Current node isn't leader, leader is " +
                                     "[%s], failed to forward request to " +

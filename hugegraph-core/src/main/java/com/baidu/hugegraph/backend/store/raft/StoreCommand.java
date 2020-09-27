@@ -19,10 +19,13 @@
 
 package com.baidu.hugegraph.backend.store.raft;
 
+import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreAction;
 import com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreType;
 
 public class StoreCommand {
+
+    public static final int HEADER_SIZE = 2;
 
     private final StoreType type;
     private final StoreAction action;
@@ -51,6 +54,11 @@ public class StoreCommand {
 
     public byte[] data() {
         return this.data;
+    }
+
+    public static void writeHeader(BytesBuffer buffer) {
+        buffer.write((byte) 0);
+        buffer.write((byte) 0);
     }
 
     public static byte[] wrap(byte value) {

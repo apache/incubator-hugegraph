@@ -141,7 +141,7 @@ public final class RaftSharedContext {
     }
 
     public void addStore(StoreType type, RaftBackendStore store) {
-        this.stores[type.ordinal()] = store;
+        this.stores[type.getNumber()] = store;
     }
 
     public StoreType storeType(String store) {
