@@ -35,9 +35,9 @@ public class StoreCommand {
         this.type = type;
         this.action = action;
         if (data == null) {
-            this.data = new byte[2];
+            this.data = new byte[HEADER_SIZE];
         } else {
-            assert data.length >= 2;
+            assert data.length >= HEADER_SIZE;
             this.data = data;
         }
         this.data[0] = (byte) this.type.getNumber();
@@ -62,7 +62,7 @@ public class StoreCommand {
     }
 
     public static byte[] wrap(byte value) {
-        byte[] bytes = new byte[3];
+        byte[] bytes = new byte[HEADER_SIZE + 1];
         bytes[2] = value;
         return bytes;
     }

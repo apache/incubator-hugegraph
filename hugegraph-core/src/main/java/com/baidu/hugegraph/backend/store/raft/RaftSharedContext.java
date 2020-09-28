@@ -54,6 +54,7 @@ import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.GraphMode;
+import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Events;
 import com.baidu.hugegraph.util.Log;
 
@@ -156,7 +157,10 @@ public final class RaftSharedContext {
     }
 
     public BackendStore originStore(StoreType storeType) {
-        return this.stores[storeType.getNumber()].originStore();
+        RaftBackendStore raftStore = this.stores[storeType.getNumber()];
+        E.checkState(raftStore != null,
+                     "The raft store type %s shouldn't be null");
+        return raftStore.originStore();
     }
 
     public Collection<BackendStore> originStores() {
