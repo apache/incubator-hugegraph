@@ -97,7 +97,6 @@ public class RebuildIndexCallable extends SchemaCallable {
         LockUtil.Locks locks = new LockUtil.Locks(schemaTx.graphName());
         try {
             locks.lockWrites(LockUtil.INDEX_LABEL_REBUILD, indexLabelIds);
-            locks.lockWrites(LockUtil.INDEX_LABEL_DELETE, indexLabelIds);
 
             Set<IndexLabel> ils = indexLabelIds.stream()
                                                .map(this.graph()::indexLabel)
@@ -155,7 +154,13 @@ public class RebuildIndexCallable extends SchemaCallable {
                  */
                 continue;
             }
-            graphTx.removeIndex(il);
+            LockUtil.Locks locks = new LockUtil.Locks(schemaTx.graphName());
+            try {
+                locks.lockWrites(LockUtil.INDEX_LABEL_DELETE, indexLabelIds);
+                graphTx.removeIndex(il);
+            } finally {
+                locks.unlock();
+            }
         }
     }
 
