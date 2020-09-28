@@ -551,6 +551,26 @@ public class HugeTraverser {
         return new MultivaluedHashMap<>();
     }
 
+    protected static List<Id> joinPath(Node pre, Node back, boolean ring) {
+        // Get self path
+        List<Id> path = pre.path();
+
+        // Get reversed other path
+        List<Id> backPath = back.path();
+        Collections.reverse(backPath);
+
+        if (!ring) {
+            // Avoid loop in path
+            if (CollectionUtils.containsAny(path, backPath)) {
+                return ImmutableList.of();
+            }
+        }
+
+        // Append other path behind self path
+        path.addAll(backPath);
+        return path;
+    }
+
     public static class Node {
 
         private Id id;
@@ -586,21 +606,7 @@ public class HugeTraverser {
         }
 
         public List<Id> joinPath(Node back) {
-            // Get self path
-            List<Id> path = this.path();
-
-            // Get reversed other path
-            List<Id> backPath = back.path();
-            Collections.reverse(backPath);
-
-            // Avoid loop in path
-            if (CollectionUtils.containsAny(path, backPath)) {
-                return ImmutableList.of();
-            }
-
-            // Append other path behind self path
-            path.addAll(backPath);
-            return path;
+            return HugeTraverser.joinPath(this, back, false);
         }
 
         public boolean contains(Id id) {
