@@ -40,8 +40,6 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 import java.util.UUID;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
 
 import org.mindrot.jbcrypt.BCrypt;
 
@@ -58,6 +56,7 @@ public final class StringEncoding {
 
     private static final MessageDigest DIGEST;
     private static final byte[] BYTES_EMPTY = new byte[0];
+    private static final int BLOCK_SIZE = 4096;
 
     static {
         final String ALG = "SHA-256";
@@ -142,12 +141,10 @@ public final class StringEncoding {
 
     public static byte[] compress(String value) {
         final int outputSize = Math.max(32, value.length() / 8);
-        final int gzipBufSize = 4 * (int) Bytes.KB;
-        try (ByteArrayOutputStream bos = new ByteArrayOutputStream(outputSize);
-             GZIPOutputStream out = new GZIPOutputStream(bos, gzipBufSize)) {
+        try (ByteArrayOutputStream bos = new ByteArrayOutputStream(outputSize)) {
             byte[] bytes = encode(value);
-            out.write(bytes);
-            out.finish();
+            bytes = LZ4Util.compress(bytes, BLOCK_SIZE).array();
+            bos.write(bytes);
             return bos.toByteArray();
         } catch (IOException e) {
             throw new BackendException("Failed to compress: %s", e, value);
@@ -156,14 +153,13 @@ public final class StringEncoding {
 
     public static String decompress(byte[] value) {
         BytesBuffer buf = BytesBuffer.allocate(value.length * 2);
-        try (ByteArrayInputStream bis = new ByteArrayInputStream(value);
-             GZIPInputStream in = new GZIPInputStream(bis)) {
+        try (ByteArrayInputStream bis = new ByteArrayInputStream(value)) {
             byte[] bytes = new byte[value.length];
             int len;
-            while ((len = in.read(bytes)) > 0) {
+            while ((len = bis.read(bytes)) > 0) {
                 buf.write(bytes, 0, len);
             }
-            return decode(buf.bytes());
+            return decode(LZ4Util.decompress(buf.bytes(), BLOCK_SIZE).array());
         } catch (IOException e) {
             throw new BackendException("Failed to decompress: %s", e, value);
         }
