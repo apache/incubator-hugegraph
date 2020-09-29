@@ -144,13 +144,13 @@ public final class StringEncoding {
     }
 
     public static byte[] compress(String value) {
-        BytesBuffer bf = LZ4Util.compress(encode(value), BLOCK_SIZE);
-        return bf.bytes();
+        BytesBuffer buf = LZ4Util.compress(encode(value), BLOCK_SIZE);
+        return buf.bytes();
     }
 
     public static String decompress(byte[] value) {
-        BytesBuffer bf = LZ4Util.decompress(value, BLOCK_SIZE);
-        return decode(bf.array(), 0, bf.position());
+        BytesBuffer buf = LZ4Util.decompress(value, BLOCK_SIZE);
+        return decode(buf.array(), 0, buf.position());
     }
 
     public static String hashPassword(String password) {

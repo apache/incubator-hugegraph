@@ -232,7 +232,7 @@ public class OffheapCache extends AbstractCache<Id, Object> {
 
         private void serialize(Object element, BytesBuffer buffer) {
             ValueType type = ValueType.valueOf(element);
-            buffer.writeByte(type.code());
+            buffer.write(type.code());
             switch (type) {
                 case LIST:
                     @SuppressWarnings("unchecked")

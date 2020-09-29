@@ -36,35 +36,35 @@ public class LZ4Util {
     public static BytesBuffer compress(byte[] bytes, int blockSize) {
         LZ4Factory factory = LZ4Factory.fastestInstance();
         LZ4Compressor compressor = factory.fastCompressor();
-        BytesBuffer bf = new BytesBuffer(bytes.length / 8);
+        BytesBuffer buf = new BytesBuffer(bytes.length / 8);
         LZ4BlockOutputStream lz4Output = new LZ4BlockOutputStream(
-                                         bf, blockSize, compressor);
+                                         buf, blockSize, compressor);
         try {
             lz4Output.write(bytes);
             lz4Output.close();
         } catch (IOException e) {
             throw new BackendException("Failed to compress", e);
         }
-        return bf;
+        return buf;
     }
 
     public static BytesBuffer decompress(byte[] bytes, int blockSize) {
         LZ4Factory factory = LZ4Factory.fastestInstance();
         LZ4FastDecompressor decompressor = factory.fastDecompressor();
         ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
-        BytesBuffer bf = new BytesBuffer(bytes.length * 8);
+        BytesBuffer buf = new BytesBuffer(bytes.length * 8);
         LZ4BlockInputStream lzInput = new LZ4BlockInputStream(bais,
                                                               decompressor);
         int count;
         byte[] buffer = new byte[blockSize];
         try {
             while ((count = lzInput.read(buffer)) != -1) {
-                bf.write(buffer, 0, count);
+                buf.write(buffer, 0, count);
             }
             lzInput.close();
         } catch (IOException e) {
             throw new BackendException("Failed to decompress", e);
         }
-        return bf;
+        return buf;
     }
 }
