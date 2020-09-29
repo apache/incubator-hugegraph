@@ -159,7 +159,7 @@ public final class RaftSharedContext {
     public BackendStore originStore(StoreType storeType) {
         RaftBackendStore raftStore = this.stores[storeType.getNumber()];
         E.checkState(raftStore != null,
-                     "The raft store type %s shouldn't be null");
+                     "The raft store of type %s shouldn't be null", storeType);
         return raftStore.originStore();
     }
 
