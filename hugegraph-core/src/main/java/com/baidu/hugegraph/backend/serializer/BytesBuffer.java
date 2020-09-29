@@ -181,17 +181,20 @@ public final class BytesBuffer extends OutputStream {
         return this;
     }
 
+    @Override
     public void write(int val) {
         assert val <= UINT8_MAX;
         require(BYTE_LEN);
         this.buffer.put((byte) val);
     }
 
+    @Override
     public void write(byte[] val) {
         require(BYTE_LEN * val.length);
         this.buffer.put(val);
     }
 
+    @Override
     public void write(byte[] val, int offset, int length) {
         require(BYTE_LEN * length);
         this.buffer.put(val, offset, length);

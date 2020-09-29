@@ -36,7 +36,7 @@ public class LZ4Util {
     public static BytesBuffer compress(byte[] bytes, int blockSize) {
         LZ4Factory factory = LZ4Factory.fastestInstance();
         LZ4Compressor compressor = factory.fastCompressor();
-        BytesBuffer buf = new BytesBuffer(bytes.length / 8);
+        BytesBuffer buf = new BytesBuffer(bytes.length);
         LZ4BlockOutputStream lz4Output = new LZ4BlockOutputStream(
                                          buf, blockSize, compressor);
         try {
