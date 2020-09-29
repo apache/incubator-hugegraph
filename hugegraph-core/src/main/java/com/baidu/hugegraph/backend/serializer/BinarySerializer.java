@@ -141,7 +141,7 @@ public class BinarySerializer extends AbstractSerializer {
         BytesBuffer buffer = BytesBuffer.allocate(idLen + 1 + 1);
         byte sysprop = HugeType.SYS_PROPERTY.code();
         if (this.keyWithIdPrefix) {
-            buffer.write(id.asBytes());
+            buffer.writeByteArray(id.asBytes());
         }
         return buffer.write(sysprop).write(col.code()).bytes();
     }
@@ -747,7 +747,7 @@ public class BinarySerializer extends AbstractSerializer {
         if (index.type().isStringIndex()) {
             byte[] idBytes = IdGenerator.of(id.asString()).asBytes();
             BytesBuffer buffer = BytesBuffer.allocate(idBytes.length);
-            buffer.write(idBytes);
+            buffer.writeByteArray(idBytes);
             entry.column(buffer.bytes(), null);
         } else {
             assert index.type().isRangeIndex();

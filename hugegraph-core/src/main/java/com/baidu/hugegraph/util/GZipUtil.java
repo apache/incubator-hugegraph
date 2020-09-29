@@ -49,7 +49,7 @@ public final class GZipUtil {
         byte[] buffer = new byte[BUF_SIZE];
         while (!deflater.finished()) {
             int count = deflater.deflate(buffer);
-            output.write(buffer, 0, count);
+            output.writeByteArray(buffer, 0, count);
         }
         output.forReadWritten();
         return output;
@@ -65,7 +65,7 @@ public final class GZipUtil {
         while (!inflater.finished()) {
             try {
                 int count = inflater.inflate(buffer);
-                output.write(buffer, 0, count);
+                output.writeByteArray(buffer, 0, count);
             } catch (DataFormatException e) {
                 throw new BackendException("Failed to decompress", e);
             }

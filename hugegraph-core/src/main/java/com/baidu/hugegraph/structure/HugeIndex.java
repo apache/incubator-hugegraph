@@ -223,7 +223,7 @@ public class HugeIndex implements GraphType, Cloneable {
                              "Field value of range index must be number:" +
                              " %s", fieldValues.getClass().getSimpleName());
                 byte[] bytes = number2bytes((Number) fieldValues);
-                buffer.write(bytes);
+                buffer.writeByteArray(bytes);
             }
             return buffer.asId();
         }

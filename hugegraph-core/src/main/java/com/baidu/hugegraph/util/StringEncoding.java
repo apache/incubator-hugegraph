@@ -41,6 +41,7 @@ import java.util.UUID;
 import org.mindrot.jbcrypt.BCrypt;
 
 import com.baidu.hugegraph.HugeException;
+import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.google.common.base.CharMatcher;
 
 /**
@@ -123,6 +124,14 @@ public final class StringEncoding {
         }
     }
 
+    public static String decode(byte[] bytes, int offset, int length) {
+        try {
+            return new String(bytes, offset, length, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            throw new HugeException("Failed to decode string", e);
+        }
+    }
+
     public static String encodeBase64(byte[] bytes) {
         return BASE64_ENCODER.encodeToString(bytes);
     }
@@ -135,11 +144,13 @@ public final class StringEncoding {
     }
 
     public static byte[] compress(String value) {
-        return LZ4Util.compress(encode(value), BLOCK_SIZE).array();
+        BytesBuffer bf = LZ4Util.compress(encode(value), BLOCK_SIZE);
+        return bf.bytes();
     }
 
     public static String decompress(byte[] value) {
-        return decode(LZ4Util.decompress(value, BLOCK_SIZE).array());
+        BytesBuffer bf = LZ4Util.decompress(value, BLOCK_SIZE);
+        return decode(bf.array(), 0, bf.position());
     }
 
     public static String hashPassword(String password) {

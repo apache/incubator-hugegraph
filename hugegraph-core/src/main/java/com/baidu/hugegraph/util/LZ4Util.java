@@ -20,7 +20,6 @@
 package com.baidu.hugegraph.util;
 
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
 import com.baidu.hugegraph.backend.BackendException;
@@ -37,35 +36,35 @@ public class LZ4Util {
     public static BytesBuffer compress(byte[] bytes, int blockSize) {
         LZ4Factory factory = LZ4Factory.fastestInstance();
         LZ4Compressor compressor = factory.fastCompressor();
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        BytesBuffer bf = new BytesBuffer(bytes.length / 8);
         LZ4BlockOutputStream lz4Output = new LZ4BlockOutputStream(
-                                         baos, blockSize, compressor);
+                                         bf, blockSize, compressor);
         try {
             lz4Output.write(bytes);
             lz4Output.close();
         } catch (IOException e) {
             throw new BackendException("Failed to compress", e);
         }
-        return BytesBuffer.wrap(baos.toByteArray());
+        return bf;
     }
 
     public static BytesBuffer decompress(byte[] bytes, int blockSize) {
         LZ4Factory factory = LZ4Factory.fastestInstance();
-        LZ4FastDecompressor decompresser = factory.fastDecompressor();
+        LZ4FastDecompressor decompressor = factory.fastDecompressor();
         ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
-        ByteArrayOutputStream baos = new ByteArrayOutputStream(blockSize);
+        BytesBuffer bf = new BytesBuffer(bytes.length * 8);
         LZ4BlockInputStream lzInput = new LZ4BlockInputStream(bais,
-                                                              decompresser);
+                                                              decompressor);
         int count;
         byte[] buffer = new byte[blockSize];
         try {
             while ((count = lzInput.read(buffer)) != -1) {
-                baos.write(buffer, 0, count);
+                bf.write(buffer, 0, count);
             }
             lzInput.close();
         } catch (IOException e) {
             throw new BackendException("Failed to decompress", e);
         }
-        return BytesBuffer.wrap(baos.toByteArray());
+        return bf;
     }
 }

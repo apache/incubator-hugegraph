@@ -19,6 +19,8 @@
 
 package com.baidu.hugegraph.backend.serializer;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collection;
@@ -43,7 +45,7 @@ import com.baidu.hugegraph.util.StringEncoding;
 /**
  * class BytesBuffer is a util for read/write binary
  */
-public final class BytesBuffer {
+public final class BytesBuffer extends OutputStream {
 
     public static final int BYTE_LEN = Byte.BYTES;
     public static final int SHORT_LEN = Short.BYTES;
@@ -147,7 +149,7 @@ public final class BytesBuffer {
     }
 
     public BytesBuffer copyFrom(BytesBuffer other) {
-        return this.write(other.bytes());
+        return this.writeByteArray(other.bytes());
     }
 
     public int remaining() {
@@ -179,27 +181,32 @@ public final class BytesBuffer {
         return this;
     }
 
-    public BytesBuffer write(int val) {
+    @Override
+    public void write(int b) throws IOException {
+        this.writeByte(b);
+    }
+
+    public BytesBuffer writeByte(int val) {
         assert val <= UINT8_MAX;
         require(BYTE_LEN);
         this.buffer.put((byte) val);
         return this;
     }
 
-    public BytesBuffer write(byte[] val) {
+    public BytesBuffer writeByteArray(byte[] val) {
         require(BYTE_LEN * val.length);
         this.buffer.put(val);
         return this;
     }
 
-    public BytesBuffer write(byte[] val, int offset, int length) {
+    public BytesBuffer writeByteArray(byte[] val, int offset, int length) {
         require(BYTE_LEN * length);
         this.buffer.put(val, offset, length);
         return this;
     }
 
     public BytesBuffer writeBoolean(boolean val) {
-        return this.write(val ? 1 : 0);
+        return this.writeByte(val ? 1 : 0);
     }
 
     public BytesBuffer writeChar(char val) {
@@ -290,7 +297,7 @@ public final class BytesBuffer {
                         UINT16_MAX, bytes.length);
         require(SHORT_LEN + bytes.length);
         this.writeVInt(bytes.length);
-        this.write(bytes);
+        this.writeByteArray(bytes);
         return this;
     }
 
@@ -307,7 +314,7 @@ public final class BytesBuffer {
                         BLOB_LEN_MAX, bytes.length);
         require(BLOB_LEN + bytes.length);
         this.writeVInt(bytes.length);
-        this.write(bytes);
+        this.writeByteArray(bytes);
         return this;
     }
 
@@ -319,7 +326,7 @@ public final class BytesBuffer {
     }
 
     public BytesBuffer writeStringRaw(String val) {
-        this.write(StringEncoding.encode(val));
+        this.writeByteArray(StringEncoding.encode(val));
         return this;
     }
 
@@ -349,7 +356,7 @@ public final class BytesBuffer {
                                 "Can't contains byte '0x00' in string: '%s'",
                                 value);
             }
-            this.write(bytes);
+            this.writeByteArray(bytes);
         }
         /*
          * Choose 0x00 as ending symbol (see #1057)
@@ -368,7 +375,7 @@ public final class BytesBuffer {
 
     public BytesBuffer writeStringToRemaining(String value) {
         byte[] bytes = StringEncoding.encode(value);
-        this.write(bytes);
+        this.writeByteArray(bytes);
         return this;
     }
 
@@ -380,7 +387,7 @@ public final class BytesBuffer {
 
     public BytesBuffer writeUInt8(int val) {
         assert val <= UINT8_MAX;
-        this.write(val);
+        this.writeByte(val);
         return this;
     }
 
@@ -411,18 +418,18 @@ public final class BytesBuffer {
     public BytesBuffer writeVInt(int value) {
         // NOTE: negative numbers are not compressed
         if (value > 0x0fffffff || value < 0) {
-            this.write(0x80 | ((value >>> 28) & 0x7f));
+            this.writeByte(0x80 | ((value >>> 28) & 0x7f));
         }
         if (value > 0x1fffff || value < 0) {
-            this.write(0x80 | ((value >>> 21) & 0x7f));
+            this.writeByte(0x80 | ((value >>> 21) & 0x7f));
         }
         if (value > 0x3fff || value < 0) {
-            this.write(0x80 | ((value >>> 14) & 0x7f));
+            this.writeByte(0x80 | ((value >>> 14) & 0x7f));
         }
         if (value > 0x7f || value < 0) {
-            this.write(0x80 | ((value >>>  7) & 0x7f));
+            this.writeByte(0x80 | ((value >>>  7) & 0x7f));
         }
-        this.write(value & 0x7f);
+        this.writeByte(value & 0x7f);
 
         return this;
     }
@@ -463,30 +470,30 @@ public final class BytesBuffer {
             this.write((byte) 0x81);
         }
         if (value > 0xffffffffffffffL || value < 0L) {
-            this.write(0x80 | ((int) (value >>> 56) & 0x7f));
+            this.writeByte(0x80 | ((int) (value >>> 56) & 0x7f));
         }
         if (value > 0x1ffffffffffffL || value < 0L) {
-            this.write(0x80 | ((int) (value >>> 49) & 0x7f));
+            this.writeByte(0x80 | ((int) (value >>> 49) & 0x7f));
         }
         if (value > 0x3ffffffffffL || value < 0L) {
-            this.write(0x80 | ((int) (value >>> 42) & 0x7f));
+            this.writeByte(0x80 | ((int) (value >>> 42) & 0x7f));
         }
         if (value > 0x7ffffffffL || value < 0L) {
-            this.write(0x80 | ((int) (value >>> 35) & 0x7f));
+            this.writeByte(0x80 | ((int) (value >>> 35) & 0x7f));
         }
         if (value > 0xfffffffL || value < 0L) {
-            this.write(0x80 | ((int) (value >>> 28) & 0x7f));
+            this.writeByte(0x80 | ((int) (value >>> 28) & 0x7f));
         }
         if (value > 0x1fffffL || value < 0L) {
-            this.write(0x80 | ((int) (value >>> 21) & 0x7f));
+            this.writeByte(0x80 | ((int) (value >>> 21) & 0x7f));
         }
         if (value > 0x3fffL || value < 0L) {
-            this.write(0x80 | ((int) (value >>> 14) & 0x7f));
+            this.writeByte(0x80 | ((int) (value >>> 14) & 0x7f));
         }
         if (value > 0x7fL || value < 0L) {
-            this.write(0x80 | ((int) (value >>>  7) & 0x7f));
+            this.writeByte(0x80 | ((int) (value >>>  7) & 0x7f));
         }
-        this.write((int) value & 0x7f);
+        this.writeByte((int) value & 0x7f);
 
         return this;
     }
@@ -639,7 +646,7 @@ public final class BytesBuffer {
                 byte[] bytes = id.asBytes();
                 assert bytes.length == Id.UUID_LENGTH;
                 this.writeUInt8(0x7f); // 0b01111111 means UUID
-                this.write(bytes);
+                this.writeByteArray(bytes);
                 break;
             case EDGE:
                 // Edge Id
@@ -667,7 +674,7 @@ public final class BytesBuffer {
                     this.writeUInt8(high | 0x80);
                     this.writeUInt8(low);
                 }
-                this.write(bytes);
+                this.writeByteArray(bytes);
                 break;
         }
         return this;
@@ -730,7 +737,7 @@ public final class BytesBuffer {
         int len = bytes.length;
         E.checkArgument(len > 0, "Can't write empty id");
 
-        this.write(bytes);
+        this.writeByteArray(bytes);
         if (type.isStringIndex()) {
             if (Bytes.contains(bytes, STRING_ENDING_BYTE)) {
                 // Not allow STRING_ENDING_BYTE exist in string index id
