@@ -149,7 +149,7 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
         schemaEventHub.unlisten(Events.CACHE, this.cacheEventListener);
     }
 
-    private void resetCachedAllIfReachedCapacity() {
+    private final void resetCachedAllIfReachedCapacity() {
         if (this.idCache.size() >= this.idCache.capacity()) {
             LOG.warn("Schema cache reached capacity({}): {}",
                      this.idCache.capacity(), this.idCache.size());
@@ -157,7 +157,7 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
         }
     }
 
-    private CachedTypes cachedTypes() {
+    private final CachedTypes cachedTypes() {
         return this.arrayCaches.cachedTypes();
     }
 
@@ -184,6 +184,9 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
         // update name cache
         Id prefixedName = generateId(schema.type(), schema.name());
         this.nameCache.update(prefixedName, schema);
+
+        // update optimized array cache
+        this.arrayCaches.updateIfNeeded(schema);
     }
 
     @Override
@@ -213,9 +216,7 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
         }
 
         // update optimized array cache
-        if (value != null && id.number() && id.asLong() > 0) {
-            this.arrayCaches.set(type, id, (SchemaElement) value);
-        }
+        this.arrayCaches.updateIfNeeded((SchemaElement) value);
 
         return (T) value;
     }
@@ -312,6 +313,16 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
             this.ils = new IntObjectMap<>(size);
 
             this.cachedTypes = new CachedTypes();
+        }
+
+        public void updateIfNeeded(V schema) {
+            if (schema == null) {
+                return;
+            }
+            Id id = schema.id();
+            if (id.number() && id.asLong() > 0) {
+                this.set(schema.type(), id, schema);
+            }
         }
 
         public V get(HugeType type, Id id) {
