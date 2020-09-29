@@ -32,9 +32,6 @@
 
 package com.baidu.hugegraph.util;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -44,8 +41,6 @@ import java.util.UUID;
 import org.mindrot.jbcrypt.BCrypt;
 
 import com.baidu.hugegraph.HugeException;
-import com.baidu.hugegraph.backend.BackendException;
-import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.google.common.base.CharMatcher;
 
 /**
@@ -140,29 +135,11 @@ public final class StringEncoding {
     }
 
     public static byte[] compress(String value) {
-        final int outputSize = Math.max(32, value.length() / 8);
-        try (ByteArrayOutputStream bos = new ByteArrayOutputStream(outputSize)) {
-            byte[] bytes = encode(value);
-            bytes = LZ4Util.compress(bytes, BLOCK_SIZE).array();
-            bos.write(bytes);
-            return bos.toByteArray();
-        } catch (IOException e) {
-            throw new BackendException("Failed to compress: %s", e, value);
-        }
+        return LZ4Util.compress(encode(value), BLOCK_SIZE).array();
     }
 
     public static String decompress(byte[] value) {
-        BytesBuffer buf = BytesBuffer.allocate(value.length * 2);
-        try (ByteArrayInputStream bis = new ByteArrayInputStream(value)) {
-            byte[] bytes = new byte[value.length];
-            int len;
-            while ((len = bis.read(bytes)) > 0) {
-                buf.write(bytes, 0, len);
-            }
-            return decode(LZ4Util.decompress(buf.bytes(), BLOCK_SIZE).array());
-        } catch (IOException e) {
-            throw new BackendException("Failed to decompress: %s", e, value);
-        }
+        return decode(LZ4Util.decompress(value, BLOCK_SIZE).array());
     }
 
     public static String hashPassword(String password) {
