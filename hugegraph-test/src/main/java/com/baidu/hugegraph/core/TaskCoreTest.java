@@ -421,11 +421,11 @@ public class TaskCoreTest extends BaseCoreTest {
         });
 
         // Test failure task with big input
-        int length = 16 * 1024 * 1024;
+        int length = 8 * 1024 * 1024;
         Random random = new Random();
         StringBuilder sb = new StringBuilder(length);
         for (int i = 0; i < length; i++) {
-            sb.append(random.nextInt(1000));
+            sb.append("node:").append(random.nextInt(1000));
         }
         String bigInput = sb.toString();
         Assert.assertThrows(HugeException.class, () -> {
@@ -480,11 +480,14 @@ public class TaskCoreTest extends BaseCoreTest {
 
         // Cancel failure task with big results (task exceeded limit 16M)
         String bigResults = "def random = new Random(); def rs=[];" +
-                            "for (i in 0..20) {" +
+                            "for (i in 0..4) {" +
                             "  def len = 1024 * 1024;" +
                             "  def item = new StringBuilder(len);" +
-                            "  for (j in 0..len)" +
-                            "    item.append((char) random.nextInt(256));" +
+                            "  for (j in 0..len) { " +
+                            "    item.append(\"node:\"); " +
+                            "    item.append((char) random.nextInt(256)); " +
+                            "    item.append(\",\"); " +
+                            "  };" +
                             "  rs.add(item);" +
                             "};" +
                             "rs;";
