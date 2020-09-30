@@ -33,12 +33,13 @@ import net.jpountz.lz4.LZ4FastDecompressor;
 
 public class LZ4Util {
 
-    private static final int BUF_RATIO = 2;
+    private static final float BUF_RATIO = 1.5f;
 
     public static BytesBuffer compress(byte[] bytes, int blockSize) {
         LZ4Factory factory = LZ4Factory.fastestInstance();
         LZ4Compressor compressor = factory.fastCompressor();
-        BytesBuffer buf = new BytesBuffer(bytes.length / BUF_RATIO);
+        int initBufferSize = Math.round(bytes.length / BUF_RATIO);
+        BytesBuffer buf = new BytesBuffer(initBufferSize);
         LZ4BlockOutputStream lz4Output = new LZ4BlockOutputStream(
                                          buf, blockSize, compressor);
         try {
@@ -54,7 +55,8 @@ public class LZ4Util {
         LZ4Factory factory = LZ4Factory.fastestInstance();
         LZ4FastDecompressor decompressor = factory.fastDecompressor();
         ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
-        BytesBuffer buf = new BytesBuffer(bytes.length * BUF_RATIO);
+        int initBufferSize = Math.round(bytes.length * BUF_RATIO);
+        BytesBuffer buf = new BytesBuffer(initBufferSize);
         LZ4BlockInputStream lzInput = new LZ4BlockInputStream(bais,
                                                               decompressor);
         int count;
