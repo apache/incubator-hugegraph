@@ -38,6 +38,7 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.SecurityContext;
 
 import org.slf4j.Logger;
@@ -109,21 +110,22 @@ public class GraphsAPI extends API {
     @PUT
     @Timed
     @Path("{name}")
+    @Consumes(MediaType.TEXT_PLAIN)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin", "$owner=$name"})
     public Object manage(@Context GraphManager manager,
                          @PathParam("name") String name,
                          @QueryParam("action") String action,
+                         @QueryParam("new_graph_name") String newName,
                          @QueryParam("confirm_message") String message,
-                         JsonGraphParams params) {
+                         String configText) {
         E.checkArgument(GRAPH_ACTION_CLONE.equals(action) ||
                         GRAPH_ACTION_DROP.equals(action),
                         "Not support action '%s'", action);
         if (GRAPH_ACTION_CLONE.equals(action)) {
             LOG.debug("Create graph {} with copied config from '{}'",
-                      params.name, name);
-            HugeGraph graph = manager.cloneGraph(name, params.name,
-                                                 params.options);
+                      newName, name);
+            HugeGraph graph = manager.cloneGraph(name, newName, configText);
             return ImmutableMap.of("name", graph.name(),
                                    "backend", graph.backend());
         } else {
@@ -137,13 +139,15 @@ public class GraphsAPI extends API {
 
     @POST
     @Timed
+    @Path("{name}")
+    @Consumes(MediaType.TEXT_PLAIN)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin"})
     public Object create(@Context GraphManager manager,
-                         JsonGraphParams params) {
-        LOG.debug("Create graph {} with config options '{}'",
-                  params.name, params.options);
-        HugeGraph graph = manager.createGraph(params.name, params.options);
+                         @PathParam("name") String name,
+                         String configText) {
+        LOG.debug("Create graph {} with config options '{}'", name, configText);
+        HugeGraph graph = manager.createGraph(name, configText);
         return ImmutableMap.of("name", graph.name(), "backend", graph.backend());
     }
 

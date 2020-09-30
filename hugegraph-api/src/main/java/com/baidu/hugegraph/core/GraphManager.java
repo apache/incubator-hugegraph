@@ -19,6 +19,8 @@
 
 package com.baidu.hugegraph.core;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
@@ -27,7 +29,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.commons.configuration.MapConfiguration;
+import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.tinkerpop.gremlin.server.auth.AuthenticationException;
 import org.apache.tinkerpop.gremlin.server.util.MetricManager;
 import org.apache.tinkerpop.gremlin.structure.Graph;
@@ -38,6 +40,7 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.auth.AuthManager;
+import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.auth.HugeAuthenticator;
 import com.baidu.hugegraph.auth.HugeFactoryAuthProxy;
 import com.baidu.hugegraph.auth.HugeGraphAuthProxy;
@@ -49,6 +52,7 @@ import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
+import com.baidu.hugegraph.config.TypedOption;
 import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.license.LicenseVerifier;
@@ -119,7 +123,7 @@ public final class GraphManager {
     }
 
     public HugeGraph cloneGraph(String name, String newName,
-                                Map<String, String> options) {
+                                String configText) {
         /*
          * 0. check and modify params
          * 1. create graph instance
@@ -132,40 +136,59 @@ public final class GraphManager {
         E.checkArgumentNotNull(newName, "The graph name can't be null");
         E.checkArgument(!this.graphs().contains(newName),
                         "The graph '%s' has existed", newName);
+        PropertiesConfiguration propConfig = this.buildConfig(configText);
+
         HugeConfig config = (HugeConfig) g.configuration();
         HugeConfig cloneConfig = (HugeConfig) config.clone();
         cloneConfig.setDelimiterParsingDisabled(true);
-        cloneConfig.setProperty(CoreOptions.STORE.name(), newName);
-        for (Map.Entry<String, String> entry : options.entrySet()) {
-            cloneConfig.setProperty(entry.getKey(), entry.getValue());
-        }
+        // Use the passed config to overwrite the old one
+        propConfig.getKeys().forEachRemaining(key -> {
+            cloneConfig.setProperty(key, propConfig.getProperty(key));
+        });
+        this.checkOptions(cloneConfig);
         return this.createGraph(cloneConfig);
     }
 
-    public HugeGraph createGraph(String name, Map<String, String> options) {
+    public HugeGraph createGraph(String name, String configText) {
         E.checkArgumentNotNull(name, "The graph name can't be null");
         E.checkArgument(!this.graphs().contains(name),
                         "The graph name '%s' has existed", name);
-        E.checkArgument(options != null && !options.isEmpty(),
-                        "The options of graph can't be null or empty");
 
-        MapConfiguration mapConfig = new MapConfiguration(options);
-        HugeConfig config = new HugeConfig(mapConfig);
-        config.setProperty(CoreOptions.STORE.name(), name);
+        PropertiesConfiguration propConfig = this.buildConfig(configText);
+        HugeConfig config = new HugeConfig(propConfig);
+        this.checkOptions(config);
         return this.createGraph(config);
     }
 
+    private PropertiesConfiguration buildConfig(String configText) {
+        PropertiesConfiguration propConfig = new PropertiesConfiguration();
+        try {
+            InputStream in = new ByteArrayInputStream(configText.getBytes(
+                                                      API.CHARSET));
+            propConfig.setDelimiterParsingDisabled(true);
+            propConfig.load(in);
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to read config options", e);
+        }
+        return propConfig;
+    }
+
     private HugeGraph createGraph(HugeConfig config) {
+        // open succeed will fill graph instance into HugeFactory graphs(map)
         HugeGraph graph = (HugeGraph) GraphFactory.open(config);
         if (this.requireAuthentication()) {
             if (graph instanceof HugeGraphAuthProxy) {
                 HugeGraphAuthProxy proxy = (HugeGraphAuthProxy) graph;
-                // TODO：verfiyPermission is private，how to
+                // TODO：verfiyPermission is private
                 // proxy.verifyPermission(HugePermission.WRITE, ResourceType.STATUS);
             }
         }
-        graph.initBackend();
-        graph.tx().close();
+        try {
+            graph.initBackend();
+        } catch (BackendException e) {
+            HugeFactory.remove(graph);
+            throw e;
+        }
         // Inject into gremlin server context
         this.eventHub.call(Events.GRAPH_CREATE, graph);
         // Inject into rest server context
@@ -173,6 +196,17 @@ public final class GraphManager {
         // Write config to disk file
         ConfigUtil.writeToFile(this.graphsDir, graph.name(), config);
         return graph;
+    }
+
+    private void checkOptions(HugeConfig config) {
+        // The store cannot be the same as the existing graph
+        this.checkOptionsUnique(config, CoreOptions.STORE);
+        // NOTE: rocksdb can't use same data path for different graph,
+        // but it's not easy to check here
+        String backend = config.get(CoreOptions.BACKEND);
+        if (backend.equalsIgnoreCase("rocksdb")) {
+            // TODO: should check data path...
+        }
     }
 
     public void dropGraph(String name) {
@@ -424,6 +458,19 @@ public final class GraphManager {
         MetricsUtil.registerGauge(TaskManager.class, "pending-tasks", () -> {
             return TaskManager.instance().pendingTasks();
         });
+    }
+
+    private void checkOptionsUnique(HugeConfig config,
+                                    TypedOption<?, ?> option) {
+        Object incomingValue = config.get(option);
+        for (String graphName : this.graphs.keySet()) {
+            HugeGraph graph = this.graph(graphName);
+            HugeConfig oldConfig = (HugeConfig) graph.configuration();
+            Object existedValue = oldConfig.get(option);
+            E.checkArgument(!incomingValue.equals(existedValue),
+                            "The option '%s' conflict with existed",
+                            option.name());
+        }
     }
 
     private static void registerCacheMetrics(Map<String, Cache<?, ?>> caches) {
