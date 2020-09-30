@@ -36,6 +36,9 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
@@ -57,9 +60,9 @@ import com.baidu.hugegraph.backend.store.rocksdb.RocksDBSessions.Session;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.exception.ConnectionException;
 import com.baidu.hugegraph.type.HugeType;
-import com.baidu.hugegraph.util.GZipUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.ExecutorUtil;
+import com.baidu.hugegraph.util.GZipUtil;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.Log;
 import com.google.common.collect.ImmutableList;
@@ -78,6 +81,8 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
 
     private RocksDBSessions sessions;
     private final Map<HugeType, String> tableDiskMapping;
+
+    private final ReadWriteLock lock;
 
     private static final String DB_OPEN = "db-open-%s";
     private static final long OPEN_TIMEOUT = 600L;
@@ -104,6 +109,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         this.store = store;
         this.sessions = null;
         this.tableDiskMapping = new HashMap<>();
+        this.lock = new ReentrantReadWriteLock();
 
         this.registerMetaHandlers();
     }
@@ -344,18 +350,24 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
 
     @Override
     public void mutate(BackendMutation mutation) {
-        this.checkOpened();
+        Lock readLock = this.lock.readLock();
+        readLock.lock();
+        try {
+            this.checkOpened();
 
-        if (LOG.isDebugEnabled()) {
-            LOG.debug("Store {} mutation: {}", this.store, mutation);
-        }
-
-        for (HugeType type : mutation.types()) {
-            Session session = this.session(type);
-            for (Iterator<BackendAction> it = mutation.mutation(type);
-                 it.hasNext();) {
-                this.mutate(session, it.next());
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Store {} mutation: {}", this.store, mutation);
             }
+
+            for (HugeType type : mutation.types()) {
+                Session session = this.session(type);
+                for (Iterator<BackendAction> it = mutation.mutation(type);
+                     it.hasNext(); ) {
+                    this.mutate(session, it.next());
+                }
+            }
+        } finally {
+            readLock.unlock();
         }
     }
 
@@ -384,37 +396,55 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
 
     @Override
     public Iterator<BackendEntry> query(Query query) {
-        this.checkOpened();
+        Lock readLock = this.lock.readLock();
+        readLock.lock();
+        try {
+            this.checkOpened();
 
-        HugeType tableType = RocksDBTable.tableType(query);
-        RocksDBTable table = this.table(tableType);
-        return table.query(this.session(tableType), query);
+            HugeType tableType = RocksDBTable.tableType(query);
+            RocksDBTable table = this.table(tableType);
+            return table.query(this.session(tableType), query);
+        } finally {
+            readLock.unlock();
+        }
     }
 
     @Override
     public Number queryNumber(Query query) {
-        this.checkOpened();
+        Lock readLock = this.lock.readLock();
+        readLock.lock();
+        try {
+            this.checkOpened();
 
-        HugeType tableType = RocksDBTable.tableType(query);
-        RocksDBTable table = this.table(tableType);
-        return table.queryNumber(this.session(tableType), query);
+            HugeType tableType = RocksDBTable.tableType(query);
+            RocksDBTable table = this.table(tableType);
+            return table.queryNumber(this.session(tableType), query);
+        } finally {
+            readLock.unlock();
+        }
     }
 
     @Override
     public synchronized void init() {
-        this.checkDbOpened();
+        Lock writeLock = this.lock.writeLock();
+        writeLock.lock();
+        try {
+            this.checkDbOpened();
 
-        // Create tables with main disk
-        this.createTable(this.sessions,
-                         this.tableNames().toArray(new String[0]));
+            // Create tables with main disk
+            this.createTable(this.sessions,
+                             this.tableNames().toArray(new String[0]));
 
-        // Create table with optimized disk
-        Map<String, RocksDBSessions> tableDBMap = this.tableDBMapping();
-        for (Map.Entry<String, RocksDBSessions> e : tableDBMap.entrySet()) {
-            this.createTable(e.getValue(), e.getKey());
+            // Create table with optimized disk
+            Map<String, RocksDBSessions> tableDBMap = this.tableDBMapping();
+            for (Map.Entry<String, RocksDBSessions> e : tableDBMap.entrySet()) {
+                this.createTable(e.getValue(), e.getKey());
+            }
+
+            LOG.debug("Store initialized: {}", this.store);
+        } finally {
+            writeLock.unlock();
         }
-
-        LOG.debug("Store initialized: {}", this.store);
     }
 
     private void createTable(RocksDBSessions db, String... tables) {
@@ -428,18 +458,25 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
 
     @Override
     public synchronized void clear(boolean clearSpace) {
-        this.checkDbOpened();
+        Lock writeLock = this.lock.writeLock();
+        writeLock.lock();
+        try {
+            this.checkDbOpened();
 
-        // Drop tables with main disk
-        this.dropTable(this.sessions, this.tableNames().toArray(new String[0]));
+            // Drop tables with main disk
+            this.dropTable(this.sessions,
+                           this.tableNames().toArray(new String[0]));
 
-        // Drop tables with optimized disk
-        Map<String, RocksDBSessions> tableDBMap = this.tableDBMapping();
-        for (Map.Entry<String, RocksDBSessions> e : tableDBMap.entrySet()) {
-            this.dropTable(e.getValue(), e.getKey());
+            // Drop tables with optimized disk
+            Map<String, RocksDBSessions> tableDBMap = this.tableDBMapping();
+            for (Map.Entry<String, RocksDBSessions> e : tableDBMap.entrySet()) {
+                this.dropTable(e.getValue(), e.getKey());
+            }
+
+            LOG.debug("Store cleared: {}", this.store);
+        } finally {
+            writeLock.unlock();
         }
-
-        LOG.debug("Store cleared: {}", this.store);
     }
 
     private void dropTable(RocksDBSessions db, String... tables) {
@@ -473,41 +510,76 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
 
     @Override
     public synchronized void truncate() {
-        this.checkOpened();
+        Lock writeLock = this.lock.writeLock();
+        writeLock.lock();
+        try {
+            this.checkOpened();
 
-        this.clear(false);
-        this.init();
+            this.clear(false);
+            this.init();
+            // clear write batch
+            dbs.values().forEach(s -> {
+                s.forceResetSessions();
+                RocksDBStdSessions sessions = (RocksDBStdSessions) s;
+                try {
+                    sessions.reload();
+                } catch (RocksDBException e) {
+                    throw new BackendException(
+                              "Failed to reload RocksDBStdSessions", e);
+                }
+            });
 
-        LOG.debug("Store truncated: {}", this.store);
+            LOG.debug("Store truncated: {}", this.store);
+        } finally {
+            writeLock.unlock();
+        }
     }
 
     @Override
     public void beginTx() {
-        this.checkOpened();
+        Lock readLock = this.lock.readLock();
+        readLock.lock();
+        try {
+            this.checkOpened();
 
-        for (Session session : this.session()) {
-            assert !session.hasChanges();
+            for (Session session : this.session()) {
+                assert !session.hasChanges();
+            }
+        } finally {
+            readLock.unlock();
         }
     }
 
     @Override
     public void commitTx() {
-        this.checkOpened();
-        // Unable to guarantee atomicity when committing multi sessions
-        for (Session session : this.session()) {
-            Object count = session.commit();
-            if (LOG.isDebugEnabled()) {
-                LOG.debug("Store {} committed {} items", this.store, count);
+        Lock readLock = this.lock.readLock();
+        readLock.lock();
+        try {
+            this.checkOpened();
+            // Unable to guarantee atomicity when committing multi sessions
+            for (Session session : this.session()) {
+                Object count = session.commit();
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("Store {} committed {} items", this.store, count);
+                }
             }
+        } finally {
+            readLock.unlock();
         }
     }
 
     @Override
     public void rollbackTx() {
-        this.checkOpened();
+        Lock readLock = this.lock.readLock();
+        readLock.lock();
+        try {
+            this.checkOpened();
 
-        for (Session session : this.session()) {
-            session.rollback();
+            for (Session session : this.session()) {
+                session.rollback();
+            }
+        } finally {
+            readLock.unlock();
         }
     }
 
@@ -526,49 +598,61 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
 
     @Override
     public void writeSnapshot(String parentPath) {
-        for (Session session : this.session()) {
-            session.createSnapshot(parentPath);
+        Lock readLock = this.lock.readLock();
+        readLock.lock();
+        try {
+            for (Session session : this.session()) {
+                session.createSnapshot(parentPath);
+            }
+        } finally {
+            readLock.unlock();
         }
     }
 
     @Override
     public void readSnapshot(String parentPath) {
-        if (!this.opened()) {
-            return;
-        }
-
-        File[] snapshotFiles = new File(parentPath).listFiles();
-        E.checkNotNull(snapshotFiles, "snapshot files");
-        List<Pair<File, File>> fileRenamePairs = new ArrayList<>();
-        for (File snapshotFile : snapshotFiles) {
-            Session session = this.findMatchedSession(snapshotFile);
-            File dataFile = new File(session.dataPath());
-            fileRenamePairs.add(Pair.of(snapshotFile, dataFile));
-        }
-        // Close old sessions, is that right?
-        for (Session session : this.session()) {
-            session.close();
-        }
-        this.sessions.session().close();
-
-        // Copy snapshot file to dest file
-        for (Pair<File, File> pair : fileRenamePairs) {
-            File snapshotFile = pair.getLeft();
-            File dataFile = pair.getRight();
-            try {
-                if (dataFile.exists()) {
-                    LOG.warn("Delete origin data directory {}", dataFile);
-                    FileUtils.deleteDirectory(dataFile);
-                }
-                FileUtils.moveDirectory(snapshotFile, dataFile);
-            } catch (IOException e) {
-                throw new BackendException("Failed to move %s to %s",
-                                           e, snapshotFile, dataFile);
+        Lock readLock = this.lock.readLock();
+        readLock.lock();
+        try {
+            if (!this.opened()) {
+                return;
             }
-        }
 
-        // Reopen the db
-        this.open(this.sessions.config());
+            File[] snapshotFiles = new File(parentPath).listFiles();
+            E.checkNotNull(snapshotFiles, "snapshot files");
+            List<Pair<File, File>> fileRenamePairs = new ArrayList<>();
+            for (File snapshotFile : snapshotFiles) {
+                Session session = this.findMatchedSession(snapshotFile);
+                File dataFile = new File(session.dataPath());
+                fileRenamePairs.add(Pair.of(snapshotFile, dataFile));
+            }
+            // Close old sessions, is that right?
+            for (Session session : this.session()) {
+                session.close();
+            }
+            this.sessions.session().close();
+
+            // Copy snapshot file to dest file
+            for (Pair<File, File> pair : fileRenamePairs) {
+                File snapshotFile = pair.getLeft();
+                File dataFile = pair.getRight();
+                try {
+                    if (dataFile.exists()) {
+                        LOG.warn("Delete origin data directory {}", dataFile);
+                        FileUtils.deleteDirectory(dataFile);
+                    }
+                    FileUtils.moveDirectory(snapshotFile, dataFile);
+                } catch (IOException e) {
+                    throw new BackendException("Failed to move %s to %s",
+                                               e, snapshotFile, dataFile);
+                }
+            }
+
+            // Reopen the db
+            this.open(this.sessions.config());
+        } finally {
+            readLock.unlock();
+        }
     }
 
     private Session findMatchedSession(File snapshotFile) {
