@@ -294,8 +294,7 @@ public class JsonSerializer implements Serializer {
                                      Collection<HugeTraverser.Path> paths,
                                      Iterator<Vertex> iterator,
                                      boolean countOnly) {
-        List<Map<String, Object>> pathList;
-        pathList = new ArrayList<>();
+        List<Map<String, Object>> pathList = new ArrayList<>();
         for (HugeTraverser.Path path : paths) {
             pathList.add(path.toMap(false));
         }

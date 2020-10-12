@@ -83,6 +83,17 @@ public abstract class TpTraverser extends HugeTraverser
         }
     }
 
+    protected Set<Node> adjacentVertices(Set<Node> latest, EdgeStep step,
+                                         Set<Node> all, long remaining,
+                                         boolean single) {
+        if (single) {
+            return this.adjacentVertices(latest, step, all, remaining);
+        } else {
+            AtomicLong remain = new AtomicLong(remaining);
+            return this.adjacentVertices(latest, step, all, remain);
+        }
+    }
+
     protected Set<Node> adjacentVertices(Set<Node> vertices, EdgeStep step,
                                          Set<Node> excluded,
                                          AtomicLong remaining) {

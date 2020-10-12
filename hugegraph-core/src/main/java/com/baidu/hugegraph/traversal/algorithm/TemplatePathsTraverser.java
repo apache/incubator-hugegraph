@@ -155,7 +155,7 @@ public class TemplatePathsTraverser extends TpTraverser {
         }
 
         public void forward() {
-            RepeatEdgeStep currentStep = this.step(true);
+            RepeatEdgeStep currentStep = this.nextStep(true);
             if (currentStep == null) {
                 return;
             }
@@ -169,7 +169,7 @@ public class TemplatePathsTraverser extends TpTraverser {
         }
 
         public void backward() {
-            RepeatEdgeStep currentStep = this.step(false);
+            RepeatEdgeStep currentStep = this.nextStep(false);
             if (currentStep == null) {
                 return;
             }
@@ -184,7 +184,7 @@ public class TemplatePathsTraverser extends TpTraverser {
             this.afterTraverse(currentStep, false);
         }
 
-        public RepeatEdgeStep step(boolean forward) {
+        public RepeatEdgeStep nextStep(boolean forward) {
             return forward ? this.forwardStep() : this.backwardStep();
         }
 
@@ -202,7 +202,7 @@ public class TemplatePathsTraverser extends TpTraverser {
             Map<Id, List<Node>> all = forward ? this.sourcesAll :
                                                 this.targetsAll;
             this.addNewVerticesToAll(all);
-            this.reInitCurrentIfNeeded(step, forward);
+            this.reInitCurrentStepIfNeeded(step, forward);
             this.stepCount++;
         }
 
@@ -214,17 +214,18 @@ public class TemplatePathsTraverser extends TpTraverser {
             this.traverseOne(v, step, false);
         }
 
-        private void traverseOne(Id v, RepeatEdgeStep step, boolean forward) {
+        private void traverseOne(Id source, RepeatEdgeStep step,
+                                 boolean forward) {
             if (this.reachLimit()) {
                 return;
             }
 
-            Iterator<Edge> edges = edgesOfVertex(v, step);
+            Iterator<Edge> edges = edgesOfVertex(source, step);
             while (edges.hasNext()) {
                 HugeEdge edge = (HugeEdge) edges.next();
                 Id target = edge.id().otherVertexId();
 
-                this.processOne(v, target, forward);
+                this.processOne(source, target, forward);
             }
         }
 
@@ -236,20 +237,20 @@ public class TemplatePathsTraverser extends TpTraverser {
             }
         }
 
-        private void processOneForForward(Id source, Id target) {
-            for (Node n : this.sources.get(source)) {
+        private void processOneForForward(Id sourceV, Id targetV) {
+            for (Node source : this.sources.get(sourceV)) {
                 // If have loop, skip target
-                if (!this.withRing && n.contains(target)) {
+                if (!this.withRing && source.contains(targetV)) {
                     continue;
                 }
 
                 // If cross point exists, path found, concat them
                 if (this.lastSuperStep() &&
-                    this.targetsAll.containsKey(target)) {
-                    for (Node node : this.targetsAll.get(target)) {
-                        List<Id> path = joinPath(n, node, this.withRing);
+                    this.targetsAll.containsKey(targetV)) {
+                    for (Node target : this.targetsAll.get(targetV)) {
+                        List<Id> path = joinPath(source, target, this.withRing);
                         if (!path.isEmpty()) {
-                            this.paths.add(new Path(target, path));
+                            this.paths.add(new Path(targetV, path));
                             if (this.reachLimit()) {
                                 return;
                             }
@@ -258,24 +259,24 @@ public class TemplatePathsTraverser extends TpTraverser {
                 }
 
                 // Add node to next start-nodes
-                this.addNodeToNewVertices(target, new Node(target, n));
+                this.addNodeToNewVertices(targetV, new Node(targetV, source));
             }
         }
 
-        private void processOneForBackward(Id source, Id target) {
-            for (Node n : this.targets.get(source)) {
+        private void processOneForBackward(Id sourceV, Id targetV) {
+            for (Node source : this.targets.get(sourceV)) {
                 // If have loop, skip target
-                if (!this.withRing && n.contains(target)) {
+                if (!this.withRing && source.contains(targetV)) {
                     continue;
                 }
 
                 // If cross point exists, path found, concat them
                 if (this.lastSuperStep() &&
-                    this.sourcesAll.containsKey(target)) {
-                    for (Node node : this.sourcesAll.get(target)) {
-                        List<Id> path = joinPath(n, node, this.withRing);
+                    this.sourcesAll.containsKey(targetV)) {
+                    for (Node target : this.sourcesAll.get(targetV)) {
+                        List<Id> path = joinPath(source, target, this.withRing);
                         if (!path.isEmpty()) {
-                            Path newPath = new Path(target, path);
+                            Path newPath = new Path(targetV, path);
                             newPath.reverse();
                             this.paths.add(newPath);
                             if (this.reachLimit()) {
@@ -286,21 +287,25 @@ public class TemplatePathsTraverser extends TpTraverser {
                 }
 
                 // Add node to next start-nodes
-                this.addNodeToNewVertices(target, new Node(target, n));
+                this.addNodeToNewVertices(targetV, new Node(targetV, source));
             }
         }
 
         private void reInitAllIfNeeded(boolean forward) {
             if (forward) {
-                // Re-init source all if last forward finished one super step
-                // and not last super step
+                /*
+                 * Re-init source all if last forward finished one super step
+                 * and current step is not last super step
+                 */
                 if (this.sourceFinishOneStep && !this.lastSuperStep()) {
                     this.sourcesAll = this.newMultiValueMap();
                     this.sourceFinishOneStep = false;
                 }
             } else {
-                // Re-init target all if last forward finished one super step
-                // and not last super step
+                /*
+                 * Re-init target all if last forward finished one super step
+                 * and current step is not last super step
+                 */
                 if (this.targetFinishOneStep && !this.lastSuperStep()) {
                     this.targetsAll = this.newMultiValueMap();
                     this.targetFinishOneStep = false;
@@ -308,8 +313,8 @@ public class TemplatePathsTraverser extends TpTraverser {
             }
         }
 
-        private void reInitCurrentIfNeeded(RepeatEdgeStep step,
-                                           boolean forward) {
+        private void reInitCurrentStepIfNeeded(RepeatEdgeStep step,
+                                               boolean forward) {
             step.decreaseTimes();
             if (forward) {
                 // Re-init sources
@@ -417,7 +422,8 @@ public class TemplatePathsTraverser extends TpTraverser {
 
         public ConcurrentTraverser(Collection<Id> sources,
                                    Collection<Id> targets,
-                                   List<RepeatEdgeStep> steps, boolean withRing,
+                                   List<RepeatEdgeStep> steps,
+                                   boolean withRing,
                                    long capacity, long limit) {
             super(sources, targets, steps, withRing, capacity, limit);
         }
@@ -430,9 +436,9 @@ public class TemplatePathsTraverser extends TpTraverser {
         @Override
         public void traverseOneLayer(
                     Map<Id, List<Node>> vertices, RepeatEdgeStep step,
-                    BiConsumer<Id, RepeatEdgeStep> biConsumer) {
-            traverseIds(this.sources.keySet().iterator(), (id) -> {
-                biConsumer.accept(id, step);
+                    BiConsumer<Id, RepeatEdgeStep> consumer) {
+            traverseIds(this.sources.keySet().iterator(), id -> {
+                consumer.accept(id, step);
             });
         }
 
@@ -477,9 +483,9 @@ public class TemplatePathsTraverser extends TpTraverser {
         @Override
         public void traverseOneLayer(
                     Map<Id, List<Node>> vertices, RepeatEdgeStep step,
-                    BiConsumer<Id, RepeatEdgeStep> biConsumer) {
+                    BiConsumer<Id, RepeatEdgeStep> consumer) {
             for (Id id : vertices.keySet()) {
-                biConsumer.accept(id, step);
+                consumer.accept(id, step);
             }
         }
 

@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.ws.rs.core.MultivaluedHashMap;
 import javax.ws.rs.core.MultivaluedMap;
@@ -262,6 +263,15 @@ public class HugeTraverser {
         });
     }
 
+    protected Set<Id> adjacentVertices(Id source, EdgeStep step) {
+        Set<Id> neighbors = new HashSet<>();
+        Iterator<Edge> edges = this.edgesOfVertex(source, step);
+        while (edges.hasNext()) {
+            neighbors.add(((HugeEdge) edges.next()).id().otherVertexId());
+        }
+        return neighbors;
+    }
+
     protected Set<Node> adjacentVertices(Set<Node> vertices, EdgeStep step,
                                          Set<Node> excluded, long remaining) {
         Set<Node> neighbors = newSet();
@@ -278,15 +288,6 @@ public class HugeTraverser {
                     return neighbors;
                 }
             }
-        }
-        return neighbors;
-    }
-
-    protected Set<Id> adjacentVertices(Id source, EdgeStep step) {
-        Set<Id> neighbors = new HashSet<>();
-        Iterator<Edge> edges = this.edgesOfVertex(source, step);
-        while (edges.hasNext()) {
-            neighbors.add(((HugeEdge) edges.next()).id().otherVertexId());
         }
         return neighbors;
     }
@@ -540,7 +541,15 @@ public class HugeTraverser {
     }
 
     protected static <V> Set<V> newSet() {
-        return new HashSet<>();
+        return newSet(true);
+    }
+
+    protected static <V> Set<V> newSet(boolean single) {
+        if (single) {
+            return new HashSet<>();
+        } else {
+            return ConcurrentHashMap.newKeySet();
+        }
     }
 
     protected static <K, V> Map<K, V> newMap() {
@@ -551,9 +560,9 @@ public class HugeTraverser {
         return new MultivaluedHashMap<>();
     }
 
-    protected static List<Id> joinPath(Node pre, Node back, boolean ring) {
+    protected static List<Id> joinPath(Node prev, Node back, boolean ring) {
         // Get self path
-        List<Id> path = pre.path();
+        List<Id> path = prev.path();
 
         // Get reversed other path
         List<Id> backPath = back.path();

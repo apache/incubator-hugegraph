@@ -196,8 +196,8 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
     private static void checkGroupArgs(String groupProperty, int minGroups) {
         if (groupProperty == null) {
             E.checkArgument(minGroups == 0,
-                            "Can not set min group count when " +
-                                    "group property not set");
+                            "Can't set min group count when " +
+                            "group property not set");
         } else {
             E.checkArgument(!groupProperty.isEmpty(),
                             "The group property can't be empty");

@@ -20,8 +20,6 @@
 package com.baidu.hugegraph.traversal.algorithm;
 
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
@@ -46,14 +44,10 @@ public class CustomizedKoutTraverser extends TpTraverser {
         checkLimit(limit);
 
         Set<Node> results;
-        if (maxDepth >= this.concurrentDepth() &&
-            step.direction == Directions.BOTH) {
-            results = this.customizedKoutConcurrent(source, step, maxDepth,
-                                                    nearest, capacity);
-        } else {
-            results = this.customizedKoutSingle(source, step, maxDepth,
-                                                nearest, capacity);
-        }
+        boolean single = maxDepth < this.concurrentDepth() ||
+                         step.direction != Directions.BOTH;
+        results = this.customizedKout(source, step, maxDepth, nearest,
+                                      capacity, single);
 
         if (limit != NO_LIMIT && results.size() > limit) {
             results = CollectionUtil.subSet(results, 0, (int) limit);
@@ -62,43 +56,11 @@ public class CustomizedKoutTraverser extends TpTraverser {
         return results;
     }
 
-    public Set<Node> customizedKoutConcurrent(Id source, EdgeStep step,
-                                              int maxDepth, boolean nearest,
-                                              long capacity) {
-        Set<Node> latest = ConcurrentHashMap.newKeySet();
-        Set<Node> all = ConcurrentHashMap.newKeySet();
-
-        Node sourceV = new KNode(source, null);
-
-        latest.add(sourceV);
-        all.add(sourceV);
-
-        int depth = maxDepth;
-        long remaining = capacity == NO_LIMIT ?
-                         NO_LIMIT : capacity - latest.size();
-        while (depth-- > 0) {
-            AtomicLong remain = new AtomicLong(remaining);
-            if (nearest) {
-                latest = this.adjacentVertices(latest, step, all, remain);
-                all.addAll(latest);
-            } else {
-                latest = this.adjacentVertices(latest, step, null, remain);
-            }
-            if (capacity != NO_LIMIT) {
-                // Update 'remaining' value to record remaining capacity
-                remaining -= latest.size();
-                reachCapacity(remaining, capacity, depth);
-            }
-        }
-
-        return latest;
-    }
-
-    public Set<Node> customizedKoutSingle(Id source, EdgeStep step,
-                                          int maxDepth, boolean nearest,
-                                          long capacity) {
-        Set<Node> latest = newSet();
-        Set<Node> all = newSet();
+    public Set<Node> customizedKout(Id source, EdgeStep step, int maxDepth,
+                                    boolean nearest, long capacity,
+                                    boolean single) {
+        Set<Node> latest = newSet(single);
+        Set<Node> all = newSet(single);
 
         Node sourceV = new KNode(source, null);
 
@@ -110,10 +72,12 @@ public class CustomizedKoutTraverser extends TpTraverser {
                          NO_LIMIT : capacity - latest.size();
         while (depth-- > 0) {
             if (nearest) {
-                latest = this.adjacentVertices(latest, step, all, remaining);
+                latest = this.adjacentVertices(latest, step, all,
+                                               remaining, single);
                 all.addAll(latest);
             } else {
-                latest = this.adjacentVertices(latest, step, null, remaining);
+                latest = this.adjacentVertices(latest, step, null,
+                                               remaining, single);
             }
             if (capacity != NO_LIMIT) {
                 // Update 'remaining' value to record remaining capacity

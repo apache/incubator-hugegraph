@@ -21,8 +21,6 @@ package com.baidu.hugegraph.traversal.algorithm;
 
 import java.util.Iterator;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
@@ -42,20 +40,16 @@ public class CustomizedKneighborTraverser extends TpTraverser {
         checkPositive(maxDepth, "k-neighbor max_depth");
         checkLimit(limit);
 
-        if (maxDepth >= this.concurrentDepth() &&
-            step.direction == Directions.BOTH) {
-            return this.customizedKneighborConcurrent(source, step,
-                                                      maxDepth, limit);
-        } else {
-            return this.customizedKneighborSingle(source, step,
-                                                  maxDepth, limit);
-        }
+        boolean single = maxDepth < this.concurrentDepth() ||
+                         step.direction != Directions.BOTH;
+        return this.customizedKneighbor(source, step, maxDepth,
+                                        limit, single);
     }
 
-    public Set<Node> customizedKneighborConcurrent(Id source, EdgeStep step,
-                                                   int maxDepth, long limit) {
-        Set<Node> latest = ConcurrentHashMap.newKeySet();
-        Set<Node> all = ConcurrentHashMap.newKeySet();
+    public Set<Node> customizedKneighbor(Id source, EdgeStep step, int maxDepth,
+                                         long limit, boolean single) {
+        Set<Node> latest = newSet(single);
+        Set<Node> all = newSet(single);
 
         Node sourceV = new KNode(source, null);
 
@@ -64,37 +58,8 @@ public class CustomizedKneighborTraverser extends TpTraverser {
 
         while (maxDepth-- > 0) {
             long remaining = limit == NO_LIMIT ? NO_LIMIT : limit - all.size();
-            AtomicLong remain = new AtomicLong(remaining);
-            latest = this.adjacentVertices(latest, step, all, remain);
-            int size = all.size() + latest.size();
-            if (limit != NO_LIMIT && size >= limit) {
-                int subLength = (int) limit - all.size();
-                Iterator<Node> iterator = latest.iterator();
-                for (int i = 0; i < subLength && iterator.hasNext(); i++) {
-                    all.add(iterator.next());
-                }
-                break;
-            } else {
-                all.addAll(latest);
-            }
-        }
-
-        return all;
-    }
-
-    public Set<Node> customizedKneighborSingle(Id source, EdgeStep step,
-                                               int maxDepth, long limit) {
-        Set<Node> latest = newSet();
-        Set<Node> all = newSet();
-
-        Node sourceV = new KNode(source, null);
-
-        latest.add(sourceV);
-        all.add(sourceV);
-
-        while (maxDepth-- > 0) {
-            long remaining = limit == NO_LIMIT ? NO_LIMIT : limit - all.size();
-            latest = this.adjacentVertices(latest, step, all, remaining);
+            latest = this.adjacentVertices(latest, step, all,
+                                           remaining, single);
             int size = all.size() + latest.size();
             if (limit != NO_LIMIT && size >= limit) {
                 int subLength = (int) limit - all.size();

@@ -519,5 +519,4 @@ public class CoreOptions extends OptionHolder {
                     rangeInt(0, 65535),
                     10
             );
-
 }
