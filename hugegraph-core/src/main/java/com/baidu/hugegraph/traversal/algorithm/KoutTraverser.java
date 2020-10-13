@@ -28,10 +28,67 @@ import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 
-public class CustomizedKoutTraverser extends TpTraverser {
+public class KoutTraverser extends TpTraverser {
 
-    public CustomizedKoutTraverser(HugeGraph graph) {
+    public KoutTraverser(HugeGraph graph) {
         super(graph, "kout");
+    }
+
+    public Set<Id> kout(Id sourceV, Directions dir, String label,
+                        int depth, boolean nearest,
+                        long degree, long capacity, long limit) {
+        E.checkNotNull(sourceV, "source vertex id");
+        this.checkVertexExist(sourceV, "source vertex");
+        E.checkNotNull(dir, "direction");
+        checkPositive(depth, "k-out max_depth");
+        checkDegree(degree);
+        checkCapacity(capacity);
+        checkLimit(limit);
+        if (capacity != NO_LIMIT) {
+            // Capacity must > limit because sourceV is counted in capacity
+            E.checkArgument(capacity >= limit && limit != NO_LIMIT,
+                            "Capacity can't be less than limit, " +
+                            "but got capacity '%s' and limit '%s'",
+                            capacity, limit);
+        }
+
+        Id labelId = this.getEdgeLabelId(label);
+
+        Set<Id> latest = newSet();
+        latest.add(sourceV);
+
+        Set<Id> all = newSet();
+        all.add(sourceV);
+
+        long remaining = capacity == NO_LIMIT ?
+                         NO_LIMIT : capacity - latest.size();
+        while (depth-- > 0) {
+            // Just get limit nodes in last layer if limit < remaining capacity
+            if (depth == 0 && limit != NO_LIMIT &&
+                (limit < remaining || remaining == NO_LIMIT)) {
+                remaining = limit;
+            }
+            if (nearest) {
+                latest = this.adjacentVertices(latest, dir, labelId, all,
+                                               degree, remaining);
+                all.addAll(latest);
+            } else {
+                latest = this.adjacentVertices(latest, dir, labelId, null,
+                                               degree, remaining);
+            }
+            if (capacity != NO_LIMIT) {
+                // Update 'remaining' value to record remaining capacity
+                remaining -= latest.size();
+
+                if (remaining <= 0 && depth > 0) {
+                    throw new HugeException(
+                              "Reach capacity '%s' while remaining depth '%s'",
+                              capacity, depth);
+                }
+            }
+        }
+
+        return latest;
     }
 
     public Set<Node> customizedKout(Id source, EdgeStep step, int maxDepth,

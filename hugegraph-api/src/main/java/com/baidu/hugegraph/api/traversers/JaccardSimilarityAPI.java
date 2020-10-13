@@ -46,7 +46,6 @@ import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.traversal.algorithm.EdgeStep;
-import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
 import com.baidu.hugegraph.traversal.algorithm.JaccardSimilarTraverser;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
@@ -82,7 +81,7 @@ public class JaccardSimilarityAPI extends TraverserAPI {
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
 
         HugeGraph g = graph(manager, graph);
-        HugeTraverser traverser = new HugeTraverser(g);
+        JaccardSimilarTraverser traverser = new JaccardSimilarTraverser(g);
         double similarity = traverser.jaccardSimilarity(sourceId, targetId, dir,
                                                         edgeLabel, degree);
         return JsonUtil.toJson(ImmutableMap.of("jaccard_similarity",

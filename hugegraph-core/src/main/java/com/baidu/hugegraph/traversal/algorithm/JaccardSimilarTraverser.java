@@ -26,10 +26,13 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
+
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.type.define.Directions;
+import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 import com.google.common.collect.ImmutableMap;
 
@@ -37,6 +40,31 @@ public class JaccardSimilarTraverser extends TpTraverser {
 
     public JaccardSimilarTraverser(HugeGraph graph) {
         super(graph, "jaccard-similar");
+    }
+
+
+    public double jaccardSimilarity(Id vertex, Id other, Directions dir,
+                                    String label, long degree) {
+        E.checkNotNull(vertex, "vertex id");
+        E.checkNotNull(other, "the other vertex id");
+        this.checkVertexExist(vertex, "vertex");
+        this.checkVertexExist(other, "other vertex");
+        E.checkNotNull(dir, "direction");
+        checkDegree(degree);
+
+        Id labelId = this.getEdgeLabelId(label);
+
+        Set<Id> sourceNeighbors = IteratorUtils.set(this.adjacentVertices(
+                                  vertex, dir, labelId, degree));
+        Set<Id> targetNeighbors = IteratorUtils.set(this.adjacentVertices(
+                                  other, dir, labelId, degree));
+        return jaccardSimilarity(sourceNeighbors, targetNeighbors);
+    }
+
+    public double jaccardSimilarity(Set<Id> set1, Set<Id> set2) {
+        int interNum = CollectionUtil.intersect(set1, set2).size();
+        int unionNum = CollectionUtil.union(set1, set2).size();
+        return (double) interNum / unionNum;
     }
 
     public Map<Id, Double> jaccardSimilars(Id source, EdgeStep step,

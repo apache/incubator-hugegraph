@@ -21,25 +21,24 @@ package com.baidu.hugegraph.traversal.algorithm;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 import javax.ws.rs.core.MultivaluedMap;
 
-import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeVertex;
+import com.baidu.hugegraph.traversal.algorithm.strategy.ConcurrentTraverseStrategy;
+import com.baidu.hugegraph.traversal.algorithm.strategy.SingleTraverseStrategy;
+import com.baidu.hugegraph.traversal.algorithm.strategy.TraverseStrategy;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
+import com.google.common.collect.ImmutableList;
 
 public class CollectionPathsTraverser extends TpTraverser {
 
@@ -49,7 +48,6 @@ public class CollectionPathsTraverser extends TpTraverser {
         super(graph, "collection-paths");
     }
 
-    @SuppressWarnings("unchecked")
     public Collection<Path> paths(Iterator<Vertex> sources,
                                   Iterator<Vertex> targets,
                                   EdgeStep step, int depth, boolean nearest,
@@ -75,476 +73,97 @@ public class CollectionPathsTraverser extends TpTraverser {
                      "but got: %s", MAX_VERTICES, sourceList.size());
         checkPositive(depth, "max depth");
 
-        Traverser traverser = depth >= this.concurrentDepth() ?
-                              this.concurrentTraverser(sourceList, targetList,
-                                                       step, nearest,
-                                                       capacity, limit) :
-                              this.singleTraverser(sourceList, targetList, step,
-                                                   nearest, capacity, limit);
+        Traverser traverser;
 
-        while (true) {
-            if (--depth < 0 || traverser.reachLimit()) {
-                break;
+        TraverseStrategy strategy;
+        if (depth >= this.concurrentDepth()) {
+            strategy = new ConcurrentTraverseStrategy(this.graph());
+            traverser = new Traverser(sourceList, targetList, step, depth,
+                                      capacity, limit, strategy);
+        } else {
+            strategy = new SingleTraverseStrategy(this.graph());
+            if (nearest) {
+                traverser = new SingleNearestTraverser(sourceList, targetList,
+                                                       step, depth, capacity,
+                                                       limit, strategy);
+            } else {
+                traverser = new Traverser(sourceList, targetList, step,
+                                          depth, capacity, limit, strategy);
             }
-            traverser.forward();
-
-            if (--depth < 0 || traverser.reachLimit()) {
-                break;
-            }
-            traverser.backward();
         }
-        return traverser.paths();
+
+        do {
+            // Forward
+            traverser.forward();
+            if (traverser.finish()) {
+                return traverser.paths();
+            }
+
+            // Backward
+            traverser.backward();
+            if (traverser.finish()) {
+                return traverser.paths();
+            }
+        } while (true);
     }
 
-    private Traverser singleTraverser(List<Id> sources, List<Id> targets,
-                                      EdgeStep step, boolean nearest,
-                                      long capacity, long limit) {
-        return nearest ? new SingleNearestTraverser(sources, targets, step,
-                                                    capacity, limit) :
-                         new SingleAllTraverser(sources, targets, step,
-                                                capacity, limit);
-    }
-
-    private Traverser concurrentTraverser(List<Id> sources, List<Id> targets,
-                                          EdgeStep step, boolean nearest,
-                                          long capacity, long limit) {
-        return new ConcurrentTraverser(sources, targets, step, capacity, limit);
-    }
-
-    private class Traverser {
+    private class Traverser extends PathTraverser {
 
         protected final EdgeStep step;
-        protected final long capacity;
-        protected final long limit;
 
-        public Traverser(EdgeStep step, long capacity, long limit) {
+        public Traverser(Collection<Id> sources, Collection<Id> targets,
+                         EdgeStep step, int depth, long capacity,
+                         long limit, TraverseStrategy strategy) {
+            super(sources, targets, capacity, limit, strategy);
             this.step = step;
-            this.capacity = capacity;
-            this.limit = limit;
-        }
-
-        public void forward() {
-        }
-
-        public void backward() {
-        }
-
-        public Set<Path> paths() {
-            return new PathSet();
-        }
-
-        public int pathCount() {
-            return 0;
-        }
-
-        protected int accessedNodes() {
-            return 0;
-        }
-
-        protected boolean reachLimit() {
-            checkCapacity(this.capacity, this.accessedNodes(),
-                          "collection paths");
-            if (this.limit == NO_LIMIT || this.pathCount() < this.limit) {
-                return false;
-            }
-            return true;
-        }
-    }
-
-    private class ConcurrentTraverser extends Traverser {
-
-        private ConcurrentMultiValuedMap<Id, Node> sources =
-                new ConcurrentMultiValuedMap<>();
-        private ConcurrentMultiValuedMap<Id, Node> targets =
-                new ConcurrentMultiValuedMap<>();
-        private ConcurrentMultiValuedMap<Id, Node> sourcesAll =
-                new ConcurrentMultiValuedMap<>();
-        private ConcurrentMultiValuedMap<Id, Node> targetsAll =
-                new ConcurrentMultiValuedMap<>();
-
-        private Set<Path> paths;
-
-        public ConcurrentTraverser(Collection<Id> sources,
-                                   Collection<Id> targets, EdgeStep step,
-                                   long capacity, long limit) {
-            super(step, capacity, limit);
-            for (Id id : sources) {
-                this.sources.add(id, new Node(id));
-            }
-            for (Id id : targets) {
-                this.targets.add(id, new Node(id));
-            }
-            this.sourcesAll.putAll(this.sources);
-            this.targetsAll.putAll(this.targets);
-
-            this.paths = ConcurrentHashMap.newKeySet();
-        }
-
-        /**
-         * Search forward from sources
-         */
-        public void forward() {
-            ConcurrentMultiValuedMap<Id, Node> newVertices =
-                                               new ConcurrentMultiValuedMap<>();
-            // Traversal vertices of previous level
-            traverseIds(this.sources.keySet().iterator(), vid -> {
-                if (this.reachLimit()) {
-                    return;
-                }
-                Iterator<Edge> edges = edgesOfVertex(vid, this.step);
-                while (edges.hasNext()) {
-                    HugeEdge edge = (HugeEdge) edges.next();
-                    Id target = edge.id().otherVertexId();
-
-                    for (Node n : this.sources.get(vid)) {
-                        // If have loop, skip target
-                        if (n.contains(target)) {
-                            continue;
-                        }
-
-                        // If cross point exists, path found, concat them
-                        if (this.targetsAll.containsKey(target)) {
-                            for (Node node : this.targetsAll.get(target)) {
-                                List<Id> path = n.joinPath(node);
-                                if (!path.isEmpty()) {
-                                    this.paths.add(new Path(target, path));
-                                    if (this.reachLimit()) {
-                                        return;
-                                    }
-                                }
-                            }
-                        }
-
-                        // Add node to next start-nodes
-                        newVertices.add(target, new Node(target, n));
-                    }
-                }
-            });
-
-            // Re-init sources
-            this.sources = newVertices;
-            // Record all passed vertices
-            for (Map.Entry<Id, List<Node>> entry : newVertices.entrySet()) {
-                this.sourcesAll.addAll(entry.getKey(), entry.getValue());
-            }
-        }
-
-        /**
-         * Search backward from target
-         */
-        public void backward() {
-            ConcurrentMultiValuedMap<Id, Node> newVertices =
-                                               new ConcurrentMultiValuedMap<>();
-            this.step.swithDirection();
-            // Traversal vertices of previous level
-            traverseIds(this.targets.keySet().iterator(), vid -> {
-                if (this.reachLimit()) {
-                    return;
-                }
-                Iterator<Edge> edges = edgesOfVertex(vid, this.step);
-
-                while (edges.hasNext()) {
-                    HugeEdge edge = (HugeEdge) edges.next();
-                    Id target = edge.id().otherVertexId();
-
-                    for (Node n : this.targets.get(vid)) {
-                        // If have loop, skip target
-                        if (n.contains(target)) {
-                            continue;
-                        }
-
-                        // If cross point exists, path found, concat them
-                        if (this.sourcesAll.containsKey(target)) {
-                            for (Node node : this.sourcesAll.get(target)) {
-                                List<Id> path = n.joinPath(node);
-                                if (!path.isEmpty()) {
-                                    Path newPath = new Path(target, path);
-                                    newPath.reverse();
-                                    this.paths.add(newPath);
-                                    if (this.reachLimit()) {
-                                        return;
-                                    }
-                                }
-                            }
-                        }
-
-                        // Add node to next start-nodes
-                        newVertices.add(target, new Node(target, n));
-                    }
-                }
-            });
-            this.step.swithDirection();
-
-            // Re-init targets
-            this.targets = newVertices;
-            // Record all passed vertices
-            for (Map.Entry<Id, List<Node>> entry : newVertices.entrySet()) {
-                this.targetsAll.addAll(entry.getKey(), entry.getValue());
-            }
+            this.totalSteps = depth;
         }
 
         @Override
-        public Set<Path> paths() {
-            return this.paths;
+        public EdgeStep nextStep(boolean forward) {
+            return this.step;
         }
 
         @Override
-        public int pathCount() {
-            return this.paths.size();
-        }
-
-        protected int accessedNodes() {
-            return this.sourcesAll.size() + this.targetsAll.size();
-        }
-    }
-
-    private class SingleAllTraverser extends Traverser {
-
-        private MultivaluedMap<Id, Node> sources = newMultivalueMap();
-        private MultivaluedMap<Id, Node> targets = newMultivalueMap();
-        private MultivaluedMap<Id, Node> sourcesAll = newMultivalueMap();
-        private MultivaluedMap<Id, Node> targetsAll = newMultivalueMap();
-
-        private PathSet paths;
-
-        public SingleAllTraverser(Collection<Id> sources,
-                                  Collection<Id> targets,
-                                  EdgeStep step, long capacity, long limit) {
-            super(step, capacity, limit);
-            for (Id id : sources) {
-                this.sources.add(id, new Node(id));
-            }
-            for (Id id : targets) {
-                this.targets.add(id, new Node(id));
-            }
-            this.sourcesAll.putAll(this.sources);
-            this.targetsAll.putAll(this.targets);
-            this.paths = new PathSet();
-        }
-
-        /**
-         * Search forward from sources
-         */
-        public void forward() {
-            MultivaluedMap<Id, Node> newVertices = newMultivalueMap();
-            Iterator<Edge> edges;
-            // Traversal vertices of previous level
-            for (Map.Entry<Id, List<Node>> entry : this.sources.entrySet()) {
-                Id vid = entry.getKey();
-                edges = edgesOfVertex(vid, this.step);
-
-                while (edges.hasNext()) {
-                    HugeEdge edge = (HugeEdge) edges.next();
-                    Id target = edge.id().otherVertexId();
-
-                    for (Node n : entry.getValue()) {
-                        // If have loop, skip target
-                        if (n.contains(target)) {
-                            continue;
-                        }
-
-                        // If cross point exists, path found, concat them
-                        if (this.targetsAll.containsKey(target)) {
-                            for (Node node : this.targetsAll.get(target)) {
-                                List<Id> path = n.joinPath(node);
-                                if (!path.isEmpty()) {
-                                    this.paths.add(new Path(target, path));
-                                    if (this.reachLimit()) {
-                                        return;
-                                    }
-                                }
-                            }
-                        }
-
-                        // Add node to next start-nodes
-                        newVertices.add(target, new Node(target, n));
-                    }
+        protected void processOneForForward(Id sourceV, Id targetV) {
+            for (Node source : this.sources.get(sourceV)) {
+                // If have loop, skip target
+                if (source.contains(targetV)) {
+                    continue;
                 }
-            }
 
-            // Re-init targets
-            this.sources = newVertices;
-            // Record all passed vertices
-            for (Map.Entry<Id, List<Node>> entry : newVertices.entrySet()) {
-                this.sourcesAll.addAll(entry.getKey(), entry.getValue());
-            }
-        }
-
-        /**
-         * Search backward from target
-         */
-        public void backward() {
-            PathSet paths = new PathSet();
-            MultivaluedMap<Id, Node> newVertices = newMultivalueMap();
-            this.step.swithDirection();
-            Iterator<Edge> edges;
-            // Traversal vertices of previous level
-            for (Map.Entry<Id, List<Node>> entry : this.targets.entrySet()) {
-                Id vid = entry.getKey();
-                edges = edgesOfVertex(vid, this.step);
-
-                while (edges.hasNext()) {
-                    HugeEdge edge = (HugeEdge) edges.next();
-                    Id target = edge.id().otherVertexId();
-
-                    for (Node n : entry.getValue()) {
-                        // If have loop, skip target
-                        if (n.contains(target)) {
-                            continue;
-                        }
-
-                        // If cross point exists, path found, concat them
-                        if (this.sourcesAll.containsKey(target)) {
-                            for (Node node : this.sourcesAll.get(target)) {
-                                List<Id> path = n.joinPath(node);
-                                if (!path.isEmpty()) {
-                                    Path newPath = new Path(target, path);
-                                    newPath.reverse();
-                                    this.paths.add(newPath);
-                                    if (this.reachLimit()) {
-                                        return;
-                                    }
-                                }
-                            }
-                        }
-
-                        // Add node to next start-nodes
-                        newVertices.add(target, new Node(target, n));
-                    }
-                }
-            }
-            this.step.swithDirection();
-
-            // Re-init targets
-            this.targets = newVertices;
-            // Record all passed vertices
-            for (Map.Entry<Id, List<Node>> entry : newVertices.entrySet()) {
-                this.targetsAll.addAll(entry.getKey(), entry.getValue());
-            }
-        }
-
-        @Override
-        public Set<Path> paths() {
-            return this.paths;
-        }
-
-        @Override
-        public int pathCount() {
-            return this.paths.size();
-        }
-
-        protected int accessedNodes() {
-            return this.sourcesAll.size() + this.targetsAll.size();
-        }
-    }
-
-
-    private class SingleNearestTraverser extends Traverser {
-
-        private Map<Id, Node> sources = new HashMap<>();
-        private Map<Id, Node> targets = new HashMap<>();
-        private Map<Id, Node> sourcesAll = new HashMap<>();
-        private Map<Id, Node> targetsAll = new HashMap<>();
-
-        private PathSet paths;
-
-        public SingleNearestTraverser(Collection<Id> sources,
-                                      Collection<Id> targets,
-                                      EdgeStep step, long capacity,
-                                      long limit) {
-            super(step, capacity, limit);
-            for (Id id : sources) {
-                this.sources.put(id, new KNode(id, null));
-            }
-            for (Id id : targets) {
-                this.targets.put(id, new KNode(id, null));
-            }
-            this.sourcesAll.putAll(this.sources);
-            this.targetsAll.putAll(this.targets);
-            this.paths = new PathSet();
-        }
-
-        /**
-         * Search forward from sources
-         */
-        public void forward() {
-            LOG.info("Forward with sources size {} and sources all size {}",
-                     this.sources.size(), this.sourcesAll.size());
-            Map<Id, Node> newVertices = new HashMap<>();
-            Iterator<Edge> edges;
-            // Traversal vertices of previous level
-            for (Map.Entry<Id, Node> entry : this.sources.entrySet()) {
-                Id vid = entry.getKey();
-                edges = edgesOfVertex(vid, this.step);
-
-                while (edges.hasNext()) {
-                    HugeEdge edge = (HugeEdge) edges.next();
-                    Id target = edge.id().otherVertexId();
-
-                    Node n = entry.getValue();
-                    // If have loop, skip target
-                    if (n.contains(target)) {
-                        continue;
-                    }
-
-                    // If cross point exists, path found, concat them
-                    if (this.targetsAll.containsKey(target)) {
-                        Node node = this.targetsAll.get(target);
-                        List<Id> path = n.joinPath(node);
+                // If cross point exists, path found, concat them
+                if (this.targetsAll.containsKey(targetV)) {
+                    for (Node target : this.targetsAll.get(targetV)) {
+                        List<Id> path = source.joinPath(target);
                         if (!path.isEmpty()) {
-                            this.paths.add(new Path(target, path));
+                            this.paths.add(new Path(targetV, path));
                             if (this.reachLimit()) {
                                 return;
                             }
                         }
                     }
-
-                    // Add node to next start-nodes
-                    newVertices.putIfAbsent(target,
-                                            new KNode(target, (KNode) n));
                 }
-            }
 
-            // Re-init targets
-            this.sources = newVertices;
-            // Record all passed vertices
-            for (Map.Entry<Id, Node> entry : newVertices.entrySet()) {
-                this.sourcesAll.putIfAbsent(entry.getKey(), entry.getValue());
+                // Add node to next start-nodes
+                this.addNodeToNewVertices(targetV, new Node(targetV, source));
             }
-            LOG.info("Done forward with sources size {} and sources all size {}",
-                     this.sources.size(), this.sourcesAll.size());
         }
 
-        /**
-         * Search backward from target
-         */
-        public void backward() {
-            LOG.info("Backward with targets size {} and targets all size {}",
-                     this.targets.size(), this.targetsAll.size());
-            Map<Id, Node> newVertices = new HashMap<>();
-            this.step.swithDirection();
-            Iterator<Edge> edges;
-            // Traversal vertices of previous level
-            for (Map.Entry<Id, Node> entry : this.targets.entrySet()) {
-                Id vid = entry.getKey();
-                edges = edgesOfVertex(vid, this.step);
+        @Override
+        protected void processOneForBackward(Id sourceV, Id targetV) {
+            for (Node source : this.targets.get(sourceV)) {
+                // If have loop, skip target
+                if (source.contains(targetV)) {
+                    continue;
+                }
 
-                while (edges.hasNext()) {
-                    HugeEdge edge = (HugeEdge) edges.next();
-                    Id target = edge.id().otherVertexId();
-
-                    Node n = entry.getValue();
-                    // If have loop, skip target
-                    if (n.contains(target)) {
-                        continue;
-                    }
-
-                    // If cross point exists, path found, concat them
-                    if (this.sourcesAll.containsKey(target)) {
-                        Node node = this.sourcesAll.get(target);
-                        List<Id> path = n.joinPath(node);
+                // If cross point exists, path found, concat them
+                if (this.sourcesAll.containsKey(targetV)) {
+                    for (Node target : this.sourcesAll.get(targetV)) {
+                        List<Id> path = source.joinPath(target);
                         if (!path.isEmpty()) {
-                            Path newPath = new Path(target, path);
+                            Path newPath = new Path(targetV, path);
                             newPath.reverse();
                             this.paths.add(newPath);
                             if (this.reachLimit()) {
@@ -552,32 +171,117 @@ public class CollectionPathsTraverser extends TpTraverser {
                             }
                         }
                     }
+                }
 
-                    // Add node to next start-nodes
-                    newVertices.putIfAbsent(target,
-                                            new KNode(target, (KNode) n));
+                // Add node to next start-nodes
+                this.addNodeToNewVertices(targetV, new Node(targetV, source));
+            }
+        }
+
+        @Override
+        protected void reInitCurrentStepIfNeeded(EdgeStep step,
+                                                 boolean forward) {
+            if (forward) {
+                // Re-init sources
+                this.sources = this.newVertices;
+                // Record all passed vertices
+                this.addNewVerticesToAll(this.sourcesAll);
+            } else {
+                // Re-init targets
+                this.targets = this.newVertices;
+                // Record all passed vertices
+                this.addNewVerticesToAll(this.targetsAll);
+            }
+        }
+    }
+
+    private class SingleNearestTraverser extends Traverser {
+
+        public SingleNearestTraverser(Collection<Id> sources,
+                                      Collection<Id> targets, EdgeStep step,
+                                      int depth, long capacity, long limit,
+                                      TraverseStrategy strategy) {
+            super(sources, targets, step, depth, capacity, limit, strategy);
+        }
+
+        @Override
+        protected void processOneForForward(Id sourceV, Id targetV) {
+            Node source = this.sources.get(sourceV).get(0);
+            // If have loop, skip target
+            if (source.contains(targetV)) {
+                return;
+            }
+
+            // If cross point exists, path found, concat them
+            if (this.targetsAll.containsKey(targetV)) {
+                Node node = this.targetsAll.get(targetV).get(0);
+                List<Id> path = source.joinPath(node);
+                if (!path.isEmpty()) {
+                    this.paths.add(new Path(targetV, path));
+                    if (this.reachLimit()) {
+                        return;
+                    }
                 }
             }
-            this.step.swithDirection();
 
-            // Re-init targets
-            this.targets = newVertices;
-            // Record all passed vertices
-            for (Map.Entry<Id, Node> entry : newVertices.entrySet()) {
-                this.targetsAll.putIfAbsent(entry.getKey(), entry.getValue());
+            // Add node to next start-nodes
+            this.addNodeToNewVertices(targetV, new Node(targetV, source));
+        }
+
+        @Override
+        protected void processOneForBackward(Id sourceV, Id targetV) {
+            Node sourcee = this.targets.get(sourceV).get(0);
+            // If have loop, skip target
+            if (sourcee.contains(targetV)) {
+                return;
             }
-            LOG.info("Done backward with sources size {} and sources all size {}",
-                     this.targets.size(), this.targetsAll.size());
+
+            // If cross point exists, path found, concat them
+            if (this.sourcesAll.containsKey(targetV)) {
+                Node node = this.sourcesAll.get(targetV).get(0);
+                List<Id> path = sourcee.joinPath(node);
+                if (!path.isEmpty()) {
+                    Path newPath = new Path(targetV, path);
+                    newPath.reverse();
+                    this.paths.add(newPath);
+                    if (this.reachLimit()) {
+                        return;
+                    }
+                }
+            }
+
+            // Add node to next start-nodes
+            this.addNodeToNewVertices(targetV, new Node(targetV, sourcee));
         }
 
         @Override
-        public Set<Path> paths() {
-            return this.paths;
+        protected void reInitCurrentStepIfNeeded(EdgeStep step,
+                                                 boolean forward) {
+            if (forward) {
+                // Re-init targets
+                this.sources = this.newVertices;
+                // Record all passed vertices
+                this.addNewVerticesToAll(this.sourcesAll);
+            } else {
+                // Re-init targets
+                this.targets = this.newVertices;
+                // Record all passed vertices
+                this.addNewVerticesToAll(this.targetsAll);
+            }
         }
 
         @Override
-        public int pathCount() {
-            return this.paths.size();
+        public void addNodeToNewVertices(Id id, Node node) {
+            this.newVertices.putIfAbsent(id, ImmutableList.of(node));
+        }
+
+        @Override
+        public void addNewVerticesToAll(Map<Id, List<Node>> targets) {
+            MultivaluedMap<Id, Node> vertices =
+                                     (MultivaluedMap<Id, Node>) targets;
+            for (Map.Entry<Id, List<Node>> entry : this.newVertices.entrySet()) {
+                vertices.putIfAbsent(entry.getKey(), entry.getValue());
+            }
         }
 
         protected int accessedNodes() {

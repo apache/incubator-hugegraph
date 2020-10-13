@@ -27,10 +27,41 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
 
-public class CustomizedKneighborTraverser extends TpTraverser {
+public class KneighborTraverser extends TpTraverser {
 
-    public CustomizedKneighborTraverser(HugeGraph graph) {
+    public KneighborTraverser(HugeGraph graph) {
         super(graph, "kneighbor");
+    }
+
+    public Set<Id> kneighbor(Id sourceV, Directions dir,
+                             String label, int depth,
+                             long degree, long limit) {
+        E.checkNotNull(sourceV, "source vertex id");
+        this.checkVertexExist(sourceV, "source vertex");
+        E.checkNotNull(dir, "direction");
+        checkPositive(depth, "k-neighbor max_depth");
+        checkDegree(degree);
+        checkLimit(limit);
+
+        Id labelId = this.getEdgeLabelId(label);
+
+        Set<Id> latest = newSet();
+        latest.add(sourceV);
+
+        Set<Id> all = newSet();
+        all.add(sourceV);
+
+        while (depth-- > 0) {
+            long remaining = limit == NO_LIMIT ? NO_LIMIT : limit - all.size();
+            latest = this.adjacentVertices(latest, dir, labelId, all,
+                                           degree, remaining);
+            all.addAll(latest);
+            if (limit != NO_LIMIT && all.size() >= limit) {
+                break;
+            }
+        }
+
+        return all;
     }
 
     public Set<Node> customizedKneighbor(Id source, EdgeStep step,

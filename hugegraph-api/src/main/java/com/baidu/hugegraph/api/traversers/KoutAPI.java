@@ -47,7 +47,7 @@ import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.structure.HugeVertex;
-import com.baidu.hugegraph.traversal.algorithm.CustomizedKoutTraverser;
+import com.baidu.hugegraph.traversal.algorithm.KoutTraverser;
 import com.baidu.hugegraph.traversal.algorithm.EdgeStep;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
 import com.baidu.hugegraph.type.define.Directions;
@@ -56,7 +56,11 @@ import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.*;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.Node;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPACITY;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_ELEMENTS_LIMIT;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PATHS_LIMIT;
 
 @Path("graphs/{graph}/traversers/kout")
 @Singleton
@@ -92,7 +96,7 @@ public class KoutAPI extends TraverserAPI {
 
         HugeGraph g = graph(manager, graph);
 
-        HugeTraverser traverser = new HugeTraverser(g);
+        KoutTraverser traverser = new KoutTraverser(g);
         Set<Id> ids = traverser.kout(sourceId, dir, edgeLabel, depth,
                                      nearest, degree, capacity, limit);
         return manager.serializer(g).writeList("vertices", ids);
@@ -128,7 +132,7 @@ public class KoutAPI extends TraverserAPI {
 
         EdgeStep step = step(g, request.step);
 
-        CustomizedKoutTraverser traverser = new CustomizedKoutTraverser(g);
+        KoutTraverser traverser = new KoutTraverser(g);
         Set<HugeTraverser.Node> results = traverser.customizedKout(
                                           sourceId, step, request.maxDepth,
                                           request.nearest, request.capacity,

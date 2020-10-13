@@ -51,7 +51,7 @@ import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.structure.HugeVertex;
-import com.baidu.hugegraph.traversal.algorithm.CustomizedKneighborTraverser;
+import com.baidu.hugegraph.traversal.algorithm.KneighborTraverser;
 import com.baidu.hugegraph.traversal.algorithm.EdgeStep;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
 import com.baidu.hugegraph.type.define.Directions;
@@ -90,7 +90,7 @@ public class KneighborAPI extends TraverserAPI {
 
         HugeGraph g = graph(manager, graph);
 
-        HugeTraverser traverser = new HugeTraverser(g);
+        KneighborTraverser traverser = new KneighborTraverser(g);
         Set<Id> ids = traverser.kneighbor(source, dir, edgeLabel, depth,
                                           degree, limit);
         return manager.serializer(g).writeList("vertices", ids);
@@ -124,8 +124,7 @@ public class KneighborAPI extends TraverserAPI {
 
         EdgeStep step = step(g, request.step);
 
-        CustomizedKneighborTraverser traverser =
-                new CustomizedKneighborTraverser(g);
+        KneighborTraverser traverser = new KneighborTraverser(g);
         Set<HugeTraverser.Node> results = traverser.customizedKneighbor(
                                           sourceId, step, request.maxDepth,
                                           request.limit);

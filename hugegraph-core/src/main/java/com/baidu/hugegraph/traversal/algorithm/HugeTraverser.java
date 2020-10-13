@@ -35,7 +35,6 @@ import javax.ws.rs.core.MultivaluedMap;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.tinkerpop.gremlin.structure.Edge;
-import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
@@ -91,146 +90,9 @@ public class HugeTraverser {
         return this.graph;
     }
 
-    public Set<Id> kout(Id sourceV, Directions dir, String label,
-                        int depth, boolean nearest,
-                        long degree, long capacity, long limit) {
-        E.checkNotNull(sourceV, "source vertex id");
-        this.checkVertexExist(sourceV, "source vertex");
-        E.checkNotNull(dir, "direction");
-        checkPositive(depth, "k-out max_depth");
-        checkDegree(degree);
-        checkCapacity(capacity);
-        checkLimit(limit);
-        if (capacity != NO_LIMIT) {
-            // Capacity must > limit because sourceV is counted in capacity
-            E.checkArgument(capacity >= limit && limit != NO_LIMIT,
-                            "Capacity can't be less than limit, " +
-                            "but got capacity '%s' and limit '%s'",
-                            capacity, limit);
-        }
-
-        Id labelId = this.getEdgeLabelId(label);
-
-        Set<Id> latest = newSet();
-        latest.add(sourceV);
-
-        Set<Id> all = newSet();
-        all.add(sourceV);
-
-        long remaining = capacity == NO_LIMIT ?
-                         NO_LIMIT : capacity - latest.size();
-        while (depth-- > 0) {
-            // Just get limit nodes in last layer if limit < remaining capacity
-            if (depth == 0 && limit != NO_LIMIT &&
-                (limit < remaining || remaining == NO_LIMIT)) {
-                remaining = limit;
-            }
-            if (nearest) {
-                latest = this.adjacentVertices(latest, dir, labelId, all,
-                                               degree, remaining);
-                all.addAll(latest);
-            } else {
-                latest = this.adjacentVertices(latest, dir, labelId, null,
-                                               degree, remaining);
-            }
-            if (capacity != NO_LIMIT) {
-                // Update 'remaining' value to record remaining capacity
-                remaining -= latest.size();
-
-                if (remaining <= 0 && depth > 0) {
-                    throw new HugeException(
-                              "Reach capacity '%s' while remaining depth '%s'",
-                              capacity, depth);
-                }
-            }
-        }
-
-        return latest;
-    }
-
-    public Set<Id> kneighbor(Id sourceV, Directions dir,
-                             String label, int depth,
-                             long degree, long limit) {
-        E.checkNotNull(sourceV, "source vertex id");
-        this.checkVertexExist(sourceV, "source vertex");
-        E.checkNotNull(dir, "direction");
-        checkPositive(depth, "k-neighbor max_depth");
-        checkDegree(degree);
-        checkLimit(limit);
-
-        Id labelId = this.getEdgeLabelId(label);
-
-        Set<Id> latest = newSet();
-        latest.add(sourceV);
-
-        Set<Id> all = newSet();
-        all.add(sourceV);
-
-        while (depth-- > 0) {
-            long remaining = limit == NO_LIMIT ? NO_LIMIT : limit - all.size();
-            latest = this.adjacentVertices(latest, dir, labelId, all,
-                                           degree, remaining);
-            all.addAll(latest);
-            if (limit != NO_LIMIT && all.size() >= limit) {
-                break;
-            }
-        }
-
-        return all;
-    }
-
-    public Set<Id> sameNeighbors(Id vertex, Id other, Directions direction,
-                                 String label, long degree, long limit) {
-        E.checkNotNull(vertex, "vertex id");
-        E.checkNotNull(other, "the other vertex id");
-        this.checkVertexExist(vertex, "vertex");
-        this.checkVertexExist(other, "other vertex");
-        E.checkNotNull(direction, "direction");
-        checkDegree(degree);
-        checkLimit(limit);
-
-        Id labelId = this.getEdgeLabelId(label);
-
-        Set<Id> sourceNeighbors = IteratorUtils.set(this.adjacentVertices(
-                                  vertex, direction, labelId, degree));
-        Set<Id> targetNeighbors = IteratorUtils.set(this.adjacentVertices(
-                                  other, direction, labelId, degree));
-        Set<Id> sameNeighbors = (Set<Id>) CollectionUtil.intersect(
-                                sourceNeighbors, targetNeighbors);
-        if (limit != NO_LIMIT) {
-            int end = Math.min(sameNeighbors.size(), (int) limit);
-            sameNeighbors = CollectionUtil.subSet(sameNeighbors, 0, end);
-        }
-        return sameNeighbors;
-    }
-
-    public double jaccardSimilarity(Id vertex, Id other, Directions dir,
-                                    String label, long degree) {
-        E.checkNotNull(vertex, "vertex id");
-        E.checkNotNull(other, "the other vertex id");
-        this.checkVertexExist(vertex, "vertex");
-        this.checkVertexExist(other, "other vertex");
-        E.checkNotNull(dir, "direction");
-        checkDegree(degree);
-
-        Id labelId = this.getEdgeLabelId(label);
-
-        Set<Id> sourceNeighbors = IteratorUtils.set(this.adjacentVertices(
-                                  vertex, dir, labelId, degree));
-        Set<Id> targetNeighbors = IteratorUtils.set(this.adjacentVertices(
-                                  other, dir, labelId, degree));
-        return jaccardSimilarity(sourceNeighbors, targetNeighbors);
-    }
-
-    public double jaccardSimilarity(Set<Id> set1, Set<Id> set2) {
-        int interNum = CollectionUtil.intersect(set1, set2).size();
-        int unionNum = CollectionUtil.union(set1, set2).size();
-        return (double) interNum / unionNum;
-    }
-
-    private Set<Id> adjacentVertices(Set<Id> vertices, Directions dir,
-                                     Id label, Set<Id> excluded,
-                                     long degree, long limit) {
+    protected Set<Id> adjacentVertices(Set<Id> vertices, Directions dir,
+                                       Id label, Set<Id> excluded,
+                                       long degree, long limit) {
         if (limit == 0) {
             return ImmutableSet.of();
         }

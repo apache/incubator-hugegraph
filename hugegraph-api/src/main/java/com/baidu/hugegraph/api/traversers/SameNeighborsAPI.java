@@ -42,7 +42,7 @@ import com.baidu.hugegraph.api.graph.VertexAPI;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.RestServer;
-import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
+import com.baidu.hugegraph.traversal.algorithm.SameNeighborTraverser;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
@@ -75,7 +75,7 @@ public class SameNeighborsAPI extends API {
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
 
         HugeGraph g = graph(manager, graph);
-        HugeTraverser traverser = new HugeTraverser(g);
+        SameNeighborTraverser traverser = new SameNeighborTraverser(g);
         Set<Id> neighbors = traverser.sameNeighbors(sourceId, targetId, dir,
                                                     edgeLabel, degree, limit);
         return manager.serializer(g).writeList("same_neighbors", neighbors);
