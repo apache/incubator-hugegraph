@@ -150,7 +150,9 @@ public abstract class AbstractCentAlgorithm extends AbstractAlgorithm {
             return t.filter(it -> {
                 Id start = it.<HugeElement>path(Pop.first, "v").id();
                 Id end = it.<HugeElement>path(Pop.last, "v").id();
-                int len = it.<List<?>>path(Pop.all, "v").size();
+                int len = it.path().size();
+                assert len == it.<List<?>>path(Pop.all, "v").size();
+
                 Pair<Id, Id> key = Pair.of(start, end);
                 Integer shortest = triples.get(key);
                 if (shortest != null && len > shortest) {

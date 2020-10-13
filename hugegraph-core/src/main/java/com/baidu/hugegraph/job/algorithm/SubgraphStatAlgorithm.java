@@ -33,14 +33,6 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.job.UserJob;
-import com.baidu.hugegraph.job.algorithm.cent.BetweennessCentralityAlgorithmV2;
-import com.baidu.hugegraph.job.algorithm.cent.StressCentralityAlgorithm;
-import com.baidu.hugegraph.job.algorithm.cent.ClosenessCentralityAlgorithm;
-import com.baidu.hugegraph.job.algorithm.cent.DegreeCentralityAlgorithm;
-import com.baidu.hugegraph.job.algorithm.cent.EigenvectorCentralityAlgorithm;
-import com.baidu.hugegraph.job.algorithm.comm.ClusterCoeffcientAlgorithm;
-import com.baidu.hugegraph.job.algorithm.path.RingsDetectAlgorithm;
-import com.baidu.hugegraph.job.algorithm.rank.PageRankAlgorithm;
 import com.baidu.hugegraph.task.HugeTask;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
 import com.baidu.hugegraph.traversal.optimize.HugeScriptTraversal;
@@ -149,34 +141,35 @@ public class SubgraphStatAlgorithm extends AbstractAlgorithm {
         }
 
         public Object subgraphStat(UserJob<Object> job) {
+            AlgorithmPool pool = AlgorithmPool.instance();
             Map<String, Object> results = InsertionOrderUtil.newMap();
 
             GraphTraversalSource g = job.graph().traversal();
             results.put("vertices_count", g.V().count().next());
             results.put("edges_count", g.E().count().next());
 
-            Algorithm algo = new DegreeCentralityAlgorithm();
+            Algorithm algo = pool.get("degree_centrality");
             Map<String, Object> parameters = ImmutableMap.copyOf(PARAMS);
             results.put("degrees", algo.call(job, parameters));
 
-            algo = new StressCentralityAlgorithm();
+            algo = pool.get("stress_centrality");
             results.put("stress", algo.call(job, parameters));
 
-            algo = new BetweennessCentralityAlgorithmV2();
+            algo = pool.get("betweenness_centrality");
             results.put("betweenness", algo.call(job, parameters));
 
-            algo = new EigenvectorCentralityAlgorithm();
+            algo = pool.get("eigenvector_centrality");
             results.put("eigenvectors", algo.call(job, parameters));
 
-            algo = new ClosenessCentralityAlgorithm();
+            algo = pool.get("closeness_centrality");
             results.put("closeness", algo.call(job, parameters));
 
             results.put("page_ranks", pageRanks(job));
 
-            algo = new ClusterCoeffcientAlgorithm();
+            algo = pool.get("cluster_coeffcient");
             results.put("cluster_coeffcient", algo.call(job, parameters));
 
-            algo = new RingsDetectAlgorithm();
+            algo = pool.get("rings");
             parameters = ImmutableMap.<String, Object>builder()
                                      .putAll(PARAMS)
                                      .put("count_only", true)
@@ -189,7 +182,7 @@ public class SubgraphStatAlgorithm extends AbstractAlgorithm {
         }
 
         private Map<Object, Double> pageRanks(UserJob<Object> job) {
-            PageRankAlgorithm algo = new PageRankAlgorithm();
+            Algorithm algo = AlgorithmPool.instance().get("page_rank");
             algo.call(job, ImmutableMap.of("alpha", 0.15));
 
             // Collect page ranks
