@@ -22,11 +22,11 @@ package com.baidu.hugegraph.job.algorithm;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import com.baidu.hugegraph.job.algorithm.cent.BetweennessCentralityAlgorithmV2;
-import com.baidu.hugegraph.job.algorithm.cent.StressCentralityAlgorithm;
+import com.baidu.hugegraph.job.algorithm.cent.BetweennessCentralityAlgorithm;
 import com.baidu.hugegraph.job.algorithm.cent.ClosenessCentralityAlgorithm;
 import com.baidu.hugegraph.job.algorithm.cent.DegreeCentralityAlgorithm;
 import com.baidu.hugegraph.job.algorithm.cent.EigenvectorCentralityAlgorithm;
+import com.baidu.hugegraph.job.algorithm.cent.StressCentralityAlgorithm;
 import com.baidu.hugegraph.job.algorithm.comm.ClusterCoeffcientAlgorithm;
 import com.baidu.hugegraph.job.algorithm.comm.KCoreAlgorithm;
 import com.baidu.hugegraph.job.algorithm.comm.LouvainAlgorithm;
@@ -36,6 +36,7 @@ import com.baidu.hugegraph.job.algorithm.comm.WeakConnectedComponent;
 import com.baidu.hugegraph.job.algorithm.path.RingsDetectAlgorithm;
 import com.baidu.hugegraph.job.algorithm.rank.PageRankAlgorithm;
 import com.baidu.hugegraph.job.algorithm.similarity.FusiformSimilarityAlgorithm;
+import com.baidu.hugegraph.util.E;
 
 public class AlgorithmPool {
 
@@ -47,7 +48,7 @@ public class AlgorithmPool {
 
         INSTANCE.register(new DegreeCentralityAlgorithm());
         INSTANCE.register(new StressCentralityAlgorithm());
-        INSTANCE.register(new BetweennessCentralityAlgorithmV2());
+        INSTANCE.register(new BetweennessCentralityAlgorithm());
         INSTANCE.register(new ClosenessCentralityAlgorithm());
         INSTANCE.register(new EigenvectorCentralityAlgorithm());
 
@@ -79,6 +80,13 @@ public class AlgorithmPool {
 
     public Algorithm find(String name) {
         return this.algorithms.get(name);
+    }
+
+    public Algorithm get(String name) {
+        Algorithm algorithm = this.algorithms.get(name);
+        E.checkArgument(algorithm != null,
+                        "Not found algorithm '%s'", name);
+        return algorithm;
     }
 
     public static AlgorithmPool instance() {
