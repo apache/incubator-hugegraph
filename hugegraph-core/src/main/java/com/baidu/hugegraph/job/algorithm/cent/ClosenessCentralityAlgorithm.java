@@ -89,10 +89,17 @@ public class ClosenessCentralityAlgorithm extends AbstractCentAlgorithm {
             t = t.emit().until(__.loops().is(P.gte(depth)));
             t = filterNonShortestPath(t, true);
 
+            /*
+             * We use Marchiori's algorithm(sum of reciprocal of distances):
+             *  .math("_-1").sack(Operator.div).sack().sum()
+             * for Bavelas's algorithm:
+             *  .math("_-1").sum().sack(Operator.div).sack()
+             * see https://en.wikipedia.org/wiki/Closeness_centrality
+             */
             GraphTraversal<Vertex, ?> tg;
             tg = t.group().by(__.select(Pop.first, "v").id())
                           .by(__.select(Pop.all, "v").count(Scope.local)
-                                .sack(Operator.div).sack().sum());
+                                .math("_-1").sack(Operator.div).sack().sum());
             GraphTraversal<Vertex, ?> tLimit = topN(tg, topN);
 
             return this.execute(tLimit, () -> tLimit.next());
