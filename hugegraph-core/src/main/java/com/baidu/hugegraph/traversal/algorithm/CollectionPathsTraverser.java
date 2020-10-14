@@ -25,16 +25,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import javax.ws.rs.core.MultivaluedMap;
-
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.structure.HugeVertex;
-import com.baidu.hugegraph.traversal.algorithm.strategy.ConcurrentTraverseStrategy;
-import com.baidu.hugegraph.traversal.algorithm.strategy.SingleTraverseStrategy;
 import com.baidu.hugegraph.traversal.algorithm.strategy.TraverseStrategy;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
@@ -74,22 +70,14 @@ public class CollectionPathsTraverser extends TpTraverser {
         checkPositive(depth, "max depth");
 
         Traverser traverser;
-
-        TraverseStrategy strategy;
-        if (depth >= this.concurrentDepth()) {
-            strategy = new ConcurrentTraverseStrategy(this.graph());
-            traverser = new Traverser(sourceList, targetList, step, depth,
-                                      capacity, limit, strategy);
+        TraverseStrategy strategy = this.traverseStrategy(
+                                    depth >= this.concurrentDepth());
+        if (nearest) {
+            traverser = new NearestTraverser(sourceList, targetList, step,
+                                             depth, capacity, limit, strategy);
         } else {
-            strategy = new SingleTraverseStrategy(this.graph());
-            if (nearest) {
-                traverser = new SingleNearestTraverser(sourceList, targetList,
-                                                       step, depth, capacity,
-                                                       limit, strategy);
-            } else {
-                traverser = new Traverser(sourceList, targetList, step,
-                                          depth, capacity, limit, strategy);
-            }
+            traverser = new Traverser(sourceList, targetList, step,
+                                      depth, capacity, limit, strategy);
         }
 
         do {
@@ -195,12 +183,12 @@ public class CollectionPathsTraverser extends TpTraverser {
         }
     }
 
-    private class SingleNearestTraverser extends Traverser {
+    private class NearestTraverser extends Traverser {
 
-        public SingleNearestTraverser(Collection<Id> sources,
-                                      Collection<Id> targets, EdgeStep step,
-                                      int depth, long capacity, long limit,
-                                      TraverseStrategy strategy) {
+        public NearestTraverser(Collection<Id> sources,
+                                Collection<Id> targets, EdgeStep step,
+                                int depth, long capacity, long limit,
+                                TraverseStrategy strategy) {
             super(sources, targets, step, depth, capacity, limit, strategy);
         }
 
@@ -277,10 +265,8 @@ public class CollectionPathsTraverser extends TpTraverser {
 
         @Override
         public void addNewVerticesToAll(Map<Id, List<Node>> targets) {
-            MultivaluedMap<Id, Node> vertices =
-                                     (MultivaluedMap<Id, Node>) targets;
             for (Map.Entry<Id, List<Node>> entry : this.newVertices.entrySet()) {
-                vertices.putIfAbsent(entry.getKey(), entry.getValue());
+                targets.putIfAbsent(entry.getKey(), entry.getValue());
             }
         }
 

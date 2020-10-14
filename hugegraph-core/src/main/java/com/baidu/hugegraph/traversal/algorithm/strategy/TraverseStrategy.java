@@ -19,10 +19,13 @@
 
 package com.baidu.hugegraph.traversal.algorithm.strategy;
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
+
+import org.apache.tinkerpop.gremlin.structure.Edge;
 
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.traversal.algorithm.EdgeStep;
@@ -44,4 +47,6 @@ public interface TraverseStrategy {
     public abstract void addNewVerticesToAll(
                          Map<Id, List<HugeTraverser.Node>> newVertices,
                          Map<Id, List<HugeTraverser.Node>> targets);
+
+    public Iterator<Edge> edgesOfVertex(Id source, EdgeStep edgeStep);
 }

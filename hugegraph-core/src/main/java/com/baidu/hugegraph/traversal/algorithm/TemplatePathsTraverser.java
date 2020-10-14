@@ -75,7 +75,7 @@ public class TemplatePathsTraverser extends TpTraverser {
             totalSteps += step.maxTimes;
         }
         TraverseStrategy strategy = this.traverseStrategy(
-                                    totalSteps < this.concurrentDepth());
+                                    totalSteps >= this.concurrentDepth());
         Traverser traverser = new Traverser(sourceList, targetList, steps,
                                             withRing, capacity, limit,
                                             strategy);

@@ -403,14 +403,14 @@ public class HugeTraverser {
     }
 
     protected static <V> Set<V> newSet() {
-        return newSet(true);
+        return newSet(false);
     }
 
-    protected static <V> Set<V> newSet(boolean single) {
-        if (single) {
-            return new HashSet<>();
-        } else {
+    protected static <V> Set<V> newSet(boolean concurrent) {
+        if (concurrent) {
             return ConcurrentHashMap.newKeySet();
+        } else {
+            return new HashSet<>();
         }
     }
 

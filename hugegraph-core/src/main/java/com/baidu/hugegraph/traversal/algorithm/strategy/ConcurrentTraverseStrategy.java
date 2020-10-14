@@ -19,11 +19,14 @@
 
 package com.baidu.hugegraph.traversal.algorithm.strategy;
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
+
+import org.apache.tinkerpop.gremlin.structure.Edge;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
@@ -70,5 +73,10 @@ public class ConcurrentTraverseStrategy extends TpTraverser
         for (Map.Entry<Id, List<Node>> entry : newVertices.entrySet()) {
             vertices.addAll(entry.getKey(), entry.getValue());
         }
+    }
+
+    @Override
+    public Iterator<Edge> edgesOfVertex(Id source, EdgeStep edgeStep) {
+        return super.edgesOfVertex(source, edgeStep);
     }
 }
