@@ -23,8 +23,10 @@ import org.slf4j.Logger;
 
 import com.alipay.sofa.jraft.rpc.RpcRequestClosure;
 import com.alipay.sofa.jraft.rpc.RpcRequestProcessor;
+import com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreAction;
 import com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreCommandRequest;
 import com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreCommandResponse;
+import com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreType;
 import com.baidu.hugegraph.util.Log;
 import com.google.protobuf.Message;
 
@@ -44,19 +46,10 @@ public class StoreCommandRequestProcessor
     public Message processRequest(StoreCommandRequest request,
                                   RpcRequestClosure done) {
         LOG.debug("Processing StoreCommandRequest");
-        String group = request.getGroupId();
-        RaftNode node = this.context.node(group);
-        if (node == null) {
-            String message = "No matched raft node with group: " + group;
-            return StoreCommandResponse.newBuilder()
-                                       .setStatus(false)
-                                       .setMessage(message)
-                                       .build();
-        }
+        RaftNode node = this.context.node();
         try {
             StoreCommand command = this.parseStoreCommand(request);
             StoreClosure closure = new StoreClosure(command);
-            // TODO: ignored result, add a field to fill result to response
             node.submitAndWait(command, closure);
             return StoreCommandResponse.newBuilder().setStatus(true).build();
         } catch (Throwable e) {
@@ -75,9 +68,9 @@ public class StoreCommandRequestProcessor
     }
 
     private StoreCommand parseStoreCommand(StoreCommandRequest request) {
-        byte actionByte = (byte) request.getAction().getNumber();
-        StoreAction action = StoreAction.fromCode(actionByte);
+        StoreType type = request.getType();
+        StoreAction action = request.getAction();
         byte[] data = request.getData().toByteArray();
-        return new StoreCommand(action, data);
+        return new StoreCommand(type, action, data);
     }
 }

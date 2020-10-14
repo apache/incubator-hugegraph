@@ -36,6 +36,8 @@ import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
+import com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreAction;
+import com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreType;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.Log;
@@ -54,12 +56,12 @@ public class RaftBackendStore implements BackendStore {
         this.threadLocalBatch = new ThreadLocal<>();
     }
 
-    private String group() {
-        return this.database() + "-" + this.store();
+    public BackendStore originStore() {
+        return this.store;
     }
 
     private RaftNode node() {
-        return this.context.node(this.group());
+        return this.context.node();
     }
 
     @Override
@@ -85,19 +87,6 @@ public class RaftBackendStore implements BackendStore {
     @Override
     public synchronized void open(HugeConfig config) {
         this.store.open(config);
-        this.initRaftNodeIfNeeded();
-    }
-
-    public void waitStoreStarted() {
-        RaftNode node = this.node();
-        node.waitLeaderElected(RaftSharedContext.WAIT_LEADER_TIMEOUT);
-        if (node.node().isLeader()) {
-            node.waitStarted(RaftSharedContext.NO_TIMEOUT);
-        }
-    }
-
-    private void initRaftNodeIfNeeded() {
-        this.context.addNode(this.group(), this.store);
     }
 
     @Override
@@ -118,7 +107,8 @@ public class RaftBackendStore implements BackendStore {
 
     @Override
     public void clear(boolean clearSpace) {
-        byte[] bytes = new byte[]{clearSpace ? (byte) 1 : (byte) 0};
+        byte value = clearSpace ? (byte) 1 : (byte) 0;
+        byte[] bytes = StoreCommand.wrap(value);
         this.submitAndWait(StoreAction.CLEAR, bytes);
     }
 
@@ -129,7 +119,7 @@ public class RaftBackendStore implements BackendStore {
 
     @Override
     public void truncate() {
-        this.submitAndWait(StoreAction.TRUNCATE);
+        this.submitAndWait(StoreAction.TRUNCATE, null);
     }
 
     @Override
@@ -167,7 +157,7 @@ public class RaftBackendStore implements BackendStore {
 
     @Override
     public void rollbackTx() {
-        this.submitAndWait(StoreAction.ROLLBACK_TX);
+        this.submitAndWait(StoreAction.ROLLBACK_TX, null);
     }
 
     @Override
@@ -202,12 +192,9 @@ public class RaftBackendStore implements BackendStore {
         this.store.readSnapshot(snapshotPath);
     }
 
-    private Object submitAndWait(StoreAction action) {
-        return this.submitAndWait(new StoreCommand(action));
-    }
-
     private Object submitAndWait(StoreAction action, byte[] data) {
-        return this.submitAndWait(new StoreCommand(action, data));
+        StoreType type = this.context.storeType(this.store());
+        return this.submitAndWait(new StoreCommand(type, action, data));
     }
 
     private Object submitAndWait(StoreCommand command) {

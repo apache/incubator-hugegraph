@@ -902,7 +902,7 @@ public final class BytesBuffer {
 
     private byte[] readBytesWithEnding() {
         int start = this.buffer.position();
-        boolean foundEnding =false;
+        boolean foundEnding = false;
         while (this.remaining() > 0) {
             byte current = this.read();
             if (current == STRING_ENDING_BYTE) {

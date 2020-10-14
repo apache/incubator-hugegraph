@@ -28,7 +28,8 @@ import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.baidu.hugegraph.backend.store.BackendAction;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendMutation;
-import com.baidu.hugegraph.backend.store.raft.StoreAction;
+import com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreAction;
+import com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreType;
 import com.baidu.hugegraph.backend.store.raft.StoreCommand;
 import com.baidu.hugegraph.backend.store.raft.StoreSerializer;
 import com.baidu.hugegraph.testutil.Assert;
@@ -76,13 +77,15 @@ public class StoreSerializerTest {
         origin.add(entry, Action.INSERT);
         byte[] mutationBytes = StoreSerializer.writeMutation(origin);
 
-        StoreCommand command = new StoreCommand(StoreAction.MUTATE,
+        StoreCommand command = new StoreCommand(StoreType.GRAPH,
+                                                StoreAction.MUTATE,
                                                 mutationBytes);
         Assert.assertEquals(StoreAction.MUTATE, command.action());
         Assert.assertArrayEquals(mutationBytes, command.data());
 
-        byte[] commandBytes = command.toBytes();
+        byte[] commandBytes = command.data();
         StoreCommand actual = StoreCommand.fromBytes(commandBytes);
+        Assert.assertEquals(StoreType.GRAPH, command.type());
         Assert.assertEquals(command.action(), actual.action());
         Assert.assertArrayEquals(command.data(), actual.data());
     }

@@ -19,20 +19,33 @@
 
 package com.baidu.hugegraph.backend.store.raft;
 
+import com.baidu.hugegraph.backend.serializer.BytesBuffer;
+import com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreAction;
+import com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreType;
+
 public class StoreCommand {
 
-    private static byte[] EMPTY = new byte[0];
+    public static final int HEADER_SIZE = 2;
 
+    private final StoreType type;
     private final StoreAction action;
     private final byte[] data;
 
-    public StoreCommand(StoreAction action) {
-        this(action, EMPTY);
+    public StoreCommand(StoreType type, StoreAction action, byte[] data) {
+        this.type = type;
+        this.action = action;
+        if (data == null) {
+            this.data = new byte[HEADER_SIZE];
+        } else {
+            assert data.length >= HEADER_SIZE;
+            this.data = data;
+        }
+        this.data[0] = (byte) this.type.getNumber();
+        this.data[1] = (byte) this.action.getNumber();
     }
 
-    public StoreCommand(StoreAction action, byte[] data) {
-        this.action = action;
-        this.data = data;
+    public StoreType type() {
+        return this.type;
     }
 
     public StoreAction action() {
@@ -43,17 +56,20 @@ public class StoreCommand {
         return this.data;
     }
 
-    public byte[] toBytes() {
-        byte[] bytes = new byte[1 + this.data.length];
-        bytes[0] = this.action.code();
-        System.arraycopy(this.data, 0, bytes, 1, this.data.length);
+    public static void writeHeader(BytesBuffer buffer) {
+        buffer.write((byte) 0);
+        buffer.write((byte) 0);
+    }
+
+    public static byte[] wrap(byte value) {
+        byte[] bytes = new byte[HEADER_SIZE + 1];
+        bytes[2] = value;
         return bytes;
     }
 
     public static StoreCommand fromBytes(byte[] bytes) {
-        StoreAction action = StoreAction.fromCode(bytes[0]);
-        byte[] data = new byte[bytes.length - 1];
-        System.arraycopy(bytes, 1, data, 0, bytes.length - 1);
-        return new StoreCommand(action, data);
+        StoreType type = StoreType.valueOf(bytes[0]);
+        StoreAction action = StoreAction.valueOf(bytes[1]);
+        return new StoreCommand(type, action, bytes);
     }
 }

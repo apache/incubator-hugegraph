@@ -9,6 +9,106 @@ public final class RaftRequests {
       com.google.protobuf.ExtensionRegistry registry) {
   }
   /**
+   * Protobuf enum {@code com.baidu.hugegraph.backend.store.raft.StoreType}
+   */
+  public enum StoreType
+      implements com.google.protobuf.ProtocolMessageEnum {
+    /**
+     * <code>SCHEMA = 0;</code>
+     */
+    SCHEMA(0, 0),
+    /**
+     * <code>GRAPH = 1;</code>
+     */
+    GRAPH(1, 1),
+    /**
+     * <code>SYSTEM = 2;</code>
+     */
+    SYSTEM(2, 2),
+    /**
+     * <code>SIZE = 3;</code>
+     */
+    SIZE(3, 3),
+    ;
+
+    /**
+     * <code>SCHEMA = 0;</code>
+     */
+    public static final int SCHEMA_VALUE = 0;
+    /**
+     * <code>GRAPH = 1;</code>
+     */
+    public static final int GRAPH_VALUE = 1;
+    /**
+     * <code>SYSTEM = 2;</code>
+     */
+    public static final int SYSTEM_VALUE = 2;
+    /**
+     * <code>SIZE = 3;</code>
+     */
+    public static final int SIZE_VALUE = 3;
+
+
+    public final int getNumber() { return value; }
+
+    public static StoreType valueOf(int value) {
+      switch (value) {
+        case 0: return SCHEMA;
+        case 1: return GRAPH;
+        case 2: return SYSTEM;
+        case 3: return SIZE;
+        default: return null;
+      }
+    }
+
+    public static com.google.protobuf.Internal.EnumLiteMap<StoreType>
+        internalGetValueMap() {
+      return internalValueMap;
+    }
+    private static com.google.protobuf.Internal.EnumLiteMap<StoreType>
+        internalValueMap =
+          new com.google.protobuf.Internal.EnumLiteMap<StoreType>() {
+            public StoreType findValueByNumber(int number) {
+              return StoreType.valueOf(number);
+            }
+          };
+
+    public final com.google.protobuf.Descriptors.EnumValueDescriptor
+        getValueDescriptor() {
+      return getDescriptor().getValues().get(index);
+    }
+    public final com.google.protobuf.Descriptors.EnumDescriptor
+        getDescriptorForType() {
+      return getDescriptor();
+    }
+    public static final com.google.protobuf.Descriptors.EnumDescriptor
+        getDescriptor() {
+      return com.baidu.hugegraph.backend.store.raft.RaftRequests.getDescriptor().getEnumTypes().get(0);
+    }
+
+    private static final StoreType[] VALUES = values();
+
+    public static StoreType valueOf(
+        com.google.protobuf.Descriptors.EnumValueDescriptor desc) {
+      if (desc.getType() != getDescriptor()) {
+        throw new java.lang.IllegalArgumentException(
+          "EnumValueDescriptor is not for this type.");
+      }
+      return VALUES[desc.getIndex()];
+    }
+
+    private final int index;
+    private final int value;
+
+    private StoreType(int index, int value) {
+      this.index = index;
+      this.value = value;
+    }
+
+    // @@protoc_insertion_point(enum_scope:com.baidu.hugegraph.backend.store.raft.StoreType)
+  }
+
+  /**
    * Protobuf enum {@code com.baidu.hugegraph.backend.store.raft.StoreAction}
    */
   public enum StoreAction
@@ -137,7 +237,7 @@ public final class RaftRequests {
     }
     public static final com.google.protobuf.Descriptors.EnumDescriptor
         getDescriptor() {
-      return com.baidu.hugegraph.backend.store.raft.RaftRequests.getDescriptor().getEnumTypes().get(0);
+      return com.baidu.hugegraph.backend.store.raft.RaftRequests.getDescriptor().getEnumTypes().get(1);
     }
 
     private static final StoreAction[] VALUES = values();
@@ -165,20 +265,15 @@ public final class RaftRequests {
   public interface StoreCommandRequestOrBuilder
       extends com.google.protobuf.MessageOrBuilder {
 
-    // required string group_id = 1;
+    // required .com.baidu.hugegraph.backend.store.raft.StoreType type = 1;
     /**
-     * <code>required string group_id = 1;</code>
+     * <code>required .com.baidu.hugegraph.backend.store.raft.StoreType type = 1;</code>
      */
-    boolean hasGroupId();
+    boolean hasType();
     /**
-     * <code>required string group_id = 1;</code>
+     * <code>required .com.baidu.hugegraph.backend.store.raft.StoreType type = 1;</code>
      */
-    java.lang.String getGroupId();
-    /**
-     * <code>required string group_id = 1;</code>
-     */
-    com.google.protobuf.ByteString
-        getGroupIdBytes();
+    com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreType getType();
 
     // required .com.baidu.hugegraph.backend.store.raft.StoreAction action = 2;
     /**
@@ -203,7 +298,6 @@ public final class RaftRequests {
   /**
    * Protobuf type {@code com.baidu.hugegraph.backend.store.raft.StoreCommandRequest}
    */
-  @SuppressWarnings("unused")
   public static final class StoreCommandRequest extends
       com.google.protobuf.GeneratedMessage
       implements StoreCommandRequestOrBuilder {
@@ -252,9 +346,15 @@ public final class RaftRequests {
               }
               break;
             }
-            case 10: {
-              bitField0_ |= 0x00000001;
-              groupId_ = input.readBytes();
+            case 8: {
+              int rawValue = input.readEnum();
+              com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreType value = com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreType.valueOf(rawValue);
+              if (value == null) {
+                unknownFields.mergeVarintField(1, rawValue);
+              } else {
+                bitField0_ |= 0x00000001;
+                type_ = value;
+              }
               break;
             }
             case 16: {
@@ -313,47 +413,20 @@ public final class RaftRequests {
     }
 
     private int bitField0_;
-    // required string group_id = 1;
-    public static final int GROUP_ID_FIELD_NUMBER = 1;
-    private java.lang.Object groupId_;
+    // required .com.baidu.hugegraph.backend.store.raft.StoreType type = 1;
+    public static final int TYPE_FIELD_NUMBER = 1;
+    private com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreType type_;
     /**
-     * <code>required string group_id = 1;</code>
+     * <code>required .com.baidu.hugegraph.backend.store.raft.StoreType type = 1;</code>
      */
-    public boolean hasGroupId() {
+    public boolean hasType() {
       return ((bitField0_ & 0x00000001) == 0x00000001);
     }
     /**
-     * <code>required string group_id = 1;</code>
+     * <code>required .com.baidu.hugegraph.backend.store.raft.StoreType type = 1;</code>
      */
-    public java.lang.String getGroupId() {
-      java.lang.Object ref = groupId_;
-      if (ref instanceof java.lang.String) {
-        return (java.lang.String) ref;
-      } else {
-        com.google.protobuf.ByteString bs = 
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          groupId_ = s;
-        }
-        return s;
-      }
-    }
-    /**
-     * <code>required string group_id = 1;</code>
-     */
-    public com.google.protobuf.ByteString
-        getGroupIdBytes() {
-      java.lang.Object ref = groupId_;
-      if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        groupId_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
+    public com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreType getType() {
+      return type_;
     }
 
     // required .com.baidu.hugegraph.backend.store.raft.StoreAction action = 2;
@@ -389,7 +462,7 @@ public final class RaftRequests {
     }
 
     private void initFields() {
-      groupId_ = "";
+      type_ = com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreType.SCHEMA;
       action_ = com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreAction.NONE;
       data_ = com.google.protobuf.ByteString.EMPTY;
     }
@@ -398,7 +471,7 @@ public final class RaftRequests {
       byte isInitialized = memoizedIsInitialized;
       if (isInitialized != -1) return isInitialized == 1;
 
-      if (!hasGroupId()) {
+      if (!hasType()) {
         memoizedIsInitialized = 0;
         return false;
       }
@@ -418,7 +491,7 @@ public final class RaftRequests {
                         throws java.io.IOException {
       getSerializedSize();
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
-        output.writeBytes(1, getGroupIdBytes());
+        output.writeEnum(1, type_.getNumber());
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         output.writeEnum(2, action_.getNumber());
@@ -437,7 +510,7 @@ public final class RaftRequests {
       size = 0;
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(1, getGroupIdBytes());
+          .computeEnumSize(1, type_.getNumber());
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         size += com.google.protobuf.CodedOutputStream
@@ -563,7 +636,7 @@ public final class RaftRequests {
 
       public Builder clear() {
         super.clear();
-        groupId_ = "";
+        type_ = com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreType.SCHEMA;
         bitField0_ = (bitField0_ & ~0x00000001);
         action_ = com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreAction.NONE;
         bitField0_ = (bitField0_ & ~0x00000002);
@@ -600,7 +673,7 @@ public final class RaftRequests {
         if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
           to_bitField0_ |= 0x00000001;
         }
-        result.groupId_ = groupId_;
+        result.type_ = type_;
         if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
           to_bitField0_ |= 0x00000002;
         }
@@ -625,10 +698,8 @@ public final class RaftRequests {
 
       public Builder mergeFrom(com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreCommandRequest other) {
         if (other == com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreCommandRequest.getDefaultInstance()) return this;
-        if (other.hasGroupId()) {
-          bitField0_ |= 0x00000001;
-          groupId_ = other.groupId_;
-          onChanged();
+        if (other.hasType()) {
+          setType(other.getType());
         }
         if (other.hasAction()) {
           setAction(other.getAction());
@@ -641,7 +712,7 @@ public final class RaftRequests {
       }
 
       public final boolean isInitialized() {
-        if (!hasGroupId()) {
+        if (!hasType()) {
           
           return false;
         }
@@ -675,76 +746,38 @@ public final class RaftRequests {
       }
       private int bitField0_;
 
-      // required string group_id = 1;
-      private java.lang.Object groupId_ = "";
+      // required .com.baidu.hugegraph.backend.store.raft.StoreType type = 1;
+      private com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreType type_ = com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreType.SCHEMA;
       /**
-       * <code>required string group_id = 1;</code>
+       * <code>required .com.baidu.hugegraph.backend.store.raft.StoreType type = 1;</code>
        */
-      public boolean hasGroupId() {
+      public boolean hasType() {
         return ((bitField0_ & 0x00000001) == 0x00000001);
       }
       /**
-       * <code>required string group_id = 1;</code>
+       * <code>required .com.baidu.hugegraph.backend.store.raft.StoreType type = 1;</code>
        */
-      public java.lang.String getGroupId() {
-        java.lang.Object ref = groupId_;
-        if (!(ref instanceof java.lang.String)) {
-          java.lang.String s = ((com.google.protobuf.ByteString) ref)
-              .toStringUtf8();
-          groupId_ = s;
-          return s;
-        } else {
-          return (java.lang.String) ref;
-        }
+      public com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreType getType() {
+        return type_;
       }
       /**
-       * <code>required string group_id = 1;</code>
+       * <code>required .com.baidu.hugegraph.backend.store.raft.StoreType type = 1;</code>
        */
-      public com.google.protobuf.ByteString
-          getGroupIdBytes() {
-        java.lang.Object ref = groupId_;
-        if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
-              com.google.protobuf.ByteString.copyFromUtf8(
-                  (java.lang.String) ref);
-          groupId_ = b;
-          return b;
-        } else {
-          return (com.google.protobuf.ByteString) ref;
-        }
-      }
-      /**
-       * <code>required string group_id = 1;</code>
-       */
-      public Builder setGroupId(
-          java.lang.String value) {
+      public Builder setType(com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreType value) {
         if (value == null) {
-    throw new NullPointerException();
-  }
-  bitField0_ |= 0x00000001;
-        groupId_ = value;
+          throw new NullPointerException();
+        }
+        bitField0_ |= 0x00000001;
+        type_ = value;
         onChanged();
         return this;
       }
       /**
-       * <code>required string group_id = 1;</code>
+       * <code>required .com.baidu.hugegraph.backend.store.raft.StoreType type = 1;</code>
        */
-      public Builder clearGroupId() {
+      public Builder clearType() {
         bitField0_ = (bitField0_ & ~0x00000001);
-        groupId_ = getDefaultInstance().getGroupId();
-        onChanged();
-        return this;
-      }
-      /**
-       * <code>required string group_id = 1;</code>
-       */
-      public Builder setGroupIdBytes(
-          com.google.protobuf.ByteString value) {
-        if (value == null) {
-    throw new NullPointerException();
-  }
-  bitField0_ |= 0x00000001;
-        groupId_ = value;
+        type_ = com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreType.SCHEMA;
         onChanged();
         return this;
       }
@@ -863,7 +896,6 @@ public final class RaftRequests {
   /**
    * Protobuf type {@code com.baidu.hugegraph.backend.store.raft.StoreCommandResponse}
    */
-  @SuppressWarnings("unused")
   public static final class StoreCommandResponse extends
       com.google.protobuf.GeneratedMessage
       implements StoreCommandResponseOrBuilder {
@@ -1414,16 +1446,19 @@ public final class RaftRequests {
     java.lang.String[] descriptorData = {
       "\n,hugegraph-core/src/main/resources/raft" +
       ".proto\022&com.baidu.hugegraph.backend.stor" +
-      "e.raft\"z\n\023StoreCommandRequest\022\020\n\010group_i" +
-      "d\030\001 \002(\t\022C\n\006action\030\002 \002(\01623.com.baidu.huge" +
-      "graph.backend.store.raft.StoreAction\022\014\n\004" +
-      "data\030\003 \002(\014\"7\n\024StoreCommandResponse\022\016\n\006st" +
-      "atus\030\001 \002(\010\022\017\n\007message\030\002 \001(\t*\221\001\n\013StoreAct" +
-      "ion\022\010\n\004NONE\020\000\022\010\n\004INIT\020\001\022\t\n\005CLEAR\020\002\022\014\n\010TR" +
-      "UNCATE\020\003\022\014\n\010BEGIN_TX\020\n\022\r\n\tCOMMIT_TX\020\013\022\017\n" +
-      "\013ROLLBACK_TX\020\014\022\n\n\006MUTATE\020\024\022\020\n\014INCR_COUNT",
-      "ER\020\025\022\t\n\005QUERY\020\036B6\n&com.baidu.hugegraph.b" +
-      "ackend.store.raftB\014RaftRequests"
+      "e.raft\"\251\001\n\023StoreCommandRequest\022?\n\004type\030\001" +
+      " \002(\01621.com.baidu.hugegraph.backend.store" +
+      ".raft.StoreType\022C\n\006action\030\002 \002(\01623.com.ba" +
+      "idu.hugegraph.backend.store.raft.StoreAc" +
+      "tion\022\014\n\004data\030\003 \002(\014\"7\n\024StoreCommandRespon" +
+      "se\022\016\n\006status\030\001 \002(\010\022\017\n\007message\030\002 \001(\t*8\n\tS" +
+      "toreType\022\n\n\006SCHEMA\020\000\022\t\n\005GRAPH\020\001\022\n\n\006SYSTE" +
+      "M\020\002\022\010\n\004SIZE\020\003*\221\001\n\013StoreAction\022\010\n\004NONE\020\000\022",
+      "\010\n\004INIT\020\001\022\t\n\005CLEAR\020\002\022\014\n\010TRUNCATE\020\003\022\014\n\010BE" +
+      "GIN_TX\020\n\022\r\n\tCOMMIT_TX\020\013\022\017\n\013ROLLBACK_TX\020\014" +
+      "\022\n\n\006MUTATE\020\024\022\020\n\014INCR_COUNTER\020\025\022\t\n\005QUERY\020" +
+      "\036B6\n&com.baidu.hugegraph.backend.store.r" +
+      "aftB\014RaftRequests"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
       new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {
@@ -1435,7 +1470,7 @@ public final class RaftRequests {
           internal_static_com_baidu_hugegraph_backend_store_raft_StoreCommandRequest_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_com_baidu_hugegraph_backend_store_raft_StoreCommandRequest_descriptor,
-              new java.lang.String[] { "GroupId", "Action", "Data", });
+              new java.lang.String[] { "Type", "Action", "Data", });
           internal_static_com_baidu_hugegraph_backend_store_raft_StoreCommandResponse_descriptor =
             getDescriptor().getMessageTypes().get(1);
           internal_static_com_baidu_hugegraph_backend_store_raft_StoreCommandResponse_fieldAccessorTable = new

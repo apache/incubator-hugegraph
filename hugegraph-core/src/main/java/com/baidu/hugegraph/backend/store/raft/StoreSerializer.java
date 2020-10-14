@@ -43,7 +43,11 @@ public class StoreSerializer {
 
     public static byte[] writeMutations(List<BackendMutation> mutations) {
         int estimateSize = mutations.size() * MUTATION_SIZE;
-        BytesBuffer buffer = BytesBuffer.allocate(1 + estimateSize);
+        // The first two bytes are reserved for StoreType and StoreAction
+        BytesBuffer buffer = BytesBuffer.allocate(StoreCommand.HEADER_SIZE +
+                                                  4 + estimateSize);
+        StoreCommand.writeHeader(buffer);
+
         buffer.writeVInt(mutations.size());
         for (BackendMutation mutation : mutations) {
             buffer.writeBigBytes(writeMutation(mutation));
@@ -128,7 +132,11 @@ public class StoreSerializer {
     }
 
     public static byte[] writeIncrCounter(IncrCounter incrCounter) {
-        BytesBuffer buffer = BytesBuffer.allocate(1 + BytesBuffer.LONG_LEN);
+        // The first two bytes are reserved for StoreType and StoreAction
+        BytesBuffer buffer = BytesBuffer.allocate(StoreCommand.HEADER_SIZE +
+                                                  1 + BytesBuffer.LONG_LEN);
+        StoreCommand.writeHeader(buffer);
+
         buffer.write(incrCounter.type().code());
         buffer.writeVLong(incrCounter.increment());
         return buffer.bytes();
