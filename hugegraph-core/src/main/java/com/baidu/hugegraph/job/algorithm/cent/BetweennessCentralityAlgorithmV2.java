@@ -21,20 +21,18 @@ package com.baidu.hugegraph.job.algorithm.cent;
 
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.Map;
-import java.util.Stack;
 
+import org.apache.commons.lang3.mutable.MutableFloat;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.job.UserJob;
-import com.baidu.hugegraph.structure.HugeEdge;
+import com.baidu.hugegraph.job.algorithm.BfsTraverser;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
 import com.baidu.hugegraph.type.define.Directions;
-
 
 public class BetweennessCentralityAlgorithmV2 extends AbstractCentAlgorithm {
 
@@ -63,29 +61,31 @@ public class BetweennessCentralityAlgorithmV2 extends AbstractCentAlgorithm {
         }
     }
 
-    private static class Traverser extends AbstractCentAlgorithm.Traverser {
+    private static class Traverser extends BfsTraverser<BetweennessNode> {
+
+        private Map<Id, MutableFloat> globalBetweennesses;
 
         private Traverser(UserJob<Object> job) {
             super(job);
         }
 
         private Object betweenessCentrality(Directions direction,
-                                           String label,
-                                           int depth,
-                                           long degree,
-                                           long sample,
-                                           String sourceLabel,
-                                           long sourceSample,
-                                           String sourceCLabel,
-                                           long topN) {
+                                            String label,
+                                            int depth,
+                                            long degree,
+                                            long sample,
+                                            String sourceLabel,
+                                            long sourceSample,
+                                            String sourceCLabel,
+                                            long topN) {
             assert depth > 0;
             assert degree > 0L || degree == NO_LIMIT;
             assert topN >= 0L || topN == NO_LIMIT;
 
-            Map<Id, Float> globalBetweennesses = new HashMap<>();
+            this.globalBetweennesses = new HashMap<>();
             Id edgeLabelId = null;
             if (label != null) {
-                edgeLabelId = graph().edgeLabel(label).id();
+                edgeLabelId = this.graph().edgeLabel(label).id();
             }
 
             // TODO: sample the startVertices
@@ -93,142 +93,80 @@ public class BetweennessCentralityAlgorithmV2 extends AbstractCentAlgorithm {
                                                            sourceCLabel,
                                                            Query.NO_LIMIT);
             while (startVertices.hasNext()) {
-                Id startVertex  = ((HugeVertex) startVertices.next()).id();
-                globalBetweennesses.putIfAbsent(startVertex, 0.0f);
-                Stack<Id> traversedVertices = new Stack<>();
-                Map<Id, BetweennessNode> localBetweennesses = new HashMap<>();
-                BetweennessNode startNode = new BetweennessNode(1, 0);
-                localBetweennesses.put(startVertex, startNode);
-                this.computeDistance(startVertex, localBetweennesses,
-                                     traversedVertices, direction,
-                                     edgeLabelId, depth, degree);
-                this.computeBetweenness(startVertex, traversedVertices,
-                                        globalBetweennesses,
-                                        localBetweennesses);
+                Id startVertex = ((HugeVertex) startVertices.next()).id();
+                this.globalBetweennesses.putIfAbsent(startVertex,
+                                                     new MutableFloat());
+                this.compute(startVertex, direction, edgeLabelId,
+                             degree, depth);
             }
-            if (topN > 0) {
-                return HugeTraverser.topN(globalBetweennesses, true, topN);
+            if (topN > 0L || topN == NO_LIMIT) {
+                return HugeTraverser.topN(this.globalBetweennesses,
+                                          true, topN);
             } else {
-                return globalBetweennesses;
+                return this.globalBetweennesses;
             }
         }
 
-        private void computeDistance(Id startVertex,
-                                     Map<Id, BetweennessNode> betweennesses,
-                                     Stack<Id> traversedVertices, Directions direction,
-                                     Id edgeLabelId, long degree, long depth) {
-            LinkedList<Id> traversingVertices = new LinkedList<>();
-            traversingVertices.add(startVertex);
-
-            while (!traversingVertices.isEmpty()) {
-                Id source = traversingVertices.removeFirst();
-                traversedVertices.push(source);
-                BetweennessNode sourceNode = betweennesses.get(source);
-                if (sourceNode == null) {
-                    sourceNode = new BetweennessNode();
-                    betweennesses.put(source, sourceNode);
-                }
-                // TODO: sample the edges
-                Iterator<HugeEdge> edges = (Iterator) this.edgesOfVertex(
-                                           source, direction, edgeLabelId,
-                                           degree);
-                while (edges.hasNext()) {
-                    HugeEdge edge = edges.next();
-                    Id targetId = edge.otherVertex().id();
-                    BetweennessNode targetNode = betweennesses.get(targetId);
-                    // edge's targetNode is arrived at first time
-                    if (targetNode == null) {
-                        targetNode = new BetweennessNode(sourceNode);
-                        betweennesses.put(targetId, targetNode);
-                        if (depth == NO_LIMIT ||
-                            targetNode.distance() <= depth) {
-                            traversingVertices.addLast(targetId);
-                        }
-                    }
-                    targetNode.addParentNodeIfNeeded(sourceNode, source);
-                }
-            }
+        @Override
+        protected BetweennessNode createNode(BetweennessNode parentNode) {
+            return new BetweennessNode(parentNode);
         }
 
-        private void computeBetweenness(
-                     Id startVertex,
-                     Stack<Id> traversedVertices,
-                     Map<Id, Float> globalBetweennesses,
-                     Map<Id, BetweennessNode> localBetweennesses) {
-            while (!traversedVertices.empty()) {
-                Id currentId = traversedVertices.pop();
-                BetweennessNode currentNode =
-                                localBetweennesses.get(currentId);
-                if (currentId.equals(startVertex)) {
-                    continue;
-                }
-                // add to globalBetweennesses
-                float betweenness = globalBetweennesses.getOrDefault(currentId,
-                                                                     0.0f);
-                betweenness += currentNode.betweenness();
-                globalBetweennesses.put(currentId, betweenness);
+        @Override
+        protected void meetNode(Id currentVertex, BetweennessNode currentNode,
+                                Id parentVertex, BetweennessNode parentNode,
+                                boolean firstTime) {
+            currentNode.addParentNodeIfNeeded(parentNode, parentVertex);
+        }
 
-                // contribute to parent
-                for (Id v : currentNode.parents()) {
-                    BetweennessNode parentNode = localBetweennesses.get(v);
-                    parentNode.increaseBetweenness(currentNode);
-                }
+        @Override
+        protected BetweennessNode createStartNode() {
+            return new BetweennessNode(1, 0);
+        }
+
+        @Override
+        protected void backtrack(Id startVertex, Id currentVertex,
+                                 Map<Id, BetweennessNode> localNodes) {
+            if (startVertex.equals(currentVertex)) {
+                return;
+            }
+            MutableFloat betweenness = this.globalBetweennesses.get(
+                                       currentVertex);
+            if (betweenness == null) {
+                betweenness = new MutableFloat(0.0F);
+                this.globalBetweennesses.put(currentVertex, betweenness);
+            }
+            BetweennessNode node = localNodes.get(currentVertex);
+            betweenness.add(node.betweenness());
+
+            // Contribute to parents
+            for (Id v : node.parents()) {
+                BetweennessNode parentNode = localNodes.get(v);
+                parentNode.increaseBetweenness(node);
             }
         }
     }
 
     /**
-     * the temp data structure for a vertex used in computing process.
+     * Temp data structure for a vertex used in computing process.
      */
-    private static class BetweennessNode {
+    private static class BetweennessNode extends BfsTraverser.Node {
 
-        private Id[] parents;
-        private int pathCount;
-        private int distance;
         private float betweenness;
 
-        public BetweennessNode() {
-            this(0, -1);
-        }
-
         public BetweennessNode(BetweennessNode parentNode) {
-            this(0, parentNode.distance + 1);
+            this(0, parentNode.distance() + 1);
         }
 
         public BetweennessNode(int pathCount, int distance) {
-            this.pathCount = pathCount;
-            this.distance = distance;
-            this.parents = new Id[0];
-            this.betweenness = 0.0f;
-        }
-
-        public int distance() {
-            return this.distance;
-        }
-
-        public Id[] parents() {
-            return this.parents;
-        }
-
-        public void addParent(Id parentId) {
-            Id[] newParents = new Id[this.parents.length + 1];
-            System.arraycopy(this.parents, 0, newParents, 0,
-                             this.parents.length);
-            newParents[newParents.length - 1] = parentId;
-            this.parents = newParents;
+            super(pathCount, distance);
+            this.betweenness = 0.0F;
         }
 
         public void increaseBetweenness(BetweennessNode childNode) {
-            float increase = (float) this.pathCount / childNode.pathCount *
-                             (1 + childNode.betweenness);
+            float increase = (float) this.pathCount() / childNode.pathCount() *
+                             (1.0F + childNode.betweenness);
             this.betweenness += increase;
-        }
-
-        public void addParentNodeIfNeeded(BetweennessNode node, Id parentId) {
-            if (this.distance == node.distance + 1) {
-                this.pathCount += node.pathCount;
-                this.addParent(parentId);
-            }
         }
 
         public float betweenness() {

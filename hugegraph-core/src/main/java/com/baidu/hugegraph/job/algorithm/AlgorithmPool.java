@@ -23,10 +23,13 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.baidu.hugegraph.job.algorithm.cent.BetweennessCentralityAlgorithm;
+import com.baidu.hugegraph.job.algorithm.cent.BetweennessCentralityAlgorithmV2;
 import com.baidu.hugegraph.job.algorithm.cent.ClosenessCentralityAlgorithm;
+import com.baidu.hugegraph.job.algorithm.cent.ClosenessCentralityAlgorithmV2;
 import com.baidu.hugegraph.job.algorithm.cent.DegreeCentralityAlgorithm;
 import com.baidu.hugegraph.job.algorithm.cent.EigenvectorCentralityAlgorithm;
 import com.baidu.hugegraph.job.algorithm.cent.StressCentralityAlgorithm;
+import com.baidu.hugegraph.job.algorithm.cent.StressCentralityAlgorithmV2;
 import com.baidu.hugegraph.job.algorithm.comm.ClusterCoeffcientAlgorithm;
 import com.baidu.hugegraph.job.algorithm.comm.KCoreAlgorithm;
 import com.baidu.hugegraph.job.algorithm.comm.LouvainAlgorithm;
@@ -65,6 +68,10 @@ public class AlgorithmPool {
         INSTANCE.register(new PageRankAlgorithm());
 
         INSTANCE.register(new SubgraphStatAlgorithm());
+
+        INSTANCE.register(new StressCentralityAlgorithmV2());
+        INSTANCE.register(new BetweennessCentralityAlgorithmV2());
+        INSTANCE.register(new ClosenessCentralityAlgorithmV2());
     }
 
     private final Map<String, Algorithm> algorithms;
