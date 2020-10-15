@@ -78,8 +78,10 @@ public abstract class BfsTraverser<T extends BfsTraverser.Node>
                     localNodes.put(target, targetNode);
                     traversingVertices.addLast(target);
                 }
-                this.meetNode(target, targetNode, source,
-                              sourceNode, firstTime);
+                if (targetNode.distance() == sourceNode.distance() + 1) {
+                    this.meetNode(target, targetNode, source,
+                                  sourceNode, firstTime);
+                }
             }
         }
         return localNodes;
@@ -96,6 +98,10 @@ public abstract class BfsTraverser<T extends BfsTraverser.Node>
 
     protected abstract T createNode(T parentNode);
 
+    /**
+     * This method is invoked when currentVertex.distance() equals
+     * parentVertex.distance() + 1.
+     */
     protected abstract void meetNode(Id currentVertex, T currentNode,
                                      Id parentVertex, T parentNode,
                                      boolean firstTime);
@@ -136,11 +142,9 @@ public abstract class BfsTraverser<T extends BfsTraverser.Node>
             this.parents = newParents;
         }
 
-        public void addParentNodeIfNeeded(Node node, Id parentId) {
-            if (this.distance == node.distance + 1) {
-                this.pathCount += node.pathCount;
-                this.addParent(parentId);
-            }
+        public void addParentNode(Node node, Id parentId) {
+            this.pathCount += node.pathCount;
+            this.addParent(parentId);
         }
 
         protected int pathCount() {
