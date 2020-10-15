@@ -119,7 +119,7 @@ public class StressCentralityAlgorithmV2 extends AbstractCentAlgorithm {
         protected void meetNode(Id currentVertex, StressNode currentNode,
                                 Id parentVertex, StressNode parentNode,
                                 boolean firstTime) {
-            currentNode.addParentNodeIfNeeded(parentNode, parentVertex);
+            currentNode.addParentNode(parentNode, parentVertex);
         }
 
         @Override

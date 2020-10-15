@@ -116,7 +116,7 @@ public class BetweennessCentralityAlgorithmV2 extends AbstractCentAlgorithm {
         protected void meetNode(Id currentVertex, BetweennessNode currentNode,
                                 Id parentVertex, BetweennessNode parentNode,
                                 boolean firstTime) {
-            currentNode.addParentNodeIfNeeded(parentNode, parentVertex);
+            currentNode.addParentNode(parentNode, parentVertex);
         }
 
         @Override
