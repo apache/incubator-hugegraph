@@ -52,7 +52,7 @@ public class RaftAPI extends API {
 
     @GET
     @Timed
-    @Path("leader")
+    @Path("get-leader")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin", "$owner=$graph"})
@@ -64,8 +64,7 @@ public class RaftAPI extends API {
         if (!(g.storeProvider() instanceof RaftBackendStoreProvider)) {
             throw new HugeException("Only work on raft mode can get leader");
         }
-        RaftBackendStoreProvider provider = (RaftBackendStoreProvider)
-                                            g.storeProvider();
+        RaftBackendStoreProvider provider = this.storeProvider(g);
         return provider.getLeader();
     }
 
@@ -88,8 +87,7 @@ public class RaftAPI extends API {
             throw new HugeException("Only work on raft mode can transfer " +
                                     "leader");
         }
-        RaftBackendStoreProvider provider = (RaftBackendStoreProvider)
-                                            g.storeProvider();
+        RaftBackendStoreProvider provider = this.storeProvider(g);
         provider.transferLeaderTo(endpoint);
         return ImmutableMap.of("leader", endpoint);
     }
@@ -112,8 +110,7 @@ public class RaftAPI extends API {
         if (!(g.storeProvider() instanceof RaftBackendStoreProvider)) {
             throw new HugeException("Only work on raft mode can set leader");
         }
-        RaftBackendStoreProvider provider = (RaftBackendStoreProvider)
-                                            g.storeProvider();
+        RaftBackendStoreProvider provider = this.storeProvider(g);
         provider.setLeader(endpoint);
         return ImmutableMap.of("leader", endpoint);
     }
@@ -134,8 +131,7 @@ public class RaftAPI extends API {
         if (!(g.storeProvider() instanceof RaftBackendStoreProvider)) {
             throw new HugeException("Only work on raft mode can add peer");
         }
-        RaftBackendStoreProvider provider = (RaftBackendStoreProvider)
-                                            g.storeProvider();
+        RaftBackendStoreProvider provider = this.storeProvider(g);
         provider.addPeer(endpoint);
         return ImmutableMap.of("endpoint", endpoint);
     }
@@ -157,9 +153,12 @@ public class RaftAPI extends API {
         if (!(g.storeProvider() instanceof RaftBackendStoreProvider)) {
             throw new HugeException("Only work on raft mode can remove peer");
         }
-        RaftBackendStoreProvider provider = (RaftBackendStoreProvider)
-                                            g.storeProvider();
+        RaftBackendStoreProvider provider = this.storeProvider(g);
         provider.removePeer(endpoint);
         return ImmutableMap.of("endpoint", endpoint);
+    }
+
+    private RaftBackendStoreProvider storeProvider(HugeGraph graph) {
+        return (RaftBackendStoreProvider) graph.storeProvider();
     }
 }

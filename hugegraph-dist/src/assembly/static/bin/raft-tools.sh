@@ -36,7 +36,7 @@ fi
 function get_leader() {
     local graph=$1
     local rest_server_url=`read_property ${CONF_PATH}/rest-server.properties restserver.url`
-    local url=${rest_server_url}/graphs/${graph}/raft/leader
+    local url=${rest_server_url}/graphs/${graph}/raft/get-leader
 
     curl ${url}
 }

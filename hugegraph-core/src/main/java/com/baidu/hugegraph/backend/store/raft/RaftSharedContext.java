@@ -251,7 +251,7 @@ public final class RaftSharedContext {
             // How to avoid update cache from server info
             eventHub.notify(Events.CACHE, "invalid", type, id);
         } catch (RejectedExecutionException e) {
-            // pass
+            LOG.warn("Can't update cache due to EventHub is too busy");
         }
     }
 
