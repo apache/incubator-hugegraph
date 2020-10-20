@@ -159,7 +159,8 @@ public class RaftNode {
              */
             return future.waitFinished();
         } catch (Throwable e) {
-            throw new BackendException(e);
+            throw new BackendException("Failed to wait store command %s",
+                                       e, command);
         }
     }
 

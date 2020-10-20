@@ -127,7 +127,6 @@ public interface HugeGraph extends Graph {
     public Number queryNumber(Query query);
 
     public String name();
-    public RaftNodeManager raftNodeManager();
     public String backend();
     public String backendVersion();
     public BackendStoreSystemInfo backendStoreSystemInfo();
@@ -152,6 +151,7 @@ public interface HugeGraph extends Graph {
 
     public UserManager userManager();
     public TaskScheduler taskScheduler();
+    public RaftNodeManager raftNodeManager();
 
     public void proxy(HugeGraph graph);
 

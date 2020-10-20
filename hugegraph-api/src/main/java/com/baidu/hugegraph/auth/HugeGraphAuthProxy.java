@@ -554,12 +554,6 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     @Override
-    public RaftNodeManager raftNodeManager() {
-        this.verifyAdminPermission();
-        return this.hugegraph.raftNodeManager();
-    }
-
-    @Override
     public String backend() {
         this.verifyStatusPermission();
         return this.hugegraph.backend();
@@ -636,6 +630,12 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     public UserManager userManager() {
         // Just return proxy
         return this.userManager;
+    }
+
+    @Override
+    public RaftNodeManager raftNodeManager() {
+        this.verifyAdminPermission();
+        return this.hugegraph.raftNodeManager();
     }
 
     @Override

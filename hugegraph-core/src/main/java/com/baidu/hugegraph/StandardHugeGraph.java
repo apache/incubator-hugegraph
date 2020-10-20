@@ -190,14 +190,6 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
-    public RaftNodeManager raftNodeManager() {
-        if (!(this.storeProvider instanceof RaftBackendStoreProvider)) {
-            return null;
-        }
-        return ((RaftBackendStoreProvider) this.storeProvider).raftNodeManager();
-    }
-
-    @Override
     public HugeGraph hugegraph() {
         return this;
     }
@@ -849,6 +841,14 @@ public class StandardHugeGraph implements HugeGraph {
     public UserManager userManager() {
         // this.userManager.initSchemaIfNeeded();
         return this.userManager;
+    }
+
+    @Override
+    public RaftNodeManager raftNodeManager() {
+        if (!(this.storeProvider instanceof RaftBackendStoreProvider)) {
+            return null;
+        }
+        return ((RaftBackendStoreProvider) this.storeProvider).raftNodeManager();
     }
 
     @Override

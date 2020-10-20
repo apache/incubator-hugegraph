@@ -72,4 +72,10 @@ public class StoreCommand {
         StoreAction action = StoreAction.valueOf(bytes[1]);
         return new StoreCommand(type, action, bytes);
     }
+
+    @Override
+    public String toString() {
+        return "StoreCommand{type=" + type.name() + ", " +
+               "action=" + action.name() + "}";
+    }
 }
