@@ -39,7 +39,7 @@ import com.google.common.collect.ImmutableMap;
 public class JaccardSimilarTraverser extends TpTraverser {
 
     public JaccardSimilarTraverser(HugeGraph graph) {
-        super(graph, "jaccard-similar");
+        super(graph);
     }
 
 

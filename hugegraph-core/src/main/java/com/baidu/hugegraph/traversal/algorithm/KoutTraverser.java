@@ -31,7 +31,7 @@ import com.baidu.hugegraph.util.E;
 public class KoutTraverser extends TpTraverser {
 
     public KoutTraverser(HugeGraph graph) {
-        super(graph, "kout");
+        super(graph);
     }
 
     public Set<Id> kout(Id sourceV, Directions dir, String label,

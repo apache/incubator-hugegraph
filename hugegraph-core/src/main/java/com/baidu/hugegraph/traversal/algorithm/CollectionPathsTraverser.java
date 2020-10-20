@@ -36,12 +36,12 @@ import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.google.common.collect.ImmutableList;
 
-public class CollectionPathsTraverser extends TpTraverser {
+public class CollectionPathsTraverser extends HugeTraverser {
 
     private static final Logger LOG = Log.logger(CollectionPathsTraverser.class);
 
     public CollectionPathsTraverser(HugeGraph graph) {
-        super(graph, "collection-paths");
+        super(graph);
     }
 
     public Collection<Path> paths(Iterator<Vertex> sources,
@@ -69,40 +69,44 @@ public class CollectionPathsTraverser extends TpTraverser {
                      "but got: %s", MAX_VERTICES, sourceList.size());
         checkPositive(depth, "max depth");
 
+
+        TraverseStrategy strategy = TraverseStrategy.create(
+                                    depth >= this.concurrentDepth(),
+                                    this.graph());
         Traverser traverser;
-        TraverseStrategy strategy = this.traverseStrategy(
-                                    depth >= this.concurrentDepth());
         if (nearest) {
-            traverser = new NearestTraverser(sourceList, targetList, step,
-                                             depth, capacity, limit, strategy);
+            traverser = new NearestTraverser(this, strategy,
+                                             sourceList, targetList, step,
+                                             depth, capacity, limit);
         } else {
-            traverser = new Traverser(sourceList, targetList, step,
-                                      depth, capacity, limit, strategy);
+            traverser = new Traverser(this, strategy,
+                                      sourceList, targetList, step,
+                                      depth, capacity, limit);
         }
 
         do {
             // Forward
             traverser.forward();
-            if (traverser.finish()) {
+            if (traverser.finished()) {
                 return traverser.paths();
             }
 
             // Backward
             traverser.backward();
-            if (traverser.finish()) {
+            if (traverser.finished()) {
                 return traverser.paths();
             }
         } while (true);
     }
 
-    private class Traverser extends PathTraverser {
+    private static class Traverser extends PathTraverser {
 
         protected final EdgeStep step;
 
-        public Traverser(Collection<Id> sources, Collection<Id> targets,
-                         EdgeStep step, int depth, long capacity,
-                         long limit, TraverseStrategy strategy) {
-            super(sources, targets, capacity, limit, strategy);
+        public Traverser(HugeTraverser traverser, TraverseStrategy strategy,
+                         Collection<Id> sources, Collection<Id> targets,
+                         EdgeStep step, int depth, long capacity, long limit) {
+            super(traverser, strategy, sources, targets, capacity, limit);
             this.step = step;
             this.totalSteps = depth;
         }
@@ -185,11 +189,13 @@ public class CollectionPathsTraverser extends TpTraverser {
 
     private class NearestTraverser extends Traverser {
 
-        public NearestTraverser(Collection<Id> sources,
-                                Collection<Id> targets, EdgeStep step,
-                                int depth, long capacity, long limit,
-                                TraverseStrategy strategy) {
-            super(sources, targets, step, depth, capacity, limit, strategy);
+        public NearestTraverser(HugeTraverser traverser,
+                                TraverseStrategy strategy,
+                                Collection<Id> sources, Collection<Id> targets,
+                                EdgeStep step, int depth, long capacity,
+                                long limit) {
+            super(traverser, strategy, sources, targets, step,
+                  depth, capacity, limit);
         }
 
         @Override

@@ -40,7 +40,7 @@ import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.Path.EMPTY_P
 public class MultiNodeShortestPathTraverser extends TpTraverser {
 
     public MultiNodeShortestPathTraverser(HugeGraph graph) {
-        super(graph, "multi-node-shortest-path");
+        super(graph);
     }
 
     public List<Path> multiNodeShortestPath(Iterator<Vertex> vertices,

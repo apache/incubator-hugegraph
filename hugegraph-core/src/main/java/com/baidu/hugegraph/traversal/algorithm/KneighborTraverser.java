@@ -30,7 +30,7 @@ import com.baidu.hugegraph.util.E;
 public class KneighborTraverser extends TpTraverser {
 
     public KneighborTraverser(HugeGraph graph) {
-        super(graph, "kneighbor");
+        super(graph);
     }
 
     public Set<Id> kneighbor(Id sourceV, Directions dir,

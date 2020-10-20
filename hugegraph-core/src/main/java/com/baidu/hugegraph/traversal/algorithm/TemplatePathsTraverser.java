@@ -37,12 +37,12 @@ import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 
-public class TemplatePathsTraverser extends TpTraverser {
+public class TemplatePathsTraverser extends HugeTraverser {
 
     private static final Logger LOG = Log.logger(TemplatePathsTraverser.class);
 
     public TemplatePathsTraverser(HugeGraph graph) {
-        super(graph, "template-paths");
+        super(graph);
     }
 
     public Set<Path> templatePaths(Iterator<Vertex> sources,
@@ -74,27 +74,28 @@ public class TemplatePathsTraverser extends TpTraverser {
         for (RepeatEdgeStep step : steps) {
             totalSteps += step.maxTimes;
         }
-        TraverseStrategy strategy = this.traverseStrategy(
-                                    totalSteps >= this.concurrentDepth());
-        Traverser traverser = new Traverser(sourceList, targetList, steps,
-                                            withRing, capacity, limit,
-                                            strategy);
+        TraverseStrategy strategy = TraverseStrategy.create(
+                                    totalSteps >= this.concurrentDepth(),
+                                    this.graph());
+        Traverser traverser = new Traverser(this, strategy,
+                                            sourceList, targetList, steps,
+                                            withRing, capacity, limit);
         do {
             // Forward
             traverser.forward();
-            if (traverser.finish()) {
+            if (traverser.finished()) {
                 return traverser.paths();
             }
 
             // Backward
             traverser.backward();
-            if (traverser.finish()) {
+            if (traverser.finished()) {
                 return traverser.paths();
             }
         } while (true);
     }
 
-    private class Traverser extends PathTraverser {
+    private static class Traverser extends PathTraverser {
 
         protected final List<RepeatEdgeStep> steps;
 
@@ -106,10 +107,11 @@ public class TemplatePathsTraverser extends TpTraverser {
         protected boolean sourceFinishOneStep = false;
         protected boolean targetFinishOneStep = false;
 
-        public Traverser(Collection<Id> sources, Collection<Id> targets,
+        public Traverser(HugeTraverser traverser, TraverseStrategy strategy,
+                         Collection<Id> sources, Collection<Id> targets,
                          List<RepeatEdgeStep> steps, boolean withRing,
-                         long capacity, long limit, TraverseStrategy strategy) {
-            super(sources, targets, capacity, limit, strategy);
+                         long capacity, long limit) {
+            super(traverser, strategy, sources, targets, capacity, limit);
 
             this.steps = steps;
             this.withRing = withRing;

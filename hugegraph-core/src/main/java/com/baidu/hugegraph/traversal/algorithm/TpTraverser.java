@@ -19,16 +19,13 @@
 
 package com.baidu.hugegraph.traversal.algorithm;
 
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import org.apache.commons.lang3.tuple.Pair;
@@ -41,12 +38,8 @@ import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.config.CoreOptions;
-import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.iterator.FilterIterator;
 import com.baidu.hugegraph.structure.HugeEdge;
-import com.baidu.hugegraph.traversal.algorithm.strategy.ConcurrentTraverseStrategy;
-import com.baidu.hugegraph.traversal.algorithm.strategy.SingleTraverseStrategy;
-import com.baidu.hugegraph.traversal.algorithm.strategy.TraverseStrategy;
 import com.baidu.hugegraph.util.Consumers;
 
 import jersey.repackaged.com.google.common.base.Objects;
@@ -54,35 +47,25 @@ import jersey.repackaged.com.google.common.base.Objects;
 public abstract class TpTraverser extends HugeTraverser
                                   implements AutoCloseable {
 
-    protected static ExecutorService executor;
+    private static final String EXECUTOR_NAME = "oltp";
+    private static ExecutorService executor;
 
     protected TpTraverser(HugeGraph graph) {
-        super(graph);
-    }
-
-    protected TpTraverser(HugeGraph graph, String name) {
         super(graph);
         if (executor == null) {
             int workers = this.config().get(CoreOptions.OLTP_CONCURRENT_THREADS);
             if (workers > 0) {
-                executor = Consumers.newThreadPool(name, workers);
+                executor = Consumers.newThreadPool(EXECUTOR_NAME, workers);
             }
         }
     }
 
-    protected int concurrentDepth() {
-        if (executor == null) {
-            return Integer.MAX_VALUE;
-        }
-        return this.config().get(CoreOptions.OLTP_CONCURRENT_DEPTH);
-    }
-
-    protected HugeConfig config() {
-        return ((HugeConfig) this.graph().hugegraph().configuration());
-    }
-
     @Override
     public void close() {
+        // pass
+    }
+
+    public static void destroy() {
         if (executor != null) {
             executor.shutdown();
             executor = null;
@@ -175,12 +158,6 @@ public abstract class TpTraverser extends HugeTraverser
         // return true if property value exists & equals to specified value
         Property<Object> p = elem.property(key);
         return p.isPresent() && Objects.equal(p.value(), value);
-    }
-
-    protected TraverseStrategy traverseStrategy(boolean concurrent) {
-        return concurrent ? new ConcurrentTraverseStrategy(this.graph()) :
-                            new SingleTraverseStrategy(this.graph());
-
     }
 
     public class ConcurrentMultiValuedMap<K, V>

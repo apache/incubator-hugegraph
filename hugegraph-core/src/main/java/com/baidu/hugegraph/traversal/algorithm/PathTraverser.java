@@ -36,6 +36,8 @@ import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.NO_LIMIT;
 
 public abstract class PathTraverser {
 
+    protected final HugeTraverser traverser;
+
     protected int stepCount;
     protected final long capacity;
     protected final long limit;
@@ -52,9 +54,10 @@ public abstract class PathTraverser {
 
     protected TraverseStrategy traverseStrategy;
 
-    public PathTraverser(Collection<Id> sources, Collection<Id> targets,
-                         long capacity, long limit,
-                         TraverseStrategy strategy) {
+    public PathTraverser(HugeTraverser traverser, TraverseStrategy strategy,
+                         Collection<Id> sources, Collection<Id> targets,
+                         long capacity, long limit) {
+        this.traverser = traverser;
         this.traverseStrategy = strategy;
 
         this.capacity = capacity;
@@ -88,7 +91,7 @@ public abstract class PathTraverser {
         this.beforeTraverse(true);
 
         // Traversal vertices of previous level
-        traverseOneLayer(this.sources, currentStep, this::forward);
+        this.traverseOneLayer(this.sources, currentStep, this::forward);
 
         this.afterTraverse(currentStep, true);
     }
@@ -103,7 +106,7 @@ public abstract class PathTraverser {
 
         currentStep.swithDirection();
         // Traversal vertices of previous level
-        traverseOneLayer(this.targets, currentStep, this::backward);
+        this.traverseOneLayer(this.targets, currentStep, this::backward);
         currentStep.swithDirection();
 
         this.afterTraverse(currentStep, false);
@@ -139,7 +142,7 @@ public abstract class PathTraverser {
             return;
         }
 
-        Iterator<Edge> edges = this.edgesOfVertex(v, step);
+        Iterator<Edge> edges = this.traverser.edgesOfVertex(v, step);
         while (edges.hasNext()) {
             HugeEdge edge = (HugeEdge) edges.next();
             Id target = edge.id().otherVertexId();
@@ -148,15 +151,11 @@ public abstract class PathTraverser {
         }
     }
 
-    protected Iterator<Edge> edgesOfVertex(Id source, EdgeStep edgeStep) {
-        return this.traverseStrategy.edgesOfVertex(source, edgeStep);
-    }
-
     private void processOne(Id source, Id target, boolean forward) {
         if (forward) {
-            processOneForForward(source, target);
+            this.processOneForForward(source, target);
         } else {
-            processOneForBackward(source, target);
+            this.processOneForBackward(source, target);
         }
     }
 
@@ -200,7 +199,7 @@ public abstract class PathTraverser {
         return this.paths.size();
     }
 
-    protected boolean finish() {
+    protected boolean finished() {
         return this.stepCount >= this.totalSteps || this.reachLimit();
     }
 
