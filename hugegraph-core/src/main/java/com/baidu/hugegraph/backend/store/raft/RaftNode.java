@@ -25,6 +25,7 @@ import static com.baidu.hugegraph.backend.store.raft.RaftSharedContext.WAIT_RPC_
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -65,7 +66,7 @@ public class RaftNode {
     private final StoreStateMachine stateMachine;
     private final AtomicLong leaderTerm;
 
-    private volatile boolean started;
+    private final AtomicBoolean started;
     private final AtomicInteger busyCounter;
 
     public RaftNode(RaftSharedContext context) {
@@ -78,7 +79,7 @@ public class RaftNode {
         }
         this.node.addReplicatorStateListener(new RaftNodeStateListener());
         this.leaderTerm = new AtomicLong(-1);
-        this.started = false;
+        this.started = new AtomicBoolean(false);
         this.busyCounter = new AtomicInteger();
     }
 
@@ -108,65 +109,6 @@ public class RaftNode {
 
     public void shutdown() {
         this.node.shutdown();
-    }
-
-    public void transferLeaderTo(PeerId peerId) {
-        Status status = this.node.transferLeadershipTo(peerId);
-        if (!status.isOk()) {
-            throw new BackendException("Failed to transafer leader to '%s', " +
-                                       "raft error : %s",
-                                       peerId, status.getErrorMsg());
-        }
-    }
-
-    public void setLeader(PeerId newLeaderId) {
-        // No need to re-elect if already is new leader
-        if (this.node.getLeaderId().equals(newLeaderId)) {
-            return;
-        }
-        if (this.isRaftLeader()) {
-            // If current node is the leader, transfer directly
-            this.transferLeaderTo(newLeaderId);
-        } else {
-            // If current node is not leader, forward request to leader
-            String endpoint = newLeaderId.toString();
-            SetLeaderRequest request = SetLeaderRequest.newBuilder()
-                                                       .setEndpoint(endpoint)
-                                                       .build();
-            RaftClosure future = new RaftClosure();
-            this.forwardToLeader(request, future);
-            try {
-                future.waitFinished();
-            } catch (RuntimeException e) {
-                throw e;
-            } catch (Throwable t) {
-                throw new BackendException(t);
-            }
-        }
-    }
-
-    public void addPeer(PeerId peerId) {
-        RaftClosure future = new RaftClosure();
-        this.node.addPeer(peerId, future);
-        try {
-            future.waitFinished();
-        } catch (RuntimeException e) {
-            throw e;
-        } catch (Throwable t) {
-            throw new BackendException(t);
-        }
-    }
-
-    public void removePeer(PeerId peerId) {
-        RaftClosure future = new RaftClosure();
-        this.node.removePeer(peerId, future);
-        try {
-            future.waitFinished();
-        } catch (RuntimeException e) {
-            throw e;
-        } catch (Throwable t) {
-            throw new BackendException(t);
-        }
     }
 
     private Node initRaftNode() throws IOException {
@@ -216,10 +158,8 @@ public class RaftNode {
              * in forwardToLeader, written like this to simplify the code
              */
             return future.waitFinished();
-        } catch (RuntimeException e) {
-            throw e;
-        } catch (Throwable t) {
-            throw new BackendException(t);
+        } catch (Throwable e) {
+            throw new BackendException(e);
         }
     }
 
@@ -234,16 +174,16 @@ public class RaftNode {
                 Thread.sleep(RaftSharedContext.POLL_INTERVAL);
             } catch (InterruptedException e) {
                 throw new BackendException(
-                          "Wait raft group '%s' election error",
+                          "Waiting for raft group '%s' election is interrupted",
                           e, group, "election");
             }
             long consumedTime = System.currentTimeMillis() - beginTime;
             if (timeout > 0 && consumedTime >= timeout) {
                 throw new BackendException(
-                          "Wait raft group '{}' election timeout({}ms)",
+                          "Waiting for raft group '{}' election timeout({}ms)",
                           group, "", consumedTime);
             }
-            LOG.warn("Waiting raft group '{}' election cost {}s",
+            LOG.warn("Waiting for raft group '{}' election cost {}s",
                      group, consumedTime / 1000.0);
         }
     }
@@ -253,13 +193,13 @@ public class RaftNode {
         ReadIndexClosure readIndexClosure = new ReadIndexClosure() {
             @Override
             public void run(Status status, long index, byte[] reqCtx) {
-                RaftNode.this.started = status.isOk();
+                RaftNode.this.started.set(status.isOk());
             }
         };
         long beginTime = System.currentTimeMillis();
         while (true) {
             this.node.readIndex(BytesUtil.EMPTY_BYTES, readIndexClosure);
-            if (this.started) {
+            if (this.started.get()) {
                 break;
             }
             try {
@@ -271,10 +211,10 @@ public class RaftNode {
             long consumedTime = System.currentTimeMillis() - beginTime;
             if (timeout > 0 && consumedTime >= timeout) {
                 throw new BackendException(
-                          "Wait raft group '{}' heartbeat timeout({}ms)",
+                          "Waiting for raft group '{}' heartbeat timeout({}ms)",
                           group, consumedTime);
             }
-            LOG.warn("Waiting raft group '{}' heartbeat cost {}s",
+            LOG.warn("Waiting for raft group '{}' heartbeat cost {}s",
                      group, consumedTime / 1000.0);
         }
     }
@@ -343,7 +283,7 @@ public class RaftNode {
         this.waitRpc(leaderId.getEndpoint(), request, responseClosure);
     }
 
-    private void forwardToLeader(SetLeaderRequest request, RaftClosure future) {
+    public void forwardToLeader(SetLeaderRequest request, RaftClosure future) {
         assert !this.node.isLeader();
         PeerId leaderId = this.node.getLeaderId();
         E.checkNotNull(leaderId, "leader id");

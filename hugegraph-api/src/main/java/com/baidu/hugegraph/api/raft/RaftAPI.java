@@ -38,7 +38,7 @@ import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
-import com.baidu.hugegraph.backend.store.raft.RaftBackendStoreProvider;
+import com.baidu.hugegraph.backend.store.raft.RaftNodeManager;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
@@ -55,17 +55,17 @@ public class RaftAPI extends API {
     @Path("get-leader")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=$graph"})
+    @RolesAllowed({"admin"})
     public Map<String, String> getLeader(@Context GraphManager manager,
                                          @PathParam("graph") String graph) {
         LOG.debug("Graph [{}] prepare to get leader", graph);
 
         HugeGraph g = graph(manager, graph);
-        if (!(g.storeProvider() instanceof RaftBackendStoreProvider)) {
+        RaftNodeManager raftNodeManager = g.raftNodeManager();
+        if (raftNodeManager == null) {
             throw new HugeException("Only work on raft mode can get leader");
         }
-        RaftBackendStoreProvider provider = this.storeProvider(g);
-        return provider.getLeader();
+        return raftNodeManager.getLeader();
     }
 
     @POST
@@ -74,7 +74,7 @@ public class RaftAPI extends API {
     @Path("transfer-leader")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=$graph"})
+    @RolesAllowed({"admin"})
     public Map<String, String> transferLeader(
                                @Context GraphManager manager,
                                @PathParam("graph") String graph,
@@ -83,12 +83,12 @@ public class RaftAPI extends API {
                   graph, endpoint);
 
         HugeGraph g = graph(manager, graph);
-        if (!(g.storeProvider() instanceof RaftBackendStoreProvider)) {
+        RaftNodeManager raftNodeManager = g.raftNodeManager();
+        if (raftNodeManager == null) {
             throw new HugeException("Only work on raft mode can transfer " +
                                     "leader");
         }
-        RaftBackendStoreProvider provider = this.storeProvider(g);
-        provider.transferLeaderTo(endpoint);
+        raftNodeManager.transferLeaderTo(endpoint);
         return ImmutableMap.of("leader", endpoint);
     }
 
@@ -98,7 +98,7 @@ public class RaftAPI extends API {
     @Path("set-leader")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=$graph"})
+    @RolesAllowed({"admin"})
     public Map<String, String> setLeader(
                                @Context GraphManager manager,
                                @PathParam("graph") String graph,
@@ -107,11 +107,11 @@ public class RaftAPI extends API {
                   graph, endpoint);
 
         HugeGraph g = graph(manager, graph);
-        if (!(g.storeProvider() instanceof RaftBackendStoreProvider)) {
+        RaftNodeManager raftNodeManager = g.raftNodeManager();
+        if (raftNodeManager == null) {
             throw new HugeException("Only work on raft mode can set leader");
         }
-        RaftBackendStoreProvider provider = this.storeProvider(g);
-        provider.setLeader(endpoint);
+        raftNodeManager.setLeader(endpoint);
         return ImmutableMap.of("leader", endpoint);
     }
 
@@ -121,18 +121,18 @@ public class RaftAPI extends API {
     @Path("add-peer")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=$graph"})
+    @RolesAllowed({"admin"})
     public Map<String, String> addPeer(@Context GraphManager manager,
                                        @PathParam("graph") String graph,
                                        @QueryParam("endpoint") String endpoint) {
         LOG.debug("Graph [{}] prepare to add peer: {}", graph, endpoint);
 
         HugeGraph g = graph(manager, graph);
-        if (!(g.storeProvider() instanceof RaftBackendStoreProvider)) {
+        RaftNodeManager raftNodeManager = g.raftNodeManager();
+        if (raftNodeManager == null) {
             throw new HugeException("Only work on raft mode can add peer");
         }
-        RaftBackendStoreProvider provider = this.storeProvider(g);
-        provider.addPeer(endpoint);
+        raftNodeManager.addPeer(endpoint);
         return ImmutableMap.of("endpoint", endpoint);
     }
 
@@ -142,7 +142,7 @@ public class RaftAPI extends API {
     @Path("remove-peer")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=$graph"})
+    @RolesAllowed({"admin"})
     public Map<String, String> removePeer(
                                @Context GraphManager manager,
                                @PathParam("graph") String graph,
@@ -150,15 +150,11 @@ public class RaftAPI extends API {
         LOG.debug("Graph [{}] prepare to remove peer: {}", graph, endpoint);
 
         HugeGraph g = graph(manager, graph);
-        if (!(g.storeProvider() instanceof RaftBackendStoreProvider)) {
+        RaftNodeManager raftNodeManager = g.raftNodeManager();
+        if (raftNodeManager == null) {
             throw new HugeException("Only work on raft mode can remove peer");
         }
-        RaftBackendStoreProvider provider = this.storeProvider(g);
-        provider.removePeer(endpoint);
+        raftNodeManager.removePeer(endpoint);
         return ImmutableMap.of("endpoint", endpoint);
-    }
-
-    private RaftBackendStoreProvider storeProvider(HugeGraph graph) {
-        return (RaftBackendStoreProvider) graph.storeProvider();
     }
 }

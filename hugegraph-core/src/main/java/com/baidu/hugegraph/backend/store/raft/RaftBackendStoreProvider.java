@@ -19,13 +19,11 @@
 
 package com.baidu.hugegraph.backend.store.raft;
 
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Future;
 
 import org.slf4j.Logger;
 
-import com.alipay.sofa.jraft.entity.PeerId;
 import com.alipay.sofa.jraft.rpc.RpcServer;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.HugeGraphParams;
@@ -38,7 +36,6 @@ import com.baidu.hugegraph.event.EventListener;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Events;
 import com.baidu.hugegraph.util.Log;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 public class RaftBackendStoreProvider implements BackendStoreProvider {
@@ -61,6 +58,10 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
         this.registerRpcRequestProcessors();
     }
 
+    public RaftNodeManager raftNodeManager() {
+        return this.context.raftNodeManager();
+    }
+
     private Set<RaftBackendStore> stores() {
         return ImmutableSet.of(this.schemaStore, this.graphStore,
                                this.systemStore);
@@ -78,30 +79,6 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
                      this.graphStore != null &&
                      this.systemStore != null,
                      "The RaftBackendStoreProvider has not been opened");
-    }
-
-    public Map<String, String> getLeader() {
-        RaftNode node = this.context.node();
-        PeerId leaderId = node.leaderId();
-        E.checkState(leaderId != null, "There is no leader for group %s",
-                     this.context.group());
-        return ImmutableMap.of(this.context.group(), leaderId.toString());
-    }
-
-    public void transferLeaderTo(String endpoint) {
-        this.context.node().transferLeaderTo(PeerId.parsePeer(endpoint));
-    }
-
-    public void setLeader(String endpoint) {
-        this.context.node().setLeader(PeerId.parsePeer(endpoint));
-    }
-
-    public void addPeer(String endpoint) {
-        this.context.node().addPeer(PeerId.parsePeer(endpoint));
-    }
-
-    public void removePeer(String endpoint) {
-        this.context.node().removePeer(PeerId.parsePeer(endpoint));
     }
 
     @Override

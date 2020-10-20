@@ -54,6 +54,8 @@ import com.baidu.hugegraph.backend.store.BackendProviderFactory;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
+import com.baidu.hugegraph.backend.store.raft.RaftBackendStoreProvider;
+import com.baidu.hugegraph.backend.store.raft.RaftNodeManager;
 import com.baidu.hugegraph.backend.store.ram.RamTable;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
@@ -188,8 +190,11 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
-    public BackendStoreProvider storeProvider() {
-        return this.storeProvider;
+    public RaftNodeManager raftNodeManager() {
+        if (!(this.storeProvider instanceof RaftBackendStoreProvider)) {
+            return null;
+        }
+        return ((RaftBackendStoreProvider) this.storeProvider).raftNodeManager();
     }
 
     @Override

@@ -223,10 +223,10 @@ public class RaftBackendStore implements BackendStore {
         this.node().node().readIndex(BytesUtil.EMPTY_BYTES, readIndexClosure);
         try {
             return future.waitFinished();
-        } catch (Throwable t) {
+        } catch (Throwable e) {
             LOG.warn("Failed to execute query {} with read-index: {}",
                      query, future.status());
-            throw new BackendException("Failed to execute query", t);
+            throw new BackendException("Failed to execute query", e);
         }
     }
 

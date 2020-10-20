@@ -35,8 +35,8 @@ import com.baidu.hugegraph.auth.UserManager;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
-import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
+import com.baidu.hugegraph.backend.store.raft.RaftNodeManager;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -127,7 +127,7 @@ public interface HugeGraph extends Graph {
     public Number queryNumber(Query query);
 
     public String name();
-    public BackendStoreProvider storeProvider();
+    public RaftNodeManager raftNodeManager();
     public String backend();
     public String backendVersion();
     public BackendStoreSystemInfo backendStoreSystemInfo();
