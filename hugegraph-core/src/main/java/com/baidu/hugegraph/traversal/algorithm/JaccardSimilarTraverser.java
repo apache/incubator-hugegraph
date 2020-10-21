@@ -36,7 +36,7 @@ import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 import com.google.common.collect.ImmutableMap;
 
-public class JaccardSimilarTraverser extends TpTraverser {
+public class JaccardSimilarTraverser extends OltpTraverser {
 
     public JaccardSimilarTraverser(HugeGraph graph) {
         super(graph);

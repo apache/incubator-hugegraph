@@ -27,7 +27,7 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
 
-public class KneighborTraverser extends TpTraverser {
+public class KneighborTraverser extends OltpTraverser {
 
     public KneighborTraverser(HugeGraph graph) {
         super(graph);

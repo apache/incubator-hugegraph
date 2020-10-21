@@ -44,15 +44,21 @@ import com.baidu.hugegraph.util.Consumers;
 
 import jersey.repackaged.com.google.common.base.Objects;
 
-public abstract class TpTraverser extends HugeTraverser
-                                  implements AutoCloseable {
+public abstract class OltpTraverser extends HugeTraverser
+                                    implements AutoCloseable {
 
     private static final String EXECUTOR_NAME = "oltp";
     private static ExecutorService executor;
 
-    protected TpTraverser(HugeGraph graph) {
+    protected OltpTraverser(HugeGraph graph) {
         super(graph);
-        if (executor == null) {
+        if (executor != null) {
+            return;
+        }
+        synchronized (OltpTraverser.class) {
+            if (executor != null) {
+                return;
+            }
             int workers = this.config().get(CoreOptions.OLTP_CONCURRENT_THREADS);
             if (workers > 0) {
                 executor = Consumers.newThreadPool(EXECUTOR_NAME, workers);

@@ -49,6 +49,5 @@ public interface TraverseStrategy {
     public static TraverseStrategy create(boolean concurrent, HugeGraph graph) {
         return concurrent ? new ConcurrentTraverseStrategy(graph) :
                             new SingleTraverseStrategy(graph);
-
     }
 }

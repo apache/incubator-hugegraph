@@ -69,7 +69,6 @@ public class CollectionPathsTraverser extends HugeTraverser {
                      "but got: %s", MAX_VERTICES, sourceList.size());
         checkPositive(depth, "max depth");
 
-
         TraverseStrategy strategy = TraverseStrategy.create(
                                     depth >= this.concurrentDepth(),
                                     this.graph());

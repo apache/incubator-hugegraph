@@ -28,7 +28,7 @@ import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 
-public class KoutTraverser extends TpTraverser {
+public class KoutTraverser extends OltpTraverser {
 
     public KoutTraverser(HugeGraph graph) {
         super(graph);

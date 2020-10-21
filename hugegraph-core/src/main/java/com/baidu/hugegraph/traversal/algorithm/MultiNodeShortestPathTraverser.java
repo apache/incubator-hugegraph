@@ -37,7 +37,7 @@ import com.baidu.hugegraph.util.E;
 
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.Path.EMPTY_PATH;
 
-public class MultiNodeShortestPathTraverser extends TpTraverser {
+public class MultiNodeShortestPathTraverser extends OltpTraverser {
 
     public MultiNodeShortestPathTraverser(HugeGraph graph) {
         super(graph);

@@ -30,9 +30,9 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.traversal.algorithm.EdgeStep;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
-import com.baidu.hugegraph.traversal.algorithm.TpTraverser;
+import com.baidu.hugegraph.traversal.algorithm.OltpTraverser;
 
-public class SingleTraverseStrategy extends TpTraverser
+public class SingleTraverseStrategy extends OltpTraverser
                                     implements TraverseStrategy {
 
     public SingleTraverseStrategy(HugeGraph graph) {

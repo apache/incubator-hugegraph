@@ -34,7 +34,7 @@ import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.task.TaskManager;
-import com.baidu.hugegraph.traversal.algorithm.TpTraverser;
+import com.baidu.hugegraph.traversal.algorithm.OltpTraverser;
 import com.baidu.hugegraph.type.define.SerialEnum;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
@@ -128,7 +128,7 @@ public class HugeFactory {
                 throw new TimeoutException(timeout + "s");
             }
             TaskManager.instance().shutdown(timeout);
-            TpTraverser.destroy();
+            OltpTraverser.destroy();
         } catch (Throwable e) {
             LOG.error("Error while shutdown", e);
             throw new HugeException("Failed to shutdown", e);
