@@ -57,6 +57,8 @@ public class HugeTask<V> extends FutureTask<V> {
 
     private static final Logger LOG = Log.logger(HugeTask.class);
 
+    private static final float DECOMPRESS_RATIO = 10.0F;
+
     private transient TaskScheduler scheduler = null;
 
     private final TaskCallable<V> callable;
@@ -464,10 +466,12 @@ public class HugeTask<V> extends FutureTask<V> {
                                                    .collect(toOrderSet());
                 break;
             case P.INPUT:
-                this.input = StringEncoding.decompress(((Blob) value).bytes());
+                this.input = StringEncoding.decompress(((Blob) value).bytes(),
+                                                       DECOMPRESS_RATIO);
                 break;
             case P.RESULT:
-                this.result = StringEncoding.decompress(((Blob) value).bytes());
+                this.result = StringEncoding.decompress(((Blob) value).bytes(),
+                                                        DECOMPRESS_RATIO);
                 break;
             case P.SERVER:
                 this.server = IdGenerator.of((String) value);

@@ -36,9 +36,15 @@ public class LZ4Util {
     private static final float BUF_RATIO = 1.5f;
 
     public static BytesBuffer compress(byte[] bytes, int blockSize) {
+        return decompress(bytes, blockSize, 0.0F);
+    }
+
+    public static BytesBuffer compress(byte[] bytes, int blockSize,
+                                       float bufferRatio) {
+        float ratio = bufferRatio == 0.0F ? BUF_RATIO : bufferRatio;
         LZ4Factory factory = LZ4Factory.fastestInstance();
         LZ4Compressor compressor = factory.fastCompressor();
-        int initBufferSize = Math.round(bytes.length / BUF_RATIO);
+        int initBufferSize = Math.round(bytes.length / ratio);
         BytesBuffer buf = new BytesBuffer(initBufferSize);
         LZ4BlockOutputStream lz4Output = new LZ4BlockOutputStream(
                                          buf, blockSize, compressor);
@@ -52,10 +58,17 @@ public class LZ4Util {
     }
 
     public static BytesBuffer decompress(byte[] bytes, int blockSize) {
+        return decompress(bytes, blockSize, 0.0F);
+    }
+
+    public static BytesBuffer decompress(byte[] bytes, int blockSize,
+                                         float bufferRatio) {
+        float ratio = bufferRatio == 0.0F ? BUF_RATIO : bufferRatio;
         LZ4Factory factory = LZ4Factory.fastestInstance();
         LZ4FastDecompressor decompressor = factory.fastDecompressor();
         ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
-        int initBufferSize = Math.round(bytes.length * BUF_RATIO);
+        int initBufferSize = Math.min(Math.round(bytes.length * ratio),
+                                      BytesBuffer.MAX_BUFFER_CAPACITY);
         BytesBuffer buf = new BytesBuffer(initBufferSize);
         LZ4BlockInputStream lzInput = new LZ4BlockInputStream(bais,
                                                               decompressor);

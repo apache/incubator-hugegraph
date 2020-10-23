@@ -144,12 +144,20 @@ public final class StringEncoding {
     }
 
     public static byte[] compress(String value) {
-        BytesBuffer buf = LZ4Util.compress(encode(value), BLOCK_SIZE);
+        return compress(value, 0.0F);
+    }
+
+    public static byte[] compress(String value, float ratio) {
+        BytesBuffer buf = LZ4Util.compress(encode(value), BLOCK_SIZE, ratio);
         return buf.bytes();
     }
 
     public static String decompress(byte[] value) {
-        BytesBuffer buf = LZ4Util.decompress(value, BLOCK_SIZE);
+        return decompress(value, 0.0F);
+    }
+
+    public static String decompress(byte[] value, float ratio) {
+        BytesBuffer buf = LZ4Util.decompress(value, BLOCK_SIZE, ratio);
         return decode(buf.array(), 0, buf.position());
     }
 
