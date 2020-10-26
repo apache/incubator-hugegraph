@@ -33,15 +33,15 @@ import net.jpountz.lz4.LZ4FastDecompressor;
 
 public class LZ4Util {
 
-    private static final float BUF_RATIO = 1.5f;
+    protected static final float DEFAULT_BUFFER_RATIO = 1.5f;
 
     public static BytesBuffer compress(byte[] bytes, int blockSize) {
-        return compress(bytes, blockSize, 0.0F);
+        return compress(bytes, blockSize, DEFAULT_BUFFER_RATIO);
     }
 
     public static BytesBuffer compress(byte[] bytes, int blockSize,
                                        float bufferRatio) {
-        float ratio = bufferRatio == 0.0F ? BUF_RATIO : bufferRatio;
+        float ratio = bufferRatio <= 0.0F ? DEFAULT_BUFFER_RATIO : bufferRatio;
         LZ4Factory factory = LZ4Factory.fastestInstance();
         LZ4Compressor compressor = factory.fastCompressor();
         int initBufferSize = Math.round(bytes.length / ratio);
@@ -58,12 +58,12 @@ public class LZ4Util {
     }
 
     public static BytesBuffer decompress(byte[] bytes, int blockSize) {
-        return decompress(bytes, blockSize, 0.0F);
+        return decompress(bytes, blockSize, DEFAULT_BUFFER_RATIO);
     }
 
     public static BytesBuffer decompress(byte[] bytes, int blockSize,
                                          float bufferRatio) {
-        float ratio = bufferRatio == 0.0F ? BUF_RATIO : bufferRatio;
+        float ratio = bufferRatio <= 0.0F ? DEFAULT_BUFFER_RATIO : bufferRatio;
         LZ4Factory factory = LZ4Factory.fastestInstance();
         LZ4FastDecompressor decompressor = factory.fastDecompressor();
         ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
