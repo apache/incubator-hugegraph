@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.backend.serializer;
 
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collection;
@@ -43,7 +44,7 @@ import com.baidu.hugegraph.util.StringEncoding;
 /**
  * class BytesBuffer is a util for read/write binary
  */
-public final class BytesBuffer {
+public final class BytesBuffer extends OutputStream {
 
     public static final int BYTE_LEN = Byte.BYTES;
     public static final int SHORT_LEN = Short.BYTES;
@@ -147,7 +148,8 @@ public final class BytesBuffer {
     }
 
     public BytesBuffer copyFrom(BytesBuffer other) {
-        return this.write(other.bytes());
+        this.write(other.bytes());
+        return this;
     }
 
     public int remaining() {
@@ -179,27 +181,28 @@ public final class BytesBuffer {
         return this;
     }
 
-    public BytesBuffer write(int val) {
+    @Override
+    public void write(int val) {
         assert val <= UINT8_MAX;
         require(BYTE_LEN);
         this.buffer.put((byte) val);
-        return this;
     }
 
-    public BytesBuffer write(byte[] val) {
+    @Override
+    public void write(byte[] val) {
         require(BYTE_LEN * val.length);
         this.buffer.put(val);
-        return this;
     }
 
-    public BytesBuffer write(byte[] val, int offset, int length) {
+    @Override
+    public void write(byte[] val, int offset, int length) {
         require(BYTE_LEN * length);
         this.buffer.put(val, offset, length);
-        return this;
     }
 
     public BytesBuffer writeBoolean(boolean val) {
-        return this.write(val ? 1 : 0);
+        this.write(val ? 1 : 0);
+        return this;
     }
 
     public BytesBuffer writeChar(char val) {

@@ -32,21 +32,15 @@
 
 package com.baidu.hugegraph.util;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 import java.util.UUID;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
 
 import org.mindrot.jbcrypt.BCrypt;
 
 import com.baidu.hugegraph.HugeException;
-import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.google.common.base.CharMatcher;
 
@@ -58,6 +52,7 @@ public final class StringEncoding {
 
     private static final MessageDigest DIGEST;
     private static final byte[] BYTES_EMPTY = new byte[0];
+    private static final int BLOCK_SIZE = 4096;
 
     static {
         final String ALG = "SHA-256";
@@ -129,6 +124,14 @@ public final class StringEncoding {
         }
     }
 
+    public static String decode(byte[] bytes, int offset, int length) {
+        try {
+            return new String(bytes, offset, length, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            throw new HugeException("Failed to decode string", e);
+        }
+    }
+
     public static String encodeBase64(byte[] bytes) {
         return BASE64_ENCODER.encodeToString(bytes);
     }
@@ -141,32 +144,22 @@ public final class StringEncoding {
     }
 
     public static byte[] compress(String value) {
-        final int outputSize = Math.max(32, value.length() / 8);
-        final int gzipBufSize = 4 * (int) Bytes.KB;
-        try (ByteArrayOutputStream bos = new ByteArrayOutputStream(outputSize);
-             GZIPOutputStream out = new GZIPOutputStream(bos, gzipBufSize)) {
-            byte[] bytes = encode(value);
-            out.write(bytes);
-            out.finish();
-            return bos.toByteArray();
-        } catch (IOException e) {
-            throw new BackendException("Failed to compress: %s", e, value);
-        }
+        return compress(value, LZ4Util.DEFAULT_BUFFER_RATIO);
+    }
+
+    public static byte[] compress(String value, float bufferRatio) {
+        BytesBuffer buf = LZ4Util.compress(encode(value), BLOCK_SIZE,
+                                           bufferRatio);
+        return buf.bytes();
     }
 
     public static String decompress(byte[] value) {
-        BytesBuffer buf = BytesBuffer.allocate(value.length * 2);
-        try (ByteArrayInputStream bis = new ByteArrayInputStream(value);
-             GZIPInputStream in = new GZIPInputStream(bis)) {
-            byte[] bytes = new byte[value.length];
-            int len;
-            while ((len = in.read(bytes)) > 0) {
-                buf.write(bytes, 0, len);
-            }
-            return decode(buf.bytes());
-        } catch (IOException e) {
-            throw new BackendException("Failed to decompress: %s", e, value);
-        }
+        return decompress(value, LZ4Util.DEFAULT_BUFFER_RATIO);
+    }
+
+    public static String decompress(byte[] value, float bufferRatio) {
+        BytesBuffer buf = LZ4Util.decompress(value, BLOCK_SIZE, bufferRatio);
+        return decode(buf.array(), 0, buf.position());
     }
 
     public static String hashPassword(String password) {

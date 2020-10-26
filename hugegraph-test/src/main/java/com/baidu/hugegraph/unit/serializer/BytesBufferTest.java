@@ -56,16 +56,19 @@ public class BytesBufferTest extends BaseUnitTest {
         Assert.assertEquals(0, BytesBuffer.allocate(4).bytes().length);
 
         BytesBuffer buf4 = BytesBuffer.allocate(4);
+        buf4.write(new byte[4]);
         Assert.assertArrayEquals(new byte[]{0, 0, 0, 0},
-                                 buf4.write(new byte[4]).bytes());
+                                 buf4.bytes());
 
         BytesBuffer buf2 = BytesBuffer.allocate(2);
+        buf2.write(new byte[4]);
         Assert.assertArrayEquals(new byte[]{0, 0, 0, 0},
-                                 buf2.write(new byte[4]).bytes());
+                                 buf2.bytes());
 
         BytesBuffer buf0 = BytesBuffer.allocate(0);
+        buf0.write(new byte[4]);
         Assert.assertArrayEquals(new byte[]{0, 0, 0, 0},
-                                 buf0.write(new byte[4]).bytes());
+                                 buf0.bytes());
     }
 
     @Test
