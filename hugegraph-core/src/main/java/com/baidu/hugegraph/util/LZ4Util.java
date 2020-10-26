@@ -36,7 +36,7 @@ public class LZ4Util {
     private static final float BUF_RATIO = 1.5f;
 
     public static BytesBuffer compress(byte[] bytes, int blockSize) {
-        return decompress(bytes, blockSize, 0.0F);
+        return compress(bytes, blockSize, 0.0F);
     }
 
     public static BytesBuffer compress(byte[] bytes, int blockSize,
