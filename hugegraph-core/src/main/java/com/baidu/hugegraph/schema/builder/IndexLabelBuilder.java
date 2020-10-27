@@ -231,8 +231,7 @@ public class IndexLabelBuilder extends AbstractBuilder
                 return new IndexLabel.CreatedIndexLabel(indexLabel,
                                                         rebuildTask);
             } catch (Throwable e) {
-                indexLabel.status(SchemaStatus.INVALID);
-                this.graph().addIndexLabel(schemaLabel, indexLabel);
+                this.updateSchemaStatus(indexLabel, SchemaStatus.INVALID);
                 throw e;
             }
         });
