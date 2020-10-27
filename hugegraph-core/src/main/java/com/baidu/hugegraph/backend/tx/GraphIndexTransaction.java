@@ -86,6 +86,7 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Action;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IndexType;
+import com.baidu.hugegraph.type.define.SchemaStatus;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
@@ -369,6 +370,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
     private IdHolderList queryByLabel(ConditionQuery query) {
         HugeType queryType = query.resultType();
         IndexLabel il = IndexLabel.label(queryType);
+        validIndexLabel(il);
         Id label = query.condition(HugeKeys.LABEL);
         assert label != null;
 
@@ -426,6 +428,9 @@ public class GraphIndexTransaction extends AbstractTransaction {
         // Do index query
         IdHolderList holders = new IdHolderList(paging);
         for (MatchedIndex index : indexes) {
+            for (IndexLabel il : index.indexLabels()) {
+                validIndexLabel(il);
+            }
             if (paging && index.indexLabels().size() > 1) {
                 throw new NotSupportException("joint index query in paging");
             }
@@ -1347,6 +1352,13 @@ public class GraphIndexTransaction extends AbstractTransaction {
                                     "may not match %s condition",
                                     graph.mapPkId2Name(query.userpropKeys()),
                                     name, String.join("/", mismatched));
+    }
+
+    private static void validIndexLabel(IndexLabel indexLabel) {
+        if (indexLabel.status() == SchemaStatus.INVALID) {
+            throw new HugeException("The label index %s is invalid",
+                                    indexLabel);
+        }
     }
 
     private static boolean hasNullableProp(HugeElement element, Id key) {

@@ -119,19 +119,27 @@ public class RebuildIndexCallable extends SchemaCallable {
              * They have different id lead to it can't compare and optimize
              */
             graphTx.commit();
-            if (label.type() == HugeType.VERTEX_LABEL) {
-                @SuppressWarnings("unchecked")
-                Consumer<Vertex> consumer = (Consumer<Vertex>) indexUpdater;
-                graphTx.traverseVerticesByLabel((VertexLabel) label,
-                                                consumer, false);
-            } else {
-                assert label.type() == HugeType.EDGE_LABEL;
-                @SuppressWarnings("unchecked")
-                Consumer<Edge> consumer = (Consumer<Edge>) indexUpdater;
-                graphTx.traverseEdgesByLabel((EdgeLabel) label,
-                                             consumer, false);
+
+            try {
+                if (label.type() == HugeType.VERTEX_LABEL) {
+                    @SuppressWarnings("unchecked")
+                    Consumer<Vertex> consumer = (Consumer<Vertex>) indexUpdater;
+                    graphTx.traverseVerticesByLabel((VertexLabel) label,
+                                                    consumer, false);
+                } else {
+                    assert label.type() == HugeType.EDGE_LABEL;
+                    @SuppressWarnings("unchecked")
+                    Consumer<Edge> consumer = (Consumer<Edge>) indexUpdater;
+                    graphTx.traverseEdgesByLabel((EdgeLabel) label,
+                                                 consumer, false);
+                }
+                graphTx.commit();
+            } catch (Throwable t) {
+                for (IndexLabel il : ils) {
+                    schemaTx.updateSchemaStatus(il, SchemaStatus.INVALID);
+                }
+                throw t;
             }
-            graphTx.commit();
 
             for (IndexLabel il : ils) {
                 schemaTx.updateSchemaStatus(il, SchemaStatus.CREATED);
@@ -158,6 +166,9 @@ public class RebuildIndexCallable extends SchemaCallable {
             try {
                 locks.lockWrites(LockUtil.INDEX_LABEL_DELETE, indexLabelIds);
                 graphTx.removeIndex(il);
+            } catch (Throwable t) {
+                il.status(SchemaStatus.INVALID);
+                throw t;
             } finally {
                 locks.unlock();
             }
