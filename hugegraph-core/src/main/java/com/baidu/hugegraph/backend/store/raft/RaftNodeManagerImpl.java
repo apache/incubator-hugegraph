@@ -42,8 +42,8 @@ public class RaftNodeManagerImpl implements RaftNodeManager {
     @Override
     public Map<String, String> getLeader() {
         PeerId leaderId = this.raftNode.leaderId();
-        E.checkState(leaderId != null, "There is no leader for raft group %s",
-                     this.group);
+        E.checkState(leaderId != null,
+                     "There is no leader for raft group %s", this.group);
         return ImmutableMap.of(this.group, leaderId.toString());
     }
 
@@ -53,7 +53,7 @@ public class RaftNodeManagerImpl implements RaftNodeManager {
         Status status = this.raftNode.node().transferLeadershipTo(peerId);
         if (!status.isOk()) {
             throw new BackendException(
-                      "Failed to transafer leader to '%s', raft error : %s",
+                      "Failed to transafer leader to '%s', raft error: %s",
                       peerId, status.getErrorMsg());
         }
     }
@@ -66,7 +66,7 @@ public class RaftNodeManagerImpl implements RaftNodeManager {
         if (node.getLeaderId().equals(newLeaderId)) {
             return;
         }
-        if (this.raftNode.isRaftLeader()) {
+        if (this.raftNode.selfIsLeader()) {
             // If current node is the leader, transfer directly
             this.transferLeaderTo(endpoint);
         } else {
@@ -75,7 +75,8 @@ public class RaftNodeManagerImpl implements RaftNodeManager {
                                                        .setEndpoint(endpoint)
                                                        .build();
             RaftClosure future = new RaftClosure();
-            this.raftNode.forwardToLeader(request, future);
+            this.raftNode.forwardToLeader(this.raftNode.leaderId(),
+                                          request, future);
             try {
                 future.waitFinished();
             } catch (Throwable e) {
@@ -94,8 +95,7 @@ public class RaftNodeManagerImpl implements RaftNodeManager {
         try {
             future.waitFinished();
         } catch (Throwable e) {
-            throw new BackendException("Failed to add peer '%s'",
-                                       e, endpoint);
+            throw new BackendException("Failed to add peer '%s'", e, endpoint);
         }
     }
 

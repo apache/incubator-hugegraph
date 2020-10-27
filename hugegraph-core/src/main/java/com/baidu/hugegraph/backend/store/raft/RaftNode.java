@@ -27,7 +27,7 @@ import java.nio.ByteBuffer;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.slf4j.Logger;
 
@@ -64,8 +64,7 @@ public class RaftNode {
     private final RaftSharedContext context;
     private final Node node;
     private final StoreStateMachine stateMachine;
-    private final AtomicLong leaderTerm;
-
+    private final AtomicReference<LeaderInfo> leaderInfo;
     private final AtomicBoolean started;
     private final AtomicInteger busyCounter;
 
@@ -78,7 +77,7 @@ public class RaftNode {
             throw new BackendException("Failed to init raft node", e);
         }
         this.node.addReplicatorStateListener(new RaftNodeStateListener());
-        this.leaderTerm = new AtomicLong(-1);
+        this.leaderInfo = new AtomicReference<>(LeaderInfo.NO_LEADER);
         this.started = new AtomicBoolean(false);
         this.busyCounter = new AtomicInteger();
     }
@@ -96,15 +95,16 @@ public class RaftNode {
     }
 
     public PeerId leaderId() {
-        return this.node.getLeaderId();
+        return this.leaderInfo.get().leaderId;
     }
 
-    public boolean isRaftLeader() {
-        return this.leaderTerm.get() > 0;
+    public boolean selfIsLeader() {
+        return this.leaderInfo.get().isLeader;
     }
 
-    public void leaderTerm(long term) {
-        this.leaderTerm.set(term);
+    public void onLeaderInfoChange(PeerId peerId, boolean isLeader) {
+        PeerId leaderId = peerId != null ? peerId.copy() : null;
+        this.leaderInfo.set(new LeaderInfo(leaderId, isLeader));
     }
 
     public void shutdown() {
@@ -128,10 +128,11 @@ public class RaftNode {
 
     private void submitCommand(StoreCommand command, StoreClosure closure) {
         // Wait leader elected
-        this.waitLeaderElected(RaftSharedContext.NO_TIMEOUT);
+        LeaderInfo leaderInfo = this.waitLeaderElected(
+                                     RaftSharedContext.NO_TIMEOUT);
 
-        if (!this.isRaftLeader()) {
-            this.forwardToLeader(command, closure);
+        if (!leaderInfo.isLeader) {
+            this.forwardToLeader(leaderInfo.leaderId, command, closure);
             return;
         }
         // Sleep a while when raft node is busy
@@ -164,29 +165,33 @@ public class RaftNode {
         }
     }
 
-    protected void waitLeaderElected(int timeout) {
+    protected LeaderInfo waitLeaderElected(int timeout) {
         String group = this.context.group();
-        if (this.node.getLeaderId() != null) {
-            return;
+        LeaderInfo leaderInfo = this.leaderInfo.get();
+        if (leaderInfo.leaderId != null) {
+            return leaderInfo;
         }
         long beginTime = System.currentTimeMillis();
-        while (this.node.getLeaderId() == null) {
+        while (leaderInfo.leaderId == null) {
             try {
                 Thread.sleep(RaftSharedContext.POLL_INTERVAL);
             } catch (InterruptedException e) {
                 throw new BackendException(
                           "Waiting for raft group '%s' election is interrupted",
-                          e, group, "election");
+                          e, group);
             }
             long consumedTime = System.currentTimeMillis() - beginTime;
             if (timeout > 0 && consumedTime >= timeout) {
                 throw new BackendException(
                           "Waiting for raft group '{}' election timeout({}ms)",
-                          group, "", consumedTime);
+                          group, consumedTime);
             }
             LOG.warn("Waiting for raft group '{}' election cost {}s",
                      group, consumedTime / 1000.0);
+            leaderInfo = this.leaderInfo.get();
+            assert leaderInfo != null;
         }
+        return leaderInfo;
     }
 
     protected void waitStarted(int timeout) {
@@ -245,12 +250,14 @@ public class RaftNode {
         }
     }
 
-    private void forwardToLeader(StoreCommand command, StoreClosure closure) {
-        assert !this.isRaftLeader();
-        PeerId leaderId = this.node.getLeaderId();
+    private void forwardToLeader(PeerId leaderId, StoreCommand command,
+                                 StoreClosure closure) {
         E.checkNotNull(leaderId, "leader id");
+        E.checkState(!leaderId.equals(this.nodeId()),
+                     "Invalid state: current node is the leader, there is " +
+                     "no need to forward the request");
         LOG.debug("The node {} forward request to leader {}",
-                  this.node.getNodeId(), leaderId);
+                  this.nodeId(), leaderId);
 
         StoreCommandRequest.Builder builder = StoreCommandRequest.newBuilder();
         builder.setType(command.type());
@@ -284,12 +291,14 @@ public class RaftNode {
         this.waitRpc(leaderId.getEndpoint(), request, responseClosure);
     }
 
-    public void forwardToLeader(SetLeaderRequest request, RaftClosure future) {
-        assert !this.node.isLeader();
-        PeerId leaderId = this.node.getLeaderId();
+    public void forwardToLeader(PeerId leaderId, SetLeaderRequest request,
+                                RaftClosure future) {
         E.checkNotNull(leaderId, "leader id");
+        E.checkState(!leaderId.equals(this.nodeId()),
+                     "Invalid state: current node is the leader, there is " +
+                     "no need to forward the request");
         LOG.debug("The node {} forward request to leader {}",
-                  this.node.getNodeId(), leaderId);
+                  this.nodeId(), leaderId);
 
         RpcResponseClosure<SetLeaderResponse> responseClosure;
         responseClosure = new RpcResponseClosure<SetLeaderResponse>() {
@@ -377,6 +386,23 @@ public class RaftNode {
         @Override
         public void onDestroyed(PeerId peer) {
             LOG.warn("Replicator {} prepare to offline", peer);
+        }
+    }
+
+    /**
+     * Jraft Node.getLeaderId() and Node.isLeader() is not always consistent,
+     * We define this class to manage leader info by ourselves
+     */
+    private static class LeaderInfo {
+
+        private static final LeaderInfo NO_LEADER = new LeaderInfo(null, false);
+
+        private final PeerId leaderId;
+        private final boolean isLeader;
+
+        public LeaderInfo(PeerId leaderId, boolean isLeader) {
+            this.leaderId = leaderId;
+            this.isLeader = isLeader;
         }
     }
 }

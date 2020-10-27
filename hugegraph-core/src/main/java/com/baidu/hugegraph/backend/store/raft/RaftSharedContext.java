@@ -123,7 +123,7 @@ public final class RaftSharedContext {
     public void waitRaftNodeStarted() {
         RaftNode node = this.node();
         node.waitLeaderElected(RaftSharedContext.WAIT_LEADER_TIMEOUT);
-        if (node.isRaftLeader()) {
+        if (node.selfIsLeader()) {
             node.waitStarted(RaftSharedContext.NO_TIMEOUT);
         }
     }
