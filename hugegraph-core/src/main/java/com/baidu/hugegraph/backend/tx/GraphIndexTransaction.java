@@ -370,7 +370,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
     private IdHolderList queryByLabel(ConditionQuery query) {
         HugeType queryType = query.resultType();
         IndexLabel il = IndexLabel.label(queryType);
-        validIndexLabel(il);
+        validateIndexLabel(il);
         Id label = query.condition(HugeKeys.LABEL);
         assert label != null;
 
@@ -429,7 +429,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
         IdHolderList holders = new IdHolderList(paging);
         for (MatchedIndex index : indexes) {
             for (IndexLabel il : index.indexLabels()) {
-                validIndexLabel(il);
+                validateIndexLabel(il);
             }
             if (paging && index.indexLabels().size() > 1) {
                 throw new NotSupportException("joint index query in paging");
@@ -1354,10 +1354,10 @@ public class GraphIndexTransaction extends AbstractTransaction {
                                     name, String.join("/", mismatched));
     }
 
-    private static void validIndexLabel(IndexLabel indexLabel) {
+    private static void validateIndexLabel(IndexLabel indexLabel) {
         if (indexLabel.status() == SchemaStatus.INVALID) {
-            throw new HugeException("The label index %s is invalid",
-                                    indexLabel);
+            throw new HugeException("Can't query by label index '%s' due to " +
+                                    "it is in invalid status", indexLabel);
         }
     }
 

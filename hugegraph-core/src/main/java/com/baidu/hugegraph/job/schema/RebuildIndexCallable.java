@@ -134,11 +134,11 @@ public class RebuildIndexCallable extends SchemaCallable {
                                                  consumer, false);
                 }
                 graphTx.commit();
-            } catch (Throwable t) {
+            } catch (Throwable e) {
                 for (IndexLabel il : ils) {
                     schemaTx.updateSchemaStatus(il, SchemaStatus.INVALID);
                 }
-                throw t;
+                throw e;
             }
 
             for (IndexLabel il : ils) {
@@ -166,9 +166,9 @@ public class RebuildIndexCallable extends SchemaCallable {
             try {
                 locks.lockWrites(LockUtil.INDEX_LABEL_DELETE, indexLabelIds);
                 graphTx.removeIndex(il);
-            } catch (Throwable t) {
-                il.status(SchemaStatus.INVALID);
-                throw t;
+            } catch (Throwable e) {
+                schemaTx.updateSchemaStatus(il, SchemaStatus.INVALID);
+                throw e;
             } finally {
                 locks.unlock();
             }
