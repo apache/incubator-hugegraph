@@ -61,8 +61,10 @@ public class IndexLabelRemoveCallable extends SchemaCallable {
                 // Remove label from indexLabels of vertex or edge label
                 removeIndexLabelFromBaseLabel(schemaTx, indexLabel);
                 removeSchema(schemaTx, indexLabel);
-                // Should commit changes to backend store
-                // before release delete lock
+                /*
+                 * Should commit changes to backend store
+                 * before release delete lock
+                 */
                 graph.graph().tx().commit();
             } catch (Throwable e) {
                 schemaTx.updateSchemaStatus(indexLabel, SchemaStatus.INVALID);
