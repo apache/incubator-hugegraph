@@ -1355,10 +1355,10 @@ public class GraphIndexTransaction extends AbstractTransaction {
     }
 
     private static void validateIndexLabel(IndexLabel indexLabel) {
-        if (indexLabel.status() == SchemaStatus.INVALID) {
-            throw new HugeException("Can't query by label index '%s' due to " +
-                                    "it is in invalid status", indexLabel);
-        }
+        E.checkArgument(indexLabel.status().ok(),
+                        "Can't query by label index '%s' due to " +
+                        "it's in status %s(CREATED expected)",
+                        indexLabel, indexLabel.status());
     }
 
     private static boolean hasNullableProp(HugeElement element, Id key) {

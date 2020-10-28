@@ -29,7 +29,9 @@ public enum SchemaStatus implements SerialEnum {
 
     DELETING(4, "deleting"),
 
-    INVALID(5, "invalid");
+    UNDELETED(5, "undeleted"),
+
+    INVALID(6, "invalid");
 
     private byte code = 0;
     private String name = null;
@@ -42,6 +44,14 @@ public enum SchemaStatus implements SerialEnum {
         assert code < 256;
         this.code = (byte) code;
         this.name = name;
+    }
+
+    public boolean ok() {
+        return this == CREATED;
+    }
+
+    public boolean deleting() {
+        return this == DELETING || this == UNDELETED;
     }
 
     @Override

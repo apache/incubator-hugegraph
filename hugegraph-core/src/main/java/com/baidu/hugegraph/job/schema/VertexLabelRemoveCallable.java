@@ -74,16 +74,23 @@ public class VertexLabelRemoveCallable extends SchemaCallable {
         try {
             locks.lockWrites(LockUtil.VERTEX_LABEL_DELETE, id);
             schemaTx.updateSchemaStatus(vertexLabel, SchemaStatus.DELETING);
-            for (Id indexLabelId : indexLabelIds) {
-                IndexLabelRemoveCallable.removeIndexLabel(graph, indexLabelId);
+            try {
+                for (Id ilId : indexLabelIds) {
+                    IndexLabelRemoveCallable.removeIndexLabel(graph, ilId);
+                }
+                // TODO: use event to replace direct call
+                // Deleting a vertex will automatically deletes the held edge
+                graphTx.removeVertices(vertexLabel);
+                removeSchema(schemaTx, vertexLabel);
+                /*
+                 * Should commit changes to backend store before release
+                 * delete lock
+                 */
+                graph.graph().tx().commit();
+            } catch (Throwable e) {
+                schemaTx.updateSchemaStatus(vertexLabel, SchemaStatus.UNDELETED);
+                throw e;
             }
-
-            // TODO: use event to replace direct call
-            // Deleting a vertex will automatically deletes the held edge
-            graphTx.removeVertices(vertexLabel);
-            removeSchema(schemaTx, vertexLabel);
-            // Should commit changes to backend store before release delete lock
-            graph.graph().tx().commit();
         } finally {
             locks.unlock();
         }
