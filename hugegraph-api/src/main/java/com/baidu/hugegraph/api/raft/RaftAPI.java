@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.api.raft;
 
+import java.util.List;
 import java.util.Map;
 
 import javax.annotation.security.RolesAllowed;
@@ -49,6 +50,24 @@ import com.google.common.collect.ImmutableMap;
 public class RaftAPI extends API {
 
     private static final Logger LOG = Log.logger(RaftAPI.class);
+
+    @GET
+    @Timed
+    @Path("list-peers")
+    @Consumes(APPLICATION_JSON)
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin"})
+    public List<String> listPeers(@Context GraphManager manager,
+                                  @PathParam("graph") String graph) {
+        LOG.debug("Graph [{}] prepare to get leader", graph);
+
+        HugeGraph g = graph(manager, graph);
+        RaftNodeManager raftNodeManager = g.raftNodeManager();
+        if (raftNodeManager == null) {
+            throw new HugeException("Only work on raft mode can list peers");
+        }
+        return raftNodeManager.listPeers();
+    }
 
     @GET
     @Timed

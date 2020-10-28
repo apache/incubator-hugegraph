@@ -15,12 +15,13 @@ LOG_PATH=${HOME_PATH}/logs
 . ${BIN_PATH}/util.sh
 
 function print_usage() {
-    echo "  usage: raft-tools.sh [options]"
-    echo "  options: "
+    echo "usage: raft-tools.sh [options]"
+    echo "options: "
+    echo "  -l,--list-peers \${graph}                     list all peers' endpoints for graph, can be used on leader or follower node"
     echo "  -g,--get-leader \${graph}                     get the leader endpoint for graph, can be used on leader or follower node"
     echo "  -s,--set-leader \${graph} \${endpoint}         set the leader endpoint for graph, can be used on leader or follower node"
     echo "  -t,--transfer-leader \${graph} \${endpoint}    transfer leader to specified endpoint for graph, can be used on leader node"
-    echo "  -a,--add-peer \${graph} \${endpoint}        add peer for graph, can be used on leader node"
+    echo "  -a,--add-peer \${graph} \${endpoint}           add peer for graph, can be used on leader node"
     echo "  -r,--remove-peer \${graph} \${endpoint}        remove peer for graph, can be used on leader node"
     echo "  -h,--help                                    display help information"
 }
@@ -32,6 +33,14 @@ if [[ $# -lt 2 ]]; then
     print_usage
     exit 0
 fi
+
+function list_peers() {
+    local graph=$1
+    local rest_server_url=`read_property ${CONF_PATH}/rest-server.properties restserver.url`
+    local url=${rest_server_url}/graphs/${graph}/raft/list-peers
+
+    curl ${url}
+}
 
 function get_leader() {
     local graph=$1
@@ -83,6 +92,11 @@ while [[ $# -gt 0 ]]; do
         --help|-h)
         print_usage
         shift
+        ;;
+        # list-peers
+        --list-peers|-l)
+        list_peers $2
+        shift 2
         ;;
         # get-leader
         --get-leader|-g)

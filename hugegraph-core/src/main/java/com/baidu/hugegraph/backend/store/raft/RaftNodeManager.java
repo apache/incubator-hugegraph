@@ -19,9 +19,12 @@
 
 package com.baidu.hugegraph.backend.store.raft;
 
+import java.util.List;
 import java.util.Map;
 
 public interface RaftNodeManager {
+
+    public List<String> listPeers();
 
     public Map<String, String> getLeader();
 

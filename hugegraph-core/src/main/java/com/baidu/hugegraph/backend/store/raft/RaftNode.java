@@ -47,6 +47,8 @@ import com.alipay.sofa.jraft.rpc.RpcServer;
 import com.alipay.sofa.jraft.util.BytesUtil;
 import com.alipay.sofa.jraft.util.Endpoint;
 import com.baidu.hugegraph.backend.BackendException;
+import com.baidu.hugegraph.backend.store.raft.RaftRequests.ListPeersRequest;
+import com.baidu.hugegraph.backend.store.raft.RaftRequests.ListPeersResponse;
 import com.baidu.hugegraph.backend.store.raft.RaftRequests.SetLeaderRequest;
 import com.baidu.hugegraph.backend.store.raft.RaftRequests.SetLeaderResponse;
 import com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreCommandRequest;
@@ -286,6 +288,41 @@ public class RaftNode {
             @Override
             public void run(Status status) {
                 closure.run(status);
+            }
+        };
+        this.waitRpc(leaderId.getEndpoint(), request, responseClosure);
+    }
+
+    public void forwardToLeader(PeerId leaderId, ListPeersRequest request,
+                                RaftClosure future) {
+        E.checkNotNull(leaderId, "leader id");
+        E.checkState(!leaderId.equals(this.nodeId()),
+                     "Invalid state: current node is the leader, there is " +
+                     "no need to forward the request");
+        LOG.debug("The node {} forward request to leader {}",
+                  this.nodeId(), leaderId);
+
+        RpcResponseClosure<ListPeersResponse> responseClosure;
+        responseClosure = new RpcResponseClosure<ListPeersResponse>() {
+            @Override
+            public void setResponse(ListPeersResponse resp) {
+                if (resp.getStatus()) {
+                    LOG.debug("ListPeersResponse status ok");
+                    future.complete(Status.OK(), resp::getEndpointsList);
+                } else {
+                    LOG.debug("ListPeersResponse status error");
+                    Status status = new Status(RaftError.UNKNOWN,
+                                               "fowared request failed");
+                    future.failure(status, new BackendException(
+                                   "Current node isn't leader, leader is " +
+                                   "[%s], failed to forward request to " +
+                                   "leader: %s", leaderId, resp.getMessage()));
+                }
+            }
+
+            @Override
+            public void run(Status status) {
+                future.run(status);
             }
         };
         this.waitRpc(leaderId.getEndpoint(), request, responseClosure);

@@ -71,6 +71,8 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
         RpcServer rpcServer = this.context.rpcServer();
         rpcServer.registerProcessor(new StoreCommandRequestProcessor(
                                     this.context));
+        rpcServer.registerProcessor(new SetLeaderRequestProcessor(this.context));
+        rpcServer.registerProcessor(new ListPeersRequestProcessor(this.context));
     }
 
     private void checkOpened() {

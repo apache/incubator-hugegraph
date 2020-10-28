@@ -39,6 +39,15 @@ message StoreCommandResponse {
     optional string message = 2;
 }
 
+message ListPeersRequest {
+}
+
+message ListPeersResponse {
+    required bool status = 1;
+    optional string message = 2;
+    repeated string endpoints = 3;
+}
+
 message SetLeaderRequest {
     required string endpoint = 1;
 }

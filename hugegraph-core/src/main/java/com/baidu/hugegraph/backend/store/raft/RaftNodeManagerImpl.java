@@ -19,12 +19,15 @@
 
 package com.baidu.hugegraph.backend.store.raft;
 
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import com.alipay.sofa.jraft.Node;
 import com.alipay.sofa.jraft.Status;
 import com.alipay.sofa.jraft.entity.PeerId;
 import com.baidu.hugegraph.backend.BackendException;
+import com.baidu.hugegraph.backend.store.raft.RaftRequests.ListPeersRequest;
 import com.baidu.hugegraph.backend.store.raft.RaftRequests.SetLeaderRequest;
 import com.baidu.hugegraph.util.E;
 import com.google.common.collect.ImmutableMap;
@@ -37,6 +40,26 @@ public class RaftNodeManagerImpl implements RaftNodeManager {
     public RaftNodeManagerImpl(String group, RaftNode raftNode) {
         this.group = group;
         this.raftNode = raftNode;
+    }
+
+    @Override
+    public List<String> listPeers() {
+        if (this.raftNode.selfIsLeader()) {
+            List<PeerId> peerIds = this.raftNode.node().listPeers();
+            return peerIds.stream().map(PeerId::toString)
+                          .collect(Collectors.toList());
+        } else {
+            // If current node is not leader, forward request to leader
+            ListPeersRequest request = ListPeersRequest.getDefaultInstance();
+            RaftClosure future = new RaftClosure();
+            this.raftNode.forwardToLeader(this.raftNode.leaderId(),
+                                          request, future);
+            try {
+                return (List<String>) future.waitFinished();
+            } catch (Throwable e) {
+                throw new BackendException("Failed to list peers", e);
+            }
+        }
     }
 
     @Override
