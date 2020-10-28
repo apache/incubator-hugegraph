@@ -99,12 +99,12 @@ public class RaftNode {
     }
 
     public boolean selfIsLeader() {
-        return this.leaderInfo.get().isLeader;
+        return this.leaderInfo.get().selfIsLeader;
     }
 
-    public void onLeaderInfoChange(PeerId peerId, boolean isLeader) {
-        PeerId leaderId = peerId != null ? peerId.copy() : null;
-        this.leaderInfo.set(new LeaderInfo(leaderId, isLeader));
+    public void onLeaderInfoChange(PeerId leaderId, boolean selfIsLeader) {
+        leaderId = leaderId != null ? leaderId.copy() : null;
+        this.leaderInfo.set(new LeaderInfo(leaderId, selfIsLeader));
     }
 
     public void shutdown() {
@@ -129,9 +129,9 @@ public class RaftNode {
     private void submitCommand(StoreCommand command, StoreClosure closure) {
         // Wait leader elected
         LeaderInfo leaderInfo = this.waitLeaderElected(
-                                     RaftSharedContext.NO_TIMEOUT);
+                                RaftSharedContext.NO_TIMEOUT);
 
-        if (!leaderInfo.isLeader) {
+        if (!leaderInfo.selfIsLeader) {
             this.forwardToLeader(leaderInfo.leaderId, command, closure);
             return;
         }
@@ -398,11 +398,11 @@ public class RaftNode {
         private static final LeaderInfo NO_LEADER = new LeaderInfo(null, false);
 
         private final PeerId leaderId;
-        private final boolean isLeader;
+        private final boolean selfIsLeader;
 
-        public LeaderInfo(PeerId leaderId, boolean isLeader) {
+        public LeaderInfo(PeerId leaderId, boolean selfIsLeader) {
             this.leaderId = leaderId;
-            this.isLeader = isLeader;
+            this.selfIsLeader = selfIsLeader;
         }
     }
 }
