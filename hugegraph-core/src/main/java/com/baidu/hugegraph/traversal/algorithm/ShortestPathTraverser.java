@@ -19,8 +19,11 @@
 
 package com.baidu.hugegraph.traversal.algorithm;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -40,7 +43,7 @@ public class ShortestPathTraverser extends HugeTraverser {
     }
 
     public Path shortestPath(Id sourceV, Id targetV, Directions dir,
-                             String label, int depth, long degree,
+                             List<String> labels, int depth, long degree,
                              long skipDegree, long capacity) {
         E.checkNotNull(sourceV, "source vertex id");
         E.checkNotNull(targetV, "target vertex id");
@@ -56,8 +59,11 @@ public class ShortestPathTraverser extends HugeTraverser {
             return new Path(ImmutableList.of(sourceV));
         }
 
-        Id labelId = this.getEdgeLabelId(label);
-        Traverser traverser = new Traverser(sourceV, targetV, dir, labelId,
+        Map<Id, String> labelMap = new HashMap<>(labels.size());
+        for (String label : labels) {
+            labelMap.put(this.getEdgeLabelId(label), label);
+        }
+        Traverser traverser = new Traverser(sourceV, targetV, dir, labelMap,
                                             degree, skipDegree, capacity);
         PathSet paths;
         while (true) {
@@ -81,8 +87,15 @@ public class ShortestPathTraverser extends HugeTraverser {
         return paths.isEmpty() ? Path.EMPTY_PATH : paths.iterator().next();
     }
 
+    public Path shortestPath(Id sourceV, Id targetV, EdgeStep step,
+                             int depth, long capacity) {
+        return this.shortestPath(sourceV, targetV, step.direction,
+                                 new ArrayList<>(step.labels.values()),
+                                 depth, step.degree, step.skipDegree, capacity);
+    }
+
     public PathSet allShortestPaths(Id sourceV, Id targetV, Directions dir,
-                                    String label, int depth, long degree,
+                                    List<String> labels, int depth, long degree,
                                     long skipDegree, long capacity) {
         E.checkNotNull(sourceV, "source vertex id");
         E.checkNotNull(targetV, "target vertex id");
@@ -100,8 +113,11 @@ public class ShortestPathTraverser extends HugeTraverser {
             return paths;
         }
 
-        Id labelId = this.getEdgeLabelId(label);
-        Traverser traverser = new Traverser(sourceV, targetV, dir, labelId,
+        Map<Id, String> labelMap = new HashMap<>(labels.size());
+        for (String label : labels) {
+            labelMap.put(this.getEdgeLabelId(label), label);
+        }
+        Traverser traverser = new Traverser(sourceV, targetV, dir, labelMap,
                                             degree, skipDegree, capacity);
         while (true) {
             // Found, reach max depth or reach capacity, stop searching
@@ -130,18 +146,19 @@ public class ShortestPathTraverser extends HugeTraverser {
         private Map<Id, Node> targets = newMap();
 
         private final Directions direction;
-        private final Id label;
+        private final Map<Id, String> labels;
         private final long degree;
         private final long skipDegree;
         private final long capacity;
         private long size;
 
-        public Traverser(Id sourceV, Id targetV, Directions dir, Id label,
-                         long degree, long skipDegree, long capacity) {
+        public Traverser(Id sourceV, Id targetV, Directions dir,
+                         Map<Id, String> labels, long degree,
+                         long skipDegree, long capacity) {
             this.sources.put(sourceV, new Node(sourceV));
             this.targets.put(targetV, new Node(targetV));
             this.direction = dir;
-            this.label = label;
+            this.labels = labels;
             this.degree = degree;
             this.skipDegree = skipDegree;
             this.capacity = capacity;
@@ -158,7 +175,7 @@ public class ShortestPathTraverser extends HugeTraverser {
             // Traversal vertices of previous level
             for (Node v : this.sources.values()) {
                 Iterator<Edge> edges = edgesOfVertex(v.id(), this.direction,
-                                                     this.label, degree);
+                                                     this.labels, degree);
                 edges = skipSuperNodeIfNeeded(edges, this.degree,
                                               this.skipDegree);
                 while (edges.hasNext()) {
@@ -209,7 +226,7 @@ public class ShortestPathTraverser extends HugeTraverser {
             // Traversal vertices of previous level
             for (Node v : this.targets.values()) {
                 Iterator<Edge> edges = edgesOfVertex(v.id(), opposite,
-                                                     this.label, degree);
+                                                     this.labels, degree);
                 edges = skipSuperNodeIfNeeded(edges, this.degree,
                                               this.skipDegree);
                 while (edges.hasNext()) {
@@ -254,7 +271,7 @@ public class ShortestPathTraverser extends HugeTraverser {
                 return false;
             }
             Iterator<Edge> edges = edgesOfVertex(vertex, direction,
-                                                 this.label, this.skipDegree);
+                                                 this.labels, this.skipDegree);
             return IteratorUtils.count(edges) >= this.skipDegree;
         }
     }
