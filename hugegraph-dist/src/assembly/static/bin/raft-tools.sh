@@ -17,7 +17,7 @@ LOG_PATH=${HOME_PATH}/logs
 function print_usage() {
     echo "  usage: raft-tools.sh [options]"
     echo "  options: "
-    echo "  -g,--get-leader \${graph}                     get the leader endpoint for graph"
+    echo "  -g,--get-leader \${graph}                     get the leader endpoint for graph, can be used on leader or follower node"
     echo "  -s,--set-leader \${graph} \${endpoint}         set the leader endpoint for graph, can be used on leader or follower node"
     echo "  -t,--transfer-leader \${graph} \${endpoint}    transfer leader to specified endpoint for graph, can be used on leader node"
     echo "  -a,--add-peer \${graph} \${endpoint}        add peer for graph, can be used on leader node"
@@ -100,7 +100,7 @@ while [[ $# -gt 0 ]]; do
         shift 3
         ;;
         # add-peer
-        --add-peer|-r)
+        --add-peer|-a)
         add_peer $2 $3
         shift 3
         ;;

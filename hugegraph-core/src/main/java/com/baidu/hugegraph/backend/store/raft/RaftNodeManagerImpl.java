@@ -54,7 +54,7 @@ public class RaftNodeManagerImpl implements RaftNodeManager {
         if (!status.isOk()) {
             throw new BackendException(
                       "Failed to transafer leader to '%s', raft error: %s",
-                      peerId, status.getErrorMsg());
+                      endpoint, status.getErrorMsg());
         }
     }
 
