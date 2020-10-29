@@ -517,18 +517,6 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
 
             this.clear(false);
             this.init();
-            // clear write batch
-            dbs.values().forEach(s -> {
-                s.forceResetSessions();
-                RocksDBStdSessions sessions = (RocksDBStdSessions) s;
-                try {
-                    sessions.reload();
-                } catch (RocksDBException e) {
-                    throw new BackendException(
-                              "Failed to reload RocksDBStdSessions", e);
-                }
-            });
-
             LOG.debug("Store truncated: {}", this.store);
         } finally {
             writeLock.unlock();
