@@ -1594,7 +1594,7 @@ public class GraphTransaction extends IndexableTransaction {
                 return false;
             }
             // Filter vertices/edges of deleting label
-            if (elem.schemaLabel().status() == SchemaStatus.DELETING &&
+            if (elem.schemaLabel().status().deleting() &&
                 !query.showDeleting()) {
                 return false;
             }

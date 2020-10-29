@@ -30,9 +30,11 @@ import com.baidu.hugegraph.exception.ExistedException;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
+import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.GraphMode;
+import com.baidu.hugegraph.type.define.SchemaStatus;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.LockUtil;
 
@@ -75,6 +77,11 @@ public abstract class AbstractBuilder {
         } finally {
             locks.unlock();
         }
+    }
+
+    protected void updateSchemaStatus(SchemaElement element,
+                                      SchemaStatus status) {
+        this.transaction.updateSchemaStatus(element, status);
     }
 
     protected void checkSchemaIdIfRestoringMode(HugeType type, Id id) {
