@@ -123,44 +123,30 @@ public class HbaseSessions extends BackendSessionPool {
         int port = config.get(HbaseOptions.HBASE_PORT);
         String znodeParent = config.get(HbaseOptions.HBASE_ZNODE_PARENT);
         boolean isEnableKerberos = config.get(HbaseOptions.HBASE_KERBEROS_ENABLE);
-        Configuration hConfig = null;
+        Configuration hConfig = HBaseConfiguration.create();
+        hConfig.set(HConstants.ZOOKEEPER_QUORUM, hosts);
+        hConfig.set(HConstants.ZOOKEEPER_CLIENT_PORT, String.valueOf(port));
+        hConfig.set(HConstants.ZOOKEEPER_ZNODE_PARENT, znodeParent);
+
+        hConfig.setInt("zookeeper.recovery.retry",
+                       config.get(HbaseOptions.HBASE_ZK_RETRY));
+
+        // Set hbase.hconnection.threads.max 64 to avoid OOM(default value: 256)
+        hConfig.setInt("hbase.hconnection.threads.max",
+                       config.get(HbaseOptions.HBASE_THREADS_MAX));
+
         if(isEnableKerberos) {
             String krb5Conf = config.get(HbaseOptions.HBASE_KRB5_CONF);
             System.setProperty("java.security.krb5.conf", krb5Conf);
-            hConfig = HBaseConfiguration.create();
             String principal = config.get(HbaseOptions.HBASE_KERBEROS_PRINCIPAL);
             String keyTab = config.get(HbaseOptions.HBASE_KERBEROS_KEYTAB);
             hConfig.set("hadoop.security.authentication", "kerberos");
-            hConfig.set("hbase.security.authentication","kerberos");
+            hConfig.set("hbase.security.authentication", "kerberos");
 
-            hConfig.set(HConstants.ZOOKEEPER_QUORUM, hosts);
-            hConfig.set(HConstants.ZOOKEEPER_CLIENT_PORT, String.valueOf(port));
-            hConfig.set(HConstants.ZOOKEEPER_ZNODE_PARENT, znodeParent);
-
-            hConfig.setInt("zookeeper.recovery.retry",
-                           config.get(HbaseOptions.HBASE_ZK_RETRY));
-
-            // Set hbase.hconnection.threads.max 64 to avoid OOM(default value: 256)
-            hConfig.setInt("hbase.hconnection.threads.max",
-                           config.get(HbaseOptions.HBASE_THREADS_MAX));
-
+            //  login/authenticate using keytab
             UserGroupInformation.setConfiguration(hConfig);
             UserGroupInformation.loginUserFromKeytab(principal, keyTab);
-        } else {
-            hConfig = HBaseConfiguration.create();
-
-            hConfig.set(HConstants.ZOOKEEPER_QUORUM, hosts);
-            hConfig.set(HConstants.ZOOKEEPER_CLIENT_PORT, String.valueOf(port));
-            hConfig.set(HConstants.ZOOKEEPER_ZNODE_PARENT, znodeParent);
-
-            hConfig.setInt("zookeeper.recovery.retry",
-                           config.get(HbaseOptions.HBASE_ZK_RETRY));
-
-            // Set hbase.hconnection.threads.max 64 to avoid OOM(default value: 256)
-            hConfig.setInt("hbase.hconnection.threads.max",
-                           config.get(HbaseOptions.HBASE_THREADS_MAX));
         }
-
         this.hbase = ConnectionFactory.createConnection(hConfig);
     }
 

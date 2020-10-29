@@ -100,7 +100,7 @@ public class HbaseOptions extends OptionHolder {
 
     public static final ConfigOption<Boolean> HBASE_KERBEROS_ENABLE =
             new ConfigOption<>(
-                    "hbase.kerberos.enable",
+                    "hbase.kerberos_enable",
                     "Is Kerberos authentication enabled for HBase.",
                     disallowEmpty(),
                     false
@@ -108,15 +108,15 @@ public class HbaseOptions extends OptionHolder {
 
     public static final ConfigOption<String> HBASE_KRB5_CONF =
             new ConfigOption<>(
-                    "hbase.krb5.conf",
-                    "Krb5.conf configuration file.",
+                    "hbase.krb5_conf",
+                    "Kerberos configuration file, including KDC IP, default realm, etc.",
                     null,
                     "/etc/krb5.conf"
             );
 
     public static final ConfigOption<String> HBASE_KERBEROS_PRINCIPAL =
             new ConfigOption<>(
-                    "hbase.kerberos.principal",
+                    "hbase.kerberos_principal",
                     "The HBase's principal for kerberos authentication.",
                     null,
                     ""
@@ -124,7 +124,7 @@ public class HbaseOptions extends OptionHolder {
 
     public static final ConfigOption<String> HBASE_KERBEROS_KEYTAB =
             new ConfigOption<>(
-                    "hbase.kerberos.keytab",
+                    "hbase.kerberos_keytab",
                     "The HBase's key tab file for kerberos authentication.",
                     null,
                     ""
