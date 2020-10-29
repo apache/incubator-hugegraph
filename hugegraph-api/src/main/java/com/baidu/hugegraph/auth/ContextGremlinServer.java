@@ -45,25 +45,25 @@ public class ContextGremlinServer extends GremlinServer {
 
     private static final String G_PREFIX = "__g_";
 
-    private final EventHub hub;
+    private final EventHub eventHub;
 
-    public ContextGremlinServer(final Settings settings, EventHub hub) {
+    public ContextGremlinServer(final Settings settings, EventHub eventHub) {
         /*
          * pass custom Executor https://github.com/apache/tinkerpop/pull/813
          */
         super(settings, newGremlinExecutorService(settings));
-        this.hub = hub;
+        this.eventHub = eventHub;
         this.listenChanges();
     }
 
     private void listenChanges() {
-        this.hub.listen(Events.GRAPH_CREATE, event -> {
+        this.eventHub.listen(Events.GRAPH_CREATE, event -> {
             event.checkArgs(HugeGraph.class);
             HugeGraph graph = (HugeGraph) event.args()[0];
             this.injectGraph(graph);
             return null;
         });
-        this.hub.listen(Events.GRAPH_DROP, event -> {
+        this.eventHub.listen(Events.GRAPH_DROP, event -> {
             event.checkArgs(String.class);
             String name = (String) event.args()[0];
             this.removeGraph(name);
@@ -72,8 +72,8 @@ public class ContextGremlinServer extends GremlinServer {
     }
 
     private void unlistenChanges() {
-        this.hub.unlisten(Events.GRAPH_CREATE);
-        this.hub.unlisten(Events.GRAPH_DROP);
+        this.eventHub.unlisten(Events.GRAPH_CREATE);
+        this.eventHub.unlisten(Events.GRAPH_DROP);
     }
 
     @Override
