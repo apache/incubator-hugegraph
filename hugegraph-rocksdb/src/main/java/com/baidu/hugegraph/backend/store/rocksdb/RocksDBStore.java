@@ -82,7 +82,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
     private RocksDBSessions sessions;
     private final Map<HugeType, String> tableDiskMapping;
 
-    private final ReadWriteLock lock;
+    private final ReadWriteLock truncateLock;
 
     private static final String DB_OPEN = "db-open-%s";
     private static final long OPEN_TIMEOUT = 600L;
@@ -109,7 +109,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         this.store = store;
         this.sessions = null;
         this.tableDiskMapping = new HashMap<>();
-        this.lock = new ReentrantReadWriteLock();
+        this.truncateLock = new ReentrantReadWriteLock();
 
         this.registerMetaHandlers();
     }
@@ -350,7 +350,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
 
     @Override
     public void mutate(BackendMutation mutation) {
-        Lock readLock = this.lock.readLock();
+        Lock readLock = this.truncateLock.readLock();
         readLock.lock();
         try {
             this.checkOpened();
@@ -362,7 +362,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
             for (HugeType type : mutation.types()) {
                 Session session = this.session(type);
                 for (Iterator<BackendAction> it = mutation.mutation(type);
-                     it.hasNext(); ) {
+                     it.hasNext();) {
                     this.mutate(session, it.next());
                 }
             }
@@ -396,7 +396,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
 
     @Override
     public Iterator<BackendEntry> query(Query query) {
-        Lock readLock = this.lock.readLock();
+        Lock readLock = this.truncateLock.readLock();
         readLock.lock();
         try {
             this.checkOpened();
@@ -411,7 +411,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
 
     @Override
     public Number queryNumber(Query query) {
-        Lock readLock = this.lock.readLock();
+        Lock readLock = this.truncateLock.readLock();
         readLock.lock();
         try {
             this.checkOpened();
@@ -426,7 +426,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
 
     @Override
     public synchronized void init() {
-        Lock writeLock = this.lock.writeLock();
+        Lock writeLock = this.truncateLock.writeLock();
         writeLock.lock();
         try {
             this.checkDbOpened();
@@ -458,7 +458,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
 
     @Override
     public synchronized void clear(boolean clearSpace) {
-        Lock writeLock = this.lock.writeLock();
+        Lock writeLock = this.truncateLock.writeLock();
         writeLock.lock();
         try {
             this.checkDbOpened();
@@ -510,7 +510,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
 
     @Override
     public synchronized void truncate() {
-        Lock writeLock = this.lock.writeLock();
+        Lock writeLock = this.truncateLock.writeLock();
         writeLock.lock();
         try {
             this.checkOpened();
@@ -525,7 +525,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
 
     @Override
     public void beginTx() {
-        Lock readLock = this.lock.readLock();
+        Lock readLock = this.truncateLock.readLock();
         readLock.lock();
         try {
             this.checkOpened();
@@ -540,7 +540,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
 
     @Override
     public void commitTx() {
-        Lock readLock = this.lock.readLock();
+        Lock readLock = this.truncateLock.readLock();
         readLock.lock();
         try {
             this.checkOpened();
@@ -558,7 +558,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
 
     @Override
     public void rollbackTx() {
-        Lock readLock = this.lock.readLock();
+        Lock readLock = this.truncateLock.readLock();
         readLock.lock();
         try {
             this.checkOpened();
@@ -586,7 +586,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
 
     @Override
     public void writeSnapshot(String parentPath) {
-        Lock readLock = this.lock.readLock();
+        Lock readLock = this.truncateLock.readLock();
         readLock.lock();
         try {
             for (Session session : this.session()) {
@@ -599,7 +599,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
 
     @Override
     public void readSnapshot(String parentPath) {
-        Lock readLock = this.lock.readLock();
+        Lock readLock = this.truncateLock.readLock();
         readLock.lock();
         try {
             if (!this.opened()) {

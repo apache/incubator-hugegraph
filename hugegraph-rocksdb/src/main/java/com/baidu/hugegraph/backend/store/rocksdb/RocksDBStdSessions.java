@@ -78,7 +78,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
     private final String dataPath;
     private final String walPath;
 
-    private volatile RocksDB rocksdb;
+    private final RocksDB rocksdb;
     private final SstFileManager sstFileManager;
 
     private final Map<String, CFHandle> cfs;
@@ -251,6 +251,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
         }
     }
 
+    @SuppressWarnings("unused")
     public void reload() throws RocksDBException {
         this.rocksdb.close();
         this.cfs.values().forEach(CFHandle::destroy);
@@ -275,7 +276,8 @@ public class RocksDBStdSessions extends RocksDBSessions {
                                        null, null);
         options.setWalDir(this.walPath);
         options.setSstFileManager(this.sstFileManager);
-        this.rocksdb = RocksDB.open(options, this.dataPath, cfds, cfhs);
+        // remeber to uncomment next line
+        // this.rocksdb = RocksDB.open(options, this.dataPath, cfds, cfhs);
         for (int i = 0; i < cfNames.size(); i++) {
             this.cfs.put(cfNames.get(i), new CFHandle(cfhs.get(i)));
         }
