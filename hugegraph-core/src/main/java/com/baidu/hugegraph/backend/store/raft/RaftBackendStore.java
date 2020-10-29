@@ -36,8 +36,8 @@ import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
-import com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreAction;
-import com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreType;
+import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction;
+import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.Log;
@@ -207,7 +207,7 @@ public class RaftBackendStore implements BackendStore {
             return func.apply(query);
         }
 
-        RaftClosure future = new RaftClosure();
+        RaftClosure<Object> future = new RaftClosure<>();
         ReadIndexClosure readIndexClosure = new ReadIndexClosure() {
             @Override
             public void run(Status status, long index, byte[] reqCtx) {

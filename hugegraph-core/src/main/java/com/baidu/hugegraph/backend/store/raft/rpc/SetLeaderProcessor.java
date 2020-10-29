@@ -17,26 +17,29 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.backend.store.raft;
+package com.baidu.hugegraph.backend.store.raft.rpc;
 
 import org.slf4j.Logger;
 
 import com.alipay.sofa.jraft.rpc.RpcRequestClosure;
 import com.alipay.sofa.jraft.rpc.RpcRequestProcessor;
-import com.baidu.hugegraph.backend.store.raft.RaftRequests.SetLeaderRequest;
-import com.baidu.hugegraph.backend.store.raft.RaftRequests.SetLeaderResponse;
+import com.baidu.hugegraph.backend.store.raft.RaftNodeManager;
+import com.baidu.hugegraph.backend.store.raft.RaftSharedContext;
+import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse;
+import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderRequest;
+import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderResponse;
 import com.baidu.hugegraph.util.Log;
 import com.google.protobuf.Message;
 
-public class SetLeaderRequestProcessor
+public class SetLeaderProcessor
        extends RpcRequestProcessor<SetLeaderRequest> {
 
-    private static final Logger LOG = Log.logger(SetLeaderRequestProcessor.class);
+    private static final Logger LOG = Log.logger(SetLeaderProcessor.class);
 
     private final RaftSharedContext context;
 
-    public SetLeaderRequestProcessor(RaftSharedContext context) {
-        super(null, SetLeaderResponse.newBuilder().setStatus(true).build());
+    public SetLeaderProcessor(RaftSharedContext context) {
+        super(null, null);
         this.context = context;
     }
 
@@ -46,16 +49,17 @@ public class SetLeaderRequestProcessor
         LOG.debug("Processing SetLeaderRequest {}", request.getClass());
         RaftNodeManager nodeManager = this.context.raftNodeManager();
         try {
-            String endpoint = request.getEndpoint();
-            nodeManager.setLeader(endpoint);
-            return SetLeaderResponse.newBuilder().setStatus(true).build();
+            nodeManager.setLeader(request.getEndpoint());
+            CommonResponse common = CommonResponse.newBuilder()
+                                                  .setStatus(true)
+                                                  .build();
+            return SetLeaderResponse.newBuilder().setCommon(common).build();
         } catch (Throwable e) {
-            SetLeaderResponse.Builder builder;
-            builder = SetLeaderResponse.newBuilder().setStatus(false);
-            if (e.getMessage() != null) {
-                builder.setMessage(e.getMessage());
-            }
-            return builder.build();
+            CommonResponse common = CommonResponse.newBuilder()
+                                                  .setStatus(false)
+                                                  .setMessage(e.toString())
+                                                  .build();
+            return SetLeaderResponse.newBuilder().setCommon(common).build();
         }
     }
 

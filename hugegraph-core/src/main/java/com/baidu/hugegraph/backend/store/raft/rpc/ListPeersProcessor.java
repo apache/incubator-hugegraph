@@ -17,27 +17,30 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.backend.store.raft;
+package com.baidu.hugegraph.backend.store.raft.rpc;
 
 import org.slf4j.Logger;
 
 import com.alipay.sofa.jraft.rpc.RpcRequestClosure;
 import com.alipay.sofa.jraft.rpc.RpcRequestProcessor;
-import com.baidu.hugegraph.backend.store.raft.RaftRequests.ListPeersRequest;
-import com.baidu.hugegraph.backend.store.raft.RaftRequests.ListPeersResponse;
+import com.baidu.hugegraph.backend.store.raft.RaftNodeManager;
+import com.baidu.hugegraph.backend.store.raft.RaftSharedContext;
+import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse;
+import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersRequest;
+import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersResponse;
 import com.baidu.hugegraph.util.Log;
 import com.google.common.collect.ImmutableList;
 import com.google.protobuf.Message;
 
-public class ListPeersRequestProcessor
+public class ListPeersProcessor
        extends RpcRequestProcessor<ListPeersRequest> {
 
-    private static final Logger LOG = Log.logger(ListPeersRequestProcessor.class);
+    private static final Logger LOG = Log.logger(ListPeersProcessor.class);
 
     private final RaftSharedContext context;
 
-    public ListPeersRequestProcessor(RaftSharedContext context) {
-        super(null, ListPeersResponse.newBuilder().setStatus(true).build());
+    public ListPeersProcessor(RaftSharedContext context) {
+        super(null, null);
         this.context = context;
     }
 
@@ -47,18 +50,22 @@ public class ListPeersRequestProcessor
         LOG.debug("Processing ListPeersRequest {}", request.getClass());
         RaftNodeManager nodeManager = this.context.raftNodeManager();
         try {
+            CommonResponse common = CommonResponse.newBuilder()
+                                                  .setStatus(true)
+                                                  .build();
             return ListPeersResponse.newBuilder()
-                                    .setStatus(true)
+                                    .setCommon(common)
                                     .addAllEndpoints(nodeManager.listPeers())
                                     .build();
         } catch (Throwable e) {
-            ListPeersResponse.Builder builder;
-            builder = ListPeersResponse.newBuilder().setStatus(false);
-            if (e.getMessage() != null) {
-                builder.setMessage(e.getMessage());
-            }
-            builder.addAllEndpoints(ImmutableList.of());
-            return builder.build();
+            CommonResponse common = CommonResponse.newBuilder()
+                                                  .setStatus(false)
+                                                  .setMessage(e.toString())
+                                                  .build();
+            return ListPeersResponse.newBuilder()
+                                    .setCommon(common)
+                                    .addAllEndpoints(ImmutableList.of())
+                                    .build();
         }
     }
 

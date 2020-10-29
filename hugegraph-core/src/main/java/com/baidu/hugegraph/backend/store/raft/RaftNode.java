@@ -20,11 +20,9 @@
 package com.baidu.hugegraph.backend.store.raft;
 
 import static com.baidu.hugegraph.backend.store.raft.RaftSharedContext.BUSY_SLEEP_FACTOR;
-import static com.baidu.hugegraph.backend.store.raft.RaftSharedContext.WAIT_RPC_TIMEOUT;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -35,29 +33,17 @@ import com.alipay.sofa.jraft.Node;
 import com.alipay.sofa.jraft.RaftGroupService;
 import com.alipay.sofa.jraft.Status;
 import com.alipay.sofa.jraft.closure.ReadIndexClosure;
-import com.alipay.sofa.jraft.core.NodeImpl;
 import com.alipay.sofa.jraft.core.Replicator.ReplicatorStateListener;
 import com.alipay.sofa.jraft.entity.PeerId;
 import com.alipay.sofa.jraft.entity.Task;
 import com.alipay.sofa.jraft.error.RaftError;
 import com.alipay.sofa.jraft.option.NodeOptions;
-import com.alipay.sofa.jraft.rpc.ClientService;
-import com.alipay.sofa.jraft.rpc.RpcResponseClosure;
 import com.alipay.sofa.jraft.rpc.RpcServer;
 import com.alipay.sofa.jraft.util.BytesUtil;
-import com.alipay.sofa.jraft.util.Endpoint;
 import com.baidu.hugegraph.backend.BackendException;
-import com.baidu.hugegraph.backend.store.raft.RaftRequests.ListPeersRequest;
-import com.baidu.hugegraph.backend.store.raft.RaftRequests.ListPeersResponse;
-import com.baidu.hugegraph.backend.store.raft.RaftRequests.SetLeaderRequest;
-import com.baidu.hugegraph.backend.store.raft.RaftRequests.SetLeaderResponse;
-import com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreCommandRequest;
-import com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreCommandResponse;
-import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.backend.store.raft.rpc.RpcForwarder;
 import com.baidu.hugegraph.util.LZ4Util;
 import com.baidu.hugegraph.util.Log;
-import com.google.protobuf.Message;
-import com.google.protobuf.ZeroByteStringHelper;
 
 public class RaftNode {
 
@@ -66,6 +52,7 @@ public class RaftNode {
     private final RaftSharedContext context;
     private final Node node;
     private final StoreStateMachine stateMachine;
+    private final RpcForwarder rpcForwarder;
     private final AtomicReference<LeaderInfo> leaderInfo;
     private final AtomicBoolean started;
     private final AtomicInteger busyCounter;
@@ -79,6 +66,7 @@ public class RaftNode {
             throw new BackendException("Failed to init raft node", e);
         }
         this.node.addReplicatorStateListener(new RaftNodeStateListener());
+        this.rpcForwarder = context.rpcForwarder();
         this.leaderInfo = new AtomicReference<>(LeaderInfo.NO_LEADER);
         this.started = new AtomicBoolean(false);
         this.busyCounter = new AtomicInteger();
@@ -134,7 +122,8 @@ public class RaftNode {
                                 RaftSharedContext.NO_TIMEOUT);
 
         if (!leaderInfo.selfIsLeader) {
-            this.forwardToLeader(leaderInfo.leaderId, command, closure);
+            this.rpcForwarder.forwardToLeader(leaderInfo.leaderId,
+                                              command, closure);
             return;
         }
         // Sleep a while when raft node is busy
@@ -249,133 +238,6 @@ public class RaftNode {
                     }
                 }
             }
-        }
-    }
-
-    private void forwardToLeader(PeerId leaderId, StoreCommand command,
-                                 StoreClosure closure) {
-        E.checkNotNull(leaderId, "leader id");
-        E.checkState(!leaderId.equals(this.nodeId()),
-                     "Invalid state: current node is the leader, there is " +
-                     "no need to forward the request");
-        LOG.debug("The node {} forward request to leader {}",
-                  this.nodeId(), leaderId);
-
-        StoreCommandRequest.Builder builder = StoreCommandRequest.newBuilder();
-        builder.setType(command.type());
-        builder.setAction(command.action());
-        builder.setData(ZeroByteStringHelper.wrap(command.data()));
-        StoreCommandRequest request = builder.build();
-
-        RpcResponseClosure<StoreCommandResponse> responseClosure;
-        responseClosure = new RpcResponseClosure<StoreCommandResponse>() {
-            @Override
-            public void setResponse(StoreCommandResponse resp) {
-                if (resp.getStatus()) {
-                    LOG.debug("StoreCommandResponse status ok");
-                    closure.complete(Status.OK(), () -> null);
-                } else {
-                    LOG.debug("StoreCommandResponse status error");
-                    Status status = new Status(RaftError.UNKNOWN,
-                                               "fowared request failed");
-                    closure.failure(status, new BackendException(
-                                    "Current node isn't leader, leader is " +
-                                    "[%s], failed to forward request to " +
-                                    "leader: %s", leaderId, resp.getMessage()));
-                }
-            }
-
-            @Override
-            public void run(Status status) {
-                closure.run(status);
-            }
-        };
-        this.waitRpc(leaderId.getEndpoint(), request, responseClosure);
-    }
-
-    public void forwardToLeader(PeerId leaderId, ListPeersRequest request,
-                                RaftClosure future) {
-        E.checkNotNull(leaderId, "leader id");
-        E.checkState(!leaderId.equals(this.nodeId()),
-                     "Invalid state: current node is the leader, there is " +
-                     "no need to forward the request");
-        LOG.debug("The node {} forward request to leader {}",
-                  this.nodeId(), leaderId);
-
-        RpcResponseClosure<ListPeersResponse> responseClosure;
-        responseClosure = new RpcResponseClosure<ListPeersResponse>() {
-            @Override
-            public void setResponse(ListPeersResponse resp) {
-                if (resp.getStatus()) {
-                    LOG.debug("ListPeersResponse status ok");
-                    future.complete(Status.OK(), resp::getEndpointsList);
-                } else {
-                    LOG.debug("ListPeersResponse status error");
-                    Status status = new Status(RaftError.UNKNOWN,
-                                               "fowared request failed");
-                    future.failure(status, new BackendException(
-                                   "Current node isn't leader, leader is " +
-                                   "[%s], failed to forward request to " +
-                                   "leader: %s", leaderId, resp.getMessage()));
-                }
-            }
-
-            @Override
-            public void run(Status status) {
-                future.run(status);
-            }
-        };
-        this.waitRpc(leaderId.getEndpoint(), request, responseClosure);
-    }
-
-    public void forwardToLeader(PeerId leaderId, SetLeaderRequest request,
-                                RaftClosure future) {
-        E.checkNotNull(leaderId, "leader id");
-        E.checkState(!leaderId.equals(this.nodeId()),
-                     "Invalid state: current node is the leader, there is " +
-                     "no need to forward the request");
-        LOG.debug("The node {} forward request to leader {}",
-                  this.nodeId(), leaderId);
-
-        RpcResponseClosure<SetLeaderResponse> responseClosure;
-        responseClosure = new RpcResponseClosure<SetLeaderResponse>() {
-            @Override
-            public void setResponse(SetLeaderResponse resp) {
-                if (resp.getStatus()) {
-                    LOG.debug("SetLeaderResponse status ok");
-                    future.complete(Status.OK(), () -> null);
-                } else {
-                    LOG.debug("SetLeaderResponse status error");
-                    Status status = new Status(RaftError.UNKNOWN,
-                                               "fowared request failed");
-                    future.failure(status, new BackendException(
-                                   "Current node isn't leader, leader is " +
-                                   "[%s], failed to forward request to " +
-                                   "leader: %s", leaderId, resp.getMessage()));
-                }
-            }
-
-            @Override
-            public void run(Status status) {
-                future.run(status);
-            }
-        };
-        this.waitRpc(leaderId.getEndpoint(), request, responseClosure);
-    }
-
-    private <T extends Message> void waitRpc(Endpoint endpoint, Message request,
-                                             RpcResponseClosure<T> done) {
-        ClientService rpcClient = ((NodeImpl) this.node).getRpcService();
-        E.checkNotNull(rpcClient, "rpc client");
-        E.checkNotNull(endpoint, "leader endpoint");
-        try {
-            rpcClient.invokeWithDone(endpoint, request, done, WAIT_RPC_TIMEOUT)
-                     .get();
-        } catch (InterruptedException e) {
-            throw new BackendException("Invoke rpc request was interrupted, " +
-                                       "please try again later", e);
-        } catch (ExecutionException e) {
-            throw new BackendException("Failed to invoke rpc request", e);
         }
     }
 

@@ -20,8 +20,8 @@
 package com.baidu.hugegraph.backend.store.raft;
 
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
-import com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreAction;
-import com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreType;
+import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction;
+import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType;
 
 public class StoreCommand {
 

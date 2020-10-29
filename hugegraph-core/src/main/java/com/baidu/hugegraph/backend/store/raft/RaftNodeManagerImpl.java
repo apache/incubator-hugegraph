@@ -27,19 +27,31 @@ import com.alipay.sofa.jraft.Node;
 import com.alipay.sofa.jraft.Status;
 import com.alipay.sofa.jraft.entity.PeerId;
 import com.baidu.hugegraph.backend.BackendException;
-import com.baidu.hugegraph.backend.store.raft.RaftRequests.ListPeersRequest;
-import com.baidu.hugegraph.backend.store.raft.RaftRequests.SetLeaderRequest;
+import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersRequest;
+import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersResponse;
+import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderRequest;
+import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderResponse;
+import com.baidu.hugegraph.backend.store.raft.rpc.RpcForwarder;
 import com.baidu.hugegraph.util.E;
 import com.google.common.collect.ImmutableMap;
+import com.google.protobuf.Message;
 
 public class RaftNodeManagerImpl implements RaftNodeManager {
 
     private final String group;
     private final RaftNode raftNode;
+    private final RpcForwarder rpcForwarder;
 
-    public RaftNodeManagerImpl(String group, RaftNode raftNode) {
+    public RaftNodeManagerImpl(String group, RaftNode raftNode,
+                               RpcForwarder rpcForwarder) {
         this.group = group;
         this.raftNode = raftNode;
+        this.rpcForwarder = rpcForwarder;
+    }
+
+    private <T extends Message> RaftClosure<T> forwardToLeader(Message request) {
+        PeerId leaderId = this.raftNode.leaderId();
+        return this.rpcForwarder.forwardToLeader(leaderId, request);
     }
 
     @Override
@@ -48,17 +60,16 @@ public class RaftNodeManagerImpl implements RaftNodeManager {
             List<PeerId> peerIds = this.raftNode.node().listPeers();
             return peerIds.stream().map(PeerId::toString)
                           .collect(Collectors.toList());
-        } else {
-            // If current node is not leader, forward request to leader
-            ListPeersRequest request = ListPeersRequest.getDefaultInstance();
-            RaftClosure future = new RaftClosure();
-            this.raftNode.forwardToLeader(this.raftNode.leaderId(),
-                                          request, future);
-            try {
-                return (List<String>) future.waitFinished();
-            } catch (Throwable e) {
-                throw new BackendException("Failed to list peers", e);
-            }
+        }
+        // If current node is not leader, forward request to leader
+        ListPeersRequest request = ListPeersRequest.getDefaultInstance();
+        try {
+            RaftClosure<ListPeersResponse> future;
+            future = this.forwardToLeader(request);
+            ListPeersResponse response = future.waitFinished();
+            return response.getEndpointsList();
+        } catch (Throwable e) {
+            throw new BackendException("Failed to list peers", e);
         }
     }
 
@@ -92,30 +103,30 @@ public class RaftNodeManagerImpl implements RaftNodeManager {
         if (this.raftNode.selfIsLeader()) {
             // If current node is the leader, transfer directly
             this.transferLeaderTo(endpoint);
-        } else {
-            // If current node is not leader, forward request to leader
-            SetLeaderRequest request = SetLeaderRequest.newBuilder()
-                                                       .setEndpoint(endpoint)
-                                                       .build();
-            RaftClosure future = new RaftClosure();
-            this.raftNode.forwardToLeader(this.raftNode.leaderId(),
-                                          request, future);
-            try {
-                future.waitFinished();
-            } catch (Throwable e) {
-                throw new BackendException("Failed to set leader to '%s'",
-                                           e, endpoint);
-            }
+            return;
+        }
+        // If current node is not leader, forward request to leader
+        SetLeaderRequest request = SetLeaderRequest.newBuilder()
+                                                   .setEndpoint(endpoint)
+                                                   .build();
+        try {
+            RaftClosure<SetLeaderResponse> future;
+            future = this.forwardToLeader(request);
+            future.waitFinished();
+        } catch (Throwable e) {
+            throw new BackendException("Failed to set leader to '%s'",
+                                       e, endpoint);
         }
     }
 
     @Override
     public void addPeer(String endpoint) {
+        E.checkArgument(this.raftNode.selfIsLeader(),
+                        "Operation add-peer can only be executed on leader");
         PeerId peerId = PeerId.parsePeer(endpoint);
-        Node node = this.raftNode.node();
-        RaftClosure future = new RaftClosure();
-        node.addPeer(peerId, future);
+        RaftClosure<?> future = new RaftClosure<>();
         try {
+            this.raftNode.node().addPeer(peerId, future);
             future.waitFinished();
         } catch (Throwable e) {
             throw new BackendException("Failed to add peer '%s'", e, endpoint);
@@ -124,11 +135,12 @@ public class RaftNodeManagerImpl implements RaftNodeManager {
 
     @Override
     public void removePeer(String endpoint) {
+        E.checkArgument(this.raftNode.selfIsLeader(),
+                        "Operation add-peer can only be executed on leader");
         PeerId peerId = PeerId.parsePeer(endpoint);
-        Node node = this.raftNode.node();
-        RaftClosure future = new RaftClosure();
-        node.removePeer(peerId, future);
+        RaftClosure<?> future = new RaftClosure<>();
         try {
+            this.raftNode.node().removePeer(peerId, future);
             future.waitFinished();
         } catch (Throwable e) {
             throw new BackendException("Failed to remove peer '%s'",

@@ -47,7 +47,11 @@ import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.store.BackendStore;
-import com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreType;
+import com.baidu.hugegraph.backend.store.raft.rpc.ListPeersProcessor;
+import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType;
+import com.baidu.hugegraph.backend.store.raft.rpc.RpcForwarder;
+import com.baidu.hugegraph.backend.store.raft.rpc.SetLeaderProcessor;
+import com.baidu.hugegraph.backend.store.raft.rpc.StoreCommandProcessor;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.event.EventHub;
@@ -86,6 +90,7 @@ public final class RaftSharedContext {
 
     private RaftNode raftNode;
     private RaftNodeManager raftNodeManager;
+    private RpcForwarder rpcForwarder;
 
     public RaftSharedContext(HugeGraphParams params) {
         this.params = params;
@@ -112,12 +117,22 @@ public final class RaftSharedContext {
 
         this.raftNode = null;
         this.raftNodeManager = null;
+        this.rpcForwarder = null;
+        this.registerRpcRequestProcessors();
+    }
+
+    private void registerRpcRequestProcessors() {
+        this.rpcServer.registerProcessor(new StoreCommandProcessor(this));
+        this.rpcServer.registerProcessor(new SetLeaderProcessor(this));
+        this.rpcServer.registerProcessor(new ListPeersProcessor(this));
     }
 
     public void initRaftNode() {
         this.raftNode = new RaftNode(this);
+        this.rpcForwarder = new RpcForwarder(this.raftNode);
         this.raftNodeManager = new RaftNodeManagerImpl(this.group(),
-                                                       this.raftNode);
+                                                       this.raftNode,
+                                                       this.rpcForwarder);
     }
 
     public void waitRaftNodeStarted() {
@@ -137,8 +152,16 @@ public final class RaftSharedContext {
         return this.raftNode;
     }
 
+    public RpcForwarder rpcForwarder() {
+        return this.rpcForwarder;
+    }
+
     public RaftNodeManager raftNodeManager() {
         return this.raftNodeManager;
+    }
+
+    public RpcServer rpcServer() {
+        return this.rpcServer;
     }
 
     public String group() {
@@ -264,10 +287,6 @@ public final class RaftSharedContext {
 
     public boolean isSafeRead() {
         return this.config().get(CoreOptions.RAFT_SAFE_READ);
-    }
-
-    public RpcServer rpcServer() {
-        return this.rpcServer;
     }
 
     public ExecutorService snapshotExecutor() {
