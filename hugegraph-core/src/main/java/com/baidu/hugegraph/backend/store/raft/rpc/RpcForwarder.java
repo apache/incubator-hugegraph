@@ -85,10 +85,12 @@ public class RpcForwarder {
                     LOG.debug("StoreCommandResponse status error");
                     Status status = new Status(RaftError.UNKNOWN,
                                                "fowared request failed");
-                    closure.failure(status, new BackendException(
-                            "Current node isn't leader, leader is " +
-                                    "[%s], failed to forward request to " +
-                                    "leader: %s", leaderId, resp.getMessage()));
+                    BackendException e;
+                    e = new BackendException(
+                            "Current node isn't leader, leader is [%s], " +
+                            "failed to forward request to leader: %s",
+                            leaderId, resp.getMessage());
+                    closure.failure(status, e);
                 }
             }
 
@@ -127,11 +129,12 @@ public class RpcForwarder {
                 } else {
                     Status status = new Status(RaftError.UNKNOWN,
                                                "fowared request failed");
-                    future.failure(status, new BackendException(
-                                   "Current node isn't leader, leader is " +
-                                   "[%s], failed to forward request to " +
-                                   "leader: %s",
-                                   leaderId, commonResponse.getMessage()));
+                    BackendException e;
+                    e = new BackendException(
+                            "Current node isn't leader, leader is [%s], " +
+                            "failed to forward request to leader: %s",
+                            leaderId, commonResponse.getMessage());
+                    future.failure(status, e);
                 }
             }
 
