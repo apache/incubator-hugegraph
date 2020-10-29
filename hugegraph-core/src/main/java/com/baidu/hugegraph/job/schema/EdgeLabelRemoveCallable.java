@@ -58,14 +58,22 @@ public class EdgeLabelRemoveCallable extends SchemaCallable {
         try {
             locks.lockWrites(LockUtil.EDGE_LABEL_DELETE, id);
             schemaTx.updateSchemaStatus(edgeLabel, SchemaStatus.DELETING);
-            for (Id indexId : indexIds) {
-                IndexLabelRemoveCallable.removeIndexLabel(graph, indexId);
+            try {
+                for (Id indexId : indexIds) {
+                    IndexLabelRemoveCallable.removeIndexLabel(graph, indexId);
+                }
+                // Remove all edges which has matched label
+                graphTx.removeEdges(edgeLabel);
+                removeSchema(schemaTx, edgeLabel);
+                /*
+                 * Should commit changes to backend store before release
+                 * delete lock
+                 */
+                graph.graph().tx().commit();
+            } catch (Throwable e) {
+                schemaTx.updateSchemaStatus(edgeLabel, SchemaStatus.UNDELETED);
+                throw e;
             }
-            // Remove all edges which has matched label
-            graphTx.removeEdges(edgeLabel);
-            removeSchema(schemaTx, edgeLabel);
-            // Should commit changes to backend store before release delete lock
-            graph.graph().tx().commit();
         } finally {
             locks.unlock();
         }

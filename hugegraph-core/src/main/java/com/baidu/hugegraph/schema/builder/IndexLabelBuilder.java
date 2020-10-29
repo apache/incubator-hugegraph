@@ -223,12 +223,17 @@ public class IndexLabelBuilder extends AbstractBuilder
             // Create index label (just schema)
             indexLabel.status(SchemaStatus.CREATING);
             this.graph().addIndexLabel(schemaLabel, indexLabel);
+            try {
+                // Async rebuild index
+                Id rebuildTask = this.rebuildIndex(indexLabel, removeTasks);
+                E.checkNotNull(rebuildTask, "rebuild-index task");
 
-            // Async rebuild index
-            Id rebuildTask = this.rebuildIndex(indexLabel, removeTasks);
-            E.checkNotNull(rebuildTask, "rebuild-index task");
-
-            return new IndexLabel.CreatedIndexLabel(indexLabel, rebuildTask);
+                return new IndexLabel.CreatedIndexLabel(indexLabel,
+                                                        rebuildTask);
+            } catch (Throwable e) {
+                this.updateSchemaStatus(indexLabel, SchemaStatus.INVALID);
+                throw e;
+            }
         });
     }
 
