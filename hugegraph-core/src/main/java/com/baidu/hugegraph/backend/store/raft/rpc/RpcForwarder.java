@@ -64,7 +64,7 @@ public class RpcForwarder {
         E.checkNotNull(leaderId, "leader id");
         E.checkState(!leaderId.equals(this.nodeId),
                      "Invalid state: current node is the leader, there is " +
-                             "no need to forward the request");
+                     "no need to forward the request");
         LOG.debug("The node {} forward request to leader {}",
                   this.nodeId, leaderId);
 
@@ -77,19 +77,19 @@ public class RpcForwarder {
         RpcResponseClosure<StoreCommandResponse> responseClosure;
         responseClosure = new RpcResponseClosure<StoreCommandResponse>() {
             @Override
-            public void setResponse(StoreCommandResponse resp) {
-                if (resp.getStatus()) {
+            public void setResponse(StoreCommandResponse response) {
+                if (response.getStatus()) {
                     LOG.debug("StoreCommandResponse status ok");
                     closure.complete(Status.OK(), () -> null);
                 } else {
                     LOG.debug("StoreCommandResponse status error");
                     Status status = new Status(RaftError.UNKNOWN,
                                                "fowared request failed");
-                    BackendException e;
-                    e = new BackendException(
-                            "Current node isn't leader, leader is [%s], " +
-                            "failed to forward request to leader: %s",
-                            leaderId, resp.getMessage());
+                    BackendException e = new BackendException(
+                                         "Current node isn't leader, leader " +
+                                         "is [%s], failed to forward request " +
+                                         "to leader: %s",
+                                         leaderId, response.getMessage());
                     closure.failure(status, e);
                 }
             }
@@ -108,12 +108,11 @@ public class RpcForwarder {
         E.checkState(!leaderId.equals(this.nodeId),
                      "Invalid state: current node is the leader, there is " +
                      "no need to forward the request");
-        LOG.debug("The node {} forward request to leader {}",
+        LOG.debug("The node '{}' forward request to leader '{}'",
                   this.nodeId, leaderId);
 
         RaftClosure<T> future = new RaftClosure<>();
-        RpcResponseClosure<T> responseClosure;
-        responseClosure = new RpcResponseClosure<T>() {
+        RpcResponseClosure<T> responseClosure = new RpcResponseClosure<T>() {
             @Override
             public void setResponse(T response) {
                 FieldDescriptor fd = response.getDescriptorForType()
@@ -129,11 +128,11 @@ public class RpcForwarder {
                 } else {
                     Status status = new Status(RaftError.UNKNOWN,
                                                "fowared request failed");
-                    BackendException e;
-                    e = new BackendException(
-                            "Current node isn't leader, leader is [%s], " +
-                            "failed to forward request to leader: %s",
-                            leaderId, commonResponse.getMessage());
+                    BackendException e = new BackendException(
+                                         "Current node isn't leader, leader " +
+                                         "is [%s], failed to forward request " +
+                                         "to leader: %s",
+                                         leaderId, commonResponse.getMessage());
                     future.failure(status, e);
                 }
             }

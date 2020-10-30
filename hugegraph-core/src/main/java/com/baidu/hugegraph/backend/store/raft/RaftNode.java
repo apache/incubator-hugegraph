@@ -41,7 +41,6 @@ import com.alipay.sofa.jraft.option.NodeOptions;
 import com.alipay.sofa.jraft.rpc.RpcServer;
 import com.alipay.sofa.jraft.util.BytesUtil;
 import com.baidu.hugegraph.backend.BackendException;
-import com.baidu.hugegraph.backend.store.raft.rpc.RpcForwarder;
 import com.baidu.hugegraph.util.LZ4Util;
 import com.baidu.hugegraph.util.Log;
 
@@ -52,7 +51,6 @@ public class RaftNode {
     private final RaftSharedContext context;
     private final Node node;
     private final StoreStateMachine stateMachine;
-    private final RpcForwarder rpcForwarder;
     private final AtomicReference<LeaderInfo> leaderInfo;
     private final AtomicBoolean started;
     private final AtomicInteger busyCounter;
@@ -66,7 +64,6 @@ public class RaftNode {
             throw new BackendException("Failed to init raft node", e);
         }
         this.node.addReplicatorStateListener(new RaftNodeStateListener());
-        this.rpcForwarder = context.rpcForwarder();
         this.leaderInfo = new AtomicReference<>(LeaderInfo.NO_LEADER);
         this.started = new AtomicBoolean(false);
         this.busyCounter = new AtomicInteger();
@@ -120,10 +117,9 @@ public class RaftNode {
         // Wait leader elected
         LeaderInfo leaderInfo = this.waitLeaderElected(
                                 RaftSharedContext.NO_TIMEOUT);
-
         if (!leaderInfo.selfIsLeader) {
-            this.rpcForwarder.forwardToLeader(leaderInfo.leaderId,
-                                              command, closure);
+            this.context.rpcForwarder().forwardToLeader(leaderInfo.leaderId,
+                                                        command, closure);
             return;
         }
         // Sleep a while when raft node is busy

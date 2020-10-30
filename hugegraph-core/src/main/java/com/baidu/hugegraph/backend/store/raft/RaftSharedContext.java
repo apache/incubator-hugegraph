@@ -89,7 +89,7 @@ public final class RaftSharedContext {
     private final ExecutorService backendExecutor;
 
     private RaftNode raftNode;
-    private RaftNodeManager raftNodeManager;
+    private RaftGroupManager raftGroupManager;
     private RpcForwarder rpcForwarder;
 
     public RaftSharedContext(HugeGraphParams params) {
@@ -116,7 +116,7 @@ public final class RaftSharedContext {
         this.backendExecutor = this.createBackendExecutor(backendThreads);
 
         this.raftNode = null;
-        this.raftNodeManager = null;
+        this.raftGroupManager = null;
         this.rpcForwarder = null;
         this.registerRpcRequestProcessors();
     }
@@ -130,9 +130,7 @@ public final class RaftSharedContext {
     public void initRaftNode() {
         this.raftNode = new RaftNode(this);
         this.rpcForwarder = new RpcForwarder(this.raftNode);
-        this.raftNodeManager = new RaftNodeManagerImpl(this.group(),
-                                                       this.raftNode,
-                                                       this.rpcForwarder);
+        this.raftGroupManager = new RaftGroupManagerImpl(this);
     }
 
     public void waitRaftNodeStarted() {
@@ -156,8 +154,8 @@ public final class RaftSharedContext {
         return this.rpcForwarder;
     }
 
-    public RaftNodeManager raftNodeManager() {
-        return this.raftNodeManager;
+    public RaftGroupManager raftNodeManager() {
+        return this.raftGroupManager;
     }
 
     public RpcServer rpcServer() {

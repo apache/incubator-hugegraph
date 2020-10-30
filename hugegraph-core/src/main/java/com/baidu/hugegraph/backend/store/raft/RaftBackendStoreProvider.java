@@ -56,7 +56,7 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
         this.systemStore = null;
     }
 
-    public RaftNodeManager raftNodeManager() {
+    public RaftGroupManager raftNodeManager() {
         return this.context.raftNodeManager();
     }
 
@@ -130,6 +130,7 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
     public void waitStoreStarted() {
         this.context.initRaftNode();
         this.context.waitRaftNodeStarted();
+        LOG.info("The raft store was started");
     }
 
     @Override

@@ -20,19 +20,20 @@
 package com.baidu.hugegraph.backend.store.raft;
 
 import java.util.List;
-import java.util.Map;
 
-public interface RaftNodeManager {
+public interface RaftGroupManager {
+
+    public String group();
 
     public List<String> listPeers();
 
-    public Map<String, String> getLeader();
+    public String getLeader();
 
-    public void transferLeaderTo(String endpoint);
+    public String transferLeaderTo(String endpoint);
 
-    public void setLeader(String endpoint);
+    public String setLeader(String endpoint);
 
-    public void addPeer(String endpoint);
+    public String addPeer(String endpoint);
 
-    public void removePeer(String endpoint);
+    public String removePeer(String endpoint);
 }
