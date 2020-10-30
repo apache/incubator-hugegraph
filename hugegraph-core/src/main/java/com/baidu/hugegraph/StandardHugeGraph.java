@@ -844,11 +844,13 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
-    public RaftGroupManager raftGroupManager() {
+    public RaftGroupManager raftGroupManager(String group) {
         if (!(this.storeProvider instanceof RaftBackendStoreProvider)) {
             return null;
         }
-        return ((RaftBackendStoreProvider) this.storeProvider).raftNodeManager();
+        RaftBackendStoreProvider provider =
+                ((RaftBackendStoreProvider) this.storeProvider);
+        return provider.raftNodeManager(group);
     }
 
     @Override

@@ -25,6 +25,7 @@ import java.util.Map;
 import javax.annotation.security.RolesAllowed;
 import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -58,15 +59,14 @@ public class RaftAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin"})
     public Map<String, List<String>> listPeers(@Context GraphManager manager,
-                                               @PathParam("graph") String graph) {
+                                               @PathParam("graph") String graph,
+                                               @QueryParam("group")
+                                               @DefaultValue("default")
+                                               String group) {
         LOG.debug("Graph [{}] prepare to get leader", graph);
 
         HugeGraph g = graph(manager, graph);
-        RaftGroupManager raftManager = g.raftGroupManager();
-        if (raftManager == null) {
-            throw new HugeException("Allowed list-peers operation when " +
-                                    "working on raft mode");
-        }
+        RaftGroupManager raftManager = raftGroupManager(g, group, "list-peers");
         List<String> peers = raftManager.listPeers();
         return ImmutableMap.of(raftManager.group(), peers);
     }
@@ -78,15 +78,14 @@ public class RaftAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin"})
     public Map<String, String> getLeader(@Context GraphManager manager,
-                                         @PathParam("graph") String graph) {
+                                         @PathParam("graph") String graph,
+                                         @QueryParam("group")
+                                         @DefaultValue("default")
+                                         String group) {
         LOG.debug("Graph [{}] prepare to get leader", graph);
 
         HugeGraph g = graph(manager, graph);
-        RaftGroupManager raftManager = g.raftGroupManager();
-        if (raftManager == null) {
-            throw new HugeException("Allowed get-leader operation when " +
-                                    "working on raft mode");
-        }
+        RaftGroupManager raftManager = raftGroupManager(g, group, "get-leader");
         String leaderId = raftManager.getLeader();
         return ImmutableMap.of(raftManager.group(), leaderId);
     }
@@ -100,16 +99,17 @@ public class RaftAPI extends API {
     @RolesAllowed({"admin"})
     public Map<String, String> transferLeader(@Context GraphManager manager,
                                               @PathParam("graph") String graph,
-                                              @QueryParam("endpoint") String endpoint) {
+                                              @QueryParam("group")
+                                              @DefaultValue("default")
+                                              String group,
+                                              @QueryParam("endpoint")
+                                              String endpoint) {
         LOG.debug("Graph [{}] prepare to transfer leader to: {}",
                   graph, endpoint);
 
         HugeGraph g = graph(manager, graph);
-        RaftGroupManager raftManager = g.raftGroupManager();
-        if (raftManager == null) {
-            throw new HugeException("Allowed transfer-leader operation when " +
-                                    "working on raft mode");
-        }
+        RaftGroupManager raftManager = raftGroupManager(g, group,
+                                                        "transfer-leader");
         String leaderId = raftManager.transferLeaderTo(endpoint);
         return ImmutableMap.of(raftManager.group(), leaderId);
     }
@@ -122,17 +122,17 @@ public class RaftAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin"})
     public Map<String, String> setLeader(@Context GraphManager manager,
-                            @PathParam("graph") String graph,
-                            @QueryParam("endpoint") String endpoint) {
+                                         @PathParam("graph") String graph,
+                                         @QueryParam("group")
+                                         @DefaultValue("default")
+                                         String group,
+                                         @QueryParam("endpoint")
+                                         String endpoint) {
         LOG.debug("Graph [{}] prepare to set leader to: {}",
                   graph, endpoint);
 
         HugeGraph g = graph(manager, graph);
-        RaftGroupManager raftManager = g.raftGroupManager();
-        if (raftManager == null) {
-            throw new HugeException("Allowed set-leader operation when " +
-                                    "working on raft mode");
-        }
+        RaftGroupManager raftManager = raftGroupManager(g, group, "set-leader");
         String leaderId = raftManager.setLeader(endpoint);
         return ImmutableMap.of(raftManager.group(), leaderId);
     }
@@ -145,16 +145,16 @@ public class RaftAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin"})
     public Map<String, String> addPeer(@Context GraphManager manager,
-                          @PathParam("graph") String graph,
-                          @QueryParam("endpoint") String endpoint) {
+                                       @PathParam("graph") String graph,
+                                       @QueryParam("group")
+                                       @DefaultValue("default")
+                                       String group,
+                                       @QueryParam("endpoint")
+                                       String endpoint) {
         LOG.debug("Graph [{}] prepare to add peer: {}", graph, endpoint);
 
         HugeGraph g = graph(manager, graph);
-        RaftGroupManager raftManager = g.raftGroupManager();
-        if (raftManager == null) {
-            throw new HugeException("Allowed add-peer operation when " +
-                                    "working on raft mode");
-        }
+        RaftGroupManager raftManager = raftGroupManager(g, group, "add-peer");
         String peerId = raftManager.addPeer(endpoint);
         return ImmutableMap.of(raftManager.group(), peerId);
     }
@@ -167,17 +167,29 @@ public class RaftAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin"})
     public Map<String, String> removePeer(@Context GraphManager manager,
-                             @PathParam("graph") String graph,
-                             @QueryParam("endpoint") String endpoint) {
+                                          @PathParam("graph") String graph,
+                                          @QueryParam("group")
+                                          @DefaultValue("default")
+                                          String group,
+                                          @QueryParam("endpoint")
+                                          String endpoint) {
         LOG.debug("Graph [{}] prepare to remove peer: {}", graph, endpoint);
 
         HugeGraph g = graph(manager, graph);
-        RaftGroupManager raftManager = g.raftGroupManager();
-        if (raftManager == null) {
-            throw new HugeException("Allowed remove-peer operation when " +
-                                    "working on raft mode");
-        }
+        RaftGroupManager raftManager = raftGroupManager(g, group,
+                                                        "remove-peer");
         String peerId = raftManager.removePeer(endpoint);
         return ImmutableMap.of(raftManager.group(), peerId);
+    }
+
+    private static RaftGroupManager raftGroupManager(HugeGraph graph,
+                                                     String group,
+                                                     String operation) {
+        RaftGroupManager raftManager = graph.raftGroupManager(group);
+        if (raftManager == null) {
+            throw new HugeException("Allowed %s operation only when " +
+                                    "working on raft mode", operation);
+        }
+        return raftManager;
     }
 }

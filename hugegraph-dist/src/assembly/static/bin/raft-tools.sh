@@ -17,13 +17,13 @@ LOG_PATH=${HOME_PATH}/logs
 function print_usage() {
     echo "usage: raft-tools.sh [options]"
     echo "options: "
-    echo "  -l,--list-peers \${graph}                     list all peers' endpoints for graph, can be used on leader or follower node"
-    echo "  -g,--get-leader \${graph}                     get the leader endpoint for graph, can be used on leader or follower node"
-    echo "  -s,--set-leader \${graph} \${endpoint}         set the leader endpoint for graph, can be used on leader or follower node"
-    echo "  -t,--transfer-leader \${graph} \${endpoint}    transfer leader to specified endpoint for graph, can be used on leader node"
-    echo "  -a,--add-peer \${graph} \${endpoint}           add peer for graph, can be used on leader node"
-    echo "  -r,--remove-peer \${graph} \${endpoint}        remove peer for graph, can be used on leader node"
-    echo "  -h,--help                                    display help information"
+    echo "  -l,--list-peers \${graph} \${group}                    list all peers' endpoints for graph, can be used on leader or follower node"
+    echo "  -g,--get-leader \${graph} \${group}                    get the leader endpoint for graph, can be used on leader or follower node"
+    echo "  -s,--set-leader \${graph} \${group} \${endpoint}        set the leader endpoint for graph, can be used on leader or follower node"
+    echo "  -t,--transfer-leader \${graph} \${group} \${endpoint}   transfer leader to specified endpoint for graph, can be used on leader node"
+    echo "  -a,--add-peer \${graph} \${group} \${endpoint}          add peer for graph, can be used on leader node"
+    echo "  -r,--remove-peer \${graph} \${group} \${endpoint}       remove peer for graph, can be used on leader node"
+    echo "  -h,--help                                            display help information"
 }
 
 GRAPH="hugegraph"

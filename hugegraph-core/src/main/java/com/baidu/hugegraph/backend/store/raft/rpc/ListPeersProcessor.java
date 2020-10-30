@@ -48,7 +48,8 @@ public class ListPeersProcessor
     public Message processRequest(ListPeersRequest request,
                                   RpcRequestClosure done) {
         LOG.debug("Processing ListPeersRequest {}", request.getClass());
-        RaftGroupManager nodeManager = this.context.raftNodeManager();
+        RaftGroupManager nodeManager = this.context.raftNodeManager(
+                                       RaftSharedContext.DEFAULT_GROUP);
         try {
             CommonResponse common = CommonResponse.newBuilder()
                                                   .setStatus(true)

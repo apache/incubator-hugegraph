@@ -47,7 +47,8 @@ public class SetLeaderProcessor
     public Message processRequest(SetLeaderRequest request,
                                   RpcRequestClosure done) {
         LOG.debug("Processing SetLeaderRequest {}", request.getClass());
-        RaftGroupManager nodeManager = this.context.raftNodeManager();
+        RaftGroupManager nodeManager = this.context.raftNodeManager(
+                                       RaftSharedContext.DEFAULT_GROUP);
         try {
             nodeManager.setLeader(request.getEndpoint());
             CommonResponse common = CommonResponse.newBuilder()

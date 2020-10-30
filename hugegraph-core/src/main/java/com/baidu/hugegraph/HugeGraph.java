@@ -151,7 +151,7 @@ public interface HugeGraph extends Graph {
 
     public UserManager userManager();
     public TaskScheduler taskScheduler();
-    public RaftGroupManager raftGroupManager();
+    public RaftGroupManager raftGroupManager(String group);
 
     public void proxy(HugeGraph graph);
 

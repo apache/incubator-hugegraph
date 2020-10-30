@@ -56,8 +56,8 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
         this.systemStore = null;
     }
 
-    public RaftGroupManager raftNodeManager() {
-        return this.context.raftNodeManager();
+    public RaftGroupManager raftNodeManager(String group) {
+        return this.context.raftNodeManager(group);
     }
 
     private Set<RaftBackendStore> stores() {

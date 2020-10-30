@@ -633,9 +633,9 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     @Override
-    public RaftGroupManager raftGroupManager() {
+    public RaftGroupManager raftGroupManager(String group) {
         this.verifyAdminPermission();
-        return this.hugegraph.raftGroupManager();
+        return this.hugegraph.raftGroupManager(group);
     }
 
     @Override

@@ -75,7 +75,7 @@ public final class RaftSharedContext {
     // compress block size
     public static final int BLOCK_SIZE = 4096;
 
-    private static final String DEFAULT_GROUP = "default-group";
+    public static final String DEFAULT_GROUP = "default";
 
     private final HugeGraphParams params;
     private final String schemaStoreName;
@@ -154,7 +154,10 @@ public final class RaftSharedContext {
         return this.rpcForwarder;
     }
 
-    public RaftGroupManager raftNodeManager() {
+    public RaftGroupManager raftNodeManager(String group) {
+        E.checkArgument(DEFAULT_GROUP.equals(group),
+                        "The group must be '%s' now, actual is '%s'",
+                        DEFAULT_GROUP, group);
         return this.raftGroupManager;
     }
 
