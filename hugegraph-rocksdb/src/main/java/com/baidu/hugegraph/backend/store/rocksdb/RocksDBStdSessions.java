@@ -67,13 +67,14 @@ import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumnIterator;
 import com.baidu.hugegraph.backend.store.BackendEntryIterator;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.util.Bytes;
-import com.baidu.hugegraph.util.GZipUtil;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.GZipUtil;
 import com.baidu.hugegraph.util.StringEncoding;
 import com.google.common.collect.ImmutableList;
 
 public class RocksDBStdSessions extends RocksDBSessions {
 
+    private final HugeConfig config;
     private final String dataPath;
     private final String walPath;
 
@@ -87,6 +88,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
                               String dataPath, String walPath)
                               throws RocksDBException {
         super(config, database, store);
+        this.config = config;
         this.dataPath = dataPath;
         this.walPath = walPath;
         // Init options
@@ -112,6 +114,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
                               String dataPath, String walPath,
                               List<String> cfNames) throws RocksDBException {
         super(config, database, store);
+        this.config = config;
         this.dataPath = dataPath;
         this.walPath = walPath;
         // Old CFs should always be opened
@@ -156,6 +159,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
     private RocksDBStdSessions(HugeConfig config, String database, String store,
                                RocksDBStdSessions origin) {
         super(config, database, store);
+        this.config = config;
         this.dataPath = origin.dataPath;
         this.walPath = origin.walPath;
         this.rocksdb = origin.rocksdb;
@@ -244,6 +248,38 @@ public class RocksDBStdSessions extends RocksDBSessions {
             }
             cfh.destroy();
             this.cfs.remove(table);
+        }
+    }
+
+    @SuppressWarnings("unused")
+    public void reload() throws RocksDBException {
+        this.rocksdb.close();
+        this.cfs.values().forEach(CFHandle::destroy);
+        // Init CFs options
+        Set<String> mergedCFs = this.mergeOldCFs(dataPath, new ArrayList<>(
+                                                           this.cfs.keySet()));
+        List<String> cfNames = ImmutableList.copyOf(mergedCFs);
+
+        List<ColumnFamilyDescriptor> cfds = new ArrayList<>(cfNames.size());
+        for (String cf : cfNames) {
+            ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(encode(cf));
+            ColumnFamilyOptions options = cfd.getOptions();
+            RocksDBStdSessions.initOptions(this.config, null, null,
+                                           options, options);
+            cfds.add(cfd);
+        }
+        List<ColumnFamilyHandle> cfhs = new ArrayList<>();
+
+        // Init DB options
+        DBOptions options = new DBOptions();
+        RocksDBStdSessions.initOptions(this.config, options, options,
+                                       null, null);
+        options.setWalDir(this.walPath);
+        options.setSstFileManager(this.sstFileManager);
+        // remeber to uncomment next line
+        // this.rocksdb = RocksDB.open(options, this.dataPath, cfds, cfhs);
+        for (int i = 0; i < cfNames.size(); i++) {
+            this.cfs.put(cfNames.get(i), new CFHandle(cfhs.get(i)));
         }
     }
 
@@ -635,6 +671,11 @@ public class RocksDBStdSessions extends RocksDBSessions {
         @Override
         public boolean closed() {
             return !this.opened || !RocksDBStdSessions.this.opened();
+        }
+
+        @Override
+        public void reset() {
+            this.batch = new WriteBatch();
         }
 
         /**

@@ -128,7 +128,7 @@ public abstract class BackendSessionPool {
         return Pair.of(this.sessionCount.decrementAndGet(), ref);
     }
 
-    protected void forceResetSessions() {
+    public void forceResetSessions() {
         for (BackendSession session : this.sessions.values()) {
             session.reset();
         }
