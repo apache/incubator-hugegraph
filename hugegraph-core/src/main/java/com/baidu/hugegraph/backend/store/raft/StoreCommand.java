@@ -20,8 +20,8 @@
 package com.baidu.hugegraph.backend.store.raft;
 
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
-import com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreAction;
-import com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreType;
+import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction;
+import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType;
 
 public class StoreCommand {
 
@@ -71,5 +71,11 @@ public class StoreCommand {
         StoreType type = StoreType.valueOf(bytes[0]);
         StoreAction action = StoreAction.valueOf(bytes[1]);
         return new StoreCommand(type, action, bytes);
+    }
+
+    @Override
+    public String toString() {
+        return String.format("StoreCommand{type=%s, action=%s",
+                             this.type.name(), this.action.name());
     }
 }

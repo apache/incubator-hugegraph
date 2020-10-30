@@ -20,13 +20,12 @@
 package com.baidu.hugegraph.backend.store.raft;
 
 import static com.baidu.hugegraph.backend.store.raft.RaftSharedContext.BUSY_SLEEP_FACTOR;
-import static com.baidu.hugegraph.backend.store.raft.RaftSharedContext.WAIT_RPC_TIMEOUT;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.slf4j.Logger;
 
@@ -34,25 +33,16 @@ import com.alipay.sofa.jraft.Node;
 import com.alipay.sofa.jraft.RaftGroupService;
 import com.alipay.sofa.jraft.Status;
 import com.alipay.sofa.jraft.closure.ReadIndexClosure;
-import com.alipay.sofa.jraft.core.NodeImpl;
 import com.alipay.sofa.jraft.core.Replicator.ReplicatorStateListener;
 import com.alipay.sofa.jraft.entity.PeerId;
 import com.alipay.sofa.jraft.entity.Task;
 import com.alipay.sofa.jraft.error.RaftError;
 import com.alipay.sofa.jraft.option.NodeOptions;
-import com.alipay.sofa.jraft.rpc.ClientService;
-import com.alipay.sofa.jraft.rpc.RpcResponseClosure;
 import com.alipay.sofa.jraft.rpc.RpcServer;
 import com.alipay.sofa.jraft.util.BytesUtil;
-import com.alipay.sofa.jraft.util.Endpoint;
 import com.baidu.hugegraph.backend.BackendException;
-import com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreCommandRequest;
-import com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreCommandResponse;
-import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.LZ4Util;
 import com.baidu.hugegraph.util.Log;
-import com.google.protobuf.Message;
-import com.google.protobuf.ZeroByteStringHelper;
 
 public class RaftNode {
 
@@ -61,11 +51,8 @@ public class RaftNode {
     private final RaftSharedContext context;
     private final Node node;
     private final StoreStateMachine stateMachine;
-    private final AtomicLong leaderTerm;
-
-    private final Object electedLock;
-    private volatile boolean elected;
-    private volatile boolean started;
+    private final AtomicReference<LeaderInfo> leaderInfo;
+    private final AtomicBoolean started;
     private final AtomicInteger busyCounter;
 
     public RaftNode(RaftSharedContext context) {
@@ -77,10 +64,8 @@ public class RaftNode {
             throw new BackendException("Failed to init raft node", e);
         }
         this.node.addReplicatorStateListener(new RaftNodeStateListener());
-        this.leaderTerm = new AtomicLong(-1);
-        this.electedLock = new Object();
-        this.elected = false;
-        this.started = false;
+        this.leaderInfo = new AtomicReference<>(LeaderInfo.NO_LEADER);
+        this.started = new AtomicBoolean(false);
         this.busyCounter = new AtomicInteger();
     }
 
@@ -97,15 +82,16 @@ public class RaftNode {
     }
 
     public PeerId leaderId() {
-        return this.node.getLeaderId();
+        return this.leaderInfo.get().leaderId;
     }
 
-    public boolean isRaftLeader() {
-        return this.leaderTerm.get() > 0;
+    public boolean selfIsLeader() {
+        return this.leaderInfo.get().selfIsLeader;
     }
 
-    public void leaderTerm(long term) {
-        this.leaderTerm.set(term);
+    public void onLeaderInfoChange(PeerId leaderId, boolean selfIsLeader) {
+        leaderId = leaderId != null ? leaderId.copy() : null;
+        this.leaderInfo.set(new LeaderInfo(leaderId, selfIsLeader));
     }
 
     public void shutdown() {
@@ -129,10 +115,11 @@ public class RaftNode {
 
     private void submitCommand(StoreCommand command, StoreClosure closure) {
         // Wait leader elected
-        this.waitLeaderElected(RaftSharedContext.NO_TIMEOUT);
-
-        if (!this.isRaftLeader()) {
-            this.forwardToLeader(command, closure);
+        LeaderInfo leaderInfo = this.waitLeaderElected(
+                                RaftSharedContext.NO_TIMEOUT);
+        if (!leaderInfo.selfIsLeader) {
+            this.context.rpcForwarder().forwardToLeader(leaderInfo.leaderId,
+                                                        command, closure);
             return;
         }
         // Sleep a while when raft node is busy
@@ -159,48 +146,39 @@ public class RaftNode {
              * in forwardToLeader, written like this to simplify the code
              */
             return future.waitFinished();
-        } catch (RuntimeException e) {
-            throw e;
-        } catch (Throwable t) {
-            throw new BackendException(t);
+        } catch (Throwable e) {
+            throw new BackendException("Failed to wait store command %s",
+                                       e, command);
         }
     }
 
-    public void onElected(boolean value) {
-        synchronized(this.electedLock) {
-            this.elected = value;
-            this.electedLock.notify();
-        }
-    }
-
-    protected void waitLeaderElected(int timeout) {
+    protected LeaderInfo waitLeaderElected(int timeout) {
         String group = this.context.group();
-        if (this.node.getLeaderId() != null) {
-            return;
+        LeaderInfo leaderInfo = this.leaderInfo.get();
+        if (leaderInfo.leaderId != null) {
+            return leaderInfo;
         }
         long beginTime = System.currentTimeMillis();
-        synchronized(this.electedLock) {
-            while (!this.elected) {
-                try {
-                    this.electedLock.wait(RaftSharedContext.POLL_INTERVAL);
-                } catch (InterruptedException e) {
-                    throw new BackendException(
-                              "Interrupted while waiting raft group '%s' " +
-                              "election", e, group);
-                }
-                if (this.elected) {
-                    break;
-                }
-                long consumedTime = System.currentTimeMillis() - beginTime;
-                if (timeout > 0 && consumedTime >= timeout) {
-                    throw new BackendException(
-                              "Wait raft group '{}' election timeout({}ms)",
-                              group, consumedTime);
-                }
-                LOG.warn("Waiting raft group '{}' election cost {}s",
-                         group, consumedTime / 1000.0);
+        while (leaderInfo.leaderId == null) {
+            try {
+                Thread.sleep(RaftSharedContext.POLL_INTERVAL);
+            } catch (InterruptedException e) {
+                throw new BackendException(
+                          "Waiting for raft group '%s' election is interrupted",
+                          e, group);
             }
+            long consumedTime = System.currentTimeMillis() - beginTime;
+            if (timeout > 0 && consumedTime >= timeout) {
+                throw new BackendException(
+                          "Waiting for raft group '{}' election timeout({}ms)",
+                          group, consumedTime);
+            }
+            LOG.warn("Waiting for raft group '{}' election cost {}s",
+                     group, consumedTime / 1000.0);
+            leaderInfo = this.leaderInfo.get();
+            assert leaderInfo != null;
         }
+        return leaderInfo;
     }
 
     protected void waitStarted(int timeout) {
@@ -208,17 +186,13 @@ public class RaftNode {
         ReadIndexClosure readIndexClosure = new ReadIndexClosure() {
             @Override
             public void run(Status status, long index, byte[] reqCtx) {
-                if (status.isOk()) {
-                    RaftNode.this.started = true;
-                } else {
-                    RaftNode.this.started = false;
-                }
+                RaftNode.this.started.set(status.isOk());
             }
         };
         long beginTime = System.currentTimeMillis();
         while (true) {
             this.node.readIndex(BytesUtil.EMPTY_BYTES, readIndexClosure);
-            if (this.started) {
+            if (this.started.get()) {
                 break;
             }
             try {
@@ -230,10 +204,10 @@ public class RaftNode {
             long consumedTime = System.currentTimeMillis() - beginTime;
             if (timeout > 0 && consumedTime >= timeout) {
                 throw new BackendException(
-                          "Wait raft group '{}' heartbeat timeout({}ms)",
+                          "Waiting for raft group '{}' heartbeat timeout({}ms)",
                           group, consumedTime);
             }
-            LOG.warn("Waiting raft group '{}' heartbeat cost {}s",
+            LOG.warn("Waiting for raft group '{}' heartbeat cost {}s",
                      group, consumedTime / 1000.0);
         }
     }
@@ -260,61 +234,6 @@ public class RaftNode {
                     }
                 }
             }
-        }
-    }
-
-    private void forwardToLeader(StoreCommand command, StoreClosure closure) {
-        assert !this.isRaftLeader();
-        PeerId leaderId = this.node.getLeaderId();
-        E.checkNotNull(leaderId, "leader id");
-        LOG.debug("The node {} forward request to leader {}",
-                  this.node.getNodeId(), leaderId);
-
-        StoreCommandRequest.Builder builder = StoreCommandRequest.newBuilder();
-        builder.setType(command.type());
-        builder.setAction(command.action());
-        builder.setData(ZeroByteStringHelper.wrap(command.data()));
-        StoreCommandRequest request = builder.build();
-
-        RpcResponseClosure<StoreCommandResponse> responseClosure;
-        responseClosure = new RpcResponseClosure<StoreCommandResponse>() {
-            @Override
-            public void setResponse(StoreCommandResponse resp) {
-                if (resp.getStatus()) {
-                    LOG.debug("StoreCommandResponse status ok");
-                    closure.complete(Status.OK(), () -> null);
-                } else {
-                    LOG.debug("StoreCommandResponse status error");
-                    Status status = new Status(RaftError.UNKNOWN,
-                                               "fowared request failed");
-                    closure.failure(status, new BackendException(
-                                    "Current node isn't leader, leader is " +
-                                    "[%s], failed to forward request to " +
-                                    "leader: %s", leaderId, resp.getMessage()));
-                }
-            }
-
-            @Override
-            public void run(Status status) {
-                closure.run(status);
-            }
-        };
-        this.waitRpc(leaderId.getEndpoint(), request, responseClosure);
-    }
-
-    private <T extends Message> void waitRpc(Endpoint endpoint, Message request,
-                                             RpcResponseClosure<T> done) {
-        ClientService rpcClient = ((NodeImpl) this.node).getRpcService();
-        E.checkNotNull(rpcClient, "rpc client");
-        E.checkNotNull(endpoint, "leader endpoint");
-        try {
-            rpcClient.invokeWithDone(endpoint, request, done, WAIT_RPC_TIMEOUT)
-                     .get();
-        } catch (InterruptedException e) {
-            throw new BackendException("Invoke rpc request was interrupted, " +
-                                       "please try again later", e);
-        } catch (ExecutionException e) {
-            throw new BackendException("Failed to invoke rpc request", e);
         }
     }
 
@@ -362,6 +281,23 @@ public class RaftNode {
         @Override
         public void onDestroyed(PeerId peer) {
             LOG.warn("Replicator {} prepare to offline", peer);
+        }
+    }
+
+    /**
+     * Jraft Node.getLeaderId() and Node.isLeader() is not always consistent,
+     * We define this class to manage leader info by ourselves
+     */
+    private static class LeaderInfo {
+
+        private static final LeaderInfo NO_LEADER = new LeaderInfo(null, false);
+
+        private final PeerId leaderId;
+        private final boolean selfIsLeader;
+
+        public LeaderInfo(PeerId leaderId, boolean selfIsLeader) {
+            this.leaderId = leaderId;
+            this.selfIsLeader = selfIsLeader;
         }
     }
 }

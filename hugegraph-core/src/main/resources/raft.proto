@@ -38,3 +38,24 @@ message StoreCommandResponse {
     required bool status = 1;
     optional string message = 2;
 }
+
+message CommonResponse {
+    required bool status = 1;
+    optional string message = 2;
+}
+
+message ListPeersRequest {
+}
+
+message ListPeersResponse {
+    required CommonResponse common = 1;
+    repeated string endpoints = 2;
+}
+
+message SetLeaderRequest {
+    required string endpoint = 1;
+}
+
+message SetLeaderResponse {
+    required CommonResponse common = 1;
+}

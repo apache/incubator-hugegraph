@@ -37,7 +37,6 @@ import org.slf4j.Logger;
 
 import com.alipay.sofa.jraft.conf.Configuration;
 import com.alipay.sofa.jraft.entity.PeerId;
-import com.alipay.sofa.jraft.option.CliOptions;
 import com.alipay.sofa.jraft.option.NodeOptions;
 import com.alipay.sofa.jraft.option.RaftOptions;
 import com.alipay.sofa.jraft.rpc.RaftRpcServerFactory;
@@ -48,7 +47,11 @@ import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.store.BackendStore;
-import com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreType;
+import com.baidu.hugegraph.backend.store.raft.rpc.ListPeersProcessor;
+import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType;
+import com.baidu.hugegraph.backend.store.raft.rpc.RpcForwarder;
+import com.baidu.hugegraph.backend.store.raft.rpc.SetLeaderProcessor;
+import com.baidu.hugegraph.backend.store.raft.rpc.StoreCommandProcessor;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.event.EventHub;
@@ -72,7 +75,7 @@ public final class RaftSharedContext {
     // compress block size
     public static final int BLOCK_SIZE = 4096;
 
-    private static final String DEFAULT_GROUP = "default-group";
+    public static final String DEFAULT_GROUP = "default";
 
     private final HugeGraphParams params;
     private final String schemaStoreName;
@@ -86,6 +89,8 @@ public final class RaftSharedContext {
     private final ExecutorService backendExecutor;
 
     private RaftNode raftNode;
+    private RaftGroupManager raftGroupManager;
+    private RpcForwarder rpcForwarder;
 
     public RaftSharedContext(HugeGraphParams params) {
         this.params = params;
@@ -111,19 +116,27 @@ public final class RaftSharedContext {
         this.backendExecutor = this.createBackendExecutor(backendThreads);
 
         this.raftNode = null;
+        this.raftGroupManager = null;
+        this.rpcForwarder = null;
+        this.registerRpcRequestProcessors();
+    }
+
+    private void registerRpcRequestProcessors() {
+        this.rpcServer.registerProcessor(new StoreCommandProcessor(this));
+        this.rpcServer.registerProcessor(new SetLeaderProcessor(this));
+        this.rpcServer.registerProcessor(new ListPeersProcessor(this));
     }
 
     public void initRaftNode() {
         this.raftNode = new RaftNode(this);
-        CliOptions cliOptions = new CliOptions();
-        cliOptions.setTimeoutMs(WAIT_LEADER_TIMEOUT);
-        cliOptions.setMaxRetry(1);
+        this.rpcForwarder = new RpcForwarder(this.raftNode);
+        this.raftGroupManager = new RaftGroupManagerImpl(this);
     }
 
     public void waitRaftNodeStarted() {
         RaftNode node = this.node();
         node.waitLeaderElected(RaftSharedContext.WAIT_LEADER_TIMEOUT);
-        if (node.isRaftLeader()) {
+        if (node.selfIsLeader()) {
             node.waitStarted(RaftSharedContext.NO_TIMEOUT);
         }
     }
@@ -135,6 +148,21 @@ public final class RaftSharedContext {
 
     public RaftNode node() {
         return this.raftNode;
+    }
+
+    public RpcForwarder rpcForwarder() {
+        return this.rpcForwarder;
+    }
+
+    public RaftGroupManager raftNodeManager(String group) {
+        E.checkArgument(DEFAULT_GROUP.equals(group),
+                        "The group must be '%s' now, actual is '%s'",
+                        DEFAULT_GROUP, group);
+        return this.raftGroupManager;
+    }
+
+    public RpcServer rpcServer() {
+        return this.rpcServer;
     }
 
     public String group() {
@@ -245,7 +273,7 @@ public final class RaftSharedContext {
             // How to avoid update cache from server info
             eventHub.notify(Events.CACHE, "invalid", type, id);
         } catch (RejectedExecutionException e) {
-            // pass
+            LOG.warn("Can't update cache due to EventHub is too busy");
         }
     }
 
@@ -260,10 +288,6 @@ public final class RaftSharedContext {
 
     public boolean isSafeRead() {
         return this.config().get(CoreOptions.RAFT_SAFE_READ);
-    }
-
-    public RpcServer rpcServer() {
-        return this.rpcServer;
     }
 
     public ExecutorService snapshotExecutor() {

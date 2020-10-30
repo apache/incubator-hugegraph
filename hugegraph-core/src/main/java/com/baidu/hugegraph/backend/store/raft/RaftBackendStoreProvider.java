@@ -24,13 +24,12 @@ import java.util.concurrent.Future;
 
 import org.slf4j.Logger;
 
-import com.alipay.sofa.jraft.rpc.RpcServer;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
-import com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreType;
+import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType;
 import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.event.EventListener;
 import com.baidu.hugegraph.util.E;
@@ -55,18 +54,15 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
         this.schemaStore = null;
         this.graphStore = null;
         this.systemStore = null;
-        this.registerRpcRequestProcessors();
+    }
+
+    public RaftGroupManager raftNodeManager(String group) {
+        return this.context.raftNodeManager(group);
     }
 
     private Set<RaftBackendStore> stores() {
         return ImmutableSet.of(this.schemaStore, this.graphStore,
                                this.systemStore);
-    }
-
-    private void registerRpcRequestProcessors() {
-        RpcServer rpcServer = this.context.rpcServer();
-        rpcServer.registerProcessor(new StoreCommandRequestProcessor(
-                                    this.context));
     }
 
     private void checkOpened() {
@@ -134,6 +130,7 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
     public void waitStoreStarted() {
         this.context.initRaftNode();
         this.context.waitRaftNodeStarted();
+        LOG.info("The raft store was started");
     }
 
     @Override

@@ -29,6 +29,7 @@ import org.slf4j.Logger;
 import com.alipay.sofa.jraft.Closure;
 import com.alipay.sofa.jraft.Iterator;
 import com.alipay.sofa.jraft.Status;
+import com.alipay.sofa.jraft.conf.Configuration;
 import com.alipay.sofa.jraft.core.StateMachineAdapter;
 import com.alipay.sofa.jraft.entity.LeaderChangeContext;
 import com.alipay.sofa.jraft.error.RaftError;
@@ -42,8 +43,8 @@ import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.raft.RaftBackendStore.IncrCounter;
-import com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreAction;
-import com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreType;
+import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction;
+import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.GraphMode;
 import com.baidu.hugegraph.util.LZ4Util;
@@ -106,7 +107,7 @@ public class StoreStateMachine extends StateMachineAdapter {
 
     private void updateCacheIfNeeded(BackendMutation mutation) {
         // Only follower need to update cache from store to tx
-        if (this.node().isRaftLeader()) {
+        if (this.node().selfIsLeader()) {
             return;
         }
         for (HugeType type : mutation.types()) {
@@ -128,7 +129,7 @@ public class StoreStateMachine extends StateMachineAdapter {
 
     @Override
     public void onApply(Iterator iter) {
-        LOG.debug("Node role: {}", this.node().isRaftLeader() ?
+        LOG.debug("Node role: {}", this.node().selfIsLeader() ?
                                    "leader" : "follower");
         StoreClosure closure = null;
         try {
@@ -201,7 +202,7 @@ public class StoreStateMachine extends StateMachineAdapter {
 
     @Override
     public boolean onSnapshotLoad(SnapshotReader reader) {
-        if (this.node().isRaftLeader()) {
+        if (this.node().selfIsLeader()) {
             LOG.warn("Leader is not supposed to load snapshot.");
             return false;
         }
@@ -217,31 +218,34 @@ public class StoreStateMachine extends StateMachineAdapter {
     @Override
     public void onLeaderStart(long term) {
         LOG.info("The node {} become to leader", this.node().nodeId());
-        this.node().leaderTerm(term);
-        this.node().onElected(true);
+        this.node().onLeaderInfoChange(this.node().nodeId(), true);
         super.onLeaderStart(term);
     }
 
     @Override
     public void onLeaderStop(Status status) {
         LOG.info("The node {} abdicated from leader", this.node().nodeId());
-        this.node().leaderTerm(-1);
-        this.node().onElected(false);
+        this.node().onLeaderInfoChange(null, false);
         super.onLeaderStop(status);
     }
 
     @Override
     public void onStartFollowing(LeaderChangeContext ctx) {
         LOG.info("The node {} become to follower", this.node().nodeId());
-        this.node().onElected(true);
+        this.node().onLeaderInfoChange(ctx.getLeaderId(), false);
         super.onStartFollowing(ctx);
     }
 
     @Override
     public void onStopFollowing(LeaderChangeContext ctx) {
         LOG.info("The node {} abdicated from follower", this.node().nodeId());
-        this.node().onElected(false);
+        this.node().onLeaderInfoChange(null, false);
         super.onStopFollowing(ctx);
+    }
+
+    @Override
+    public void onConfigurationCommitted(Configuration conf) {
+        super.onConfigurationCommitted(conf);
     }
 
     @Override
