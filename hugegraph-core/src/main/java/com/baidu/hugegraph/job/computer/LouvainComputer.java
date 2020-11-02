@@ -81,7 +81,7 @@ public class LouvainComputer extends AbstractComputer {
         HugeTraverser.checkPositiveOrNoLimit(times, KEY_STABLE_TIMES);
         E.checkArgument(times <= MAX_TIMES,
                         "The maximum number of stable iterations is %s, " +
-                                "but got %s", MAX_TIMES, times);
+                        "but got %s", MAX_TIMES, times);
         return times;
     }
 
