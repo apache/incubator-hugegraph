@@ -249,6 +249,22 @@ public class CoreOptions extends OptionHolder {
                     60000
             );
 
+    public static final ConfigOption<Integer> RAFT_RPC_BUF_LOW_WATER_MARK =
+            new ConfigOption<>(
+                    "raft.rpc_buf_low_water_mark",
+                    "",
+                    positiveInt(),
+                    10 * 1024 * 1024
+            );
+
+    public static final ConfigOption<Integer> RAFT_RPC_BUF_HIGH_WATER_MARK =
+            new ConfigOption<>(
+                    "raft.rpc_buf_high_water_mark",
+                    "",
+                    positiveInt(),
+                    20 * 1024 * 1024
+            );
+
     public static final ConfigOption<Integer> RATE_LIMIT_WRITE =
             new ConfigOption<>(
                     "rate_limit.write",

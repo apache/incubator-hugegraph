@@ -41,6 +41,7 @@ import com.alipay.sofa.jraft.option.NodeOptions;
 import com.alipay.sofa.jraft.option.RaftOptions;
 import com.alipay.sofa.jraft.rpc.RaftRpcServerFactory;
 import com.alipay.sofa.jraft.rpc.RpcServer;
+import com.alipay.sofa.jraft.rpc.impl.BoltRaftRpcFactory;
 import com.alipay.sofa.jraft.util.NamedThreadFactory;
 import com.alipay.sofa.jraft.util.ThreadPoolUtil;
 import com.baidu.hugegraph.HugeException;
@@ -266,6 +267,9 @@ public final class RaftSharedContext {
             eventHub = this.params.graphEventHub();
         } else if (type.isSchema()) {
             eventHub = this.params.schemaEventHub();
+            if (id.number() && id.asLong() < 0) {
+                return;
+            }
         } else {
             return;
         }
@@ -307,6 +311,11 @@ public final class RaftSharedContext {
     }
 
     private RpcServer initAndStartRpcServer() {
+        BoltRaftRpcFactory.CHANNEL_WRITE_BUF_LOW_WATER_MARK =
+                this.config().get(CoreOptions.RAFT_RPC_BUF_LOW_WATER_MARK);
+        BoltRaftRpcFactory.CHANNEL_WRITE_BUF_HIGH_WATER_MARK =
+                this.config().get(CoreOptions.RAFT_RPC_BUF_HIGH_WATER_MARK);
+
         PeerId serverId = new PeerId();
         serverId.parse(this.config().get(CoreOptions.RAFT_ENDPOINT));
         RpcServer rpcServer = RaftRpcServerFactory.createAndStartRaftRpcServer(
@@ -344,7 +353,7 @@ public final class RaftSharedContext {
         BlockingQueue<Runnable> workQueue = new LinkedBlockingQueue<>();
         return ThreadPoolUtil.newBuilder()
                              .poolName(name)
-                             .enableMetric(true)
+                             .enableMetric(false)
                              .coreThreads(coreThreads)
                              .maximumThreads(maxThreads)
                              .keepAliveSeconds(300L)

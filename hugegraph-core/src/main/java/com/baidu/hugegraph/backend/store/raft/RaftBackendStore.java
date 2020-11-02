@@ -124,6 +124,9 @@ public class RaftBackendStore implements BackendStore {
 
     @Override
     public void mutate(BackendMutation mutation) {
+        if (mutation.isEmpty()) {
+            return;
+        }
         // Just add to local buffer
         this.getOrNewBatch().add(mutation);
     }
@@ -203,7 +206,7 @@ public class RaftBackendStore implements BackendStore {
     }
 
     private Object queryByRaft(Object query, Function<Object, Object> func) {
-        if (!this.context.isSafeRead()) {
+        if (this.node().selfIsLeader() || !this.context.isSafeRead()) {
             return func.apply(query);
         }
 

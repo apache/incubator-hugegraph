@@ -134,31 +134,28 @@ public class StoreStateMachine extends StateMachineAdapter {
         StoreClosure closure = null;
         try {
             while (iter.hasNext()) {
-                StoreType type;
-                StoreAction action;
-                BytesBuffer buffer;
                 closure = (StoreClosure) iter.done();
                 if (closure != null) {
                     // Leader just take it out from the closure
-                    buffer = BytesBuffer.wrap(closure.command().data());
-                } else {
-                    // Follower need readMutation data
-                    buffer = LZ4Util.decompress(iter.getData().array(),
-                                                RaftSharedContext.BLOCK_SIZE);
-                }
-                // The first two bytes are StoreType and StoreAction
-                type = StoreType.valueOf(buffer.read());
-                action = StoreAction.valueOf(buffer.read());
-                if (closure != null) {
-                    // Closure is null on follower node
+                    BytesBuffer buffer = BytesBuffer.wrap(closure.command().data());
+                    // The first two bytes are StoreType and StoreAction
+                    StoreType type = StoreType.valueOf(buffer.read());
+                    StoreAction action = StoreAction.valueOf(buffer.read());
                     // Let the producer thread to handle it
                     closure.complete(Status.OK(), () -> {
                         return this.applyCommand(type, action, buffer);
                     });
                 } else {
+                    // Follower need readMutation data
+                    byte[] bytes = iter.getData().array();
                     // Follower seems no way to wait future
                     // Let the backend thread do it directly
                     this.context.backendExecutor().submit(() -> {
+                        BytesBuffer buffer = LZ4Util.decompress(bytes,
+                                             RaftSharedContext.BLOCK_SIZE);
+                        buffer.forReadWritten();
+                        StoreType type = StoreType.valueOf(buffer.read());
+                        StoreAction action = StoreAction.valueOf(buffer.read());
                         try {
                             this.applyCommand(type, action, buffer);
                         } catch (Throwable e) {
