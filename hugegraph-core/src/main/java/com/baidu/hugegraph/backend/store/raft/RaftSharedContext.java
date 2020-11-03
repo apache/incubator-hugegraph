@@ -267,9 +267,6 @@ public final class RaftSharedContext {
             eventHub = this.params.graphEventHub();
         } else if (type.isSchema()) {
             eventHub = this.params.schemaEventHub();
-            if (id.number() && id.asLong() < 0) {
-                return;
-            }
         } else {
             return;
         }

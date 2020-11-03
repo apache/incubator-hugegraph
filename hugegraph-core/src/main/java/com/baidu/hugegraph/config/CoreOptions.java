@@ -252,7 +252,10 @@ public class CoreOptions extends OptionHolder {
     public static final ConfigOption<Integer> RAFT_RPC_BUF_LOW_WATER_MARK =
             new ConfigOption<>(
                     "raft.rpc_buf_low_water_mark",
-                    "",
+                    "The ChannelOutboundBuffer's low water mark of netty, " +
+                    "when buffer size less than this size, the method " +
+                    "ChannelOutboundBuffer.isWritable() will return true, " +
+                    "it means that low downstream pressure or good network",
                     positiveInt(),
                     10 * 1024 * 1024
             );
@@ -260,7 +263,12 @@ public class CoreOptions extends OptionHolder {
     public static final ConfigOption<Integer> RAFT_RPC_BUF_HIGH_WATER_MARK =
             new ConfigOption<>(
                     "raft.rpc_buf_high_water_mark",
-                    "",
+                    "The ChannelOutboundBuffer's high water mark of netty, " +
+                    "only when buffer size exceed this size, the method " +
+                    "ChannelOutboundBuffer.isWritable() will return false, " +
+                    "it means that the downstream pressure is too great to " +
+                    "process the request or network is very congestion, " +
+                    "upstream needs to limit rate at this time",
                     positiveInt(),
                     20 * 1024 * 1024
             );

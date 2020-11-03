@@ -55,7 +55,7 @@ public class LZ4Util {
             throw new BackendException("Failed to compress", e);
         }
         /*
-         * If need perform reading outside the method,
+         * If need to perform reading outside the method,
          * remember to call forReadWritten()
          */
         return buf;
@@ -87,7 +87,7 @@ public class LZ4Util {
             throw new BackendException("Failed to decompress", e);
         }
         /*
-         * If need perform reading outside the method,
+         * If need to perform reading outside the method,
          * remember to call forReadWritten()
          */
         return buf;

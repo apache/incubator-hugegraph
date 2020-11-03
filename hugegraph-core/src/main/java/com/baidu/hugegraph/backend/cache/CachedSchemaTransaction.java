@@ -107,7 +107,9 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
             if ("invalid".equals(args[0])) {
                 HugeType type = (HugeType) args[1];
                 Id id = (Id) args[2];
-                this.arrayCaches.remove(type, id);
+                if (id.number() && id.asLong() > 0) {
+                    this.arrayCaches.remove(type, id);
+                }
 
                 id = generateId(type, id);
                 Object value = this.idCache.get(id);
