@@ -35,6 +35,8 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.job.ComputerJob;
 import com.baidu.hugegraph.job.Job;
+import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
+import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.baidu.hugegraph.util.ParameterUtil;
@@ -60,6 +62,11 @@ public abstract class AbstractComputer implements Computer {
     public static final int DEFAULT_MAX_STEPS = 5;
     public static final String PRECISION = "precision";
     public static final double DEFAULT_PRECISION = 0.0001D;
+    public static final String TIMES = "times";
+    public static final int DEFAULT_TIMES = 10;
+    public static final String DIRECTION = "direction";
+    public static final String DEGREE = "degree";
+    public static final long DEFAULT_DEGREE = 100L;
 
     protected static final String CATEGORY_RANK = "rank";
     protected static final String CATEGORY_COMM = "community";
@@ -206,5 +213,47 @@ public abstract class AbstractComputer implements Computer {
                         "The value of %s must be (0, 1), but got %s",
                         PRECISION, precision);
         return precision;
+    }
+
+    protected static int times(Map<String, Object> parameters) {
+        if (!parameters.containsKey(TIMES)) {
+            return DEFAULT_TIMES;
+        }
+        int times = ParameterUtil.parameterInt(parameters, TIMES);
+        E.checkArgument(times > 0,
+                        "The value of %s must be > 0, but got %s",
+                        TIMES, times);
+        return times;
+    }
+
+    protected static Directions direction(Map<String, Object> parameters) {
+        if (!parameters.containsKey(DIRECTION)) {
+            return Directions.BOTH;
+        }
+        Object direction = ParameterUtil.parameter(parameters, DIRECTION);
+        return parseDirection(direction);
+    }
+
+    protected static long degree(Map<String, Object> parameters) {
+        if (!parameters.containsKey(DEGREE)) {
+            return DEFAULT_DEGREE;
+        }
+        long degree = ParameterUtil.parameterLong(parameters, DEGREE);
+        HugeTraverser.checkDegree(degree);
+        return degree;
+    }
+
+    protected static Directions parseDirection(Object direction) {
+        if (direction.equals(Directions.BOTH.toString())) {
+            return Directions.BOTH;
+        } else if (direction.equals(Directions.OUT.toString())) {
+            return Directions.OUT;
+        } else if (direction.equals(Directions.IN.toString())) {
+            return Directions.IN;
+        } else {
+            throw new IllegalArgumentException(String.format(
+                      "The value of direction must be in [OUT, IN, BOTH], " +
+                      "but got '%s'", direction));
+        }
     }
 }
