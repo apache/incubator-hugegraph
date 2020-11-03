@@ -107,9 +107,7 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
             if ("invalid".equals(args[0])) {
                 HugeType type = (HugeType) args[1];
                 Id id = (Id) args[2];
-                if (id.number() && id.asLong() > 0) {
-                    this.arrayCaches.remove(type, id);
-                }
+                this.arrayCaches.remove(type, id);
 
                 id = generateId(type, id);
                 Object value = this.idCache.get(id);
@@ -195,7 +193,7 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
     @SuppressWarnings("unchecked")
     protected <T extends SchemaElement> T getSchema(HugeType type, Id id) {
         // try get from optimized array cache
-        if (id.number() && id.asLong() > 0) {
+        if (id.number() && id.asLong() > 0L) {
             SchemaElement value = this.arrayCaches.get(type, id);
             if (value != null) {
                 return (T) value;
@@ -322,13 +320,16 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
                 return;
             }
             Id id = schema.id();
-            if (id.number() && id.asLong() > 0) {
+            if (id.number() && id.asLong() > 0L) {
                 this.set(schema.type(), id, schema);
             }
         }
 
         public V get(HugeType type, Id id) {
-            assert id.number() && id.asLong() > 0 : id;
+            assert id.number();
+            if (id.asLong() <= 0L) {
+                return null;
+            }
             int key = (int) id.asLong();
             if (key >= this.size) {
                 return null;
@@ -348,7 +349,10 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
         }
 
         public void set(HugeType type, Id id, V value) {
-            assert id.number() && id.asLong() > 0 : id;
+            assert id.number();
+            if (id.asLong() <= 0L) {
+                return;
+            }
             int key = (int) id.asLong();
             if (key >= this.size) {
                 return;
@@ -373,7 +377,10 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
         }
 
         public void remove(HugeType type, Id id) {
-            assert id.number() && id.asLong() > 0 : id;
+            assert id.number();
+            if (id.asLong() <= 0L) {
+                return;
+            }
             int key = (int) id.asLong();
             V value = null;
             if (key >= this.size) {
