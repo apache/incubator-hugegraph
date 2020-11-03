@@ -230,8 +230,8 @@ public class RaftNode {
             if (this.busyCounter.get() > 0) {
                 synchronized (this) {
                     if (this.busyCounter.get() > 0) {
-                        LOG.info("Decrease busy counter: [{}]",
-                                 this.busyCounter.decrementAndGet());
+                        counter = this.busyCounter.decrementAndGet();
+                        LOG.info("Decrease busy counter: [{}]", counter);
                     }
                 }
             }
@@ -282,7 +282,7 @@ public class RaftNode {
         /**
          * Maybe useful in the future
          */
-        private boolean isRPCTimeout(Status status) {
+        private boolean isRpcTimeout(Status status) {
             String expectMsg = "Invoke timeout";
             return RaftError.EINTERNAL == status.getRaftError() &&
                    status.getErrorMsg() != null &&
