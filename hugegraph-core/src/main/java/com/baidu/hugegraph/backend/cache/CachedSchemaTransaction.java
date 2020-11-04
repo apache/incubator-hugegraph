@@ -384,7 +384,6 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
             assert id.number();
             long longId = id.asLong();
             if (longId <= 0L) {
-                assert false : id;
                 return;
             }
             int key = (int) longId;
