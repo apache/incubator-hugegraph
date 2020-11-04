@@ -327,10 +327,12 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
 
         public V get(HugeType type, Id id) {
             assert id.number();
-            if (id.asLong() <= 0L) {
+            long longId = id.asLong();
+            if (longId <= 0L) {
+                assert false : id;
                 return null;
             }
-            int key = (int) id.asLong();
+            int key = (int) longId;
             if (key >= this.size) {
                 return null;
             }
@@ -350,10 +352,12 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
 
         public void set(HugeType type, Id id, V value) {
             assert id.number();
-            if (id.asLong() <= 0L) {
+            long longId = id.asLong();
+            if (longId <= 0L) {
+                assert false : id;
                 return;
             }
-            int key = (int) id.asLong();
+            int key = (int) longId;
             if (key >= this.size) {
                 return;
             }
@@ -378,10 +382,12 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
 
         public void remove(HugeType type, Id id) {
             assert id.number();
-            if (id.asLong() <= 0L) {
+            long longId = id.asLong();
+            if (longId <= 0L) {
+                assert false : id;
                 return;
             }
-            int key = (int) id.asLong();
+            int key = (int) longId;
             V value = null;
             if (key >= this.size) {
                 return;
