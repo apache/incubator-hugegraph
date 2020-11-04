@@ -252,12 +252,12 @@ public class RocksDBStdSessions extends RocksDBSessions {
     }
 
     @SuppressWarnings("unused")
-    public void reload() throws RocksDBException {
+    private void reload() throws RocksDBException {
         this.rocksdb.close();
         this.cfs.values().forEach(CFHandle::destroy);
         // Init CFs options
-        Set<String> mergedCFs = this.mergeOldCFs(dataPath, new ArrayList<>(
-                                                           this.cfs.keySet()));
+        Set<String> mergedCFs = this.mergeOldCFs(this.dataPath, new ArrayList<>(
+                                                 this.cfs.keySet()));
         List<String> cfNames = ImmutableList.copyOf(mergedCFs);
 
         List<ColumnFamilyDescriptor> cfds = new ArrayList<>(cfNames.size());
@@ -276,7 +276,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
                                        null, null);
         options.setWalDir(this.walPath);
         options.setSstFileManager(this.sstFileManager);
-        // remeber to uncomment next line
+        // NOTE: before using this method, remeber to uncomment the next line
         // this.rocksdb = RocksDB.open(options, this.dataPath, cfds, cfhs);
         for (int i = 0; i < cfNames.size(); i++) {
             this.cfs.put(cfNames.get(i), new CFHandle(cfhs.get(i)));
@@ -904,7 +904,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
             String md5 = GZipUtil.md5(this.dataPath());
             String snapshotPath = Paths.get(parentPath, md5).toString();
             // https://github.com/facebook/rocksdb/wiki/Checkpoints
-            try (Checkpoint checkpoint = Checkpoint.create(rocksdb)) {
+            try (Checkpoint checkpoint = Checkpoint.create(rocksdb())) {
                 String tempPath = snapshotPath + "_temp";
                 File tempFile = new File(tempPath);
                 FileUtils.deleteDirectory(tempFile);

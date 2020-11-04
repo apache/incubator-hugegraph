@@ -315,7 +315,6 @@ public final class RaftSharedContext {
         return rpcServer;
     }
 
-    @SuppressWarnings("unused")
     private ExecutorService createReadIndexExecutor(int coreThreads) {
         int maxThreads = coreThreads << 2;
         String name = "store-read-index-callback";
