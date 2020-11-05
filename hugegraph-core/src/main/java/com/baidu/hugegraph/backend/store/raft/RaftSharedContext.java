@@ -41,6 +41,7 @@ import com.alipay.sofa.jraft.option.NodeOptions;
 import com.alipay.sofa.jraft.option.RaftOptions;
 import com.alipay.sofa.jraft.rpc.RaftRpcServerFactory;
 import com.alipay.sofa.jraft.rpc.RpcServer;
+import com.alipay.sofa.jraft.rpc.impl.BoltRaftRpcFactory;
 import com.alipay.sofa.jraft.util.NamedThreadFactory;
 import com.alipay.sofa.jraft.util.ThreadPoolUtil;
 import com.baidu.hugegraph.HugeException;
@@ -55,6 +56,7 @@ import com.baidu.hugegraph.backend.store.raft.rpc.StoreCommandProcessor;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.event.EventHub;
+import com.baidu.hugegraph.testutil.Whitebox;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.GraphMode;
 import com.baidu.hugegraph.util.E;
@@ -307,6 +309,13 @@ public final class RaftSharedContext {
     }
 
     private RpcServer initAndStartRpcServer() {
+        Whitebox.setInternalState(
+                 BoltRaftRpcFactory.class, "CHANNEL_WRITE_BUF_LOW_WATER_MARK",
+                 this.config().get(CoreOptions.RAFT_RPC_BUF_LOW_WATER_MARK));
+        Whitebox.setInternalState(
+                 BoltRaftRpcFactory.class, "CHANNEL_WRITE_BUF_HIGH_WATER_MARK",
+                 this.config().get(CoreOptions.RAFT_RPC_BUF_HIGH_WATER_MARK));
+
         PeerId serverId = new PeerId();
         serverId.parse(this.config().get(CoreOptions.RAFT_ENDPOINT));
         RpcServer rpcServer = RaftRpcServerFactory.createAndStartRaftRpcServer(
@@ -344,7 +353,7 @@ public final class RaftSharedContext {
         BlockingQueue<Runnable> workQueue = new LinkedBlockingQueue<>();
         return ThreadPoolUtil.newBuilder()
                              .poolName(name)
-                             .enableMetric(true)
+                             .enableMetric(false)
                              .coreThreads(coreThreads)
                              .maximumThreads(maxThreads)
                              .keepAliveSeconds(300L)

@@ -60,8 +60,10 @@ public class RaftClosure<T> implements Closure {
     private RaftResult<T> get() {
         try {
             return this.future.get(WAIT_RAFT_LOG_TIMEOUT, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException | ExecutionException e) {
+        } catch (ExecutionException e) {
             throw new BackendException("ExecutionException", e);
+        } catch (InterruptedException e) {
+            throw new BackendException("InterruptedException", e);
         } catch (TimeoutException e) {
             throw new BackendException("Wait closure timeout");
         }

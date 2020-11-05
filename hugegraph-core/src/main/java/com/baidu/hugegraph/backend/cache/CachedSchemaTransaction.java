@@ -193,7 +193,7 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
     @SuppressWarnings("unchecked")
     protected <T extends SchemaElement> T getSchema(HugeType type, Id id) {
         // try get from optimized array cache
-        if (id.number() && id.asLong() > 0) {
+        if (id.number() && id.asLong() > 0L) {
             SchemaElement value = this.arrayCaches.get(type, id);
             if (value != null) {
                 return (T) value;
@@ -320,14 +320,19 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
                 return;
             }
             Id id = schema.id();
-            if (id.number() && id.asLong() > 0) {
+            if (id.number() && id.asLong() > 0L) {
                 this.set(schema.type(), id, schema);
             }
         }
 
         public V get(HugeType type, Id id) {
-            assert id.number() && id.asLong() > 0 : id;
-            int key = (int) id.asLong();
+            assert id.number();
+            long longId = id.asLong();
+            if (longId <= 0L) {
+                assert false : id;
+                return null;
+            }
+            int key = (int) longId;
             if (key >= this.size) {
                 return null;
             }
@@ -346,8 +351,13 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
         }
 
         public void set(HugeType type, Id id, V value) {
-            assert id.number() && id.asLong() > 0 : id;
-            int key = (int) id.asLong();
+            assert id.number();
+            long longId = id.asLong();
+            if (longId <= 0L) {
+                assert false : id;
+                return;
+            }
+            int key = (int) longId;
             if (key >= this.size) {
                 return;
             }
@@ -371,8 +381,12 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
         }
 
         public void remove(HugeType type, Id id) {
-            assert id.number() && id.asLong() > 0 : id;
-            int key = (int) id.asLong();
+            assert id.number();
+            long longId = id.asLong();
+            if (longId <= 0L) {
+                return;
+            }
+            int key = (int) longId;
             V value = null;
             if (key >= this.size) {
                 return;

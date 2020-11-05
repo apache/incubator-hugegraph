@@ -130,6 +130,7 @@ public class RaftNode {
         // compress return BytesBuffer
         ByteBuffer buffer = LZ4Util.compress(command.data(),
                                              RaftSharedContext.BLOCK_SIZE)
+                                   .forReadWritten()
                                    .asByteBuffer();
         LOG.debug("The bytes size of command(compressed) {} is {}",
                   command.action(), buffer.limit());
@@ -217,7 +218,6 @@ public class RaftNode {
         if (counter <= 0) {
             return;
         }
-        // TODO：should sleep or throw exception directly?
         // It may lead many thread sleep, but this is exactly what I want
         long time = counter * BUSY_SLEEP_FACTOR;
         LOG.info("The node {} will sleep {} ms", this.node, time);
@@ -230,7 +230,8 @@ public class RaftNode {
             if (this.busyCounter.get() > 0) {
                 synchronized (this) {
                     if (this.busyCounter.get() > 0) {
-                        this.busyCounter.decrementAndGet();
+                        counter = this.busyCounter.decrementAndGet();
+                        LOG.info("Decrease busy counter: [{}]", counter);
                     }
                 }
             }
@@ -267,12 +268,22 @@ public class RaftNode {
             if (this.isWriteBufferOverflow(status)) {
                 // increment busy counter
                 int count = RaftNode.this.busyCounter.incrementAndGet();
-                LOG.info("Busy counter: [{}]", count);
+                LOG.info("Increase busy counter: [{}]", count);
             }
         }
 
         private boolean isWriteBufferOverflow(Status status) {
             String expectMsg = "maybe write overflow";
+            return RaftError.EINTERNAL == status.getRaftError() &&
+                   status.getErrorMsg() != null &&
+                   status.getErrorMsg().contains(expectMsg);
+        }
+
+        /**
+         * Maybe useful in the future
+         */
+        private boolean isRpcTimeout(Status status) {
+            String expectMsg = "Invoke timeout";
             return RaftError.EINTERNAL == status.getRaftError() &&
                    status.getErrorMsg() != null &&
                    status.getErrorMsg().contains(expectMsg);
