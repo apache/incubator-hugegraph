@@ -3,6 +3,7 @@
 
 package com.baidu.hugegraph.backend.store.raft.rpc;
 
+@SuppressWarnings("unused")
 public final class RaftRequests {
   private RaftRequests() {}
   public static void registerAllExtensions(

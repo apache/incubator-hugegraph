@@ -65,7 +65,7 @@ public class StandardAuthenticator implements HugeAuthenticator {
             return new String(chars);
         } else {
             System.out.print(prompt);
-            @SuppressWarnings("resource")
+            @SuppressWarnings("resource") // just wrapper of System.in
             Scanner scanner = new Scanner(System.in);
             return scanner.nextLine();
         }

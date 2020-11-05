@@ -19,14 +19,9 @@
 
 package com.baidu.hugegraph.backend.store.raft;
 
-import org.slf4j.Logger;
-
 import com.baidu.hugegraph.util.E;
-import com.baidu.hugegraph.util.Log;
 
-public class StoreClosure extends RaftClosure {
-
-    private static final Logger LOG = Log.logger(StoreClosure.class);
+public class StoreClosure extends RaftClosure<Object> {
 
     private final StoreCommand command;
 

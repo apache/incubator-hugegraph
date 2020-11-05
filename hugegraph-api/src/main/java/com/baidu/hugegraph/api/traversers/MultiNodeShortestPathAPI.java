@@ -19,6 +19,8 @@
 
 package com.baidu.hugegraph.api.traversers;
 
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPACITY;
+
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -47,8 +49,6 @@ import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPACITY;
 
 @Path("graphs/{graph}/traversers/multinodeshortestpath")
 @Singleton
@@ -80,12 +80,13 @@ public class MultiNodeShortestPathAPI extends TraverserAPI {
 
         EdgeStep step = step(g, request.step);
 
-        MultiNodeShortestPathTraverser traverser =
-                                       new MultiNodeShortestPathTraverser(g);
         List<HugeTraverser.Path> paths;
-        paths = traverser.multiNodeShortestPath(vertices, step,
-                                                request.maxDepth,
-                                                request.capacity);
+        try (MultiNodeShortestPathTraverser traverser =
+                                        new MultiNodeShortestPathTraverser(g)) {
+            paths = traverser.multiNodeShortestPath(vertices, step,
+                                                    request.maxDepth,
+                                                    request.capacity);
+        }
 
         if (!request.withVertex) {
             return manager.serializer(g).writePaths("paths", paths, false);

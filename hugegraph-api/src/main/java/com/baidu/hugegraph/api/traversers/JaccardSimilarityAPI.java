@@ -19,11 +19,11 @@
 
 package com.baidu.hugegraph.api.traversers;
 
-import java.util.Map;
-
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPACITY;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_LIMIT;
+
+import java.util.Map;
 
 import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
@@ -81,9 +81,12 @@ public class JaccardSimilarityAPI extends TraverserAPI {
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
 
         HugeGraph g = graph(manager, graph);
-        JaccardSimilarTraverser traverser = new JaccardSimilarTraverser(g);
-        double similarity = traverser.jaccardSimilarity(sourceId, targetId, dir,
-                                                        edgeLabel, degree);
+        double similarity;
+        try (JaccardSimilarTraverser traverser =
+                                     new JaccardSimilarTraverser(g)) {
+             similarity = traverser.jaccardSimilarity(sourceId, targetId,
+                                                      dir, edgeLabel, degree);
+        }
         return JsonUtil.toJson(ImmutableMap.of("jaccard_similarity",
                                                similarity));
     }
@@ -113,10 +116,12 @@ public class JaccardSimilarityAPI extends TraverserAPI {
 
         EdgeStep step = step(g, request.step);
 
-        JaccardSimilarTraverser traverser = new JaccardSimilarTraverser(g);
-        Map<Id, Double> results = traverser.jaccardSimilars(sourceId, step,
-                                                            request.top,
-                                                            request.capacity);
+        Map<Id, Double> results;
+        try (JaccardSimilarTraverser traverser =
+                                     new JaccardSimilarTraverser(g)) {
+            results = traverser.jaccardSimilars(sourceId, step, request.top,
+                                                request.capacity);
+        }
         return manager.serializer(g).writeMap(results);
     }
 

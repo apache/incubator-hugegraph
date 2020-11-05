@@ -27,7 +27,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
@@ -35,11 +34,8 @@ import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.traversal.algorithm.strategy.TraverseStrategy;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
-import com.baidu.hugegraph.util.Log;
 
 public class TemplatePathsTraverser extends HugeTraverser {
-
-    private static final Logger LOG = Log.logger(TemplatePathsTraverser.class);
 
     public TemplatePathsTraverser(HugeGraph graph) {
         super(graph);
@@ -126,6 +122,7 @@ public class TemplatePathsTraverser extends HugeTraverser {
             this.targetFinishOneStep = false;
         }
 
+        @Override
         public RepeatEdgeStep nextStep(boolean forward) {
             return forward ? this.forwardStep() : this.backwardStep();
         }

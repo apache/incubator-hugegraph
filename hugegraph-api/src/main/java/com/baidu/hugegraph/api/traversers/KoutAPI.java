@@ -19,6 +19,11 @@
 
 package com.baidu.hugegraph.api.traversers;
 
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPACITY;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_ELEMENTS_LIMIT;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PATHS_LIMIT;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -47,20 +52,15 @@ import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.structure.HugeVertex;
-import com.baidu.hugegraph.traversal.algorithm.KoutTraverser;
 import com.baidu.hugegraph.traversal.algorithm.EdgeStep;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
+import com.baidu.hugegraph.traversal.algorithm.HugeTraverser.Node;
+import com.baidu.hugegraph.traversal.algorithm.KoutTraverser;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.Node;
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPACITY;
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_ELEMENTS_LIMIT;
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PATHS_LIMIT;
 
 @Path("graphs/{graph}/traversers/kout")
 @Singleton
@@ -96,9 +96,11 @@ public class KoutAPI extends TraverserAPI {
 
         HugeGraph g = graph(manager, graph);
 
-        KoutTraverser traverser = new KoutTraverser(g);
-        Set<Id> ids = traverser.kout(sourceId, dir, edgeLabel, depth,
-                                     nearest, degree, capacity, limit);
+        Set<Id> ids;
+        try (KoutTraverser traverser = new KoutTraverser(g)) {
+            ids = traverser.kout(sourceId, dir, edgeLabel, depth,
+                                 nearest, degree, capacity, limit);
+        }
         return manager.serializer(g).writeList("vertices", ids);
     }
 
@@ -132,11 +134,14 @@ public class KoutAPI extends TraverserAPI {
 
         EdgeStep step = step(g, request.step);
 
-        KoutTraverser traverser = new KoutTraverser(g);
-        Set<HugeTraverser.Node> results = traverser.customizedKout(
-                                          sourceId, step, request.maxDepth,
-                                          request.nearest, request.capacity,
-                                          request.limit);
+        Set<HugeTraverser.Node> results;
+        try (KoutTraverser traverser = new KoutTraverser(g)) {
+            results = traverser.customizedKout(sourceId, step,
+                                               request.maxDepth,
+                                               request.nearest,
+                                               request.capacity,
+                                               request.limit);
+        }
 
         Set<Id> neighbors = new HashSet<>();
         for (HugeTraverser.Node node : results) {
