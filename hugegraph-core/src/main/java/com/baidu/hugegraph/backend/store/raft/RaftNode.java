@@ -171,7 +171,7 @@ public class RaftNode {
             long consumedTime = System.currentTimeMillis() - beginTime;
             if (timeout > 0 && consumedTime >= timeout) {
                 throw new BackendException(
-                          "Waiting for raft group '{}' election timeout({}ms)",
+                          "Waiting for raft group '%s' election timeout(%sms)",
                           group, consumedTime);
             }
             LOG.warn("Waiting for raft group '{}' election cost {}s",
