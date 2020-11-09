@@ -64,7 +64,8 @@ public class StoreSnapshotFile {
                     executor.execute(() -> compressSnapshot(writer, metaBuilder,
                                                             done));
                 } else {
-                    LOG.error("Failed to save snapshot, path={}, files={}, {}.",
+                    LOG.error("Failed to save snapshot, path={}, files={}, " +
+                              "the exception stack will be printed.",
                               writerPath, writer.listFiles(), t);
                     done.run(new Status(RaftError.EIO,
                              "Failed to save snapshot at %s, error is %s",
@@ -108,8 +109,8 @@ public class StoreSnapshotFile {
         }
     }
 
-    public CompletableFuture<LocalFileMeta.Builder> doSnapshotSave(
-                                                    String snapshotPath) {
+    private CompletableFuture<LocalFileMeta.Builder> doSnapshotSave(
+                                                     String snapshotPath) {
         for (RaftBackendStore store : this.stores) {
             String parentPath = Paths.get(snapshotPath, store.store())
                                      .toString();
@@ -118,7 +119,7 @@ public class StoreSnapshotFile {
         return CompletableFuture.completedFuture(LocalFileMeta.newBuilder());
     }
 
-    public void doSnapshotLoad(String snapshotPath) {
+    private void doSnapshotLoad(String snapshotPath) {
         for (RaftBackendStore store : this.stores) {
             String parentPath = Paths.get(snapshotPath, store.store())
                                      .toString();

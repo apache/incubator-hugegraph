@@ -22,9 +22,6 @@ package com.baidu.hugegraph.backend.store.raft;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -186,7 +183,7 @@ public final class RaftSharedContext {
         }
     }
 
-    public RaftBackendStore[] stores() {
+    protected RaftBackendStore[] stores() {
         return this.stores;
     }
 
@@ -195,14 +192,6 @@ public final class RaftSharedContext {
         E.checkState(raftStore != null,
                      "The raft store of type %s shouldn't be null", storeType);
         return raftStore.originStore();
-    }
-
-    public Collection<BackendStore> originStores() {
-        List<BackendStore> originStores = new ArrayList<>();
-        for (RaftBackendStore store : this.stores) {
-            originStores.add(store.originStore());
-        }
-        return originStores;
     }
 
     public NodeOptions nodeOptions() throws IOException {

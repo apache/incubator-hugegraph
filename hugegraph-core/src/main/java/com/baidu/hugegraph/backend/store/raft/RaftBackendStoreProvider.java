@@ -129,9 +129,9 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
     @Override
     public void waitStoreStarted() {
         this.context.initRaftNode();
-        LOG.info("The raft node was inited");
+        LOG.info("The raft node is initialized");
         this.context.waitRaftNodeStarted();
-        LOG.info("The raft store was started");
+        LOG.info("The raft store is started");
     }
 
     @Override
