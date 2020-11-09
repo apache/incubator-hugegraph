@@ -186,6 +186,10 @@ public final class RaftSharedContext {
         }
     }
 
+    public RaftBackendStore[] stores() {
+        return this.stores;
+    }
+
     public BackendStore originStore(StoreType storeType) {
         RaftBackendStore raftStore = this.stores[storeType.getNumber()];
         E.checkState(raftStore != null,

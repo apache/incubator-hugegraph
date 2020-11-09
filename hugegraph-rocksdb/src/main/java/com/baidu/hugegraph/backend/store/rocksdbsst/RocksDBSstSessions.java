@@ -143,6 +143,20 @@ public class RocksDBSstSessions extends RocksDBSessions {
         return new RocksDBSstSessions(config, database, store, this);
     }
 
+    @Override
+    public void createSnapshot(String snapshotPath) {
+        throw new UnsupportedOperationException("createSnapshot");
+    }
+
+    @Override
+    public void reload() throws RocksDBException {
+        throw new UnsupportedOperationException("reload");
+    }
+
+    @Override
+    public void forceCloseRocksDB() {
+        throw new UnsupportedOperationException("forceCloseRocksDB");
+    }
 
     private SstFileWriter table(String table) {
         SstFileWriter sst = this.tables.get(table);
@@ -367,11 +381,6 @@ public class RocksDBSstSessions extends RocksDBSessions {
                                           int scanType) {
             assert !this.hasChanges();
             return BackendColumnIterator.empty();
-        }
-
-        @Override
-        public void createSnapshot(String snapshotPath) {
-            throw new UnsupportedOperationException("createSnapshot");
         }
     }
 
