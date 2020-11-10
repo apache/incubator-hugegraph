@@ -278,7 +278,7 @@ public class JsonSerializer implements Serializer {
     @Override
     public String writeWeightedPath(NodeWithWeight path,
                                     Iterator<Vertex> vertices) {
-        Map<String, Object> pathMap = path == null?
+        Map<String, Object> pathMap = path == null ?
                                       ImmutableMap.of() : path.toMap();
         return JsonUtil.toJson(ImmutableMap.of("path", pathMap,
                                                "vertices", vertices));

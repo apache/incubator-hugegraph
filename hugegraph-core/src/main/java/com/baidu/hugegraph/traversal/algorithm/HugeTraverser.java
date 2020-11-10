@@ -156,7 +156,7 @@ public class HugeTraverser {
                     continue;
                 }
                 neighbors.add(kNode);
-                if (--remaining <= 0L) {
+                if (remaining != NO_LIMIT && --remaining <= 0L) {
                     return neighbors;
                 }
             }
