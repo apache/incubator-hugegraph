@@ -94,7 +94,8 @@ public class WeightedShortestPathAPI extends API {
                               sourceId, targetId, dir, edgeLabel, weight,
                               degree, skipDegree, capacity);
         Iterator<Vertex> iterator = QueryResults.emptyIterator();
-        if (withVertex) {
+        if (path != null && withVertex) {
+            assert !path.node().path().isEmpty();
             iterator = g.vertices(path.node().path().toArray());
         }
         return manager.serializer(g).writeWeightedPath(path, iterator);
