@@ -77,7 +77,7 @@ public class CountAPI extends API {
                                request.dedupSize);
 
         HugeGraph g = graph(manager, graph);
-        List<CountTraverser.Step> steps = step(g, request);
+        List<CountTraverser.Step> steps = steps(g, request);
         CountTraverser traverser = new CountTraverser(g);
         long count = traverser.count(sourceId, steps, request.containsTraversed,
                                      request.dedupSize);
@@ -85,8 +85,8 @@ public class CountAPI extends API {
         return manager.serializer(g).writeMap(ImmutableMap.of("count", count));
     }
 
-    private static List<CountTraverser.Step> step(HugeGraph graph,
-                                                  CountRequest request) {
+    private static List<CountTraverser.Step> steps(HugeGraph graph,
+                                                   CountRequest request) {
         int stepSize = request.steps.size();
         List<CountTraverser.Step> steps = new ArrayList<>(stepSize);
         for (Step step : request.steps) {
