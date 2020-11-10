@@ -64,8 +64,7 @@ public class StoreSnapshotFile {
                     executor.execute(() -> compressSnapshot(writer, metaBuilder,
                                                             done));
                 } else {
-                    LOG.error("Failed to save snapshot, path={}, files={}, " +
-                              "the exception stack will be printed.",
+                    LOG.error("Failed to save snapshot, path={}, files={}",
                               writerPath, writer.listFiles(), t);
                     done.run(new Status(RaftError.EIO,
                              "Failed to save snapshot at %s, error is %s",
