@@ -252,7 +252,7 @@ public class TemplatePathsTraverser extends HugeTraverser {
                 RepeatEdgeStep step = this.steps.get(i);
                 if (step.remainTimes() > 0) {
                     currentStep = step;
-                    this.targetIndex = i;
+                    this.sourceIndex = i;
                     break;
                 }
             }
