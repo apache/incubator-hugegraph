@@ -228,7 +228,7 @@ public class ServerOptions extends OptionHolder {
                     "The path of server keystore file used when https " +
                     "protocol is enabled.",
                     disallowEmpty(),
-                    "server.keystore"
+                    "hugegraph-server.keystore"
             );
 
     public static final ConfigOption<String> SERVER_KEYSTORE_PASSWORD =
