@@ -314,6 +314,14 @@ public class CoreOptions extends OptionHolder {
                     16 * Bytes.MB
             );
 
+    public static final ConfigOption<Integer> TASK_TTL_DELETE_BATCH =
+            new ConfigOption<>(
+                    "task.ttl_delete_batch",
+                    "The batch size used to delete expired data.",
+                    rangeInt(1, 500),
+                    1
+            );
+
     public static final ConfigOption<Long> CONNECTION_DETECT_INTERVAL =
             new ConfigOption<>(
                     "store.connection_detect_interval",
@@ -477,14 +485,6 @@ public class CoreOptions extends OptionHolder {
                     "The type of vertex cache, allowed values are [l1, l2].",
                     allowValues("l1", "l2"),
                     "l1"
-            );
-
-    public static final ConfigOption<Integer> EXPIRED_DELETE_BATCH =
-            new ConfigOption<>(
-                    "expired.delete_batch",
-                    "The batch size used to delete expired data.",
-                    rangeInt(1, 500),
-                    1
             );
 
     public static final ConfigOption<Long> VERTEX_CACHE_CAPACITY =
