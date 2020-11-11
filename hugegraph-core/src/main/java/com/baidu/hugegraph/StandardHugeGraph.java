@@ -97,7 +97,7 @@ public class StandardHugeGraph implements HugeGraph {
     public static final Class<?>[] PROTECT_CLASSES = {
            StandardHugeGraph.class,
            StandardHugeGraph.StandardHugeGraphParams.class,
-           StandardHugeGraph.TinkerpopTransaction.class,
+           TinkerPopTransaction.class,
            StandardHugeGraph.Txs.class,
            StandardHugeGraph.SysTransaction.class
     };
@@ -127,7 +127,7 @@ public class StandardHugeGraph implements HugeGraph {
     private final HugeFeatures features;
 
     private final BackendStoreProvider storeProvider;
-    private final TinkerpopTransaction tx;
+    private final TinkerPopTransaction tx;
 
     private final RamTable ramtable;
 
@@ -175,7 +175,7 @@ public class StandardHugeGraph implements HugeGraph {
             throw new HugeException(message);
         }
 
-        this.tx = new TinkerpopTransaction(this);
+        this.tx = new TinkerPopTransaction(this);
 
         SnowflakeIdGenerator.init(this.params);
 
@@ -875,7 +875,7 @@ public class StandardHugeGraph implements HugeGraph {
 
     @Override
     public long now() {
-        return ((TinkerpopTransaction) this.tx()).openedTime();
+        return ((TinkerPopTransaction) this.tx()).openedTime();
     }
 
     private void closeTx() {
@@ -1033,7 +1033,7 @@ public class StandardHugeGraph implements HugeGraph {
         }
     }
 
-    private class TinkerpopTransaction extends AbstractThreadLocalTransaction {
+    private class TinkerPopTransaction extends AbstractThreadLocalTransaction {
 
         // Times opened from upper layer
         private final AtomicInteger refs;
@@ -1042,7 +1042,7 @@ public class StandardHugeGraph implements HugeGraph {
         // Backend transactions
         private final ThreadLocal<Txs> transactions;
 
-        public TinkerpopTransaction(Graph graph) {
+        public TinkerPopTransaction(Graph graph) {
             super(graph);
 
             this.refs = new AtomicInteger();
@@ -1126,7 +1126,7 @@ public class StandardHugeGraph implements HugeGraph {
 
         @Override
         public String toString() {
-            return String.format("TinkerpopTransaction{opened=%s, txs=%s}",
+            return String.format("TinkerPopTransaction{opened=%s, txs=%s}",
                                  this.opened.get(), this.transactions.get());
         }
 
