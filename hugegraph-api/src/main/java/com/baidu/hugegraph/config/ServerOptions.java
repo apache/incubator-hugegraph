@@ -237,7 +237,7 @@ public class ServerOptions extends OptionHolder {
                     "The password of the path of the server keystore file " +
                     "used when the https protocol is enabled.",
                     null,
-                    ""
+                    "hugegraph"
             );
 
     public static final ConfigOption<String> SERVER_PROTOCOL =
