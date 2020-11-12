@@ -516,6 +516,11 @@ public class HugeTraverser {
             return Objects.equals(this.id, other.id) &&
                    Objects.equals(this.parent, other.parent);
         }
+
+        @Override
+        public String toString() {
+            return this.id.toString();
+        }
     }
 
     public static class KNode extends Node {

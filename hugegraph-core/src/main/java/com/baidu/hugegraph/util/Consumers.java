@@ -22,6 +22,7 @@ package com.baidu.hugegraph.util;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
@@ -30,6 +31,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 import org.slf4j.Logger;
@@ -37,11 +39,12 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.task.TaskManager.ContextCallable;
 
-public class Consumers<V> {
+public final class Consumers<V> {
 
     public static final int CPUS = Runtime.getRuntime().availableProcessors();
     public static final int THREADS = 4 + CPUS / 4;
     public static final int QUEUE_WORKER_SIZE = 1000;
+    public static final long CONSUMER_WAKE_PERIOD = 1;
 
     private static final Logger LOG = Log.logger(Consumers.class);
 
@@ -120,7 +123,7 @@ public class Consumers<V> {
     private boolean consume() {
         V elem;
         try {
-            elem = this.queue.poll(1, TimeUnit.SECONDS);
+            elem = this.queue.poll(CONSUMER_WAKE_PERIOD, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             // ignore
             return true;
@@ -181,13 +184,19 @@ public class Consumers<V> {
             try {
                 this.latch.await();
             } catch (InterruptedException e) {
-                LOG.warn("Interrupted while waiting for consumers", e);
+                String error = "Interrupted while waiting for consumers";
+                this.exception = new HugeException(error, e);
+                LOG.warn(error, e);
             }
         }
 
         if (this.exception != null) {
             throw this.throwException();
         }
+    }
+
+    public ExecutorService executor() {
+        return this.executor;
     }
 
     public static void executeOncePerThread(ExecutorService executor,
@@ -239,12 +248,58 @@ public class Consumers<V> {
         }
     }
 
+    public static ExecutorPool newExecutorPool(String prefix, int workers) {
+        return new ExecutorPool(prefix, workers);
+    }
+
     public static RuntimeException wrapException(Throwable e) {
         if (e instanceof RuntimeException) {
             throw (RuntimeException) e;
         }
         throw new HugeException("Error when running task: %s",
                                 HugeException.rootCause(e).getMessage(), e);
+    }
+
+    public static class ExecutorPool {
+
+        private final static int POOL_CAPACITY = 2 * CPUS;
+
+        private final String threadNamePrefix;
+        private final int executorWorkers;
+        private final AtomicInteger count;
+
+        private final Queue<ExecutorService> executors;
+
+        public ExecutorPool(String prefix, int workers) {
+            this.threadNamePrefix = prefix;
+            this.executorWorkers = workers;
+            this.count = new AtomicInteger();
+            this.executors = new ArrayBlockingQueue<>(POOL_CAPACITY);
+        }
+
+        public synchronized ExecutorService getExecutor() {
+            ExecutorService executor = this.executors.poll();
+            if (executor == null) {
+                int count = this.count.incrementAndGet();
+                String prefix = this.threadNamePrefix + "-" + count;
+                executor = newThreadPool(prefix, this.executorWorkers);
+            }
+            return executor;
+        }
+
+        public synchronized void returnExecutor(ExecutorService executor) {
+            E.checkNotNull(executor, "executor");
+            if (!this.executors.offer(executor)) {
+                executor.shutdown();
+            }
+        }
+
+        public synchronized void destroy() {
+            for (ExecutorService executor : this.executors) {
+                executor.shutdown();
+            }
+            this.executors.clear();
+        }
     }
 
     public static class StopExecution extends HugeException {
