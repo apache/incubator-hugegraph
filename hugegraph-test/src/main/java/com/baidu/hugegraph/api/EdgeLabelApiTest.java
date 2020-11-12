@@ -77,7 +77,7 @@ public class EdgeLabelApiTest extends BaseApiTest {
                 + "\"sort_keys\":[]"
                 + "}";
         Map<String, Object> params = ImmutableMap.of("action", "append");
-        r = client().put(path + "created", edgeLabel, params);
+        r = client().put(path, "created", edgeLabel, params);
         assertResponseStatus(200, r);
     }
 
@@ -134,6 +134,8 @@ public class EdgeLabelApiTest extends BaseApiTest {
 
         String name = "created";
         r = client().delete(path, name);
-        assertResponseStatus(202, r);
+        String content = assertResponseStatus(202, r);
+        int task = assertJsonContains(content, "task_id");
+        waitTaskSuccess(task);
     }
 }

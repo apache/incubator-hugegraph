@@ -6,14 +6,14 @@ import java.lang.reflect.Method;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
-import com.baidu.hugegraph.job.Job;
+import com.baidu.hugegraph.job.SysJob;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.SchemaLabel;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 
-public abstract class SchemaCallable extends Job<Object> {
+public abstract class SchemaCallable extends SysJob<Object> {
 
     public static final String REMOVE_SCHEMA = "remove_schema";
     public static final String REBUILD_INDEX = "rebuild_index";

@@ -19,12 +19,9 @@
 
 package com.baidu.hugegraph.traversal.algorithm;
 
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import javax.ws.rs.core.MultivaluedMap;
 
@@ -43,11 +40,13 @@ public class PathsTraverser extends HugeTraverser {
         super(graph);
     }
 
-    public Set<Path> paths(Id sourceV, Directions sourceDir,
-                           Id targetV, Directions targetDir, String label,
-                           int depth, long degree, long capacity, long limit) {
+    public PathSet paths(Id sourceV, Directions sourceDir,
+                         Id targetV, Directions targetDir, String label,
+                         int depth, long degree, long capacity, long limit) {
         E.checkNotNull(sourceV, "source vertex id");
         E.checkNotNull(targetV, "target vertex id");
+        this.checkVertexExist(sourceV, "source vertex");
+        this.checkVertexExist(targetV, "target vertex");
         E.checkNotNull(sourceDir, "source direction");
         E.checkNotNull(targetDir, "target direction");
         E.checkArgument(sourceDir == targetDir ||
@@ -59,7 +58,7 @@ public class PathsTraverser extends HugeTraverser {
         checkCapacity(capacity);
         checkLimit(limit);
 
-        Set<Path> paths = new HashSet<>();
+        PathSet paths = new PathSet();
         if (sourceV.equals(targetV)) {
             paths.add(new Path(sourceV, ImmutableList.of(sourceV)));
         }
@@ -71,18 +70,14 @@ public class PathsTraverser extends HugeTraverser {
             if (--depth < 0 || traverser.reachLimit()) {
                 break;
             }
-            List<Path> foundPaths = traverser.forward(sourceDir);
-            paths.addAll(foundPaths);
+            traverser.forward(sourceDir);
 
             if (--depth < 0 || traverser.reachLimit()) {
                 break;
             }
-            foundPaths = traverser.backward(targetDir);
-            for (Path path : foundPaths) {
-                path.reverse();
-                paths.add(path);
-            }
+            traverser.backward(targetDir);
         }
+        paths.addAll(traverser.paths());
         return paths;
     }
 
@@ -97,7 +92,7 @@ public class PathsTraverser extends HugeTraverser {
         private final long degree;
         private final long capacity;
         private final long limit;
-        private long count;
+        private PathSet paths;
 
         public Traverser(Id sourceV, Id targetV, Id label,
                          long degree, long capacity, long limit) {
@@ -109,14 +104,13 @@ public class PathsTraverser extends HugeTraverser {
             this.degree = degree;
             this.capacity = capacity;
             this.limit = limit;
-            this.count = 0L;
+            this.paths = new PathSet();
         }
 
         /**
          * Search forward from source
          */
-        public List<Path> forward(Directions direction) {
-            List<Path> paths = new ArrayList<>();
+        public void forward(Directions direction) {
             MultivaluedMap<Id, Node> newVertices = newMultivalueMap();
             Iterator<Edge> edges;
             // Traversal vertices of previous level
@@ -139,10 +133,9 @@ public class PathsTraverser extends HugeTraverser {
                             for (Node node : this.targetsAll.get(target)) {
                                 List<Id> path = n.joinPath(node);
                                 if (!path.isEmpty()) {
-                                    paths.add(new Path(target, path));
-                                    ++this.count;
+                                    this.paths.add(new Path(target, path));
                                     if (this.reachLimit()) {
-                                        return paths;
+                                        return;
                                     }
                                 }
                             }
@@ -156,16 +149,15 @@ public class PathsTraverser extends HugeTraverser {
             // Re-init sources
             this.sources = newVertices;
             // Record all passed vertices
-            this.sourcesAll.putAll(newVertices);
-
-            return paths;
+            for (Map.Entry<Id, List<Node>> entry : newVertices.entrySet()) {
+                this.sourcesAll.addAll(entry.getKey(), entry.getValue());
+            }
         }
 
         /**
          * Search backward from target
          */
-        public List<Path> backward(Directions direction) {
-            List<Path> paths = new ArrayList<>();
+        public void backward(Directions direction) {
             MultivaluedMap<Id, Node> newVertices = newMultivalueMap();
             Iterator<Edge> edges;
             // Traversal vertices of previous level
@@ -188,10 +180,11 @@ public class PathsTraverser extends HugeTraverser {
                             for (Node node : this.sourcesAll.get(target)) {
                                 List<Id> path = n.joinPath(node);
                                 if (!path.isEmpty()) {
-                                    paths.add(new Path(target, path));
-                                    ++this.count;
+                                    Path newPath = new Path(target, path);
+                                    newPath.reverse();
+                                    this.paths.add(newPath);
                                     if (this.reachLimit()) {
-                                        return paths;
+                                        return;
                                     }
                                 }
                             }
@@ -206,9 +199,13 @@ public class PathsTraverser extends HugeTraverser {
             // Re-init targets
             this.targets = newVertices;
             // Record all passed vertices
-            this.targetsAll.putAll(newVertices);
+            for (Map.Entry<Id, List<Node>> entry : newVertices.entrySet()) {
+                this.targetsAll.addAll(entry.getKey(), entry.getValue());
+            }
+        }
 
-            return paths;
+        public PathSet paths() {
+            return this.paths;
         }
 
         private int accessedNodes() {
@@ -217,7 +214,7 @@ public class PathsTraverser extends HugeTraverser {
 
         private boolean reachLimit() {
             checkCapacity(this.capacity, this.accessedNodes(), "paths");
-            if (this.limit == NO_LIMIT || this.count < this.limit) {
+            if (this.limit == NO_LIMIT || this.paths.size() < this.limit) {
                 return false;
             }
             return true;

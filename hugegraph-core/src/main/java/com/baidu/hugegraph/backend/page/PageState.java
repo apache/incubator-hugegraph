@@ -19,12 +19,11 @@
 
 package com.baidu.hugegraph.backend.page;
 
-import java.util.Base64;
-
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.StringEncoding;
 
 public class PageState {
 
@@ -62,7 +61,8 @@ public class PageState {
         return toString(this.toBytes());
     }
 
-    public byte[] toBytes() {
+    private byte[] toBytes() {
+        assert this.position.length > 0;
         int length = 2 + this.position.length + 2 * BytesBuffer.INT_LEN;
         BytesBuffer buffer = BytesBuffer.allocate(length);
         buffer.writeBytes(this.position);
@@ -78,7 +78,7 @@ public class PageState {
     public static PageState fromBytes(byte[] bytes) {
         if (bytes.length == 0) {
             // The first page
-            return new PageState(new byte[0], 0, 0);
+            return EMPTY;
         }
         try {
             BytesBuffer buffer = BytesBuffer.wrap(bytes);
@@ -91,12 +91,12 @@ public class PageState {
     }
 
     public static String toString(byte[] bytes) {
-        return Base64.getEncoder().encodeToString(bytes);
+        return StringEncoding.encodeBase64(bytes);
     }
 
     public static byte[] toBytes(String page) {
         try {
-            return Base64.getDecoder().decode(page);
+            return StringEncoding.decodeBase64(page);
         } catch (Exception e) {
             throw new BackendException("Invalid page: '%s'", e, page);
         }

@@ -28,6 +28,7 @@ import java.util.List;
 
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.store.BackendEntry;
+import com.baidu.hugegraph.backend.store.BackendEntryIterator;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
@@ -40,11 +41,10 @@ public class BinaryBackendEntry implements BackendEntry {
     private final BinaryId id;
     private Id subId;
     private final List<BackendColumn> columns;
+    private long ttl;
 
     public BinaryBackendEntry(HugeType type, byte[] bytes) {
-        this(type, type.isIndex() ?
-                   BytesBuffer.wrap(bytes).readIndexId(type) :
-                   BytesBuffer.wrap(bytes).parseId());
+        this(type, BytesBuffer.wrap(bytes).parseId(type));
     }
 
     public BinaryBackendEntry(HugeType type, BinaryId id) {
@@ -52,6 +52,7 @@ public class BinaryBackendEntry implements BackendEntry {
         this.id = id;
         this.subId = null;
         this.columns = new ArrayList<>();
+        this.ttl = 0L;
     }
 
     @Override
@@ -65,12 +66,26 @@ public class BinaryBackendEntry implements BackendEntry {
     }
 
     @Override
+    public Id originId() {
+        return this.id.origin();
+    }
+
+    @Override
     public Id subId() {
         return this.subId;
     }
 
     public void subId(Id subId) {
         this.subId = subId;
+    }
+
+    public void ttl(long ttl) {
+        this.ttl = ttl;
+    }
+
+    @Override
+    public long ttl() {
+        return this.ttl;
     }
 
     @Override
@@ -99,9 +114,6 @@ public class BinaryBackendEntry implements BackendEntry {
 
     @Override
     public Collection<BackendColumn> columns() {
-        if (this.columns.size() > 1) {
-            Collections.sort(this.columns);
-        }
         return Collections.unmodifiableList(this.columns);
     }
 
@@ -118,6 +130,9 @@ public class BinaryBackendEntry implements BackendEntry {
     @Override
     public void columns(BackendColumn... bytesColumns) {
         this.columns.addAll(Arrays.asList(bytesColumns));
+        long maxSize = BackendEntryIterator.INLINE_BATCH_SIZE;
+        E.checkState(this.columns.size() <= maxSize,
+                     "Too many columns in one entry: %s", maxSize);
     }
 
     public BackendColumn removeColumn(int index) {

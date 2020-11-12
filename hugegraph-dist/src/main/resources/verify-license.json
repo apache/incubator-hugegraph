@@ -1,7 +1,7 @@
 {
-  "subject": "hugegraph-evaluation",
+  "subject": "hugegraph-license",
   "public_alias": "publiccert",
   "store_password": "803b6cc3-d144-47e8-948f-ec8b39c8881e",
-  "publickey_path": "/publicCerts.store",
-  "license_path": "conf/hugegraph-evaluation.license"
+  "publickey_path": "/public-certs.store",
+  "license_path": "conf/hugegraph-community.license"
 }

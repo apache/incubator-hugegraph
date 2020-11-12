@@ -90,12 +90,13 @@ public class RocksDBFeatures implements BackendFeatures {
 
     @Override
     public boolean supportsUpdateVertexProperty() {
-        return true;
+        // Vertex properties are stored in a cell(column value)
+        return false;
     }
 
     @Override
     public boolean supportsMergeVertexProperty() {
-        return true;
+        return false;
     }
 
     @Override
@@ -112,6 +113,16 @@ public class RocksDBFeatures implements BackendFeatures {
 
     @Override
     public boolean supportsNumberType() {
+        return false;
+    }
+
+    @Override
+    public boolean supportsAggregateProperty() {
+        return false;
+    }
+
+    @Override
+    public boolean supportsTtl() {
         return false;
     }
 }

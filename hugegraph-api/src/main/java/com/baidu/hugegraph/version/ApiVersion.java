@@ -24,8 +24,6 @@ import com.baidu.hugegraph.util.VersionUtil.Version;
 
 public final class ApiVersion {
 
-    public static final String NAME = "hugegraph-api";
-
     /**
      * API Version change log
      *
@@ -95,13 +93,28 @@ public final class ApiVersion {
      * [0.44] Issue-633: Support unique index
      * [0.45] Issue-673: Add 'OVERRIDE' update strategy
      * [0.46] Issue-618 & 694: Support UUID id type
+     * [0.47] Issue-691: Support aggregate property
+     * [0.48] Issue-686: Support get schema by names
+     *
+     * version 0.11:
+     * [0.49] Issue-670: Support fusiform similarity API
+     * [0.50] Issue-746: Support userdata for index label
+     * [0.51] Issue-929: Support 5 TP RESTful API
+     * [0.52] Issue-781: Support range query for rest api like P.gt(18)
+     * [0.53] Issue-985: Add grant permission API
+     * [0.54] Issue-295: Support ttl for vertex and edge
+     * [0.55] Issue-994: Support results count for kneighbor/kout/rings
+     * [0.56] Issue-800: Show schema status in schema API
+     * [0.57] Issue-1105: Allow not rebuild index when create index label
+     * [0.58] Issue-1173: Supports customized kout/kneighbor,
+     *        multi-node-shortest-path, jaccard-similar and template-paths
      */
 
     // The second parameter of Version.of() is for IDE running without JAR
-    public static final Version VERSION = Version.of(ApiVersion.class, "0.46");
+    public static final Version VERSION = Version.of(ApiVersion.class, "0.58");
 
     public static final void check() {
         // Check version of hugegraph-core. Firstly do check from version 0.3
-        VersionUtil.check(CoreVersion.VERSION, "0.10", "0.11", CoreVersion.NAME);
+        VersionUtil.check(CoreVersion.VERSION, "0.11", "0.12", CoreVersion.NAME);
     }
 }

@@ -36,8 +36,8 @@ public class SerializerFactory {
         name = name.toLowerCase();
         if ("binary".equals(name)) {
             return new BinarySerializer();
-        } else if ("binaryinline".equals(name)) {
-            return new BinaryInlineSerializer();
+        } else if ("binaryscatter".equals(name)) {
+            return new BinaryScatterSerializer();
         } else if ("text".equals(name)) {
             return new TextSerializer();
         }

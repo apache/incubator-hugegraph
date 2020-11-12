@@ -21,7 +21,6 @@ package com.baidu.hugegraph.cmd;
 
 import java.util.Iterator;
 
-import org.apache.commons.configuration.ConfigurationException;
 import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 
 import com.baidu.hugegraph.HugeFactory;
@@ -30,6 +29,7 @@ import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.dist.RegisterUtil;
+import com.baidu.hugegraph.testutil.Whitebox;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 
@@ -42,9 +42,7 @@ public class StoreDumper {
     }
 
     public void dump(HugeType table, long offset, long limit) {
-        BackendStore store = table.isSchema() ?
-                             this.graph.schemaTransaction().store() :
-                             this.graph.graphTransaction().store();
+        BackendStore store = this.backendStore(table);
 
         Query query = new Query(table);
         Iterator<BackendEntry> rs = store.query(query);
@@ -62,12 +60,17 @@ public class StoreDumper {
         CloseableIterator.closeIterator(rs);
     }
 
-    public void close() {
+    private BackendStore backendStore(HugeType table) {
+        String m = table.isSchema() ? "schemaTransaction" : "graphTransaction";
+        Object tx = Whitebox.invoke(this, "graph", m);
+        return Whitebox.invoke(tx.getClass(), "store", tx);
+    }
+
+    public void close() throws Exception {
         this.graph.close();
     }
 
-    public static void main(String[] args)
-                       throws ConfigurationException, InterruptedException {
+    public static void main(String[] args) throws Exception {
         E.checkArgument(args.length >= 1,
                         "StoreDumper need a config file.");
 
@@ -83,7 +86,7 @@ public class StoreDumper {
         dumper.close();
 
         // Stop daemon thread
-        HugeGraph.shutdown(30L);
+        HugeFactory.shutdown(30L);
     }
 
     private static String arg(String[] args, int index, String deflt) {

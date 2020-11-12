@@ -9,9 +9,9 @@
 
         <RollingFile name="file" fileName="logs/hugegraph-test.log"
                      filePattern="logs/$${date:yyyy-MM}/hugegraph-test-%d{yyyy-MM-dd}-%i.log">
-            <ThresholdFilter level="INFO" onMatch="ACCEPT" onMismatch="DENY"/>
+            <ThresholdFilter level="TRACE" onMatch="ACCEPT" onMismatch="DENY"/>
             <PatternLayout pattern="%-d{yyyy-MM-dd HH:mm:ss} %-5r [%t] [%-5p] %c %x - %m%n"/>
-            <SizeBasedTriggeringPolicy size="100MB"/>
+            <SizeBasedTriggeringPolicy size="50MB"/>
         </RollingFile>
     </appenders>
     <loggers>

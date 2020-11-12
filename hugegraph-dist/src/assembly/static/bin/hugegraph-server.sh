@@ -16,24 +16,34 @@ if [[ $# -lt 3 ]]; then
     exit 1;
 fi
 
-GREMLIN_SERVER_CONF="$1"
-REST_SERVER_CONF="$2"
-OPEN_SECURITY_CHECK="$3"
-GC_OPTION="$4"
-
 BIN=$(abs_path)
 TOP="$(cd $BIN/../ && pwd)"
 CONF="$TOP/conf"
 LIB="$TOP/lib"
 EXT="$TOP/ext"
 PLUGINS="$TOP/plugins"
-LOG="$TOP/logs"
-OUTPUT=${LOG}/hugegraph-server.log
+LOGS="$TOP/logs"
+OUTPUT=${LOGS}/hugegraph-server.log
 
 export HUGEGRAPH_HOME="$TOP"
 . ${BIN}/util.sh
 
-ensure_path_writable $LOG
+GREMLIN_SERVER_CONF="$1"
+REST_SERVER_CONF="$2"
+OPEN_SECURITY_CHECK="$3"
+
+if [[ $# -eq 3 ]]; then
+    USER_OPTION=""
+    GC_OPTION=""
+elif [[ $# -eq 4 ]]; then
+    USER_OPTION="$4"
+    GC_OPTION=""
+elif [[ $# -eq 5 ]]; then
+    USER_OPTION="$4"
+    GC_OPTION="$5"
+fi
+
+ensure_path_writable $LOGS
 ensure_path_writable $PLUGINS
 
 # The maximum and minium heap memory that service can use
@@ -85,8 +95,8 @@ if [ "$JAVA_OPTIONS" = "" ]; then
              >> ${OUTPUT}
         exit 1
     fi
-    JAVA_OPTIONS="-Xms${MIN_MEM}m -Xmx${XMX}m -javaagent:$LIB/jamm-0.3.0.jar"
-    
+    JAVA_OPTIONS="-Xms${MIN_MEM}m -Xmx${XMX}m -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=${LOGS} ${USER_OPTION}"
+
     # Rolling out detailed GC logs
     #JAVA_OPTIONS="${JAVA_OPTIONS} -XX:+UseGCLogFileRotation -XX:GCLogFileSize=10M -XX:NumberOfGCLogFiles=3 \
     #              -Xloggc:./logs/gc.log -XX:+PrintHeapAtGC -XX:+PrintGCDetails -XX:+PrintGCDateStamps"
@@ -99,7 +109,7 @@ case "$GC_OPTION" in
         JAVA_OPTIONS="${JAVA_OPTIONS} -XX:+UseG1GC -XX:+ParallelRefProcEnabled \
                       -XX:InitiatingHeapOccupancyPercent=50 -XX:G1RSetUpdatingPauseTimePercent=5"
         ;;
-    "") ;;    
+    "") ;;
     *)
         echo "Unrecognized gc option: '$GC_OPTION', only support 'g1' now" >> ${OUTPUT}
         exit 1

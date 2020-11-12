@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.backend.store.hbase;
 
 import static com.baidu.hugegraph.config.OptionChecker.disallowEmpty;
+import static com.baidu.hugegraph.config.OptionChecker.positiveInt;
 import static com.baidu.hugegraph.config.OptionChecker.rangeInt;
 
 import com.baidu.hugegraph.config.ConfigOption;
@@ -65,11 +66,67 @@ public class HbaseOptions extends OptionHolder {
                     "/hbase"
             );
 
+    public static final ConfigOption<Integer> HBASE_ZK_RETRY =
+            new ConfigOption<>(
+                    "hbase.zk_retry",
+                    "The recovery retry times of HBase zookeeper.",
+                    rangeInt(0, 1000),
+                    3
+            );
+
     public static final ConfigOption<Integer> HBASE_THREADS_MAX =
             new ConfigOption<>(
                     "hbase.threads_max",
                     "The max threads num of hbase connections.",
                     rangeInt(1, 1000),
                     64
+            );
+
+    public static final ConfigOption<Long> TRUNCATE_TIMEOUT =
+            new ConfigOption<>(
+                    "hbase.truncate_timeout",
+                    "The timeout in seconds of waiting for store truncate.",
+                    positiveInt(),
+                    30L
+            );
+
+    public static final ConfigOption<Long> AGGR_TIMEOUT =
+            new ConfigOption<>(
+                    "hbase.aggregation_timeout",
+                    "The timeout in seconds of waiting for aggregation.",
+                    positiveInt(),
+                    12 * 60 * 60L
+            );
+
+    public static final ConfigOption<Boolean> HBASE_KERBEROS_ENABLE =
+            new ConfigOption<>(
+                    "hbase.kerberos_enable",
+                    "Is Kerberos authentication enabled for HBase.",
+                    disallowEmpty(),
+                    false
+            );
+
+    public static final ConfigOption<String> HBASE_KRB5_CONF =
+            new ConfigOption<>(
+                    "hbase.krb5_conf",
+                    "Kerberos configuration file, including KDC IP, default realm, etc.",
+                    null,
+                    "/etc/krb5.conf"
+            );
+
+    public static final ConfigOption<String> HBASE_KERBEROS_PRINCIPAL =
+            new ConfigOption<>(
+                    "hbase.kerberos_principal",
+                    "The HBase's principal for kerberos authentication.",
+                    null,
+                    ""
+            );
+
+    public static final ConfigOption<String> HBASE_KERBEROS_KEYTAB =
+            new ConfigOption<>(
+                    "hbase.kerberos_keytab",
+                    "The HBase's key tab file for kerberos authentication.",
+                    null,
+                    ""
             );
 }

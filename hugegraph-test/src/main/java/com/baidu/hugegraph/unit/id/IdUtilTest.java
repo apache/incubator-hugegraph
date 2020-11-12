@@ -74,12 +74,22 @@ public class IdUtilTest {
         Assert.assertEquals(id, IdUtil.readBinString(bytes));
 
         id = EdgeId.parse("S1>2>3>L4");
-        bytes = ByteBuffer.wrap(genBytes("7e803182080233ff0804"));
+        bytes = ByteBuffer.wrap(genBytes("7e803182080233000804"));
         Assert.assertEquals(bytes, IdUtil.writeBinString(id));
         Assert.assertEquals(id, IdUtil.readBinString(bytes));
 
         id = EdgeId.parse("S1111>2222>3>L4444");
-        bytes = ByteBuffer.wrap(genBytes("7e8331313131821808ae33ff18115c"));
+        bytes = ByteBuffer.wrap(genBytes("7e8331313131821808ae330018115c"));
+        Assert.assertEquals(bytes, IdUtil.writeBinString(id));
+        Assert.assertEquals(id, IdUtil.readBinString(bytes));
+
+        id = EdgeId.parse("L11111111>2222>3>L44444444");
+        bytes = ByteBuffer.wrap(genBytes("7e28a98ac7821808ae33002aa62b1c"));
+        Assert.assertEquals(bytes, IdUtil.writeBinString(id));
+        Assert.assertEquals(id, IdUtil.readBinString(bytes));
+
+        id = EdgeId.parse("L-1111>2222>33>L4444");
+        bytes = ByteBuffer.wrap(genBytes("7e03a9821808ae33330018115c"));
         Assert.assertEquals(bytes, IdUtil.writeBinString(id));
         Assert.assertEquals(id, IdUtil.readBinString(bytes));
     }
@@ -87,8 +97,8 @@ public class IdUtilTest {
     @Test
     public void testWriteReadStoredString() {
         Id id = IdGenerator.of(123);
-        Assert.assertEquals("L21w", IdUtil.writeStoredString(id));
-        Assert.assertEquals(id, IdUtil.readStoredString("L21w"));
+        Assert.assertEquals("L1w", IdUtil.writeStoredString(id));
+        Assert.assertEquals(id, IdUtil.readStoredString("L1w"));
 
         id = IdGenerator.of("123");
         Assert.assertEquals("S123", IdUtil.writeStoredString(id));
@@ -100,24 +110,24 @@ public class IdUtilTest {
         Assert.assertEquals(id, IdUtil.readStoredString(uuid));
 
         id = EdgeId.parse("S1>2>3>L4");
-        Assert.assertEquals("ES1>12>3>L14", IdUtil.writeStoredString(id));
-        Assert.assertEquals(id, IdUtil.readStoredString("ES1>12>3>L14"));
+        Assert.assertEquals("ES1>2>3>L4", IdUtil.writeStoredString(id));
+        Assert.assertEquals(id, IdUtil.readStoredString("ES1>2>3>L4"));
 
         id = EdgeId.parse("S1111>2222>3>L4444");
-        Assert.assertEquals("ES1111>2Yj>3>L315S", IdUtil.writeStoredString(id));
-        Assert.assertEquals(id, IdUtil.readStoredString("ES1111>2Yj>3>L315S"));
+        Assert.assertEquals("ES1111>Yj>3>L15S", IdUtil.writeStoredString(id));
+        Assert.assertEquals(id, IdUtil.readStoredString("ES1111>Yj>3>L15S"));
 
         id = EdgeId.parse("L1111>2222>3>L4444");
-        Assert.assertEquals("EL2HN>2Yj>3>L315S", IdUtil.writeStoredString(id));
-        Assert.assertEquals(id, IdUtil.readStoredString("EL2HN>2Yj>3>L315S"));
+        Assert.assertEquals("ELHN>Yj>3>L15S", IdUtil.writeStoredString(id));
+        Assert.assertEquals(id, IdUtil.readStoredString("ELHN>Yj>3>L15S"));
 
         id = EdgeId.parse("L11111111>2222>3>L44444444");
-        String eid = "EL4fOg7>2Yj>3>L52eYhS";
+        String eid = "ELfOg7>Yj>3>L2eYhS";
         Assert.assertEquals(eid, IdUtil.writeStoredString(id));
         Assert.assertEquals(id, IdUtil.readStoredString(eid));
 
         id = EdgeId.parse("L-1111>2222>33>L4444");
-        eid = "EL0B7~~~~~~~~je>2Yj>33>L315S";
+        eid = "EL-HN>Yj>33>L15S";
         Assert.assertEquals(eid, IdUtil.writeStoredString(id));
         Assert.assertEquals(id, IdUtil.readStoredString(eid));
     }

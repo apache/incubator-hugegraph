@@ -48,11 +48,17 @@ public class GraphSONSchemaSerializer {
                 graph.mapIlId2Name(vertexLabel.indexLabels()));
         map.put(HugeKeys.PROPERTIES,
                 graph.mapPkId2Name(vertexLabel.properties()));
+        map.put(HugeKeys.STATUS, vertexLabel.status());
+        map.put(HugeKeys.TTL, vertexLabel.ttl());
+        String ttlStartTimeName = vertexLabel.ttlStartTimeName();
+        if (ttlStartTimeName != null) {
+            map.put(HugeKeys.TTL_START_TIME, ttlStartTimeName);
+        }
         map.put(HugeKeys.ENABLE_LABEL_INDEX, vertexLabel.enableLabelIndex());
         map.put(HugeKeys.USER_DATA, vertexLabel.userdata());
         return map;
     }
-    
+
     public Map<HugeKeys, Object> writeEdgeLabel(EdgeLabel edgeLabel) {
         HugeGraph graph = edgeLabel.graph();
         assert graph != null;
@@ -60,10 +66,8 @@ public class GraphSONSchemaSerializer {
         Map<HugeKeys, Object> map = new LinkedHashMap<>();
         map.put(HugeKeys.ID, edgeLabel.id().asLong());
         map.put(HugeKeys.NAME, edgeLabel.name());
-        map.put(HugeKeys.SOURCE_LABEL,
-                graph.vertexLabel(edgeLabel.sourceLabel()).name());
-        map.put(HugeKeys.TARGET_LABEL,
-                graph.vertexLabel(edgeLabel.targetLabel()).name());
+        map.put(HugeKeys.SOURCE_LABEL, edgeLabel.sourceLabelName());
+        map.put(HugeKeys.TARGET_LABEL, edgeLabel.targetLabelName());
         map.put(HugeKeys.FREQUENCY, edgeLabel.frequency());
         map.put(HugeKeys.SORT_KEYS,
                 graph.mapPkId2Name(edgeLabel.sortKeys()));
@@ -73,11 +77,17 @@ public class GraphSONSchemaSerializer {
                 graph.mapIlId2Name(edgeLabel.indexLabels()));
         map.put(HugeKeys.PROPERTIES,
                 graph.mapPkId2Name(edgeLabel.properties()));
+        map.put(HugeKeys.STATUS, edgeLabel.status());
+        map.put(HugeKeys.TTL, edgeLabel.ttl());
+        String ttlStartTimeName = edgeLabel.ttlStartTimeName();
+        if (ttlStartTimeName != null) {
+            map.put(HugeKeys.TTL_START_TIME, ttlStartTimeName);
+        }
         map.put(HugeKeys.ENABLE_LABEL_INDEX, edgeLabel.enableLabelIndex());
         map.put(HugeKeys.USER_DATA, edgeLabel.userdata());
         return map;
     }
-    
+
     public Map<HugeKeys, Object> writePropertyKey(PropertyKey propertyKey) {
         HugeGraph graph = propertyKey.graph();
         assert graph != null;
@@ -87,8 +97,10 @@ public class GraphSONSchemaSerializer {
         map.put(HugeKeys.NAME, propertyKey.name());
         map.put(HugeKeys.DATA_TYPE, propertyKey.dataType());
         map.put(HugeKeys.CARDINALITY, propertyKey.cardinality());
+        map.put(HugeKeys.AGGREGATE_TYPE, propertyKey.aggregateType());
         map.put(HugeKeys.PROPERTIES,
                 graph.mapPkId2Name(propertyKey.properties()));
+        map.put(HugeKeys.STATUS, propertyKey.status());
         map.put(HugeKeys.USER_DATA, propertyKey.userdata());
         return map;
     }
@@ -111,6 +123,8 @@ public class GraphSONSchemaSerializer {
         }
         map.put(HugeKeys.INDEX_TYPE, indexLabel.indexType());
         map.put(HugeKeys.FIELDS, graph.mapPkId2Name(indexLabel.indexFields()));
+        map.put(HugeKeys.STATUS, indexLabel.status());
+        map.put(HugeKeys.USER_DATA, indexLabel.userdata());
         return map;
     }
 }

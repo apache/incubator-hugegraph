@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.backend.store;
 
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.event.EventListener;
 
 public interface BackendStoreProvider {
@@ -41,6 +42,8 @@ public interface BackendStoreProvider {
 
     public void open(String name);
 
+    public void waitStoreStarted();
+
     public void close();
 
     public void init();
@@ -54,4 +57,6 @@ public interface BackendStoreProvider {
     public void listen(EventListener listener);
 
     public void unlisten(EventListener listener);
+
+    public EventHub storeEventHub();
 }

@@ -31,6 +31,7 @@ import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
 
+import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.IdGenerator;
@@ -40,6 +41,7 @@ import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.schema.VertexLabel;
+import com.baidu.hugegraph.testutil.Whitebox;
 import com.baidu.hugegraph.traversal.optimize.Text;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Directions;
@@ -50,7 +52,7 @@ public class Example1 {
 
     private static final Logger LOG = Log.logger(Example1.class);
 
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) throws Exception {
         LOG.info("Example1 start!");
 
         HugeGraph graph = ExampleUtil.loadGraph();
@@ -68,7 +70,7 @@ public class Example1 {
 
         graph.close();
 
-        HugeGraph.shutdown(30L);
+        HugeFactory.shutdown(30L);
     }
 
     private static void thread(HugeGraph graph) throws InterruptedException {
@@ -79,13 +81,17 @@ public class Example1 {
             graph.tx().commit();
 
             // New tx
-            GraphTransaction tx = graph.openTransaction();
+            GraphTransaction tx =  Whitebox.invoke(graph.getClass(),
+                                                   "openGraphTransaction",
+                                                   graph);
+
             tx.addVertex(T.label, "book", "name", "java-21");
             tx.addVertex(T.label, "book", "name", "java-22");
             tx.commit();
             tx.close();
 
-            graph.closeTx(); // this will close the schema tx
+            // This will close the schema tx
+            Whitebox.invoke(graph.getClass(), "closeTx", graph);
         });
 
         t.start();
@@ -208,7 +214,9 @@ public class Example1 {
         graph.tx().commit();
 
         // must commit manually with new backend tx (independent of tinkerpop)
-        GraphTransaction tx = graph.openTransaction();
+        GraphTransaction tx =  Whitebox.invoke(graph.getClass(),
+                                               "openGraphTransaction",
+                                               graph);
 
         LOG.info("===============  addVertex  ================");
         Vertex james = tx.addVertex(T.label, "author", "id", 1,
@@ -241,7 +249,6 @@ public class Example1 {
             try {
                 tx.rollback();
             } catch (BackendException e2) {
-                // TODO Auto-generated catch block
                 e2.printStackTrace();
             }
         } finally {
@@ -301,10 +308,9 @@ public class Example1 {
 
         // query vertex by condition (filter by property name)
         ConditionQuery q = new ConditionQuery(HugeType.VERTEX);
-        q.query(IdGenerator.of(authorId));
         PropertyKey age = graph.propertyKey("age");
         q.key(HugeKeys.PROPERTIES, age.id());
-        if (graph.graphTransaction().store().features()
+        if (graph.backendStoreFeatures()
                  .supportsQueryWithContainsKey()) {
             Iterator<Vertex> iter = graph.vertices(q);
             assert iter.hasNext();
@@ -346,16 +352,28 @@ public class Example1 {
         q.eq(HugeKeys.LABEL, authored.id());
         q.eq(HugeKeys.SORT_VALUES, "");
         q.eq(HugeKeys.OTHER_VERTEX, IdGenerator.of(book1Id));
-        // NOTE: query edge by has-key just supported by Cassandra
-        // q.hasKey(HugeKeys.PROPERTIES, "contribution");
 
         Iterator<Edge> edges2 = graph.edges(q);
         assert edges2.hasNext();
-        System.out.println(">>>> queryEdges(contribution): " +
+        System.out.println(">>>> queryEdges(id-condition): " +
                            edges2.hasNext());
         while (edges2.hasNext()) {
-            System.out.println(">>>> queryEdges(contribution): " +
+            System.out.println(">>>> queryEdges(id-condition): " +
                                edges2.next());
+        }
+
+        // NOTE: query edge by has-key just supported by Cassandra
+        if (graph.backendStoreFeatures().supportsQueryWithContainsKey()) {
+            PropertyKey contribution = graph.propertyKey("contribution");
+            q.key(HugeKeys.PROPERTIES, contribution.id());
+            Iterator<Edge> edges3 = graph.edges(q);
+            assert edges3.hasNext();
+            System.out.println(">>>> queryEdges(contribution): " +
+                               edges3.hasNext());
+            while (edges3.hasNext()) {
+                System.out.println(">>>> queryEdges(contribution): " +
+                                   edges3.next());
+            }
         }
 
         // query by vertex label

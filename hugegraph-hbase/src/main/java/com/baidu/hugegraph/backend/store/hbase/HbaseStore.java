@@ -24,6 +24,9 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 import org.apache.hadoop.hbase.NamespaceExistException;
@@ -42,6 +45,7 @@ import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import com.baidu.hugegraph.backend.store.hbase.HbaseSessions.Session;
 import com.baidu.hugegraph.config.HugeConfig;
+import com.baidu.hugegraph.exception.ConnectionException;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
@@ -68,6 +72,16 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
         this.namespace = namespace;
         this.store = store;
         this.sessions = null;
+
+        this.registerMetaHandlers();
+        LOG.debug("Store loaded: {}", store);
+    }
+
+    private void registerMetaHandlers() {
+        this.registerMetaHandler("metrics", (session, meta, args) -> {
+            HbaseMetrics metrics = new HbaseMetrics(this.sessions);
+            return metrics.getMetrics();
+        });
     }
 
     protected void registerTableManager(HugeType type, HbaseTable table) {
@@ -127,24 +141,28 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
             this.sessions = new HbaseSessions(config, this.namespace, this.store);
         }
 
-        if (this.sessions.opened()) {
+        assert this.sessions != null;
+        if (!this.sessions.closed()) {
             LOG.debug("Store {} has been opened before", this.store);
             this.sessions.useSession();
             return;
         }
 
         try {
+            // NOTE: won't throw error even if connection refused
             this.sessions.open();
-        } catch (IOException e) {
+        } catch (Exception e) {
             if (!e.getMessage().contains("Column family not found")) {
                 LOG.error("Failed to open HBase '{}'", this.store, e);
-                throw new BackendException("Failed to open HBase '%s'",
-                                           e, this.store);
+                throw new ConnectionException("Failed to connect to HBase", e);
             }
-            LOG.info("Failed to open HBase '{}' with database '{}', " +
-                     "try to init CF later", this.store, this.namespace);
+            if (this.isSchemaStore()) {
+                LOG.info("Failed to open HBase '{}' with database '{}', " +
+                         "try to init CF later", this.store, this.namespace);
+            }
         }
 
+        this.sessions.session();
         LOG.debug("Store opened: {}", this.store);
     }
 
@@ -154,6 +172,12 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
         this.sessions.close();
 
         LOG.debug("Store closed: {}", this.store);
+    }
+
+    @Override
+    public boolean opened() {
+        this.checkConnectionOpened();
+        return this.sessions.session().opened();
     }
 
     @Override
@@ -196,14 +220,24 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
     @Override
     public Iterator<BackendEntry> query(Query query) {
         this.checkOpened();
+
         Session session = this.sessions.session();
         HbaseTable table = this.table(HbaseTable.tableType(query));
         return table.query(session, query);
     }
 
     @Override
-    public void init() {
+    public Number queryNumber(Query query) {
         this.checkOpened();
+
+        Session session = this.sessions.session();
+        HbaseTable table = this.table(HbaseTable.tableType(query));
+        return table.queryNumber(session, query);
+    }
+
+    @Override
+    public void init() {
+        this.checkConnectionOpened();
 
         // Create namespace
         try {
@@ -212,7 +246,7 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
             // Ignore due to both schema & graph store would create namespace
         } catch (IOException e) {
             throw new BackendException(
-                      "Failed to create namespace '%s' for '%s'",
+                      "Failed to create namespace '%s' for '%s' store",
                       e, this.namespace, this.store);
         }
 
@@ -224,7 +258,7 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
                 continue;
             } catch (IOException e) {
                 throw new BackendException(
-                          "Failed to create table '%s' for '%s'",
+                          "Failed to create table '%s' for '%s' store",
                           e, table, this.store);
             }
         }
@@ -233,8 +267,8 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
     }
 
     @Override
-    public void clear() {
-        this.checkOpened();
+    public void clear(boolean clearSpace) {
+        this.checkConnectionOpened();
 
         // Return if not exists namespace
         try {
@@ -247,29 +281,34 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
                       e, this.namespace);
         }
 
-        // Drop tables
-        for (String table : this.tableNames()) {
-            try {
-                this.sessions.dropTable(table);
-            } catch (TableNotFoundException e) {
-                continue;
-            } catch (IOException e) {
-                throw new BackendException("Failed to drop table '%s' for '%s'",
-                                           e, table, this.store);
+        if (!clearSpace) {
+            // Drop tables
+            for (String table : this.tableNames()) {
+                try {
+                    this.sessions.dropTable(table);
+                } catch (TableNotFoundException e) {
+                    LOG.warn("The table '{}' of '{}' store does not exist " +
+                             "when trying to drop", table, this.store);
+                } catch (IOException e) {
+                    throw new BackendException(
+                              "Failed to drop table '%s' of '%s' store",
+                              e, table, this.store);
+                }
             }
-        }
-
-        // Drop namespace
-        try {
-            this.sessions.dropNamespace();
-        } catch (IOException e) {
-            String notEmpty = "Only empty namespaces can be removed";
-            if (e.getCause().getMessage().contains(notEmpty)) {
-                LOG.debug("Can't drop namespace '{}': {}", this.namespace, e);
-            } else {
-                throw new BackendException(
-                          "Failed to drop namespace '%s' for '%s'",
-                          e, this.namespace, this.store);
+        } else {
+            // Drop namespace
+            try {
+                this.sessions.dropNamespace();
+            } catch (IOException e) {
+                String notEmpty = "Only empty namespaces can be removed";
+                if (e.getCause().getMessage().contains(notEmpty)) {
+                    LOG.debug("Can't drop namespace '{}': {}",
+                              this.namespace, e);
+                } else {
+                    throw new BackendException(
+                              "Failed to drop namespace '%s' of '%s' store",
+                              e, this.namespace, this.store);
+                }
             }
         }
 
@@ -277,21 +316,88 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
     }
 
     @Override
+    public boolean initialized() {
+        this.checkConnectionOpened();
+
+        try {
+            if (!this.sessions.existsNamespace()) {
+                return false;
+            }
+            for (String table : this.tableNames()) {
+                if (!this.sessions.existsTable(table)) {
+                    return false;
+                }
+            }
+        } catch (IOException e) {
+            throw new BackendException("Failed to obtain table info", e);
+        }
+        return true;
+    }
+
+    @Override
     public void truncate() {
         this.checkOpened();
 
-        // Truncate tables
-        for (String table : this.tableNames()) {
+        // Total time may cost 3 * TRUNCATE_TIMEOUT, due to there are 3 stores
+        long timeout = this.sessions.config().get(HbaseOptions.TRUNCATE_TIMEOUT);
+        long start = System.currentTimeMillis();
+
+        BiFunction<String, Future<Void>, Void> wait = (table, future) -> {
+            long elapsed = System.currentTimeMillis() - start;
+            long remainingTime = timeout - elapsed / 1000L;
             try {
-                this.sessions.truncateTable(table);
-            } catch (IOException e) {
+                return future.get(remainingTime, TimeUnit.SECONDS);
+            } catch (Exception e) {
                 throw new BackendException(
-                          "Failed to truncate table '%s' for '%s'",
-                          e, table, this.store);
+                          "Error when truncating table '%s' of '%s' store: %s",
+                          table, this.store, e.toString());
             }
+        };
+
+        // Truncate tables
+        List<String> tables = this.tableNames();
+        Map<String, Future<Void>> futures = new HashMap<>(tables.size());
+
+        try {
+            // Disable tables async
+            for (String table : tables) {
+                futures.put(table, this.sessions.disableTableAsync(table));
+            }
+            for (Map.Entry<String, Future<Void>> entry : futures.entrySet()) {
+                wait.apply(entry.getKey(), entry.getValue());
+            }
+        } catch (Exception e) {
+            this.enableTables();
+            throw new BackendException(
+                      "Failed to disable table for '%s' store", e, this.store);
+        }
+
+        try {
+            // Truncate tables async
+            for (String table : tables) {
+                futures.put(table, this.sessions.truncateTableAsync(table));
+            }
+            for (Map.Entry<String, Future<Void>> entry : futures.entrySet()) {
+                wait.apply(entry.getKey(), entry.getValue());
+            }
+        } catch (Exception e) {
+            this.enableTables();
+            throw new BackendException(
+                      "Failed to truncate table for '%s' store", e, this.store);
         }
 
         LOG.debug("Store truncated: {}", this.store);
+    }
+
+    private void enableTables() {
+        for (String table : this.tableNames()) {
+            try {
+                this.sessions.enableTable(table);
+            } catch (Exception e) {
+                LOG.warn("Failed to enable table '{}' of '{}' store",
+                         table, this.store, e);
+            }
+        }
     }
 
     @Override
@@ -309,11 +415,14 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
 
     @Override
     public void rollbackTx() {
-        // pass
+        this.checkOpened();
+        Session session = this.sessions.session();
+
+        session.rollback();
     }
 
-    private void checkOpened() {
-        E.checkState(this.sessions != null,
+    private final void checkConnectionOpened() {
+        E.checkState(this.sessions != null && this.sessions.opened(),
                      "HBase store has not been initialized");
     }
 
@@ -361,6 +470,11 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
             super.checkOpened();
             return this.counters.getCounter(super.sessions.session(), type);
         }
+
+        @Override
+        public boolean isSchemaStore() {
+            return true;
+        }
     }
 
     public static class HbaseGraphStore extends HbaseStore {
@@ -397,6 +511,11 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
                                  new HbaseTables.ShardIndex(store));
             registerTableManager(HugeType.UNIQUE_INDEX,
                                  new HbaseTables.UniqueIndex(store));
+        }
+
+        @Override
+        public boolean isSchemaStore() {
+            return false;
         }
 
         @Override

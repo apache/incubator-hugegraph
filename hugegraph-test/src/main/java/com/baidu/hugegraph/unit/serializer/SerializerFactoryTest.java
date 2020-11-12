@@ -23,7 +23,7 @@ import org.junit.Test;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.serializer.AbstractSerializer;
-import com.baidu.hugegraph.backend.serializer.BinaryInlineSerializer;
+import com.baidu.hugegraph.backend.serializer.BinaryScatterSerializer;
 import com.baidu.hugegraph.backend.serializer.BinarySerializer;
 import com.baidu.hugegraph.backend.serializer.SerializerFactory;
 import com.baidu.hugegraph.backend.serializer.TextSerializer;
@@ -40,15 +40,14 @@ public class SerializerFactoryTest extends BaseUnitTest {
         serializer = SerializerFactory.serializer("binary");
         Assert.assertEquals(BinarySerializer.class, serializer.getClass());
 
-        serializer = SerializerFactory.serializer("binaryinline");
-        Assert.assertEquals(BinaryInlineSerializer.class,
+        serializer = SerializerFactory.serializer("binaryscatter");
+        Assert.assertEquals(BinaryScatterSerializer.class,
                             serializer.getClass());
 
         Assert.assertThrows(BackendException.class, () -> {
             SerializerFactory.serializer("invalid");
         }, e -> {
-            Assert.assertTrue(e.getMessage().contains(
-                              "Not exists serializer:"));
+            Assert.assertContains("Not exists serializer:", e.getMessage());
         });
     }
 
@@ -62,22 +61,22 @@ public class SerializerFactoryTest extends BaseUnitTest {
             // exist
             SerializerFactory.register("fake", FakeSerializer.class.getName());
         }, e -> {
-            Assert.assertTrue(e.getMessage().contains("Exists serializer:"));
+            Assert.assertContains("Exists serializer:", e.getMessage());
         });
 
         Assert.assertThrows(BackendException.class, () -> {
             // invalid class
             SerializerFactory.register("fake", "com.baidu.hugegraph.Invalid");
         }, e -> {
-            Assert.assertTrue(e.getMessage().contains("Invalid class:"));
+            Assert.assertContains("Invalid class:", e.getMessage());
         });
 
         Assert.assertThrows(BackendException.class, () -> {
             // subclass
             SerializerFactory.register("fake", "com.baidu.hugegraph.HugeGraph");
         }, e -> {
-            Assert.assertTrue(e.getMessage().contains(
-                              "Class is not a subclass of class"));
+            Assert.assertContains("Class is not a subclass of class",
+                                  e.getMessage());
         });
     }
 

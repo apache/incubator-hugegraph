@@ -106,7 +106,7 @@ public class RocksDBOptions extends OptionHolder {
                     7
             );
 
-    public static final ConfigConvOption<CompactionStyle> COMPACTION_STYLE =
+    public static final ConfigConvOption<String, CompactionStyle> COMPACTION_STYLE =
             new ConfigConvOption<>(
                     "rocksdb.compaction_style",
                     "Set compaction style for RocksDB: LEVEL/UNIVERSAL/FIFO.",
@@ -138,11 +138,10 @@ public class RocksDBOptions extends OptionHolder {
                     "allowed values are none/snappy/z/bzip2/lz4/lz4hc/xpress/zstd.",
                     inValues("none", "snappy", "z", "bzip2", "lz4", "lz4hc", "xpress", "zstd"),
                     CompressionType::getCompressionType,
-                    String.class,
                     "none", "none", "snappy", "snappy", "snappy", "snappy", "snappy"
             );
 
-    public static final ConfigConvOption<CompressionType> BOTTOMMOST_COMPRESSION =
+    public static final ConfigConvOption<String, CompressionType> BOTTOMMOST_COMPRESSION =
             new ConfigConvOption<>(
                     "rocksdb.bottommost_compression",
                     "The compression algorithm for the bottommost level of RocksDB, " +
@@ -152,7 +151,7 @@ public class RocksDBOptions extends OptionHolder {
                     "none"
             );
 
-    public static final ConfigConvOption<CompressionType> COMPRESSION =
+    public static final ConfigConvOption<String, CompressionType> COMPRESSION =
             new ConfigConvOption<>(
                     "rocksdb.compression",
                     "The compression algorithm for compressing blocks of RocksDB, " +
@@ -162,26 +161,18 @@ public class RocksDBOptions extends OptionHolder {
                     "snappy"
             );
 
-    public static final ConfigOption<Integer> MAX_BG_COMPACTIONS =
+    public static final ConfigOption<Integer> MAX_BG_JOBS =
             new ConfigOption<>(
-                    "rocksdb.max_background_compactions",
-                    "The maximum number of concurrent background compaction jobs.",
+                    "rocksdb.max_background_jobs",
+                    "Maximum number of concurrent background jobs, including flushes and compactions.",
                     rangeInt(1, Integer.MAX_VALUE),
-                    4
+                    8
             );
 
     public static final ConfigOption<Integer> MAX_SUB_COMPACTIONS =
             new ConfigOption<>(
                     "rocksdb.max_subcompactions",
                     "The value represents the maximum number of threads per compaction job.",
-                    rangeInt(1, Integer.MAX_VALUE),
-                    4
-            );
-
-    public static final ConfigOption<Integer> MAX_BG_FLUSHES =
-            new ConfigOption<>(
-                    "rocksdb.max_background_flushes",
-                    "The maximum number of concurrent background flush jobs.",
                     rangeInt(1, Integer.MAX_VALUE),
                     4
             );
@@ -198,9 +189,63 @@ public class RocksDBOptions extends OptionHolder {
     public static final ConfigOption<Integer> MAX_OPEN_FILES =
             new ConfigOption<>(
                     "rocksdb.max_open_files",
-                    "The maximum number of open files that can be cached by RocksDB.",
+                    "The maximum number of open files that can be cached by RocksDB, " +
+                    "-1 means no limit.",
                     rangeInt(-1, Integer.MAX_VALUE),
                     -1
+            );
+
+    public static final ConfigOption<Long> MAX_MANIFEST_FILE_SIZE =
+            new ConfigOption<>(
+                    "rocksdb.max_manifest_file_size",
+                    "The max size of manifest file in bytes.",
+                    rangeInt(1L, Long.MAX_VALUE),
+                    100L * Bytes.MB
+            );
+
+    public static final ConfigOption<Boolean> SKIP_STATS_UPDATE_ON_DB_OPEN =
+            new ConfigOption<>(
+                    "rocksdb.skip_stats_update_on_db_open",
+                    "Whether to skip statistics update when opening the database, " +
+                    "setting this flag true allows us to not update statistics.",
+                    disallowEmpty(),
+                    false
+            );
+
+    public static final ConfigOption<Integer> MAX_FILE_OPENING_THREADS =
+            new ConfigOption<>(
+                    "rocksdb.max_file_opening_threads",
+                    "The max number of threads used to open files.",
+                    rangeInt(1, Integer.MAX_VALUE),
+                    16
+            );
+
+    public static final ConfigOption<Long> MAX_TOTAL_WAL_SIZE =
+            new ConfigOption<>(
+                    "rocksdb.max_total_wal_size",
+                    "Total size of WAL files in bytes. Once WALs exceed this size, " +
+                    "we will start forcing the flush of column families related, " +
+                    "0 means no limit.",
+                    rangeInt(0L, Long.MAX_VALUE),
+                    0L
+            );
+
+    public static final ConfigOption<Long> DB_MEMTABLE_SIZE =
+            new ConfigOption<>(
+                    "rocksdb.db_write_buffer_size",
+                    "Total size of write buffers in bytes across all column families, " +
+                    "0 means no limit.",
+                    rangeInt(0L, Long.MAX_VALUE),
+                    0L
+            );
+
+    public static final ConfigOption<Long> DELETE_OBSOLETE_FILE_PERIOD =
+            new ConfigOption<>(
+                    "rocksdb.delete_obsolete_files_period",
+                    "The periodicity in seconds when obsolete files get deleted, " +
+                    "0 means always do full purge.",
+                    rangeInt(0L, Long.MAX_VALUE),
+                    6L * 60 * 60
             );
 
     public static final ConfigOption<Long> MEMTABLE_SIZE =
@@ -266,6 +311,46 @@ public class RocksDBOptions extends OptionHolder {
                     "The size ratio between a level L file and a level (L+1) file.",
                     rangeInt(1, Integer.MAX_VALUE),
                     1
+            );
+
+    public static final ConfigOption<Integer> LEVEL0_COMPACTION_TRIGGER =
+            new ConfigOption<>(
+                    "rocksdb.level0_file_num_compaction_trigger",
+                    "Number of files to trigger level-0 compaction.",
+                    rangeInt(0, Integer.MAX_VALUE),
+                    2
+            );
+
+    public static final ConfigOption<Integer> LEVEL0_SLOWDOWN_WRITES_TRIGGER =
+            new ConfigOption<>(
+                    "rocksdb.level0_slowdown_writes_trigger",
+                    "Soft limit on number of level-0 files for slowing down writes.",
+                    rangeInt(-1, Integer.MAX_VALUE),
+                    20
+            );
+
+    public static final ConfigOption<Integer> LEVEL0_STOP_WRITES_TRIGGER =
+            new ConfigOption<>(
+                    "rocksdb.level0_stop_writes_trigger",
+                    "Hard limit on number of level-0 files for stopping writes.",
+                    rangeInt(-1, Integer.MAX_VALUE),
+                    36
+            );
+
+    public static final ConfigOption<Long> SOFT_PENDING_COMPACTION_LIMIT =
+            new ConfigOption<>(
+                    "rocksdb.soft_pending_compaction_bytes_limit",
+                    "The soft limit to impose on pending compaction in bytes.",
+                    rangeInt(Bytes.GB, Long.MAX_VALUE),
+                    64L * Bytes.GB
+            );
+
+    public static final ConfigOption<Long> HARD_PENDING_COMPACTION_LIMIT =
+            new ConfigOption<>(
+                    "rocksdb.hard_pending_compaction_bytes_limit",
+                    "The hard limit to impose on pending compaction in bytes.",
+                    rangeInt(Bytes.GB, Long.MAX_VALUE),
+                    256L * Bytes.GB
             );
 
     public static final ConfigOption<Boolean> ALLOW_MMAP_WRITES =

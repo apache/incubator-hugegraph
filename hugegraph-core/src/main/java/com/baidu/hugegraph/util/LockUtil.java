@@ -35,8 +35,12 @@ import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.concurrent.KeyLock;
 import com.baidu.hugegraph.concurrent.LockManager;
+import com.baidu.hugegraph.concurrent.RowLock;
 import com.baidu.hugegraph.type.HugeType;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 public final class LockUtil {
 
@@ -53,6 +57,11 @@ public final class LockUtil {
     public static final String EDGE_LABEL_ADD_UPDATE = "el_add_update";
     public static final String VERTEX_LABEL_ADD_UPDATE = "vl_add_update";
     public static final String PROPERTY_KEY_ADD_UPDATE = "pk_add_update";
+    public static final String KEY_LOCK = "key_lock";
+    public static final String ROW_LOCK = "row_lock";
+    public static final String REENTRANT_LOCK = "reentrant_lock";
+
+    public static final String GRAPH_LOCK = "graph_lock";
 
     public static final long WRITE_WAIT_TIMEOUT = 30L;
 
@@ -65,6 +74,9 @@ public final class LockUtil {
         LockManager.instance().create(join(graph, EDGE_LABEL_ADD_UPDATE));
         LockManager.instance().create(join(graph, VERTEX_LABEL_ADD_UPDATE));
         LockManager.instance().create(join(graph, PROPERTY_KEY_ADD_UPDATE));
+        LockManager.instance().create(join(graph, KEY_LOCK));
+        LockManager.instance().create(join(graph, ROW_LOCK));
+        LockManager.instance().create(join(graph, REENTRANT_LOCK));
     }
 
     public static void destroy(String graph) {
@@ -76,6 +88,9 @@ public final class LockUtil {
         LockManager.instance().destroy(join(graph, EDGE_LABEL_ADD_UPDATE));
         LockManager.instance().destroy(join(graph, VERTEX_LABEL_ADD_UPDATE));
         LockManager.instance().destroy(join(graph, PROPERTY_KEY_ADD_UPDATE));
+        LockManager.instance().destroy(join(graph, KEY_LOCK));
+        LockManager.instance().destroy(join(graph, ROW_LOCK));
+        LockManager.instance().destroy(join(graph, REENTRANT_LOCK));
     }
 
     private static String join(String graph, String group) {
@@ -110,11 +125,56 @@ public final class LockUtil {
                 }
                 break;
             } catch (InterruptedException ignore) {
-                LOG.info("Trying to lock write of is interrupted!");
+                LOG.info("Trying to lock write of {} is interrupted!", lock);
             }
         }
         LOG.debug("Got the write lock '{}' of LockGroup '{}'", lock, group);
         return writeLock;
+    }
+
+    private static List<Lock> lockKeys(String graph, String group,
+                                       Collection<?> locks) {
+        KeyLock keyLock = LockManager.instance().get(join(graph, KEY_LOCK))
+                                     .keyLock(group);
+        return keyLock.lockAll(locks.toArray());
+    }
+
+    public static <K extends Comparable<K>> void lockRow(String graph,
+                                                         String group,
+                                                         K row) {
+        lockRows(graph, group, ImmutableSet.of(row));
+    }
+
+    public static <K extends Comparable<K>> void lockRows(String graph,
+                                                          String group,
+                                                          Set<K> rows) {
+        RowLock<K> rowLock = LockManager.instance().get(join(graph, ROW_LOCK))
+                                        .rowLock(group);
+        rowLock.lockAll(rows);
+    }
+
+    public static <K extends Comparable<K>> void unlockRow(String graph,
+                                                           String group,
+                                                           K row) {
+        unlockRows(graph, group, ImmutableSet.of(row));
+    }
+
+    public static <K extends Comparable<K>> void unlockRows(String graph,
+                                                            String group,
+                                                            Set<K> rows) {
+        RowLock<K> rowLock = LockManager.instance().get(join(graph, ROW_LOCK))
+                                        .rowLock(group);
+        rowLock.unlockAll(rows);
+    }
+
+    public static void lock(String graph, String name) {
+        LockManager.instance().get(join(graph, REENTRANT_LOCK))
+                   .lock(name).lock();
+    }
+
+    public static void unlock(String graph, String name) {
+        LockManager.instance().get(join(graph, REENTRANT_LOCK))
+                   .lock(name).unlock();
     }
 
     public static List<Lock> lock(String... locks) {
@@ -208,6 +268,10 @@ public final class LockUtil {
                                       WRITE_WAIT_TIMEOUT);
         }
 
+        public void lockKeys(String group, Collection<Id> locks) {
+            this.lockList.addAll(LockUtil.lockKeys(this.graph, group, locks));
+        }
+
         // NOTE: when used in multi-threads, should add `synchronized`
         public void unlock() {
             Collections.reverse(this.lockList);
@@ -247,6 +311,22 @@ public final class LockUtil {
                 }
             }
             this.locks.lockReads(group, newLocks);
+            locked.addAll(newLocks);
+        }
+
+        public void lockKey(String group, Id key) {
+            this.lockKeys(group, ImmutableList.of(key));
+        }
+
+        public void lockKeys(String group, Collection<Id> keys) {
+            List<Id> newLocks = new ArrayList<>(keys.size());
+            Set<Id> locked = locksOfGroup(group);
+            for (Id lock : keys) {
+                if (!locked.contains(lock)) {
+                    newLocks.add(lock);
+                }
+            }
+            this.locks.lockKeys(group, newLocks);
             locked.addAll(newLocks);
         }
 

@@ -29,21 +29,11 @@ import org.junit.Test;
 
 import com.baidu.hugegraph.testutil.Assert;
 
-import jersey.repackaged.com.google.common.collect.ImmutableList;
 import jersey.repackaged.com.google.common.collect.ImmutableMap;
 
 public class TaskApiTest extends BaseApiTest {
 
     private static String path = "/graphs/hugegraph/tasks/";
-    private static String rebuildPath =
-            "/graphs/hugegraph/jobs/rebuild/indexlabels/personByCity";
-    private static String personByCity = "personByCity";
-    private static Map<String, Object> personByCityIL = ImmutableMap.of(
-            "name", "personByCity",
-            "base_type", "VERTEX_LABEL",
-            "base_value", "person",
-            "index_type", "SECONDARY",
-            "fields", ImmutableList.of("city"));
 
     @Before
     public void prepareSchema() {
@@ -61,7 +51,7 @@ public class TaskApiTest extends BaseApiTest {
         List<Map<?, ?>> tasks = assertJsonContains(content, "tasks");
         assertArrayContains(tasks, "id", taskId);
 
-        this.waitTaskSuccess(taskId);
+        waitTaskSuccess(taskId);
         r = client().get(path, ImmutableMap.of("status", "RUNNING"));
         content = assertResponseStatus(200, r);
         tasks = assertJsonContains(content, "tasks");
@@ -78,26 +68,65 @@ public class TaskApiTest extends BaseApiTest {
     }
 
     @Test
+    public void testCancel() {
+        int taskId = this.gremlinJob();
+
+        sleepAWhile();
+        Map<String, Object> params = ImmutableMap.of("action", "cancel");
+        Response r = client().put(path, String.valueOf(taskId), "", params);
+        String content = r.readEntity(String.class);
+        Assert.assertTrue(content,
+                          r.getStatus() == 202 || r.getStatus() == 400);
+        if (r.getStatus() == 202) {
+            String status = assertJsonContains(content, "task_status");
+            Assert.assertEquals("cancelling", status);
+        } else {
+            assert r.getStatus() == 400;
+            String error = String.format(
+                           "Can't cancel task '%s' which is completed", taskId);
+            Assert.assertContains(error, content);
+
+            r = client().get(path, String.valueOf(taskId));
+            content = assertResponseStatus(200, r);
+            String status = assertJsonContains(content, "task_status");
+            Assert.assertEquals("success", status);
+        }
+    }
+
+    @Test
     public void testDelete() {
         int taskId = this.rebuild();
 
-        this.waitTaskSuccess(taskId);
+        waitTaskSuccess(taskId);
         Response r = client().delete(path, String.valueOf(taskId));
         assertResponseStatus(204, r);
     }
 
     private int rebuild() {
-        Response r = client().put(rebuildPath, personByCity, personByCityIL);
+        String rebuildPath = "/graphs/hugegraph/jobs/rebuild/indexlabels";
+        String personByCity = "personByCity";
+        Map<String, Object> params = ImmutableMap.of();
+        Response r = client().put(rebuildPath, personByCity, "",  params);
         String content = assertResponseStatus(202, r);
         return assertJsonContains(content, "task_id");
     }
 
-    private void waitTaskSuccess(int task) {
-        String status;
-        do {
-            Response r = client().get(path, String.valueOf(task));
-            String content = assertResponseStatus(200, r);
-            status = assertJsonContains(content, "task_status");
-        } while (!"success".equals(status));
+    private int gremlinJob() {
+        String body = "{"
+                + "\"gremlin\":\"Thread.sleep(1000L)\","
+                + "\"bindings\":{},"
+                + "\"language\":\"gremlin-groovy\","
+                + "\"aliases\":{}}";
+        String path = "/graphs/hugegraph/jobs/gremlin";
+        String content = assertResponseStatus(201, client().post(path, body));
+        return assertJsonContains(content, "task_id");
+    }
+
+    private void sleepAWhile() {
+        try {
+            Thread.sleep(200L);
+        } catch (InterruptedException e) {
+            // ignore
+        }
     }
 }

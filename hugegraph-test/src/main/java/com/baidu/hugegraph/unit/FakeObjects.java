@@ -49,14 +49,15 @@ public final class FakeObjects {
 
     private final HugeGraph graph;
 
-    public FakeObjects() {
-        this.graph = Mockito.mock(HugeGraph.class);
-        Mockito.doReturn(newConfig()).when(this.graph).configuration();
-    }
-
     public FakeObjects(String name) {
         this();
         Mockito.doReturn(name).when(this.graph).name();
+    }
+
+    public FakeObjects() {
+        this.graph = Mockito.mock(HugeGraph.class);
+        Mockito.doReturn(newConfig()).when(this.graph).configuration();
+        Mockito.doReturn(true).when(this.graph).sameAs(this.graph);
     }
 
     public static HugeConfig newConfig() {
@@ -86,6 +87,7 @@ public final class FakeObjects {
         schema.cardinality(cardinality);
 
         Mockito.when(this.graph.propertyKey(id)).thenReturn(schema);
+        Mockito.when(this.graph.propertyKey(name)).thenReturn(schema);
         return schema;
     }
 
@@ -97,6 +99,7 @@ public final class FakeObjects {
         schema.properties(properties);
 
         Mockito.when(this.graph.vertexLabel(id)).thenReturn(schema);
+        Mockito.when(this.graph.vertexLabelOrNone(id)).thenReturn(schema);
         return schema;
     }
 
@@ -110,6 +113,7 @@ public final class FakeObjects {
         schema.properties(properties);
 
         Mockito.when(this.graph.edgeLabel(id)).thenReturn(schema);
+        Mockito.when(this.graph.edgeLabelOrNone(id)).thenReturn(schema);
         return schema;
     }
 

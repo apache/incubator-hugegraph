@@ -34,7 +34,6 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
-import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.Condition.RangeConditions;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
@@ -330,6 +329,11 @@ public class InMemoryDBTables {
             return entries.iterator();
         }
 
+        @Override
+        protected long sizeOfBackendEntry(BackendEntry entry) {
+            return entry.columnsSize();
+        }
+
         private static Id vertexIdOfEdge(TextBackendEntry entry) {
             assert entry.type().isEdge();
             // Assume the first part is owner vertex id
@@ -370,14 +374,14 @@ public class InMemoryDBTables {
                          "Secondary index query must be condition query " +
                          "and have two conditions, but got: %s", query);
             String fieldValue = null;
-            String indexLabelId = null;
+            Id indexLabelId = null;
             for (Condition c : conditions) {
                 assert c instanceof Condition.Relation;
                 Condition.Relation r = (Condition.Relation) c;
                 if (r.key() == HugeKeys.FIELD_VALUES) {
                     fieldValue = r.value().toString();
                 } else if (r.key() == HugeKeys.INDEX_LABEL_ID) {
-                    indexLabelId = r.value().toString();
+                    indexLabelId = (Id) r.value();
                 } else {
                     E.checkState(false,
                                  "Secondary index query conditions must be" +
@@ -386,7 +390,9 @@ public class InMemoryDBTables {
                 }
             }
             assert fieldValue != null && indexLabelId != null;
-            Id id = SplicingIdGenerator.splicing(indexLabelId, fieldValue);
+
+            Id id = HugeIndex.formatIndexId(query.resultType(),
+                                            indexLabelId, fieldValue);
             IdQuery q = new IdQuery(query, id);
             q.offset(query.offset());
             q.limit(query.limit());
@@ -521,7 +527,10 @@ public class InMemoryDBTables {
             String indexLabel = entry.column(HugeKeys.INDEX_LABEL_ID);
             E.checkState(indexLabel != null, "Expect index label");
 
-            Id indexLabelId = IdGenerator.of(indexLabel);
+            if (this.store().isEmpty()) {
+                return;
+            }
+            Id indexLabelId = IdGenerator.of(Long.parseLong(indexLabel));
             Id min = HugeIndex.formatIndexId(entry.type(), indexLabelId, 0L);
             indexLabelId = IdGenerator.of(indexLabelId.asLong() + 1L);
             Id max = HugeIndex.formatIndexId(entry.type(), indexLabelId, 0L);

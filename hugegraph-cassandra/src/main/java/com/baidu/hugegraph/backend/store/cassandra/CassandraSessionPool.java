@@ -24,7 +24,7 @@ import java.util.Collection;
 import java.util.List;
 
 import com.baidu.hugegraph.backend.BackendException;
-import com.baidu.hugegraph.backend.store.BackendSession;
+import com.baidu.hugegraph.backend.store.BackendSession.AbstractBackendSession;
 import com.baidu.hugegraph.backend.store.BackendSessionPool;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.util.E;
@@ -99,7 +99,7 @@ public class CassandraSessionPool extends BackendSessionPool {
         return (this.cluster != null && !this.cluster.isClosed());
     }
 
-    public final synchronized Cluster cluster() {
+    protected final synchronized Cluster cluster() {
         E.checkState(this.cluster != null,
                      "Cassandra cluster has not been initialized");
         return this.cluster;
@@ -124,27 +124,17 @@ public class CassandraSessionPool extends BackendSessionPool {
         }
     }
 
-    public final void checkClusterConnected() {
+    public final boolean clusterConnected() {
         E.checkState(this.cluster != null,
                      "Cassandra cluster has not been initialized");
-        E.checkState(!this.cluster.isClosed(),
-                     "Cassandra cluster has been closed");
-    }
-
-    public final void checkSessionConnected() {
-        this.checkClusterConnected();
-
-        E.checkState(this.session() != null,
-                     "Cassandra session has not been initialized");
-        E.checkState(!this.session().closed(),
-                     "Cassandra session has been closed");
+        return !this.cluster.isClosed();
     }
 
     /**
      * The Session class is a wrapper of driver Session
      * Expect every thread hold a its own session(wrapper)
      */
-    public final class Session extends BackendSession {
+    public final class Session extends AbstractBackendSession {
 
         private com.datastax.driver.core.Session session;
         private BatchStatement batch;
@@ -219,21 +209,27 @@ public class CassandraSessionPool extends BackendSessionPool {
             } catch (InvalidQueryException ignored) {}
         }
 
+        @Override
         public void open() {
             assert this.session == null;
             this.session = cluster().connect(keyspace());
+            this.opened = true;
         }
 
+        @Override
         public boolean opened() {
-            return this.session != null;
+            if (this.opened && this.session == null) {
+                this.tryOpen();
+            }
+            return this.opened && this.session != null;
         }
 
         @Override
         public boolean closed() {
-            if (this.session == null) {
-                this.tryOpen();
+            if (!this.opened || this.session == null) {
+                return true;
             }
-            return this.session == null ? true : this.session.isClosed();
+            return this.session.isClosed();
         }
 
         @Override
@@ -243,6 +239,7 @@ public class CassandraSessionPool extends BackendSessionPool {
                 return;
             }
             this.session.close();
+            this.session = null;
         }
 
         @Override
@@ -260,6 +257,11 @@ public class CassandraSessionPool extends BackendSessionPool {
 
         public Metadata metadata() {
             return CassandraSessionPool.this.cluster.getMetadata();
+        }
+
+        public int aggregateTimeout() {
+            HugeConfig conf = CassandraSessionPool.this.config();
+            return conf.get(CassandraOptions.AGGR_TIMEOUT);
         }
     }
 }

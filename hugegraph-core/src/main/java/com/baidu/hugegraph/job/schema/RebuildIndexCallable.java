@@ -50,7 +50,11 @@ public class RebuildIndexCallable extends SchemaCallable {
 
     @Override
     public Object execute() {
-        this.rebuildIndex(this.schemaElement());
+        SchemaElement schema = this.schemaElement();
+        // If the schema does not exist, ignore it
+        if (schema != null) {
+            this.rebuildIndex(schema);
+        }
         return null;
     }
 
@@ -65,6 +69,7 @@ public class RebuildIndexCallable extends SchemaCallable {
                     assert indexLabel.baseType() == HugeType.EDGE_LABEL;
                     label = this.graph().edgeLabel(indexLabel.baseValue());
                 }
+                assert label != null;
                 this.rebuildIndex(label, ImmutableSet.of(indexLabel.id()));
                 break;
             case VERTEX_LABEL:
@@ -80,24 +85,18 @@ public class RebuildIndexCallable extends SchemaCallable {
     }
 
     private void rebuildIndex(SchemaLabel label, Collection<Id> indexLabelIds) {
-        SchemaTransaction schemaTx = this.graph().schemaTransaction();
-        GraphTransaction graphTx = this.graph().graphTransaction();
+        SchemaTransaction schemaTx = this.params().schemaTransaction();
+        GraphTransaction graphTx = this.params().graphTransaction();
 
         Consumer<?> indexUpdater = (elem) -> {
             for (Id id : indexLabelIds) {
-                graphTx.updateIndex(id, (HugeElement) elem);
-                /*
-                 * Commit per batch to avoid too much data in single commit,
-                 * especially for Cassandra backend
-                 */
-                graphTx.commitIfGtSize(GraphTransaction.COMMIT_BATCH);
+                graphTx.updateIndex(id, (HugeElement) elem, false);
             }
         };
 
-        LockUtil.Locks locks = new LockUtil.Locks(this.graph().name());
+        LockUtil.Locks locks = new LockUtil.Locks(schemaTx.graphName());
         try {
             locks.lockWrites(LockUtil.INDEX_LABEL_REBUILD, indexLabelIds);
-            locks.lockWrites(LockUtil.INDEX_LABEL_DELETE, indexLabelIds);
 
             Set<IndexLabel> ils = indexLabelIds.stream()
                                                .map(this.graph()::indexLabel)
@@ -120,19 +119,27 @@ public class RebuildIndexCallable extends SchemaCallable {
              * They have different id lead to it can't compare and optimize
              */
             graphTx.commit();
-            if (label.type() == HugeType.VERTEX_LABEL) {
-                @SuppressWarnings("unchecked")
-                Consumer<Vertex> consumer = (Consumer<Vertex>) indexUpdater;
-                graphTx.traverseVerticesByLabel((VertexLabel) label,
-                                                consumer, false);
-            } else {
-                assert label.type() == HugeType.EDGE_LABEL;
-                @SuppressWarnings("unchecked")
-                Consumer<Edge> consumer = (Consumer<Edge>) indexUpdater;
-                graphTx.traverseEdgesByLabel((EdgeLabel) label,
-                                             consumer, false);
+
+            try {
+                if (label.type() == HugeType.VERTEX_LABEL) {
+                    @SuppressWarnings("unchecked")
+                    Consumer<Vertex> consumer = (Consumer<Vertex>) indexUpdater;
+                    graphTx.traverseVerticesByLabel((VertexLabel) label,
+                                                    consumer, false);
+                } else {
+                    assert label.type() == HugeType.EDGE_LABEL;
+                    @SuppressWarnings("unchecked")
+                    Consumer<Edge> consumer = (Consumer<Edge>) indexUpdater;
+                    graphTx.traverseEdgesByLabel((EdgeLabel) label,
+                                                 consumer, false);
+                }
+                graphTx.commit();
+            } catch (Throwable e) {
+                for (IndexLabel il : ils) {
+                    schemaTx.updateSchemaStatus(il, SchemaStatus.INVALID);
+                }
+                throw e;
             }
-            graphTx.commit();
 
             for (IndexLabel il : ils) {
                 schemaTx.updateSchemaStatus(il, SchemaStatus.CREATED);
@@ -143,8 +150,8 @@ public class RebuildIndexCallable extends SchemaCallable {
     }
 
     private void removeIndex(Collection<Id> indexLabelIds) {
-        SchemaTransaction schemaTx = this.graph().schemaTransaction();
-        GraphTransaction graphTx = this.graph().graphTransaction();
+        SchemaTransaction schemaTx = this.params().schemaTransaction();
+        GraphTransaction graphTx = this.params().graphTransaction();
 
         for (Id id : indexLabelIds) {
             IndexLabel il = schemaTx.getIndexLabel(id);
@@ -155,21 +162,29 @@ public class RebuildIndexCallable extends SchemaCallable {
                  */
                 continue;
             }
-            graphTx.removeIndex(il);
+            LockUtil.Locks locks = new LockUtil.Locks(schemaTx.graphName());
+            try {
+                locks.lockWrites(LockUtil.INDEX_LABEL_DELETE, indexLabelIds);
+                graphTx.removeIndex(il);
+            } catch (Throwable e) {
+                schemaTx.updateSchemaStatus(il, SchemaStatus.INVALID);
+                throw e;
+            } finally {
+                locks.unlock();
+            }
         }
     }
 
     private SchemaElement schemaElement() {
         HugeType type = this.schemaType();
         Id id = this.schemaId();
-        SchemaTransaction schemaTx = this.graph().schemaTransaction();
         switch (type) {
             case VERTEX_LABEL:
-                return schemaTx.getVertexLabel(id);
+                return this.graph().vertexLabel(id);
             case EDGE_LABEL:
-                return schemaTx.getEdgeLabel(id);
+                return this.graph().edgeLabel(id);
             case INDEX_LABEL:
-                return schemaTx.getIndexLabel(id);
+                return this.graph().indexLabel(id);
             default:
                 throw new AssertionError(String.format(
                           "Invalid HugeType '%s' for rebuild", type));

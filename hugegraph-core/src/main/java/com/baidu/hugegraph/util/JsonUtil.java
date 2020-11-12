@@ -21,22 +21,16 @@ package com.baidu.hugegraph.util;
 
 import java.io.IOException;
 import java.util.Date;
-import java.util.UUID;
 
 import org.apache.tinkerpop.shaded.jackson.core.JsonGenerator;
-import org.apache.tinkerpop.shaded.jackson.core.JsonParser;
 import org.apache.tinkerpop.shaded.jackson.core.JsonProcessingException;
 import org.apache.tinkerpop.shaded.jackson.core.type.TypeReference;
-import org.apache.tinkerpop.shaded.jackson.databind.DeserializationContext;
 import org.apache.tinkerpop.shaded.jackson.databind.Module;
 import org.apache.tinkerpop.shaded.jackson.databind.ObjectMapper;
 import org.apache.tinkerpop.shaded.jackson.databind.ObjectReader;
 import org.apache.tinkerpop.shaded.jackson.databind.SerializerProvider;
-import org.apache.tinkerpop.shaded.jackson.databind.deser.std.StdDeserializer;
-import org.apache.tinkerpop.shaded.jackson.databind.deser.std.UUIDDeserializer;
 import org.apache.tinkerpop.shaded.jackson.databind.module.SimpleModule;
 import org.apache.tinkerpop.shaded.jackson.databind.ser.std.StdSerializer;
-import org.apache.tinkerpop.shaded.jackson.databind.ser.std.UUIDSerializer;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.io.HugeGraphSONModule;
@@ -48,12 +42,9 @@ public final class JsonUtil {
     static {
         SimpleModule module = new SimpleModule();
 
-        module.addSerializer(Date.class, new DateSerializer());
-        module.addDeserializer(Date.class, new DateDeserializer());
+        module.addSerializer(RawJson.class, new RawJsonSerializer());
 
-        module.addSerializer(UUID.class, new UUIDSerializer());
-        module.addDeserializer(UUID.class, new UUIDDeserializer());
-
+        HugeGraphSONModule.registerCommonSerializers(module);
         HugeGraphSONModule.registerIdSerializers(module);
         HugeGraphSONModule.registerSchemaSerializers(module);
         HugeGraphSONModule.registerGraphSerializers(module);
@@ -114,43 +105,49 @@ public final class JsonUtil {
                 object = number.longValue();
             } else if (clazz == Float.class) {
                 object = number.floatValue();
+            } else if (clazz == Double.class) {
+                assert object instanceof Double : object;
             } else {
-                assert clazz == Double.class;
+                assert clazz == Date.class : clazz;
             }
         }
         return object;
     }
 
-    private static class DateSerializer extends StdSerializer<Date> {
+    public static Object asJson(Object value) {
+        return new RawJson(toJson(value));
+    }
 
-        private static final long serialVersionUID = -6615155657857746161L;
+    public static Object asJson(String value) {
+        return new RawJson(value);
+    }
 
-        public DateSerializer() {
-            super(Date.class);
+    private static class RawJson {
+
+        private final String value;
+
+        public RawJson(String value) {
+            this.value = value;
         }
 
-        @Override
-        public void serialize(Date date, JsonGenerator generator,
-                              SerializerProvider provider)
-                              throws IOException {
-            generator.writeNumber(date.getTime());
+        public String value() {
+            return this.value;
         }
     }
 
-    private static class DateDeserializer extends StdDeserializer<Date> {
+    private static class RawJsonSerializer extends StdSerializer<RawJson> {
 
-        private static final long serialVersionUID = 1209944821349424949L;
+        private static final long serialVersionUID = 3240301861031054251L;
 
-        public DateDeserializer() {
-            super(Date.class);
+        public RawJsonSerializer() {
+            super(RawJson.class);
         }
 
         @Override
-        public Date deserialize(JsonParser parser,
-                                DeserializationContext context)
-                                throws IOException {
-            Long number = parser.readValueAs(Long.class);
-            return new Date(number);
+        public void serialize(RawJson json, JsonGenerator generator,
+                              SerializerProvider provider)
+                              throws IOException {
+            generator.writeRawValue(json.value());
         }
     }
 }

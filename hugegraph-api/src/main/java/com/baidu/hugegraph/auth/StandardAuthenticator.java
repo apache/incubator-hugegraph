@@ -19,74 +19,65 @@
 
 package com.baidu.hugegraph.auth;
 
+import java.io.Console;
 import java.net.InetAddress;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Scanner;
 
 import org.apache.commons.lang.NotImplementedException;
-import org.apache.tinkerpop.gremlin.groovy.jsr223.dsl.credential.CredentialGraphTokens;
-import org.apache.tinkerpop.gremlin.server.auth.AuthenticationException;
+import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
 
-import com.baidu.hugegraph.auth.HugeGraphAuthProxy.Context;
+import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.config.HugeConfig;
-import com.baidu.hugegraph.config.OptionSpace;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.StringEncoding;
 
 public class StandardAuthenticator implements HugeAuthenticator {
 
-    public static final String KEY_USERNAME =
-                               CredentialGraphTokens.PROPERTY_USERNAME;
-    public static final String KEY_PASSWORD =
-                               CredentialGraphTokens.PROPERTY_PASSWORD;
+    private HugeGraph graph = null;
 
-    private final Map<String, String> tokens;
+    private HugeGraph graph() {
+        E.checkState(this.graph != null, "Must setup Authenticator first");
+        return this.graph;
+    }
 
-    public StandardAuthenticator() {
-        this.tokens = new HashMap<>();
+    private void initAdminUser() throws Exception {
+        // Not allowed to call by non main thread
+        String caller = Thread.currentThread().getName();
+        E.checkState(caller.equals("main"), "Invalid caller '%s'", caller);
+
+        UserManager userManager = this.graph().hugegraph().userManager();
+        if (userManager.findUser(HugeAuthenticator.USER_ADMIN) == null) {
+            HugeUser admin = new HugeUser(HugeAuthenticator.USER_ADMIN);
+            admin.password(StringEncoding.hashPassword(inputPassword()));
+            admin.creator(HugeAuthenticator.USER_SYSTEM);
+            userManager.createUser(admin);
+        }
+
+        this.graph.close();
+    }
+
+    private String inputPassword() {
+        String prompt = "Please input the admin password:";
+        Console console = System.console();
+        if (console != null) {
+            char[] chars = console.readPassword(prompt);
+            return new String(chars);
+        } else {
+            System.out.print(prompt);
+            @SuppressWarnings("resource") // just wrapper of System.in
+            Scanner scanner = new Scanner(System.in);
+            return scanner.nextLine();
+        }
     }
 
     @Override
     public void setup(HugeConfig config) {
-        this.tokens.put(User.USER_ADMIN, config.get(ServerOptions.ADMIN_TOKEN));
-        this.tokens.putAll(config.getMap(ServerOptions.USER_TOKENS));
-    }
-
-    @Override
-    public void setup(final Map<String, Object> config) {
-        E.checkState(config != null,
-                     "Must provide a 'config' in the 'authentication'");
-        String path = (String) config.get("tokens");
-        E.checkState(path != null,
-                     "Credentials configuration missing key 'tokens'");
-        OptionSpace.register("tokens", ServerOptions.instance());
-        this.setup(new HugeConfig(path));
-    }
-
-    @Override
-    public User authenticate(final Map<String, String> credentials)
-                             throws AuthenticationException {
-        User user = User.ANONYMOUS;
-        if (this.requireAuthentication()) {
-            String username = credentials.get(KEY_USERNAME);
-            String password = credentials.get(KEY_PASSWORD);
-
-            // Currently we just use config tokens to authenticate
-            String role = this.authenticate(username, password);
-            if (!verifyRole(role)) {
-                // Throw if not certified
-                String message = "Incorrect username or password";
-                throw new AuthenticationException(message);
-            }
-            user = new User(username, role);
-        }
-        /*
-         * Set authentication context
-         * TODO: unset context after finishing a request
-         */
-        HugeGraphAuthProxy.setContext(new Context(user));
-
-        return user;
+        String graphName = config.get(ServerOptions.AUTH_GRAPH_STORE);
+        String graphPath = config.getMap(ServerOptions.GRAPHS).get(graphName);
+        E.checkArgument(graphPath != null,
+                        "Invalid graph name '%s'", graphName);
+        this.graph = (HugeGraph) GraphFactory.open(graphPath);
     }
 
     /**
@@ -95,21 +86,26 @@ public class StandardAuthenticator implements HugeAuthenticator {
      * @param password  the password for authentication
      * @return String No permission if return ROLE_NONE else return a role
      */
-    public String authenticate(final String username, final String password) {
+    @Override
+    public RolePermission authenticate(String username, String password) {
         E.checkArgumentNotNull(username,
                                "The username parameter can't be null");
         E.checkArgumentNotNull(password,
                                "The password parameter can't be null");
 
-        String role;
-        if (password.equals(this.tokens.get(username))) {
-            // Return user name as role
-            role = username;
-        } else {
+        RolePermission role = this.graph().userManager().loginUser(username,
+                                                                   password);
+        if (role == null) {
             role = ROLE_NONE;
+        } else if (username.equals(USER_ADMIN)) {
+            role = ROLE_ADMIN;
         }
-
         return role;
+    }
+
+    @Override
+    public UserManager userManager() {
+        return this.graph().userManager();
     }
 
     @Override
@@ -117,11 +113,14 @@ public class StandardAuthenticator implements HugeAuthenticator {
         throw new NotImplementedException("SaslNegotiator is unsupported");
     }
 
-    public static final boolean verifyRole(String role) {
-        if (role == ROLE_NONE || role == null || role.isEmpty()) {
-            return false;
-        } else {
-            return true;
+    public static void initAdminUser(String restConfFile) throws Exception {
+        StandardAuthenticator auth = new StandardAuthenticator();
+        HugeConfig config = new HugeConfig(restConfFile);
+        String authClass = config.get(ServerOptions.AUTHENTICATOR);
+        if (authClass.isEmpty()) {
+            return;
         }
+        auth.setup(config);
+        auth.initAdminUser();
     }
 }

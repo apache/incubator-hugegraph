@@ -62,17 +62,18 @@ public class MetricsApiTest extends BaseApiTest {
 
         Assert.assertTrue(value instanceof Map);
         Map<?, ?> graph = (Map<?, ?>) value;
+        assertMapContains(graph, "backend");
+        assertMapContains(graph, "nodes");
         String backend = (String) graph.get("backend");
-        String notSupport = "Not support metadata 'metrics'";
+        int nodes = (Integer) graph.get("nodes");
         switch (backend) {
             case "memory":
             case "mysql":
-            case "hbase":
             case "postgresql":
-                String except = (String) assertMapContains(graph, "exception");
-                Assert.assertTrue(except, except.contains(notSupport));
+                Assert.assertEquals(1, nodes);
                 break;
             case "rocksdb":
+                Assert.assertEquals(1, nodes);
                 assertMapContains(graph, "mem_used");
                 assertMapContains(graph, "mem_unit");
                 assertMapContains(graph, "data_size");
@@ -82,7 +83,7 @@ public class MetricsApiTest extends BaseApiTest {
                 for (Map.Entry<?, ?> e : graph.entrySet()) {
                     String key = (String) e.getKey();
                     value = e.getValue();
-                    if ("backend".equals(key)) {
+                    if ("backend".equals(key) || "nodes".equals(key)) {
                         continue;
                     }
                     Assert.assertTrue(String.format(
@@ -95,6 +96,30 @@ public class MetricsApiTest extends BaseApiTest {
                     assertMapContains(host, "mem_max");
                     assertMapContains(host, "mem_unit");
                     assertMapContains(host, "data_size");
+                }
+                break;
+            case "hbase":
+                assertMapContains(graph, "cluster_id");
+                assertMapContains(graph, "average_load");
+                assertMapContains(graph, "hbase_version");
+                assertMapContains(graph, "region_count");
+                assertMapContains(graph, "region_servers");
+                Map<?, ?> servers = (Map<?, ?>) graph.get("region_servers");
+                for (Map.Entry<?, ?> e : servers.entrySet()) {
+                    String key = (String) e.getKey();
+                    value = e.getValue();
+                    Assert.assertTrue(String.format(
+                                      "Expect map value for key %s but got %s",
+                                      key, value),
+                                      value instanceof Map);
+                    Map<?, ?> regionServer = (Map<?, ?>) value;
+                    assertMapContains(regionServer, "max_heap_size");
+                    assertMapContains(regionServer, "used_heap_size");
+                    assertMapContains(regionServer, "heap_size_unit");
+                    assertMapContains(regionServer, "request_count");
+                    assertMapContains(regionServer,
+                                      "request_count_per_second");
+                    assertMapContains(regionServer, "regions");
                 }
                 break;
             default:

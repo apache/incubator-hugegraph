@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.config;
 
+import static com.baidu.hugegraph.config.OptionChecker.allowValues;
 import static com.baidu.hugegraph.config.OptionChecker.disallowEmpty;
 import static com.baidu.hugegraph.config.OptionChecker.nonNegativeInt;
 import static com.baidu.hugegraph.config.OptionChecker.positiveInt;
@@ -56,6 +57,15 @@ public class ServerOptions extends OptionHolder {
                     "server-1"
             );
 
+    public static final ConfigOption<String> SERVER_ROLE =
+            new ConfigOption<>(
+                    "server.role",
+                    "The role of nodes in the cluster, available types are " +
+                    "[master, worker, computer]",
+                    allowValues("master", "worker", "computer"),
+                    "master"
+            );
+
     public static final ConfigOption<Integer> MAX_WORKER_THREADS =
             new ConfigOption<>(
                     "restserver.max_worker_threads",
@@ -73,7 +83,6 @@ public class ServerOptions extends OptionHolder {
                     nonNegativeInt(),
                     64
             );
-
 
     public static final ConfigOption<Integer> REQUEST_TIMEOUT =
             new ConfigOption<>(
@@ -180,15 +189,26 @@ public class ServerOptions extends OptionHolder {
             new ConfigOption<>(
                     "auth.authenticator",
                     "The class path of authenticator implemention. " +
-                    "e.g., com.baidu.hugegraph.auth.StandardAuthenticator",
+                    "e.g., com.baidu.hugegraph.auth.StandardAuthenticator, " +
+                    "or com.baidu.hugegraph.auth.ConfigAuthenticator.",
                     null,
                     ""
+            );
+
+    public static final ConfigOption<String> AUTH_GRAPH_STORE =
+            new ConfigOption<>(
+                    "auth.graph_store",
+                    "The graph name used to store users, " +
+                    "only for com.baidu.hugegraph.auth.StandardAuthenticator.",
+                    disallowEmpty(),
+                    "hugegraph"
             );
 
     public static final ConfigOption<String> ADMIN_TOKEN =
             new ConfigOption<>(
                     "auth.admin_token",
-                    "Token for administrator operations.",
+                    "Token for administrator operations, " +
+                    "only for com.baidu.hugegraph.auth.ConfigAuthenticator.",
                     disallowEmpty(),
                     "162f7848-0b6d-4faf-b557-3a0797869c55"
             );
@@ -196,8 +216,36 @@ public class ServerOptions extends OptionHolder {
     public static final ConfigListOption<String> USER_TOKENS =
             new ConfigListOption<>(
                     "auth.user_tokens",
-                    "The map of user tokens with name and password.",
+                    "The map of user tokens with name and password, " +
+                    "only for com.baidu.hugegraph.auth.ConfigAuthenticator.",
                     disallowEmpty(),
                     "hugegraph:9fd95c9c-711b-415b-b85f-d4df46ba5c31"
+            );
+
+    public static final ConfigOption<String> SERVER_KEYSTORE_FILE =
+            new ConfigOption<>(
+                    "ssl.server_keystore_file",
+                    "The path of server keystore file used when https " +
+                    "protocol is enabled.",
+                    disallowEmpty(),
+                    "hugegraph-server.keystore"
+            );
+
+    public static final ConfigOption<String> SERVER_KEYSTORE_PASSWORD =
+            new ConfigOption<>(
+                    "ssl.server_keystore_password",
+                    "The password of the path of the server keystore file " +
+                    "used when the https protocol is enabled.",
+                    null,
+                    "hugegraph"
+            );
+
+    public static final ConfigOption<String> SERVER_PROTOCOL =
+            new ConfigOption<>(
+                    "server.protocol",
+                    "The protocol of rest-server, allowed values are: " +
+                    "http or https.",
+                    allowValues("http", "https"),
+                    "http"
             );
 }

@@ -42,6 +42,10 @@ public class BackendMutation {
         this.updates = new MutationTable();
     }
 
+    public BackendMutation(int initialCapacity) {
+        this.updates = new MutationTable(initialCapacity);
+    }
+
     /**
      * Add data entry with an action to collection `updates`
      * @param entry the backend entry
@@ -57,6 +61,14 @@ public class BackendMutation {
             // If there is no entity with this id, add it
             this.updates.put(entry.type(), id, BackendAction.of(action, entry));
         }
+    }
+
+    /**
+     * Put directly without checking and merging
+     */
+    public void put(BackendEntry entry, Action action) {
+        Id id = entry.id();
+        this.updates.put(entry.type(), id, BackendAction.of(action, entry));
     }
 
     /**
@@ -178,7 +190,7 @@ public class BackendMutation {
      * Whether mutation contains entry and action
      * @param entry entry
      * @param action action
-     * @return true if have, otherwise false
+     * @return true if exist, otherwise false
      */
     public boolean contains(BackendEntry entry, Action action) {
         List<BackendAction> items = this.updates.get(entry.type(), entry.id());
@@ -187,6 +199,22 @@ public class BackendMutation {
         }
         for (BackendAction item : items) {
             if (item.action().equals(action)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Whether mutation contains type and action
+     * @param type type
+     * @param action action
+     * @return true if exist, otherwise false
+     */
+    public boolean contains(HugeType type, Action action) {
+        for (Iterator<BackendAction> i = this.updates.get(type); i.hasNext();) {
+            BackendAction entry = i.next();
+            if (entry.action() == action) {
                 return true;
             }
         }
@@ -209,6 +237,10 @@ public class BackendMutation {
         return this.updates.size();
     }
 
+    public void clear() {
+        this.updates.clear();
+    }
+
     @Override
     public String toString() {
         return String.format("BackendMutation{mutations=%s}", this.updates);
@@ -222,6 +254,11 @@ public class BackendMutation {
         public MutationTable() {
             // NOTE: ensure insert order
             this.mutations = InsertionOrderUtil.newMap();
+        }
+
+        public MutationTable(int initialCapacity) {
+            // NOTE: ensure insert order
+            this.mutations = InsertionOrderUtil.newMap(initialCapacity);
         }
 
         public void put(HugeType type, Id id, BackendAction mutation) {
@@ -256,8 +293,10 @@ public class BackendMutation {
         public Iterator<BackendAction> get(HugeType type) {
             ExtendableIterator<BackendAction> rs = new ExtendableIterator<>();
             Map<Id, List<BackendAction>> table = this.mutations.get(type);
-            for (List<BackendAction> items : table.values()) {
-                rs.extend(items.iterator());
+            if (table != null) {
+                for (List<BackendAction> items : table.values()) {
+                    rs.extend(items.iterator());
+                }
             }
             return rs;
         }
@@ -279,9 +318,16 @@ public class BackendMutation {
         public int size() {
             int size = 0;
             for (Map<Id, List<BackendAction>> m : this.mutations.values()) {
-                size += m.size();
+                // NOTE: Index entry has same id with different subIds
+                for (List<BackendAction> actions : m.values()) {
+                    size += actions.size();
+                }
             }
             return size;
+        }
+
+        public void clear() {
+            this.mutations.clear();
         }
     }
 }

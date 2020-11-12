@@ -38,6 +38,7 @@ import com.baidu.hugegraph.type.define.HugeKeys;
 import jersey.repackaged.com.google.common.collect.ImmutableMap;
 
 import static com.baidu.hugegraph.backend.store.mysql.MysqlTables.BOOLEAN;
+import static com.baidu.hugegraph.backend.store.mysql.MysqlTables.HUGE_TEXT;
 import static com.baidu.hugegraph.backend.store.mysql.MysqlTables.INT;
 import static com.baidu.hugegraph.backend.store.mysql.MysqlTables.LARGE_TEXT;
 import static com.baidu.hugegraph.backend.store.mysql.MysqlTables.MID_TEXT;
@@ -56,6 +57,7 @@ public class PostgresqlTables {
                     .put(SMALL_TEXT, "VARCHAR(255)")
                     .put(MID_TEXT, "VARCHAR(1024)")
                     .put(LARGE_TEXT, "VARCHAR(65533)")
+                    .put(HUGE_TEXT, "TEXT")
                     .build();
 
     public static class PostgresqlTableTemplate extends PostgresqlTable {

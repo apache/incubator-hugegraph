@@ -19,6 +19,8 @@
 
 package com.baidu.hugegraph.api.traversers;
 
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PAGE_LIMIT;
+
 import java.util.Iterator;
 import java.util.List;
 
@@ -47,8 +49,6 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
-
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PAGE_LIMIT;
 
 @Path("graphs/{graph}/traversers/vertices")
 @Singleton
@@ -91,8 +91,7 @@ public class VerticesAPI extends API {
                   graph, splitSize);
 
         HugeGraph g = graph(manager, graph);
-        List<Shard> shards = g.graphTransaction()
-                              .metadata(HugeType.VERTEX, "splits", splitSize);
+        List<Shard> shards = g.metadata(HugeType.VERTEX, "splits", splitSize);
         return manager.serializer(g).writeList("shards", shards);
     }
 

@@ -48,7 +48,7 @@ public final class ConditionQuery extends IdQuery {
     // Conditions will be concated with `and` by default
     private Set<Condition> conditions = new LinkedHashSet<>();
 
-    private int optimizedType = 0;
+    private OptimizedType optimizedType = OptimizedType.NONE;
     private Function<HugeElement, Boolean> resultsFilter = null;
 
     public ConditionQuery(HugeType resultType) {
@@ -133,13 +133,6 @@ public final class ConditionQuery extends IdQuery {
         this.conditions = new LinkedHashSet<>();
     }
 
-    @Override
-    public String toString() {
-        return String.format("%s and %s",
-                             super.toString(),
-                             this.conditions.toString());
-    }
-
     public List<Condition.Relation> relations() {
         List<Condition.Relation> relations = new ArrayList<>();
         for (Condition c : this.conditions) {
@@ -180,7 +173,15 @@ public final class ConditionQuery extends IdQuery {
     }
 
     public boolean containsCondition(HugeKeys key) {
-        return this.condition(key) != null;
+        for (Condition c : this.conditions) {
+            if (c.isRelation()) {
+                Condition.Relation r = (Condition.Relation) c;
+                if (r.key().equals(key)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     public boolean containsCondition(HugeKeys key,
@@ -281,7 +282,6 @@ public final class ConditionQuery extends IdQuery {
     }
 
     public void resetUserpropConditions() {
-        this.checkFlattened();
         this.conditions.removeIf(condition -> !condition.isSysprop());
     }
 
@@ -377,6 +377,17 @@ public final class ConditionQuery extends IdQuery {
         return false;
     }
 
+    public boolean hasNeqCondition() {
+        // NOTE: we need to judge all the conditions, including the nested
+        for (Condition.Relation r : this.relations()) {
+            if (r.relation() == RelationType.NEQ) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+
     public boolean matchUserpropKeys(List<Id> keys) {
         Set<Id> conditionKeys = this.userpropKeys();
         return keys.size() > 0 && conditionKeys.containsAll(keys);
@@ -387,6 +398,18 @@ public final class ConditionQuery extends IdQuery {
         ConditionQuery query = (ConditionQuery) super.copy();
         query.originQuery(this);
         query.conditions = new LinkedHashSet<>(this.conditions);
+
+        query.optimizedType = OptimizedType.NONE;
+        query.resultsFilter = null;
+
+        return query;
+    }
+
+    public ConditionQuery copyAndResetUnshared() {
+        ConditionQuery query = this.copy();
+        // These fields should not be shared by multiple sub-query
+        query.optimizedType = OptimizedType.NONE;
+        query.resultsFilter = null;
         return query;
     }
 
@@ -441,25 +464,36 @@ public final class ConditionQuery extends IdQuery {
         return false;
     }
 
-    public void optimized(int optimizedType) {
+    public void optimized(OptimizedType optimizedType) {
+        assert this.optimizedType.ordinal() <= optimizedType.ordinal() :
+               this.optimizedType + " !<= " + optimizedType;
         this.optimizedType = optimizedType;
 
         Query originQuery = this.originQuery();
         if (originQuery instanceof ConditionQuery) {
-            ((ConditionQuery) originQuery).optimized(optimizedType);
+            ConditionQuery cq = ((ConditionQuery) originQuery);
+            /*
+             * Two sub-query(flatten) will both set optimized of originQuery,
+             * here we just keep the higher one, this may not be a perfect way
+             */
+            if (optimizedType.ordinal() > cq.optimized().ordinal()) {
+                cq.optimized(optimizedType);
+            }
         }
     }
 
-    public int optimized() {
+    public OptimizedType optimized() {
         return this.optimizedType;
     }
 
     public void registerResultsFilter(Function<HugeElement, Boolean> filter) {
+        assert this.resultsFilter == null;
         this.resultsFilter = filter;
 
         Query originQuery = this.originQuery();
         if (originQuery instanceof ConditionQuery) {
-            ((ConditionQuery) originQuery).registerResultsFilter(filter);
+            ConditionQuery cq = ((ConditionQuery) originQuery);
+            cq.registerResultsFilter(filter);
         }
     }
 
@@ -477,5 +511,13 @@ public final class ConditionQuery extends IdQuery {
             return LongEncoding.encodeNumber(value);
         }
         return value;
+    }
+
+    public enum OptimizedType {
+        NONE,
+        PRIMARY_KEY,
+        SORT_KEYS,
+        INDEX,
+        INDEX_FILTER
     }
 }

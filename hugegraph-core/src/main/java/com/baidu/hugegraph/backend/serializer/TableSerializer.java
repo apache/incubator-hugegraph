@@ -48,6 +48,7 @@ import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.structure.HugeVertexProperty;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.AggregateType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.type.define.Directions;
@@ -110,10 +111,10 @@ public abstract class TableSerializer extends AbstractSerializer {
     }
 
     protected Object writeProperty(HugeProperty<?> property) {
-        return this.writeProperty(property.value());
+        return this.writeProperty(property.propertyKey(), property.value());
     }
 
-    protected Object writeProperty(Object value) {
+    protected Object writeProperty(PropertyKey propertyKey, Object value) {
         return JsonUtil.toJson(value);
     }
 
@@ -135,6 +136,10 @@ public abstract class TableSerializer extends AbstractSerializer {
     protected TableBackendEntry.Row formatEdge(HugeEdge edge) {
         EdgeId id = edge.idWithDirection();
         TableBackendEntry.Row row = new TableBackendEntry.Row(edge.type(), id);
+        if (edge.hasTtl()) {
+            row.ttl(edge.ttl());
+            row.column(HugeKeys.EXPIRED_TIME, edge.expiredTime());
+        }
         // Id: ownerVertex + direction + edge-label + sortValues + otherVertex
         row.column(HugeKeys.OWNER_VERTEX, this.writeId(id.ownerVertexId()));
         row.column(HugeKeys.DIRECTION, id.directionCode());
@@ -157,55 +162,41 @@ public abstract class TableSerializer extends AbstractSerializer {
                                  HugeVertex vertex, HugeGraph graph) {
         Object ownerVertexId = row.column(HugeKeys.OWNER_VERTEX);
         Number dir = row.column(HugeKeys.DIRECTION);
-        Directions direction = EdgeId.directionFromCode(dir.byteValue());
+        boolean direction = EdgeId.isOutDirectionFromCode(dir.byteValue());
         Number label = row.column(HugeKeys.LABEL);
         String sortValues = row.column(HugeKeys.SORT_VALUES);
         Object otherVertexId = row.column(HugeKeys.OTHER_VERTEX);
+        Number expiredTime = row.column(HugeKeys.EXPIRED_TIME);
 
         if (vertex == null) {
             Id ownerId = this.readId(ownerVertexId);
-            vertex = new HugeVertex(graph, ownerId, null);
+            vertex = new HugeVertex(graph, ownerId, VertexLabel.NONE);
         }
 
-        EdgeLabel edgeLabel = graph.edgeLabel(this.toId(label));
-        VertexLabel srcLabel = graph.vertexLabel(edgeLabel.sourceLabel());
-        VertexLabel tgtLabel = graph.vertexLabel(edgeLabel.targetLabel());
-
+        EdgeLabel edgeLabel = graph.edgeLabelOrNone(this.toId(label));
         Id otherId = this.readId(otherVertexId);
-        boolean isOutEdge = direction == Directions.OUT;
-        HugeVertex otherVertex;
-        if (isOutEdge) {
-            vertex.vertexLabel(srcLabel);
-            otherVertex = new HugeVertex(graph, otherId, tgtLabel);
-        } else {
-            vertex.vertexLabel(tgtLabel);
-            otherVertex = new HugeVertex(graph, otherId, srcLabel);
-        }
 
-        HugeEdge edge = new HugeEdge(graph, null, edgeLabel);
-        edge.name(sortValues);
-        edge.vertices(isOutEdge, vertex, otherVertex);
-        edge.assignId();
-
-        if (isOutEdge) {
-            vertex.addOutEdge(edge);
-            otherVertex.addInEdge(edge.switchOwner());
-        } else {
-            vertex.addInEdge(edge);
-            otherVertex.addOutEdge(edge.switchOwner());
-        }
-
-        vertex.propNotLoaded();
-        otherVertex.propNotLoaded();
+        // Construct edge
+        HugeEdge edge = HugeEdge.constructEdge(vertex, direction, edgeLabel,
+                                               sortValues, otherId);
 
         // Parse edge properties
         this.parseProperties(edge, row);
+
+        // The expired time is null when the edge is non-ttl
+        long expired = edge.hasTtl() ? expiredTime.longValue() : 0L;
+        edge.expiredTime(expired);
+
         return edge;
     }
 
     @Override
     public BackendEntry writeVertex(HugeVertex vertex) {
         TableBackendEntry entry = newBackendEntry(vertex);
+        if (vertex.hasTtl()) {
+            entry.ttl(vertex.ttl());
+            entry.column(HugeKeys.EXPIRED_TIME, vertex.expiredTime());
+        }
         entry.column(HugeKeys.ID, this.writeId(vertex.id()));
         entry.column(HugeKeys.LABEL, vertex.schemaLabel().id().asLong());
         // Add all properties of a Vertex
@@ -217,6 +208,10 @@ public abstract class TableSerializer extends AbstractSerializer {
     public BackendEntry writeVertexProperty(HugeVertexProperty<?> prop) {
         HugeVertex vertex = prop.element();
         TableBackendEntry entry = newBackendEntry(vertex);
+        if (vertex.hasTtl()) {
+            entry.ttl(vertex.ttl());
+            entry.column(HugeKeys.EXPIRED_TIME, vertex.expiredTime());
+        }
         entry.subId(IdGenerator.of(prop.key()));
         entry.column(HugeKeys.ID, this.writeId(vertex.id()));
         entry.column(HugeKeys.LABEL, vertex.schemaLabel().id().asLong());
@@ -237,10 +232,11 @@ public abstract class TableSerializer extends AbstractSerializer {
 
         Id id = this.readId(entry.column(HugeKeys.ID));
         Number label = entry.column(HugeKeys.LABEL);
+        Number expiredTime = entry.column(HugeKeys.EXPIRED_TIME);
 
         VertexLabel vertexLabel = VertexLabel.NONE;
         if (label != null) {
-            vertexLabel = graph.vertexLabel(this.toId(label));
+            vertexLabel = graph.vertexLabelOrNone(this.toId(label));
         }
         HugeVertex vertex = new HugeVertex(graph, id, vertexLabel);
 
@@ -249,6 +245,10 @@ public abstract class TableSerializer extends AbstractSerializer {
         // Parse all edges of a Vertex
         for (TableBackendEntry.Row edge : entry.subRows()) {
             this.parseEdge(edge, vertex, graph);
+        }
+        // The expired time is null when this is fake vertex of edge or non-ttl
+        if (expiredTime != null) {
+            vertex.expiredTime(expiredTime.longValue());
         }
         return vertex;
     }
@@ -263,12 +263,17 @@ public abstract class TableSerializer extends AbstractSerializer {
         HugeEdge edge = prop.element();
         EdgeId id = edge.idWithDirection();
         TableBackendEntry.Row row = new TableBackendEntry.Row(edge.type(), id);
+        if (edge.hasTtl()) {
+            row.ttl(edge.ttl());
+            row.column(HugeKeys.EXPIRED_TIME, edge.expiredTime());
+        }
         // Id: ownerVertex + direction + edge-label + sortValues + otherVertex
         row.column(HugeKeys.OWNER_VERTEX, this.writeId(id.ownerVertexId()));
         row.column(HugeKeys.DIRECTION, id.directionCode());
         row.column(HugeKeys.LABEL, id.edgeLabelId().asLong());
         row.column(HugeKeys.SORT_VALUES, id.sortValues());
         row.column(HugeKeys.OTHER_VERTEX, this.writeId(id.otherVertexId()));
+
         // Format edge property
         this.formatProperty(prop, row);
 
@@ -302,6 +307,10 @@ public abstract class TableSerializer extends AbstractSerializer {
             entry.column(HugeKeys.INDEX_LABEL_ID, index.indexLabel().longId());
             entry.column(HugeKeys.ELEMENT_IDS, this.writeId(index.elementId()));
             entry.subId(index.elementId());
+            if (index.hasTtl()) {
+                entry.ttl(index.ttl());
+                entry.column(HugeKeys.EXPIRED_TIME, index.expiredTime());
+            }
         }
         return entry;
     }
@@ -319,12 +328,14 @@ public abstract class TableSerializer extends AbstractSerializer {
         Object indexValues = entry.column(HugeKeys.FIELD_VALUES);
         Number indexLabelId = entry.column(HugeKeys.INDEX_LABEL_ID);
         Set<Object> elemIds = this.parseIndexElemIds(entry);
+        Number expiredTime = entry.column(HugeKeys.EXPIRED_TIME);
 
         IndexLabel indexLabel = graph.indexLabel(this.toId(indexLabelId));
-        HugeIndex index = new HugeIndex(indexLabel);
+        HugeIndex index = new HugeIndex(graph, indexLabel);
         index.fieldValues(indexValues);
+        long expired = index.hasTtl() ? expiredTime.longValue() : 0L;
         for (Object elemId : elemIds) {
-            index.elementIds(this.readId(elemId));
+            index.elementIds(this.readId(elemId), expired);
         }
         return index;
     }
@@ -389,7 +400,7 @@ public abstract class TableSerializer extends AbstractSerializer {
 
             if (query.resultType().isGraph() &&
                 r.relation() == Condition.RelationType.CONTAINS_VALUE) {
-                r.serialValue(this.writeProperty(r.serialValue()));
+                r.serialValue(this.writeProperty(null, r.serialValue()));
             }
         }
 
@@ -413,6 +424,9 @@ public abstract class TableSerializer extends AbstractSerializer {
         this.writeEnableLabelIndex(vertexLabel, entry);
         this.writeUserdata(vertexLabel, entry);
         entry.column(HugeKeys.STATUS, vertexLabel.status().code());
+        entry.column(HugeKeys.TTL, vertexLabel.ttl());
+        entry.column(HugeKeys.TTL_START_TIME,
+                     vertexLabel.ttlStartTime().asLong());
         return entry;
     }
 
@@ -435,6 +449,9 @@ public abstract class TableSerializer extends AbstractSerializer {
         this.writeEnableLabelIndex(edgeLabel, entry);
         this.writeUserdata(edgeLabel, entry);
         entry.column(HugeKeys.STATUS, edgeLabel.status().code());
+        entry.column(HugeKeys.TTL, edgeLabel.ttl());
+        entry.column(HugeKeys.TTL_START_TIME,
+                     edgeLabel.ttlStartTime().asLong());
         return entry;
     }
 
@@ -445,6 +462,8 @@ public abstract class TableSerializer extends AbstractSerializer {
         entry.column(HugeKeys.NAME, propertyKey.name());
         entry.column(HugeKeys.DATA_TYPE, propertyKey.dataType().code());
         entry.column(HugeKeys.CARDINALITY, propertyKey.cardinality().code());
+        entry.column(HugeKeys.AGGREGATE_TYPE,
+                     propertyKey.aggregateType().code());
         entry.column(HugeKeys.PROPERTIES,
                      this.toLongSet(propertyKey.properties()));
         this.writeUserdata(propertyKey, entry);
@@ -469,6 +488,8 @@ public abstract class TableSerializer extends AbstractSerializer {
         Object nullableKeys = entry.column(HugeKeys.NULLABLE_KEYS);
         Object indexLabels = entry.column(HugeKeys.INDEX_LABELS);
         Number status = entry.column(HugeKeys.STATUS);
+        Number ttl = entry.column(HugeKeys.TTL);
+        Number ttlStartTime = entry.column(HugeKeys.TTL_START_TIME);
 
         VertexLabel vertexLabel = new VertexLabel(graph, this.toId(id), name);
         vertexLabel.idStrategy(SerialEnum.fromCode(IdStrategy.class,
@@ -481,6 +502,8 @@ public abstract class TableSerializer extends AbstractSerializer {
         this.readUserdata(vertexLabel, entry);
         vertexLabel.status(SerialEnum.fromCode(SchemaStatus.class,
                                                status.byteValue()));
+        vertexLabel.ttl(ttl.longValue());
+        vertexLabel.ttlStartTime(this.toId(ttlStartTime));
         return vertexLabel;
     }
 
@@ -502,6 +525,8 @@ public abstract class TableSerializer extends AbstractSerializer {
         Object properties = entry.column(HugeKeys.PROPERTIES);
         Object indexLabels = entry.column(HugeKeys.INDEX_LABELS);
         Number status = entry.column(HugeKeys.STATUS);
+        Number ttl = entry.column(HugeKeys.TTL);
+        Number ttlStartTime = entry.column(HugeKeys.TTL_START_TIME);
 
         EdgeLabel edgeLabel = new EdgeLabel(graph, this.toId(id), name);
         edgeLabel.frequency(SerialEnum.fromCode(Frequency.class,
@@ -516,6 +541,8 @@ public abstract class TableSerializer extends AbstractSerializer {
         this.readUserdata(edgeLabel, entry);
         edgeLabel.status(SerialEnum.fromCode(SchemaStatus.class,
                                              status.byteValue()));
+        edgeLabel.ttl(ttl.longValue());
+        edgeLabel.ttlStartTime(this.toId(ttlStartTime));
         return edgeLabel;
     }
 
@@ -532,6 +559,7 @@ public abstract class TableSerializer extends AbstractSerializer {
         String name = entry.column(HugeKeys.NAME);
         Number dataType = entry.column(HugeKeys.DATA_TYPE);
         Number cardinality = entry.column(HugeKeys.CARDINALITY);
+        Number aggregateType = entry.column(HugeKeys.AGGREGATE_TYPE);
         Object properties = entry.column(HugeKeys.PROPERTIES);
         Number status = entry.column(HugeKeys.STATUS);
 
@@ -540,6 +568,9 @@ public abstract class TableSerializer extends AbstractSerializer {
                                                  dataType.byteValue()));
         propertyKey.cardinality(SerialEnum.fromCode(Cardinality.class,
                                                     cardinality.byteValue()));
+        propertyKey.aggregateType(SerialEnum.fromCode(
+                                  AggregateType.class,
+                                  aggregateType.byteValue()));
         propertyKey.properties(this.toIdArray(properties));
 
         this.readUserdata(propertyKey, entry);
@@ -558,6 +589,7 @@ public abstract class TableSerializer extends AbstractSerializer {
         entry.column(HugeKeys.INDEX_TYPE, indexLabel.indexType().code());
         entry.column(HugeKeys.FIELDS,
                      this.toLongList(indexLabel.indexFields()));
+        this.writeUserdata(indexLabel, entry);
         entry.column(HugeKeys.STATUS, indexLabel.status().code());
         return entry;
     }
@@ -586,6 +618,7 @@ public abstract class TableSerializer extends AbstractSerializer {
         indexLabel.indexType(SerialEnum.fromCode(IndexType.class,
                                                  indexType.byteValue()));
         indexLabel.indexFields(this.toIdArray(indexFields));
+        this.readUserdata(indexLabel, entry);
         indexLabel.status(SerialEnum.fromCode(SchemaStatus.class,
                                               status.byteValue()));
         return indexLabel;

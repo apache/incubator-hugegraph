@@ -34,14 +34,17 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
+import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
-import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.schema.VertexLabel;
@@ -99,21 +102,18 @@ public class HugeVariables implements Graph.Variables {
             Hidden.hide(STRING_VALUE + SET)
     };
 
-    private HugeGraph graph;
+    private final HugeGraphParams params;
+    private final HugeGraph graph;
 
-    public HugeVariables(HugeGraph graph) {
-        this.graph = graph;
+    public HugeVariables(HugeGraphParams params) {
+        this.params = params;
+        this.graph = params.graph();
     }
 
-    public void initSchema() {
-        SchemaManager schema = this.graph.schema();
-
-        try {
-            schema.getVertexLabel(Hidden.hide(VARIABLES));
+    public synchronized void initSchemaIfNeeded() {
+        if (this.graph.existsVertexLabel(Hidden.hide(VARIABLES))) {
             // Ignore if exist
             return;
-        } catch (NotFoundException ignored) {
-            LOG.debug("Variables schema not exist, create them...");
         }
 
         createPropertyKey(Hidden.hide(VARIABLE_KEY), DataType.TEXT,
@@ -167,13 +167,14 @@ public class HugeVariables implements Graph.Variables {
                                Hidden.hide(VARIABLE_TYPE)};
         properties = ArrayUtils.addAll(properties, TYPES);
 
+        SchemaManager schema = this.graph.schema();
         VertexLabel variables = schema.vertexLabel(Hidden.hide(VARIABLES))
                                       .properties(properties)
                                       .usePrimaryKeyId()
                                       .primaryKeys(Hidden.hide(VARIABLE_KEY))
                                       .nullableKeys(TYPES)
                                       .build();
-        this.graph.schemaTransaction().addVertexLabel(variables);
+        this.params.schemaTransaction().addVertexLabel(variables);
 
         LOG.debug("Variables schema created");
     }
@@ -185,17 +186,22 @@ public class HugeVariables implements Graph.Variables {
                                         .dataType(dataType)
                                         .cardinality(cardinality)
                                         .build();
-        this.graph.schemaTransaction().addPropertyKey(propertyKey);
+        this.params.schemaTransaction().addPropertyKey(propertyKey);
     }
 
     @Override
     public Set<String> keys() {
         Iterator<Vertex> vertices = this.queryAllVariableVertices();
-        Set<String> keys = new HashSet<>();
-        while (vertices.hasNext()) {
-            keys.add(vertices.next().<String>value(Hidden.hide(VARIABLE_KEY)));
+        try {
+            Set<String> keys = new HashSet<>();
+            while (vertices.hasNext()) {
+                keys.add(vertices.next().value(Hidden.hide(VARIABLE_KEY)));
+                Query.checkForceCapacity(keys.size());
+            }
+            return keys;
+        } finally {
+            CloseableIterator.closeIterator(vertices);
         }
-        return keys;
     }
 
     @Override
@@ -252,20 +258,25 @@ public class HugeVariables implements Graph.Variables {
 
     @Override
     public Map<String, Object> asMap() {
-        Map<String, Object> variables = new HashMap<>();
         Iterator<Vertex> vertices = this.queryAllVariableVertices();
-        while (vertices.hasNext()) {
-            Vertex vertex = vertices.next();
-            String key = vertex.value(Hidden.hide(VARIABLE_KEY));
-            String type = vertex.value(Hidden.hide(VARIABLE_TYPE));
-            if (!Arrays.asList(TYPES).contains(Hidden.hide(type))) {
-                throw Graph.Variables.Exceptions
-                           .dataTypeOfVariableValueNotSupported(type);
+        try {
+            Map<String, Object> variables = new HashMap<>();
+            while (vertices.hasNext()) {
+                Vertex vertex = vertices.next();
+                String key = vertex.value(Hidden.hide(VARIABLE_KEY));
+                String type = vertex.value(Hidden.hide(VARIABLE_TYPE));
+                if (!Arrays.asList(TYPES).contains(Hidden.hide(type))) {
+                    throw Graph.Variables.Exceptions
+                               .dataTypeOfVariableValueNotSupported(type);
+                }
+                Object value = vertex.value(Hidden.hide(type));
+                variables.put(key, value);
+                Query.checkForceCapacity(variables.size());
             }
-            Object value = vertex.value(Hidden.hide(type));
-            variables.put(key, value);
+            return Collections.unmodifiableMap(variables);
+        } finally {
+            CloseableIterator.closeIterator(vertices);
         }
-        return Collections.unmodifiableMap(variables);
     }
 
     @Override
@@ -322,14 +333,14 @@ public class HugeVariables implements Graph.Variables {
 
     private void createVariableVertex(String key, Object value) {
         VertexLabel vl = this.graph.vertexLabel(Hidden.hide(VARIABLES));
-        GraphTransaction tx = this.graph.graphTransaction();
+        GraphTransaction tx = this.params.graphTransaction();
 
-        HugeVertex vertex = new HugeVertex(tx, null, vl);
+        HugeVertex vertex = HugeVertex.create(tx, null, vl);
         try {
             this.setProperty(vertex, key, value);
         } catch (IllegalArgumentException e) {
             throw Graph.Variables.Exceptions
-                       .dataTypeOfVariableValueNotSupported(value);
+                       .dataTypeOfVariableValueNotSupported(value, e);
         }
         // PrimaryKey id
         vertex.assignId(null);
@@ -338,7 +349,7 @@ public class HugeVariables implements Graph.Variables {
     }
 
     private void removeVariableVertex(HugeVertex vertex) {
-        this.graph.graphTransaction().removeVertex(vertex);
+        this.params.graphTransaction().removeVertex(vertex);
     }
 
     private HugeVertex queryVariableVertex(String key) {
@@ -350,10 +361,7 @@ public class HugeVariables implements Graph.Variables {
         query.query(Condition.eq(pkey.id(), key));
         query.showHidden(true);
         Iterator<Vertex> vertices = this.graph.vertices(query);
-        if (!vertices.hasNext()) {
-            return null;
-        }
-        return (HugeVertex) vertices.next();
+        return (HugeVertex) QueryResults.one(vertices);
     }
 
     private Iterator<Vertex> queryAllVariableVertices() {

@@ -32,6 +32,7 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.Indexfiable;
 import com.baidu.hugegraph.type.Propfiable;
 import com.baidu.hugegraph.util.E;
+import com.google.common.base.Objects;
 
 public abstract class SchemaLabel extends SchemaElement
                                   implements Indexfiable, Propfiable {
@@ -40,6 +41,8 @@ public abstract class SchemaLabel extends SchemaElement
     private final Set<Id> nullableKeys;
     private final Set<Id> indexLabels;
     private boolean enableLabelIndex;
+    private long ttl;
+    private Id ttlStartTime;
 
     public SchemaLabel(final HugeGraph graph, Id id, String name) {
         super(graph, id, name);
@@ -47,6 +50,8 @@ public abstract class SchemaLabel extends SchemaElement
         this.nullableKeys = new HashSet<>();
         this.indexLabels = new HashSet<>();
         this.enableLabelIndex = true;
+        this.ttl = 0L;
+        this.ttlStartTime = NONE_ID;
     }
 
     @Override
@@ -96,6 +101,10 @@ public abstract class SchemaLabel extends SchemaElement
         this.indexLabels.addAll(Arrays.asList(ids));
     }
 
+    public boolean existsIndexLabel() {
+        return !this.indexLabels().isEmpty();
+    }
+
     public void removeIndexLabel(Id id) {
         this.indexLabels.remove(id);
     }
@@ -106,6 +115,45 @@ public abstract class SchemaLabel extends SchemaElement
 
     public void enableLabelIndex(boolean enable) {
         this.enableLabelIndex = enable;
+    }
+
+    public boolean undefined() {
+        return this.name() == UNDEF;
+    }
+
+    public void ttl(long ttl) {
+        assert ttl >= 0L;
+        this.ttl = ttl;
+    }
+
+    public long ttl() {
+        assert this.ttl >= 0L;
+        return this.ttl;
+    }
+
+    public void ttlStartTime(Id id) {
+        this.ttlStartTime = id;
+    }
+
+    public Id ttlStartTime() {
+        return this.ttlStartTime;
+    }
+
+    public String ttlStartTimeName() {
+        return NONE_ID.equals(this.ttlStartTime) ? null :
+               this.graph.propertyKey(this.ttlStartTime).name();
+    }
+
+    public boolean hasSameContent(SchemaLabel other) {
+        return super.hasSameContent(other) && this.ttl == other.ttl &&
+               this.enableLabelIndex == other.enableLabelIndex &&
+               Objects.equal(this.graph.mapPkId2Name(this.properties),
+                             other.graph.mapPkId2Name(other.properties)) &&
+               Objects.equal(this.graph.mapPkId2Name(this.nullableKeys),
+                             other.graph.mapPkId2Name(other.nullableKeys)) &&
+               Objects.equal(this.graph.mapIlId2Name(this.indexLabels),
+                             other.graph.mapIlId2Name(other.indexLabels)) &&
+               Objects.equal(this.ttlStartTimeName(), other.ttlStartTimeName());
     }
 
     public static Id getLabelId(HugeGraph graph, HugeType type, Object label) {

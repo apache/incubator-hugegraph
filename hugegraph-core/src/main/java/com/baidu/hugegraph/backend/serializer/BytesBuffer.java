@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.backend.serializer;
 
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collection;
@@ -34,6 +35,7 @@ import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
+import com.baidu.hugegraph.util.Blob;
 import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.KryoUtil;
@@ -42,7 +44,7 @@ import com.baidu.hugegraph.util.StringEncoding;
 /**
  * class BytesBuffer is a util for read/write binary
  */
-public final class BytesBuffer {
+public final class BytesBuffer extends OutputStream {
 
     public static final int BYTE_LEN = Byte.BYTES;
     public static final int SHORT_LEN = Short.BYTES;
@@ -51,6 +53,7 @@ public final class BytesBuffer {
     public static final int CHAR_LEN = Character.BYTES;
     public static final int FLOAT_LEN = Float.BYTES;
     public static final int DOUBLE_LEN = Double.BYTES;
+    public static final int BLOB_LEN = 4;
 
     public static final int UINT8_MAX = ((byte) -1) & 0xff;
     public static final int UINT16_MAX = ((short) -1) & 0xffff;
@@ -61,7 +64,10 @@ public final class BytesBuffer {
     public static final int ID_LEN_MAX = 0x7f + 1; // 128
     public static final int BIG_ID_LEN_MAX = 0x7fff + 1; // 32768
 
-    public static final byte STRING_ENDING_BYTE = (byte) 0xff;
+    public static final byte STRING_ENDING_BYTE = (byte) 0x00;
+    public static final byte STRING_ENDING_BYTE_FF = (byte) 0xff;
+    public static final int STRING_LEN_MAX = UINT16_MAX;
+    public static final long BLOB_LEN_MAX = 1 * Bytes.GB;
 
     // The value must be in range [8, ID_LEN_MAX]
     public static final int INDEX_HASH_ID_THRESHOLD = 32;
@@ -73,6 +79,7 @@ public final class BytesBuffer {
     public static final int BUF_PROPERTY = 64;
 
     private ByteBuffer buffer;
+    private final boolean resize;
 
     public BytesBuffer() {
         this(DEFAULT_CAPACITY);
@@ -83,11 +90,13 @@ public final class BytesBuffer {
                         "Capacity exceeds max buffer capacity: %s",
                         MAX_BUFFER_CAPACITY);
         this.buffer = ByteBuffer.allocate(capacity);
+        this.resize = true;
     }
 
     public BytesBuffer(ByteBuffer buffer) {
         E.checkNotNull(buffer, "buffer");
         this.buffer = buffer;
+        this.resize = false;
     }
 
     public static BytesBuffer allocate(int capacity) {
@@ -110,8 +119,13 @@ public final class BytesBuffer {
         return this.buffer;
     }
 
-    public BytesBuffer flip() {
+    public BytesBuffer forReadWritten() {
         this.buffer.flip();
+        return this;
+    }
+
+    public BytesBuffer forReadAll() {
+        this.buffer.position(this.buffer.limit());
         return this;
     }
 
@@ -121,15 +135,21 @@ public final class BytesBuffer {
 
     public byte[] bytes() {
         byte[] bytes = this.buffer.array();
-        if (this.buffer.position() == bytes.length) {
+        int position = this.buffer.position();
+        if (position == bytes.length) {
             return bytes;
         } else {
-            return Arrays.copyOf(bytes, this.buffer.position());
+            return Arrays.copyOf(bytes, position);
         }
     }
 
+    public int position() {
+        return this.buffer.position();
+    }
+
     public BytesBuffer copyFrom(BytesBuffer other) {
-        return this.write(other.bytes());
+        this.write(other.bytes());
+        return this;
     }
 
     public int remaining() {
@@ -141,6 +161,8 @@ public final class BytesBuffer {
         if (this.buffer.limit() - this.buffer.position() >= size) {
             return;
         }
+        // Can't resize for wrapped buffer since will change the origin ref
+        E.checkState(this.resize, "Can't resize for wrapped buffer");
 
         // Extra capacity as buffer
         int newcapacity = size + this.buffer.limit() + DEFAULT_CAPACITY;
@@ -159,27 +181,28 @@ public final class BytesBuffer {
         return this;
     }
 
-    public BytesBuffer write(int val) {
+    @Override
+    public void write(int val) {
         assert val <= UINT8_MAX;
         require(BYTE_LEN);
         this.buffer.put((byte) val);
-        return this;
     }
 
-    public BytesBuffer write(byte[] val) {
+    @Override
+    public void write(byte[] val) {
         require(BYTE_LEN * val.length);
         this.buffer.put(val);
-        return this;
     }
 
-    public BytesBuffer write(byte[] val, int offset, int length) {
+    @Override
+    public void write(byte[] val, int offset, int length) {
         require(BYTE_LEN * length);
         this.buffer.put(val, offset, length);
-        return this;
     }
 
     public BytesBuffer writeBoolean(boolean val) {
-        return this.write(val ? 1 : 0);
+        this.write(val ? 1 : 0);
+        return this;
     }
 
     public BytesBuffer writeChar(char val) {
@@ -281,6 +304,23 @@ public final class BytesBuffer {
         return bytes;
     }
 
+    public BytesBuffer writeBigBytes(byte[] bytes) {
+        E.checkArgument(bytes.length <= BLOB_LEN_MAX,
+                        "The max length of bytes is %s, but got %s",
+                        BLOB_LEN_MAX, bytes.length);
+        require(BLOB_LEN + bytes.length);
+        this.writeVInt(bytes.length);
+        this.write(bytes);
+        return this;
+    }
+
+    public byte[] readBigBytes() {
+        int length = this.readVInt();
+        assert length >= 0;
+        byte[] bytes = this.read(length);
+        return bytes;
+    }
+
     public BytesBuffer writeStringRaw(String val) {
         this.write(StringEncoding.encode(val));
         return this;
@@ -296,14 +336,27 @@ public final class BytesBuffer {
         return StringEncoding.decode(this.readBytes());
     }
 
-    public BytesBuffer writeStringWithEnding(String val) {
-        if (!val.isEmpty()) {
-            byte[] bytes = StringEncoding.encode(val);
-            // assert '0xff' not exist in string-id-with-ending (utf8 bytes)
-            assert !Bytes.contains(bytes, STRING_ENDING_BYTE);
+    public BytesBuffer writeStringWithEnding(String value) {
+        if (!value.isEmpty()) {
+            byte[] bytes = StringEncoding.encode(value);
+            /*
+             * assert '0x00'/'0xFF' not exist in string index id
+             * NOTE:
+             *   0x00 is NULL in UTF8(or ASCII) bytes
+             *   0xFF is not a valid byte in UTF8 bytes
+             */
+            assert !Bytes.contains(bytes, STRING_ENDING_BYTE_FF) :
+                   "Invalid UTF8 bytes: " + value;
+            if (Bytes.contains(bytes, STRING_ENDING_BYTE)) {
+                E.checkArgument(false,
+                                "Can't contains byte '0x00' in string: '%s'",
+                                value);
+            }
             this.write(bytes);
         }
         /*
+         * Choose 0x00 as ending symbol (see #1057)
+         * The following is out of date:
          * A reasonable ending symbol should be 0x00(to ensure order), but
          * considering that some backends like PG do not support 0x00 string,
          * so choose 0xFF currently.
@@ -503,6 +556,76 @@ public final class BytesBuffer {
         return values;
     }
 
+    public void writeProperty(DataType dataType, Object value) {
+        switch (dataType) {
+            case BOOLEAN:
+                this.writeVInt(((Boolean) value) ? 1 : 0);
+                break;
+            case BYTE:
+                this.writeVInt((Byte) value);
+                break;
+            case INT:
+                this.writeVInt((Integer) value);
+                break;
+            case FLOAT:
+                this.writeFloat((Float) value);
+                break;
+            case LONG:
+                this.writeVLong((Long) value);
+                break;
+            case DATE:
+                this.writeVLong(((Date) value).getTime());
+                break;
+            case DOUBLE:
+                this.writeDouble((Double) value);
+                break;
+            case TEXT:
+                this.writeString((String) value);
+                break;
+            case BLOB:
+                byte[] bytes = value instanceof byte[] ?
+                               (byte[]) value : ((Blob) value).bytes();
+                this.writeBigBytes(bytes);
+                break;
+            case UUID:
+                UUID uuid = (UUID) value;
+                // Generally writeVLong(uuid) can't save space
+                this.writeLong(uuid.getMostSignificantBits());
+                this.writeLong(uuid.getLeastSignificantBits());
+                break;
+            default:
+                this.writeBytes(KryoUtil.toKryoWithType(value));
+                break;
+        }
+    }
+
+    public Object readProperty(DataType dataType) {
+        switch (dataType) {
+            case BOOLEAN:
+                return this.readVInt() == 1;
+            case BYTE:
+                return (byte) this.readVInt();
+            case INT:
+                return this.readVInt();
+            case FLOAT:
+                return this.readFloat();
+            case LONG:
+                return this.readVLong();
+            case DATE:
+                return new Date(this.readVLong());
+            case DOUBLE:
+                return this.readDouble();
+            case TEXT:
+                return this.readString();
+            case BLOB:
+                return Blob.wrap(this.readBigBytes());
+            case UUID:
+                return new UUID(this.readLong(), this.readLong());
+            default:
+                return KryoUtil.fromKryoWithType(this.readBytes());
+        }
+    }
+
     public BytesBuffer writeId(Id id) {
         return this.writeId(id, false);
     }
@@ -612,12 +735,14 @@ public final class BytesBuffer {
 
         this.write(bytes);
         if (type.isStringIndex()) {
-            // Not allow '0xff' exist in string-id-with-ending
-            E.checkArgument(!Bytes.contains(bytes, STRING_ENDING_BYTE),
-                            "The %s type index id can't contains " +
-                            "byte '0x%s', but got: 0x%s", type,
-                            Bytes.toHex(STRING_ENDING_BYTE),
-                            Bytes.toHex(bytes));
+            if (Bytes.contains(bytes, STRING_ENDING_BYTE)) {
+                // Not allow STRING_ENDING_BYTE exist in string index id
+                E.checkArgument(false,
+                                "The %s type index id can't contains " +
+                                "byte '0x%s', but got: 0x%s", type,
+                                Bytes.toHex(STRING_ENDING_BYTE),
+                                Bytes.toHex(bytes));
+            }
             if (withEnding) {
                 this.writeStringWithEnding("");
             }
@@ -644,9 +769,17 @@ public final class BytesBuffer {
         return new BinaryId(this.bytes(), null);
     }
 
-    public BinaryId parseId() {
+    public BinaryId parseId(HugeType type) {
+        if (type.isIndex()) {
+            return this.readIndexId(type);
+        }
         // Parse id from bytes
         int start = this.buffer.position();
+        /*
+         * Since edge id in edges table doesn't prefix with leading 0x7e,
+         * so readId() will return the source vertex id instead of edge id,
+         * can't call: type.isEdge() ? this.readEdgeId() : this.readId();
+         */
         Id id = this.readId();
         int end = this.buffer.position();
         int len = end - start;
@@ -772,10 +905,9 @@ public final class BytesBuffer {
 
     private byte[] readBytesWithEnding() {
         int start = this.buffer.position();
-        boolean foundEnding =false;
-        byte current;
+        boolean foundEnding = false;
         while (this.remaining() > 0) {
-            current = this.read();
+            byte current = this.read();
             if (current == STRING_ENDING_BYTE) {
                 foundEnding = true;
                 break;
@@ -788,74 +920,5 @@ public final class BytesBuffer {
         byte[] bytes = new byte[len];
         System.arraycopy(this.array(), start, bytes, 0, len);
         return bytes;
-    }
-
-
-    private void writeProperty(DataType dataType, Object value) {
-        switch (dataType) {
-            case BOOLEAN:
-                this.writeVInt(((Boolean) value) ? 1 : 0);
-                break;
-            case BYTE:
-                this.writeVInt((Byte) value);
-                break;
-            case INT:
-                this.writeVInt((Integer) value);
-                break;
-            case FLOAT:
-                this.writeFloat((Float) value);
-                break;
-            case LONG:
-                this.writeVLong((Long) value);
-                break;
-            case DATE:
-                this.writeVLong(((Date) value).getTime());
-                break;
-            case DOUBLE:
-                this.writeDouble((Double) value);
-                break;
-            case TEXT:
-                this.writeString((String) value);
-                break;
-            case BLOB:
-                this.writeBytes((byte[]) value);
-                break;
-            case UUID:
-                UUID uuid = (UUID) value;
-                // Generally writeVLong(uuid) can't save space
-                this.writeLong(uuid.getMostSignificantBits());
-                this.writeLong(uuid.getLeastSignificantBits());
-                break;
-            default:
-                this.writeBytes(KryoUtil.toKryoWithType(value));
-                break;
-        }
-    }
-
-    private Object readProperty(DataType dataType) {
-        switch (dataType) {
-            case BOOLEAN:
-                return this.readVInt() == 1;
-            case BYTE:
-                return (byte) this.readVInt();
-            case INT:
-                return this.readVInt();
-            case FLOAT:
-                return this.readFloat();
-            case LONG:
-                return this.readVLong();
-            case DATE:
-                return new Date(this.readVLong());
-            case DOUBLE:
-                return this.readDouble();
-            case TEXT:
-                return this.readString();
-            case BLOB:
-                return this.readBytes();
-            case UUID:
-                return new UUID(this.readLong(), this.readLong());
-            default:
-                return KryoUtil.fromKryoWithType(this.readBytes());
-        }
     }
 }

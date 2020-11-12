@@ -19,12 +19,14 @@
 
 package com.baidu.hugegraph.backend.store.rocksdb;
 
+import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.rocksdb.RocksDBException;
 
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumnIterator;
-import com.baidu.hugegraph.backend.store.BackendSession;
+import com.baidu.hugegraph.backend.store.BackendSession.AbstractBackendSession;
 import com.baidu.hugegraph.backend.store.BackendSessionPool;
 import com.baidu.hugegraph.config.HugeConfig;
 
@@ -36,10 +38,11 @@ public abstract class RocksDBSessions extends BackendSessionPool {
 
     public abstract Set<String> openedTables();
 
-    public abstract void createTable(String table) throws RocksDBException;
-    public abstract void dropTable(String table) throws RocksDBException;
+    public abstract void createTable(String... tables) throws RocksDBException;
+    public abstract void dropTable(String... tables) throws RocksDBException;
+    public abstract boolean existsTable(String table);
 
-    public abstract String property(String property);
+    public abstract List<String> property(String property);
 
     public abstract RocksDBSessions copy(HugeConfig config,
                                          String database, String store);
@@ -50,7 +53,7 @@ public abstract class RocksDBSessions extends BackendSessionPool {
     /**
      * Session for RocksDB
      */
-    public static abstract class Session extends BackendSession {
+    public static abstract class Session extends AbstractBackendSession {
 
         public static final int SCAN_ANY = 0x80;
         public static final int SCAN_PREFIX_BEGIN = 0x01;
@@ -60,7 +63,11 @@ public abstract class RocksDBSessions extends BackendSessionPool {
         public static final int SCAN_LT_END = 0x10;
         public static final int SCAN_LTE_END = 0x30;
 
+        public abstract String dataPath();
+        public abstract String walPath();
+
         public abstract String property(String table, String property);
+        public abstract Pair<byte[], byte[]> keyRange(String table);
 
         public abstract void put(String table, byte[] key, byte[] value);
         public abstract void merge(String table, byte[] key, byte[] value);
@@ -80,6 +87,8 @@ public abstract class RocksDBSessions extends BackendSessionPool {
                                                    byte[] keyTo,
                                                    int scanType);
 
+        public abstract void createSnapshot(String parentPath);
+
         public BackendColumnIterator scan(String table,
                                           byte[] keyFrom,
                                           byte[] keyTo) {
@@ -89,5 +98,10 @@ public abstract class RocksDBSessions extends BackendSessionPool {
         public static boolean matchScanType(int expected, int actual) {
             return (expected & actual) == expected;
         }
+    }
+
+    public interface Countable {
+
+        public long count();
     }
 }

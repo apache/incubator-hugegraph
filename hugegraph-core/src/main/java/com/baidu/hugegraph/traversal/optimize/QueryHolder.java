@@ -24,6 +24,7 @@ import java.util.Iterator;
 import org.apache.tinkerpop.gremlin.process.traversal.Order;
 import org.apache.tinkerpop.gremlin.process.traversal.step.HasContainerHolder;
 
+import com.baidu.hugegraph.backend.query.Aggregate.AggregateFunc;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.iterator.Metadatable;
 
@@ -50,8 +51,7 @@ public interface QueryHolder extends HasContainerHolder, Metadatable {
     }
 
     public default long setRange(long start, long end) {
-        this.queryInfo().range(start, end);
-        return this.queryInfo().limit();
+        return this.queryInfo().range(start, end);
     }
 
     public default void setPage(String page) {
@@ -60,6 +60,10 @@ public interface QueryHolder extends HasContainerHolder, Metadatable {
 
     public default void setCount() {
         this.queryInfo().capacity(Query.NO_CAPACITY);
+    }
+
+    public default void setAggregate(AggregateFunc func, String key) {
+        this.queryInfo().aggregate(func, key);
     }
 
     public default <Q extends Query> Q injectQueryInfo(Q query) {

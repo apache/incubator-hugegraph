@@ -1,13 +1,11 @@
-# host and port of gremlin server
+# host and port of gremlin server, need to be consistent with host and port in rest-server.properties
 #host: 127.0.0.1
 #port: 8182
 
 # timeout in ms of gremlin query
 scriptEvaluationTimeout: 30000
 
-# If you want to start gremlin-server for gremlin-console(web-socket),
-# please change `HttpChannelizer` to `WebSocketChannelizer` or comment this line.
-channelizer: org.apache.tinkerpop.gremlin.server.channel.HttpChannelizer
+channelizer: org.apache.tinkerpop.gremlin.server.channel.WsAndHttpChannelizer
 graphs: {
   hugegraph: conf/hugegraph.properties
 }
@@ -19,8 +17,21 @@ scriptEngines: {
       org.apache.tinkerpop.gremlin.jsr223.ImportGremlinPlugin: {
         classImports: [
           java.lang.Math,
-          com.baidu.hugegraph.util.DateUtil,
-          com.baidu.hugegraph.traversal.optimize.Text
+          com.baidu.hugegraph.backend.id.IdGenerator,
+          com.baidu.hugegraph.type.define.Directions,
+          com.baidu.hugegraph.type.define.NodeRole,
+          com.baidu.hugegraph.traversal.algorithm.CustomizePathsTraverser,
+          com.baidu.hugegraph.traversal.algorithm.CustomizedCrosspointsTraverser,
+          com.baidu.hugegraph.traversal.algorithm.FusiformSimilarityTraverser,
+          com.baidu.hugegraph.traversal.algorithm.HugeTraverser,
+          com.baidu.hugegraph.traversal.algorithm.NeighborRankTraverser,
+          com.baidu.hugegraph.traversal.algorithm.PathsTraverser,
+          com.baidu.hugegraph.traversal.algorithm.PersonalRankTraverser,
+          com.baidu.hugegraph.traversal.algorithm.ShortestPathTraverser,
+          com.baidu.hugegraph.traversal.algorithm.SubGraphTraverser,
+          com.baidu.hugegraph.traversal.optimize.Text,
+          com.baidu.hugegraph.traversal.optimize.TraversalUtil,
+          com.baidu.hugegraph.util.DateUtil
         ],
         methodImports: [java.lang.Math#*]
       },
@@ -31,12 +42,6 @@ scriptEngines: {
   }
 }
 serializers:
-  - { className: org.apache.tinkerpop.gremlin.driver.ser.GryoLiteMessageSerializerV1d0,
-      config: {
-        serializeResultToString: false,
-        ioRegistries: [com.baidu.hugegraph.io.HugeGraphIoRegistry]
-      }
-  }
   - { className: org.apache.tinkerpop.gremlin.driver.ser.GraphBinaryMessageSerializerV1,
       config: {
         serializeResultToString: false,
@@ -63,7 +68,7 @@ serializers:
   }
 metrics: {
   consoleReporter: {enabled: false, interval: 180000},
-  csvReporter: {enabled: true, interval: 180000, fileName: /tmp/gremlin-server-metrics.csv},
+  csvReporter: {enabled: false, interval: 180000, fileName: ./metrics/gremlin-server-metrics.csv},
   jmxReporter: {enabled: false},
   slf4jReporter: {enabled: false, interval: 180000},
   gangliaReporter: {enabled: false, interval: 180000, addressingMode: MULTICAST},

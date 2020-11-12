@@ -38,12 +38,19 @@ import javax.ws.rs.ext.Provider;
 import javax.xml.bind.DatatypeConverter;
 
 import org.apache.tinkerpop.gremlin.server.auth.AuthenticationException;
+import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.utils.Charsets;
+import org.slf4j.Logger;
 
+import com.baidu.hugegraph.auth.HugeAuthenticator;
+import com.baidu.hugegraph.auth.HugeAuthenticator.RoleAction;
+import com.baidu.hugegraph.auth.HugeAuthenticator.RolePerm;
 import com.baidu.hugegraph.auth.HugeAuthenticator.User;
-import com.baidu.hugegraph.auth.StandardAuthenticator;
+import com.baidu.hugegraph.auth.RolePermission;
 import com.baidu.hugegraph.core.GraphManager;
+import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.Log;
 import com.google.common.collect.ImmutableMap;
 
 @Provider
@@ -51,8 +58,13 @@ import com.google.common.collect.ImmutableMap;
 @Priority(Priorities.AUTHENTICATION)
 public class AuthenticationFilter implements ContainerRequestFilter {
 
+    private static final Logger LOG = Log.logger(RestServer.class);
+
     @Context
     private javax.inject.Provider<GraphManager> managerProvider;
+
+    @Context
+    private javax.inject.Provider<Request> requestProvider;
 
     @Override
     public void filter(ContainerRequestContext context) throws IOException {
@@ -68,6 +80,15 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         if (!manager.requireAuthentication()) {
             // Return anonymous user with admin role if disable authentication
             return User.ANONYMOUS;
+        }
+
+        // Get peer info
+        Request request = this.requestProvider.get();
+        String peer = null;
+        String path = null;
+        if (request != null) {
+            peer = request.getRemoteAddr() + ":" + request.getRemotePort();
+            path = request.getRequestURI();
         }
 
         // Extract authentication credentials
@@ -98,8 +119,10 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         // Validate the extracted credentials
         try {
             return manager.authenticate(ImmutableMap.of(
-                           StandardAuthenticator.KEY_USERNAME, username,
-                           StandardAuthenticator.KEY_PASSWORD, password));
+                           HugeAuthenticator.KEY_USERNAME, username,
+                           HugeAuthenticator.KEY_PASSWORD, password,
+                           HugeAuthenticator.KEY_ADDRESS, peer,
+                           HugeAuthenticator.KEY_PATH, path));
         } catch (AuthenticationException e) {
             String msg = String.format("Authentication failed for user '%s'",
                                        username);
@@ -125,7 +148,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
             return this.user.username();
         }
 
-        public String role() {
+        public RolePermission role() {
             return this.user.role();
         }
 
@@ -135,17 +158,21 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         }
 
         @Override
-        public boolean isUserInRole(String role) {
-            if (role.equals(StandardAuthenticator.ROLE_DYNAMIC)) {
-                // Let the resource itself dynamically determine
-                return true;
-            } else if (role.startsWith(StandardAuthenticator.ROLE_OWNER)) {
-                // Role format like: "$owner=name"
-                String[] owner = role.split("=", 2);
-                E.checkState(owner.length == 2, "Bad role format: '%s'", role);
-                role = this.getPathParameter(owner[1]);
+        public boolean isUserInRole(String required) {
+            boolean valid;
+            if (required.equals(HugeAuthenticator.KEY_DYNAMIC)) {
+                // Let the resource itself determine dynamically
+                valid = true;
+            } else {
+                valid = this.matchPermission(required);
             }
-            return role.equals(this.user.role());
+
+            if (!valid && LOG.isDebugEnabled() &&
+                !required.equals(HugeAuthenticator.ROLE_ADMIN)) {
+                LOG.debug("Permission denied to {}, expect permission '{}'",
+                          this.user, required);
+            }
+            return valid;
         }
 
         @Override
@@ -156,6 +183,27 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         @Override
         public String getAuthenticationScheme() {
             return SecurityContext.BASIC_AUTH;
+        }
+
+        private boolean matchPermission(String required) {
+            if (!required.startsWith(HugeAuthenticator.KEY_OWNER)) {
+                // Permission format like: "admin"
+                return RolePerm.match(this.role(), required);
+            }
+
+            // Permission format like: "$owner=$graph $action=vertex-write"
+            RoleAction roleAction = RoleAction.fromPermission(required);
+
+            // Replace owner value(may be variable) if needed
+            String owner = roleAction.owner();
+            if (owner.startsWith(HugeAuthenticator.VAR_PREFIX)) {
+                assert owner.length() > HugeAuthenticator.VAR_PREFIX.length();
+                owner = owner.substring(HugeAuthenticator.VAR_PREFIX.length());
+                owner = this.getPathParameter(owner);
+                roleAction.owner(owner);
+            }
+
+            return RolePerm.match(this.role(), roleAction);
         }
 
         private String getPathParameter(String key) {
@@ -169,7 +217,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
             @Override
             public String getName() {
-                return Authorizer.this.user.role();
+                return Authorizer.this.user.getName();
             }
 
             @Override

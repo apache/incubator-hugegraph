@@ -32,6 +32,7 @@ import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.id.IdUtil;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.store.BackendEntry;
+import com.baidu.hugegraph.backend.store.BackendEntryIterator;
 import com.baidu.hugegraph.backend.store.TableDefine;
 import com.baidu.hugegraph.backend.store.mysql.MysqlBackendEntry;
 import com.baidu.hugegraph.backend.store.mysql.MysqlSessions;
@@ -87,6 +88,8 @@ public class PaloTables {
             this.define.column(HugeKeys.ENABLE_LABEL_INDEX, TINYINT, NOT_NULL);
             this.define.column(HugeKeys.USER_DATA, VARCHAR, DEFAULT_EMPTY);
             this.define.column(HugeKeys.STATUS, TINYINT, NOT_NULL);
+            this.define.column(HugeKeys.TTL, INT, NOT_NULL);
+            this.define.column(HugeKeys.TTL_START_TIME, INT);
             // Unique keys/hash keys
             this.define.keys(HugeKeys.ID);
         }
@@ -111,6 +114,8 @@ public class PaloTables {
             this.define.column(HugeKeys.ENABLE_LABEL_INDEX, TINYINT, NOT_NULL);
             this.define.column(HugeKeys.USER_DATA, VARCHAR, DEFAULT_EMPTY);
             this.define.column(HugeKeys.STATUS, TINYINT, NOT_NULL);
+            this.define.column(HugeKeys.TTL, INT, NOT_NULL);
+            this.define.column(HugeKeys.TTL_START_TIME, INT);
             // Unique keys/hash keys
             this.define.keys(HugeKeys.ID);
         }
@@ -148,6 +153,7 @@ public class PaloTables {
             this.define.column(HugeKeys.BASE_VALUE, INT, NOT_NULL);
             this.define.column(HugeKeys.INDEX_TYPE, TINYINT, NOT_NULL);
             this.define.column(HugeKeys.FIELDS, VARCHAR, NOT_NULL);
+            this.define.column(HugeKeys.USER_DATA, VARCHAR, DEFAULT_EMPTY);
             this.define.column(HugeKeys.STATUS, TINYINT, NOT_NULL);
             // Unique keys/hash keys
             this.define.keys(HugeKeys.ID);
@@ -165,6 +171,7 @@ public class PaloTables {
             this.define.column(HugeKeys.ID, VARCHAR, NOT_NULL);
             this.define.column(HugeKeys.LABEL, INT, NOT_NULL);
             this.define.column(HugeKeys.PROPERTIES, TEXT, DEFAULT_EMPTY);
+            this.define.column(HugeKeys.EXPIRED_TIME, DECIMAL, NOT_NULL);
             // Unique keys/hash keys
             this.define.keys(HugeKeys.ID);
         }
@@ -195,6 +202,7 @@ public class PaloTables {
                                DEFAULT_EMPTY);
             this.define.column(HugeKeys.OTHER_VERTEX, VARCHAR, NOT_NULL);
             this.define.column(HugeKeys.PROPERTIES, TEXT, DEFAULT_EMPTY);
+            this.define.column(HugeKeys.EXPIRED_TIME, DECIMAL, NOT_NULL);
             // Unique keys/hash keys
             this.define.keys(HugeKeys.OWNER_VERTEX, HugeKeys.DIRECTION,
                              HugeKeys.LABEL, HugeKeys.SORT_VALUES,
@@ -271,7 +279,8 @@ public class PaloTables {
             E.checkState(next != null && next.type().isEdge(),
                          "The next entry must be EDGE");
 
-            if (current != null) {
+            long maxSize = BackendEntryIterator.INLINE_BATCH_SIZE;
+            if (current != null && current.subRows().size() < maxSize) {
                 Id nextVertexId = IdGenerator.of(
                                   next.<String>column(HugeKeys.OWNER_VERTEX));
                 if (current.id().equals(nextVertexId)) {
@@ -315,7 +324,8 @@ public class PaloTables {
             E.checkState(next != null && next.type().isIndex(),
                          "The next entry must be INDEX");
 
-            if (current != null) {
+            long maxSize = BackendEntryIterator.INLINE_BATCH_SIZE;
+            if (current != null && current.subRows().size() < maxSize) {
                 String currentId = this.entryId(current);
                 String nextId = this.entryId(next);
                 if (currentId.equals(nextId)) {

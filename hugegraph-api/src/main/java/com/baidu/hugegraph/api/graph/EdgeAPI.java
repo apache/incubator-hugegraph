@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
+import javax.annotation.security.RolesAllowed;
 import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -54,7 +55,6 @@ import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
-import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.core.GraphManager;
@@ -63,10 +63,10 @@ import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.VertexLabel;
-import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeVertex;
-import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.traversal.optimize.QueryHolder;
+import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
@@ -77,13 +77,14 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @Singleton
 public class EdgeAPI extends BatchAPI {
 
-    private static final Logger LOG = Log.logger(RestServer.class);
+    private static final Logger LOG = Log.logger(EdgeAPI.class);
 
     @POST
     @Timed(name = "single-create")
     @Status(Status.CREATED)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin", "$owner=$graph $action=edge_write"})
     public String create(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          JsonEdge jsonEdge) {
@@ -93,18 +94,14 @@ public class EdgeAPI extends BatchAPI {
         HugeGraph g = graph(manager, graph);
 
         if (jsonEdge.sourceLabel != null && jsonEdge.targetLabel != null) {
-            // NOTE: Not use SchemaManager because it will throw 404
-            SchemaTransaction schema = g.schemaTransaction();
             /*
              * NOTE: If the vertex id is correct but label not match with id,
              * we allow to create it here
              */
-            E.checkArgumentNotNull(schema.getVertexLabel(jsonEdge.sourceLabel),
-                                   "Invalid source vertex label '%s'",
-                                   jsonEdge.sourceLabel);
-            E.checkArgumentNotNull(schema.getVertexLabel(jsonEdge.targetLabel),
-                                   "Invalid target vertex label '%s'",
-                                   jsonEdge.targetLabel);
+            vertexLabel(g, jsonEdge.sourceLabel,
+                        "Invalid source vertex label '%s'");
+            vertexLabel(g, jsonEdge.targetLabel,
+                        "Invalid target vertex label '%s'");
         }
 
         Vertex srcVertex = getVertex(g, jsonEdge.source, null);
@@ -125,12 +122,13 @@ public class EdgeAPI extends BatchAPI {
     @Status(Status.CREATED)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    public List<String> create(@Context HugeConfig config,
-                               @Context GraphManager manager,
-                               @PathParam("graph") String graph,
-                               @QueryParam("check_vertex")
-                               @DefaultValue("true") boolean checkVertex,
-                               List<JsonEdge> jsonEdges) {
+    @RolesAllowed({"admin", "$owner=$graph $action=edge_write"})
+    public String create(@Context HugeConfig config,
+                         @Context GraphManager manager,
+                         @PathParam("graph") String graph,
+                         @QueryParam("check_vertex")
+                         @DefaultValue("true") boolean checkVertex,
+                         List<JsonEdge> jsonEdges) {
         LOG.debug("Graph [{}] create edges: {}", graph, jsonEdges);
         checkCreatingBody(jsonEdges);
         checkBatchSize(config, jsonEdges);
@@ -141,7 +139,7 @@ public class EdgeAPI extends BatchAPI {
                     checkVertex ? EdgeAPI::getVertex : EdgeAPI::newVertex;
 
         return this.commit(config, g, jsonEdges.size(), () -> {
-            List<String> ids = new ArrayList<>(jsonEdges.size());
+            List<Id> ids = new ArrayList<>(jsonEdges.size());
             for (JsonEdge jsonEdge : jsonEdges) {
                 /*
                  * NOTE: If the query param 'checkVertex' is false,
@@ -154,9 +152,9 @@ public class EdgeAPI extends BatchAPI {
                                                    jsonEdge.targetLabel);
                 Edge edge = srcVertex.addEdge(jsonEdge.label, tgtVertex,
                                               jsonEdge.properties());
-                ids.add(edge.id().toString());
+                ids.add((Id) edge.id());
             }
-            return ids;
+            return manager.serializer(g).writeIds(ids);
         });
     }
 
@@ -169,6 +167,7 @@ public class EdgeAPI extends BatchAPI {
     @Path("batch")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin", "$owner=$graph $action=edge_write"})
     public String update(@Context HugeConfig config,
                          @Context GraphManager manager,
                          @PathParam("graph") String graph,
@@ -186,7 +185,7 @@ public class EdgeAPI extends BatchAPI {
         return this.commit(config, g, map.size(), () -> {
             // 1.Put all newEdges' properties into map (combine first)
             req.jsonEdges.forEach(newEdge -> {
-                Id newEdgeId = getEdgeId(g, newEdge);
+                Id newEdgeId = getEdgeId(graph(manager, graph), newEdge);
                 JsonEdge oldEdge = map.get(newEdgeId);
                 this.updateExistElement(oldEdge, newEdge,
                                         req.updateStrategies);
@@ -223,6 +222,7 @@ public class EdgeAPI extends BatchAPI {
     @Path("{id}")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin", "$owner=$graph $action=edge_write"})
     public String update(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          @PathParam("id") String id,
@@ -261,12 +261,15 @@ public class EdgeAPI extends BatchAPI {
     @Timed
     @Compress
     @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin", "$owner=$graph $action=edge_read"})
     public String list(@Context GraphManager manager,
                        @PathParam("graph") String graph,
                        @QueryParam("vertex_id") String vertexId,
                        @QueryParam("direction") String direction,
                        @QueryParam("label") String label,
                        @QueryParam("properties") String properties,
+                       @QueryParam("keep_start_p")
+                       @DefaultValue("false") boolean keepStartP,
                        @QueryParam("offset") @DefaultValue("0") long offset,
                        @QueryParam("page") String page,
                        @QueryParam("limit") @DefaultValue("100") long limit) {
@@ -276,13 +279,9 @@ public class EdgeAPI extends BatchAPI {
 
         Map<String, Object> props = parseProperties(properties);
         if (page != null) {
-            E.checkArgument(vertexId == null && direction == null &&
-                            offset == 0,
+            E.checkArgument(offset == 0,
                             "Not support querying edges based on paging " +
-                            "and [vertex, direction, offset] together");
-            E.checkArgument(props.size() <= 1,
-                            "Not support querying edges based on paging " +
-                            "and more than one property");
+                            "and offset together");
         }
 
         Id vertex = VertexAPI.checkAndParseVertexId(vertexId);
@@ -305,6 +304,15 @@ public class EdgeAPI extends BatchAPI {
             }
         }
 
+        // Convert relational operator like P.gt()/P.lt()
+        for (Map.Entry<String, Object> prop : props.entrySet()) {
+            Object value = prop.getValue();
+            if (!keepStartP && value instanceof String &&
+                ((String) value).startsWith(TraversalUtil.P_CALL)) {
+                prop.setValue(TraversalUtil.parsePredicate((String) value));
+            }
+        }
+
         for (Map.Entry<String, Object> entry : props.entrySet()) {
             traversal = traversal.has(entry.getKey(), entry.getValue());
         }
@@ -312,49 +320,62 @@ public class EdgeAPI extends BatchAPI {
         if (page == null) {
             traversal = traversal.range(offset, offset + limit);
         } else {
-            traversal = traversal.has("~page", page).limit(limit);
+            traversal = traversal.has(QueryHolder.SYSPROP_PAGE, page)
+                                 .limit(limit);
         }
 
-        return manager.serializer(g).writeEdges(traversal, page != null);
+        try {
+            return manager.serializer(g).writeEdges(traversal, page != null);
+        } finally {
+            if (g.tx().isOpen()) {
+                g.tx().close();
+            }
+        }
     }
 
     @GET
     @Timed
     @Path("{id}")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin", "$owner=$graph $action=edge_read"})
     public String get(@Context GraphManager manager,
                       @PathParam("graph") String graph,
                       @PathParam("id") String id) {
         LOG.debug("Graph [{}] get edge by id '{}'", graph, id);
 
         HugeGraph g = graph(manager, graph);
-        Iterator<Edge> edges = g.edges(id);
-        checkExist(edges, HugeType.EDGE, id);
-        return manager.serializer(g).writeEdge(edges.next());
+        try {
+            Edge edge = g.edge(id);
+            return manager.serializer(g).writeEdge(edge);
+        } finally {
+            if (g.tx().isOpen()) {
+                g.tx().close();
+            }
+        }
     }
 
     @DELETE
     @Timed
     @Path("{id}")
     @Consumes(APPLICATION_JSON)
+    @RolesAllowed({"admin", "$owner=$graph $action=edge_delete"})
     public void delete(@Context GraphManager manager,
                        @PathParam("graph") String graph,
-                       @PathParam("id") String id) {
+                       @PathParam("id") String id,
+                       @QueryParam("label") String label) {
         LOG.debug("Graph [{}] remove vertex by id '{}'", graph, id);
 
         HugeGraph g = graph(manager, graph);
-        // TODO: add removeEdge(id) to improve
         commit(g, () -> {
-            Edge edge;
             try {
-                edge = g.edges(id).next();
+                g.removeEdge(label, id);
             } catch (NotFoundException e) {
-                throw new IllegalArgumentException(e.getMessage());
+                throw new IllegalArgumentException(String.format(
+                          "No such edge with id: '%s', %s", id, e));
             } catch (NoSuchElementException e) {
                 throw new IllegalArgumentException(String.format(
                           "No such edge with id: '%s'", id));
             }
-            edge.remove();
         });
     }
 
@@ -372,7 +393,8 @@ public class EdgeAPI extends BatchAPI {
         }
     }
 
-    private static Vertex getVertex(HugeGraph graph, Object id, String label) {
+    private static Vertex getVertex(HugeGraph graph,
+                                    Object id, String label) {
         HugeVertex vertex;
         try {
             vertex = (HugeVertex) graph.vertices(id).next();
@@ -381,15 +403,23 @@ public class EdgeAPI extends BatchAPI {
                       "Invalid vertex id '%s'", id));
         }
         // Clone a new vertex to support multi-thread access
-        return vertex.copy().resetTx();
+        return vertex.copy();
     }
 
-    private static Vertex newVertex(HugeGraph graph, Object id, String label) {
-        // NOTE: Not use SchemaManager because it will throw 404
-        VertexLabel vl = graph.schemaTransaction().getVertexLabel(label);
-        E.checkArgumentNotNull(vl, "Invalid vertex label '%s'", label);
+    private static Vertex newVertex(HugeGraph g, Object id, String label) {
+        VertexLabel vl = vertexLabel(g, label, "Invalid vertex label '%s'");
         Id idValue = HugeVertex.getIdValue(id);
-        return new HugeVertex(graph, idValue, vl);
+        return new HugeVertex(g, idValue, vl);
+    }
+
+    private static VertexLabel vertexLabel(HugeGraph graph, String label,
+                                           String message) {
+        try {
+            // NOTE: don't use SchemaManager because it will throw 404
+            return graph.vertexLabel(label);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException(String.format(message, label));
+        }
     }
 
     public static Direction parseDirection(String direction) {
@@ -406,30 +436,31 @@ public class EdgeAPI extends BatchAPI {
     }
 
     private Id getEdgeId(HugeGraph g, JsonEdge newEdge) {
-        if (newEdge.id != null) {
-            return EdgeId.parse(newEdge.id.toString());
-        }
-
         String sortKeys = "";
         Id labelId = g.edgeLabel(newEdge.label).id();
         List<Id> sortKeyIds = g.edgeLabel(labelId).sortKeys();
         if (!sortKeyIds.isEmpty()) {
             List<Object> sortKeyValues = new ArrayList<>(sortKeyIds.size());
             sortKeyIds.forEach(skId -> {
-                String sortKey = g.propertyKey(skId).name();
+                PropertyKey pk = g.propertyKey(skId);
+                String sortKey = pk.name();
                 Object sortKeyValue = newEdge.properties.get(sortKey);
                 E.checkArgument(sortKeyValue != null,
                                 "The value of sort key '%s' can't be null",
                                 sortKey);
+                sortKeyValue = pk.validValueOrThrow(sortKeyValue);
                 sortKeyValues.add(sortKeyValue);
             });
             sortKeys = ConditionQuery.concatValues(sortKeyValues);
         }
-
-        // TODO: How to get Direction from JsonEdge easily? or any better way?
         EdgeId edgeId = new EdgeId(HugeVertex.getIdValue(newEdge.source),
                                    Directions.OUT, labelId, sortKeys,
                                    HugeVertex.getIdValue(newEdge.target));
+        if (newEdge.id != null) {
+            E.checkArgument(edgeId.equals(newEdge.id),
+                            "The sort key values either be null " +
+                            "or equal to origin when specified edge id");
+        }
         return edgeId;
     }
 

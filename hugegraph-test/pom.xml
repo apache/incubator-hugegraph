@@ -5,11 +5,15 @@
     <parent>
         <artifactId>hugegraph</artifactId>
         <groupId>com.baidu.hugegraph</groupId>
-        <version>0.10.4</version>
+        <version>0.11.2</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>hugegraph-test</artifactId>
+
+    <properties>
+        <skip.dump>true</skip.dump>
+    </properties>
 
     <dependencies>
         <!-- Jacoco report-aggregate just statistics its directly dependent module,
@@ -19,9 +23,11 @@
             <artifactId>hugegraph-core</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <!-- The hugegraph-api module was not added because the module's test needs to
-             embed the bytecode before starting the service, but did not find a suitable
-             way to write the script to start the service -->
+        <dependency>
+            <groupId>com.baidu.hugegraph</groupId>
+            <artifactId>hugegraph-api</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <dependency>
             <groupId>com.baidu.hugegraph</groupId>
             <artifactId>hugegraph-cassandra</artifactId>
@@ -133,7 +139,7 @@
                     <execution>
                         <id>tinkerpop-process-test</id>
                         <configuration>
-                            <!-- Tinkerpop process ReadTest.Traversals.class need write/read disk -->
+                            <!-- TinkerPop process ReadTest.Traversals.class need write/read disk -->
                             <argLine>-Dbuild.dir=${project.build.directory}</argLine>
                             <testSourceDirectory>${basedir}/src/main/java/
                             </testSourceDirectory>
@@ -182,6 +188,20 @@
                         <goals>
                             <goal>prepare-agent</goal>
                         </goals>
+                    </execution>
+                    <execution>
+                        <id>pull-test-data</id>
+                        <phase>post-integration-test</phase>
+                        <goals>
+                            <goal>dump</goal>
+                        </goals>
+                        <configuration>
+                            <destFile>${project.build.directory}/jacoco-it.exec</destFile>
+                            <address>${app.host}</address>
+                            <port>${app.port}</port>
+                            <reset>false</reset>
+                            <skip>${skip.dump}</skip>
+                        </configuration>
                     </execution>
                     <execution>
                         <id>post-test</id>

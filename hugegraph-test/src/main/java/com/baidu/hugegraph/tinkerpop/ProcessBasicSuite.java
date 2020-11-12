@@ -73,7 +73,6 @@ import org.apache.tinkerpop.gremlin.process.traversal.step.map.SumTest;
 import org.apache.tinkerpop.gremlin.process.traversal.step.map.UnfoldTest;
 import org.apache.tinkerpop.gremlin.process.traversal.step.map.ValueMapTest;
 import org.apache.tinkerpop.gremlin.process.traversal.step.map.VertexTest;
-import org.apache.tinkerpop.gremlin.process.traversal.step.map.WriteTest;
 import org.apache.tinkerpop.gremlin.process.traversal.step.sideEffect.AggregateTest;
 import org.apache.tinkerpop.gremlin.process.traversal.step.sideEffect.ExplainTest;
 import org.apache.tinkerpop.gremlin.process.traversal.step.sideEffect.GroupCountTest;
@@ -98,6 +97,7 @@ import org.junit.runners.model.RunnerBuilder;
 import org.junit.runners.model.Statement;
 
 import com.baidu.hugegraph.dist.RegisterUtil;
+import com.baidu.hugegraph.tinkerpop.tests.HugeGraphWriteTest;
 
 /**
  * Standard process test suite for tinkerpop graph
@@ -163,7 +163,8 @@ public class ProcessBasicSuite extends AbstractGremlinSuite {
             VertexTest.Traversals.class,
             UnfoldTest.Traversals.class,
             ValueMapTest.Traversals.class,
-            WriteTest.Traversals.class,
+            // Override WriteTest.Traversals.class
+            HugeGraphWriteTest.class,
 
             // sideEffect
             AggregateTest.Traversals.class,

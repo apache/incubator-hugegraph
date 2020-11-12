@@ -37,10 +37,9 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
-import com.baidu.hugegraph.backend.query.ConditionQueryFlatten;
 import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
-import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.Log;
 
@@ -56,7 +55,7 @@ public final class HugeVertexStep<E extends Element>
     // Store limit/order-by
     private final Query queryInfo = new Query(null);
 
-    private Iterator<E> lastTimeResults = null;
+    private Iterator<E> lastTimeResults = QueryResults.emptyIterator();
 
     public HugeVertexStep(final VertexStep<E> originVertexStep) {
         super(originVertexStep.getTraversal(),
@@ -84,7 +83,7 @@ public final class HugeVertexStep<E extends Element>
     }
 
     private Iterator<Vertex> vertices(Traverser.Admin<Vertex> traverser) {
-        HugeGraph graph = (HugeGraph) traverser.get().graph();
+        HugeGraph graph = TraversalUtil.getGraph(this);
         Vertex vertex = traverser.get();
 
         Iterator<Edge> edges = this.edges(traverser);
@@ -105,31 +104,35 @@ public final class HugeVertexStep<E extends Element>
     }
 
     private Iterator<Edge> edges(Traverser.Admin<Vertex> traverser) {
-        HugeGraph graph = (HugeGraph) traverser.get().graph();
+        HugeGraph graph = TraversalUtil.getGraph(this);
         List<HasContainer> conditions = this.hasContainers;
 
         // Query for edge with conditions(else conditions for vertex)
-        boolean withEdgeCond = Edge.class.isAssignableFrom(getReturnClass()) &&
-                               !conditions.isEmpty();
+        boolean withEdgeCond = this.returnsEdge() && !conditions.isEmpty();
+        boolean withVertexCond = this.returnsVertex() && !conditions.isEmpty();
 
         Id vertex = (Id) traverser.get().id();
         Directions direction = Directions.convert(this.getDirection());
-        String[] edgeLabels = this.getEdgeLabels();
+        Id[] edgeLabels = graph.mapElName2Id(this.getEdgeLabels());
 
         LOG.debug("HugeVertexStep.edges(): vertex={}, direction={}, " +
                   "edgeLabels={}, has={}",
                   vertex, direction, edgeLabels, this.hasContainers);
 
-        Id[] edgeLabelIds = graph.mapElName2Id(edgeLabels);
-
         ConditionQuery query = GraphTransaction.constructEdgesQuery(
-                               vertex, direction, edgeLabelIds);
+                               vertex, direction, edgeLabels);
         // Query by sort-keys
         if (withEdgeCond && edgeLabels.length > 0) {
-            TraversalUtil.fillConditionQuery(conditions, query, graph);
-            if (!GraphTransaction.matchEdgeSortKeys(query, graph)) {
+            TraversalUtil.fillConditionQuery(query, conditions, graph);
+            if (!GraphTransaction.matchPartialEdgeSortKeys(query, graph)) {
                 // Can't query by sysprop and by index (HugeGraph-749)
                 query.resetUserpropConditions();
+            } else if (GraphTransaction.matchFullEdgeSortKeys(query, graph)) {
+                // All sysprop conditions are in sort-keys
+                withEdgeCond = false;
+            } else {
+                // Partial sysprop conditions are in sort-keys
+                assert query.userpropKeys().size() > 0;
             }
         }
 
@@ -139,6 +142,20 @@ public final class HugeVertexStep<E extends Element>
             // FIXME: should check that the edge id matches the `vertex`
             query.resetConditions();
             LOG.warn("It's not recommended to query by has(id)");
+        }
+
+        /*
+         * Unset limit when needed to filter property after store query
+         * like query: outE().has(k,v).limit(n)
+         * NOTE: outE().limit(m).has(k,v).limit(n) will also be unset limit,
+         * Can't unset limit if query by paging due to page position will be
+         * exceeded when reaching the limit in tinkerpop layer
+         */
+        if (withEdgeCond || withVertexCond) {
+            com.baidu.hugegraph.util.E.checkArgument(!this.queryInfo().paging(),
+                                                     "Can't query by paging " +
+                                                     "and filtering");
+            this.queryInfo().limit(Query.NO_LIMIT);
         }
 
         query = this.injectQueryInfo(query);

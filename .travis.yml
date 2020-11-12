@@ -1,7 +1,9 @@
 language: java
 
 jdk:
-  - openjdk8
+  - oraclejdk8
+
+dist: trusty
 
 sudo: required
 
@@ -23,26 +25,55 @@ before_script:
   - $TRAVIS_DIR/install-backend.sh
 
 script:
-  - mvn test -P core-test,$BACKEND &&
-    mvn package -DskipTests && $TRAVIS_DIR/start-server.sh && mvn test -P api-test,$BACKEND
-  - |
-    if [ "$BACKEND" == "memory" ]; then
-      mvn test -P unit-test
-    fi
-  - |
-    if [[ "$TRAVIS_BRANCH" =~ $RELEASE_BRANCH ]]; then
-      mvn test -P tinkerpop-structure-test,$BACKEND
-    fi
-  - |
-    if [[ "$TRAVIS_BRANCH" =~ $RELEASE_BRANCH ]]; then
-      mvn test -P tinkerpop-process-test,$BACKEND
-    fi
+  - mvn test -P core-test,$BACKEND
+  - $TRAVIS_DIR/run-api-test.sh
+  - $TRAVIS_DIR/run-unit-test.sh
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
 
 jobs:
   include:
+    - stage: tinkerpop-test
+      if: branch =~ env(RELEASE_BRANCH)
+      env: BACKEND=memory SUITE=tinkerpop
+      script: $TRAVIS_DIR/run-tinkerpop-test.sh
+
+    - stage: tinkerpop-test
+      if: branch =~ env(RELEASE_BRANCH)
+      env: BACKEND=cassandra SUITE=tinkerpop
+      script: $TRAVIS_DIR/run-tinkerpop-test.sh
+
+    - stage: tinkerpop-test
+      if: branch =~ env(RELEASE_BRANCH)
+      env: BACKEND=scylladb SUITE=tinkerpop
+      script: $TRAVIS_DIR/run-tinkerpop-test.sh
+
+    - stage: tinkerpop-test
+      if: branch =~ env(RELEASE_BRANCH)
+      env: BACKEND=mysql SUITE=tinkerpop
+      script: $TRAVIS_DIR/run-tinkerpop-test.sh
+
+    - stage: tinkerpop-test
+      if: branch =~ env(RELEASE_BRANCH)
+      env: BACKEND=hbase SUITE=structure
+      script: $TRAVIS_DIR/run-tinkerpop-test.sh
+
+    - stage: tinkerpop-test
+      if: branch =~ env(RELEASE_BRANCH)
+      env: BACKEND=hbase SUITE=process
+      script: $TRAVIS_DIR/run-tinkerpop-test.sh
+
+    - stage: tinkerpop-test
+      if: branch =~ env(RELEASE_BRANCH)
+      env: BACKEND=rocksdb SUITE=tinkerpop
+      script: $TRAVIS_DIR/run-tinkerpop-test.sh
+
+    - stage: tinkerpop-test
+      if: branch =~ env(RELEASE_BRANCH)
+      env: BACKEND=postgresql SUITE=tinkerpop
+      script: $TRAVIS_DIR/run-tinkerpop-test.sh
+
     - stage: deploy
       if: tag =~ env(RELEASE_TAG)
       script: skip

@@ -22,7 +22,6 @@ package com.baidu.hugegraph.structure;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -44,6 +43,7 @@ import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.id.SnowflakeIdGenerator;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
@@ -57,26 +57,24 @@ import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
+import com.google.common.collect.ImmutableSet;
 
 public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
-    protected GraphTransaction tx;
-    protected VertexLabel label;
-    protected String name;
-    protected Set<HugeEdge> edges;
+    private static final Set<HugeEdge> EMPTY_SET = ImmutableSet.of();
 
-    public HugeVertex(final GraphTransaction tx, Id id, VertexLabel label) {
-        this(tx.graph(), id, label);
-        this.tx = tx;
-        this.fresh = true;
-    }
+    private Id id;
+    private VertexLabel label;
+    private Set<HugeEdge> edges;
 
     public HugeVertex(final HugeGraph graph, Id id, VertexLabel label) {
-        super(graph, id);
-        this.vertexLabel(label);
-        this.edges = InsertionOrderUtil.newSet();
-        this.tx = null;
-        this.name = null;
+        super(graph);
+
+        E.checkArgumentNotNull(label, "Vertex label can't be null");
+        this.label = label;
+
+        this.id = id;
+        this.edges = EMPTY_SET;
         if (this.id != null) {
             if (label.idStrategy() == IdStrategy.CUSTOMIZE_UUID) {
                 this.assignId(id);
@@ -92,7 +90,13 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     }
 
     @Override
+    public Id id() {
+        return this.id;
+    }
+
+    @Override
     public VertexLabel schemaLabel() {
+        assert this.graph().sameAs(this.label.graph());
         return this.label;
     }
 
@@ -102,37 +106,23 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
                      "Only primary key vertex has name, " +
                      "but got '%s' with id strategy '%s'",
                      this, this.label.idStrategy());
-        if (this.name == null) {
-            if (this.id != null) {
-                String[] parts = SplicingIdGenerator.parse(this.id);
-                E.checkState(parts.length == 2,
-                             "Invalid primary key vertex id '%s'", this.id);
-                this.name = parts[1];
-            } else {
-                assert this.id == null;
-                List<Object> propValues = this.primaryValues();
-                E.checkState(!propValues.isEmpty(),
-                             "Primary values must not be empty " +
-                             "(has properties %s)", hasProperties());
-                this.name = SplicingIdGenerator.concatValues(propValues);
-            }
+        String name;
+        if (this.id != null) {
+            String[] parts = SplicingIdGenerator.parse(this.id);
+            E.checkState(parts.length == 2,
+                         "Invalid primary key vertex id '%s'", this.id);
+            name = parts[1];
+        } else {
+            assert this.id == null;
+            List<Object> propValues = this.primaryValues();
+            E.checkState(!propValues.isEmpty(),
+                         "Primary values must not be empty " +
+                         "(has properties %s)", hasProperties());
+            name = SplicingIdGenerator.concatValues(propValues);
+            E.checkArgument(!name.isEmpty(),
+                            "The value of primary key can't be empty");
         }
-        return this.name;
-    }
-
-    @Override
-    protected GraphTransaction tx() {
-        GraphTransaction tx = this.tx;
-        if (tx == null) {
-            tx = super.graph().graphTransaction();
-        }
-        E.checkNotNull(tx, "transaction");
-        return tx;
-    }
-
-    public HugeVertex resetTx() {
-        this.tx = null;
-        return this;
+        return name;
     }
 
     public void assignId(Id id) {
@@ -185,12 +175,18 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
     @Override
     public String label() {
-        return this.label.name();
+        return this.schemaLabel().name();
     }
 
-    public void vertexLabel(VertexLabel label) {
-        E.checkArgumentNotNull(label, "Vertex label can't be null");
-        this.label = label;
+    public void correctVertexLabel(VertexLabel correctLabel) {
+        E.checkArgumentNotNull(correctLabel, "Vertex label can't be null");
+        if (this.label != null && !this.label.undefined() &&
+            !correctLabel.undefined()) {
+            E.checkArgument(this.label.equals(correctLabel),
+                            "Vertex label can't be changed from '%s' to '%s'",
+                            this.label, correctLabel);
+        }
+        this.label = correctLabel;
     }
 
     @Watched(prefix = "vertex")
@@ -231,6 +227,9 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     }
 
     public void addEdge(HugeEdge edge) {
+        if (this.edges == EMPTY_SET) {
+            this.edges = InsertionOrderUtil.newSet();
+        }
         this.edges.add(edge);
     }
 
@@ -243,6 +242,24 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     @Watched(prefix = "vertex")
     @Override
     public HugeEdge addEdge(String label, Vertex vertex, Object... keyValues) {
+        HugeVertex targetVertex = (HugeVertex) vertex;
+
+        HugeEdge edge = this.constructEdge(label, targetVertex, keyValues);
+
+        // Attach edge to vertex
+        this.addOutEdge(edge);
+        targetVertex.addInEdge(edge.switchOwner());
+
+        if (this.fresh()) {
+            this.graph().canAddEdge(edge);
+            return this.tx().addEdge(edge);
+        } else {
+            return (HugeEdge) this.graph().addEdge(edge);
+        }
+    }
+
+    public HugeEdge constructEdge(String label, HugeVertex vertex,
+                                  Object... keyValues) {
         ElementKeys elemKeys = HugeElement.classifyKeys(keyValues);
         // Check id (must be null)
         if (elemKeys.id() != null) {
@@ -254,7 +271,6 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         E.checkArgumentNotNull(vertex, "Target vertex can't be null");
         E.checkArgument(vertex instanceof HugeVertex,
                         "Target vertex must be an instance of HugeVertex");
-        HugeVertex targetVertex = (HugeVertex) vertex;
 
         // Check label
         E.checkArgument(label != null && !label.isEmpty(),
@@ -262,7 +278,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         EdgeLabel edgeLabel = this.graph().edgeLabel(label);
         // Check link
         E.checkArgument(edgeLabel.checkLinkEqual(this.schemaLabel().id(),
-                        ((HugeVertex) vertex).schemaLabel().id()),
+                        vertex.schemaLabel().id()),
                         "Undefined link of edge label '%s': '%s' -> '%s'",
                         label, this.label(), vertex.label());
         // Check sortKeys
@@ -287,7 +303,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
                             this.graph().mapPkId2Name(missed));
         }
 
-        HugeEdge edge = new HugeEdge(this, id, edgeLabel, targetVertex);
+        HugeEdge edge = new HugeEdge(this, id, edgeLabel, vertex);
 
         // Set properties
         ElementHelper.attachProperties(edge, keyValues);
@@ -297,11 +313,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
             edge.assignId();
         }
 
-        // Attach edge to vertex
-        this.addOutEdge(edge);
-        targetVertex.addInEdge(edge.switchOwner());
-
-        return this.tx().addEdge(edge);
+        return edge;
     }
 
     /**
@@ -315,7 +327,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         E.checkState(edge.isDirection(Directions.OUT),
                      "The owner vertex('%s') of OUT edge '%s' should be '%s'",
                      edge.ownerVertex().id(), edge, this.id());
-        this.edges.add(edge);
+        this.addEdge(edge);
     }
 
     /**
@@ -329,7 +341,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         E.checkState(edge.isDirection(Directions.IN),
                      "The owner vertex('%s') of IN edge '%s' should be '%s'",
                      edge.ownerVertex().id(), edge, this.id());
-        this.edges.add(edge);
+        this.addEdge(edge);
     }
 
     public Iterator<Edge> getEdges(Directions direction, String... edgeLabels) {
@@ -366,7 +378,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         Id[] edgeLabelIds = this.graph().mapElName2Id(edgeLabels);
         Query query = GraphTransaction.constructEdgesQuery(this.id(), direction,
                                                            edgeLabelIds);
-        return this.tx().queryEdges(query);
+        return this.graph().edges(query);
     }
 
     @Watched(prefix = "vertex")
@@ -374,19 +386,29 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     public Iterator<Vertex> vertices(Direction direction,
                                      String... edgeLabels) {
         Iterator<Edge> edges = this.edges(direction, edgeLabels);
-        return this.tx().queryAdjacentVertices(edges);
+        return this.graph().adjacentVertices(edges);
     }
 
     @Watched(prefix = "vertex")
     @Override
     public void remove() {
-        this.removed = true;
-        this.tx().removeVertex(this);
+        this.removed(true);
+        /*
+         * Call by tx or by graph to remove vertex,
+         * call by tx if the vertex is new because the context is dependent
+         */
+        GraphTransaction tx = this.tx();
+        if (tx != null) {
+            assert this.fresh();
+            tx.removeVertex(this);
+        } else {
+            assert !this.fresh();
+            this.graph().removeVertex(this);
+        }
     }
 
     @Watched(prefix = "vertex")
     @Override
-    @SuppressWarnings("unchecked") // (VertexProperty<V>) prop
     public <V> VertexProperty<V> property(
                VertexProperty.Cardinality cardinality,
                String key, V value, Object... objects) {
@@ -399,6 +421,25 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         }
 
         PropertyKey propertyKey = this.graph().propertyKey(key);
+        /*
+         * g.AddV("xxx").property("key1", val1).property("key2", val2)
+         * g.AddV("xxx").property(single, "key1", val1)
+         *              .property(list, "key2", val2)
+         *
+         * The cardinality single may be user supplied single, it may also be
+         * that user doesn't supplied cardinality, when it is latter situation,
+         * we shouldn't check it. Because of this reason, we are forced to
+         * give up the check of user supplied cardinality single.
+         * The cardinality not single must be user supplied, so should check it
+         */
+        if (cardinality != VertexProperty.Cardinality.single) {
+            E.checkArgument(propertyKey.cardinality() ==
+                            Cardinality.convert(cardinality),
+                            "Invalid cardinalty '%s' for property key '%s', " +
+                            "expect '%s'", cardinality, key,
+                            propertyKey.cardinality().string());
+        }
+
         // Check key in vertex label
         E.checkArgument(this.label.properties().contains(propertyKey.id()),
                         "Invalid property '%s' for vertex label '%s'",
@@ -408,7 +449,16 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
             E.checkArgument(!this.hasProperty(propertyKey.id()),
                             "Can't update primary key: '%s'", key);
         }
-        return (VertexProperty<V>) this.addProperty(propertyKey, value, true);
+
+        @SuppressWarnings("unchecked")
+        VertexProperty<V> prop = (VertexProperty<V>) this.addProperty(
+                                 propertyKey, value, !this.fresh());
+        return prop;
+    }
+
+    @Override
+    protected GraphTransaction tx() {
+        return null;
     }
 
     @Watched(prefix = "vertex")
@@ -423,26 +473,51 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
                                         HugeProperty<V> prop) {
         if (prop != null) {
             assert prop instanceof HugeVertexProperty;
-            // Use tx to update property (should update cache even if it's new)
-            this.tx().addVertexProperty((HugeVertexProperty<V>) prop);
+            /*
+             * Call tx or graph to update property,
+             * call by tx if the vertex is new because the context is dependent
+             * (should update cache even if it's new)
+             */
+            GraphTransaction tx = this.tx();
+            if (tx != null) {
+                assert this.fresh();
+                tx.addVertexProperty((HugeVertexProperty<V>) prop);
+            } else {
+                assert !this.fresh();
+                this.graph().addVertexProperty((HugeVertexProperty<V>) prop);
+            }
         }
     }
 
     @Watched(prefix = "vertex")
     @Override
     protected boolean ensureFilledProperties(boolean throwIfNotExist) {
-        if (this.propLoaded) {
+        if (this.isPropLoaded()) {
+            this.updateToDefaultValueIfNone();
             return true;
         }
 
-        Iterator<Vertex> vertices = tx().queryVertices(this.id());
-        boolean exist = vertices.hasNext();
-        if (!exist && !throwIfNotExist) {
+        // Skip query if there is no any property key in schema
+        if (this.schemaLabel().properties().isEmpty()) {
+            this.propLoaded();
+            return true;
+        }
+
+        // NOTE: only adjacent vertex will reach here
+        Iterator<Vertex> vertices = this.graph().adjacentVertex(this.id());
+        HugeVertex vertex = (HugeVertex) QueryResults.one(vertices);
+        if (vertex == null && !throwIfNotExist) {
             return false;
         }
-        E.checkState(exist, "Vertex '%s' does not exist", this.id);
-        this.copyProperties((HugeVertex) vertices.next());
-        assert exist;
+        E.checkState(vertex != null, "Vertex '%s' does not exist", this.id);
+        if (vertex.schemaLabel().undefined() ||
+            !vertex.schemaLabel().equals(this.schemaLabel())) {
+            // Update vertex label of dangling edge to undefined
+            this.correctVertexLabel(VertexLabel.undefined(this.graph()));
+            vertex.resetProperties();
+        }
+        this.copyProperties(vertex);
+        this.updateToDefaultValueIfNone();
         return true;
     }
 
@@ -467,12 +542,13 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
             }
         } else {
             for (String key : keys) {
-                PropertyKey propertyKey = this.graph().schemaTransaction()
-                                              .getPropertyKey(key);
-                if (propertyKey == null) {
+                Id pkeyId;
+                try {
+                    pkeyId = this.graph().propertyKey(key).id();
+                } catch (IllegalArgumentException ignored) {
                     continue;
                 }
-                HugeProperty<?> prop = this.getProperty(propertyKey.id());
+                HugeProperty<?> prop = this.getProperty(pkeyId);
                 if (prop == null) {
                     // Not found
                     continue;
@@ -519,7 +595,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     public HugeVertex prepareRemoved() {
         // NOTE: clear edges/properties of the cloned vertex and return
         HugeVertex vertex = this.clone();
-        vertex.removed = true; /* Remove self */
+        vertex.removed(true); /* Remove self */
         vertex.resetEdges();
         vertex.resetProperties();
         return vertex;
@@ -528,7 +604,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     @Override
     public HugeVertex copy() {
         HugeVertex vertex = this.clone();
-        vertex.properties = new HashMap<>(this.properties);
+        vertex.copyProperties(this);
         return vertex;
     }
 
@@ -548,5 +624,42 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
     public static final Id getIdValue(Object idValue) {
         return HugeElement.getIdValue(idValue);
+    }
+
+    public static HugeVertex undefined(HugeGraph graph, Id id) {
+        VertexLabel label = VertexLabel.undefined(graph);
+        return new HugeVertex(graph, id, label);
+    }
+
+    public static HugeVertex create(final GraphTransaction tx,
+                                    Id id, VertexLabel label) {
+        return new HugeVertex4Insert(tx, id, label);
+    }
+
+    private static final class HugeVertex4Insert extends HugeVertex {
+
+        private GraphTransaction tx;
+
+        public HugeVertex4Insert(final GraphTransaction tx,
+                                 Id id, VertexLabel label) {
+            super(tx.graph(), id, label);
+            this.tx = tx;
+            this.fresh(true);
+        }
+
+        @Override
+        public void committed() {
+            super.committed();
+            this.tx = null;
+        }
+
+        @Override
+        protected GraphTransaction tx() {
+            if (this.fresh()) {
+                E.checkNotNull(this.tx, "tx");
+                return this.tx;
+            }
+            return null;
+        }
     }
 }

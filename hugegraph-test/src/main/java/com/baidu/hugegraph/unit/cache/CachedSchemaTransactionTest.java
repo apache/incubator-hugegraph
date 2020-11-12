@@ -23,9 +23,10 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.cache.CachedSchemaTransaction;
-import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.testutil.Whitebox;
@@ -38,11 +39,14 @@ import com.google.common.collect.ImmutableMap;
 public class CachedSchemaTransactionTest extends BaseUnitTest {
 
     private CachedSchemaTransaction cache;
+    private HugeGraphParams params;
 
     @Before
     public void setup() {
-        HugeGraph graph = new HugeGraph(FakeObjects.newConfig());
-        this.cache = new CachedSchemaTransaction(graph, graph.loadSchemaStore());
+        HugeGraph graph = HugeFactory.open(FakeObjects.newConfig());
+        this.params = Whitebox.getInternalState(graph, "params");
+        this.cache = new CachedSchemaTransaction(this.params,
+                                                 this.params.loadSchemaStore());
     }
 
     @After
@@ -79,8 +83,8 @@ public class CachedSchemaTransactionTest extends BaseUnitTest {
         Assert.assertEquals(IdGenerator.of(2),
                             cache.getPropertyKey("fake-pk-2").id());
 
-        cache.graph().schemaEventHub()
-             .notify(Events.CACHE, "clear", null).get();
+        this.params.schemaEventHub().notify(Events.CACHE, "clear",
+                                            null, null).get();
 
         Assert.assertEquals(0L, Whitebox.invoke(cache, "idCache", "size"));
         Assert.assertEquals(0L, Whitebox.invoke(cache, "nameCache", "size"));
@@ -122,12 +126,9 @@ public class CachedSchemaTransactionTest extends BaseUnitTest {
         Assert.assertEquals(IdGenerator.of(2),
                             cache.getPropertyKey("fake-pk-2").id());
 
-        Id key = Whitebox.invokeStatic(CachedSchemaTransaction.class,
-                                       new Class[]{HugeType.class, Id.class},
-                                       "generateId", HugeType.PROPERTY_KEY,
-                                       IdGenerator.of(1));
-        cache.graph().schemaEventHub()
-             .notify(Events.CACHE, "invalid", key).get();
+        this.params.schemaEventHub().notify(Events.CACHE, "invalid",
+                                            HugeType.PROPERTY_KEY,
+                                            IdGenerator.of(1)).get();
 
         Assert.assertEquals(1L, Whitebox.invoke(cache, "idCache", "size"));
         Assert.assertEquals(1L, Whitebox.invoke(cache, "nameCache", "size"));
@@ -154,15 +155,15 @@ public class CachedSchemaTransactionTest extends BaseUnitTest {
         cache.addPropertyKey(objects.newPropertyKey(IdGenerator.of(1),
                                                     "fake-pk-1"));
 
-        cache.graph().schemaEventHub()
-             .notify(Events.CACHE, "clear", null).get();
+        this.params.schemaEventHub().notify(Events.CACHE, "clear",
+                                            null, null).get();
         Assert.assertEquals("fake-pk-1",
                             cache.getPropertyKey(IdGenerator.of(1)).name());
         Assert.assertEquals(IdGenerator.of(1),
                             cache.getPropertyKey("fake-pk-1").id());
 
-        cache.graph().schemaEventHub()
-             .notify(Events.CACHE, "clear", null).get();
+        this.params.schemaEventHub().notify(Events.CACHE, "clear",
+                                            null, null).get();
         Assert.assertEquals(IdGenerator.of(1),
                             cache.getPropertyKey("fake-pk-1").id());
         Assert.assertEquals("fake-pk-1",
@@ -173,25 +174,33 @@ public class CachedSchemaTransactionTest extends BaseUnitTest {
     public void testResetCachedAllIfReachedCapacity() throws Exception {
         CachedSchemaTransaction cache = this.cache();
 
+        Object old = Whitebox.getInternalState(cache, "idCache.capacity");
         Whitebox.setInternalState(cache, "idCache.capacity", 2);
-        Assert.assertEquals(0L, Whitebox.invoke(cache, "idCache", "size"));
+        try {
+            Assert.assertEquals(0L, Whitebox.invoke(cache, "idCache", "size"));
 
-        FakeObjects objects = new FakeObjects("unit-test");
-        cache.addPropertyKey(objects.newPropertyKey(IdGenerator.of(1),
-                                                    "fake-pk-1"));
-        Assert.assertEquals(1L, Whitebox.invoke(cache, "idCache", "size"));
-        Assert.assertEquals(1, cache.getPropertyKeys().size());
-        Assert.assertEquals(ImmutableMap.of(HugeType.PROPERTY_KEY, true),
-                            Whitebox.getInternalState(cache, "cachedTypes"));
+            FakeObjects objects = new FakeObjects("unit-test");
+            cache.addPropertyKey(objects.newPropertyKey(IdGenerator.of(1),
+                                                        "fake-pk-1"));
+            Assert.assertEquals(1L, Whitebox.invoke(cache, "idCache", "size"));
+            Assert.assertEquals(1, cache.getPropertyKeys().size());
+            Whitebox.invoke(CachedSchemaTransaction.class, "cachedTypes", cache);
+            Assert.assertEquals(ImmutableMap.of(HugeType.PROPERTY_KEY, true),
+                                Whitebox.invoke(CachedSchemaTransaction.class,
+                                                "cachedTypes", cache));
 
-        cache.addPropertyKey(objects.newPropertyKey(IdGenerator.of(3),
-                                                    "fake-pk-2"));
-        cache.addPropertyKey(objects.newPropertyKey(IdGenerator.of(2),
-                                                    "fake-pk-3"));
+            cache.addPropertyKey(objects.newPropertyKey(IdGenerator.of(3),
+                                                        "fake-pk-2"));
+            cache.addPropertyKey(objects.newPropertyKey(IdGenerator.of(2),
+                                                        "fake-pk-3"));
 
-        Assert.assertEquals(2L, Whitebox.invoke(cache, "idCache", "size"));
-        Assert.assertEquals(3, cache.getPropertyKeys().size());
-        Assert.assertEquals(ImmutableMap.of(),
-                            Whitebox.getInternalState(cache, "cachedTypes"));
+            Assert.assertEquals(2L, Whitebox.invoke(cache, "idCache", "size"));
+            Assert.assertEquals(3, cache.getPropertyKeys().size());
+            Assert.assertEquals(ImmutableMap.of(),
+                                Whitebox.invoke(CachedSchemaTransaction.class,
+                                                "cachedTypes", cache));
+        } finally {
+            Whitebox.setInternalState(cache, "idCache.capacity", old);
+        }
     }
 }

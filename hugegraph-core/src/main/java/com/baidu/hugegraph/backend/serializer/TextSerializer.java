@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.backend.serializer;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -41,6 +42,7 @@ import com.baidu.hugegraph.backend.query.IdPrefixQuery;
 import com.baidu.hugegraph.backend.query.IdRangeQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
+import com.baidu.hugegraph.backend.tx.GraphIndexTransaction;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -50,10 +52,12 @@ import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeEdgeProperty;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.structure.HugeIndex;
+import com.baidu.hugegraph.structure.HugeIndex.IdWithExpiredTime;
 import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.structure.HugeVertexProperty;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.AggregateType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.type.define.Directions;
@@ -64,10 +68,15 @@ import com.baidu.hugegraph.type.define.IndexType;
 import com.baidu.hugegraph.type.define.SchemaStatus;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
+import com.google.common.collect.ImmutableMap;
 
 public class TextSerializer extends AbstractSerializer {
 
     private static final String VALUE_SPLITOR = TextBackendEntry.VALUE_SPLITOR;
+    private static final String EDGE_NAME_ENDING =
+                                GraphIndexTransaction.INDEX_SYM_ENDING + "";
+
+    private static final String EDGE_OUT_TYPE = writeType(HugeType.EDGE_OUT);
 
     @Override
     public TextBackendEntry newBackendEntry(HugeType type, Id id) {
@@ -115,6 +124,26 @@ public class TextSerializer extends AbstractSerializer {
         return JsonUtil.toJson(prop.value());
     }
 
+    private String formatPropertyName() {
+        return HugeType.PROPERTY.string();
+    }
+
+    private String formatPropertyValues(HugeVertex vertex) {
+        int size = vertex.getProperties().size();
+        StringBuilder sb = new StringBuilder(64 * size);
+        // Vertex properties
+        int i = 0;
+        for (HugeProperty<?> property : vertex.getProperties().values()) {
+            sb.append(this.formatPropertyName(property));
+            sb.append(VALUE_SPLITOR);
+            sb.append(this.formatPropertyValue(property));
+            if (++i < size) {
+                sb.append(VALUE_SPLITOR);
+            }
+        }
+        return sb.toString();
+    }
+
     private void parseProperty(String colName, String colValue,
                                HugeElement owner) {
         String[] colParts = SplicingIdGenerator.split(colName);
@@ -141,6 +170,22 @@ public class TextSerializer extends AbstractSerializer {
         }
     }
 
+    private void parseProperties(String colValue, HugeVertex vertex) {
+        if (colValue == null || colValue.isEmpty()) {
+            return;
+        }
+        String[] valParts = colValue.split(VALUE_SPLITOR);
+        E.checkState(valParts.length % 2 == 0,
+                     "The property key values length must be even number, " +
+                     "but got %s, length is '%s'",
+                     Arrays.toString(valParts), valParts.length);
+        // Edge properties
+        for (int i = 0; i < valParts.length; i += 2) {
+            assert i + 1 < valParts.length;
+            this.parseProperty(valParts[i], valParts[i + 1], vertex);
+        }
+    }
+
     private String formatEdgeName(HugeEdge edge) {
         // Edge name: type + edge-label-name + sortKeys + targetVertex
         return writeEdgeId(edge.idWithDirection(), false);
@@ -150,6 +195,11 @@ public class TextSerializer extends AbstractSerializer {
         StringBuilder sb = new StringBuilder(256 * edge.getProperties().size());
         // Edge id
         sb.append(edge.id().asString());
+        // Write edge expired time
+        sb.append(VALUE_SPLITOR);
+        sb.append(this.formatSyspropName(HugeKeys.EXPIRED_TIME));
+        sb.append(VALUE_SPLITOR);
+        sb.append(edge.expiredTime());
         // Edge properties
         for (HugeProperty<?> property : edge.getProperties().values()) {
             sb.append(VALUE_SPLITOR);
@@ -168,42 +218,23 @@ public class TextSerializer extends AbstractSerializer {
         String[] colParts = EdgeId.split(colName);
 
         HugeGraph graph = vertex.graph();
-        EdgeLabel label = graph.edgeLabel(readId(colParts[1]));
-
-        VertexLabel sourceLabel = graph.vertexLabel(label.sourceLabel());
-        VertexLabel targetLabel = graph.vertexLabel(label.targetLabel());
-
+        boolean direction = colParts[0].equals(EDGE_OUT_TYPE);
+        String sortValues = readEdgeName(colParts[2]);
+        EdgeLabel edgeLabel = graph.edgeLabelOrNone(readId(colParts[1]));
         Id otherVertexId = readEntryId(colParts[3]);
-
-        boolean isOutEdge = colParts[0].equals(writeType(HugeType.EDGE_OUT));
-        HugeVertex otherVertex;
-        if (isOutEdge) {
-            vertex.vertexLabel(sourceLabel);
-            otherVertex = new HugeVertex(graph, otherVertexId, targetLabel);
-        } else {
-            vertex.vertexLabel(targetLabel);
-            otherVertex = new HugeVertex(graph, otherVertexId, sourceLabel);
-        }
-
-        HugeEdge edge = new HugeEdge(graph, null, label);
-        edge.name(colParts[2]);
-        edge.vertices(isOutEdge, vertex, otherVertex);
-        edge.assignId();
-
-        if (isOutEdge) {
-            vertex.addOutEdge(edge);
-            otherVertex.addInEdge(edge.switchOwner());
-        } else {
-            vertex.addInEdge(edge);
-            otherVertex.addOutEdge(edge.switchOwner());
-        }
-
-        vertex.propNotLoaded();
-        otherVertex.propNotLoaded();
+        // Construct edge
+        HugeEdge edge = HugeEdge.constructEdge(vertex, direction, edgeLabel,
+                                               sortValues, otherVertexId);
 
         String[] valParts = colValue.split(VALUE_SPLITOR);
+        // Parse edge expired time
+        String name = this.formatSyspropName(HugeKeys.EXPIRED_TIME);
+        E.checkState(valParts[1].equals(name),
+                     "Invalid system property name '%s'", valParts[1]);
+        edge.expiredTime(JsonUtil.fromJson(valParts[2], Long.class));
+
         // Edge properties
-        for (int i = 1; i < valParts.length; i += 2) {
+        for (int i = 3; i < valParts.length; i += 2) {
             this.parseProperty(valParts[i], valParts[i + 1], edge);
         }
     }
@@ -214,11 +245,11 @@ public class TextSerializer extends AbstractSerializer {
         String type = SplicingIdGenerator.split(colName)[0];
         // Parse property
         if (type.equals(writeType(HugeType.PROPERTY))) {
-            this.parseProperty(colName, colValue, vertex);
+            this.parseProperties(colValue, vertex);
         }
         // Parse edge
         else if (type.equals(writeType(HugeType.EDGE_OUT)) ||
-            type.equals(writeType(HugeType.EDGE_IN))) {
+                 type.equals(writeType(HugeType.EDGE_IN))) {
             this.parseEdge(colName, colValue, vertex);
         }
         // Parse system property
@@ -242,30 +273,18 @@ public class TextSerializer extends AbstractSerializer {
                          writeId(vertex.schemaLabel().id()));
         }
 
+        // Write expired time
+        entry.column(this.formatSyspropName(HugeKeys.EXPIRED_TIME),
+                     writeLong(vertex.expiredTime()));
         // Add all properties of a Vertex
-        for (HugeProperty<?> prop : vertex.getProperties().values()) {
-            entry.column(this.formatPropertyName(prop),
-                         this.formatPropertyValue(prop));
-        }
-
+        entry.column(this.formatPropertyName(),
+                     this.formatPropertyValues(vertex));
         return entry;
     }
 
     @Override
     public BackendEntry writeVertexProperty(HugeVertexProperty<?> prop) {
-        HugeVertex vertex = prop.element();
-        TextBackendEntry entry = newBackendEntry(vertex);
-        entry.subId(IdGenerator.of(prop.key()));
-
-        // Write label (NOTE: maybe just with edges if label is null)
-        if (vertex.schemaLabel() != null) {
-            entry.column(this.formatSyspropName(HugeKeys.LABEL),
-                         writeId(vertex.schemaLabel().id()));
-        }
-
-        entry.column(this.formatPropertyName(prop),
-                     this.formatPropertyValue(prop));
-        return entry;
+        throw new NotImplementedException("Unsupported writeVertexProperty()");
     }
 
     @Override
@@ -278,13 +297,20 @@ public class TextSerializer extends AbstractSerializer {
         TextBackendEntry entry = this.convertEntry(backendEntry);
         // Parse label
         String labelId = entry.column(this.formatSyspropName(HugeKeys.LABEL));
-        VertexLabel label = VertexLabel.NONE;
+        VertexLabel vertexLabel = VertexLabel.NONE;
         if (labelId != null) {
-            label = graph.vertexLabel(readId(labelId));
+            vertexLabel = graph.vertexLabelOrNone(readId(labelId));
         }
 
         Id id = IdUtil.readString(entry.id().asString());
-        HugeVertex vertex = new HugeVertex(graph, id, label);
+        HugeVertex vertex = new HugeVertex(graph, id, vertexLabel);
+
+        String expiredTime = entry.column(this.formatSyspropName(
+                             HugeKeys.EXPIRED_TIME));
+        // Expired time is null when backend entry is fake vertex with edges
+        if (expiredTime != null) {
+            vertex.expiredTime(readLong(expiredTime));
+        }
 
         // Parse all properties or edges of a Vertex
         for (String name : entry.columnNames()) {
@@ -322,11 +348,11 @@ public class TextSerializer extends AbstractSerializer {
     @Override
     public BackendEntry writeIndex(HugeIndex index) {
         TextBackendEntry entry = newBackendEntry(index.type(), index.id());
-        /*
-         * When field-values is null and elementIds size is 0, it is
-         * meaningful for deletion of index data in secondary/range index.
-         */
         if (index.fieldValues() == null && index.elementIds().size() == 0) {
+            /*
+             * When field-values is null and elementIds size is 0, it is
+             * meaningful for deletion of index data in secondary/range index.
+             */
             entry.column(HugeKeys.INDEX_LABEL_ID,
                          writeId(index.indexLabelId()));
         } else {
@@ -336,7 +362,7 @@ public class TextSerializer extends AbstractSerializer {
             entry.column(formatSyspropName(HugeKeys.INDEX_LABEL_ID),
                          writeId(index.indexLabelId()));
             entry.column(formatSyspropName(HugeKeys.ELEMENT_IDS),
-                         writeIds(index.elementIds()));
+                         writeElementId(index.elementId(), index.expiredTime()));
             entry.subId(index.elementId());
         }
         return entry;
@@ -352,21 +378,26 @@ public class TextSerializer extends AbstractSerializer {
 
         TextBackendEntry entry = this.convertEntry(backendEntry);
         String indexValues = entry.column(
-                formatSyspropName(HugeKeys.FIELD_VALUES));
+                             formatSyspropName(HugeKeys.FIELD_VALUES));
         String indexLabelId = entry.column(
-                formatSyspropName(HugeKeys.INDEX_LABEL_ID));
+                              formatSyspropName(HugeKeys.INDEX_LABEL_ID));
         String elemIds = entry.column(
-                formatSyspropName(HugeKeys.ELEMENT_IDS));
+                         formatSyspropName(HugeKeys.ELEMENT_IDS));
 
         IndexLabel indexLabel = IndexLabel.label(graph, readId(indexLabelId));
-        HugeIndex index = new HugeIndex(indexLabel);
+        HugeIndex index = new HugeIndex(graph, indexLabel);
         index.fieldValues(JsonUtil.fromJson(indexValues, Object.class));
-        for (Id elemId : readIds(elemIds)) {
+        for (IdWithExpiredTime elemId : readElementIds(elemIds)) {
+            long expiredTime = elemId.expiredTime();
+            Id id;
             if (indexLabel.queryType().isEdge()) {
-                elemId = EdgeId.parse(elemId.asString());
+                id = EdgeId.parse(elemId.id().asString());
+            } else {
+                id = elemId.id();
             }
-            index.elementIds(elemId);
+            index.elementIds(id, expiredTime);
         }
+        // Memory backend might return empty BackendEntry
         return index;
     }
 
@@ -571,6 +602,9 @@ public class TextSerializer extends AbstractSerializer {
         writeUserdata(edgeLabel, entry);
         entry.column(HugeKeys.STATUS,
                      JsonUtil.toJson(edgeLabel.status()));
+        entry.column(HugeKeys.TTL, JsonUtil.toJson(edgeLabel.ttl()));
+        entry.column(HugeKeys.TTL_START_TIME,
+                     writeId(edgeLabel.ttlStartTime()));
         return entry;
     }
 
@@ -594,6 +628,8 @@ public class TextSerializer extends AbstractSerializer {
         String indexLabels = entry.column(HugeKeys.INDEX_LABELS);
         String enableLabelIndex = entry.column(HugeKeys.ENABLE_LABEL_INDEX);
         String status = entry.column(HugeKeys.STATUS);
+        String ttl = entry.column(HugeKeys.TTL);
+        String ttlStartTime = entry.column(HugeKeys.TTL_START_TIME);
 
         EdgeLabel edgeLabel = new EdgeLabel(graph, id, name);
         edgeLabel.sourceLabel(readId(sourceLabel));
@@ -607,6 +643,8 @@ public class TextSerializer extends AbstractSerializer {
                                                      Boolean.class));
         readUserdata(edgeLabel, entry);
         edgeLabel.status(JsonUtil.fromJson(status, SchemaStatus.class));
+        edgeLabel.ttl(JsonUtil.fromJson(ttl, Long.class));
+        edgeLabel.ttlStartTime(readId(ttlStartTime));
         return edgeLabel;
     }
 
@@ -618,6 +656,8 @@ public class TextSerializer extends AbstractSerializer {
                      JsonUtil.toJson(propertyKey.dataType()));
         entry.column(HugeKeys.CARDINALITY,
                      JsonUtil.toJson(propertyKey.cardinality()));
+        entry.column(HugeKeys.AGGREGATE_TYPE,
+                     JsonUtil.toJson(propertyKey.aggregateType()));
         entry.column(HugeKeys.PROPERTIES, writeIds(propertyKey.properties()));
         writeUserdata(propertyKey, entry);
         entry.column(HugeKeys.STATUS,
@@ -638,6 +678,7 @@ public class TextSerializer extends AbstractSerializer {
                                         String.class);
         String dataType = entry.column(HugeKeys.DATA_TYPE);
         String cardinality = entry.column(HugeKeys.CARDINALITY);
+        String aggregateType = entry.column(HugeKeys.AGGREGATE_TYPE);
         String properties = entry.column(HugeKeys.PROPERTIES);
         String status = entry.column(HugeKeys.STATUS);
 
@@ -645,6 +686,8 @@ public class TextSerializer extends AbstractSerializer {
         propertyKey.dataType(JsonUtil.fromJson(dataType, DataType.class));
         propertyKey.cardinality(JsonUtil.fromJson(cardinality,
                                                   Cardinality.class));
+        propertyKey.aggregateType(JsonUtil.fromJson(aggregateType,
+                                                    AggregateType.class));
         propertyKey.properties(readIds(properties));
         readUserdata(propertyKey, entry);
         propertyKey.status(JsonUtil.fromJson(status, SchemaStatus.class));
@@ -661,6 +704,7 @@ public class TextSerializer extends AbstractSerializer {
         entry.column(HugeKeys.INDEX_TYPE,
                      JsonUtil.toJson(indexLabel.indexType()));
         entry.column(HugeKeys.FIELDS, writeIds(indexLabel.indexFields()));
+        writeUserdata(indexLabel, entry);
         entry.column(HugeKeys.STATUS,
                      JsonUtil.toJson(indexLabel.status()));
         return entry;
@@ -688,6 +732,7 @@ public class TextSerializer extends AbstractSerializer {
         indexLabel.baseValue(readId(baseValue));
         indexLabel.indexType(JsonUtil.fromJson(indexType, IndexType.class));
         indexLabel.indexFields(readIds(indexFields));
+        readUserdata(indexLabel, entry);
         indexLabel.status(JsonUtil.fromJson(status, SchemaStatus.class));
         return indexLabel;
     }
@@ -706,7 +751,7 @@ public class TextSerializer extends AbstractSerializer {
         // Edge name: type + edge-label-name + sortKeys + targetVertex
         list.add(writeType(edgeId.direction().type()));
         list.add(writeId(edgeId.edgeLabelId()));
-        list.add(edgeId.sortValues());
+        list.add(writeEdgeName(edgeId.sortValues()));
         list.add(writeEntryId(edgeId.otherVertexId()));
 
         return EdgeId.concat(list.toArray(new String[0]));
@@ -722,6 +767,16 @@ public class TextSerializer extends AbstractSerializer {
 
     private static Id readEntryId(String id) {
         return IdUtil.readString(id);
+    }
+
+    private static String writeEdgeName(String name) {
+        return name + EDGE_NAME_ENDING;
+    }
+
+    private static String readEdgeName(String name) {
+        E.checkState(name.endsWith(EDGE_NAME_ENDING),
+                     "Invalid edge name: %s", name);
+        return name.substring(0, name.length() - 1);
     }
 
     private static String writeId(Id id) {
@@ -772,6 +827,55 @@ public class TextSerializer extends AbstractSerializer {
             }
         }
         return ids;
+    }
+
+    private static String writeElementId(Id id, long expiredTime) {
+        Object[] array = new Object[1];
+        Object idValue = id.number() ? id.asLong() : id.asString();
+        if (expiredTime <= 0L) {
+            array[0] = id;
+        } else {
+            array[0] = ImmutableMap.of(HugeKeys.ID.string(), idValue,
+                                       HugeKeys.EXPIRED_TIME.string(),
+                                       expiredTime);
+        }
+        return JsonUtil.toJson(array);
+    }
+
+    private static IdWithExpiredTime[] readElementIds(String str) {
+        Object[] values = JsonUtil.fromJson(str, Object[].class);
+        IdWithExpiredTime[] ids = new IdWithExpiredTime[values.length];
+        for (int i = 0; i < values.length; i++) {
+            Object idValue;
+            long expiredTime;
+            if (values[i] instanceof Map) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> map = (Map<String, Object>) values[i];
+                idValue = map.get(HugeKeys.ID.string());
+                expiredTime = ((Number) map.get(
+                              HugeKeys.EXPIRED_TIME.string())).longValue();
+            } else {
+                idValue = values[i];
+                expiredTime = 0L;
+            }
+            Id id;
+            if (idValue instanceof Number) {
+                id = IdGenerator.of(((Number) idValue).longValue());
+            } else {
+                assert idValue instanceof String;
+                id = IdGenerator.of(idValue.toString());
+            }
+            ids[i] = new IdWithExpiredTime(id, expiredTime);
+        }
+        return ids;
+    }
+
+    private static String writeLong(long value) {
+        return JsonUtil.toJson(value);
+    }
+
+    private static long readLong(String value) {
+        return Long.parseLong(value);
     }
 
     private static void writeUserdata(SchemaElement schema,

@@ -92,7 +92,7 @@ public class CassandraFeatures implements BackendFeatures {
 
     @Override
     public boolean supportsMergeVertexProperty() {
-        return true;
+        return false;
     }
 
     @Override
@@ -109,6 +109,16 @@ public class CassandraFeatures implements BackendFeatures {
 
     @Override
     public boolean supportsNumberType() {
+        return true;
+    }
+
+    @Override
+    public boolean supportsAggregateProperty() {
+        return false;
+    }
+
+    @Override
+    public boolean supportsTtl() {
         return true;
     }
 }

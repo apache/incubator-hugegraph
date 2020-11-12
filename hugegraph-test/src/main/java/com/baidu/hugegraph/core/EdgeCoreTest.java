@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 
 import org.apache.tinkerpop.gremlin.process.traversal.Order;
@@ -40,25 +41,30 @@ import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.page.PageInfo;
+import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
+import com.baidu.hugegraph.backend.store.BackendTable;
 import com.baidu.hugegraph.backend.store.Shard;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.exception.LimitExceedException;
-import com.baidu.hugegraph.exception.NotFoundException;
+import com.baidu.hugegraph.exception.NoIndexException;
 import com.baidu.hugegraph.schema.SchemaManager;
+import com.baidu.hugegraph.schema.Userdata;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.testutil.Assert;
@@ -70,6 +76,8 @@ import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.util.DateUtil;
+import com.baidu.hugegraph.util.Events;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
@@ -178,6 +186,19 @@ public class EdgeCoreTest extends BaseCoreTest {
               .nullableKeys("tool", "reason", "hurt")
               .enableLabelIndex(false)
               .ifNotExist().create();
+        schema.edgeLabel("read").link("person", "book")
+              .properties("place", "date")
+              .ttl(3000L)
+              .enableLabelIndex(true)
+              .ifNotExist()
+              .create();
+        schema.edgeLabel("borrow").link("person", "book")
+              .properties("place", "date")
+              .ttl(3000L)
+              .ttlStartTime("date")
+              .enableLabelIndex(true)
+              .ifNotExist()
+              .create();
     }
 
     protected void initStrikeIndex() {
@@ -453,7 +474,71 @@ public class EdgeCoreTest extends BaseCoreTest {
             String largeTime = new String(new byte[LEN]) + "{large-time}";
             james.addEdge("write", book, "time", largeTime);
             graph.tx().commit();
+        }, e -> {
+            Assert.assertContains("The max length of edge id is 32768",
+                                  e.getMessage());
         });
+    }
+
+    @Test
+    public void testAddEdgeWithInvalidSortkey() {
+        HugeGraph graph = graph();
+
+        Vertex james = graph.addVertex(T.label, "author", "id", 1,
+                                       "name", "James Gosling", "age", 62,
+                                       "lived", "Canadian");
+        Vertex book = graph.addVertex(T.label, "book", "name", "Test-Book-1");
+        graph.tx().commit();
+
+        String backend = graph.backend();
+        if (backend.equals("postgresql")) {
+            Assert.assertThrows(BackendException.class, () -> {
+                james.addEdge("write", book, "time", "2017-5-27\u0000");
+                graph.tx().commit();
+            }, e -> {
+                // pgsql need to clear and reset state (like auto-commit)
+                graph.tx().rollback();
+                Assert.assertContains("invalid byte sequence for encoding " +
+                                      "\"UTF8\": 0x00",
+                                      e.getCause().getMessage());
+            });
+
+            Assert.assertThrows(BackendException.class, () -> {
+                graph.traversal().V(james.id())
+                     .outE("write").has("time", "2017-5-27\u0000")
+                     .toList();
+            }, e -> {
+                Assert.assertContains("Zero bytes may not occur in string " +
+                                      "parameters", e.getCause().getMessage());
+            });
+        } else if (backend.equals("rocksdb") || backend.equals("hbase")) {
+            Assert.assertThrows(IllegalArgumentException.class, () -> {
+                james.addEdge("write", book, "time", "2017-5-27\u0000");
+                graph.tx().commit();
+            }, e -> {
+                Assert.assertContains("Can't contains byte '0x00' in string",
+                                      e.getMessage());
+            });
+
+            Assert.assertThrows(IllegalArgumentException.class, () -> {
+                graph.traversal().V(james.id())
+                     .outE("write").has("time", "2017-5-27\u0000")
+                     .toList();
+            }, e -> {
+                Assert.assertContains("Can't contains byte '0x00' in string",
+                                      e.getMessage());
+            });
+        } else {
+            james.addEdge("write", book, "time", "2017-5-27\u0000");
+            graph.tx().commit();
+
+            List<Edge> edges = graph.traversal().V(james.id())
+                                                .outE("write")
+                                                .has("time", "2017-5-27\u0000")
+                                                .toList();
+            Assert.assertEquals(1, edges.size());
+            Assert.assertEquals("2017-5-27\u0000", edges.get(0).value("time"));
+        }
     }
 
     @Test
@@ -531,6 +616,1099 @@ public class EdgeCoreTest extends BaseCoreTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             james.addEdge("authored", book, "score", "5");
         });
+    }
+
+    @Test
+    public void testAddEdgeWithDefaultPropertyValue() {
+        SchemaManager schema = graph().schema();
+
+        schema.propertyKey("fav").asText()
+              .userdata(Userdata.DEFAULT_VALUE, "Movie").create();
+        schema.propertyKey("cnt").asInt()
+              .userdata(Userdata.DEFAULT_VALUE, 123).create();
+        schema.edgeLabel("authored")
+              .properties("fav", "cnt")
+              .nullableKeys("fav", "cnt").append();
+
+        Vertex marko = graph().addVertex(T.label, "author", "id", 1,
+                                         "name", "marko", "age", 28,
+                                         "lived", "Beijing");
+        Vertex java = graph().addVertex(T.label, "book",
+                                        "name", "Java in action");
+
+        Edge edge = marko.addEdge("authored", java,
+                                  "contribution", "2010-01-01",
+                                  "score", 99);
+
+        // No 'fav'
+        Assert.assertEquals("2010-01-01", edge.value("contribution"));
+        Assert.assertFalse(edge.values("fav").hasNext());
+        Assert.assertFalse(edge.values("age").hasNext());
+
+        edge = graph().edge(edge.id());
+        Assert.assertEquals("2010-01-01", edge.value("contribution"));
+        Assert.assertFalse(edge.values("fav").hasNext());
+        Assert.assertFalse(edge.values("age").hasNext());
+
+        graph().tx().commit();
+
+        // Exist 'fav' after commit then query
+        edge = graph().edge(edge.id());
+        Assert.assertEquals("2010-01-01", edge.value("contribution"));
+        Assert.assertEquals("Movie", edge.value("fav"));
+        Assert.assertEquals(123, edge.value("cnt"));
+    }
+
+    @Test
+    public void testOverrideEdge() {
+        HugeGraph graph = graph();
+        Vertex marko = graph().addVertex(T.label, "author", "id", 1,
+                                         "name", "marko", "age", 28,
+                                         "lived", "Beijing");
+        Vertex java = graph().addVertex(T.label, "book",
+                                        "name", "Java in action");
+
+        Object edgeId = marko.addEdge("authored", java,
+                                      "contribution", "2010-01-01",
+                                      "score", 99).id();
+        graph.tx().commit();
+        Edge edge = graph.edges(edgeId).next();
+        Assert.assertTrue(edge.property("contribution").isPresent());
+        Assert.assertEquals("2010-01-01", edge.value("contribution"));
+        Assert.assertTrue(edge.property("score").isPresent());
+        Assert.assertEquals(99, edge.value("score"));
+
+        marko.addEdge("authored", java, "score", 100).id();
+        graph.tx().commit();
+        edge = graph.edges(edgeId).next();
+        Assert.assertFalse(edge.property("contribution").isPresent());
+        Assert.assertTrue(edge.property("score").isPresent());
+        Assert.assertEquals(100, edge.value("score"));
+
+        marko.addEdge("authored", java, "contribution", "2011-01-01",
+                      "score", 101).id();
+        graph.tx().commit();
+        edge = graph.edges(edgeId).next();
+        Assert.assertTrue(edge.property("contribution").isPresent());
+        Assert.assertEquals("2011-01-01", edge.value("contribution"));
+        Assert.assertTrue(edge.property("score").isPresent());
+        Assert.assertEquals(101, edge.value("score"));
+    }
+
+    @Test
+    public void testAddEdgeWithTtl() {
+        Vertex baby = graph().addVertex(T.label, "person", "name", "Baby",
+                                        "age", 3, "city", "Beijing");
+        Vertex java = graph().addVertex(T.label, "book",
+                                        "name", "Java in action");
+        Edge edge = baby.addEdge("read", java, "place", "library of school",
+                                 "date", "2019-12-23 12:00:00");
+        graph().tx().commit();
+
+        Iterator<Edge> edges = graph().edges(edge);
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(edge, edges.next());
+        graph().tx().commit();
+
+        try {
+            Thread.sleep(3100L);
+        } catch (InterruptedException e) {
+            // Ignore
+        }
+        edges = graph().edges(edge);
+        Assert.assertFalse(edges.hasNext());
+    }
+
+    @Test
+    public void testAddEdgeWithTtlAndTtlStartTime() {
+        Vertex baby = graph().addVertex(T.label, "person", "name", "Baby",
+                                        "age", 3, "city", "Beijing");
+        Vertex java = graph().addVertex(T.label, "book",
+                                        "name", "Java in action");
+        Edge edge = baby.addEdge("borrow", java, "place", "library of school",
+                                 "date", DateUtil.now().getTime() - 2000L);
+        graph().tx().commit();
+
+        Iterator<Edge> edges = graph().edges(edge);
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(edge, edges.next());
+        graph().tx().commit();
+
+        try {
+            Thread.sleep(500L);
+        } catch (InterruptedException e) {
+            // Ignore
+        }
+
+        edges = graph().edges(edge);
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(edge, edges.next());
+        graph().tx().commit();
+
+        try {
+            Thread.sleep(1000L);
+        } catch (InterruptedException e) {
+            // Ignore
+        }
+        edges = graph().edges(edge);
+        Assert.assertFalse(edges.hasNext());
+    }
+
+    @Test
+    public void testAddEdgeWithSecondaryIndexAndTtl() {
+        graph().schema().indexLabel("readByPlace").onE("read").by("place")
+               .secondary().ifNotExist().create();
+
+        Vertex baby = graph().addVertex(T.label, "person", "name", "Baby",
+                                        "age", 3, "city", "Beijing");
+        Vertex java = graph().addVertex(T.label, "book",
+                                        "name", "Java in action");
+        Edge edge = baby.addEdge("read", java, "place", "library of school",
+                                 "date", "2019-12-23 12:00:00");
+        graph().tx().commit();
+
+        Iterator<Edge> edges = graph().traversal().E()
+                                      .has("place", "library of school");
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(edge, edges.next());
+        graph().tx().commit();
+
+        try {
+            Thread.sleep(3100L);
+        } catch (InterruptedException e) {
+            // Ignore
+        }
+
+        edges = graph().traversal().E().has("place", "library of school");
+        Assert.assertFalse(edges.hasNext());
+    }
+
+    @Test
+    public void testAddEdgeWithRangeIndexAndTtl() {
+        graph().schema().indexLabel("readByDate").onE("read").by("date")
+               .range().ifNotExist().create();
+
+        Vertex baby = graph().addVertex(T.label, "person", "name", "Baby",
+                                        "age", 3, "city", "Beijing");
+        Vertex java1 = graph().addVertex(T.label, "book", "name", "Java1");
+        Vertex java2 = graph().addVertex(T.label, "book", "name", "Java2");
+        Vertex java3 = graph().addVertex(T.label, "book", "name", "Java3");
+        Vertex java4 = graph().addVertex(T.label, "book", "name", "Java4");
+        Vertex java5 = graph().addVertex(T.label, "book", "name", "Java5");
+        Edge edge1 = baby.addEdge("read", java1, "place", "library of school",
+                                  "date", "2019-12-23 12:00:00");
+        @SuppressWarnings("unused")
+        Edge edge2 = baby.addEdge("read", java2, "place", "library of school",
+                                  "date", "2019-12-23 13:00:00");
+        Edge edge3 = baby.addEdge("read", java3, "place", "library of school",
+                                  "date", "2019-12-23 14:00:00");
+        @SuppressWarnings("unused")
+        Edge edge4 = baby.addEdge("read", java4, "place", "library of school",
+                                  "date", "2019-12-23 15:00:00");
+        Edge edge5 = baby.addEdge("read", java5, "place", "library of school",
+                                  "date", "2019-12-23 16:00:00");
+        graph().tx().commit();
+
+        Iterator<Edge> edges = graph().traversal().E()
+                                      .has("date", "2019-12-23 14:00:00");
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(edge3, edges.next());
+
+        edges = graph().traversal().E()
+                       .has("date", P.gt("2019-12-23 15:00:00"));
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(edge5, edges.next());
+
+        edges = graph().traversal().E()
+                       .has("date", P.gte("2019-12-23 15:00:00"));
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(2, IteratorUtils.count(edges));
+
+        edges = graph().traversal().E()
+                       .has("date", P.lt("2019-12-23 13:00:00"));
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(edge1, edges.next());
+
+        edges = graph().traversal().E()
+                       .has("date", P.lte("2019-12-23 13:00:00"));
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(2, IteratorUtils.count(edges));
+        graph().tx().commit();
+
+        try {
+            Thread.sleep(3100L);
+        } catch (InterruptedException e) {
+            // Ignore
+        }
+
+        edges = graph().traversal().E().has("date", "2019-12-23 14:00:00");
+        Assert.assertFalse(edges.hasNext());
+
+        edges = graph().traversal().E()
+                       .has("date", P.gt("2019-12-23 15:00:00"));
+        Assert.assertFalse(edges.hasNext());
+
+        edges = graph().traversal().E()
+                       .has("date", P.gte("2019-12-23 15:00:00"));
+        Assert.assertFalse(edges.hasNext());
+
+        edges = graph().traversal().E()
+                       .has("date", P.lt("2019-12-23 13:00:00"));
+        Assert.assertFalse(edges.hasNext());
+
+        edges = graph().traversal().E()
+                       .has("date", P.lte("2019-12-23 13:00:00"));
+        Assert.assertFalse(edges.hasNext());
+    }
+
+    @Test
+    public void testAddEdgeWithShardIndexAndTtl() {
+        graph().schema().indexLabel("readByPlaceAndDate").onE("read")
+               .by("place", "date").shard().ifNotExist().create();
+
+        Vertex baby = graph().addVertex(T.label, "person", "name", "Baby",
+                                        "age", 3, "city", "Beijing");
+        Vertex java1 = graph().addVertex(T.label, "book", "name", "Java1");
+        Vertex java2 = graph().addVertex(T.label, "book", "name", "Java2");
+        Vertex java3 = graph().addVertex(T.label, "book", "name", "Java3");
+        Vertex java4 = graph().addVertex(T.label, "book", "name", "Java4");
+        Vertex java5 = graph().addVertex(T.label, "book", "name", "Java5");
+        Vertex java6 = graph().addVertex(T.label, "book", "name", "Java6");
+        Edge edge1 = baby.addEdge("read", java1, "place", "library of school",
+                                  "date", "2019-12-23 12:00:00");
+        @SuppressWarnings("unused")
+        Edge edge2 = baby.addEdge("read", java2, "place", "library of school",
+                                  "date", "2019-12-23 13:00:00");
+        Edge edge3 = baby.addEdge("read", java3, "place", "library of school",
+                                  "date", "2019-12-23 14:00:00");
+        @SuppressWarnings("unused")
+        Edge edge4 = baby.addEdge("read", java4, "place", "library of school",
+                                  "date", "2019-12-23 15:00:00");
+        Edge edge5 = baby.addEdge("read", java5, "place", "library of school",
+                                  "date", "2019-12-23 16:00:00");
+        Edge edge6 = baby.addEdge("read", java6, "place", "home",
+                                  "date", "2019-12-23 14:00:00");
+        graph().tx().commit();
+
+        Iterator<Edge> edges = graph().traversal().E().has("place", "home");
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(edge6, edges.next());
+
+        edges = graph().traversal().E().has("place", "library of school")
+                       .has("date", "2019-12-23 14:00:00");
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(edge3, edges.next());
+
+        edges = graph().traversal().E().has("place", "library of school")
+                       .has("date", P.gt("2019-12-23 15:00:00"));
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(edge5, edges.next());
+
+        edges = graph().traversal().E().has("place", "library of school")
+                       .has("date", P.gte("2019-12-23 15:00:00"));
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(2, IteratorUtils.count(edges));
+
+        edges = graph().traversal().E().has("place", "library of school")
+                       .has("date", P.lt("2019-12-23 13:00:00"));
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(edge1, edges.next());
+
+        edges = graph().traversal().E().has("place", "library of school")
+                       .has("date", P.lte("2019-12-23 13:00:00"));
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(2, IteratorUtils.count(edges));
+        graph().tx().commit();
+
+        try {
+            Thread.sleep(3100L);
+        } catch (InterruptedException e) {
+            // Ignore
+        }
+
+        edges = graph().traversal().E().has("place", "home");
+        Assert.assertFalse(edges.hasNext());
+
+        edges = graph().traversal().E().has("place", "library of school")
+                       .has("date", "2019-12-23 14:00:00");
+        Assert.assertFalse(edges.hasNext());
+
+        edges = graph().traversal().E().has("place", "library of school")
+                       .has("date", P.gt("2019-12-23 15:00:00"));
+        Assert.assertFalse(edges.hasNext());
+
+        edges = graph().traversal().E().has("place", "library of school")
+                       .has("date", P.gte("2019-12-23 15:00:00"));
+        Assert.assertFalse(edges.hasNext());
+
+        edges = graph().traversal().E().has("place", "library of school")
+                       .has("date", P.lt("2019-12-23 13:00:00"));
+        Assert.assertFalse(edges.hasNext());
+
+        edges = graph().traversal().E().has("place", "library of school")
+                       .has("date", P.lte("2019-12-23 13:00:00"));
+        Assert.assertFalse(edges.hasNext());
+    }
+
+    @Test
+    public void testAddEdgeWithSearchIndexAndTtl() {
+        graph().schema().indexLabel("readByPlace").onE("read")
+               .by("place").search().ifNotExist().create();
+
+        Vertex baby = graph().addVertex(T.label, "person", "name", "Baby",
+                                        "age", 3, "city", "Beijing");
+        Vertex java = graph().addVertex(T.label, "book",
+                                        "name", "Java in action");
+        Edge edge = baby.addEdge("read", java, "place", "library of school",
+                                 "date", "2019-12-23 12:00:00");
+        graph().tx().commit();
+
+        Iterator<Edge> edges = graph().traversal().E()
+                                      .has("place", Text.contains("library"));
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(edge, edges.next());
+        graph().tx().commit();
+
+        try {
+            Thread.sleep(3100L);
+        } catch (InterruptedException e) {
+            // Ignore
+        }
+
+        edges = graph().traversal().E().has("place", Text.contains("library"));
+        Assert.assertFalse(edges.hasNext());
+    }
+
+    @Test
+    public void testAddEdgeWithUniqueIndexAndTtl() {
+        graph().schema().indexLabel("readByPlace").onE("read")
+               .by("place").unique().ifNotExist().create();
+
+        Vertex baby = graph().addVertex(T.label, "person", "name", "Baby",
+                                        "age", 3, "city", "Beijing");
+        Vertex java = graph().addVertex(T.label, "book",
+                                        "name", "Java in action");
+        baby.addEdge("read", java, "place", "library of school",
+                     "date", "2019-12-23 12:00:00");
+        graph().tx().commit();
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            baby.addEdge("read", java, "place", "library of school",
+                         "date", "2019-12-23 12:00:00");
+            graph().tx().commit();
+        });
+
+        try {
+            Thread.sleep(3100L);
+        } catch (InterruptedException e) {
+            // Ignore
+        }
+
+        baby.addEdge("read", java, "place", "library of school",
+                     "date", "2019-12-23 12:00:00");
+        graph().tx().commit();
+    }
+
+    @Test
+    public void testOverrideEdgeWithSecondaryIndexAndTtl() {
+        graph().schema().indexLabel("readByPlace").onE("read").by("place")
+               .secondary().ifNotExist().create();
+
+        Vertex baby = graph().addVertex(T.label, "person", "name", "Baby",
+                                        "age", 3, "city", "Beijing");
+        Vertex java = graph().addVertex(T.label, "book",
+                                        "name", "Java in action");
+        Edge edge = baby.addEdge("read", java, "place", "library of school",
+                                 "date", "2019-12-23 12:00:00");
+        graph().tx().commit();
+
+        Iterator<Edge> edges = graph().traversal().E()
+                                      .has("place", "library of school");
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(edge, edges.next());
+        graph().tx().commit();
+
+        try {
+            Thread.sleep(3100L);
+        } catch (InterruptedException e) {
+            // Ignore
+        }
+
+        // Override
+        edge = baby.addEdge("read", java, "place", "home",
+                            "date", "2019-12-23 12:00:00");
+        graph().tx().commit();
+
+        // Due to overridden edges are expired, query will lead to async delete
+        edges = graph().traversal().E().has("place", "library of school");
+        Assert.assertFalse(edges.hasNext());
+
+        edges = graph().traversal().E().has("place", "home");
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(edge, edges.next());
+        graph().tx().commit();
+
+        try {
+            Thread.sleep(3100L);
+        } catch (InterruptedException e) {
+            // Ignore
+        }
+
+        // All edges are expired after 6s
+        edges = graph().traversal().E().has("place", "library of school");
+        Assert.assertFalse(edges.hasNext());
+        edges = graph().traversal().E().has("place", "home");
+        Assert.assertFalse(edges.hasNext());
+    }
+
+    @Test
+    public void testOverrideEdgeWithRangeIndexAndTtl() {
+        graph().schema().indexLabel("readByDate").onE("read").by("date")
+               .range().ifNotExist().create();
+
+        Vertex baby = graph().addVertex(T.label, "person", "name", "Baby",
+                                        "age", 3, "city", "Beijing");
+        Vertex java1 = graph().addVertex(T.label, "book", "name", "Java1");
+        Vertex java2 = graph().addVertex(T.label, "book", "name", "Java2");
+        Vertex java3 = graph().addVertex(T.label, "book", "name", "Java3");
+        Vertex java4 = graph().addVertex(T.label, "book", "name", "Java4");
+        Vertex java5 = graph().addVertex(T.label, "book", "name", "Java5");
+        Edge edge1 = baby.addEdge("read", java1, "place", "library of school",
+                                  "date", "2019-12-23 12:00:00");
+        @SuppressWarnings("unused")
+        Edge edge2 = baby.addEdge("read", java2, "place", "library of school",
+                                  "date", "2019-12-23 13:00:00");
+        Edge edge3 = baby.addEdge("read", java3, "place", "library of school",
+                                  "date", "2019-12-23 14:00:00");
+        @SuppressWarnings("unused")
+        Edge edge4 = baby.addEdge("read", java4, "place", "library of school",
+                                  "date", "2019-12-23 15:00:00");
+        Edge edge5 = baby.addEdge("read", java5, "place", "library of school",
+                                  "date", "2019-12-23 16:00:00");
+        graph().tx().commit();
+
+        Iterator<Edge> edges = graph().traversal().E()
+                                      .has("date", "2019-12-23 14:00:00");
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(edge3, edges.next());
+
+        edges = graph().traversal().E()
+                       .has("date", P.gt("2019-12-23 15:00:00"));
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(edge5, edges.next());
+
+        edges = graph().traversal().E()
+                       .has("date", P.gte("2019-12-23 15:00:00"));
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(2, IteratorUtils.count(edges));
+
+        edges = graph().traversal().E()
+                       .has("date", P.lt("2019-12-23 13:00:00"));
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(edge1, edges.next());
+
+        edges = graph().traversal().E()
+                       .has("date", P.lte("2019-12-23 13:00:00"));
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(2, IteratorUtils.count(edges));
+        graph().tx().commit();
+
+        try {
+            Thread.sleep(3100L);
+        } catch (InterruptedException e) {
+            // Ignore
+        }
+
+        // Override
+        Edge edge6 = baby.addEdge("read", java1, "place", "library of school",
+                                  "date", "2019-12-23 12:01:00");
+        @SuppressWarnings("unused")
+        Edge edge7 = baby.addEdge("read", java2, "place", "library of school",
+                                  "date", "2019-12-23 13:01:00");
+        Edge edge8 = baby.addEdge("read", java3, "place", "library of school",
+                                  "date", "2019-12-23 14:01:00");
+        @SuppressWarnings("unused")
+        Edge edge9 = baby.addEdge("read", java4, "place", "library of school",
+                                  "date", "2019-12-23 15:01:00");
+        Edge edge10 = baby.addEdge("read", java5,
+                                   "place", "library of school",
+                                  "date", "2019-12-23 16:01:00");
+        graph().tx().commit();
+        // Due to overridden edges are expired, query will lead to async delete
+        edges = graph().traversal().E().has("date", "2019-12-23 14:00:00");
+        Assert.assertFalse(edges.hasNext());
+
+        edges = graph().traversal().E().has("date", "2019-12-23 14:01:00");
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(edge8, edges.next());
+
+        edges = graph().traversal().E()
+                       .has("date", P.gt("2019-12-23 15:01:00"));
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(edge10, edges.next());
+
+        edges = graph().traversal().E()
+                       .has("date", P.gte("2019-12-23 15:01:00"));
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(2, IteratorUtils.count(edges));
+
+        edges = graph().traversal().E()
+                       .has("date", P.lt("2019-12-23 13:01:00"));
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(edge6, edges.next());
+
+        edges = graph().traversal().E()
+                       .has("date", P.lte("2019-12-23 13:01:00"));
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(2, IteratorUtils.count(edges));
+        graph().tx().commit();
+
+        try {
+            Thread.sleep(3100L);
+        } catch (InterruptedException e) {
+            // Ignore
+        }
+
+        // All edges are expired after 6s
+        edges = graph().traversal().E().has("date", "2019-12-23 14:00:00");
+        Assert.assertFalse(edges.hasNext());
+
+        edges = graph().traversal().E().has("date", "2019-12-23 14:01:00");
+        Assert.assertFalse(edges.hasNext());
+
+        edges = graph().traversal().E()
+                       .has("date", P.gt("2019-12-23 15:01:00"));
+        Assert.assertFalse(edges.hasNext());
+
+        edges = graph().traversal().E()
+                       .has("date", P.gte("2019-12-23 15:01:00"));
+        Assert.assertFalse(edges.hasNext());
+
+        edges = graph().traversal().E()
+                       .has("date", P.lt("2019-12-23 13:01:00"));
+        Assert.assertFalse(edges.hasNext());
+
+        edges = graph().traversal().E()
+                       .has("date", P.lte("2019-12-23 13:01:00"));
+        Assert.assertFalse(edges.hasNext());
+    }
+
+    @Test
+    public void testOverrideEdgeWithShardIndexAndTtl() {
+        graph().schema().indexLabel("readByPlaceAndDate").onE("read")
+               .by("place", "date").shard().ifNotExist().create();
+
+        Vertex baby = graph().addVertex(T.label, "person", "name", "Baby",
+                                        "age", 3, "city", "Beijing");
+        Vertex java1 = graph().addVertex(T.label, "book", "name", "Java1");
+        Vertex java2 = graph().addVertex(T.label, "book", "name", "Java2");
+        Vertex java3 = graph().addVertex(T.label, "book", "name", "Java3");
+        Vertex java4 = graph().addVertex(T.label, "book", "name", "Java4");
+        Vertex java5 = graph().addVertex(T.label, "book", "name", "Java5");
+        Vertex java6 = graph().addVertex(T.label, "book", "name", "Java6");
+        Edge edge1 = baby.addEdge("read", java1, "place", "library of school",
+                                  "date", "2019-12-23 12:00:00");
+        @SuppressWarnings("unused")
+        Edge edge2 = baby.addEdge("read", java2, "place", "library of school",
+                                  "date", "2019-12-23 13:00:00");
+        Edge edge3 = baby.addEdge("read", java3, "place", "library of school",
+                                  "date", "2019-12-23 14:00:00");
+        @SuppressWarnings("unused")
+        Edge edge4 = baby.addEdge("read", java4, "place", "library of school",
+                                  "date", "2019-12-23 15:00:00");
+        Edge edge5 = baby.addEdge("read", java5, "place", "library of school",
+                                  "date", "2019-12-23 16:00:00");
+        Edge edge6 = baby.addEdge("read", java6, "place", "home",
+                                  "date", "2019-12-23 14:00:00");
+        graph().tx().commit();
+
+        Iterator<Edge> edges = graph().traversal().E().has("place", "home");
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(edge6, edges.next());
+
+        edges = graph().traversal().E().has("place", "library of school")
+                       .has("date", "2019-12-23 14:00:00");
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(edge3, edges.next());
+
+        edges = graph().traversal().E().has("place", "library of school")
+                       .has("date", P.gt("2019-12-23 15:00:00"));
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(edge5, edges.next());
+
+        edges = graph().traversal().E().has("place", "library of school")
+                       .has("date", P.gte("2019-12-23 15:00:00"));
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(2, IteratorUtils.count(edges));
+
+        edges = graph().traversal().E().has("place", "library of school")
+                       .has("date", P.lt("2019-12-23 13:00:00"));
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(edge1, edges.next());
+
+        edges = graph().traversal().E().has("place", "library of school")
+                       .has("date", P.lte("2019-12-23 13:00:00"));
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(2, IteratorUtils.count(edges));
+        graph().tx().commit();
+
+        try {
+            Thread.sleep(3100L);
+        } catch (InterruptedException e) {
+            // Ignore
+        }
+
+        Edge edge7 = baby.addEdge("read", java1, "place", "library of school",
+                                  "date", "2019-12-23 12:01:00");
+        @SuppressWarnings("unused")
+        Edge edge8 = baby.addEdge("read", java2, "place", "library of school",
+                                  "date", "2019-12-23 13:01:00");
+        Edge edge9 = baby.addEdge("read", java3, "place", "library of school",
+                                  "date", "2019-12-23 14:01:00");
+        @SuppressWarnings("unused")
+        Edge edge10 = baby.addEdge("read", java4,
+                                   "place", "library of school",
+                                  "date", "2019-12-23 15:01:00");
+        Edge edge11 = baby.addEdge("read", java5,
+                                   "place", "library of school",
+                                  "date", "2019-12-23 16:01:00");
+        Edge edge12 = baby.addEdge("read", java6, "place", "library",
+                                  "date", "2019-12-23 14:01:00");
+        graph().tx().commit();
+
+        // Due to overridden edges are expired, query will lead to async delete
+        edges = graph().traversal().E().has("place", "home");
+        Assert.assertFalse(edges.hasNext());
+
+        edges = graph().traversal().E().has("place", "library");
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(edge12, edges.next());
+
+        edges = graph().traversal().E().has("place", "library of school")
+                       .has("date", "2019-12-23 14:00:00");
+        Assert.assertFalse(edges.hasNext());
+
+        edges = graph().traversal().E().has("place", "library of school")
+                       .has("date", "2019-12-23 14:01:00");
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(edge9, edges.next());
+
+        edges = graph().traversal().E().has("place", "library of school")
+                       .has("date", P.gt("2019-12-23 15:01:00"));
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(edge11, edges.next());
+
+        edges = graph().traversal().E().has("place", "library of school")
+                       .has("date", P.gte("2019-12-23 15:01:00"));
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(2, IteratorUtils.count(edges));
+
+        edges = graph().traversal().E().has("place", "library of school")
+                       .has("date", P.lt("2019-12-23 13:01:00"));
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(edge7, edges.next());
+
+        edges = graph().traversal().E().has("place", "library of school")
+                       .has("date", P.lte("2019-12-23 13:01:00"));
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(2, IteratorUtils.count(edges));
+        graph().tx().commit();
+
+        try {
+            Thread.sleep(3100L);
+        } catch (InterruptedException e) {
+            // Ignore
+        }
+
+        // All edges are expired after 6s
+        edges = graph().traversal().E().has("place", "home");
+        Assert.assertFalse(edges.hasNext());
+
+        edges = graph().traversal().E().has("place", "library");
+        Assert.assertFalse(edges.hasNext());
+
+        edges = graph().traversal().E().has("place", "library of school")
+                       .has("date", "2019-12-23 14:00:00");
+        Assert.assertFalse(edges.hasNext());
+
+        edges = graph().traversal().E().has("place", "library of school")
+                       .has("date", "2019-12-23 14:01:00");
+        Assert.assertFalse(edges.hasNext());
+
+        edges = graph().traversal().E().has("place", "library of school")
+                       .has("date", P.gt("2019-12-23 15:00:00"));
+        Assert.assertFalse(edges.hasNext());
+
+        edges = graph().traversal().E().has("place", "library of school")
+                       .has("date", P.gte("2019-12-23 15:00:00"));
+        Assert.assertFalse(edges.hasNext());
+
+        edges = graph().traversal().E().has("place", "library of school")
+                       .has("date", P.lt("2019-12-23 13:00:00"));
+        Assert.assertFalse(edges.hasNext());
+
+        edges = graph().traversal().E().has("place", "library of school")
+                       .has("date", P.lte("2019-12-23 13:00:00"));
+        Assert.assertFalse(edges.hasNext());
+    }
+
+    @Test
+    public void testOverrideEdgeWithSearchIndexAndTtl() {
+        graph().schema().indexLabel("readByPlace").onE("read")
+               .by("place").search().ifNotExist().create();
+
+        Vertex baby = graph().addVertex(T.label, "person", "name", "Baby",
+                                        "age", 3, "city", "Beijing");
+        Vertex java = graph().addVertex(T.label, "book",
+                                        "name", "Java in action");
+        Edge edge = baby.addEdge("read", java, "place", "library of school",
+                                 "date", "2019-12-23 12:00:00");
+        graph().tx().commit();
+
+        Iterator<Edge> edges = graph().traversal().E()
+                                      .has("place", Text.contains("school"));
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(edge, edges.next());
+        graph().tx().commit();
+
+        try {
+            Thread.sleep(3100L);
+        } catch (InterruptedException e) {
+            // Ignore
+        }
+
+        edge = baby.addEdge("read", java, "place", "library of city",
+                            "date", "2019-12-23 12:00:00");
+        graph().tx().commit();
+
+        // Due to overridden edges are expired, query will lead to async delete
+        edges = graph().traversal().E().has("place", Text.contains("school"));
+        Assert.assertFalse(edges.hasNext());
+
+        edges = graph().traversal().E().has("place", Text.contains("city"));
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(edge, edges.next());
+        graph().tx().commit();
+
+        try {
+            Thread.sleep(3100L);
+        } catch (InterruptedException e) {
+            // Ignore
+        }
+
+        // All edges are expired after 6s
+        edges = graph().traversal().E().has("place", Text.contains("library"));
+        Assert.assertFalse(edges.hasNext());
+    }
+
+    @Test
+    public void testQueryEdgeWithTtlInTx() {
+        Vertex baby = graph().addVertex(T.label, "person", "name", "Baby",
+                                        "age", 3, "city", "Beijing");
+        Vertex java1 = graph().addVertex(T.label, "book",
+                                         "name", "Java1 in action");
+        Vertex java2 = graph().addVertex(T.label, "book",
+                                         "name", "Java2 in action");
+        Edge edge1 = baby.addEdge("read", java1, "place", "library of school",
+                                 "date", "2019-12-23 12:00:00");
+        graph().tx().commit();
+        // Add edges in tx
+        Edge edge2 = baby.addEdge("read", java2, "place", "library of school",
+                                 "date", "2019-12-23 12:00:00");
+
+        Iterator<Edge> edges = graph().edges(edge1);
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(edge1, edges.next());
+
+        edges = graph().edges(edge2);
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(edge2, edges.next());
+        graph().tx().commit();
+
+        try {
+            Thread.sleep(3100L);
+        } catch (InterruptedException e) {
+            // Ignore
+        }
+
+        // All edges are expired after 3s
+        edges = graph().edges(edge1);
+        Assert.assertFalse(edges.hasNext());
+
+        edges = graph().edges(edge2);
+        Assert.assertFalse(edges.hasNext());
+    }
+
+    @Test
+    public void testQueryEdgeWithSecondaryIndexAndTtlInTx() {
+        graph().schema().indexLabel("readByPlace").onE("read").by("place")
+               .secondary().ifNotExist().create();
+
+        Vertex baby = graph().addVertex(T.label, "person", "name", "Baby",
+                                        "age", 3, "city", "Beijing");
+        Vertex java1 = graph().addVertex(T.label, "book",
+                                         "name", "Java1 in action");
+        Vertex java2 = graph().addVertex(T.label, "book",
+                                         "name", "Java2 in action");
+        baby.addEdge("read", java1, "place", "library of school",
+                     "date", "2019-12-23 12:00:00");
+        graph().tx().commit();
+        // Add edges in tx
+        baby.addEdge("read", java2, "place", "library of school",
+                     "date", "2019-12-23 12:00:00");
+
+        Iterator<Edge> edges = graph().traversal().E()
+                                      .has("place", "library of school");
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(2, IteratorUtils.count(edges));
+        graph().tx().commit();
+
+        try {
+            Thread.sleep(3100L);
+        } catch (InterruptedException e) {
+            // Ignore
+        }
+
+        // All edges are expired after 3s
+        edges = graph().traversal().E().has("place", "library of school");
+        Assert.assertFalse(edges.hasNext());
+    }
+
+    @Test
+    public void testQueryEdgeWithRangeIndexAndTtlInTx() {
+        graph().schema().indexLabel("readByDate").onE("read").by("date")
+               .range().ifNotExist().create();
+
+        Vertex baby = graph().addVertex(T.label, "person", "name", "Baby",
+                                        "age", 3, "city", "Beijing");
+        Vertex java1 = graph().addVertex(T.label, "book", "name", "Java1");
+        Vertex java2 = graph().addVertex(T.label, "book", "name", "Java2");
+        Vertex java3 = graph().addVertex(T.label, "book", "name", "Java3");
+        Vertex java4 = graph().addVertex(T.label, "book", "name", "Java4");
+        Vertex java5 = graph().addVertex(T.label, "book", "name", "Java5");
+        Vertex java6 = graph().addVertex(T.label, "book", "name", "Java6");
+        Vertex java7 = graph().addVertex(T.label, "book", "name", "Java7");
+        Vertex java8 = graph().addVertex(T.label, "book", "name", "Java8");
+        Vertex java9 = graph().addVertex(T.label, "book", "name", "Java9");
+        Vertex java10 = graph().addVertex(T.label, "book", "name", "Java10");
+        baby.addEdge("read", java1, "place", "library of school",
+                     "date", "2019-12-23 12:00:00");
+        baby.addEdge("read", java2, "place", "library of school",
+                     "date", "2019-12-23 13:00:00");
+        baby.addEdge("read", java3, "place", "library of school",
+                     "date", "2019-12-23 14:00:00");
+        baby.addEdge("read", java4, "place", "library of school",
+                     "date", "2019-12-23 15:00:00");
+        baby.addEdge("read", java5, "place", "library of school",
+                     "date", "2019-12-23 16:00:00");
+        graph().tx().commit();
+
+        // Add edges in tx
+        baby.addEdge("read", java6, "place", "library of school",
+                     "date", "2019-12-23 12:00:00");
+        baby.addEdge("read", java7, "place", "library of school",
+                     "date", "2019-12-23 13:00:00");
+        baby.addEdge("read", java8, "place", "library of school",
+                     "date", "2019-12-23 14:00:00");
+        baby.addEdge("read", java9, "place", "library of school",
+                     "date", "2019-12-23 15:00:00");
+        baby.addEdge("read", java10, "place", "library of school",
+                     "date", "2019-12-23 16:00:00");
+
+        Iterator<Edge> edges = graph().traversal().E()
+                                      .has("date", "2019-12-23 14:00:00");
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(2, IteratorUtils.count(edges));
+
+        edges = graph().traversal().E()
+                       .has("date", P.gt("2019-12-23 15:00:00"));
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(2, IteratorUtils.count(edges));
+
+        edges = graph().traversal().E()
+                       .has("date", P.gte("2019-12-23 15:00:00"));
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(4, IteratorUtils.count(edges));
+
+        edges = graph().traversal().E()
+                       .has("date", P.lt("2019-12-23 13:00:00"));
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(2, IteratorUtils.count(edges));
+
+        edges = graph().traversal().E()
+                       .has("date", P.lte("2019-12-23 13:00:00"));
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(4, IteratorUtils.count(edges));
+        graph().tx().commit();
+
+        try {
+            Thread.sleep(3100L);
+        } catch (InterruptedException e) {
+            // Ignore
+        }
+
+        // All edges are expired after 3s
+        edges = graph().traversal().E().has("date", "2019-12-23 14:00:00");
+        Assert.assertFalse(edges.hasNext());
+
+        edges = graph().traversal().E()
+                       .has("date", P.gt("2019-12-23 15:00:00"));
+        Assert.assertFalse(edges.hasNext());
+
+        edges = graph().traversal().E()
+                       .has("date", P.gte("2019-12-23 15:00:00"));
+        Assert.assertFalse(edges.hasNext());
+
+        edges = graph().traversal().E()
+                       .has("date", P.lt("2019-12-23 13:00:00"));
+        Assert.assertFalse(edges.hasNext());
+
+        edges = graph().traversal().E()
+                       .has("date", P.lte("2019-12-23 13:00:00"));
+        Assert.assertFalse(edges.hasNext());
+    }
+
+    @Test
+    public void testQueryEdgeWithShardIndexAndTtlInTx() {
+        graph().schema().indexLabel("readByPlaceAndDate").onE("read")
+               .by("place", "date").shard().ifNotExist().create();
+
+        Vertex baby = graph().addVertex(T.label, "person", "name", "Baby",
+                                        "age", 3, "city", "Beijing");
+        Vertex java1 = graph().addVertex(T.label, "book", "name", "Java1");
+        Vertex java2 = graph().addVertex(T.label, "book", "name", "Java2");
+        Vertex java3 = graph().addVertex(T.label, "book", "name", "Java3");
+        Vertex java4 = graph().addVertex(T.label, "book", "name", "Java4");
+        Vertex java5 = graph().addVertex(T.label, "book", "name", "Java5");
+        Vertex java6 = graph().addVertex(T.label, "book", "name", "Java6");
+        Vertex java7 = graph().addVertex(T.label, "book", "name", "Java7");
+        Vertex java8 = graph().addVertex(T.label, "book", "name", "Java8");
+        Vertex java9 = graph().addVertex(T.label, "book", "name", "Java9");
+        Vertex java10 = graph().addVertex(T.label, "book", "name", "Java10");
+        Vertex java11 = graph().addVertex(T.label, "book", "name", "Java11");
+        Vertex java12 = graph().addVertex(T.label, "book", "name", "Java12");
+        baby.addEdge("read", java1, "place", "library of school",
+                     "date", "2019-12-23 12:00:00");
+        baby.addEdge("read", java2, "place", "library of school",
+                     "date", "2019-12-23 13:00:00");
+        baby.addEdge("read", java3, "place", "library of school",
+                     "date", "2019-12-23 14:00:00");
+        baby.addEdge("read", java4, "place", "library of school",
+                     "date", "2019-12-23 15:00:00");
+        baby.addEdge("read", java5, "place", "library of school",
+                     "date", "2019-12-23 16:00:00");
+        baby.addEdge("read", java6, "place", "home",
+                     "date", "2019-12-23 14:00:00");
+        graph().tx().commit();
+
+        // Add edges in tx
+        baby.addEdge("read", java7, "place", "library of school",
+                     "date", "2019-12-23 12:00:00");
+        baby.addEdge("read", java8, "place", "library of school",
+                     "date", "2019-12-23 13:00:00");
+        baby.addEdge("read", java9, "place", "library of school",
+                     "date", "2019-12-23 14:00:00");
+        baby.addEdge("read", java10, "place", "library of school",
+                     "date", "2019-12-23 15:00:00");
+        baby.addEdge("read", java11, "place", "library of school",
+                     "date", "2019-12-23 16:00:00");
+        baby.addEdge("read", java12, "place", "home",
+                     "date", "2019-12-23 14:00:00");
+
+        Iterator<Edge> edges = graph().traversal().E().has("place", "home");
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(2, IteratorUtils.count(edges));
+
+        edges = graph().traversal().E().has("place", "library of school")
+                       .has("date", "2019-12-23 14:00:00");
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(2, IteratorUtils.count(edges));
+
+        edges = graph().traversal().E().has("place", "library of school")
+                       .has("date", P.gt("2019-12-23 15:00:00"));
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(2, IteratorUtils.count(edges));
+
+        edges = graph().traversal().E().has("place", "library of school")
+                       .has("date", P.gte("2019-12-23 15:00:00"));
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(4, IteratorUtils.count(edges));
+
+        edges = graph().traversal().E().has("place", "library of school")
+                       .has("date", P.lt("2019-12-23 13:00:00"));
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(2, IteratorUtils.count(edges));
+
+        edges = graph().traversal().E().has("place", "library of school")
+                       .has("date", P.lte("2019-12-23 13:00:00"));
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(4, IteratorUtils.count(edges));
+        graph().tx().commit();
+
+        try {
+            Thread.sleep(3100L);
+        } catch (InterruptedException e) {
+            // Ignore
+        }
+
+        // All edges are expired after 3s
+        edges = graph().traversal().E().has("place", "home");
+        Assert.assertFalse(edges.hasNext());
+
+        edges = graph().traversal().E().has("place", "library of school")
+                       .has("date", "2019-12-23 14:00:00");
+        Assert.assertFalse(edges.hasNext());
+
+        edges = graph().traversal().E().has("place", "library of school")
+                       .has("date", P.gt("2019-12-23 15:00:00"));
+        Assert.assertFalse(edges.hasNext());
+
+        edges = graph().traversal().E().has("place", "library of school")
+                       .has("date", P.gte("2019-12-23 15:00:00"));
+        Assert.assertFalse(edges.hasNext());
+
+        edges = graph().traversal().E().has("place", "library of school")
+                       .has("date", P.lt("2019-12-23 13:00:00"));
+        Assert.assertFalse(edges.hasNext());
+
+        edges = graph().traversal().E().has("place", "library of school")
+                       .has("date", P.lte("2019-12-23 13:00:00"));
+        Assert.assertFalse(edges.hasNext());
+    }
+
+    @Test
+    public void testQueryEdgeWithSearchIndexAndTtlInTx() {
+        graph().schema().indexLabel("readByPlace").onE("read")
+               .by("place").search().ifNotExist().create();
+
+        Vertex baby = graph().addVertex(T.label, "person", "name", "Baby",
+                                        "age", 3, "city", "Beijing");
+        Vertex java1 = graph().addVertex(T.label, "book",
+                                         "name", "Java1 in action");
+        Vertex java2 = graph().addVertex(T.label, "book",
+                                         "name", "Java2 in action");
+        baby.addEdge("read", java1, "place", "library of school",
+                     "date", "2019-12-23 12:00:00");
+        graph().tx().commit();
+
+        baby.addEdge("read", java2, "place", "library of school",
+                     "date", "2019-12-23 12:00:00");
+
+        Iterator<Edge> edges = graph().traversal().E()
+                                      .has("place", Text.contains("library"));
+        Assert.assertTrue(edges.hasNext());
+        Assert.assertEquals(2, IteratorUtils.count(edges));
+        graph().tx().commit();
+
+        try {
+            Thread.sleep(3100L);
+        } catch (InterruptedException e) {
+            // Ignore
+        }
+
+        // All edges are expired after 3s
+        edges = graph().traversal().E().has("place", Text.contains("library"));
+        Assert.assertFalse(edges.hasNext());
     }
 
     @Test
@@ -641,18 +1819,23 @@ public class EdgeCoreTest extends BaseCoreTest {
         Assert.assertEquals(10, edges.size());
     }
 
+    @Test
     public void testQueryAllWithLimitAfterDelete() {
         HugeGraph graph = graph();
         init18Edges();
 
         // Query all with limit after delete
         graph.traversal().E().limit(14).drop().iterate();
-        Assert.assertEquals(4L, graph.traversal().V().count().next());
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            // Query count with uncommitted records
+            graph.traversal().E().count().next();
+        });
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             // Query with limit
-            graph.traversal().V().limit(3).toList();
+            graph.traversal().E().limit(3).toList();
         });
         graph.tx().commit();
+        Assert.assertEquals(4L, graph.traversal().E().count().next());
         List<Edge> edges = graph.traversal().E().limit(3).toList();
         Assert.assertEquals(3, edges.size());
 
@@ -670,7 +1853,7 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         Query query = new Query(HugeType.EDGE);
         query.limit(1);
-        Iterator<Edge> iter = graph.graphTransaction().queryEdges(query);
+        Iterator<Edge> iter = graph.edges(query);
         List<Edge> edges = IteratorUtils.list(iter);
         Assert.assertEquals(1, edges.size());
     }
@@ -856,6 +2039,522 @@ public class EdgeCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testQueryEdgesWithLimitOnMultiLevelAndFilterProp() {
+        HugeGraph graph = graph();
+
+        Vertex james = graph.addVertex(T.label, "author", "id", 1,
+                                       "name", "James Gosling", "age", 62,
+                                       "lived", "Canadian");
+
+        for (int i = 0; i < 20; i++) {
+            Vertex java = graph.addVertex(T.label, "book", "name", "java-" + i);
+            james.addEdge("authored", java, "score", i % 2);
+            james.addEdge("write", java, "time", "2020-6-" + i);
+        }
+
+        Vertex louise = graph.addVertex(T.label, "person", "name", "Louise",
+                                        "city", "Beijing", "age", 62);
+        Vertex java0 = graph.addVertex(T.label, "book", "name", "java-0");
+        louise.addEdge("look", java0, "time", "2020-6-18", "score", 1);
+        louise.addEdge("look", java0, "time", "2020-6-0", "score", 1);
+
+        graph.tx().commit();
+
+        // outE
+        List<Edge> edges = graph.traversal().V()
+                                .outE().has("score", 0)
+                                .toList();
+        Assert.assertEquals(10, edges.size());
+
+        edges = graph.traversal().V()
+                     .outE().has("score", 0)
+                     .limit(11).toList();
+        Assert.assertEquals(10, edges.size());
+
+        edges = graph.traversal().V()
+                     .outE().has("score", 0)
+                     .limit(6).toList();
+        Assert.assertEquals(6, edges.size());
+
+        edges = graph.traversal().V()
+                     .outE().has("score", 1)
+                     .toList();
+        Assert.assertEquals(12, edges.size());
+
+        edges = graph.traversal().V()
+                     .outE().has("score", 1)
+                     .limit(13).toList();
+        Assert.assertEquals(12, edges.size());
+
+        edges = graph.traversal().V()
+                     .outE().has("score", 1)
+                     .limit(7).toList();
+        Assert.assertEquals(7, edges.size());
+
+        edges = graph.traversal().V()
+                     .outE("authored").has("score", 1)
+                     .toList();
+        Assert.assertEquals(10, edges.size());
+
+        edges = graph.traversal().V()
+                     .outE("authored").has("score", 1)
+                     .limit(11).toList();
+        Assert.assertEquals(10, edges.size());
+
+        edges = graph.traversal().V()
+                     .outE("authored").has("score", 1)
+                     .limit(5).toList();
+        Assert.assertEquals(5, edges.size());
+
+        edges = graph.traversal().V()
+                     .outE().has("time", "2020-6-18")
+                     .toList();
+        Assert.assertEquals(2, edges.size());
+
+        edges = graph.traversal().V()
+                     .outE().has("time", "2020-6-18")
+                     .limit(1).toList();
+        Assert.assertEquals(1, edges.size());
+
+        edges = graph.traversal().V()
+                     .outE().has("time", "2020-6-0")
+                     .toList();
+        Assert.assertEquals(2, edges.size());
+
+        edges = graph.traversal().V()
+                     .outE().has("time", "2020-6-0")
+                     .limit(1).toList();
+        Assert.assertEquals(1, edges.size());
+
+        // inE
+        edges = graph.traversal().V()
+                     .inE().has("score", 0)
+                     .toList();
+        Assert.assertEquals(10, edges.size());
+
+        edges = graph.traversal().V()
+                     .inE().has("score", 0)
+                     .limit(11).toList();
+        Assert.assertEquals(10, edges.size());
+
+        edges = graph.traversal().V()
+                     .inE().has("score", 0)
+                     .limit(6).toList();
+        Assert.assertEquals(6, edges.size());
+
+        edges = graph.traversal().V()
+                     .inE().has("score", 1)
+                     .toList();
+        Assert.assertEquals(12, edges.size());
+
+        edges = graph.traversal().V()
+                     .inE().has("score", 1)
+                     .limit(13).toList();
+        Assert.assertEquals(12, edges.size());
+
+        edges = graph.traversal().V()
+                     .inE().has("score", 1)
+                     .limit(7).toList();
+        Assert.assertEquals(7, edges.size());
+
+        edges = graph.traversal().V()
+                     .inE("authored").has("score", 1)
+                     .toList();
+        Assert.assertEquals(10, edges.size());
+
+        edges = graph.traversal().V()
+                     .inE("authored").has("score", 1)
+                     .limit(11).toList();
+        Assert.assertEquals(10, edges.size());
+
+        edges = graph.traversal().V()
+                     .inE("authored").has("score", 1)
+                     .limit(5).toList();
+        Assert.assertEquals(5, edges.size());
+
+        edges = graph.traversal().V()
+                     .inE().has("time", "2020-6-18")
+                     .toList();
+        Assert.assertEquals(2, edges.size());
+
+        edges = graph.traversal().V()
+                     .inE().has("time", "2020-6-18")
+                     .limit(1).toList();
+        Assert.assertEquals(1, edges.size());
+
+        edges = graph.traversal().V()
+                     .inE().has("time", "2020-6-0")
+                     .toList();
+        Assert.assertEquals(2, edges.size());
+
+        edges = graph.traversal().V()
+                     .inE().has("time", "2020-6-0")
+                     .limit(1).toList();
+        Assert.assertEquals(1, edges.size());
+
+        // bothE
+        edges = graph.traversal().V(java0)
+                     .bothE().has("score", 1)
+                     .toList();
+        Assert.assertEquals(2, edges.size());
+
+        edges = graph.traversal().V(java0)
+                     .bothE().has("score", 1)
+                     .limit(3).toList();
+        Assert.assertEquals(2, edges.size());
+
+        edges = graph.traversal().V(java0)
+                     .bothE().has("score", 1)
+                     .limit(1).toList();
+        Assert.assertEquals(1, edges.size());
+
+        edges = graph.traversal().V(java0)
+                     .bothE().has("time", "2020-6-0")
+                     .toList();
+        Assert.assertEquals(2, edges.size());
+
+        edges = graph.traversal().V(java0)
+                     .bothE().has("time", "2020-6-0")
+                     .limit(3).toList();
+        Assert.assertEquals(2, edges.size());
+
+        edges = graph.traversal().V(java0)
+                     .bothE().has("time", "2020-6-0")
+                     .limit(1).toList();
+        Assert.assertEquals(1, edges.size());
+    }
+
+    @Test
+    public void testQueryEdgesAdjacentVerticesWithLimitAndFilterProp() {
+        HugeGraph graph = graph();
+
+        Vertex james = graph.addVertex(T.label, "author", "id", 1,
+                                       "name", "James Gosling", "age", 62,
+                                       "lived", "Canadian");
+        Vertex guido = graph.addVertex(T.label, "author", "id", 2,
+                                       "name", "Guido van Rossum", "age", 62,
+                                       "lived", "California");
+        Vertex marko = graph.addVertex(T.label, "author", "id", 3,
+                                       "name", "Marko", "age", 61,
+                                       "lived", "California");
+        guido.addEdge("know", james);
+        guido.addEdge("know", marko);
+        marko.addEdge("know", james);
+
+        for (int i = 0; i < 20; i++) {
+            Vertex java = graph.addVertex(T.label, "book", "name", "java-" + i);
+            james.addEdge("authored", java, "score", i % 2);
+            james.addEdge("write", java, "time", "2020-6-" + i);
+
+            marko.addEdge("authored", java, "score", i % 2);
+        }
+
+        Vertex louise = graph.addVertex(T.label, "person", "name", "Louise",
+                                        "city", "Beijing", "age", 62);
+        Vertex java0 = graph.addVertex(T.label, "book", "name", "java-0");
+        louise.addEdge("look", java0, "time", "2020-6-18", "score", 1);
+        louise.addEdge("look", java0, "time", "2020-6-0", "score", 1);
+
+        Vertex jeff = graph.addVertex(T.label, "person", "name", "Jeff",
+                                      "city", "Beijing", "age", 62);
+        Vertex sean = graph.addVertex(T.label, "person", "name", "Sean",
+                                      "city", "Beijing", "age", 61);
+
+        louise.addEdge("friend", jeff);
+        louise.addEdge("friend", sean);
+        jeff.addEdge("friend", sean);
+        jeff.addEdge("follow", marko);
+        sean.addEdge("follow", marko);
+
+        graph.tx().commit();
+
+        // out
+        List<Vertex> vertices = graph.traversal().V()
+                                     .out().has("age", 62)
+                                     .toList();
+        Assert.assertEquals(3, vertices.size());
+        Assert.assertEquals(2, new HashSet<>(vertices).size());
+        Assert.assertTrue(vertices.contains(james));
+        Assert.assertTrue(vertices.contains(jeff));
+
+        vertices = graph.traversal().V()
+                        .out().has("age", 62)
+                        .limit(4).toList();
+        Assert.assertEquals(3, vertices.size());
+
+        vertices = graph.traversal().V()
+                        .out().has("age", 62)
+                        .limit(1).toList();
+        Assert.assertEquals(1, vertices.size());
+
+        vertices = graph.traversal().V()
+                        .out().has("name", "java-0")
+                        .toList();
+        Assert.assertEquals(5, vertices.size());
+
+        vertices = graph.traversal().V()
+                        .out().has("name", "java-0")
+                        .limit(6).toList();
+        Assert.assertEquals(5, vertices.size());
+
+        vertices = graph.traversal().V()
+                        .out().has("name", "java-0")
+                        .limit(3).toList();
+        Assert.assertEquals(3, vertices.size());
+
+        vertices = graph.traversal().V()
+                        .out("write", "look")
+                        .has("name", Text.contains("java-1"))
+                        .toList();
+        Assert.assertEquals(11, vertices.size());
+
+        vertices = graph.traversal().V()
+                        .out("write", "look")
+                        .has("name", Text.contains("java-1"))
+                        .limit(12).toList();
+        Assert.assertEquals(11, vertices.size());
+
+        vertices = graph.traversal().V()
+                        .out("write", "look")
+                        .has("name", Text.contains("java-1"))
+                        .limit(2).toList();
+        Assert.assertEquals(2, vertices.size());
+
+        boolean firstIsLook = graph.traversal().V()
+                                   .outE("write", "look")
+                                   .limit(1).label().is("look").hasNext();
+        if (firstIsLook) {
+            // query edges of louise if before james
+            vertices = graph.traversal().V()
+                            .out("write", "look")
+                            .limit(12)
+                            .has("name", Text.contains("java-1"))
+                            .limit(1).toList();
+            Assert.assertEquals(1, vertices.size());
+            Assert.assertEquals("java-1", vertices.get(0).value("name"));
+
+            vertices = graph.traversal().V()
+                            .out("write", "look")
+                            .limit(12)
+                            .has("name", Text.contains("java-1"))
+                            .limit(11).toList();
+            Assert.assertEquals(9, vertices.size());
+
+            vertices = graph.traversal().V()
+                            .out("write", "look")
+                            .limit(12)
+                            .has("name", Text.contains("java-1"))
+                            .limit(12).toList();
+            Assert.assertEquals(9, vertices.size());
+
+            vertices = graph.traversal().V()
+                            .out("write", "look")
+                            .limit(13)
+                            .has("name", Text.contains("java-1"))
+                            .limit(12).toList();
+            Assert.assertEquals(10, vertices.size());
+
+            vertices = graph.traversal().V()
+                            .out("write", "look")
+                            .limit(13)
+                            .has("name", Text.contains("java-1"))
+                            .limit(13).toList();
+            Assert.assertEquals(10, vertices.size());
+
+            vertices = graph.traversal().V()
+                            .out("write", "look")
+                            .limit(14)
+                            .has("name", Text.contains("java-1"))
+                            .limit(12).toList();
+            Assert.assertEquals(11, vertices.size());
+
+            vertices = graph.traversal().V()
+                            .out("write", "look")
+                            .limit(3)
+                            .has("name", Text.contains("java-0"))
+                            .limit(3).toList();
+            Assert.assertEquals(3, vertices.size());
+        } else {
+            vertices = graph.traversal().V()
+                            .out("write", "look")
+                            .limit(12)
+                            .has("name", Text.contains("java-1"))
+                            .limit(11).toList();
+            Assert.assertEquals(11, vertices.size());
+
+            vertices = graph.traversal().V()
+                            .out("write", "look")
+                            .limit(12)
+                            .has("name", Text.contains("java-1"))
+                            .limit(12).toList();
+            Assert.assertEquals(11, vertices.size());
+
+            vertices = graph.traversal().V(louise, james)
+                            .out("write", "look")
+                            .limit(12)
+                            .has("name", Text.contains("java-1"))
+                            .limit(11).toList();
+            // two look edges not matched
+            Assert.assertEquals(9, vertices.size());
+
+            vertices = graph.traversal().V()
+                            .out("write", "look")
+                            .limit(3)
+                            .has("name", Text.contains("java-0"))
+                            .limit(3).toList();
+            Assert.assertEquals(1, vertices.size());
+
+            vertices = graph.traversal().V()
+                            .out("write", "look")
+                            .limit(20)
+                            .has("name", Text.contains("java-0"))
+                            .limit(3).toList();
+            Assert.assertEquals(1, vertices.size()); // skip java1~java19
+
+            vertices = graph.traversal().V()
+                            .out("write", "look")
+                            .limit(21)
+                            .has("name", Text.contains("java-0"))
+                            .limit(3).toList();
+            Assert.assertEquals(2, vertices.size());
+
+            vertices = graph.traversal().V()
+                            .out("write", "look")
+                            .limit(22)
+                            .has("name", Text.contains("java-0"))
+                            .limit(3).toList();
+            Assert.assertEquals(3, vertices.size());
+        }
+
+        // in
+        vertices = graph.traversal().V(java0)
+                        .in().has("age", 62)
+                        .toList();
+        Assert.assertEquals(4, vertices.size());
+        Assert.assertEquals(2, new HashSet<>(vertices).size());
+        Assert.assertTrue(vertices.contains(james));
+        Assert.assertTrue(vertices.contains(louise));
+
+        vertices = graph.traversal().V(java0)
+                        .in().has("age", 62)
+                        .limit(5).toList();
+        Assert.assertEquals(4, vertices.size());
+
+        vertices = graph.traversal().V(java0)
+                        .in().has("age", 62)
+                        .limit(3).toList();
+        Assert.assertEquals(3, vertices.size());
+
+        vertices = graph.traversal().V(java0)
+                        .in().has("age", 62)
+                        .limit(1).toList();
+        Assert.assertEquals(1, vertices.size());
+
+        vertices = graph.traversal().V(java0)
+                        .in().has("age", 62)
+                        .dedup().limit(3).toList();
+        Assert.assertEquals(2, vertices.size());
+
+        vertices = graph.traversal().V(java0)
+                        .in().has("age", 62)
+                        .dedup().limit(1).toList();
+        Assert.assertEquals(1, vertices.size());
+
+        vertices = graph.traversal().V(james, jeff)
+                        .in().has("age", 62)
+                        .toList();
+        Assert.assertEquals(2, vertices.size());
+        Assert.assertTrue(vertices.contains(guido));
+        Assert.assertTrue(vertices.contains(louise));
+
+        vertices = graph.traversal().V(james, jeff)
+                        .in().has("age", 62)
+                        .limit(3).toList();
+        Assert.assertEquals(2, vertices.size());
+
+        vertices = graph.traversal().V(james, jeff)
+                        .in().has("age", 62)
+                        .limit(1).toList();
+        Assert.assertEquals(1, vertices.size());
+
+        // both
+        vertices = graph.traversal().V(sean)
+                        .both().has("age", 62)
+                        .toList();
+        Assert.assertEquals(2, vertices.size());
+        Assert.assertTrue(vertices.contains(louise));
+        Assert.assertTrue(vertices.contains(jeff));
+
+        vertices = graph.traversal().V(sean)
+                        .both().has("age", 62)
+                        .limit(3).toList();
+        Assert.assertEquals(2, vertices.size());
+
+        vertices = graph.traversal().V(sean)
+                        .both().has("age", 62)
+                        .limit(1).toList();
+        Assert.assertEquals(1, vertices.size());
+
+        vertices = graph.traversal().V(marko)
+                        .both().has("age", 62)
+                        .toList();
+        Assert.assertEquals(3, vertices.size());
+        Assert.assertTrue(vertices.contains(guido));
+        Assert.assertTrue(vertices.contains(jeff));
+
+        vertices = graph.traversal().V(marko)
+                        .both().has("age", 62)
+                        .limit(4).toList();
+        Assert.assertEquals(3, vertices.size());
+
+        vertices = graph.traversal().V(marko)
+                        .both().has("age", 62)
+                        .limit(1).toList();
+        Assert.assertEquals(1, vertices.size());
+
+        vertices = graph.traversal().V(jeff)
+                        .both().has("age", 61)
+                        .toList();
+        Assert.assertEquals(2, vertices.size());
+        Assert.assertTrue(vertices.contains(sean));
+        Assert.assertTrue(vertices.contains(marko));
+
+        vertices = graph.traversal().V(jeff)
+                        .both().has("age", 61)
+                        .limit(3).toList();
+        Assert.assertEquals(2, vertices.size());
+
+        vertices = graph.traversal().V(jeff)
+                        .both().has("age", 61)
+                        .limit(1).toList();
+        Assert.assertEquals(1, vertices.size());
+    }
+
+    @Test
+    public void testQueryEdgesWithLimitOnSuperVertexAndFilterProp() {
+        HugeGraph graph = graph();
+
+        int txCap = this.superNodeSize();
+        for (int i = 0; i < txCap; i++) {
+            Vertex james = graph.addVertex(T.label, "author", "id", 1,
+                                           "name", "James Gosling", "age", 62,
+                                           "lived", "Canadian");
+            Vertex java = graph.addVertex(T.label, "book", "name", "java-" + i);
+            james.addEdge("authored", java, "score", i % 2);
+            james.addEdge("write", java, "time", "2020-6-" + i);
+            if (i % TX_BATCH == 0) {
+                graph.tx().commit();
+            }
+        }
+        graph.tx().commit();
+
+        List<Edge> edges = graph.traversal().V()
+                                .outE().has("score", 0)
+                                .limit(10).toList();
+        Assert.assertEquals(10, edges.size());
+    }
+
+    @Test
     public void testQueryEdgesWithLimitAndOrderBy() {
         Assume.assumeTrue("Not support order by",
                           storeFeatures().supportsQueryWithOrderBy());
@@ -872,7 +2571,7 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         edges = graph.traversal().V()
                      .hasLabel("person").has("name", "Louise")
-                     .outE("look").order().by("time", Order.decr)
+                     .outE("look").order().by("time", Order.desc)
                      .limit(2).toList();
         Assert.assertEquals(2, edges.size());
         Assert.assertEquals("2017-5-27", edges.get(0).value("time"));
@@ -881,7 +2580,7 @@ public class EdgeCoreTest extends BaseCoreTest {
         edges = graph.traversal().V()
                      .hasLabel("person").has("name", "Louise")
                      .outE("look").limit(2)
-                     .order().by("time", Order.decr)
+                     .order().by("time", Order.desc)
                      .toList();
         Assert.assertEquals(2, edges.size());
         Assert.assertEquals("2017-5-1", edges.get(0).value("time"));
@@ -958,8 +2657,66 @@ public class EdgeCoreTest extends BaseCoreTest {
         init18Edges();
 
         String id = "invalid-id";
-        Assert.assertThrows(NotFoundException.class, () -> {
-            graph.traversal().E(id).toList();
+        List<Edge> edges = graph.traversal().E(id).toList();
+        Assert.assertEquals(0, edges.size());
+    }
+
+    @Test
+    public void testQueryEdgesByInvalidSysprop() {
+        HugeGraph graph = graph();
+        init18Edges();
+
+        List<Edge> edges = graph.traversal().E().hasLabel("know").toList();
+        Assert.assertEquals(1, edges.size());
+        HugeEdge edge = (HugeEdge) edges.get(0);
+        Id id = edge.id();
+        Id know = edge.schemaLabel().id();
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.traversal().E().hasLabel("know").has("ID", id).toList();
+        }, e -> {
+            Assert.assertContains("Undefined property key: 'ID'",
+                                  e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.traversal().E().hasLabel("know").has("NAME", "n1").toList();
+        }, e -> {
+            Assert.assertContains("Undefined property key: 'NAME'",
+                                  e.getMessage());
+        });
+
+        Assert.assertThrows(HugeException.class, () -> {
+            ConditionQuery query = new ConditionQuery(HugeType.EDGE);
+            query.eq(HugeKeys.LABEL, know);
+            query.query(id);
+            graph.edges(query).hasNext();
+        }, e -> {
+            Assert.assertContains("Not supported querying by id and conditions",
+                                  e.getMessage());
+        });
+
+        Assert.assertThrows(HugeException.class, () -> {
+            ConditionQuery query = new ConditionQuery(HugeType.EDGE);
+            query.eq(HugeKeys.LABEL, know);
+            query.eq(HugeKeys.NAME, "n1");
+            graph.edges(query).hasNext();
+        }, e -> {
+            Assert.assertContains("Not supported querying edges by",
+                                  e.getMessage());
+            Assert.assertContains("NAME == n1", e.getMessage());
+        });
+
+        Assert.assertThrows(HugeException.class, () -> {
+            ConditionQuery query = new ConditionQuery(HugeType.EDGE);
+            query.eq(HugeKeys.LABEL, know);
+            query.eq(HugeKeys.NAME, "n2");
+            query.query(Condition.eq(IdGenerator.of("fake"), "n3"));
+            graph.edges(query).hasNext();
+        }, e -> {
+            Assert.assertContains("Can't do index query with [LABEL ==",
+                                  e.getMessage());
+            Assert.assertContains("NAME == n2", e.getMessage());
         });
     }
 
@@ -1017,8 +2774,66 @@ public class EdgeCoreTest extends BaseCoreTest {
         ConditionQuery q = new ConditionQuery(HugeType.EDGE);
         q.eq(HugeKeys.DIRECTION, Direction.OUT);
 
-        Assert.assertThrows(BackendException.class, () -> {
+        Assert.assertThrows(HugeException.class, () -> {
             graph.edges(q);
+        });
+    }
+
+    @Test
+    public void testQueryEdgesByHasKey() {
+        HugeGraph graph = graph();
+        Assume.assumeTrue("Not support CONTAINS_KEY query",
+                          storeFeatures().supportsQueryWithContainsKey());
+        init18Edges();
+
+        List<Edge> edges = graph.traversal().E()
+                                .hasLabel("authored").hasKey("score")
+                                .toList();
+        Assert.assertEquals(1, edges.size());
+        Assert.assertEquals(3, edges.get(0).value("score"));
+
+        edges = graph.traversal().E().hasKey("score").toList();
+        Assert.assertEquals(5, edges.size());
+    }
+
+    @Test
+    public void testQueryEdgesByHasKeys() {
+        HugeGraph graph = graph();
+        init18Edges();
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.traversal().E().hasLabel("authored")
+                 .hasKey("score", "time").toList();
+        });
+    }
+
+    @Test
+    public void testQueryEdgesByHasValue() {
+        HugeGraph graph = graph();
+        Assume.assumeTrue("Not support CONTAINS query",
+                          storeFeatures().supportsQueryWithContains());
+        init18Edges();
+
+        List<Edge> edges = graph.traversal().E()
+                                .hasLabel("look").hasValue(3)
+                                .toList();
+        Assert.assertEquals(2, edges.size());
+        Assert.assertEquals(3, edges.get(0).value("score"));
+        Assert.assertEquals(3, edges.get(1).value("score"));
+
+        // TODO: Seems Cassandra Bug if contains null value #862
+        //edges = graph.traversal().E().hasValue(3).toList();
+        //Assert.assertEquals(3, edges.size());
+    }
+
+    @Test
+    public void testQueryEdgesByHasValues() {
+        HugeGraph graph = graph();
+        init18Edges();
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.traversal().E().hasLabel("look")
+                 .hasValue(3, "2017-5-1").toList();
         });
     }
 
@@ -1216,7 +3031,7 @@ public class EdgeCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testQueryVerticesOfVertex() {
+    public void testQueryAdjacentVerticesOfVertex() {
         HugeGraph graph = graph();
         init18Edges();
 
@@ -1247,7 +3062,7 @@ public class EdgeCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testQueryVerticesOfEdges() {
+    public void testQueryAdjacentVerticesOfEdges() {
         HugeGraph graph = graph();
         init18Edges();
 
@@ -1285,6 +3100,322 @@ public class EdgeCoreTest extends BaseCoreTest {
         Assert.assertTrue(edge.otherVertex().getProperties().isEmpty());
         Assert.assertEquals(1, edge.otherVertex().getFilledProperties().size());
         Assert.assertEquals(1, edge.otherVertex().getProperties().size());
+    }
+
+    @Test
+    public void testQueryAdjacentVerticesOfEdgesWithoutVertex()
+                throws InterruptedException, ExecutionException {
+        HugeGraph graph = graph();
+
+        Vertex james = graph.addVertex(T.label, "author", "id", 1,
+                                       "name", "James Gosling", "age", 62,
+                                       "lived", "Canadian");
+        Vertex java = new HugeVertex(graph, IdGenerator.of("java"),
+                                     graph.vertexLabel("book"));
+
+        james.addEdge("authored", java, "score", 3);
+        graph.tx().commit();
+
+        List<Edge> edges = graph.traversal().V(james.id()).outE().toList();
+        Assert.assertEquals(1, edges.size());
+
+        Assert.assertEquals(0, graph.traversal().V(java).toList().size());
+
+        List<Vertex> vertices = graph.traversal().V(james.id()).out().toList();
+        Assert.assertEquals(1, vertices.size());
+        HugeVertex adjacent = (HugeVertex) vertices.get(0);
+        Assert.assertFalse(adjacent.schemaLabel().undefined());
+        adjacent.forceLoad(); // force load
+        Assert.assertTrue("label: " + adjacent.schemaLabel(),
+                          adjacent.schemaLabel().undefined());
+        Assert.assertEquals("~undefined", adjacent.label());
+
+        vertices = graph.traversal().V(james.id()).outE().otherV().toList();
+        Assert.assertEquals(1, vertices.size());
+        adjacent = (HugeVertex) vertices.get(0);
+        Assert.assertTrue(adjacent.isPropLoaded());
+        Assert.assertTrue(adjacent.schemaLabel().undefined());
+        adjacent.forceLoad();
+        Assert.assertTrue(adjacent.schemaLabel().undefined());
+        Assert.assertEquals("~undefined", adjacent.label());
+
+        params().graphEventHub().notify(Events.CACHE, "clear",
+                                        null, null).get();
+        vertices = graph.traversal().V(james.id()).outE().otherV().toList();
+        Assert.assertEquals(1, vertices.size());
+        adjacent = (HugeVertex) vertices.get(0);
+        Assert.assertFalse(adjacent.isPropLoaded());
+        Assert.assertFalse(adjacent.schemaLabel().undefined());
+        adjacent.forceLoad();
+        Assert.assertTrue(adjacent.schemaLabel().undefined());
+        Assert.assertEquals("~undefined", adjacent.label());
+
+        vertices = graph.traversal().V(james.id()).outE()
+                        .has("score", 3).otherV().toList();
+        Assert.assertEquals(1, vertices.size());
+        adjacent = (HugeVertex) vertices.get(0);
+        adjacent.forceLoad();
+        // NOTE: if not commit, adjacent.label() will return 'book'
+        Assert.assertTrue(adjacent.schemaLabel().undefined());
+        Assert.assertEquals("~undefined", adjacent.label());
+        Assert.assertFalse(adjacent.properties().hasNext());
+
+        vertices = graph.traversal().V(james.id()).outE()
+                        .has("score", 3).otherV().toList();
+        Assert.assertEquals(1, vertices.size());
+        adjacent = (HugeVertex) vertices.get(0);
+        Assert.assertTrue(adjacent.schemaLabel().undefined());
+        Assert.assertEquals("~undefined", adjacent.label());
+
+        Whitebox.setInternalState(params().graphTransaction(),
+                                  "checkAdjacentVertexExist", true);
+        try {
+            Assert.assertThrows(HugeException.class, () -> {
+                // read from cache
+                graph.traversal().V(james.id()).outE().has("score", 3)
+                                 .otherV().values().toList();
+            }, e -> {
+                Assert.assertContains("Vertex 'java' does not exist",
+                                      e.getMessage());
+            });
+        } finally {
+            Whitebox.setInternalState(params().graphTransaction(),
+                                      "checkAdjacentVertexExist", false);
+        }
+
+        Whitebox.setInternalState(params().graphTransaction(),
+                                  "checkAdjacentVertexExist", true);
+        params().graphEventHub().notify(Events.CACHE, "clear",
+                                        null, null).get();
+        try {
+            Assert.assertEquals(0, graph.traversal().V(java).toList().size());
+
+            Assert.assertThrows(HugeException.class, () -> {
+                graph.traversal().V(james.id()).out().values().toList();
+            }, e -> {
+                Assert.assertContains("Vertex 'java' does not exist",
+                                      e.getMessage());
+            });
+
+            Assert.assertThrows(HugeException.class, () -> {
+                graph.traversal().V(james.id()).outE().otherV()
+                                 .values().toList();
+            }, e -> {
+                Assert.assertContains("Vertex 'java' does not exist",
+                                      e.getMessage());
+            });
+
+            Assert.assertThrows(HugeException.class, () -> {
+                Vertex v = graph.traversal().V(james.id()).outE()
+                                .has("score", 3).otherV().next();
+                v.properties(); // throw
+            }, e -> {
+                Assert.assertContains("Vertex 'java' does not exist",
+                                      e.getMessage());
+            });
+
+            Assert.assertThrows(HugeException.class, () -> {
+                Vertex v = graph.traversal().V(james.id()).outE()
+                                .has("score", 3).otherV().next();
+                v.values(); // throw
+            }, e -> {
+                Assert.assertContains("Vertex 'java' does not exist",
+                                      e.getMessage());
+            });
+
+            Assert.assertThrows(HugeException.class, () -> {
+                Vertex v = graph.traversal().V(james.id()).outE()
+                                .has("score", 3).otherV().next();
+                ((HugeVertex) v).forceLoad(); // throw
+            }, e -> {
+                Assert.assertContains("Vertex 'java' does not exist",
+                                      e.getMessage());
+            });
+        } finally {
+            Whitebox.setInternalState(params().graphTransaction(),
+                                      "checkAdjacentVertexExist", false);
+        }
+    }
+
+    @Test
+    public void testQueryAdjacentVerticesOfEdgesWithInvalidVertexLabel()
+                throws InterruptedException, ExecutionException {
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
+
+        schema.vertexLabel("programmer")
+              .useCustomizeStringId()
+              .properties("name", "age", "city")
+              .create();
+        schema.vertexLabel("designer")
+              .useCustomizeStringId()
+              .properties("name", "age", "city")
+              .create();
+        schema.edgeLabel("call")
+              .sourceLabel("designer").targetLabel("programmer")
+              .create();
+
+        Vertex v1 = graph.addVertex(T.label, "programmer", T.id, "123",
+                                    "name", "marko", "age", 18,
+                                    "city", "Beijing");
+        Vertex v2 = graph.addVertex(T.label, "designer", T.id, "456",
+                                    "name", "marko", "age", 19,
+                                    "city", "Beijing");
+        v2.addEdge("call", v1);
+        graph.tx().commit();
+
+        List<Vertex> vertices = graph.traversal().V(v1).both().toList();
+        Assert.assertEquals(1, vertices.size());
+        Assert.assertEquals(v2, vertices.get(0));
+        Assert.assertEquals(19, vertices.get(0).value("age"));
+        Assert.assertEquals("designer", vertices.get(0).label());
+
+        Assert.assertThrows(HugeException.class, () -> {
+            // try to override vertex designer-456 wirh programmer-456
+            graph.addVertex(T.label, "programmer", T.id, "456",
+                            "name", "marko", "age", 20, "city", "Beijing");
+            graph.tx().commit();
+        }, e -> {
+            String error = "The newly added vertex with id:'456' label:" +
+                           "'programmer' is not allowed to insert, " +
+                           "because already exist a vertex with same id and " +
+                           "different label:'designer'";
+            Assert.assertContains(error, e.getMessage());
+        });
+
+        Whitebox.setInternalState(params().graphTransaction(),
+                                  "checkCustomVertexExist", false);
+        params().graphEventHub().notify(Events.CACHE, "clear",
+                                        null, null).get();
+        try {
+            // override vertex designer-456 wirh programmer-456
+            graph.addVertex(T.label, "programmer", T.id, "456",
+                            "name", "marko", "age", 21, "city", "Beijing");
+            graph.tx().commit();
+        } finally {
+            Whitebox.setInternalState(params().graphTransaction(),
+                                      "checkCustomVertexExist", true);
+        }
+
+        // query by id
+        vertices = graph.traversal().V("456").toList();
+        Assert.assertEquals(1, vertices.size());
+        Assert.assertEquals("456", vertices.get(0).id().toString());
+        Assert.assertEquals(21, vertices.get(0).value("age"));
+        Assert.assertEquals("programmer", vertices.get(0).label());
+
+        // query by adjacent vertex
+        vertices = graph.traversal().V("123").both().toList();
+        Assert.assertEquals(1, vertices.size());
+        Assert.assertEquals("456", vertices.get(0).id().toString());
+        Assert.assertEquals(false, vertices.get(0).property("age").isPresent());
+        Assert.assertEquals("~undefined", vertices.get(0).label());
+    }
+
+    @Test
+    public void testQueryAdjacentVerticesOfEdgesWithoutVertexAndNoLazyLoad()
+                throws InterruptedException, ExecutionException {
+        HugeGraph graph = graph();
+
+        Vertex james = graph.addVertex(T.label, "author", "id", 1,
+                                       "name", "James Gosling", "age", 62,
+                                       "lived", "Canadian");
+        Vertex java = new HugeVertex(graph, IdGenerator.of("java"),
+                                     graph.vertexLabel("book"));
+
+        james.addEdge("authored", java, "score", 3);
+        graph.tx().commit();
+
+        Whitebox.setInternalState(params().graphTransaction(),
+                                  "lazyLoadAdjacentVertex", false);
+        try {
+            List<Edge> edges = graph.traversal().V(james.id()).outE().toList();
+            Assert.assertEquals(1, edges.size());
+
+            Assert.assertEquals(0, graph.traversal().V(java).toList().size());
+
+            List<Vertex> vertices = graph.traversal().V(james.id())
+                                                     .out().toList();
+            Assert.assertEquals(1, vertices.size());
+            HugeVertex adjacent = (HugeVertex) vertices.get(0);
+            Assert.assertTrue("label: " + adjacent.schemaLabel(),
+                              adjacent.schemaLabel().undefined());
+            Assert.assertEquals("~undefined", adjacent.label());
+
+            vertices = graph.traversal().V(james.id()).outE().otherV().toList();
+            Assert.assertEquals(1, vertices.size());
+            adjacent = (HugeVertex) vertices.get(0);
+            Assert.assertTrue(adjacent.schemaLabel().undefined());
+            Assert.assertEquals("~undefined", adjacent.label());
+
+            vertices = graph.traversal().V(james.id()).outE()
+                            .has("score", 3).otherV().toList();
+            Assert.assertEquals(1, vertices.size());
+            adjacent = (HugeVertex) vertices.get(0);
+            // NOTE: if not load, adjacent.label() will return 'book'
+            Assert.assertEquals("book", adjacent.label());
+            adjacent.forceLoad();
+            Assert.assertTrue(adjacent.schemaLabel().undefined());
+            Assert.assertEquals("~undefined", adjacent.label());
+            Assert.assertFalse(adjacent.properties().hasNext());
+
+            vertices = graph.traversal().V(james.id()).outE()
+                            .has("score", 3).otherV().toList();
+            Assert.assertEquals(1, vertices.size());
+            adjacent = (HugeVertex) vertices.get(0);
+            Assert.assertTrue(adjacent.schemaLabel().undefined());
+            Assert.assertEquals("~undefined", adjacent.label());
+        } finally {
+            Whitebox.setInternalState(params().graphTransaction(),
+                                      "lazyLoadAdjacentVertex", true);
+        }
+
+        Whitebox.setInternalState(params().graphTransaction(),
+                                  "lazyLoadAdjacentVertex", false);
+        Whitebox.setInternalState(params().graphTransaction(),
+                                  "checkAdjacentVertexExist", true);
+        params().graphEventHub().notify(Events.CACHE, "clear",
+                                        null, null).get();
+        try {
+            Assert.assertEquals(0, graph.traversal().V(java).toList().size());
+
+            Assert.assertThrows(HugeException.class, () -> {
+                graph.traversal().V(james.id()).out().toList();
+            }, e -> {
+                Assert.assertContains("Vertex 'java' does not exist",
+                                      e.getMessage());
+            });
+
+            Assert.assertThrows(HugeException.class, () -> {
+                graph.traversal().V(james.id()).outE().otherV().toList();
+            }, e -> {
+                Assert.assertContains("Vertex 'java' does not exist",
+                                      e.getMessage());
+            });
+
+            Assert.assertThrows(HugeException.class, () -> {
+                Vertex v = graph.traversal().V(james.id()).outE()
+                                .has("score", 3).otherV().next();
+                v.properties(); // throw
+            }, e -> {
+                Assert.assertContains("Vertex 'java' does not exist",
+                                      e.getMessage());
+            });
+
+            Assert.assertThrows(HugeException.class, () -> {
+                Vertex v = graph.traversal().V(james.id()).outE()
+                                .has("score", 3).otherV().next();
+                v.values(); // throw
+            }, e -> {
+                Assert.assertContains("Vertex 'java' does not exist",
+                                      e.getMessage());
+            });
+        } finally {
+            Whitebox.setInternalState(params().graphTransaction(),
+                                      "lazyLoadAdjacentVertex", true);
+            Whitebox.setInternalState(params().graphTransaction(),
+                                      "checkAdjacentVertexExist", false);
+        }
     }
 
     @Test
@@ -1587,6 +3718,12 @@ public class EdgeCoreTest extends BaseCoreTest {
         Assert.assertEquals(5, traverseInPage(page -> {
             return graph.traversal().V(v1).outE("call")
                         .has("callType", "work")
+                        .has("~page", page).limit(1);
+        }));
+
+        Assert.assertEquals(2, traverseInPage(page -> {
+            return graph.traversal().V(v1).outE("call")
+                        .has("callType", "fun")
                         .has("~page", page).limit(1);
         }));
 
@@ -2257,6 +4394,20 @@ public class EdgeCoreTest extends BaseCoreTest {
                         .has("calltime", P.between("2017-5-2", "2017-5-4"))
                         .has("~page", page).limit(1);
         }));
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            traverseInPage(page -> {
+                // no location
+                return graph.traversal().V(v1).outE("call")
+                            .has("callType", "work")
+                            .has("duration", 3)
+                            .has("calltime", P.between("2017-5-2", "2017-5-4"))
+                            .has("~page", page).limit(1);
+            });
+        }, e -> {
+            Assert.assertContains("Can't query by paging and filtering",
+                                  e.getMessage());
+        });
     }
 
     @Test
@@ -2893,7 +5044,6 @@ public class EdgeCoreTest extends BaseCoreTest {
         Assert.assertEquals(0, edges.size()); // be careful!
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void testScanEdge() {
         HugeGraph graph = graph();
@@ -2904,10 +5054,10 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         Set<Edge> edges = new HashSet<>();
 
-        long splitSize = 1 * 1024 * 1024;
-        Object splits = graph.graphTransaction()
-                             .metadata(HugeType.EDGE_OUT, "splits", splitSize);
-        for (Shard split : (List<Shard>) splits) {
+        long splitSize = 1L * 1024L * 1024L;
+        List<Shard> splits = graph.metadata(HugeType.EDGE_OUT, "splits",
+                                            splitSize);
+        for (Shard split : splits) {
             ConditionQuery q = new ConditionQuery(HugeType.EDGE);
             q.scan(split.start(), split.end());
             edges.addAll(ImmutableList.copyOf(graph.edges(q)));
@@ -2927,8 +5077,16 @@ public class EdgeCoreTest extends BaseCoreTest {
         List<Edge> edges = new LinkedList<>();
 
         ConditionQuery query = new ConditionQuery(HugeType.EDGE);
-        query.scan(String.valueOf(Long.MIN_VALUE),
-                   String.valueOf(Long.MAX_VALUE));
+
+        String backend = graph.backend();
+        if (backend.equals("cassandra") || backend.equals("scylladb")) {
+            query.scan(String.valueOf(Long.MIN_VALUE),
+                       String.valueOf(Long.MAX_VALUE));
+        } else {
+            query.scan(BackendTable.ShardSpliter.START,
+                       BackendTable.ShardSpliter.END);
+        }
+
         query.limit(1);
         String page = PageInfo.PAGE_NONE;
         while (page != null) {
@@ -2938,6 +5096,7 @@ public class EdgeCoreTest extends BaseCoreTest {
                 edges.add(iterator.next());
             }
             page = PageInfo.pageInfo(iterator);
+            CloseableIterator.closeIterator(iterator);
         }
         Assert.assertEquals(18, edges.size());
     }
@@ -2953,8 +5112,8 @@ public class EdgeCoreTest extends BaseCoreTest {
         int count = 0;
         String page = PageInfo.PAGE_NONE;
         while (page != null) {
-            GraphTraversal iterator = graph.traversal().V(james).bothE()
-                                           .has("~page", page).limit(1);
+            GraphTraversal<?, ?> iterator = graph.traversal().V(james).bothE()
+                                                 .has("~page", page).limit(1);
             Assert.assertEquals(1, IteratorUtils.count(iterator));
             page = TraversalUtil.page(iterator);
             count++;
@@ -2973,8 +5132,8 @@ public class EdgeCoreTest extends BaseCoreTest {
         int count = 0;
         String page = PageInfo.PAGE_NONE;
         while (page != null) {
-            GraphTraversal iterator = graph.traversal().V(james).outE()
-                                           .has("~page", page).limit(1);
+            GraphTraversal<?, ?> iterator = graph.traversal().V(james).outE()
+                                                 .has("~page", page).limit(1);
             Assert.assertEquals(1, IteratorUtils.count(iterator));
             page = TraversalUtil.page(iterator);
             count++;
@@ -2993,13 +5152,84 @@ public class EdgeCoreTest extends BaseCoreTest {
         int count = 0;
         String page = PageInfo.PAGE_NONE;
         while (page != null) {
-            GraphTraversal iterator = graph.traversal().V(james).inE()
-                                           .has("~page", page).limit(1);
+            GraphTraversal<?, ?> iterator = graph.traversal().V(james).inE()
+                                                 .has("~page", page).limit(1);
             Assert.assertEquals(1, IteratorUtils.count(iterator));
             page = TraversalUtil.page(iterator);
             count++;
         }
         Assert.assertEquals(2, count);
+    }
+
+    @Test
+    public void testQueryCount() {
+        HugeGraph graph = graph();
+
+        graph.schema().indexLabel("lookByTime").onE("look")
+             .secondary().by("time").create();
+        graph.schema().indexLabel("lookByScore").onE("look")
+             .range().by("score").create();
+
+        init18Edges();
+
+        GraphTraversalSource g = graph.traversal();
+
+        Assert.assertEquals(18L, g.E().count().next());
+
+        Assert.assertEquals(2L, g.E().hasLabel("created").count().next());
+        Assert.assertEquals(1L, g.E().hasLabel("know").count().next());
+        Assert.assertEquals(3L, g.E().hasLabel("authored").count().next());
+        Assert.assertEquals(7L, g.E().hasLabel("look").count().next());
+        Assert.assertEquals(4L, g.E().hasLabel("friend").count().next());
+        Assert.assertEquals(1L, g.E().hasLabel("follow").count().next());
+        Assert.assertEquals(11L, g.E().hasLabel("look", "friend")
+                                      .count().next());
+
+        Assert.assertEquals(5L, g.E().hasLabel("look")
+                                     .has("time", "2017-5-27").count().next());
+        Assert.assertEquals(2L, g.E().hasLabel("look")
+                                     .has("score", 3).count().next());
+        Assert.assertEquals(3L, g.E().hasLabel("look")
+                                     .has("score", P.gte(3)).count().next());
+        Assert.assertEquals(1L, g.E().hasLabel("look")
+                                     .has("score", P.lt(3)).count().next());
+
+        Assert.assertEquals(1L, g.E().hasLabel("look")
+                                     .has("time", "2017-5-27")
+                                     .has("score", 3)
+                                     .count().next());
+        Assert.assertEquals(2L, g.E().hasLabel("look")
+                                     .has("time", "2017-5-27")
+                                     .has("score", P.gte(3))
+                                     .count().next());
+        Assert.assertEquals(2L, g.E().hasLabel("look")
+                                     .has("time", "2017-5-27")
+                                     .has("score", P.gt(0))
+                                     .count().next());
+        Assert.assertEquals(3L, g.E().hasLabel("look")
+                                     .has("time", "2017-5-27")
+                                     .has("score", P.gte(0))
+                                     .count().next());
+        Assert.assertEquals(0L, g.E().hasLabel("look")
+                                     .has("time", "2017-5-27")
+                                     .has("score", P.lt(0))
+                                     .count().next());
+        Assert.assertEquals(1L, g.E().hasLabel("look")
+                                     .has("time", "2017-5-27")
+                                     .has("score", P.lte(0))
+                                     .count().next());
+        Assert.assertEquals(2L, g.E().hasLabel("look")
+                                     .has("time", "2017-5-27")
+                                     .has("score", P.lte(3))
+                                     .count().next());
+
+        Assert.assertEquals(18L, g.E().count().min().next());
+        Assert.assertEquals(7L, g.E().hasLabel("look").count().max().next());
+
+        Assert.assertEquals(4L, g.E().hasLabel("look")
+                                     .values("score").count().next());
+        Assert.assertEquals(11L, g.E().hasLabel("look")
+                                      .values().count().next());
     }
 
     @Test
@@ -3033,6 +5263,37 @@ public class EdgeCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testRemoveEdgeById() {
+        HugeGraph graph = graph();
+
+        Vertex james = graph.addVertex(T.label, "author", "id", 1,
+                                       "name", "James Gosling", "age", 62,
+                                       "lived", "Canadian");
+        Vertex java = graph.addVertex(T.label, "book", "name", "java");
+        Edge write = james.addEdge("write", java, "time", "2017-6-7");
+        Edge authored = james.addEdge("authored", java);
+        graph.tx().commit();
+
+        List<Edge> edges = graph.traversal().E().toList();
+        Assert.assertEquals(2, edges.size());
+
+        // remove edge without label index
+        graph.removeEdge(write.label(), write.id());
+        graph.tx().commit();
+
+        edges = graph.traversal().E().toList();
+        Assert.assertEquals(1, edges.size());
+        Assert.assertEquals(authored, edges.get(0));
+
+        // remove edge with label index
+        graph.removeEdge(authored.label(), authored.id());
+        graph.tx().commit();
+
+        edges = graph.traversal().E().toList();
+        Assert.assertEquals(0, edges.size());
+    }
+
+    @Test
     public void testRemoveEdgeNotExists() {
         HugeGraph graph = graph();
 
@@ -3040,12 +5301,16 @@ public class EdgeCoreTest extends BaseCoreTest {
                                        "name", "James Gosling", "age", 62,
                                        "lived", "Canadian");
         Vertex java = graph.addVertex(T.label, "language", "name", "java");
-
         Edge created = james.addEdge("created", java);
-
-        created.remove();
+        graph.tx().commit();
 
         List<Edge> edges = graph.traversal().E().toList();
+        Assert.assertEquals(1, edges.size());
+
+        created.remove();
+        graph.tx().commit();
+
+        edges = graph.traversal().E().toList();
         Assert.assertEquals(0, edges.size());
         // Remove again
         created.remove();
@@ -3187,7 +5452,7 @@ public class EdgeCoreTest extends BaseCoreTest {
         assertContains(edges, "authored", james, java3);
 
         // Add large amount of edges
-        txCap = graph.configuration().get(CoreOptions.EDGE_TX_CAPACITY);
+        txCap = this.superNodeSize();
         assert txCap / TX_BATCH > 0 && txCap % TX_BATCH == 0;
         for (int i = 0; i < txCap / TX_BATCH; i++) {
             for (int j = 0; j < TX_BATCH; j++) {
@@ -3202,15 +5467,28 @@ public class EdgeCoreTest extends BaseCoreTest {
         edges = graph.traversal().E().toList();
         Assert.assertEquals(txCap + 5, edges.size());
 
+        int old = Whitebox.getInternalState(params().graphTransaction(),
+                                            "commitPartOfAdjacentEdges");
+        Whitebox.setInternalState(params().graphTransaction(),
+                                  "commitPartOfAdjacentEdges", 0);
+        try {
+            // It will try to remove all edges of the vertex, but with error
+            guido.remove();
+
+            Assert.assertThrows(LimitExceedException.class, () -> {
+                graph.tx().commit();
+            }, e -> {
+                Assert.assertContains("Edges size has reached tx capacity",
+                                      e.getMessage());
+                graph.tx().rollback();
+            });
+        } finally {
+            Whitebox.setInternalState(params().graphTransaction(),
+                                      "commitPartOfAdjacentEdges", old);
+        }
+
         // It will remove all edges of the vertex
         guido.remove();
-
-        Assert.assertThrows(LimitExceedException.class, () -> {
-            graph.tx().commit();
-        }, (e) -> {
-            Assert.assertTrue(e.getMessage().contains(
-                              "Edges size has reached tx capacity"));
-        });
 
         // Clear all
         graph.truncateBackend();
@@ -3219,7 +5497,7 @@ public class EdgeCoreTest extends BaseCoreTest {
     @Test
     public void testRemoveEdgeAfterAddEdgeWithTx() {
         HugeGraph graph = graph();
-        GraphTransaction tx = graph.openTransaction();
+        GraphTransaction tx = params().openTransaction();
 
         Vertex james = tx.addVertex(T.label, "author", "id", 1,
                                     "name", "James Gosling", "age", 62,
@@ -3243,14 +5521,14 @@ public class EdgeCoreTest extends BaseCoreTest {
     @Test
     public void testRemoveVertexAfterAddEdgesWithTx() {
         HugeGraph graph = graph();
-        GraphTransaction tx = graph.openTransaction();
+        GraphTransaction tx = params().openTransaction();
 
         Vertex james = tx.addVertex(T.label, "author", "id", 1,
                                     "name", "James Gosling", "age", 62,
                                     "lived", "Canadian");
-        Vertex guido =  tx.addVertex(T.label, "author", "id", 2,
-                                     "name", "Guido van Rossum", "age", 61,
-                                     "lived", "California");
+        Vertex guido = tx.addVertex(T.label, "author", "id", 2,
+                                    "name", "Guido van Rossum", "age", 61,
+                                    "lived", "California");
 
         Vertex java = tx.addVertex(T.label, "language", "name", "java");
         Vertex python = tx.addVertex(T.label, "language", "name", "python",
@@ -3337,12 +5615,67 @@ public class EdgeCoreTest extends BaseCoreTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             louise.addEdge("strike", sean, "id", 1,
                            "timestamp", current, "place", "park",
-                           "tool", "\u0000", "reason", "jeer",
+                           "tool", "\u0002", "reason", "jeer",
                            "arrested", false);
             graph.tx().commit();
-        }, (e) -> {
-            Assert.assertTrue(e.getMessage().contains(
-                              "Illegal value of index property: '\u0000'"));
+        }, e -> {
+            Assert.assertContains("Illegal char '\\u0002' in index property:",
+                                  e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            louise.addEdge("strike", sean, "id", 1,
+                           "timestamp", current, "place", "park",
+                           "tool", "a\u0000", "reason", "jeer",
+                           "arrested", false);
+            graph.tx().commit();
+        }, e -> {
+            Assert.assertContains("Illegal char '\\u0000' in index property:",
+                                  e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            louise.addEdge("strike", sean, "id", 1,
+                           "timestamp", current, "place", "park",
+                           "tool", "a\u0001", "reason", "jeer",
+                           "arrested", false);
+            graph.tx().commit();
+        }, e -> {
+            Assert.assertContains("Illegal char '\\u0001' in index property:",
+                                  e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            louise.addEdge("strike", sean, "id", 1,
+                           "timestamp", current, "place", "park",
+                           "tool", "a\u0002", "reason", "jeer",
+                           "arrested", false);
+            graph.tx().commit();
+        }, e -> {
+            Assert.assertContains("Illegal char '\\u0002' in index property:",
+                                  e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            louise.addEdge("strike", sean, "id", 1,
+                           "timestamp", current, "place", "park",
+                           "tool", "a\u0003", "reason", "jeer",
+                           "arrested", false);
+            graph.tx().commit();
+        }, e -> {
+            Assert.assertContains("Illegal char '\\u0003' in index property:",
+                                  e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            louise.addEdge("strike", sean, "id", 1,
+                           "timestamp", current, "place", "park",
+                           "tool", "\u0002", "reason", "jeer",
+                           "arrested", false);
+            graph.tx().commit();
+        }, e -> {
+            Assert.assertContains("Illegal char '\\u0002' in index property:",
+                                  e.getMessage());
         });
     }
 
@@ -3531,6 +5864,521 @@ public class EdgeCoreTest extends BaseCoreTest {
         edge3.remove();
         edge2.property("weight", 1.0);
         graph().tx().commit();
+    }
+
+    @Test
+    public void testQueryEdgeByUniqueIndex() {
+        SchemaManager schema = graph().schema();
+        schema.propertyKey("weight").asDouble().ifNotExist().create();
+        schema.vertexLabel("user")
+              .properties("name")
+              .primaryKeys("name")
+              .ifNotExist()
+              .create();
+        schema.edgeLabel("like")
+              .sourceLabel("user")
+              .targetLabel("user")
+              .properties("weight")
+              .ifNotExist()
+              .create();
+        schema.indexLabel("likeByWeight")
+              .onE("like")
+              .by("weight")
+              .unique()
+              .ifNotExist()
+              .create();
+
+        Vertex marko = graph().addVertex(T.label, "user", "name", "marko");
+        Vertex vadas = graph().addVertex(T.label, "user", "name", "vadas");
+        marko.addEdge("like", vadas, "weight", 0.5);
+        graph().tx().commit();
+
+        Assert.assertThrows(NoIndexException.class, () -> {
+            graph().traversal().E().hasLabel("like").has("weight", 0.5).next();
+        }, e -> {
+            Assert.assertEquals("Don't accept query based on properties " +
+                                "[weight] that are not indexed in label " +
+                                "'like', may not match secondary condition",
+                                e.getMessage());
+        });
+    }
+
+    @Test
+    public void testUpdateEdgePropertyOfAggregateType() {
+        Assume.assumeTrue("Not support aggregate property",
+                          storeFeatures().supportsAggregateProperty());
+
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
+
+        schema.propertyKey("startTime")
+              .asDate().valueSingle().calcMin()
+              .ifNotExist().create();
+        schema.propertyKey("endTime")
+              .asDate().valueSingle().calcMax()
+              .ifNotExist().create();
+        schema.propertyKey("times")
+              .asLong().valueSingle().calcSum()
+              .ifNotExist().create();
+
+        schema.vertexLabel("ip").useCustomizeStringId().ifNotExist().create();
+
+        schema.edgeLabel("attack").sourceLabel("ip").targetLabel("ip")
+              .properties("startTime", "endTime", "times")
+              .ifNotExist().create();
+
+        Vertex ip1 = graph.addVertex(T.label, "ip", T.id, "10.0.0.1");
+        Vertex ip2 = graph.addVertex(T.label, "ip", T.id, "10.0.0.2");
+
+        ip1.addEdge("attack", ip2,
+                    "startTime", "2019-1-1 00:00:30",
+                    "endTime", "2019-1-1 00:01:00",
+                    "times", 3);
+        graph.tx().commit();
+
+        Edge edge = graph.traversal().V("10.0.0.1").outE().next();
+        Assert.assertEquals(Utils.date("2019-1-1 00:00:30"),
+                            edge.value("startTime"));
+        Assert.assertEquals(Utils.date("2019-1-1 00:01:00"),
+                            edge.value("endTime"));
+        Assert.assertEquals(3L, edge.value("times"));
+
+        edge.property("startTime", "2019-1-1 00:04:00");
+        edge.property("endTime", "2019-1-1 00:08:00");
+        edge.property("times", 10);
+        graph.tx().commit();
+
+        edge = graph.traversal().V("10.0.0.1").outE().next();
+        Assert.assertEquals(Utils.date("2019-1-1 00:00:30"),
+                            edge.value("startTime"));
+        Assert.assertEquals(Utils.date("2019-1-1 00:08:00"),
+                            edge.value("endTime"));
+        Assert.assertEquals(13L, edge.value("times"));
+
+        edge.property("startTime", "2019-1-2 00:04:00");
+        edge.property("endTime", "2019-1-2 00:08:00");
+        edge.property("times", 7);
+        graph.tx().commit();
+
+        edge = graph.traversal().V("10.0.0.1").outE().next();
+        Assert.assertEquals(Utils.date("2019-1-1 00:00:30"),
+                            edge.value("startTime"));
+        Assert.assertEquals(Utils.date("2019-1-2 00:08:00"),
+                            edge.value("endTime"));
+        Assert.assertEquals(20L, edge.value("times"));
+
+        edge.property("startTime", "2019-1-1 00:00:00");
+        edge.property("endTime", "2019-2-1 00:20:00");
+        edge.property("times", 100);
+        graph.tx().commit();
+        edge = graph.traversal().V("10.0.0.1").outE().next();
+        Assert.assertEquals(Utils.date("2019-1-1 00:00:00"),
+                            edge.value("startTime"));
+        Assert.assertEquals(Utils.date("2019-2-1 00:20:00"),
+                            edge.value("endTime"));
+        Assert.assertEquals(120L, edge.value("times"));
+    }
+
+    @Test
+    public void testAddAndUpdateEdgePropertyOfAggregateType() {
+        Assume.assumeTrue("Not support aggregate property",
+                          storeFeatures().supportsAggregateProperty());
+
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
+
+        schema.propertyKey("startTime")
+              .asDate().valueSingle().calcMin()
+              .ifNotExist().create();
+        schema.propertyKey("endTime")
+              .asDate().valueSingle().calcMax()
+              .ifNotExist().create();
+        schema.propertyKey("times")
+              .asLong().valueSingle().calcSum()
+              .ifNotExist().create();
+
+        schema.vertexLabel("ip").useCustomizeStringId().ifNotExist().create();
+
+        schema.edgeLabel("attack").sourceLabel("ip").targetLabel("ip")
+              .properties("startTime", "endTime", "times")
+              .ifNotExist().create();
+
+        Vertex ip1 = graph.addVertex(T.label, "ip", T.id, "10.0.0.1");
+        Vertex ip2 = graph.addVertex(T.label, "ip", T.id, "10.0.0.2");
+
+        Edge edge = ip1.addEdge("attack", ip2,
+                                "startTime", "2019-1-1 00:00:30",
+                                "endTime", "2019-1-1 00:01:00",
+                                "times", 3);
+        edge.property("startTime", "2019-1-1 00:04:00");
+        edge.property("endTime", "2019-1-1 00:08:00");
+        edge.property("times", 10);
+
+        Edge result = graph.traversal().V("10.0.0.1").outE().next();
+        Assert.assertEquals(Utils.date("2019-1-1 00:04:00"),
+                            result.value("startTime"));
+        Assert.assertEquals(Utils.date("2019-1-1 00:08:00"),
+                            result.value("endTime"));
+        Assert.assertEquals(10L, result.value("times"));
+
+        graph.tx().commit();
+
+        result = graph.traversal().V("10.0.0.1").outE().next();
+        Assert.assertEquals(Utils.date("2019-1-1 00:04:00"),
+                            result.value("startTime"));
+        Assert.assertEquals(Utils.date("2019-1-1 00:08:00"),
+                            result.value("endTime"));
+        Assert.assertEquals(10L, result.value("times"));
+
+        edge = ip1.addEdge("attack", ip2,
+                           "startTime", "2019-1-1 00:00:30",
+                           "endTime", "2019-1-1 00:01:00",
+                           "times", 3);
+
+        edge.property("startTime", "2019-1-2 00:00:30");
+        edge.property("endTime", "2019-1-2 00:01:00");
+        edge.property("times", 2);
+
+        Assert.assertEquals(Utils.date("2019-1-1 00:04:00"),
+                            edge.value("startTime"));
+        Assert.assertEquals(Utils.date("2019-1-2 00:01:00"),
+                            edge.value("endTime"));
+        Assert.assertEquals(12L, edge.value("times"));
+
+        Assert.assertEquals(Utils.date("2019-1-1 00:04:00"),
+                            edge.property("startTime").value());
+        Assert.assertEquals(Utils.date("2019-1-2 00:01:00"),
+                            edge.property("endTime").value());
+        Assert.assertEquals(12L, edge.property("times").value());
+
+        result = graph.traversal().V("10.0.0.1").outE().next();
+        Assert.assertEquals(Utils.date("2019-1-1 00:04:00"),
+                            result.property("startTime").value());
+        Assert.assertEquals(Utils.date("2019-1-2 00:01:00"),
+                            result.property("endTime").value());
+        Assert.assertEquals(12L, result.property("times").value());
+    }
+
+    @Test
+    public void testQueryEdgeByAggregateProperty() {
+        Assume.assumeTrue("Not support aggregate property",
+                          storeFeatures().supportsAggregateProperty());
+
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
+
+        schema.propertyKey("startTime")
+              .asDate().valueSingle().calcMin()
+              .ifNotExist().create();
+        schema.propertyKey("endTime")
+              .asDate().valueSingle().calcMax()
+              .ifNotExist().create();
+        schema.propertyKey("times")
+              .asLong().valueSingle().calcSum()
+              .ifNotExist().create();
+        schema.propertyKey("firstTime")
+              .asDate().valueSingle().calcOld()
+              .ifNotExist().create();
+
+        schema.vertexLabel("ip").useCustomizeStringId().ifNotExist().create();
+
+        schema.edgeLabel("attack").sourceLabel("ip").targetLabel("ip")
+              .properties("startTime", "endTime", "times", "firstTime")
+              .ifNotExist().create();
+
+        schema.indexLabel("attackByStartTime")
+              .onE("attack").by("startTime").range().ifNotExist().create();
+        schema.indexLabel("attackByendTime")
+              .onE("attack").by("endTime").range().ifNotExist().create();
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("attackByTimes")
+                  .onE("attack").by("times").range().ifNotExist().create();
+        }, e -> {
+            Assert.assertContains("The aggregate type SUM is not indexable",
+                                  e.getMessage());
+        });
+        schema.indexLabel("attackByFirstTime")
+              .onE("attack").by("firstTime").range().ifNotExist().create();
+
+        Vertex ip1 = graph.addVertex(T.label, "ip", T.id, "10.0.0.1");
+        Vertex ip2 = graph.addVertex(T.label, "ip", T.id, "10.0.0.2");
+
+        ip1.addEdge("attack", ip2,
+                    "startTime", "2019-1-1 00:00:30",
+                    "endTime", "2019-1-1 00:01:00",
+                    "firstTime", "2019-5-5 12:00:00",
+                    "times", 3);
+        graph.tx().commit();
+
+        List<Edge> edges = graph.traversal().V("10.0.0.1").outE().toList();
+        Assert.assertEquals(1, edges.size());
+        Edge edge = edges.get(0);
+        Assert.assertEquals(Utils.date("2019-1-1 00:00:30"),
+                            edge.value("startTime"));
+        Assert.assertEquals(Utils.date("2019-1-1 00:01:00"),
+                            edge.value("endTime"));
+        Assert.assertEquals(Utils.date("2019-5-5 12:00:00"),
+                            edge.value("firstTime"));
+        Assert.assertEquals(3L, edge.value("times"));
+
+        List<Edge> results = graph.traversal().E()
+                                  .has("startTime", P.gt("2019-1-1 00:00:00"))
+                                  .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("startTime", P.lt("2019-12-12 23:59:59"))
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("startTime", "2019-1-1 00:00:30")
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("endTime", P.gt("2019-1-1 00:00:00"))
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("endTime", P.lt("2019-12-12 23:59:59"))
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("endTime", "2019-1-1 00:01:00")
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("firstTime", "2019-5-5 12:00:00")
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        edge.property("startTime", "2019-1-1 00:04:00");
+        edge.property("endTime", "2019-1-1 00:08:00");
+        edge.property("times", 10);
+        graph.tx().commit();
+
+        edges = graph.traversal().V("10.0.0.1").outE().toList();
+        Assert.assertEquals(1, edges.size());
+        edge = edges.get(0);
+        Assert.assertEquals(Utils.date("2019-1-1 00:00:30"),
+                            edge.value("startTime"));
+        Assert.assertEquals(Utils.date("2019-1-1 00:08:00"),
+                            edge.value("endTime"));
+        Assert.assertEquals(Utils.date("2019-5-5 12:00:00"),
+                            edge.value("firstTime"));
+        Assert.assertEquals(13L, edge.value("times"));
+
+        results = graph.traversal().E()
+                       .has("startTime", P.gt("2019-1-1 00:00:00"))
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("startTime", P.lt("2019-12-12 23:59:59"))
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("startTime", "2019-1-1 00:00:30")
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("endTime", P.gt("2019-1-1 00:00:00"))
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("endTime", P.lt("2019-12-12 23:59:59"))
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("endTime", "2019-1-1 00:08:00")
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("firstTime", "2019-5-5 12:00:00")
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        edge.property("startTime", "2019-1-2 00:04:00");
+        edge.property("endTime", "2019-1-2 00:08:00");
+        edge.property("times", 7);
+        graph.tx().commit();
+
+        edges = graph.traversal().V("10.0.0.1").outE().toList();
+        Assert.assertEquals(1, edges.size());
+        edge = edges.get(0);
+        Assert.assertEquals(Utils.date("2019-1-1 00:00:30"),
+                            edge.value("startTime"));
+        Assert.assertEquals(Utils.date("2019-1-2 00:08:00"),
+                            edge.value("endTime"));
+        Assert.assertEquals(Utils.date("2019-5-5 12:00:00"),
+                            edge.value("firstTime"));
+        Assert.assertEquals(20L, edge.value("times"));
+
+        results = graph.traversal().E()
+                       .has("startTime", P.gt("2019-1-1 00:00:00"))
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("startTime", P.lt("2019-12-12 23:59:59"))
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("startTime", "2019-1-1 00:00:30")
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("endTime", P.gt("2019-1-1 00:00:00"))
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("endTime", P.lt("2019-12-12 23:59:59"))
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("endTime", "2019-1-2 00:08:00")
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("firstTime", "2019-5-5 12:00:00")
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        edge.property("startTime", "2019-1-1 00:00:02");
+        edge.property("endTime", "2019-2-1 00:20:00");
+        edge.property("times", 100);
+        graph.tx().commit();
+
+        edges = graph.traversal().V("10.0.0.1").outE().toList();
+        Assert.assertEquals(1, edges.size());
+        edge = edges.get(0);
+        Assert.assertEquals(Utils.date("2019-1-1 00:00:02"),
+                            edge.value("startTime"));
+        Assert.assertEquals(Utils.date("2019-2-1 00:20:00"),
+                            edge.value("endTime"));
+        Assert.assertEquals(Utils.date("2019-5-5 12:00:00"),
+                            edge.value("firstTime"));
+        Assert.assertEquals(120L, edge.value("times"));
+
+        results = graph.traversal().E()
+                       .has("startTime", P.gt("2019-1-1 00:00:00"))
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("startTime", P.lt("2019-12-12 23:59:59"))
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("startTime", "2019-1-1 00:00:02")
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("endTime", P.gt("2019-1-1 00:00:00"))
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("endTime", P.lt("2019-12-12 23:59:59"))
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("endTime", "2019-2-1 00:20:00")
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("firstTime", "2019-5-5 12:00:00")
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        edge.property("startTime", "2019-1-1 00:00:01");
+        edge.property("endTime", "2019-2-1 00:20:00");
+        edge.property("times", 20);
+        graph.tx().commit();
+
+        edge.property("startTime", "2019-3-1 00:00:00");
+        edge.property("endTime", "2019-5-1 00:20:00");
+        edge.property("times", 25);
+        graph.tx().commit();
+
+        edge.property("startTime", "2019-1-1 00:30:00");
+        edge.property("endTime", "2019-8-1 00:20:00");
+        edge.property("times", 35);
+        graph.tx().commit();
+
+        edges = graph.traversal().V("10.0.0.1").outE().toList();
+        Assert.assertEquals(1, edges.size());
+        edge = edges.get(0);
+        Assert.assertEquals(Utils.date("2019-1-1 00:00:01"),
+                            edge.value("startTime"));
+        Assert.assertEquals(Utils.date("2019-8-1 00:20:00"),
+                            edge.value("endTime"));
+        Assert.assertEquals(Utils.date("2019-5-5 12:00:00"),
+                            edge.value("firstTime"));
+        Assert.assertEquals(200L, edge.value("times"));
+
+        results = graph.traversal().E()
+                       .has("startTime", P.gt("2019-1-1 00:00:00"))
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("startTime", P.lt("2019-12-12 23:59:59"))
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("startTime", "2019-1-1 00:00:01")
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("endTime", P.gt("2019-1-1 00:00:00"))
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("endTime", P.lt("2019-12-12 23:59:59"))
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("endTime", "2019-8-1 00:20:00")
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("firstTime", P.gt("2019-5-1 12:00:00"))
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("firstTime", P.lt("2019-6-1 12:00:00"))
+                       .toList();
+        Assert.assertEquals(edges, results);
+
+        results = graph.traversal().E()
+                       .has("firstTime", "2019-5-5 12:00:00")
+                       .toList();
+        Assert.assertEquals(edges, results);
     }
 
     @Test
@@ -4093,10 +6941,10 @@ public class EdgeCoreTest extends BaseCoreTest {
 
     private Vertex vertex(String label, String pkName, Object pkValue) {
         List<Vertex> vertices = graph().traversal().V()
-                                .hasLabel(label)
-                                .has(pkName, pkValue).toList();
-        Assert.assertEquals(1, vertices.size());
-        return vertices.get(0);
+                                       .hasLabel(label).has(pkName, pkValue)
+                                       .toList();
+        Assert.assertTrue(vertices.size() <= 1);
+        return vertices.size() == 1 ? vertices.get(0) : null;
     }
 
     private static void assertContains(
@@ -4109,15 +6957,19 @@ public class EdgeCoreTest extends BaseCoreTest {
                           new FakeEdge(label, outVertex, inVertex, kvs)));
     }
 
-    private int traverseInPage(Function<String, GraphTraversal> function) {
+    private int traverseInPage(Function<String, GraphTraversal<?, ?>> fetcher) {
         String page = PageInfo.PAGE_NONE;
         int count = 0;
         while (page != null) {
-            GraphTraversal iterator = function.apply(page);
+            GraphTraversal<?, ?> iterator = fetcher.apply(page);
             Assert.assertEquals(1, IteratorUtils.count(iterator));
             page = TraversalUtil.page(iterator);
             count++;
         }
         return count;
+    }
+
+    private int superNodeSize() {
+        return params().configuration().get(CoreOptions.EDGE_TX_CAPACITY);
     }
 }

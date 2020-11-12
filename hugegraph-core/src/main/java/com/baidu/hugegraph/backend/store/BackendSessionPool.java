@@ -19,6 +19,8 @@
 
 package com.baidu.hugegraph.backend.store;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -37,12 +39,17 @@ public abstract class BackendSessionPool {
     private final String name;
     private final ThreadLocal<BackendSession> threadLocalSession;
     private final AtomicInteger sessionCount;
+    private final Map<Long, BackendSession> sessions;
+    private final long reconnectDetectInterval;
 
     public BackendSessionPool(HugeConfig config, String name) {
         this.config = config;
         this.name = name;
         this.threadLocalSession = new ThreadLocal<>();
         this.sessionCount = new AtomicInteger(0);
+        this.sessions = new ConcurrentHashMap<>();
+        this.reconnectDetectInterval = this.config.get(
+                                       CoreOptions.CONNECTION_DETECT_INTERVAL);
     }
 
     public HugeConfig config() {
@@ -55,6 +62,8 @@ public abstract class BackendSessionPool {
             session = this.newSession();
             assert session != null;
             this.threadLocalSession.set(session);
+            assert !this.sessions.containsKey(Thread.currentThread().getId());
+            this.sessions.put(Thread.currentThread().getId(), session);
             int sessionCount = this.sessionCount.incrementAndGet();
             LOG.debug("Now(after connect({})) session count is: {}",
                       this, sessionCount);
@@ -77,9 +86,9 @@ public abstract class BackendSessionPool {
 
     private void detectSession(BackendSession session) {
         // Reconnect if the session idle time exceed specified value
-        long interval = this.config.get(CoreOptions.CONNECTION_DETECT_INTERVAL);
+        long interval = TimeUnit.SECONDS.toMillis(this.reconnectDetectInterval);
         long now = System.currentTimeMillis();
-        if (now - session.updated() > TimeUnit.SECONDS.toMillis(interval)) {
+        if (now - session.updated() > interval) {
             session.reconnectIfNeeded();
         }
         session.update();
@@ -113,7 +122,16 @@ public abstract class BackendSessionPool {
             throw e;
         }
         this.threadLocalSession.remove();
+        assert this.sessions.containsKey(Thread.currentThread().getId());
+        this.sessions.remove(Thread.currentThread().getId());
+
         return Pair.of(this.sessionCount.decrementAndGet(), ref);
+    }
+
+    public void forceResetSessions() {
+        for (BackendSession session : this.sessions.values()) {
+            session.reset();
+        }
     }
 
     public void close() {

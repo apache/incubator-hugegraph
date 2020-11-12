@@ -19,7 +19,6 @@
 
 package com.baidu.hugegraph.traversal.algorithm;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -43,24 +42,25 @@ public class SubGraphTraverser extends HugeTraverser {
         super(graph);
     }
 
-    public List<Path> rays(Id sourceV, Directions dir, String label,
-                           int depth, long degree, long capacity, long limit) {
+    public PathSet rays(Id sourceV, Directions dir, String label,
+                        int depth, long degree, long capacity, long limit) {
         return this.subGraphPaths(sourceV, dir, label, depth, degree,
                                   capacity, limit, false, false);
     }
 
-    public List<Path> rings(Id sourceV, Directions dir, String label, int depth,
-                            boolean sourceInRing, long degree, long capacity,
-                            long limit) {
+    public PathSet rings(Id sourceV, Directions dir, String label, int depth,
+                         boolean sourceInRing, long degree, long capacity,
+                         long limit) {
         return this.subGraphPaths(sourceV, dir, label, depth, degree,
                                   capacity, limit, true, sourceInRing);
     }
 
-    private List<Path> subGraphPaths(Id sourceV, Directions dir, String label,
-                                     int depth, long degree, long capacity,
-                                     long limit, boolean rings,
-                                     boolean sourceInRing) {
+    private PathSet subGraphPaths(Id sourceV, Directions dir, String label,
+                                  int depth, long degree, long capacity,
+                                  long limit, boolean rings,
+                                  boolean sourceInRing) {
         E.checkNotNull(sourceV, "source vertex id");
+        this.checkVertexExist(sourceV, "source vertex");
         E.checkNotNull(dir, "direction");
         checkPositive(depth, "max depth");
         checkDegree(degree);
@@ -71,7 +71,7 @@ public class SubGraphTraverser extends HugeTraverser {
         Traverser traverser = new Traverser(sourceV, labelId, depth, degree,
                                             capacity, limit, rings,
                                             sourceInRing);
-        List<Path> paths = new ArrayList<>();
+        PathSet paths = new PathSet();
         while (true) {
             paths.addAll(traverser.forward(dir));
             if (--depth <= 0 || traverser.reachLimit() ||
@@ -83,15 +83,20 @@ public class SubGraphTraverser extends HugeTraverser {
     }
 
     private static boolean hasMultiEdges(List<Edge> edges, Id target) {
-        int count = 0;
+        boolean hasOutEdge = false;
+        boolean hasInEdge = false;
         for (Edge edge : edges) {
             if (((HugeEdge) edge).id().otherVertexId().equals(target)) {
-                if (++count > 1) {
+                if (((HugeEdge) edge).direction() == Directions.OUT) {
+                    hasOutEdge = true;
+                } else {
+                    hasInEdge = true;
+                }
+                if (hasOutEdge && hasInEdge) {
                     return true;
                 }
             }
         }
-        assert count == 1;
         return false;
     }
 
@@ -129,8 +134,8 @@ public class SubGraphTraverser extends HugeTraverser {
         /**
          * Search forward from source
          */
-        public List<Path> forward(Directions direction) {
-            List<Path> paths = new ArrayList<>();
+        public PathSet forward(Directions direction) {
+            PathSet paths = new PathSet();
             MultivaluedMap<Id, Node> newVertices = newMultivalueMap();
             Iterator<Edge> edges;
             // Traversal vertices of previous level
@@ -148,7 +153,7 @@ public class SubGraphTraverser extends HugeTraverser {
                     }
                     for (Node n : entry.getValue()) {
                         // Store rays
-                        paths.add(new Path(null, n.path()));
+                        paths.add(new Path(n.path()));
                         this.pathCount++;
                         if (reachLimit()) {
                             return paths;
@@ -183,7 +188,7 @@ public class SubGraphTraverser extends HugeTraverser {
                         boolean bothBack = target.equals(node.parent().id()) &&
                                            direction == Directions.BOTH;
                         if (!this.rings && bothBack && uniqueEdge) {
-                            paths.add(new Path(null, node.path()));
+                            paths.add(new Path(node.path()));
                             this.pathCount++;
                             if (reachLimit()) {
                                 return paths;
@@ -208,7 +213,7 @@ public class SubGraphTraverser extends HugeTraverser {
                             if (ringsFound) {
                                 List<Id> path = node.path();
                                 path.add(target);
-                                paths.add(new Path(null, path));
+                                paths.add(new RingPath(null, path));
                                 this.pathCount++;
                                 if (reachLimit()) {
                                     return paths;
@@ -221,10 +226,10 @@ public class SubGraphTraverser extends HugeTraverser {
             // Re-init sources
             this.sources = newVertices;
 
-            if (!rings && --this.depth <= 0) {
+            if (!this.rings && --this.depth <= 0) {
                 for (List<Node> list : newVertices.values()) {
                     for (Node n : list) {
-                        paths.add(new Path(null, n.path()));
+                        paths.add(new Path(n.path()));
                     }
                 }
             }
@@ -243,6 +248,54 @@ public class SubGraphTraverser extends HugeTraverser {
 
         private boolean finished() {
             return this.sources.isEmpty();
+        }
+    }
+
+    private static class RingPath extends Path {
+
+        public RingPath(Id crosspoint, List<Id> vertices) {
+            super(crosspoint, vertices);
+        }
+
+        @Override
+        public int hashCode() {
+            int hashCode = 0;
+            for (Id id : this.vertices()) {
+                hashCode ^= id.hashCode();
+            }
+            return hashCode;
+        }
+
+        /**
+         * Compares the specified object with this path for equality.
+         * Returns <tt>true</tt> if other path is equal to or
+         * reversed of this path.
+         * @param other the object to be compared
+         * @return <tt>true</tt> if the specified object is equal to or
+         * reversed of this path
+         */
+        @Override
+        public boolean equals(Object other) {
+            if (!(other instanceof RingPath)) {
+                return false;
+            }
+            List<Id> vertices = this.vertices();
+            List<Id> otherVertices = ((Path) other).vertices();
+
+            if (vertices.equals(otherVertices)) {
+                return true;
+            }
+            if (vertices.size() != otherVertices.size()) {
+                return false;
+            }
+            assert vertices.size() == otherVertices.size();
+            for (int i = 0, size = vertices.size(); i < size; i++) {
+                int j = size - i - 1;
+                if (!vertices.get(i).equals(otherVertices.get(j))) {
+                    return false;
+                }
+            }
+            return true;
         }
     }
 }

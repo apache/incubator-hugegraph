@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.core;
 
+import java.util.Date;
 import java.util.List;
 
 import org.apache.tinkerpop.gremlin.process.traversal.P;
@@ -29,14 +30,22 @@ import org.junit.Test;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
-import com.baidu.hugegraph.backend.store.BackendFeatures;
+import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.id.IdGenerator;
+import com.baidu.hugegraph.exception.ExistedException;
 import com.baidu.hugegraph.exception.NoIndexException;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.SchemaManager;
+import com.baidu.hugegraph.schema.Userdata;
 import com.baidu.hugegraph.schema.VertexLabel;
+import com.baidu.hugegraph.task.HugeTask;
+import com.baidu.hugegraph.task.TaskScheduler;
+import com.baidu.hugegraph.task.TaskStatus;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.type.define.IdStrategy;
+import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.Events;
+import com.google.common.collect.ImmutableSet;
 
 public class VertexLabelCoreTest extends SchemaCoreTest {
 
@@ -548,8 +557,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
 
         List<Vertex> persons;
 
-        BackendFeatures features = graph.graphTransaction().store().features();
-        if (!features.supportsQueryByLabel()) {
+        if (!storeFeatures().supportsQueryByLabel()) {
             Assert.assertThrows(NoIndexException.class, () -> {
                 graph.traversal().V().hasLabel("person").toList();
             });
@@ -557,6 +565,75 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
             persons = graph.traversal().V().hasLabel("person").toList();
             Assert.assertEquals(2, persons.size());
         }
+    }
+
+
+    @Test
+    public void testAddVertexLabelWithTtl() {
+        super.initPropertyKeys();
+
+        SchemaManager schema = graph().schema();
+
+        schema.propertyKey("born").asDate().ifNotExist().create();
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.vertexLabel("person")
+                  .properties("name", "age", "city", "born")
+                  .ttl(-86400L)
+                  .create();
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.vertexLabel("person")
+                  .properties("name", "age", "city", "born")
+                  .ttlStartTime("born")
+                  .create();
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.vertexLabel("person")
+                  .properties("name", "age", "city", "born")
+                  .ttlStartTime("name")
+                  .create();
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.vertexLabel("person")
+                  .properties("name", "age", "city", "born")
+                  .ttlStartTime("age")
+                  .create();
+        });
+
+        VertexLabel person = schema.vertexLabel("person")
+                                   .properties("name", "age", "city", "born")
+                                   .ttl(86400L)
+                                   .create();
+
+        Assert.assertNotNull(person);
+        Assert.assertEquals("person", person.name());
+        Assert.assertEquals(4, person.properties().size());
+        assertContainsPk(person.properties(), "name", "age", "city", "born");
+        Assert.assertEquals(0, person.primaryKeys().size());
+        Assert.assertEquals(IdStrategy.AUTOMATIC, person.idStrategy());
+        Assert.assertEquals(86400L, person.ttl());
+        Assert.assertEquals(IdGenerator.ZERO, person.ttlStartTime());
+
+        VertexLabel student = schema.vertexLabel("student")
+                                    .properties("name", "age", "city", "born")
+                                    .ttl(86400L)
+                                    .ttlStartTime("born")
+                                    .create();
+
+        Assert.assertNotNull(student);
+        Assert.assertEquals("student", student.name());
+        Assert.assertEquals(4, student.properties().size());
+        assertContainsPk(student.properties(),
+                         "name", "age", "city", "born");
+        Assert.assertEquals(0, student.primaryKeys().size());
+        Assert.assertEquals(IdStrategy.AUTOMATIC, student.idStrategy());
+        Assert.assertEquals(86400L, student.ttl());
+        Assert.assertNotNull(student.ttlStartTime());
+        assertContainsPk(ImmutableSet.of(student.ttlStartTime()), "born");
     }
 
     @Test
@@ -781,7 +858,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
         graph().tx().commit();
 
         List<Vertex> vertex = graph().traversal().V().hasLabel("person")
-                              .has("city", "Beijing").toList();
+                                     .has("city", "Beijing").toList();
         Assert.assertNotNull(vertex);
         Assert.assertEquals(2, vertex.size());
 
@@ -827,13 +904,79 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
 
         marko.addEdge("write", java, "time", "2016-12-12", "weight", 0.3);
 
-        Assert.assertThrows(HugeException.class, () -> {
-            schema.vertexLabel("person").remove();
+        TaskScheduler scheduler = graph().taskScheduler();
+        Id id = schema.vertexLabel("person").remove();
+        sleepAWhile(100L);
+        HugeTask<?> task = scheduler.task(id);
+        Assert.assertEquals(TaskStatus.FAILED, task.status());
+        Assert.assertContains("Not allowed to remove vertex label " +
+                              "'person' because the edge label 'write' " +
+                              "still link with it", task.result());
+
+        id = schema.vertexLabel("book").remove();
+        sleepAWhile(100L);
+        task = scheduler.task(id);
+        Assert.assertEquals(TaskStatus.FAILED, task.status());
+        Assert.assertContains("Not allowed to remove vertex label 'book' " +
+                              "because the edge label 'write' still link " +
+                              "with it", task.result());
+    }
+
+    @Test
+    public void testRebuildIndexOfVertexLabelWithoutLabelIndex() {
+        Assume.assumeFalse("Support query by label",
+                           storeFeatures().supportsQueryByLabel());
+
+        initDataWithoutLabelIndex();
+
+        // Not support query by label
+        Assert.assertThrows(NoIndexException.class, () -> {
+            graph().traversal().V().hasLabel("reader").toList();
+        }, e -> {
+            Assert.assertTrue(
+                   e.getMessage().startsWith("Don't accept query by label") &&
+                   e.getMessage().endsWith("label index is disabled"));
         });
 
-        Assert.assertThrows(HugeException.class, () -> {
-            schema.vertexLabel("book").remove();
+        // Query by property index is ok
+        List<Vertex> vertices = graph().traversal().V()
+                                       .has("city", "Shanghai").toList();
+        Assert.assertEquals(10, vertices.size());
+
+        graph().schema().vertexLabel("reader").rebuildIndex();
+
+        vertices = graph().traversal().V()
+                          .has("city", "Shanghai").toList();
+        Assert.assertEquals(10, vertices.size());
+    }
+
+    @Test
+    public void testRemoveVertexLabelWithoutLabelIndex() {
+        Assume.assumeFalse("Support query by label",
+                           storeFeatures().supportsQueryByLabel());
+
+        initDataWithoutLabelIndex();
+
+        // Not support query by label
+        Assert.assertThrows(NoIndexException.class, () -> {
+            graph().traversal().V().hasLabel("reader").toList();
+        }, e -> {
+            Assert.assertTrue(
+                   e.getMessage().startsWith("Don't accept query by label") &&
+                   e.getMessage().endsWith("label index is disabled"));
         });
+
+        // Query by property index is ok
+        List<Vertex> vertices = graph().traversal().V()
+                                       .has("city", "Shanghai").toList();
+        Assert.assertEquals(10, vertices.size());
+
+        graph().schema().edgeLabel("read").remove();
+        graph().schema().vertexLabel("reader").remove();
+
+        Assert.assertThrows(NoIndexException.class, () ->
+                graph().traversal().V().has("city", "Shanghai").toList()
+        );
     }
 
     @Test
@@ -845,7 +988,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
                                    .properties("name")
                                    .userdata("super_vl", "person")
                                    .create();
-        Assert.assertEquals(1, player.userdata().size());
+        Assert.assertEquals(2, player.userdata().size());
         Assert.assertEquals("person", player.userdata().get("super_vl"));
 
         VertexLabel runner = schema.vertexLabel("runner")
@@ -854,7 +997,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
                                    .userdata("super_vl", "player")
                                    .create();
         // The same key user data will be overwritten
-        Assert.assertEquals(1, runner.userdata().size());
+        Assert.assertEquals(2, runner.userdata().size());
         Assert.assertEquals("player", runner.userdata().get("super_vl"));
     }
 
@@ -867,13 +1010,13 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
                                    .properties("name")
                                    .userdata("super_vl", "person")
                                    .create();
-        Assert.assertEquals(1, player.userdata().size());
+        Assert.assertEquals(2, player.userdata().size());
         Assert.assertEquals("person", player.userdata().get("super_vl"));
 
         player = schema.vertexLabel("player")
                        .userdata("icon", "picture1")
                        .append();
-        Assert.assertEquals(2, player.userdata().size());
+        Assert.assertEquals(3, player.userdata().size());
         Assert.assertEquals("person", player.userdata().get("super_vl"));
         Assert.assertEquals("picture1", player.userdata().get("icon"));
     }
@@ -888,19 +1031,19 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
                                    .userdata("super_vl", "person")
                                    .userdata("icon", "picture1")
                                    .create();
-        Assert.assertEquals(2, player.userdata().size());
+        Assert.assertEquals(3, player.userdata().size());
         Assert.assertEquals("person", player.userdata().get("super_vl"));
         Assert.assertEquals("picture1", player.userdata().get("icon"));
 
         player = schema.vertexLabel("player")
                        .userdata("icon", "")
                        .eliminate();
-        Assert.assertEquals(1, player.userdata().size());
+        Assert.assertEquals(2, player.userdata().size());
         Assert.assertEquals("person", player.userdata().get("super_vl"));
     }
 
     @Test
-    public void testEliminateVertexLabelWithNonUserdata() {
+    public void testEliminateVertexLabelWithoutUserdata() {
         super.initPropertyKeys();
         SchemaManager schema = graph().schema();
 
@@ -954,7 +1097,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
         Assert.assertTrue(vertexLabels.contains(book));
 
         // clear cache
-        graph().schemaEventHub().call(Events.CACHE, "clear", null);
+        params().schemaEventHub().call(Events.CACHE, "clear", null, null);
 
         Assert.assertEquals(person, schema.getVertexLabel("person"));
 
@@ -963,5 +1106,99 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
         Assert.assertTrue(vertexLabels.contains(person));
         Assert.assertTrue(vertexLabels.contains(author));
         Assert.assertTrue(vertexLabels.contains(book));
+    }
+
+    @Test
+    public void testCreateTime() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+
+        VertexLabel person = schema.vertexLabel("person")
+                                   .properties("name", "age", "city")
+                                   .primaryKeys("name")
+                                   .create();
+
+        Date createTime = (Date) person.userdata().get(Userdata.CREATE_TIME);
+        Date now = DateUtil.now();
+        Assert.assertFalse(createTime.after(now));
+
+        person = schema.getVertexLabel("person");
+        createTime = (Date) person.userdata().get(Userdata.CREATE_TIME);
+        Assert.assertFalse(createTime.after(now));
+    }
+
+    @Test
+    public void testDuplicateVertexLabelWithIdentityProperties() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+        schema.vertexLabel("person")
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .create();
+        schema.vertexLabel("person")
+              .properties("name", "age", "city")
+              .usePrimaryKeyId()
+              .primaryKeys("name")
+              .checkExist(false)
+              .create();
+        schema.vertexLabel("person")
+              .properties("name", "city", "age")
+              .primaryKeys("name")
+              .checkExist(false)
+              .create();
+    }
+
+    @Test
+    public void testDuplicateVertexLabelWithDifferentProperties() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+
+        schema.vertexLabel("person")
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .create();
+        Assert.assertThrows(ExistedException.class, () -> {
+            schema.vertexLabel("person")
+                  .properties("name", "age") // remove city
+                  .primaryKeys("name")
+                  .checkExist(false)
+                  .create();
+        });
+        Assert.assertThrows(ExistedException.class, () -> {
+            schema.vertexLabel("person")
+                  .properties("name", "age", "city")
+                  .primaryKeys("name")
+                  .nullableKeys("city") // add nullableKeys
+                  .checkExist(false)
+                  .create();
+        });
+        Assert.assertThrows(ExistedException.class, () -> {
+            schema.vertexLabel("person")
+                  .properties("name", "age", "city")
+                  .useAutomaticId() // not primaryKey
+                  .checkExist(false)
+                  .create();
+        });
+        Assert.assertThrows(ExistedException.class, () -> {
+            schema.vertexLabel("person")
+                  .properties("name", "age", "city") // no primaryKeys
+                  .checkExist(false)
+                  .create();
+        });
+        Assert.assertThrows(ExistedException.class, () -> {
+            schema.vertexLabel("person")
+                  .properties("name", "age", "city")
+                  .primaryKeys("city") // different primaryKeys
+                  .checkExist(false)
+                  .create();
+        });
+    }
+
+    private static void sleepAWhile(long ms) {
+        try {
+            Thread.sleep(ms);
+        } catch (InterruptedException e) {
+            // ignore
+        }
     }
 }

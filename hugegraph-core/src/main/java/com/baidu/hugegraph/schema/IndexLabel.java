@@ -28,11 +28,11 @@ import java.util.Map;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
-import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.schema.builder.SchemaBuilder;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.IndexType;
 import com.baidu.hugegraph.util.E;
+import com.google.common.base.Objects;
 
 public class IndexLabel extends SchemaElement {
 
@@ -44,7 +44,7 @@ public class IndexLabel extends SchemaElement {
     public IndexLabel(final HugeGraph graph, Id id, String name) {
         super(graph, id, name);
         this.baseType = HugeType.SYS_SCHEMA;
-        this.baseValue = null;
+        this.baseValue = NONE_ID;
         this.indexType = IndexType.SECONDARY;
         this.indexFields = new ArrayList<>();
     }
@@ -121,14 +121,16 @@ public class IndexLabel extends SchemaElement {
         return this.indexFields.get(0);
     }
 
-    @Override
-    public Map<String, Object> userdata() {
-        throw new NotSupportException("user data for index label");
+    public SchemaLabel baseElement() {
+        return getElement(this.graph, this.baseType, this.baseValue);
     }
 
-    @Override
-    public void userdata(String key, Object value) {
-        throw new NotSupportException("user data for index label");
+    public boolean hasSameContent(IndexLabel other) {
+        return super.hasSameContent(other) &&
+               this.indexType == other.indexType &&
+               this.baseType == other.baseType &&
+               Objects.equal(this.graph.mapPkId2Name(this.indexFields),
+                             other.graph.mapPkId2Name(other.indexFields));
     }
 
     // ABS of System index id must be below SchemaElement.MAX_PRIMITIVE_SYS_ID
@@ -195,6 +197,44 @@ public class IndexLabel extends SchemaElement {
         return graph.indexLabel(id);
     }
 
+    public static SchemaLabel getElement(HugeGraph graph,
+                                         HugeType baseType, Object baseValue) {
+        E.checkNotNull(baseType, "base type", "index label");
+        E.checkNotNull(baseValue, "base value", "index label");
+        E.checkArgument(baseValue instanceof String || baseValue instanceof Id,
+                        "The base value must be instance of String or Id, " +
+                        "but got %s(%s)", baseValue,
+                        baseValue.getClass().getSimpleName());
+
+        SchemaLabel label;
+        switch (baseType) {
+            case VERTEX_LABEL:
+                if (baseValue instanceof String) {
+                    label = graph.vertexLabel((String) baseValue);
+                } else {
+                    assert baseValue instanceof Id;
+                    label = graph.vertexLabel((Id) baseValue);
+                }
+                break;
+            case EDGE_LABEL:
+                if (baseValue instanceof String) {
+                    label = graph.edgeLabel((String) baseValue);
+                } else {
+                    assert baseValue instanceof Id;
+                    label = graph.edgeLabel((Id) baseValue);
+                }
+                break;
+            default:
+                throw new AssertionError(String.format(
+                          "Unsupported base type '%s' of index label",
+                          baseType));
+        }
+
+        E.checkArgumentNotNull(label, "Can't find the %s with name '%s'",
+                               baseType.readableName(), baseValue);
+        return label;
+    }
+
     public interface Builder extends SchemaBuilder<IndexLabel> {
 
         CreatedIndexLabel createWithTask();
@@ -220,6 +260,12 @@ public class IndexLabel extends SchemaElement {
         Builder on(HugeType baseType, String baseValue);
 
         Builder indexType(IndexType indexType);
+
+        Builder userdata(String key, Object value);
+
+        Builder userdata(Map<String, Object> userdata);
+
+        Builder rebuild(boolean rebuild);
     }
 
     public static class CreatedIndexLabel {

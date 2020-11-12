@@ -19,37 +19,37 @@
 
 package com.baidu.hugegraph.backend.page;
 
-import java.util.Iterator;
 import java.util.NoSuchElementException;
+
+import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.query.QueryResults;
-import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.exception.NotSupportException;
-import com.baidu.hugegraph.iterator.Metadatable;
+import com.baidu.hugegraph.iterator.CIter;
 import com.baidu.hugegraph.util.E;
 
-public class PageEntryIterator implements Iterator<BackendEntry>, Metadatable {
+public class PageEntryIterator<R> implements CIter<R> {
 
-    private final QueryList queries;
+    private final QueryList<R> queries;
     private final long pageSize;
     private final PageInfo pageInfo;
-    private final QueryResults queryResults; // for upper layer
+    private final QueryResults<R> queryResults; // for upper layer
 
-    private QueryList.PageIterator pageResults;
+    private QueryList.PageResults<R> pageResults;
     private long remaining;
 
-    public PageEntryIterator(QueryList queries, long pageSize) {
+    public PageEntryIterator(QueryList<R> queries, long pageSize) {
         this.queries = queries;
         this.pageSize = pageSize;
-        this.pageInfo = this.parsePageState();
-        this.queryResults = new QueryResults(this);
+        this.pageInfo = this.parsePageInfo();
+        this.queryResults = new QueryResults<>(this, queries.parent());
 
-        this.pageResults = QueryList.PageIterator.EMPTY;
+        this.pageResults = QueryList.PageResults.emptyIterator();
         this.remaining = queries.parent().limit();
     }
 
-    private PageInfo parsePageState() {
+    private PageInfo parsePageInfo() {
         String page = this.queries.parent().pageWithoutCheck();
         PageInfo pageInfo = PageInfo.fromString(page);
         E.checkState(pageInfo.offset() < this.queries.total(),
@@ -76,6 +76,7 @@ public class PageEntryIterator implements Iterator<BackendEntry>, Metadatable {
         if (this.remaining != Query.NO_LIMIT && this.remaining < pageSize) {
             pageSize = this.remaining;
         }
+        this.closePageResults();
         this.pageResults = this.queries.fetchNext(this.pageInfo, pageSize);
         assert this.pageResults != null;
         this.queryResults.setQuery(this.pageResults.query());
@@ -94,8 +95,14 @@ public class PageEntryIterator implements Iterator<BackendEntry>, Metadatable {
         }
     }
 
+    private void closePageResults() {
+        if (this.pageResults != QueryList.PageResults.EMPTY) {
+            CloseableIterator.closeIterator(this.pageResults.get());
+        }
+    }
+
     @Override
-    public BackendEntry next() {
+    public R next() {
         if (!this.hasNext()) {
             throw new NoSuchElementException();
         }
@@ -113,7 +120,12 @@ public class PageEntryIterator implements Iterator<BackendEntry>, Metadatable {
         throw new NotSupportException("Invalid meta '%s'", meta);
     }
 
-    public QueryResults results() {
+    @Override
+    public void close() throws Exception {
+        this.closePageResults();
+    }
+
+    public QueryResults<R> results() {
         return this.queryResults;
     }
 }

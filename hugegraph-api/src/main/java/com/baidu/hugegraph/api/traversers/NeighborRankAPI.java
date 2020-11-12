@@ -23,11 +23,8 @@ import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPA
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEPTH;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PATHS_LIMIT;
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.NO_LIMIT;
-import static com.baidu.hugegraph.traversal.algorithm.NeighborRankTraverser.MAX_TOP;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -44,7 +41,6 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.core.GraphManager;
-import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.traversal.algorithm.NeighborRankTraverser;
@@ -129,8 +125,12 @@ public class NeighborRankAPI extends API {
         public List<String> labels;
         @JsonProperty("degree")
         public long degree = Long.valueOf(DEFAULT_DEGREE);
+        @JsonProperty("skip_degree")
+        public long skipDegree = 0L;
         @JsonProperty("top")
         public int top = Integer.valueOf(DEFAULT_PATHS_LIMIT);
+
+        public static final int DEFAULT_CAPACITY_PER_LAYER = 100000;
 
         @Override
         public String toString() {
@@ -139,21 +139,13 @@ public class NeighborRankAPI extends API {
                                  this.degree, this.top);
         }
 
-        private NeighborRankTraverser.Step jsonToStep(HugeGraph graph) {
-            E.checkArgument(this.degree > 0 || this.degree == NO_LIMIT,
-                            "The degree must be > 0, but got: %s",
-                            this.degree);
-            E.checkArgument(this.top > 0 && this.top <= MAX_TOP,
-                            "The top of each layer can't exceed %s", MAX_TOP);
-            Map<Id, String> labelIds = new HashMap<>();
-            if (this.labels != null) {
-                for (String label : this.labels) {
-                    EdgeLabel el = graph.edgeLabel(label);
-                    labelIds.put(el.id(), label);
-                }
-            }
-            return new NeighborRankTraverser.Step(this.direction, labelIds,
-                                                  this.degree, this.top);
+        private NeighborRankTraverser.Step jsonToStep(HugeGraph g) {
+            return new NeighborRankTraverser.Step(g, this.direction,
+                                                  this.labels,
+                                                  this.degree,
+                                                  this.skipDegree,
+                                                  this.top,
+                                                  DEFAULT_CAPACITY_PER_LAYER);
         }
     }
 }

@@ -34,13 +34,16 @@ import org.apache.tinkerpop.gremlin.structure.Transaction;
 import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
 import org.slf4j.Logger;
 
+import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.auth.HugeAuthenticator;
 import com.baidu.hugegraph.auth.HugeFactoryAuthProxy;
 import com.baidu.hugegraph.auth.HugeGraphAuthProxy;
+import com.baidu.hugegraph.auth.UserManager;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.cache.Cache;
 import com.baidu.hugegraph.backend.cache.CacheManager;
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
@@ -52,6 +55,7 @@ import com.baidu.hugegraph.serializer.JsonSerializer;
 import com.baidu.hugegraph.serializer.Serializer;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.task.TaskManager;
+import com.baidu.hugegraph.type.define.NodeRole;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 
@@ -64,17 +68,13 @@ public final class GraphManager {
 
     public GraphManager(HugeConfig conf) {
         this.graphs = new ConcurrentHashMap<>();
-
-        if (conf.get(ServerOptions.AUTHENTICATOR).isEmpty()) {
-            this.authenticator = null;
-        } else {
-            this.authenticator = HugeAuthenticator.loadAuthenticator(conf);
-        }
+        this.authenticator = HugeAuthenticator.loadAuthenticator(conf);
 
         this.loadGraphs(conf.getMap(ServerOptions.GRAPHS));
-        // this.installLicense(conf);
+        // this.installLicense(conf, "");
+        this.waitGraphsStarted();
         this.checkBackendVersionOrExit();
-        this.restoreUncompletedTasks();
+        this.serverStarted(conf);
         this.addMetrics(conf);
     }
 
@@ -82,6 +82,7 @@ public final class GraphManager {
         for (Map.Entry<String, String> conf : graphConfs.entrySet()) {
             String name = conf.getKey();
             String path = conf.getValue();
+            HugeFactory.checkGraphName(name, "rest-server.properties");
             try {
                 this.loadGraph(name, path);
             } catch (RuntimeException e) {
@@ -90,21 +91,24 @@ public final class GraphManager {
         }
     }
 
+    public void waitGraphsStarted() {
+        this.graphs.keySet().forEach(name -> {
+            HugeGraph graph = this.graph(name);
+            graph.waitStarted();
+        });
+    }
+
     public Set<String> graphs() {
         return Collections.unmodifiableSet(this.graphs.keySet());
     }
 
     public HugeGraph graph(String name) {
         Graph graph = this.graphs.get(name);
-
         if (graph == null) {
             return null;
-        } else if (graph instanceof HugeGraphAuthProxy) {
-            return ((HugeGraphAuthProxy) graph).graph();
         } else if (graph instanceof HugeGraph) {
             return (HugeGraph) graph;
         }
-
         throw new NotSupportException("graph instance of %s", graph.getClass());
     }
 
@@ -138,9 +142,30 @@ public final class GraphManager {
         closeTx(graphSourceNamesToCloseTxOn, Transaction.Status.COMMIT);
     }
 
+    public boolean requireAuthentication() {
+        if (this.authenticator == null) {
+            return false;
+        }
+        return this.authenticator.requireAuthentication();
+    }
+
+    public HugeAuthenticator.User authenticate(Map<String, String> credentials)
+                                               throws AuthenticationException {
+        return this.authenticator().authenticate(credentials);
+    }
+
+    public UserManager userManager() {
+        return this.authenticator().userManager();
+    }
+
+    private HugeAuthenticator authenticator() {
+        E.checkState(this.authenticator != null, "Unconfigured authenticator");
+        return this.authenticator;
+    }
+
     @SuppressWarnings("unused")
-    private void installLicense(HugeConfig config) {
-        LicenseVerifier.instance().install(config, this);
+    private void installLicense(HugeConfig config, String md5) {
+        LicenseVerifier.instance().install(config, this, md5);
     }
 
     private void closeTx(final Set<String> graphSourceNamesToCloseTxOn,
@@ -165,19 +190,6 @@ public final class GraphManager {
         });
     }
 
-    public boolean requireAuthentication() {
-        if (this.authenticator == null) {
-            return false;
-        }
-        return this.authenticator.requireAuthentication();
-    }
-
-    public HugeAuthenticator.User authenticate(Map<String, String> credentials)
-                                               throws AuthenticationException {
-        E.checkState(this.authenticator != null, "Unconfigured authenticator");
-        return this.authenticator.authenticate(credentials);
-    }
-
     private void loadGraph(String name, String path) {
         final Graph graph = GraphFactory.open(path);
         this.graphs.put(name, graph);
@@ -192,14 +204,13 @@ public final class GraphManager {
 
     private void checkBackendVersionOrExit() {
         for (String graph : this.graphs()) {
+            // TODO: close tx from main thread
             HugeGraph hugegraph = this.graph(graph);
-            boolean persistence = hugegraph.graphTransaction().store()
-                                           .features().supportsPersistence();
-            if (!persistence) {
+            if (!hugegraph.backendStoreFeatures().supportsPersistence()) {
                 hugegraph.initBackend();
             }
-            BackendStoreSystemInfo info = new BackendStoreSystemInfo(hugegraph);
-            if (!info.exist()) {
+            BackendStoreSystemInfo info = hugegraph.backendStoreSystemInfo();
+            if (!info.exists()) {
                 throw new BackendException(
                           "The backend store of '%s' has not been initialized",
                           hugegraph.name());
@@ -211,12 +222,18 @@ public final class GraphManager {
         }
     }
 
-    private void restoreUncompletedTasks() {
+    private void serverStarted(HugeConfig config) {
+        String server = config.get(ServerOptions.SERVER_ID);
+        String role = config.get(ServerOptions.SERVER_ROLE);
+        E.checkArgument(server != null && !server.isEmpty(),
+                        "The server name can't be null or empty");
+        E.checkArgument(role != null && !role.isEmpty(),
+                        "The server role can't be null or empty");
+        NodeRole nodeRole = NodeRole.valueOf(role.toUpperCase());
         for (String graph : this.graphs()) {
             HugeGraph hugegraph = this.graph(graph);
             assert hugegraph != null;
-            LOG.info("Restoring incomplete tasks for graph '{}'...", graph);
-            hugegraph.taskScheduler().restoreTasks();
+            hugegraph.serverStarted(IdGenerator.of(server), nodeRole);
         }
     }
 
@@ -233,7 +250,9 @@ public final class GraphManager {
         });
 
         // Add metrics for caches
-        Map<String, Cache> caches = CacheManager.instance().caches();
+        @SuppressWarnings({ "rawtypes", "unchecked" })
+        Map<String, Cache<?, ?>> caches = (Map) CacheManager.instance()
+                                                            .caches();
         registerCacheMetrics(caches);
         final AtomicInteger lastCachesSize = new AtomicInteger(caches.size());
         MetricsUtil.registerGauge(Cache.class, "instances", () -> {
@@ -255,11 +274,11 @@ public final class GraphManager {
         });
     }
 
-    private static void registerCacheMetrics(Map<String, Cache> caches) {
+    private static void registerCacheMetrics(Map<String, Cache<?, ?>> caches) {
         Set<String> names = MetricManager.INSTANCE.getRegistry().getNames();
-        for (Map.Entry<String, Cache> entry : caches.entrySet()) {
+        for (Map.Entry<String, Cache<?, ?>> entry : caches.entrySet()) {
             String key = entry.getKey();
-            Cache cache = entry.getValue();
+            Cache<?, ?> cache = entry.getValue();
 
             String hits = String.format("%s.%s", key, "hits");
             String miss = String.format("%s.%s", key, "miss");

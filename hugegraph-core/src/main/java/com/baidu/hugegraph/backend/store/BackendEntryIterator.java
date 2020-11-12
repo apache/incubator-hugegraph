@@ -19,7 +19,6 @@
 
 package com.baidu.hugegraph.backend.store;
 
-import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 import com.baidu.hugegraph.backend.BackendException;
@@ -28,16 +27,16 @@ import com.baidu.hugegraph.backend.page.PageState;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.exception.LimitExceedException;
 import com.baidu.hugegraph.exception.NotSupportException;
-import com.baidu.hugegraph.iterator.Metadatable;
+import com.baidu.hugegraph.iterator.CIter;
 import com.baidu.hugegraph.util.E;
 
-public abstract class BackendEntryIterator
-                implements Iterator<BackendEntry>, AutoCloseable, Metadatable {
+public abstract class BackendEntryIterator implements CIter<BackendEntry> {
+
+    public static final long INLINE_BATCH_SIZE = Query.COMMIT_BATCH;
 
     protected final Query query;
 
     protected BackendEntry current;
-
     private long count;
 
     public BackendEntryIterator(Query query) {
@@ -92,6 +91,13 @@ public abstract class BackendEntryIterator
         throw new NotSupportException("Invalid meta '%s'", meta);
     }
 
+    public static final void checkInterrupted() {
+        if (Thread.interrupted()) {
+            throw new BackendException("Interrupted, maybe it is timed out",
+                                       new InterruptedException());
+        }
+    }
+
     protected final void checkCapacity() throws LimitExceedException {
         // Stop if reach capacity
         this.query.checkCapacity(this.count());
@@ -109,14 +115,8 @@ public abstract class BackendEntryIterator
     }
 
     protected final boolean reachLimit(long count) {
-        this.checkInterrupted();
+        checkInterrupted();
         return this.query.reachLimit(count);
-    }
-
-    protected final void checkInterrupted() {
-        if (Thread.interrupted()) {
-            throw new BackendException("Interrupted, maybe it is timed out");
-        }
     }
 
     protected final long count() {
@@ -129,7 +129,10 @@ public abstract class BackendEntryIterator
     }
 
     protected void skipOffset() {
-        long offset = this.offset();
+        long offset = this.query.offset() - this.query.actualOffset();
+        if (offset <= 0L) {
+            return;
+        }
 
         // Skip offset
         while (this.count < offset && this.fetch()) {
@@ -146,10 +149,7 @@ public abstract class BackendEntryIterator
                 this.current = null;
             }
         }
-    }
-
-    protected long offset() {
-        return this.query.offset();
+        this.query.goOffset(this.count);
     }
 
     protected long sizeOf(BackendEntry entry) {
@@ -179,7 +179,7 @@ public abstract class BackendEntryIterator
 
         @Override
         protected PageState pageState() {
-            return null;
+            return PageState.EMPTY;
         }
 
         @Override

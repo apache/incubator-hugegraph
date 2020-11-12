@@ -19,7 +19,6 @@
 
 package com.baidu.hugegraph.schema.builder;
 
-import java.util.HashMap;
 import java.util.Map;
 
 import com.baidu.hugegraph.HugeGraph;
@@ -30,112 +29,153 @@ import com.baidu.hugegraph.exception.ExistedException;
 import com.baidu.hugegraph.exception.NotAllowException;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.PropertyKey;
-import com.baidu.hugegraph.schema.SchemaElement;
+import com.baidu.hugegraph.schema.Userdata;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Action;
+import com.baidu.hugegraph.type.define.AggregateType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.util.E;
 
-public class PropertyKeyBuilder implements PropertyKey.Builder {
+public class PropertyKeyBuilder extends AbstractBuilder
+                                implements PropertyKey.Builder {
 
     private Id id;
     private String name;
     private DataType dataType;
     private Cardinality cardinality;
-    private Map<String, Object> userdata;
+    private AggregateType aggregateType;
     private boolean checkExist;
+    private Userdata userdata;
 
-    private SchemaTransaction transaction;
-
-    public PropertyKeyBuilder(String name, SchemaTransaction transaction) {
+    public PropertyKeyBuilder(SchemaTransaction transaction,
+                              HugeGraph graph, String name) {
+        super(transaction, graph);
         E.checkNotNull(name, "name");
-        E.checkNotNull(transaction, "transaction");
         this.id = null;
         this.name = name;
         this.dataType = DataType.TEXT;
         this.cardinality = Cardinality.SINGLE;
-        this.userdata = new HashMap<>();
+        this.aggregateType = AggregateType.NONE;
+        this.userdata = new Userdata();
         this.checkExist = true;
-        this.transaction = transaction;
+    }
+
+    public PropertyKeyBuilder(SchemaTransaction transaction,
+                              HugeGraph graph, PropertyKey copy) {
+        super(transaction, graph);
+        E.checkNotNull(copy, "copy");
+        this.id = null;
+        this.name = copy.name();
+        this.dataType = copy.dataType();
+        this.cardinality = copy.cardinality();
+        this.aggregateType = copy.aggregateType();
+        this.userdata = new Userdata(copy.userdata());
+        this.checkExist = false;
     }
 
     @Override
     public PropertyKey build() {
-        Id id = this.transaction.validOrGenerateId(HugeType.PROPERTY_KEY,
-                                                   this.id, this.name);
-        HugeGraph graph = this.transaction.graph();
-        PropertyKey propertyKey = new PropertyKey(graph, id, this.name);
+        Id id = this.validOrGenerateId(HugeType.PROPERTY_KEY,
+                                       this.id, this.name);
+        PropertyKey propertyKey = new PropertyKey(this.graph(), id, this.name);
         propertyKey.dataType(this.dataType);
         propertyKey.cardinality(this.cardinality);
-        for (Map.Entry<String, Object> entry : this.userdata.entrySet()) {
-            propertyKey.userdata(entry.getKey(), entry.getValue());
-        }
+        propertyKey.aggregateType(this.aggregateType);
+        propertyKey.userdata(this.userdata);
         return propertyKey;
     }
 
     @Override
     public PropertyKey create() {
         HugeType type = HugeType.PROPERTY_KEY;
-        SchemaTransaction tx = this.transaction;
-        SchemaElement.checkName(this.name, tx.graph().configuration());
-        PropertyKey propertyKey = tx.getPropertyKey(this.name);
-        if (propertyKey != null) {
-            if (this.checkExist) {
-                throw new ExistedException(type, this.name);
+        this.checkSchemaName(this.name);
+
+        return this.lockCheckAndCreateSchema(type, this.name, name -> {
+            PropertyKey propertyKey = this.propertyKeyOrNull(name);
+            if (propertyKey != null) {
+                if (this.checkExist || !hasSameProperties(propertyKey)) {
+                    throw new ExistedException(type, name);
+                }
+                return propertyKey;
             }
+            this.checkSchemaIdIfRestoringMode(type, this.id);
+
+            Userdata.check(this.userdata, Action.INSERT);
+            this.checkAggregateType();
+
+            propertyKey = this.build();
+            assert propertyKey.name().equals(name);
+            this.graph().addPropertyKey(propertyKey);
             return propertyKey;
+        });
+    }
+
+
+    /**
+     * Check whether this has same properties with propertyKey.
+     * Only dataType, cardinality, aggregateType are checked.
+     * The id, checkExist, userdata are not checked.
+     * @param propertyKey to be compared with
+     * @return true if this has same properties with propertyKey
+     */
+    private boolean hasSameProperties(PropertyKey propertyKey) {
+        // dataType is enum
+        if (this.dataType != propertyKey.dataType()) {
+            return false;
         }
-        tx.checkIdIfRestoringMode(type, this.id);
 
-        this.checkUserdata(Action.INSERT);
+        // cardinality is enum
+        if (this.cardinality != propertyKey.cardinality()) {
+            return false;
+        }
 
-        propertyKey = this.build();
-        tx.addPropertyKey(propertyKey);
-        return propertyKey;
+        // aggregateType is enum
+        if (this.aggregateType != propertyKey.aggregateType()) {
+            return false;
+        }
+
+        // all properties are same, return true.
+        return true;
     }
 
     @Override
     public PropertyKey append() {
-        PropertyKey propertyKey = this.transaction.getPropertyKey(this.name);
+        PropertyKey propertyKey = this.propertyKeyOrNull(this.name);
         if (propertyKey == null) {
             throw new NotFoundException("Can't update property key '%s' " +
                                         "since it doesn't exist", this.name);
         }
         this.checkStableVars();
-        this.checkUserdata(Action.APPEND);
+        Userdata.check(this.userdata, Action.APPEND);
 
-        for (Map.Entry<String, Object> entry : this.userdata.entrySet()) {
-            propertyKey.userdata(entry.getKey(), entry.getValue());
-        }
-        this.transaction.addPropertyKey(propertyKey);
+        propertyKey.userdata(this.userdata);
+        this.graph().addPropertyKey(propertyKey);
         return propertyKey;
     }
 
     @Override
     public PropertyKey eliminate() {
-        PropertyKey propertyKey = this.transaction.getPropertyKey(this.name);
+        PropertyKey propertyKey = this.propertyKeyOrNull(this.name);
         if (propertyKey == null) {
             throw new NotFoundException("Can't update property key '%s' " +
                                         "since it doesn't exist", this.name);
         }
         this.checkStableVars();
-        this.checkUserdata(Action.ELIMINATE);
+        Userdata.check(this.userdata, Action.ELIMINATE);
 
-        for (String key : this.userdata.keySet()) {
-            propertyKey.removeUserdata(key);
-        }
-        this.transaction.addPropertyKey(propertyKey);
+        propertyKey.removeUserdata(this.userdata);
+        this.graph().addPropertyKey(propertyKey);
         return propertyKey;
     }
 
     @Override
     public Id remove() {
-        PropertyKey propertyKey = this.transaction.getPropertyKey(this.name);
+        PropertyKey propertyKey = this.propertyKeyOrNull(this.name);
         if (propertyKey == null) {
             return null;
         }
-        this.transaction.removePropertyKey(propertyKey.id());
+        this.graph().removePropertyKey(propertyKey.id());
         return null;
     }
 
@@ -226,6 +266,30 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
     }
 
     @Override
+    public PropertyKeyBuilder calcMax() {
+        this.aggregateType = AggregateType.MAX;
+        return this;
+    }
+
+    @Override
+    public PropertyKeyBuilder calcMin() {
+        this.aggregateType = AggregateType.MIN;
+        return this;
+    }
+
+    @Override
+    public PropertyKeyBuilder calcSum() {
+        this.aggregateType = AggregateType.SUM;
+        return this;
+    }
+
+    @Override
+    public PropertyKeyBuilder calcOld() {
+        this.aggregateType = AggregateType.OLD;
+        return this;
+    }
+
+    @Override
     public PropertyKeyBuilder userdata(String key, Object value) {
         this.userdata.put(key, value);
         return this;
@@ -240,6 +304,12 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
     @Override
     public PropertyKeyBuilder dataType(DataType dataType) {
         this.dataType = dataType;
+        return this;
+    }
+
+    @Override
+    public PropertyKey.Builder aggregateType(AggregateType aggregateType) {
+        this.aggregateType = aggregateType;
         return this;
     }
 
@@ -272,25 +342,25 @@ public class PropertyKeyBuilder implements PropertyKey.Builder {
         }
     }
 
-    private void checkUserdata(Action action) {
-        switch (action) {
-            case INSERT:
-            case APPEND:
-                for (Map.Entry<String, Object> e : this.userdata.entrySet()) {
-                    if (e.getValue() == null) {
-                        throw new NotAllowException(
-                                  "Not allowed pass null userdata value when " +
-                                  "create or append property key");
-                    }
-                }
-                break;
-            case ELIMINATE:
-            case DELETE:
-                // pass
-                break;
-            default:
-                throw new AssertionError(String.format(
-                          "Unknown schema action '%s'", action));
+    private void checkAggregateType() {
+        if (this.aggregateType.isNone()) {
+            return;
+        }
+
+        if (this.cardinality != Cardinality.SINGLE) {
+            throw new NotAllowException("Not allowed to set aggregate type " +
+                                        "'%s' for property key '%s' with " +
+                                        "cardinality '%s'",
+                                        this.aggregateType, this.name,
+                                        this.cardinality);
+        }
+
+        if (this.aggregateType.isNumber() &&
+            !this.dataType.isNumber() && !this.dataType.isDate()) {
+            throw new NotAllowException(
+                      "Not allowed to set aggregate type '%s' for " +
+                      "property key '%s' with data type '%s'",
+                      this.aggregateType, this.name, this.dataType);
         }
     }
 }

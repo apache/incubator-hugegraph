@@ -59,8 +59,13 @@ public class PostgresqlStoreProvider extends MysqlStoreProvider {
          *                    rangeLong and rangeDouble
          * [1.2] #633: support unique index
          * [1.3] #661: reduce the storage of vertex/edge id
+         * [1.4] #691: support aggregate property
+         * [1.5] #746: support userdata for indexlabel
+         * [1.6] #894: asStoredString() encoding is changed to signed B64
+         *             instead of sortable B64
+         * [1.7] #295: support ttl for vertex and edge
          */
-        return "1.3";
+        return "1.7";
     }
 
     public static class PostgresqlSchemaStore extends PostgresqlStore {
@@ -92,16 +97,21 @@ public class PostgresqlStoreProvider extends MysqlStoreProvider {
 
         @Override
         public void increaseCounter(HugeType type, long increment) {
-            this.checkSessionConnected();
+            this.checkOpened();
             MysqlSessions.Session session = this.session(type);
             this.counters.increaseCounter(session, type, increment);
         }
 
         @Override
         public long getCounter(HugeType type) {
-            this.checkSessionConnected();
+            this.checkOpened();
             MysqlSessions.Session session = this.session(type);
             return this.counters.getCounter(session, type);
+        }
+
+        @Override
+        public boolean isSchemaStore() {
+            return true;
         }
     }
 
@@ -135,6 +145,11 @@ public class PostgresqlStoreProvider extends MysqlStoreProvider {
                                  new PostgresqlTables.ShardIndex(store));
             registerTableManager(HugeType.UNIQUE_INDEX,
                                  new PostgresqlTables.UniqueIndex(store));
+        }
+
+        @Override
+        public boolean isSchemaStore() {
+            return false;
         }
 
         @Override

@@ -40,6 +40,7 @@ import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import com.baidu.hugegraph.backend.store.mysql.MysqlSessions.Session;
 import com.baidu.hugegraph.config.HugeConfig;
+import com.baidu.hugegraph.exception.ConnectionException;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
@@ -70,7 +71,15 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
         this.sessions = null;
         this.tables = new ConcurrentHashMap<>();
 
+        this.registerMetaHandlers();
         LOG.debug("Store loaded: {}", store);
+    }
+
+    private void registerMetaHandlers() {
+        this.registerMetaHandler("metrics", (session, meta, args) -> {
+            MysqlMetrics metrics = new MysqlMetrics();
+            return metrics.getMetrics();
+        });
     }
 
     protected void registerTableManager(HugeType type, MysqlTable table) {
@@ -116,11 +125,12 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
         } catch (Exception e) {
             if (!e.getMessage().startsWith("Unknown database") &&
                 !e.getMessage().endsWith("does not exist")) {
-                throw new BackendException("Failed connect with mysql, " +
-                                           "please ensure it's ok", e);
+                throw new ConnectionException("Failed to connect to MySQL", e);
             }
-            LOG.info("Failed to open database '{}', " +
-                     "try to init database later", this.database);
+            if (this.isSchemaStore()) {
+                LOG.info("Failed to open database '{}', " +
+                         "try to init database later", this.database);
+            }
         }
 
         try {
@@ -145,39 +155,74 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
     }
 
     @Override
+    public boolean opened() {
+        this.checkClusterConnected();
+        return this.sessions.session().opened();
+    }
+
+    @Override
     public void init() {
         this.checkClusterConnected();
         this.sessions.createDatabase();
         try {
             // Open a new session connected with specified database
             this.sessions.session().open();
-        } catch (SQLException e) {
+        } catch (Exception e) {
             throw new BackendException("Failed to connect database '%s'",
                                        this.database);
         }
-        this.checkSessionConnected();
+        this.checkOpened();
         this.initTables();
 
         LOG.debug("Store initialized: {}", this.store);
     }
 
     @Override
-    public void clear() {
+    public void clear(boolean clearSpace) {
         // Check connected
         this.checkClusterConnected();
 
         if (this.sessions.existsDatabase()) {
-            this.checkSessionConnected();
-            this.clearTables();
-            this.sessions.dropDatabase();
+            if (!clearSpace) {
+                this.checkOpened();
+                this.clearTables();
+                /*
+                 * Disconnect connections for following database drop.
+                 * Connections will be auto reconnected if not drop database
+                 * in next step, but never do this operation because database
+                 * might be blocked in mysql or throw 'terminating' exception.
+                 * we can't resetConnections() when dropDatabase(), because
+                 * there are 3 stores(schema,system,graph), which are shared
+                 * one database, other stores may keep connected with the
+                 * database when one store doing clear(clearSpace=false).
+                 */
+                this.sessions.resetConnections();
+            } else {
+                this.sessions.dropDatabase();
+            }
         }
 
         LOG.debug("Store cleared: {}", this.store);
     }
 
     @Override
+    public boolean initialized() {
+        this.checkClusterConnected();
+
+        if (!this.sessions.existsDatabase()) {
+            return false;
+        }
+        for (MysqlTable table : this.tables()) {
+            if (!this.sessions.existsTable(table.table())) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    @Override
     public void truncate() {
-        this.checkSessionConnected();
+        this.checkOpened();
 
         this.truncateTables();
         LOG.debug("Store truncated: {}", this.store);
@@ -189,7 +234,7 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
             LOG.debug("Store {} mutation: {}", this.store, mutation);
         }
 
-        this.checkSessionConnected();
+        this.checkOpened();
         Session session = this.sessions.session();
 
         for (Iterator<BackendAction> it = mutation.mutation(); it.hasNext();) {
@@ -222,15 +267,23 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
 
     @Override
     public Iterator<BackendEntry> query(Query query) {
-        this.checkSessionConnected();
+        this.checkOpened();
 
         MysqlTable table = this.table(MysqlTable.tableType(query));
         return table.query(this.sessions.session(), query);
     }
 
     @Override
+    public Number queryNumber(Query query) {
+        this.checkOpened();
+
+        MysqlTable table = this.table(MysqlTable.tableType(query));
+        return table.queryNumber(this.sessions.session(), query);
+    }
+
+    @Override
     public void beginTx() {
-        this.checkSessionConnected();
+        this.checkOpened();
 
         Session session = this.sessions.session();
         try {
@@ -242,7 +295,7 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
 
     @Override
     public void commitTx() {
-        this.checkSessionConnected();
+        this.checkOpened();
 
         Session session = this.sessions.session();
         int count = session.commit();
@@ -253,7 +306,7 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
 
     @Override
     public void rollbackTx() {
-        this.checkSessionConnected();
+        this.checkOpened();
         Session session = this.sessions.session();
         session.rollback();
     }
@@ -300,18 +353,13 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
 
     @Override
     protected Session session(HugeType type) {
-        this.checkSessionConnected();
+        this.checkOpened();
         return this.sessions.session();
     }
 
     protected final void checkClusterConnected() {
         E.checkState(this.sessions != null,
                      "MySQL store has not been initialized");
-    }
-
-    protected final void checkSessionConnected() {
-        this.checkClusterConnected();
-        this.sessions.checkSessionConnected();
     }
 
     protected static MysqlBackendEntry castBackendEntry(BackendEntry entry) {
@@ -351,16 +399,21 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
 
         @Override
         public void increaseCounter(HugeType type, long increment) {
-            this.checkSessionConnected();
+            this.checkOpened();
             Session session = super.sessions.session();
             this.counters.increaseCounter(session, type, increment);
         }
 
         @Override
         public long getCounter(HugeType type) {
-            this.checkSessionConnected();
+            this.checkOpened();
             Session session = super.sessions.session();
             return this.counters.getCounter(session, type);
+        }
+
+        @Override
+        public boolean isSchemaStore() {
+            return true;
         }
     }
 
@@ -394,6 +447,11 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
                                  new MysqlTables.ShardIndex(store));
             registerTableManager(HugeType.UNIQUE_INDEX,
                                  new MysqlTables.UniqueIndex(store));
+        }
+
+        @Override
+        public boolean isSchemaStore() {
+            return false;
         }
 
         @Override

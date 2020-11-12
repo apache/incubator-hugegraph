@@ -29,7 +29,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
@@ -40,10 +39,12 @@ import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import com.baidu.hugegraph.config.HugeConfig;
+import com.baidu.hugegraph.exception.ConnectionException;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.KeyspaceMetadata;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.exceptions.DriverException;
@@ -87,7 +88,8 @@ public abstract class CassandraStore
 
     private void registerMetaHandlers() {
         this.registerMetaHandler("metrics", (session, meta, args) -> {
-            CassandraMetrics metrics = new CassandraMetrics(cluster(), this.conf);
+            CassandraMetrics metrics = new CassandraMetrics(this.sessions,
+                                                            this.conf);
             return metrics.getMetrics();
         });
     }
@@ -121,7 +123,8 @@ public abstract class CassandraStore
                                                      this.store);
         }
 
-        if (this.sessions.opened()) {
+        assert this.sessions != null;
+        if (!this.sessions.closed()) {
             // TODO: maybe we should throw an exception here instead of ignore
             LOG.debug("Store {} has been opened before", this.store);
             this.sessions.useSession();
@@ -143,8 +146,10 @@ public abstract class CassandraStore
                     "Keyspace '%s' does not exist", this.keyspace))) {
                     throw e;
                 }
-                LOG.info("Failed to connect keyspace: {}, " +
-                         "try to init keyspace later", this.keyspace);
+                if (this.isSchemaStore()) {
+                    LOG.info("Failed to connect keyspace: {}, " +
+                             "try to init keyspace later", this.keyspace);
+                }
             }
         } catch (Throwable e) {
             try {
@@ -152,7 +157,7 @@ public abstract class CassandraStore
             } catch (Throwable e2) {
                 LOG.warn("Failed to close cluster after an error", e2);
             }
-            throw e;
+            throw new ConnectionException("Failed to connect to Cassandra", e);
         }
 
         LOG.debug("Store opened: {}", this.store);
@@ -165,12 +170,18 @@ public abstract class CassandraStore
     }
 
     @Override
+    public boolean opened() {
+        this.checkClusterConnected();
+        return this.sessions.session().opened();
+    }
+
+    @Override
     public void mutate(BackendMutation mutation) {
         if (LOG.isDebugEnabled()) {
             LOG.debug("Store {} mutation: {}", this.store, mutation);
         }
 
-        this.checkSessionConnected();
+        this.checkOpened();
         CassandraSessionPool.Session session = this.sessions.session();
 
         for (Iterator<BackendAction> it = mutation.mutation(); it.hasNext();) {
@@ -236,10 +247,18 @@ public abstract class CassandraStore
 
     @Override
     public Iterator<BackendEntry> query(Query query) {
-        this.checkSessionConnected();
+        this.checkOpened();
 
         CassandraTable table = this.table(CassandraTable.tableType(query));
         return table.query(this.sessions.session(), query);
+    }
+
+    @Override
+    public Number queryNumber(Query query) {
+        this.checkOpened();
+
+        CassandraTable table = this.table(CassandraTable.tableType(query));
+        return table.queryNumber(this.sessions.session(), query);
     }
 
     @Override
@@ -251,42 +270,61 @@ public abstract class CassandraStore
     public void init() {
         this.checkClusterConnected();
 
+        // Create keyspace if needed
+        if (!this.existsKeyspace()) {
+            this.initKeyspace();
+        }
+
         if (this.sessions.session().opened()) {
             // Session has ever been opened.
             LOG.warn("Session has ever been opened(exist keyspace '{}' before)",
                      this.keyspace);
         } else {
-            // Create keyspace if needed
-            if (!this.existsKeyspace()) {
-                this.initKeyspace();
-            }
             // Open session explicitly to get the exception when it fails
             this.sessions.session().open();
         }
 
         // Create tables
-        this.checkSessionConnected();
+        this.checkOpened();
         this.initTables();
 
         LOG.debug("Store initialized: {}", this.store);
     }
 
     @Override
-    public void clear() {
+    public void clear(boolean clearSpace) {
         this.checkClusterConnected();
 
         if (this.existsKeyspace()) {
-            this.checkSessionConnected();
-            this.clearTables();
-            this.clearKeyspace();
+            if (!clearSpace) {
+                this.checkOpened();
+                this.clearTables();
+            } else {
+                this.clearKeyspace();
+            }
         }
 
         LOG.debug("Store cleared: {}", this.store);
     }
 
     @Override
+    public boolean initialized() {
+        this.checkClusterConnected();
+
+        if (!this.existsKeyspace()) {
+            return false;
+        }
+        for (CassandraTable table : this.tables()) {
+            if (!this.existsTable(table.table())) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    @Override
     public void truncate() {
-        this.checkSessionConnected();
+        this.checkOpened();
 
         this.truncateTables();
         LOG.debug("Store truncated: {}", this.store);
@@ -294,7 +332,7 @@ public abstract class CassandraStore
 
     @Override
     public void beginTx() {
-        this.checkSessionConnected();
+        this.checkOpened();
 
         CassandraSessionPool.Session session = this.sessions.session();
         if (session.txState() != TxState.CLEAN) {
@@ -306,7 +344,7 @@ public abstract class CassandraStore
 
     @Override
     public void commitTx() {
-        this.checkSessionConnected();
+        this.checkOpened();
 
         CassandraSessionPool.Session session = this.sessions.session();
         if (session.txState() != TxState.BEGIN) {
@@ -345,7 +383,7 @@ public abstract class CassandraStore
 
     @Override
     public void rollbackTx() {
-        this.checkSessionConnected();
+        this.checkOpened();
 
         CassandraSessionPool.Session session = this.sessions.session();
 
@@ -368,6 +406,19 @@ public abstract class CassandraStore
 
     protected Cluster cluster() {
         return this.sessions.cluster();
+    }
+
+    protected boolean existsKeyspace() {
+        return this.cluster().getMetadata().getKeyspace(this.keyspace) != null;
+    }
+
+    protected boolean existsTable(String table) {
+         KeyspaceMetadata keyspace = this.cluster().getMetadata()
+                                         .getKeyspace(this.keyspace);
+         if (keyspace != null && keyspace.getTable(table) != null) {
+             return true;
+         }
+         return false;
     }
 
     protected void initKeyspace() {
@@ -425,7 +476,7 @@ public abstract class CassandraStore
         try {
             return Integer.valueOf(factor);
         } catch (NumberFormatException e) {
-            throw new HugeException(
+            throw new BackendException(
                       "Expect int factor value for SimpleStrategy, " +
                       "but got '%s'", factor);
         }
@@ -444,10 +495,6 @@ public abstract class CassandraStore
                 session.close();
             }
         }
-    }
-
-    protected boolean existsKeyspace() {
-        return this.cluster().getMetadata().getKeyspace(this.keyspace) != null;
     }
 
     protected void initTables() {
@@ -487,28 +534,17 @@ public abstract class CassandraStore
 
     @Override
     protected CassandraSessionPool.Session session(HugeType type) {
-        this.checkSessionConnected();
+        this.checkOpened();
         return this.sessions.session();
     }
 
     protected final void checkClusterConnected() {
-        E.checkState(this.sessions != null,
-                     "Cassandra store has not been initialized");
-        this.sessions.checkClusterConnected();
-    }
-
-    protected final void checkSessionConnected() {
-        E.checkState(this.sessions != null,
-                     "Cassandra store has not been initialized");
-        try {
-            this.sessions.checkSessionConnected();
-        } catch (DriverException e) {
-            throw new BackendException("Can't connect to cassandra", e);
-        }
+        E.checkState(this.sessions != null && this.sessions.clusterConnected(),
+                     "Cassandra cluster has not been connected");
     }
 
     protected static final CassandraBackendEntry castBackendEntry(
-              BackendEntry entry) {
+                                                 BackendEntry entry) {
         assert entry instanceof CassandraBackendEntry : entry.getClass();
         if (!(entry instanceof CassandraBackendEntry)) {
             throw new BackendException(
@@ -548,16 +584,21 @@ public abstract class CassandraStore
 
         @Override
         public void increaseCounter(HugeType type, long increment) {
-            this.checkSessionConnected();
+            this.checkOpened();
             CassandraSessionPool.Session session = super.sessions.session();
             this.counters.increaseCounter(session, type, increment);
         }
 
         @Override
         public long getCounter(HugeType type) {
-            this.checkSessionConnected();
+            this.checkOpened();
             CassandraSessionPool.Session session = super.sessions.session();
             return this.counters.getCounter(session, type);
+        }
+
+        @Override
+        public boolean isSchemaStore() {
+            return true;
         }
     }
 
@@ -609,6 +650,11 @@ public abstract class CassandraStore
         public long getCounter(HugeType type) {
             throw new UnsupportedOperationException(
                       "CassandraGraphStore.getCounter()");
+        }
+
+        @Override
+        public boolean isSchemaStore() {
+            return false;
         }
     }
 }

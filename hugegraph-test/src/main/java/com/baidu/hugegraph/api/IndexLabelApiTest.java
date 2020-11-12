@@ -19,10 +19,14 @@
 
 package com.baidu.hugegraph.api;
 
+import java.util.Map;
+
 import javax.ws.rs.core.Response;
 
 import org.junit.Before;
 import org.junit.Test;
+
+import com.google.common.collect.ImmutableMap;
 
 public class IndexLabelApiTest extends BaseApiTest {
 
@@ -46,6 +50,58 @@ public class IndexLabelApiTest extends BaseApiTest {
                 + "}";
         Response r = client().post(path, indexLabel);
         assertResponseStatus(202, r);
+    }
+
+    @Test
+    public void testAppend() {
+        String indexLabel = "{"
+                + "\"name\": \"personByAge\","
+                + "\"base_type\": \"VERTEX_LABEL\","
+                + "\"base_value\": \"person\","
+                + "\"index_type\": \"RANGE\","
+                + "\"fields\":[\"age\"]"
+                + "}";
+
+        Response r = client().post(path, indexLabel);
+        assertResponseStatus(202, r);
+
+        indexLabel = "{"
+                + "\"name\": \"personByAge\","
+                + "\"user_data\": {"
+                + "\"min\": 0,"
+                + "\"max\": 100"
+                + "}"
+                + "}";
+        Map<String, Object> params = ImmutableMap.of("action", "append");
+        r = client().put(path, "personByAge", indexLabel, params);
+        assertResponseStatus(200, r);
+    }
+
+    @Test
+    public void testEliminate() {
+        String indexLabel = "{"
+                + "\"name\": \"personByAge\","
+                + "\"base_type\": \"VERTEX_LABEL\","
+                + "\"base_value\": \"person\","
+                + "\"index_type\": \"RANGE\","
+                + "\"fields\":[\"age\"],"
+                + "\"user_data\": {"
+                + "\"min\": 0,"
+                + "\"max\": 100"
+                + "}"
+                + "}";
+        Response r = client().post(path, indexLabel);
+        assertResponseStatus(202, r);
+
+        indexLabel = "{"
+                + "\"name\": \"personByAge\","
+                + "\"user_data\": {"
+                + "\"min\": 0"
+                + "}"
+                + "}";
+        Map<String, Object> params = ImmutableMap.of("action", "eliminate");
+        r = client().put(path, "personByAge", indexLabel, params);
+        assertResponseStatus(200, r);
     }
 
     @Test
@@ -95,6 +151,8 @@ public class IndexLabelApiTest extends BaseApiTest {
 
         String name = "personByAge";
         r = client().delete(path, name);
-        assertResponseStatus(202, r);
+        String content = assertResponseStatus(202, r);
+        int task = assertJsonContains(content, "task_id");
+        waitTaskSuccess(task);
     }
 }

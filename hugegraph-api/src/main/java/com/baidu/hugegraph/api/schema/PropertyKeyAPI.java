@@ -19,9 +19,10 @@
 
 package com.baidu.hugegraph.api.schema;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
+import javax.annotation.security.RolesAllowed;
 import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -34,6 +35,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
@@ -42,12 +44,15 @@ import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.define.Checkable;
 import com.baidu.hugegraph.schema.PropertyKey;
+import com.baidu.hugegraph.schema.Userdata;
+import com.baidu.hugegraph.type.define.AggregateType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.type.define.GraphMode;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Path("graphs/{graph}/schema/propertykeys")
@@ -61,6 +66,7 @@ public class PropertyKeyAPI extends API {
     @Status(Status.CREATED)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin", "$owner=$graph $action=schema_write"})
     public String create(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          JsonPropertyKey jsonPropertyKey) {
@@ -79,6 +85,7 @@ public class PropertyKeyAPI extends API {
     @Path("{name}")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin", "$owner=$graph $action=schema_write"})
     public String update(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          @PathParam("name") String name,
@@ -104,12 +111,27 @@ public class PropertyKeyAPI extends API {
     @GET
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin", "$owner=$graph $action=schema_read"})
     public String list(@Context GraphManager manager,
-                       @PathParam("graph") String graph) {
-        LOG.debug("Graph [{}] get property keys", graph);
+                       @PathParam("graph") String graph,
+                       @QueryParam("names") List<String> names) {
+        boolean listAll = CollectionUtils.isEmpty(names);
+        if (listAll) {
+            LOG.debug("Graph [{}] list property keys", graph);
+        } else {
+            LOG.debug("Graph [{}] get property keys by names {}", graph, names);
+        }
 
         HugeGraph g = graph(manager, graph);
-        List<PropertyKey> propKeys = g.schema().getPropertyKeys();
+        List<PropertyKey> propKeys;
+        if (listAll) {
+            propKeys = g.schema().getPropertyKeys();
+        } else {
+            propKeys = new ArrayList<>(names.size());
+            for (String name : names) {
+                propKeys.add(g.schema().getPropertyKey(name));
+            }
+        }
         return manager.serializer(g).writePropertyKeys(propKeys);
     }
 
@@ -117,6 +139,7 @@ public class PropertyKeyAPI extends API {
     @Timed
     @Path("{name}")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin", "$owner=$graph $action=schema_read"})
     public String get(@Context GraphManager manager,
                       @PathParam("graph") String graph,
                       @PathParam("name") String name) {
@@ -131,6 +154,7 @@ public class PropertyKeyAPI extends API {
     @Timed
     @Path("{name}")
     @Consumes(APPLICATION_JSON)
+    @RolesAllowed({"admin", "$owner=$graph $action=schema_delete"})
     public void delete(@Context GraphManager manager,
                        @PathParam("graph") String graph,
                        @PathParam("name") String name) {
@@ -145,6 +169,7 @@ public class PropertyKeyAPI extends API {
     /**
      * JsonPropertyKey is only used to receive create and append requests
      */
+    @JsonIgnoreProperties(value = {"status"})
     private static class JsonPropertyKey implements Checkable {
 
         @JsonProperty("id")
@@ -155,10 +180,12 @@ public class PropertyKeyAPI extends API {
         public Cardinality cardinality;
         @JsonProperty("data_type")
         public DataType dataType;
+        @JsonProperty("aggregate_type")
+        public AggregateType aggregateType;
         @JsonProperty("properties")
         public String[] properties;
         @JsonProperty("user_data")
-        public Map<String, Object> userdata;
+        public Userdata userdata;
         @JsonProperty("check_exist")
         public Boolean checkExist;
 
@@ -191,6 +218,9 @@ public class PropertyKeyAPI extends API {
             if (this.dataType != null) {
                 builder.dataType(this.dataType);
             }
+            if (this.aggregateType != null) {
+                builder.aggregateType(this.aggregateType);
+            }
             if (this.userdata != null) {
                 builder.userdata(this.userdata);
             }
@@ -203,9 +233,11 @@ public class PropertyKeyAPI extends API {
         @Override
         public String toString() {
             return String.format("JsonPropertyKey{name=%s, cardinality=%s, " +
-                                 "dataType=%s, properties=%s}",
+                                 "dataType=%s, aggregateType=%s, " +
+                                 "properties=%s}",
                                  this.name, this.cardinality,
-                                 this.dataType, this.properties);
+                                 this.dataType, this.aggregateType,
+                                 this.properties);
         }
     }
 }

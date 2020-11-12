@@ -26,6 +26,9 @@ import javax.ws.rs.core.Response;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.baidu.hugegraph.testutil.Assert;
+import com.google.common.collect.ImmutableMap;
+
 public class EdgeApiTest extends BaseApiTest {
 
     private static String path = "/graphs/hugegraph/graph/edges/";
@@ -55,6 +58,85 @@ public class EdgeApiTest extends BaseApiTest {
                 + "}", outVId, inVId);
         Response r = client().post(path, edge);
         assertResponseStatus(201, r);
+    }
+
+    @Test
+    public void testBatchUpdate() throws IOException {
+        String outVId = getVertexId("person", "name", "marko");
+        String inVId = getVertexId("person", "name", "josh");
+        // Create
+        String edge = String.format("{"
+                + "\"label\": \"knows\","
+                + "\"outVLabel\": \"person\","
+                + "\"inVLabel\": \"person\","
+                + "\"outV\": \"%s\","
+                + "\"inV\": \"%s\","
+                + "\"properties\":{"
+                + "\"date\": \"2013-02-20\","
+                + "\"weight\": 1.0}"
+                + "}", outVId, inVId);
+        Response r = client().post(path, edge);
+        // The edge id is 'S1:marko>1>7JooBil0>S1:josh'
+        String content = assertResponseStatus(201, r);
+        String edgeId = parseId(content);
+
+        // Update edge with edgeId
+        edge = String.format("{"
+                + "\"edges\":["
+                + "{"
+                + "\"id\":\"%s\","
+                + "\"label\":\"knows\","
+                + "\"outV\":\"%s\","
+                + "\"outVLabel\":\"person\","
+                + "\"inV\":\"%s\","
+                + "\"inVLabel\":\"person\","
+                + "\"properties\":{"
+                + "\"weight\":0.2,"
+                + "\"date\":\"2014-02-20\""
+                + "}"
+                + "}"
+                + "],"
+                + "\"update_strategies\":{"
+                + "\"weight\":\"SUM\","
+                + "\"date\":\"BIGGER\""
+                + "},"
+                + "\"check_vertex\":false,"
+                + "\"create_if_not_exist\":true"
+                + "}", edgeId, outVId, inVId);
+        r = client().put(path, "batch", edge, ImmutableMap.of());
+        // Now allowed to modify sortkey values, the property 'date' has changed
+        content = assertResponseStatus(400, r);
+        Assert.assertTrue(content.contains(
+                          "either be null or equal to origin when " +
+                          "specified edge id"));
+
+        // Update edge without edgeId
+        edge = String.format("{"
+                + "\"edges\":["
+                + "{"
+                + "\"label\":\"knows\","
+                + "\"outV\":\"%s\","
+                + "\"outVLabel\":\"person\","
+                + "\"inV\":\"%s\","
+                + "\"inVLabel\":\"person\","
+                + "\"properties\":{"
+                + "\"weight\":0.2,"
+                + "\"date\":\"2014-02-20\""
+                + "}"
+                + "}"
+                + "],"
+                + "\"update_strategies\":{"
+                + "\"weight\":\"SUM\","
+                + "\"date\":\"BIGGER\""
+                + "},"
+                + "\"check_vertex\":false,"
+                + "\"create_if_not_exist\":true"
+                + "}", outVId, inVId);
+        r = client().put(path, "batch", edge, ImmutableMap.of());
+        // Add a new edge when sortkey value has changed
+        content = assertResponseStatus(200, r);
+        String newEdgeId = parseId(content);
+        Assert.assertNotEquals(newEdgeId, edgeId);
     }
 
     @Test

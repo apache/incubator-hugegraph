@@ -95,10 +95,17 @@ public class RocksDBSstSessions extends RocksDBSessions {
     }
 
     @Override
-    public void createTable(String table) throws RocksDBException {
+    public synchronized void createTable(String... tables)
+                                         throws RocksDBException {
+        for (String table : tables) {
+            this.createTable(table);
+        }
+    }
+
+    private void createTable(String table) throws RocksDBException {
         EnvOptions env = new EnvOptions();
         Options options = new Options();
-        RocksDBStdSessions.initOptions(this.config(), options,
+        RocksDBStdSessions.initOptions(this.config(), options, options,
                                        options, options);
         // NOTE: unset merge op due to SIGSEGV when cf.setMergeOperatorName()
         options.setMergeOperatorName("not-exist-merge-op");
@@ -109,12 +116,24 @@ public class RocksDBSstSessions extends RocksDBSessions {
     }
 
     @Override
+    public synchronized void dropTable(String... tables)
+                                       throws RocksDBException {
+        for (String table : tables) {
+            this.dropTable(table);
+        }
+    }
+
     public void dropTable(String table) throws RocksDBException {
         this.tables.remove(table);
     }
 
     @Override
-    public String property(String property) {
+    public boolean existsTable(String table) {
+        return this.tables.containsKey(table);
+    }
+
+    @Override
+    public List<String> property(String property) {
         throw new NotSupportException("RocksDBSstStore property()");
     }
 
@@ -167,23 +186,21 @@ public class RocksDBSstSessions extends RocksDBSessions {
      */
     private final class SstSession extends Session {
 
-        private boolean closed;
         private Map<String, Changes> batch;
 
         public SstSession() {
-            this.closed = false;
             this.batch = new HashMap<>();
+        }
+
+        @Override
+        public void open() {
+            this.opened = true;
         }
 
         @Override
         public void close() {
             assert this.closeable();
-            this.closed = true;
-        }
-
-        @Override
-        public boolean closed() {
-            return this.closed;
+            this.opened = false;
         }
 
         /**
@@ -236,12 +253,27 @@ public class RocksDBSstSessions extends RocksDBSessions {
             this.batch.clear();
         }
 
+        @Override
+        public String dataPath() {
+            return RocksDBSstSessions.this.dataPath;
+        }
+
+        @Override
+        public String walPath() {
+            return RocksDBSstSessions.this.dataPath;
+        }
+
         /**
          * Get property value by name from specified table
          */
         @Override
         public String property(String table, String property) {
             throw new NotSupportException("RocksDBSstStore property()");
+        }
+
+        @Override
+        public Pair<byte[], byte[]> keyRange(String table) {
+            return null;
         }
 
         /**
@@ -335,6 +367,11 @@ public class RocksDBSstSessions extends RocksDBSessions {
                                           int scanType) {
             assert !this.hasChanges();
             return BackendColumnIterator.empty();
+        }
+
+        @Override
+        public void createSnapshot(String snapshotPath) {
+            throw new UnsupportedOperationException("createSnapshot");
         }
     }
 

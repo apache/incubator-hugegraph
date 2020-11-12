@@ -53,7 +53,8 @@ public class PersonalRankTraverser extends HugeTraverser {
 
     public Map<Id, Double> personalRank(Id source, String label,
                                         WithLabel withLabel) {
-        E.checkArgumentNotNull(source, "The source vertex id can't be null");
+        E.checkNotNull(source, "source vertex id");
+        this.checkVertexExist(source, "source vertex");
         E.checkArgumentNotNull(label, "The edge label can't be null");
 
         Map<Id, Double> ranks = new HashMap<>();

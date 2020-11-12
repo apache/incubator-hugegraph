@@ -24,36 +24,44 @@ import java.util.Iterator;
 import org.apache.commons.collections.IteratorUtils;
 import org.slf4j.Logger;
 
+import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.task.HugeTask;
-import com.baidu.hugegraph.task.TaskStatus;
 import com.baidu.hugegraph.task.TaskCallable;
-import com.baidu.hugegraph.task.TaskManager;
 import com.baidu.hugegraph.task.TaskScheduler;
+import com.baidu.hugegraph.task.TaskStatus;
+import com.baidu.hugegraph.testutil.Whitebox;
 import com.baidu.hugegraph.util.Log;
 
 public class TaskExample {
 
     private static final Logger LOG = Log.logger(TaskExample.class);
 
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) throws Exception {
         LOG.info("TaskExample start!");
 
         HugeGraph graph = ExampleUtil.loadGraph();
+        testTask(graph);
+        graph.close();
 
+        // Stop daemon thread
+        HugeFactory.shutdown(30L);
+    }
+
+    public static void testTask(HugeGraph graph) throws InterruptedException {
         Id id = IdGenerator.of(8);
         String callable = "com.baidu.hugegraph.example.TaskExample$TestTask";
         HugeTask<?> task = new HugeTask<>(id, null, callable, "test-parameter");
         task.type("type-1");
         task.name("test-task");
 
-        TaskScheduler scheduler = TaskManager.instance().getScheduler(graph);
+        TaskScheduler scheduler = graph.taskScheduler();
         scheduler.schedule(task);
         scheduler.save(task);
         Iterator<HugeTask<Object>> iter;
-        iter = scheduler.findTask(TaskStatus.RUNNING, -1);
+        iter = scheduler.tasks(TaskStatus.RUNNING, -1, null);
         System.out.println(">>>> running task: " + IteratorUtils.toList(iter));
 
         Thread.sleep(TestTask.UNIT * 33);
@@ -62,7 +70,7 @@ public class TaskExample {
         scheduler.save(task);
 
         // Find task not finished(actually it should be RUNNING)
-        iter = scheduler.findTask(TaskStatus.CANCELLED, -1);
+        iter = scheduler.tasks(TaskStatus.CANCELLED, -1, null);
         assert iter.hasNext();
         task = iter.next();
 
@@ -70,21 +78,21 @@ public class TaskExample {
 
         Thread.sleep(TestTask.UNIT * 10);
         System.out.println(">>>> restore task...");
-        scheduler.restore(task);
+        Whitebox.setInternalState(task, "status", TaskStatus.RUNNING);
+        scheduler.restoreTasks();
         Thread.sleep(TestTask.UNIT * 80);
         scheduler.save(task);
 
-        iter = scheduler.findTask(TaskStatus.SUCCESS, -1);
+        iter = scheduler.tasks(TaskStatus.SUCCESS, -1, null);
         assert iter.hasNext();
-
-        graph.close();
-
-        HugeGraph.shutdown(30L);
+        task = iter.next();
+        assert task.status() == TaskStatus.SUCCESS;
+        assert task.retries() == 1;
     }
 
     public static class TestTask extends TaskCallable<Integer> {
 
-        public static final int UNIT = 100;
+        public static final int UNIT = 100; // ms
 
         public volatile boolean run = true;
 
@@ -95,7 +103,7 @@ public class TaskExample {
             for (int i = this.task().progress(); i <= 100 && this.run; i++) {
                 System.out.println(">>>> progress " + i);
                 this.task().progress(i);
-                this.scheduler().save(this.task());
+                this.graph().taskScheduler().save(this.task());
                 Thread.sleep(UNIT);
             }
             return 18;

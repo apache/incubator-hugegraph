@@ -19,14 +19,10 @@
 
 package com.baidu.hugegraph.backend.store.mysql;
 
-import java.util.Iterator;
-
-import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.store.AbstractBackendStoreProvider;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.mysql.MysqlStore.MysqlGraphStore;
 import com.baidu.hugegraph.backend.store.mysql.MysqlStore.MysqlSchemaStore;
-import com.baidu.hugegraph.util.Events;
 
 public class MysqlStoreProvider extends AbstractBackendStoreProvider {
 
@@ -42,20 +38,6 @@ public class MysqlStoreProvider extends AbstractBackendStoreProvider {
     @Override
     protected BackendStore newGraphStore(String store) {
         return new MysqlGraphStore(this, this.database(), store);
-    }
-
-    @Override
-    public void clear() throws BackendException {
-        this.checkOpened();
-        /*
-         * We should drop database once only with stores(schema/graph/system),
-         * otherwise it will easily lead to blocking when drop tables
-         */
-        Iterator<BackendStore> iter = this.stores.values().iterator();
-        if (iter.hasNext()) {
-            iter.next().clear();
-        }
-        this.notifyAndWaitEvent(Events.STORE_CLEAR);
     }
 
     @Override
@@ -75,7 +57,12 @@ public class MysqlStoreProvider extends AbstractBackendStoreProvider {
          *                    rangeLong and rangeDouble
          * [1.4] #633: support unique index
          * [1.5] #661: reduce the storage of vertex/edge id
+         * [1.6] #691: support aggregate property
+         * [1.7] #746: support userdata for indexlabel
+         * [1.8] #894: asStoredString() encoding is changed to signed B64
+         *             instead of sortable B64
+         * [1.9] #295: support ttl for vertex and edge
          */
-        return "1.5";
+        return "1.9";
     }
 }

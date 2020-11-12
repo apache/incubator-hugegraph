@@ -22,8 +22,10 @@ package com.baidu.hugegraph.structure;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -54,25 +56,28 @@ import com.google.common.collect.ImmutableMap;
 
 public abstract class HugeElement implements Element, GraphType, Idfiable {
 
-    private static final Map<Id, HugeProperty<?>> EMPTY = ImmutableMap.of();
+    private static final Map<Id, HugeProperty<?>> EMPTY_MAP = ImmutableMap.of();
     private static final int MAX_PROPERTIES = BytesBuffer.UINT16_MAX;
 
     private final HugeGraph graph;
+    private Map<Id, HugeProperty<?>> properties;
 
-    protected Id id;
-    protected Map<Id, HugeProperty<?>> properties;
-    protected boolean removed;
-    protected boolean fresh;
-    protected boolean propLoaded;
+    private long expiredTime; // TODO: move into properties to keep small object
 
-    public HugeElement(final HugeGraph graph, Id id) {
+    private boolean removed;
+    private boolean fresh;
+    private boolean propLoaded;
+    private boolean defaultValueUpdated;
+
+    public HugeElement(final HugeGraph graph) {
         E.checkArgument(graph != null, "HugeElement graph can't be null");
         this.graph = graph;
-        this.id = id;
-        this.properties = EMPTY;
+        this.properties = EMPTY_MAP;
+        this.expiredTime = 0L;
         this.removed = false;
         this.fresh = false;
         this.propLoaded = true;
+        this.defaultValueUpdated = false;
     }
 
     public abstract SchemaLabel schemaLabel();
@@ -86,9 +91,23 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
 
     protected abstract boolean ensureFilledProperties(boolean throwIfNotExist);
 
-    @Override
-    public Id id() {
-        return this.id;
+    protected void updateToDefaultValueIfNone() {
+        if (this.fresh() || this.defaultValueUpdated) {
+            return;
+        }
+        this.defaultValueUpdated = true;
+        // Set default value if needed
+        for (Id pkeyId : this.schemaLabel().properties()) {
+            if (this.properties.containsKey(pkeyId)) {
+                continue;
+            }
+            PropertyKey pkey = this.graph().propertyKey(pkeyId);
+            Object value = pkey.defaultValue();
+            if (value != null) {
+                this.setProperty(this.newProperty(pkey, value));
+            }
+        }
+        this.defaultValueUpdated = true;
     }
 
     @Override
@@ -96,24 +115,87 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
         return this.graph;
     }
 
+    protected void removed(boolean removed) {
+        this.removed = removed;
+    }
+
     public boolean removed() {
         return this.removed;
+    }
+
+    protected void fresh(boolean fresh) {
+        this.fresh = fresh;
     }
 
     public boolean fresh() {
         return this.fresh;
     }
 
-    public boolean propLoaded() {
+    public boolean isPropLoaded() {
         return this.propLoaded;
+    }
+
+    protected void propLoaded() {
+        this.propLoaded = true;
     }
 
     public void propNotLoaded() {
         this.propLoaded = false;
     }
 
+    public void forceLoad() {
+        this.ensureFilledProperties(false);
+    }
+
     public void committed() {
         this.fresh = false;
+        // Set expired time
+        this.setExpiredTimeIfNeeded();
+    }
+
+    public void setExpiredTimeIfNeeded() {
+        SchemaLabel label = this.schemaLabel();
+        if (label.ttl() == 0L) {
+            return;
+        }
+        long now = this.graph.now();
+        if (SchemaLabel.NONE_ID.equals(label.ttlStartTime())) {
+            this.expiredTime(now + label.ttl());
+            return;
+        }
+        Date date = this.getPropertyValue(label.ttlStartTime());
+        if (date == null) {
+            this.expiredTime(now + label.ttl());
+            return;
+        }
+        long expired = date.getTime() + label.ttl();
+        E.checkArgument(expired > now,
+                        "The expired time '%s' of '%s' is prior to now: %s",
+                        new Date(expired), this, now);
+        this.expiredTime(expired);
+    }
+
+    public long expiredTime() {
+        return this.expiredTime;
+    }
+
+    public void expiredTime(long expiredTime) {
+        this.expiredTime = expiredTime;
+    }
+
+    public boolean expired() {
+        return 0L < this.expiredTime && this.expiredTime < this.graph.now();
+    }
+
+    public long ttl() {
+        if (this.expiredTime == 0L || this.expiredTime < this.graph.now()) {
+            return 0L;
+        }
+        return this.expiredTime - this.graph.now();
+    }
+
+    public boolean hasTtl() {
+        return this.schemaLabel().ttl() > 0L;
     }
 
     public Map<Id, HugeProperty<?>> getProperties() {
@@ -122,16 +204,25 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
 
     public Map<Id, HugeProperty<?>> getFilledProperties() {
         this.ensureFilledProperties(true);
-        return Collections.unmodifiableMap(this.properties);
+        return this.getProperties();
     }
 
     public Map<Id, Object> getPropertiesMap() {
         Map<Id, Object> props = new HashMap<>();
-        for (Map.Entry<Id, HugeProperty<?>> entry :
-             this.properties.entrySet()) {
-            props.put(entry.getKey(), entry.getValue().value());
+        for (Map.Entry<Id, HugeProperty<?>> e : this.properties.entrySet()) {
+            props.put(e.getKey(), e.getValue().value());
         }
         return props;
+    }
+
+    public Map<Id, HugeProperty<?>> getAggregateProperties() {
+        Map<Id, HugeProperty<?>> aggrProps = new HashMap<>();
+        for (Map.Entry<Id, HugeProperty<?>> e : this.properties.entrySet()) {
+            if (e.getValue().type().isAggregateProperty()) {
+                aggrProps.put(e.getKey(), e.getValue());
+            }
+        }
+        return aggrProps;
     }
 
     @SuppressWarnings("unchecked")
@@ -160,9 +251,21 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
         return this.properties.size();
     }
 
+    public int sizeOfSubProperties() {
+        int size = 0;
+        for (HugeProperty<?> p : this.properties.values()) {
+            size++;
+            if (p.propertyKey().cardinality() != Cardinality.SINGLE &&
+                p.value() instanceof Collection) {
+                size += ((Collection<?>) p.value()).size();
+            }
+        }
+        return size;
+    }
+
     @Watched(prefix = "element")
     public <V> HugeProperty<?> setProperty(HugeProperty<V> prop) {
-        if (this.properties == EMPTY) {
+        if (this.properties == EMPTY_MAP) {
             this.properties = new HashMap<>();
         }
         PropertyKey pkey = prop.propertyKey();
@@ -219,6 +322,7 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
     @SuppressWarnings({ "rawtypes", "unchecked" })
     private <V> HugeProperty<V> addProperty(PropertyKey pkey, V value,
                                             Supplier<Collection<V>> supplier) {
+        assert pkey.cardinality().multiple();
         HugeProperty<Collection<V>> property;
         if (this.hasProperty(pkey.id())) {
             property = this.getProperty(pkey.id());
@@ -229,10 +333,18 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
 
         Collection<V> values;
         if (pkey.cardinality() == Cardinality.SET) {
-            values = CollectionUtil.toSet(value);
+            if (value instanceof Set) {
+                values = (Set<V>) value;
+            } else {
+                values = CollectionUtil.toSet(value);
+            }
         } else {
             assert pkey.cardinality() == Cardinality.LIST;
-            values = CollectionUtil.toList(value);
+            if (value instanceof List) {
+                values = (List<V>) value;
+            } else {
+                values = CollectionUtil.toList(value);
+            }
         }
         property.value().addAll(pkey.validValueOrThrow(values));
 
@@ -245,8 +357,12 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
         this.propLoaded = false;
     }
 
-    public void copyProperties(HugeElement element) {
-        this.properties = new HashMap<>(element.properties);
+    protected void copyProperties(HugeElement element) {
+        if (element.properties == EMPTY_MAP) {
+            this.properties = EMPTY_MAP;
+        } else {
+            this.properties = new HashMap<>(element.properties);
+        }
         this.propLoaded = true;
     }
 
@@ -321,6 +437,9 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
         if (type.isVertex()) {
             return id;
         } else {
+            if (id == null || id instanceof EdgeId) {
+                return id;
+            }
             return EdgeId.parse(id.asString());
         }
     }

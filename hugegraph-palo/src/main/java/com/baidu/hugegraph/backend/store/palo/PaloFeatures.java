@@ -113,4 +113,14 @@ public class PaloFeatures implements BackendFeatures {
     public boolean supportsNumberType() {
         return true;
     }
+
+    @Override
+    public boolean supportsAggregateProperty() {
+        return false;
+    }
+
+    @Override
+    public boolean supportsTtl() {
+        return false;
+    }
 }

@@ -39,13 +39,16 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.baidu.hugegraph.HugeException;
+import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
-import com.baidu.hugegraph.api.job.GremlinAPI;
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.config.HugeConfig;
+import com.baidu.hugegraph.job.GremlinJob;
 import com.baidu.hugegraph.job.JobBuilder;
 import com.baidu.hugegraph.security.HugeSecurityManager;
 import com.baidu.hugegraph.task.HugeTask;
 import com.baidu.hugegraph.testutil.Assert;
+import com.baidu.hugegraph.type.define.NodeRole;
 import com.baidu.hugegraph.unit.FakeObjects;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.google.common.collect.ImmutableMap;
@@ -63,10 +66,12 @@ public class SecurityManagerTest {
     }
 
     @AfterClass
-    public static void clear() {
+    public static void clear() throws Exception {
         System.setSecurityManager(null);
+        graph.clearBackend();
         graph.close();
-        HugeGraph.shutdown(30L);
+        // Stop daemon thread
+        HugeFactory.shutdown(30L);
     }
 
     @Test
@@ -119,6 +124,14 @@ public class SecurityManagerTest {
         String result = runGremlinJob("new FileInputStream(new File(\"\"))");
         assertError(result, "Not allowed to read file via Gremlin");
 
+        // read file
+        String pom = System.getProperty("user.dir") + "/a.groovy";
+        try (FileInputStream fis = new FileInputStream(new File(pom))) {
+        } catch (IOException ignored) {}
+        result = runGremlinJob(String.format(
+                 "new FileInputStream(new File(\"%s\"))", pom));
+        assertError(result, "(No such file or directory)");
+
         // read file fd
         @SuppressWarnings({ "unused", "resource" })
         FileInputStream fis = new FileInputStream(FileDescriptor.in);
@@ -146,6 +159,12 @@ public class SecurityManagerTest {
         new File("").delete();
         result = runGremlinJob("new File(\"\").delete()");
         assertError(result, "Not allowed to delete file via Gremlin");
+
+        // get absolute path
+        new File("").getAbsolutePath();
+        result = runGremlinJob("new File(\"\").getAbsolutePath()");
+        assertError(result, "Not allowed to access " +
+                    "system property(user.dir) via Gremlin");
     }
 
     @Test
@@ -278,7 +297,8 @@ public class SecurityManagerTest {
     }
 
     private static void assertError(String result, String message) {
-        Assert.assertTrue(result, result.endsWith(message));
+        Assert.assertTrue(result, result.endsWith(message) ||
+                                  result.contains(message));
     }
 
     private static String runGremlinJob(String gremlin) {
@@ -290,10 +310,10 @@ public class SecurityManagerTest {
         input.put("aliases", ImmutableMap.of());
         builder.name("test-gremlin-job")
                .input(JsonUtil.toJson(input))
-               .job(new GremlinAPI.GremlinJob());
+               .job(new GremlinJob());
         HugeTask<?> task = builder.schedule();
         try {
-            graph.taskScheduler().waitUntilTaskCompleted(task.id(), 10);
+            task = graph.taskScheduler().waitUntilTaskCompleted(task.id(), 10);
         } catch (TimeoutException e) {
             throw new HugeException("Wait for task timeout: %s", e, task);
         }
@@ -302,12 +322,13 @@ public class SecurityManagerTest {
 
     private static HugeGraph loadGraph(boolean needClear) {
         HugeConfig config = FakeObjects.newConfig();
-        HugeGraph graph = new HugeGraph(config);
+        HugeGraph graph = HugeFactory.open(config);
 
         if (needClear) {
             graph.clearBackend();
         }
         graph.initBackend();
+        graph.serverStarted(IdGenerator.of("server1"), NodeRole.MASTER);
 
         return graph;
     }

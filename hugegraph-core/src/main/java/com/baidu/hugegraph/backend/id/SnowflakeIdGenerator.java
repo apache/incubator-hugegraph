@@ -26,9 +26,11 @@ import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.structure.HugeVertex;
+import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.baidu.hugegraph.util.TimeUtil;
 
@@ -42,19 +44,28 @@ public class SnowflakeIdGenerator extends IdGenerator {
     private final boolean forceString;
     private final IdWorker idWorker;
 
-    public static SnowflakeIdGenerator instance(HugeGraph graph) {
-        String graphname = graph.name();
-        SnowflakeIdGenerator generator = INSTANCES.get(graphname);
+    public static SnowflakeIdGenerator init(HugeGraphParams graph) {
+        String graphName = graph.name();
+        SnowflakeIdGenerator generator = INSTANCES.get(graphName);
         if (generator == null) {
             synchronized (INSTANCES) {
-                if (!INSTANCES.containsKey(graphname)) {
+                if (!INSTANCES.containsKey(graphName)) {
                     HugeConfig conf = graph.configuration();
-                    INSTANCES.put(graphname, new SnowflakeIdGenerator(conf));
+                    INSTANCES.put(graphName, new SnowflakeIdGenerator(conf));
                 }
-                generator = INSTANCES.get(graphname);
+                generator = INSTANCES.get(graphName);
                 assert generator != null;
             }
         }
+        return generator;
+    }
+
+    public static SnowflakeIdGenerator instance(HugeGraph graph) {
+        String graphName = graph.name();
+        SnowflakeIdGenerator generator = INSTANCES.get(graphName);
+        E.checkState(generator != null,
+                     "SnowflakeIdGenerator of graph '%s' is not initialized",
+                     graphName);
         return generator;
     }
 
@@ -63,6 +74,9 @@ public class SnowflakeIdGenerator extends IdGenerator {
         long datacenterId = config.get(CoreOptions.SNOWFLAKE_DATACENTER_ID);
         this.forceString = config.get(CoreOptions.SNOWFLAKE_FORCE_STRING);
         this.idWorker = new IdWorker(workerId, datacenterId);
+        LOG.debug("SnowflakeId Worker started: datacenter id {}, " +
+                  "worker id {}, forced string id {}",
+                  datacenterId, workerId, this.forceString);
     }
 
     public Id generate() {
@@ -132,8 +146,6 @@ public class SnowflakeIdGenerator extends IdGenerator {
                       "datacenter id bits {}, worker id bits {}," +
                       "sequence bits {}",
                       TIMESTAMP_SHIFT, DC_BIT, WORKER_BIT, SEQUENCE_BIT);
-            LOG.info("Id Worker starting. datacenter id {}, worker id {}",
-                     datacenterId, workerId);
         }
 
         public synchronized long nextId() {

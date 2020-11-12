@@ -23,7 +23,9 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.cache.CachedGraphTransaction;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
@@ -31,6 +33,7 @@ import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.testutil.Whitebox;
+import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.unit.BaseUnitTest;
 import com.baidu.hugegraph.unit.FakeObjects;
@@ -39,11 +42,14 @@ import com.baidu.hugegraph.util.Events;
 public class CachedGraphTransactionTest extends BaseUnitTest {
 
     private CachedGraphTransaction cache;
+    private HugeGraphParams params;
 
     @Before
     public void setup() {
-        HugeGraph graph = new HugeGraph(FakeObjects.newConfig());
-        this.cache = new CachedGraphTransaction(graph, graph.loadGraphStore());
+        HugeGraph graph = HugeFactory.open(FakeObjects.newConfig());
+        this.params = Whitebox.getInternalState(graph, "params");
+        this.cache = new CachedGraphTransaction(this.params,
+                                                this.params.loadGraphStore());
     }
 
     @After
@@ -80,8 +86,8 @@ public class CachedGraphTransactionTest extends BaseUnitTest {
         Assert.assertEquals(2L,
                             Whitebox.invoke(cache, "verticesCache", "size"));
 
-        cache.graph().graphEventHub()
-             .notify(Events.CACHE, "clear", null).get();
+        this.params.graphEventHub().notify(Events.CACHE, "clear",
+                                           null, null).get();
 
         Assert.assertEquals(0L,
                             Whitebox.invoke(cache, "verticesCache", "size"));
@@ -96,7 +102,6 @@ public class CachedGraphTransactionTest extends BaseUnitTest {
 
     @Test
     public void testEventInvalid() throws Exception {
-
         CachedGraphTransaction cache = this.cache();
 
         cache.addVertex(this.newVertex(IdGenerator.of(1)));
@@ -108,8 +113,9 @@ public class CachedGraphTransactionTest extends BaseUnitTest {
         Assert.assertEquals(2L,
                             Whitebox.invoke(cache, "verticesCache", "size"));
 
-        cache.graph().graphEventHub()
-             .notify(Events.CACHE, "invalid", IdGenerator.of(1)).get();
+        this.params.graphEventHub().notify(Events.CACHE, "invalid",
+                                           HugeType.VERTEX, IdGenerator.of(1))
+                   .get();
 
         Assert.assertEquals(1L,
                             Whitebox.invoke(cache, "verticesCache", "size"));

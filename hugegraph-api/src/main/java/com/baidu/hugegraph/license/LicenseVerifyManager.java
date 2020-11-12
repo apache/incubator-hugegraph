@@ -93,7 +93,8 @@ public class LicenseVerifyManager extends CommonLicenseManager {
         // Verify the customized license parameters.
         List<ExtraParam> extraParams;
         try {
-            TypeReference<?> type = new TypeReference<List<ExtraParam>>() {};
+            TypeReference<List<ExtraParam>> type;
+            type = new TypeReference<List<ExtraParam>>() {};
             extraParams = MAPPER.readValue((String) content.getExtra(), type);
         } catch (IOException e) {
             throw new RuntimeException("Failed to read extra params", e);
@@ -156,13 +157,11 @@ public class LicenseVerifyManager extends CommonLicenseManager {
 
     private void checkIpAndMac(ExtraParam param) {
         String expectIp = param.ip();
-        if (StringUtils.isEmpty(expectIp)) {
-            return;
-        }
         boolean matched = false;
         List<String> actualIps = this.machineInfo.getIpAddress();
         for (String actualIp : actualIps) {
-            if (actualIp.equalsIgnoreCase(expectIp)) {
+            if (StringUtils.isEmpty(expectIp) ||
+                actualIp.equalsIgnoreCase(expectIp)) {
                 matched = true;
                 break;
             }
@@ -177,20 +176,40 @@ public class LicenseVerifyManager extends CommonLicenseManager {
         if (StringUtils.isEmpty(expectMac)) {
             return;
         }
-        String actualMac;
-        try {
-            actualMac = this.machineInfo.getMacByInetAddress(
-                        InetAddress.getByName(expectIp));
-        } catch (UnknownHostException e) {
-            throw newLicenseException(
-                  "Failed to get mac address for ip '%s'", expectIp);
-        }
-        String expectFormatMac = expectMac.replaceAll(":", "-");
-        String actualFormatMac = actualMac.replaceAll(":", "-");
-        if (!actualFormatMac.equalsIgnoreCase(expectFormatMac)) {
-            throw newLicenseException(
-                  "The server's mac '%s' doesn't match the authorized '%s'",
-                  actualMac, expectMac);
+
+        // The mac must be not empty here
+        if (!StringUtils.isEmpty(expectIp)) {
+            String actualMac;
+            try {
+                actualMac = this.machineInfo.getMacByInetAddress(
+                            InetAddress.getByName(expectIp));
+            } catch (UnknownHostException e) {
+                throw newLicenseException(
+                      "Failed to get mac address for ip '%s'", expectIp);
+            }
+            String expectFormatMac = expectMac.replaceAll(":", "-");
+            String actualFormatMac = actualMac.replaceAll(":", "-");
+            if (!actualFormatMac.equalsIgnoreCase(expectFormatMac)) {
+                throw newLicenseException(
+                      "The server's mac '%s' doesn't match the authorized '%s'",
+                      actualMac, expectMac);
+            }
+        } else {
+            String expectFormatMac = expectMac.replaceAll(":", "-");
+            List<String> actualMacs = this.machineInfo.getMacAddress();
+            matched = false;
+            for (String actualMac : actualMacs) {
+                String actualFormatMac = actualMac.replaceAll(":", "-");
+                if (actualFormatMac.equalsIgnoreCase(expectFormatMac)) {
+                    matched = true;
+                    break;
+                }
+            }
+            if (!matched) {
+                throw newLicenseException(
+                      "The server's macs %s don't match the authorized '%s'",
+                      actualMacs, expectMac);
+            }
         }
     }
 

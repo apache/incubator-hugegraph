@@ -27,6 +27,7 @@ import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.Condition.Relation;
 import com.baidu.hugegraph.backend.query.Condition.RelationType;
+import com.baidu.hugegraph.backend.query.Condition.SyspropRelation;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.unit.BaseUnitTest;
@@ -75,8 +76,8 @@ public class ConditionTest extends BaseUnitTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             Condition.eq(HugeKeys.ID, null).test("any");
         }, e -> {
-            String err = "The second parameter of test() can't be null";
-            Assert.assertEquals(err, e.getMessage());
+            Assert.assertEquals("Can't test null value for `==`",
+                                e.getMessage());
         });
     }
 
@@ -119,8 +120,8 @@ public class ConditionTest extends BaseUnitTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             Condition.eq(IdGenerator.of("1"), null).test("any");
         }, e -> {
-            String err = "The second parameter of test() can't be null";
-            Assert.assertEquals(err, e.getMessage());
+            Assert.assertEquals("Can't test null value for `==`",
+                                e.getMessage());
         });
     }
 
@@ -345,6 +346,23 @@ public class ConditionTest extends BaseUnitTest {
         Assert.assertFalse(c1.test("3.0"));
         Assert.assertFalse(c1.test("1.0"));
         Assert.assertFalse(c1.test((Object) null));
+        Assert.assertFalse(c1.test(ImmutableList.of(1, 2)));
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            Condition.in(HugeKeys.ID, null).test("1");
+        }, e -> {
+            Assert.assertEquals("Can't test null value for `in`",
+                                e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            Condition c2 = new SyspropRelation(HugeKeys.ID, RelationType.IN,
+                                               "single-value");
+            c2.test("singlevalue");
+        }, e -> {
+            Assert.assertEquals("Can't test 'single-value'(String) for `in`, " +
+                                "expect Collection", e.getMessage());
+        });
     }
 
     @Test
@@ -366,6 +384,24 @@ public class ConditionTest extends BaseUnitTest {
         Assert.assertTrue(c1.test("3.0"));
         Assert.assertTrue(c1.test("1.0"));
         Assert.assertTrue(c1.test((Object) null));
+        Assert.assertTrue(c1.test(ImmutableList.of(4)));
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            Condition.nin(HugeKeys.ID, null).test("1");
+        }, e -> {
+            Assert.assertEquals("Can't test null value for `notin`",
+                                e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            Condition c2 = new SyspropRelation(HugeKeys.ID, RelationType.NOT_IN,
+                                               "single-value");
+            c2.test("singlevalue");
+        }, e -> {
+            Assert.assertEquals("Can't test 'single-value'(String) " +
+                                "for `notin`, expect Collection",
+                                e.getMessage());
+        });
     }
 
     @Test
@@ -377,7 +413,64 @@ public class ConditionTest extends BaseUnitTest {
         Assert.assertFalse(c1.test(IdGenerator.of("abcd")));
         Assert.assertFalse(c1.test(IdGenerator.of("b")));
         Assert.assertFalse(c1.test(IdGenerator.of("bc")));
-        Assert.assertFalse(c1.test((Object) null));
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            c1.test((Object) null);
+        }, e -> {
+            Assert.assertEquals("Can't execute `prefix` on type null, " +
+                                "expect Id", e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            c1.test(123);
+        }, e -> {
+            Assert.assertEquals("Can't execute `prefix` on type Integer, " +
+                                "expect Id", e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            Condition c2 = new SyspropRelation(HugeKeys.ID, RelationType.PREFIX,
+                                               "abc");
+            c2.test(IdGenerator.of("ab"));
+        }, e -> {
+            Assert.assertEquals("Can't test 'abc'(String) for `prefix`, " +
+                                "expect Id", e.getMessage());
+        });
+    }
+
+    @Test
+    public void testConditionContains() {
+        Condition c1 = Condition.contains(HugeKeys.ID, "v1");
+        Assert.assertTrue(c1.test(ImmutableList.of("v1", "v2")));
+        Assert.assertTrue(c1.test(ImmutableList.of("v1", "v3")));
+        Assert.assertFalse(c1.test(ImmutableList.of("v3", "v4")));
+
+        Condition c2 = Condition.contains(HugeKeys.ID,
+                                          ImmutableList.of("v1", "v2"));
+        Assert.assertFalse(c2.test(ImmutableList.of("v1", "v2", "v3")));
+        Assert.assertTrue(c2.test(ImmutableList.of(ImmutableList.of("v1", "v2"),
+                                                   "v3")));
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            c1.test((Object) null);
+        }, e -> {
+            Assert.assertEquals("Can't execute `contains` on type null, " +
+                                "expect Collection", e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            c1.test("v1");
+        }, e -> {
+            Assert.assertEquals("Can't execute `contains` on type String, " +
+                                "expect Collection", e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            c1.test(123);
+        }, e -> {
+            Assert.assertEquals("Can't execute `contains` on type Integer, " +
+                                "expect Collection", e.getMessage());
+        });
     }
 
     @Test
@@ -386,7 +479,27 @@ public class ConditionTest extends BaseUnitTest {
         Assert.assertTrue(c1.test(ImmutableMap.of("k1", "abc")));
         Assert.assertTrue(c1.test(ImmutableMap.of("k1", "abc", "k2", "123")));
         Assert.assertFalse(c1.test(ImmutableMap.of("k3", "ab")));
-        Assert.assertFalse(c1.test((Object) null));
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            c1.test((Object) null);
+        }, e -> {
+            Assert.assertEquals("Can't execute `containsk` on type null, " +
+                                "expect Map", e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            c1.test("v1");
+        }, e -> {
+            Assert.assertEquals("Can't execute `containsk` on type String, " +
+                                "expect Map", e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            c1.test(123f);
+        }, e -> {
+            Assert.assertEquals("Can't execute `containsk` on type Float, " +
+                                "expect Map", e.getMessage());
+        });
     }
 
     @Test
@@ -395,7 +508,27 @@ public class ConditionTest extends BaseUnitTest {
         Assert.assertTrue(c1.test(ImmutableMap.of("k1", "abc")));
         Assert.assertTrue(c1.test(ImmutableMap.of("k1", "abc", "k2", "123")));
         Assert.assertFalse(c1.test(ImmutableMap.of("k1", "ab")));
-        Assert.assertFalse(c1.test((Object) null));
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            c1.test((Object) null);
+        }, e -> {
+            Assert.assertEquals("Can't execute `containsv` on type null, " +
+                                "expect Map", e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            c1.test("v1");
+        }, e -> {
+            Assert.assertEquals("Can't execute `containsv` on type String, " +
+                                "expect Map", e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            c1.test(123d);
+        }, e -> {
+            Assert.assertEquals("Can't execute `containsv` on type Double, " +
+                                "expect Map", e.getMessage());
+        });
     }
 
     @Test
@@ -420,7 +553,20 @@ public class ConditionTest extends BaseUnitTest {
         Assert.assertFalse(c1.test("cat"));
         Assert.assertFalse(c1.test("text"));
         Assert.assertFalse(c1.test("abc"));
-        Assert.assertFalse(c1.test((Object) null));
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            c1.test((Object) null);
+        }, e -> {
+            Assert.assertEquals("Can't execute `textcontains` on type null, " +
+                                "expect String", e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            c1.test(123L);
+        }, e -> {
+            Assert.assertEquals("Can't execute `textcontains` on type Long, " +
+                                "expect String", e.getMessage());
+        });
     }
 
     @Test
@@ -433,7 +579,39 @@ public class ConditionTest extends BaseUnitTest {
         Assert.assertTrue(c1.test("cat"));
         Assert.assertFalse(c1.test("text"));
         Assert.assertFalse(c1.test("abc"));
-        Assert.assertFalse(c1.test((Object) null));
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            c1.test((Object) null);
+        }, e -> {
+            Assert.assertEquals("Can't execute `textcontainsany` " +
+                                "on type null, expect String", e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            c1.test(123L);
+        }, e -> {
+            Assert.assertEquals("Can't execute `textcontainsany` " +
+                                "on type Long, expect String", e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            c1.test(ImmutableList.of("1"));
+        }, e -> {
+            Assert.assertEquals("Can't execute `textcontainsany` " +
+                                "on type SingletonImmutableList, expect String",
+                                e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            Condition c2 = new SyspropRelation(HugeKeys.ID,
+                                               RelationType.TEXT_CONTAINS_ANY,
+                                               "abc");
+            c2.test("abc");
+        }, e -> {
+            Assert.assertEquals("Can't test 'abc'(String) for " +
+                                "`textcontainsany`, expect Collection",
+                                e.getMessage());
+        });
     }
 
     @Test

@@ -19,10 +19,10 @@
 
 package com.baidu.hugegraph.api.traversers;
 
+import java.util.List;
+
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPACITY;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
-
-import java.util.List;
 
 import javax.inject.Singleton;
 import javax.ws.rs.DefaultValue;
@@ -42,10 +42,12 @@ import com.baidu.hugegraph.api.graph.VertexAPI;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.RestServer;
+import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
 import com.baidu.hugegraph.traversal.algorithm.ShortestPathTraverser;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
+import com.google.common.collect.ImmutableList;
 
 @Path("graphs/{graph}/traversers/shortestpath")
 @Singleton
@@ -82,9 +84,13 @@ public class ShortestPathAPI extends API {
         HugeGraph g = graph(manager, graph);
 
         ShortestPathTraverser traverser = new ShortestPathTraverser(g);
-        List<Id> path = traverser.shortestPath(sourceId, targetId, dir,
-                                               edgeLabel, depth, degree,
-                                               skipDegree, capacity);
-        return manager.serializer(g).writeList("path", path);
+
+        List<String> edgeLabels = edgeLabel == null ? ImmutableList.of() :
+                                  ImmutableList.of(edgeLabel);
+        HugeTraverser.Path path = traverser.shortestPath(sourceId, targetId,
+                                                         dir, edgeLabels, depth,
+                                                         degree, skipDegree,
+                                                         capacity);
+        return manager.serializer(g).writeList("path", path.vertices());
     }
 }

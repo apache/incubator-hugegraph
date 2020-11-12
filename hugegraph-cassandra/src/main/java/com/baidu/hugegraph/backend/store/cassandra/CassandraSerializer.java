@@ -131,24 +131,19 @@ public class CassandraSerializer extends TableSerializer {
     }
 
     @Override
-    protected Object writeProperty(HugeProperty<?> property) {
+    protected Object writeProperty(PropertyKey propertyKey, Object value) {
         BytesBuffer buffer = BytesBuffer.allocate(BytesBuffer.BUF_PROPERTY);
-        buffer.writeProperty(property.propertyKey(), property.value());
-        buffer.flip();
-        return buffer.asByteBuffer();
-    }
-
-    @Override
-    protected Object writeProperty(Object value) {
-        /*
-         * Since we can't know the type of the property value in some scenarios,
-         * so need to construct a fake property key to serialize to reuse code.
-         */
-        PropertyKey pkey = new PropertyKey(null, IdGenerator.of(0L), "fake");
-        pkey.dataType(DataType.fromClass(value.getClass()));
-        BytesBuffer buffer = BytesBuffer.allocate(BytesBuffer.BUF_PROPERTY);
-        buffer.writeProperty(pkey, value);
-        buffer.flip();
+        if (propertyKey == null) {
+            /*
+             * Since we can't know the type of the property value in some
+             * scenarios so need to construct a fake property key to
+             * serialize to reuse code.
+             */
+            propertyKey = new PropertyKey(null, IdGenerator.of(0L), "fake");
+            propertyKey.dataType(DataType.fromClass(value.getClass()));
+        }
+        buffer.writeProperty(propertyKey, value);
+        buffer.forReadWritten();
         return buffer.asByteBuffer();
     }
 

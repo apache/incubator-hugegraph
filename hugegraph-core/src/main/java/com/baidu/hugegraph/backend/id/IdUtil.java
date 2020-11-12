@@ -63,7 +63,7 @@ public final class IdUtil {
     public static Object writeBinString(Id id) {
         int len = id.edge() ? BytesBuffer.BUF_EDGE_ID : id.length() + 1;
         BytesBuffer buffer = BytesBuffer.allocate(len).writeId(id);
-        buffer.flip();
+        buffer.forReadWritten();
         return buffer.asByteBuffer();
     }
 
@@ -73,7 +73,10 @@ public final class IdUtil {
     }
 
     public static String writeString(Id id) {
-        return "" + id.type().prefix() + id.asObject();
+        String idString = id.asString();
+        StringBuilder sb = new StringBuilder(1 + idString.length());
+        sb.append(id.type().prefix()).append(idString);
+        return sb.toString();
     }
 
     public static Id readString(String id) {
@@ -101,7 +104,11 @@ public final class IdUtil {
     }
 
     public static String escape(char splitor, char escape, String... values) {
-        StringBuilder escaped = new StringBuilder((values.length + 1) << 4);
+        int length = values.length + 4;
+        for (String value : values) {
+            length += value.length();
+        }
+        StringBuilder escaped = new StringBuilder(length);
         // Do escape for every item in values
         for (String value : values) {
             if (escaped.length() > 0) {

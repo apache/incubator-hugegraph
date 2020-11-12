@@ -26,12 +26,16 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
+import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.page.PageState;
+import com.baidu.hugegraph.backend.query.Aggregate;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.Condition.Relation;
 import com.baidu.hugegraph.backend.query.Query;
@@ -52,6 +56,7 @@ import com.datastax.driver.core.DataType;
 import com.datastax.driver.core.PagingState;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
+import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.exceptions.DriverException;
 import com.datastax.driver.core.exceptions.PagingStateException;
 import com.datastax.driver.core.querybuilder.Clause;
@@ -60,6 +65,7 @@ import com.datastax.driver.core.querybuilder.Delete;
 import com.datastax.driver.core.querybuilder.Insert;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Select;
+import com.datastax.driver.core.querybuilder.Select.Selection;
 import com.datastax.driver.core.querybuilder.Update;
 import com.datastax.driver.core.schemabuilder.Create;
 import com.datastax.driver.core.schemabuilder.SchemaBuilder;
@@ -92,24 +98,50 @@ public abstract class CassandraTable
     }
 
     @Override
+    public Number queryNumber(CassandraSessionPool.Session session,
+                              Query query) {
+        Aggregate aggregate = query.aggregateNotNull();
+        Iterator<Number> results = this.query(query, statement -> {
+            // Set request timeout to a large value
+            int timeout = session.aggregateTimeout();
+            statement.setReadTimeoutMillis(timeout * 1000);
+            return session.query(statement);
+        }, (q, rs) -> {
+            Row row = rs.one();
+            if (row == null) {
+                return IteratorUtils.of(aggregate.defaultValue());
+            }
+            return IteratorUtils.of(row.getLong(0));
+        });
+        return aggregate.reduce(results);
+    }
+
+    @Override
     public Iterator<BackendEntry> query(CassandraSessionPool.Session session,
                                         Query query) {
-        ExtendableIterator<BackendEntry> rs = new ExtendableIterator<>();
+        return this.query(query, session::query, this::results2Entries);
+    }
 
-        if (query.limit() == 0 && query.limit() != Query.NO_LIMIT) {
+    protected <R> Iterator<R> query(Query query,
+                                    Function<Statement, ResultSet> fetcher,
+                                    BiFunction<Query, ResultSet, Iterator<R>>
+                                    parser) {
+        ExtendableIterator<R> rs = new ExtendableIterator<>();
+
+        if (query.limit() == 0L && !query.noLimit()) {
             LOG.debug("Return empty result(limit=0) for query {}", query);
             return rs;
         }
 
-        List<Select> selections = this.query2Select(this.table(), query);
+        List<Select> selects = this.query2Select(this.table(), query);
         try {
-            for (Select selection : selections) {
-                ResultSet results = session.query(selection);
-                rs.extend(this.results2Entries(query, results));
+            for (Select select : selects) {
+                ResultSet results = fetcher.apply(select);
+                rs.extend(parser.apply(query, results));
             }
         } catch (DriverException e) {
             LOG.debug("Failed to query [{}], detail statement: {}",
-                      query, selections, e);
+                      query, selects, e);
             throw new BackendException("Failed to query [%s]", e, query);
         }
 
@@ -118,8 +150,21 @@ public abstract class CassandraTable
     }
 
     protected List<Select> query2Select(String table, Query query) {
+        // Build query
+        Selection selection = QueryBuilder.select();
+
+        // Set aggregate
+        Aggregate aggregate = query.aggregate();
+        if (aggregate != null) {
+            if (aggregate.countAll()) {
+                selection.countAll();
+            } else {
+                selection.fcall(aggregate.func().string(), aggregate.column());
+            }
+        }
+
         // Set table
-        Select select = QueryBuilder.select().from(table);
+        Select select = selection.from(table);
 
         // NOTE: Cassandra does not support query.offset()
         if (query.offset() != 0) {
@@ -148,9 +193,9 @@ public abstract class CassandraTable
             return ids;
         } else {
             List<Select> conds = new ArrayList<>(ids.size());
-            for (Select selection : ids) {
+            for (Select id : ids) {
                 // Query by condition
-                conds.addAll(this.queryCondition2Select(query, selection));
+                conds.addAll(this.queryCondition2Select(query, id));
             }
             this.setPageState(query, conds);
             LOG.debug("Query by conditions: {}", conds);
@@ -159,7 +204,7 @@ public abstract class CassandraTable
     }
 
     protected void setPageState(Query query, List<Select> selects) {
-        if (query.limit() == Query.NO_LIMIT) {
+        if (query.noLimit()) {
             return;
         }
         for (Select select : selects) {
@@ -341,8 +386,13 @@ public abstract class CassandraTable
         List<Definition> cols = row.getColumnDefinitions().asList();
         for (Definition col : cols) {
             String name = col.getName();
+            HugeKeys key = CassandraTable.parseKey(name);
             Object value = row.getObject(name);
-            entry.column(CassandraTable.parseKey(name), value);
+            if (value == null) {
+                assert key == HugeKeys.EXPIRED_TIME;
+                continue;
+            }
+            entry.column(key, value);
         }
 
         return entry;
@@ -391,14 +441,7 @@ public abstract class CassandraTable
     @Override
     public void insert(CassandraSessionPool.Session session,
                        CassandraBackendEntry.Row entry) {
-        assert entry.columns().size() > 0;
-        Insert insert = QueryBuilder.insertInto(this.table());
-
-        for (Map.Entry<HugeKeys, Object> c : entry.columns().entrySet()) {
-            insert.value(formatKey(c.getKey()), c.getValue());
-        }
-
-        session.add(insert);
+        session.add(this.buildInsert(entry));
     }
 
     /**
@@ -407,7 +450,38 @@ public abstract class CassandraTable
     @Override
     public void append(CassandraSessionPool.Session session,
                        CassandraBackendEntry.Row entry) {
+        session.add(this.buildAppend(entry));
+    }
 
+    /**
+     * Eliminate several elements from the collection column of a row
+     */
+    @Override
+    public void eliminate(CassandraSessionPool.Session session,
+                          CassandraBackendEntry.Row entry) {
+        session.add(this.buildEliminate(entry));
+    }
+
+    /**
+     * Delete an entire row
+     */
+    @Override
+    public void delete(CassandraSessionPool.Session session,
+                       CassandraBackendEntry.Row entry) {
+        session.add(this.buildDelete(entry));
+    }
+
+    protected Insert buildInsert(CassandraBackendEntry.Row entry) {
+        assert entry.columns().size() > 0;
+        Insert insert = QueryBuilder.insertInto(this.table());
+
+        for (Map.Entry<HugeKeys, Object> c : entry.columns().entrySet()) {
+            insert.value(formatKey(c.getKey()), c.getValue());
+        }
+        return insert;
+    }
+
+    protected Update buildAppend(CassandraBackendEntry.Row entry) {
         List<HugeKeys> idNames = this.idColumnName();
         List<HugeKeys> colNames = this.modifiableColumnName();
 
@@ -436,17 +510,10 @@ public abstract class CassandraTable
             assert columns.containsKey(idName);
             update.where(formatEQ(idName, columns.get(idName)));
         }
-
-        session.add(update);
+        return update;
     }
 
-    /**
-     * Eliminate several elements from the collection column of a row
-     */
-    @Override
-    public void eliminate(CassandraSessionPool.Session session,
-                          CassandraBackendEntry.Row entry) {
-
+    protected Update buildEliminate(CassandraBackendEntry.Row entry) {
         List<HugeKeys> idNames = this.idColumnName();
         List<HugeKeys> colNames = this.modifiableColumnName();
 
@@ -488,16 +555,10 @@ public abstract class CassandraTable
             assert columns.containsKey(idName);
             update.where(formatEQ(idName, columns.get(idName)));
         }
-
-        session.add(update);
+        return update;
     }
 
-    /**
-     * Delete an entire row
-     */
-    @Override
-    public void delete(CassandraSessionPool.Session session,
-                       CassandraBackendEntry.Row entry) {
+    protected Delete buildDelete(CassandraBackendEntry.Row entry) {
         List<HugeKeys> idNames = this.idColumnName();
         Delete delete = QueryBuilder.delete().from(this.table());
 
@@ -520,8 +581,7 @@ public abstract class CassandraTable
              * has been replaced by eliminate() method)
              */
         }
-
-        session.add(delete);
+        return delete;
     }
 
     protected void createTable(CassandraSessionPool.Session session,

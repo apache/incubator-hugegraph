@@ -19,67 +19,82 @@
 
 package com.baidu.hugegraph.backend.page;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.lang.NotImplementedException;
-
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.page.IdHolder.FixedIdHolder;
+import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.google.common.collect.ImmutableSet;
 
 public class SortByCountIdHolderList extends IdHolderList {
 
-    private static final long serialVersionUID = -3702668078311531645L;
+    private static final long serialVersionUID = -7779357582250824558L;
+
+    private final List<IdHolder> mergedHolders;
 
     public SortByCountIdHolderList(boolean paging) {
         super(paging);
+        this.mergedHolders = new ArrayList<>();
     }
 
     @Override
     public boolean add(IdHolder holder) {
-        if (!this.paging()) {
-            holder = new SortByCountIdHolder(holder);
+        if (this.paging()) {
+            return super.add(holder);
         }
-        return super.add(holder);
+        this.mergedHolders.add(holder);
+
+        if (super.isEmpty()) {
+            Query parent = holder.query().originQuery();
+            super.add(new SortByCountIdHolder(parent));
+        }
+        SortByCountIdHolder sortHolder = (SortByCountIdHolder) this.get(0);
+        sortHolder.merge(holder);
+        return true;
     }
 
-    private static class SortByCountIdHolder extends IdHolder {
+    private class SortByCountIdHolder extends FixedIdHolder {
 
         private final Map<Id, Integer> ids;
 
-        public SortByCountIdHolder(IdHolder holder) {
-            super(ImmutableSet.of());
+        public SortByCountIdHolder(Query parent) {
+            super(new MergedQuery(parent), ImmutableSet.of());
             this.ids = InsertionOrderUtil.newMap();
-            this.merge(holder.ids());
         }
 
-        @Override
-        public void merge(Set<Id> ids) {
-            for (Id id : ids) {
+        public void merge(IdHolder holder) {
+            for (Id id : holder.all()) {
                 this.ids.compute(id, (k, v) -> v == null ? 1 : v + 1);
+                Query.checkForceCapacity(this.ids.size());
             }
         }
 
         @Override
-        public Set<Id> ids() {
+        public Set<Id> all() {
             return CollectionUtil.sortByValue(this.ids, false).keySet();
         }
 
         @Override
-        public int size() {
-            return this.ids.size();
+        public String toString() {
+            return String.format("%s{merged:%s}",
+                                 this.getClass().getSimpleName(), this.query);
+        }
+    }
+
+    private class MergedQuery extends Query {
+
+        public MergedQuery(Query parent) {
+            super(parent.resultType(), parent);
         }
 
         @Override
-        public boolean paging() {
-            return false;
-        }
-
-        @Override
-        public PageIds fetchNext(String page, long pageSize) {
-            throw new NotImplementedException("SortByCountIdHolder.fetchNext");
+        public String toString() {
+            return SortByCountIdHolderList.this.mergedHolders.toString();
         }
     }
 }

@@ -20,11 +20,11 @@
 package com.baidu.hugegraph.api;
 
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.function.Consumer;
 
+import javax.ws.rs.ForbiddenException;
 import javax.ws.rs.NotFoundException;
 import javax.ws.rs.NotSupportedException;
 import javax.ws.rs.core.MediaType;
@@ -37,11 +37,10 @@ import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.define.Checkable;
 import com.baidu.hugegraph.metrics.MetricsUtil;
 import com.baidu.hugegraph.server.RestServer;
-import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.JsonUtil;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.Meter;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 
 public class API {
@@ -77,6 +76,10 @@ public class API {
         return g;
     }
 
+    public static HugeGraph graph4admin(GraphManager manager, String graph) {
+        return graph(manager, graph).hugegraph();
+    }
+
     public static <R> R commit(HugeGraph g, Callable<R> callable) {
         Consumer<Throwable> rollback = (error) -> {
             if (error != null) {
@@ -94,7 +97,8 @@ public class API {
             g.tx().commit();
             succeedMeter.mark();
             return result;
-        } catch (IllegalArgumentException | NotFoundException e) {
+        } catch (IllegalArgumentException | NotFoundException |
+                 ForbiddenException e) {
             illegalArgErrorMeter.mark();
             rollback.accept(null);
             throw e;
@@ -125,16 +129,6 @@ public class API {
             list[i++] = prop.getValue();
         }
         return list;
-    }
-
-    protected static void checkExist(Iterator<?> iter,
-                                     HugeType type,
-                                     String id) {
-        if (!iter.hasNext()) {
-            throw new NotFoundException(String.format(
-                      "%s with id '%s' does not exist",
-                      type.readableName(), id));
-        }
     }
 
     protected static void checkCreatingBody(Checkable body) {
@@ -172,13 +166,15 @@ public class API {
         if (properties == null || properties.isEmpty()) {
             return ImmutableMap.of();
         }
-        ObjectMapper mapper = new ObjectMapper();
+
         Map<String, Object> props = null;
         try {
-            props = mapper.readValue(properties, Map.class);
+            props = JsonUtil.fromJson(properties, Map.class);
         } catch (Exception ignored) {}
+
         // If properties is the string "null", props will be null
-        E.checkArgument(props != null, "Invalid request with none properties");
+        E.checkArgument(props != null,
+                        "Invalid request with properties: %s", properties);
         return props;
     }
 

@@ -19,57 +19,9 @@
 
 package com.baidu.hugegraph.job;
 
-import java.util.Date;
+public interface Job<V> {
 
-import com.baidu.hugegraph.task.HugeTask;
-import com.baidu.hugegraph.task.TaskCallable;
-import com.baidu.hugegraph.util.E;
+    public String type();
 
-public abstract class Job<T> extends TaskCallable<T> {
-
-    private volatile long lastSaveTime = System.currentTimeMillis();
-    private volatile long saveInterval = 1000 * 30;
-
-    public abstract String type();
-
-    public abstract T execute() throws Exception;
-
-    @Override
-    public T call() throws Exception {
-        this.save();
-        return this.execute();
-    }
-
-    @Override
-    protected void done() {
-        this.save();
-    }
-
-    @Override
-    protected void cancelled() {
-        this.save();
-    }
-
-    public void setMinSaveInterval(long seconds) {
-        E.checkArgument(seconds > 0,
-                        "Must set interval > 0, bug got '%s'", seconds);
-        this.saveInterval = seconds * 1000L;
-    }
-
-    public void updateProgress(int progress) {
-        HugeTask<T> task = this.task();
-        task.progress(progress);
-
-        long elapse = System.currentTimeMillis() - this.lastSaveTime;
-        if (elapse > this.saveInterval) {
-            this.save();
-            this.lastSaveTime = System.currentTimeMillis();
-        }
-    }
-
-    private void save() {
-        HugeTask<T> task = this.task();
-        task.updateTime(new Date());
-        this.scheduler().save(task);
-    }
+    public V execute() throws Exception;
 }

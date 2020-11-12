@@ -19,7 +19,9 @@
 
 package com.baidu.hugegraph.api.traversers;
 
-import java.util.List;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPACITY;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PATHS_LIMIT;
 
 import javax.inject.Singleton;
 import javax.ws.rs.DefaultValue;
@@ -44,10 +46,6 @@ import com.baidu.hugegraph.traversal.algorithm.SubGraphTraverser;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
-
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPACITY;
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PATHS_LIMIT;
 
 @Path("graphs/{graph}/traversers/rings")
 @Singleton
@@ -85,10 +83,9 @@ public class RingsAPI extends API {
         HugeGraph g = graph(manager, graph);
 
         SubGraphTraverser traverser = new SubGraphTraverser(g);
-        List<HugeTraverser.Path> paths = traverser.rings(source, dir, edgeLabel,
-                                                         depth, sourceInRing,
-                                                         degree, capacity,
-                                                         limit);
+        HugeTraverser.PathSet paths = traverser.rings(source, dir, edgeLabel,
+                                                      depth, sourceInRing,
+                                                      degree, capacity, limit);
         return manager.serializer(g).writePaths("rings", paths, false);
     }
 }

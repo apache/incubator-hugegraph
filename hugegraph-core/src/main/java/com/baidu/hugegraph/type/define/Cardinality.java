@@ -14,6 +14,8 @@
 
 package com.baidu.hugegraph.type.define;
 
+import org.apache.tinkerpop.gremlin.structure.VertexProperty;
+
 /**
  * The cardinality of the values associated with given key for a particular element.
  *
@@ -57,5 +59,27 @@ public enum Cardinality implements SerialEnum {
 
     public String string() {
         return this.name;
+    }
+
+    public boolean single() {
+        return this == SINGLE;
+    }
+
+    public boolean multiple() {
+        return this == LIST || this == SET;
+    }
+
+    public static Cardinality convert(VertexProperty.Cardinality cardinality) {
+        switch (cardinality) {
+            case single:
+                return SINGLE;
+            case list:
+                return LIST;
+            case set:
+                return SET;
+            default:
+                throw new AssertionError(String.format(
+                          "Unrecognized cardinality: '%s'", cardinality));
+        }
     }
 }

@@ -44,6 +44,7 @@ public class TableBackendEntry implements BackendEntry {
         private Id id;
         private Id subId;
         private Map<HugeKeys, Object> columns;
+        private long ttl;
 
         public Row(HugeType type) {
             this(type, null);
@@ -54,6 +55,7 @@ public class TableBackendEntry implements BackendEntry {
             this.id = id;
             this.subId = null;
             this.columns = new ConcurrentHashMap<>();
+            this.ttl = 0L;
         }
 
         public HugeType type() {
@@ -109,6 +111,14 @@ public class TableBackendEntry implements BackendEntry {
             this.<Map<Object, T>>column(key).put(name, value);
         }
 
+        public void ttl(long ttl) {
+            this.ttl = ttl;
+        }
+
+        public long ttl() {
+            return this.ttl;
+        }
+
         @Override
         public String toString() {
             return String.format("Row{type=%s, id=%s, columns=%s}",
@@ -151,6 +161,11 @@ public class TableBackendEntry implements BackendEntry {
 
     @Override
     public Id id() {
+        return this.row.id;
+    }
+
+    @Override
+    public Id originId() {
         return this.row.id;
     }
 
@@ -205,6 +220,15 @@ public class TableBackendEntry implements BackendEntry {
 
     public List<Row> subRows() {
         return this.subRows;
+    }
+
+    public void ttl(long ttl) {
+        this.row.ttl(ttl);
+    }
+
+    @Override
+    public long ttl() {
+        return this.row.ttl();
     }
 
     @Override

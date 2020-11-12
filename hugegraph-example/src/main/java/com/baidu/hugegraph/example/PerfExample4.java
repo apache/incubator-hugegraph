@@ -24,7 +24,7 @@ import java.util.List;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.event.EventHub;
+import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.util.Log;
 
 /**
@@ -44,8 +44,8 @@ public class PerfExample4 extends PerfExample3 {
         PerfExample4 tester = new PerfExample4();
         tester.test(args);
 
-        // Stop event hub before main thread exits
-        EventHub.destroy(30);
+        // Stop daemon thread
+        HugeFactory.shutdown(30L);
     }
 
     @Override

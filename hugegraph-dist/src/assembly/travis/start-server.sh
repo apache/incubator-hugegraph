@@ -2,15 +2,13 @@
 
 set -ev
 
-VERSION=`mvn help:evaluate -Dexpression=project.version -q -DforceStdout`
-BASE_DIR=hugegraph-$VERSION
+HOME_DIR=`pwd`
+TRAVIS_DIR=`dirname $0`
+BASE_DIR=$1
 BIN=$BASE_DIR/bin
 CONF=$BASE_DIR/conf/hugegraph.properties
-
-# PostgreSQL configurations
-POSTGRESQL_DRIVER=org.postgresql.Driver
-POSTGRESQL_URL=jdbc:postgresql://localhost:5432/
-POSTGRESQL_USERNAME=postgres
+REST_CONF=$BASE_DIR/conf/rest-server.properties
+GREMLIN_CONF=$BASE_DIR/conf/gremlin-server.yaml
 
 declare -A backend_serializer_map=(["memory"]="text" ["cassandra"]="cassandra" \
                                    ["scylladb"]="scylladb" ["mysql"]="mysql" \
@@ -25,12 +23,18 @@ sed -i "s/serializer=.*/serializer=$SERIALIZER/" $CONF
 
 # Set PostgreSQL configurations if needed
 if [ "$BACKEND" == "postgresql" ]; then
-    sed -i "s/#jdbc.driver=.*/jdbc.driver=$POSTGRESQL_DRIVER/" $CONF
-    sed -i "s?#jdbc.url=.*?jdbc.url=$POSTGRESQL_URL?" $CONF
-    sed -i "s/#jdbc.username=.*/jdbc.username=$POSTGRESQL_USERNAME/" $CONF
+    sed -i '/org.postgresql.Driver/,+2 s/\#//g' $CONF
+fi
+
+# Set timeout for hbase
+if [ "$BACKEND" == "hbase" ]; then
+    sed -i '$arestserver.request_timeout=200' $REST_CONF
+    sed -i '$agremlinserver.timeout=200' $REST_CONF
+    sed -i 's/scriptEvaluationTimeout.*/scriptEvaluationTimeout: 200000/' $GREMLIN_CONF
 fi
 
 # Append schema.sync_deletion=true to config file
 echo "schema.sync_deletion=true" >> $CONF
 
-$BIN/init-store.sh && $BIN/start-hugegraph.sh
+AGENT_JAR=${HOME_DIR}/${TRAVIS_DIR}/jacocoagent.jar
+$BIN/init-store.sh && $BIN/start-hugegraph.sh -j "-javaagent:${AGENT_JAR}=includes=*,port=36320,destfile=jacoco-it.exec,output=tcpserver" -v

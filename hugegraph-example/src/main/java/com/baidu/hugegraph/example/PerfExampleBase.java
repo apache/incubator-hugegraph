@@ -42,6 +42,7 @@ import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.perf.PerfUtil;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.structure.HugeVertex;
+import com.baidu.hugegraph.testutil.Whitebox;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
@@ -261,7 +262,8 @@ public abstract class PerfExampleBase {
 
     protected static class GraphManager {
         private HugeGraph hugegraph;
-        private Cache cache = CacheManager.instance().cache("perf-test");
+        private Cache<Id, Object> cache = CacheManager.instance()
+                                                      .cache("perf-test");
 
         public GraphManager(HugeGraph hugegraph) {
             this.hugegraph = hugegraph;
@@ -269,11 +271,13 @@ public abstract class PerfExampleBase {
 
         public void initEnv() {
             // Cost about 6s
-            this.hugegraph.graphTransaction();
+            Whitebox.invoke(this.hugegraph.getClass(),
+                            "graphTransaction", this.hugegraph);
         }
 
         public void destroyEnv() {
-            this.hugegraph.closeTx();
+            Whitebox.invoke(this.hugegraph.getClass(),
+                            "closeTx", this.hugegraph);
         }
 
         public Transaction tx() {
@@ -286,7 +290,7 @@ public abstract class PerfExampleBase {
 
         public Vertex addVertex(Object... keyValues) {
             HugeVertex v = (HugeVertex) this.hugegraph.addVertex(keyValues);
-            this.cache.update(v.id(), v.resetTx());
+            this.cache.update(v.id(), v);
             return v;
         }
 

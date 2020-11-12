@@ -30,11 +30,11 @@ import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 
 import com.baidu.hugegraph.api.filter.CompressInterceptor;
-import com.baidu.hugegraph.rest.RestClient;
+import com.baidu.hugegraph.rest.AbstractRestClient;
 import com.baidu.hugegraph.testutil.Whitebox;
 import com.baidu.hugegraph.util.E;
 
-public class GremlinClient extends RestClient {
+public class GremlinClient extends AbstractRestClient {
 
     private final WebTarget webTarget;
 

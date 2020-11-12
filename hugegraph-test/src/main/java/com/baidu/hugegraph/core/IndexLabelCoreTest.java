@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.core;
 
+import java.util.Date;
 import java.util.List;
 
 import org.apache.tinkerpop.gremlin.process.traversal.P;
@@ -28,16 +29,21 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.junit.Assume;
 import org.junit.Test;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.exception.ExistedException;
 import com.baidu.hugegraph.exception.NoIndexException;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.SchemaManager;
+import com.baidu.hugegraph.schema.Userdata;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.IndexType;
+import com.baidu.hugegraph.util.DateUtil;
+import com.google.common.collect.ImmutableList;
 
 public class IndexLabelCoreTest extends SchemaCoreTest {
 
@@ -333,16 +339,16 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
             schema.indexLabel("authorByName").onV("author")
                   .by("name").range().create();
         }, e -> {
-            Assert.assertTrue(e.getMessage(), e.getMessage().contains(
-                              "Range index can only build on numeric"));
+            Assert.assertContains("Range index can only build on numeric",
+                                  e.getMessage());
         });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.indexLabel("authoredByAgeAndWeight").onE("authored")
                   .by("age", "weight").range().create();
         }, e -> {
-            Assert.assertTrue(e.getMessage(), e.getMessage().contains(
-                              "Range index can only build on one field"));
+            Assert.assertContains("Range index can only build on one field",
+                                  e.getMessage());
         });
 
         // Invalid search-index
@@ -358,8 +364,46 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
             schema.indexLabel("authorByNameAndAge").onV("author")
                   .by("name", "age").search().create();
         }, e -> {
-            Assert.assertTrue(e.getMessage(), e.getMessage().contains(
-                              "Search index can only build on one field"));
+            Assert.assertContains("Search index can only build on one field",
+                                  e.getMessage());
+        });
+    }
+
+    @Test
+    public void testAddIndexLabelWithInvalidFieldsForAggregateProperty() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+        schema.propertyKey("sumProp").asLong().valueSingle().calcSum()
+              .ifNotExist().create();
+        schema.vertexLabel("author")
+              .properties("id", "name", "age", "sumProp")
+              .primaryKeys("id").create();
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("authorBySumProp")
+                  .onV("author").by("sumProp").secondary()
+                  .ifNotExist().create();
+        }, e -> {
+            Assert.assertContains("The aggregate type SUM is not indexable",
+                                  e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("authorBySumProp")
+                  .onV("author").by("sumProp").range()
+                  .ifNotExist().create();
+        }, e -> {
+            Assert.assertContains("The aggregate type SUM is not indexable",
+                                  e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("authorBySumProp")
+                  .onV("author").by("sumProp").shard()
+                  .ifNotExist().create();
+        }, e -> {
+            Assert.assertContains("The aggregate type SUM is not indexable",
+                                  e.getMessage());
         });
     }
 
@@ -420,7 +464,6 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
         schema.indexLabel("personByCity2").onV("person").secondary()
               .by("city").create();
     }
-
 
     @Test
     public void testAddIndexLabelWithSameFieldsAndSameIndexType() {
@@ -1357,5 +1400,378 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
         edge = graph().traversal().E().hasLabel("authored")
                .has("contribution", "test").next();
         Assert.assertNotNull(edge);
+    }
+
+    @Test
+    public void testRebuildIndexOfVertexWithoutLabelIndex() {
+        Assume.assumeFalse("Support query by label",
+                           storeFeatures().supportsQueryByLabel());
+
+        initDataWithoutLabelIndex();
+
+        // Not support query by label
+        Assert.assertThrows(NoIndexException.class, () -> {
+            graph().traversal().V().hasLabel("reader").toList();
+        }, e -> {
+            Assert.assertTrue(
+                   e.getMessage().startsWith("Don't accept query by label") &&
+                   e.getMessage().endsWith("label index is disabled"));
+        });
+
+        // Query by property index is ok
+        List<Vertex> vertices = graph().traversal().V()
+                                       .has("city", "Shanghai").toList();
+        Assert.assertEquals(10, vertices.size());
+
+        graph().schema().indexLabel("readerByCity").rebuild();
+
+        vertices = graph().traversal().V()
+                          .has("city", "Shanghai").toList();
+        Assert.assertEquals(10, vertices.size());
+    }
+
+    @Test
+    public void testRebuildIndexOfEdgeWithoutLabelIndex() {
+        Assume.assumeFalse("Support query by label",
+                           storeFeatures().supportsQueryByLabel());
+
+        initDataWithoutLabelIndex();
+
+        // Not support query by label
+        Assert.assertThrows(NoIndexException.class, () -> {
+            graph().traversal().E().hasLabel("read").toList();
+        }, e -> {
+            Assert.assertTrue(
+                   e.getMessage().startsWith("Don't accept query by label") &&
+                   e.getMessage().endsWith("label index is disabled"));
+        });
+
+        // Query by property index is ok
+        List<Edge> edges = graph().traversal().E()
+                                  .has("date", P.lt("2019-12-30 13:00:00"))
+                                  .toList();
+        Assert.assertEquals(20, edges.size());
+
+        graph().schema().indexLabel("readByDate").rebuild();
+
+        edges = graph().traversal().E()
+                       .has("date", P.lt("2019-12-30 13:00:00")).toList();
+        Assert.assertEquals(20, edges.size());
+    }
+
+    @Test
+    public void testRemoveIndexLabelOfVertexWithoutLabelIndex() {
+        Assume.assumeFalse("Support query by label",
+                           storeFeatures().supportsQueryByLabel());
+
+        initDataWithoutLabelIndex();
+
+        // Not support query by label
+        Assert.assertThrows(NoIndexException.class, () -> {
+            graph().traversal().V().hasLabel("reader").toList();
+        }, e -> {
+            Assert.assertTrue(
+                   e.getMessage().startsWith("Don't accept query by label") &&
+                   e.getMessage().endsWith("label index is disabled"));
+        });
+
+        // Query by property index is ok
+        List<Vertex> vertices = graph().traversal().V()
+                                       .has("city", "Shanghai").toList();
+        Assert.assertEquals(10, vertices.size());
+
+        graph().schema().indexLabel("readerByCity").remove();
+
+        Assert.assertThrows(NoIndexException.class, () ->
+                graph().traversal().V().has("city", "Shanghai").toList()
+        );
+    }
+
+    @Test
+    public void testRemoveIndexLabelOfEdgeWithoutLabelIndex() {
+        Assume.assumeFalse("Support query by label",
+                           storeFeatures().supportsQueryByLabel());
+
+        initDataWithoutLabelIndex();
+
+        // Not support query by label
+        Assert.assertThrows(NoIndexException.class, () -> {
+            graph().traversal().E().hasLabel("read").toList();
+        }, e -> {
+            Assert.assertTrue(
+                   e.getMessage().startsWith("Don't accept query by label") &&
+                   e.getMessage().endsWith("label index is disabled"));
+        });
+
+        // Query by property index is ok
+        List<Edge> edges = graph().traversal().E()
+                                  .has("date", P.lt("2019-12-30 13:00:00"))
+                                  .toList();
+        Assert.assertEquals(20, edges.size());
+
+        graph().schema().indexLabel("readByDate").remove();
+
+        Assert.assertThrows(NoIndexException.class, () ->
+                graph().traversal().E()
+                       .has("date", P.lt("2019-12-30 13:00:00")).toList()
+        );
+    }
+
+    @Test
+    public void testAddIndexLabelWithUserdata() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+        schema.vertexLabel("person")
+              .properties("id", "name", "age", "city")
+              .primaryKeys("id")
+              .create();
+
+        IndexLabel personByName = schema.indexLabel("personByName")
+                                        .onV("person").secondary().by("name")
+                                        .userdata("min", 0)
+                                        .userdata("max", 100)
+                                        .create();
+        Assert.assertEquals(3, personByName.userdata().size());
+        Assert.assertEquals(0, personByName.userdata().get("min"));
+        Assert.assertEquals(100, personByName.userdata().get("max"));
+
+        IndexLabel personByAge = schema.indexLabel("personByAge")
+                                       .onV("person").range().by("age")
+                                       .userdata("length", 15)
+                                       .userdata("length", 18)
+                                       .create();
+        // The same key user data will be overwritten
+        Assert.assertEquals(2, personByAge.userdata().size());
+        Assert.assertEquals(18, personByAge.userdata().get("length"));
+
+        List<Object> datas = ImmutableList.of("Beijing", "Shanghai");
+        IndexLabel personByCity = schema.indexLabel("personByCity")
+                                        .onV("person").secondary().by("city")
+                                        .userdata("range", datas)
+                                        .create();
+        Assert.assertEquals(2, personByCity.userdata().size());
+        Assert.assertEquals(datas, personByCity.userdata().get("range"));
+    }
+
+    @Test
+    public void testAppendIndexLabelWithUserdata() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+        schema.vertexLabel("person")
+              .properties("id", "name", "age", "city")
+              .primaryKeys("id")
+              .create();
+
+        IndexLabel personByName = schema.indexLabel("personByName")
+                                        .onV("person").secondary().by("name")
+                                        .userdata("min", 0)
+                                        .create();
+        Assert.assertEquals(2, personByName.userdata().size());
+        Assert.assertEquals(0, personByName.userdata().get("min"));
+
+        personByName = schema.indexLabel("personByName")
+                             .userdata("min", 1)
+                             .userdata("max", 100)
+                             .append();
+        Assert.assertEquals(3, personByName.userdata().size());
+        Assert.assertEquals(1, personByName.userdata().get("min"));
+        Assert.assertEquals(100, personByName.userdata().get("max"));
+    }
+
+    @Test
+    public void testEliminateIndexLabelWithUserdata() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+        schema.vertexLabel("person")
+              .properties("id", "name", "age", "city")
+              .primaryKeys("id")
+              .create();
+
+        IndexLabel personByName = schema.indexLabel("personByName")
+                                        .onV("person").secondary().by("name")
+                                        .userdata("min", 0)
+                                        .userdata("max", 100)
+                                        .create();
+        Assert.assertEquals(3, personByName.userdata().size());
+        Assert.assertEquals(0, personByName.userdata().get("min"));
+        Assert.assertEquals(100, personByName.userdata().get("max"));
+
+        personByName = schema.indexLabel("personByName")
+                             .userdata("max", "")
+                             .eliminate();
+        Assert.assertEquals(2, personByName.userdata().size());
+        Assert.assertEquals(0, personByName.userdata().get("min"));
+    }
+
+    @Test
+    public void testUpdateIndexLabelWithoutUserdata() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+        schema.vertexLabel("person")
+              .properties("id", "name", "age", "city")
+              .primaryKeys("id")
+              .create();
+        schema.vertexLabel("software")
+              .properties("id", "name")
+              .primaryKeys("id")
+              .create();
+
+        schema.indexLabel("personByName")
+              .onV("person").secondary().by("name")
+              .userdata("min", 0)
+              .userdata("max", 100)
+              .create();
+
+        Assert.assertThrows(HugeException.class, () -> {
+            schema.indexLabel("personByName").onV("software").append();
+        });
+        Assert.assertThrows(HugeException.class, () -> {
+            schema.indexLabel("personByName").range().append();
+        });
+        Assert.assertThrows(HugeException.class, () -> {
+            schema.indexLabel("personByName").by("age").append();
+        });
+
+        Assert.assertThrows(HugeException.class, () -> {
+            schema.indexLabel("personByName").onV("software").eliminate();
+        });
+        Assert.assertThrows(HugeException.class, () -> {
+            schema.indexLabel("personByName").range().eliminate();
+        });
+        Assert.assertThrows(HugeException.class, () -> {
+            schema.indexLabel("personByName").by("age").eliminate();
+        });
+    }
+
+    @Test
+    public void testCreateTime() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+        schema.vertexLabel("person")
+              .properties("id", "name", "age", "city")
+              .primaryKeys("id")
+              .create();
+
+        IndexLabel personByName = schema.indexLabel("personByName")
+                                        .onV("person").secondary().by("name")
+                                        .create();
+
+        Date createTime = (Date) personByName.userdata()
+                                             .get(Userdata.CREATE_TIME);
+        Date now = DateUtil.now();
+        Assert.assertFalse(createTime.after(now));
+
+        personByName = schema.getIndexLabel("personByName");
+        createTime = (Date) personByName.userdata().get(Userdata.CREATE_TIME);
+        Assert.assertFalse(createTime.after(now));
+    }
+
+    @Test
+    public void testDuplicateIndexLabelWithIdentityProperties() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+        schema.vertexLabel("person")
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .create();
+
+        schema.indexLabel("index4Person")
+              .onV("person")
+              .by("age", "city")
+              .secondary()
+              .ifNotExist()
+              .create();
+        schema.indexLabel("index4Person")
+              .onV("person")
+              .by("age", "city")
+              .secondary()
+              .checkExist(false)
+              .create();
+        schema.indexLabel("index4Person")
+              .onV("person")
+              .by("age", "city")
+              .ifNotExist()
+              .create();
+
+        schema.indexLabel("ageIndex4Person")
+              .onV("person")
+              .by("age")
+              .range()
+              .ifNotExist()
+              .create();
+        schema.indexLabel("ageIndex4Person")
+              .onV("person")
+              .by("age")
+              .range()
+              .checkExist(false)
+              .create();
+    }
+
+    @Test
+    public void testDuplicateIndexLabelWithDifferentProperties() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+
+        schema.vertexLabel("person")
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .create();
+        schema.edgeLabel("friend")
+              .link("person", "person")
+              .properties("time")
+              .ifNotExist()
+              .create();
+
+        schema.indexLabel("index4Person")
+              .onV("person")
+              .by("age", "city")
+              .secondary()
+              .ifNotExist()
+              .create();
+        Assert.assertThrows(ExistedException.class, () -> {
+            schema.indexLabel("index4Person")
+                  .onV("person")
+                  .by("age") // remove city
+                  .secondary()
+                  .checkExist(false)
+                  .create();
+        });
+        Assert.assertThrows(ExistedException.class, () -> {
+            schema.indexLabel("index4Person")
+                  .onE("friend") // not on person
+                  .by("age")
+                  .secondary()
+                  .checkExist(false)
+                  .create();
+        });
+
+        schema.indexLabel("index4Friend")
+              .onE("friend")
+              .search()
+              .by("time")
+              .ifNotExist()
+              .create();
+        Assert.assertThrows(ExistedException.class, () -> {
+            schema.indexLabel("index4Friend")
+                  .onE("friend")
+                  .by("time")
+                  .checkExist(false)
+                  .create();
+        });
+
+        schema.indexLabel("ageIndex4Person")
+              .onV("person")
+              .by("age")
+              .range()
+              .ifNotExist()
+              .create();
+        Assert.assertThrows(ExistedException.class, () -> {
+            schema.indexLabel("ageIndex4Person")
+                  .onV("person")
+                  .by("age")
+                  .secondary()  // different index type
+                  .ifNotExist()
+                  .create();
+        });
     }
 }

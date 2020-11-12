@@ -19,7 +19,7 @@
 
 package com.baidu.hugegraph.job.schema;
 
-import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
@@ -36,11 +36,11 @@ public class IndexLabelRemoveCallable extends SchemaCallable {
 
     @Override
     public Object execute() {
-        removeIndexLabel(this.graph(), this.schemaId());
+        removeIndexLabel(this.params(), this.schemaId());
         return null;
     }
 
-    protected static void removeIndexLabel(HugeGraph graph, Id id) {
+    protected static void removeIndexLabel(HugeGraphParams graph, Id id) {
         GraphTransaction graphTx = graph.graphTransaction();
         SchemaTransaction schemaTx = graph.schemaTransaction();
         IndexLabel indexLabel = schemaTx.getIndexLabel(id);
@@ -54,14 +54,22 @@ public class IndexLabelRemoveCallable extends SchemaCallable {
             // TODO add update lock
             // Set index label to "deleting" status
             schemaTx.updateSchemaStatus(indexLabel, SchemaStatus.DELETING);
-            // Remove index data
-            // TODO: use event to replace direct call
-            graphTx.removeIndex(indexLabel);
-            // Remove label from indexLabels of vertex or edge label
-            removeIndexLabelFromBaseLabel(schemaTx, indexLabel);
-            removeSchema(schemaTx, indexLabel);
-            // Should commit changes to backend store before release delete lock
-            graph.tx().commit();
+            try {
+                // Remove index data
+                // TODO: use event to replace direct call
+                graphTx.removeIndex(indexLabel);
+                // Remove label from indexLabels of vertex or edge label
+                removeIndexLabelFromBaseLabel(schemaTx, indexLabel);
+                removeSchema(schemaTx, indexLabel);
+                /*
+                 * Should commit changes to backend store before release
+                 * delete lock
+                 */
+                graph.graph().tx().commit();
+            } catch (Throwable e) {
+                schemaTx.updateSchemaStatus(indexLabel, SchemaStatus.INVALID);
+                throw e;
+            }
         } finally {
             locks.unlock();
         }

@@ -39,13 +39,18 @@ public interface BackendStore {
     // Get the parent provider
     public BackendStoreProvider provider();
 
+    // Whether it is the storage of schema
+    public boolean isSchemaStore();
+
     // Open/close database
     public void open(HugeConfig config);
     public void close();
+    public boolean opened();
 
     // Initialize/clear database
     public void init();
-    public void clear();
+    public void clear(boolean clearSpace);
+    public boolean initialized();
 
     // Delete all data of database (keep table structure)
     public void truncate();
@@ -55,6 +60,7 @@ public interface BackendStore {
 
     // Query data
     public Iterator<BackendEntry> query(Query query);
+    public Number queryNumber(Query query);
 
     // Transaction
     public void beginTx();
@@ -109,6 +115,14 @@ public interface BackendStore {
 
     // Get current counter for a specific type
     public long getCounter(HugeType type);
+
+    public default void writeSnapshot(String snapshotPath) {
+        throw new UnsupportedOperationException("writeSnapshot");
+    }
+
+    public default void readSnapshot(String snapshotPath) {
+        throw new UnsupportedOperationException("readSnapshot");
+    }
 
     static enum TxState {
         BEGIN, COMMITTING, COMMITT_FAIL, ROLLBACKING, ROLLBACK_FAIL, CLEAN

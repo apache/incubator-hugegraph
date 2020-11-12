@@ -34,9 +34,9 @@ import javax.ws.rs.core.Context;
 
 import org.slf4j.Logger;
 
+import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.backend.store.BackendMetrics;
-import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.metrics.MetricsModule;
 import com.baidu.hugegraph.metrics.ServerReporter;
@@ -80,11 +80,11 @@ public class MetricsAPI extends API {
     public String backend(@Context GraphManager manager) {
         Map<String, Map<String, Object>> results = InsertionOrderUtil.newMap();
         for (String graph : manager.graphs()) {
-            GraphTransaction tx = manager.graph(graph).graphTransaction();
+            HugeGraph g = manager.graph(graph);
             Map<String, Object> metrics = InsertionOrderUtil.newMap();
-            metrics.put(BackendMetrics.BACKEND, tx.store().provider().type());
+            metrics.put(BackendMetrics.BACKEND, g.backend());
             try {
-                metrics.putAll(tx.metadata(null, "metrics"));
+                metrics.putAll(g.metadata(null, "metrics"));
             } catch (Throwable e) {
                 metrics.put(BackendMetrics.EXCEPTION, e.toString());
                 LOG.debug("Failed to get backend metrics", e);

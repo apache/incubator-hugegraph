@@ -19,12 +19,19 @@
 
 package com.baidu.hugegraph.backend.store.rocksdb;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 
+import org.apache.commons.lang3.tuple.Pair;
+import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.page.PageState;
+import com.baidu.hugegraph.backend.query.Aggregate;
+import com.baidu.hugegraph.backend.query.Aggregate.AggregateFunc;
 import com.baidu.hugegraph.backend.query.Condition.Relation;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.IdPrefixQuery;
@@ -35,17 +42,19 @@ import com.baidu.hugegraph.backend.serializer.BinaryEntryIterator;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumn;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumnIterator;
+import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumnIteratorWrapper;
 import com.baidu.hugegraph.backend.store.BackendEntryIterator;
 import com.baidu.hugegraph.backend.store.BackendTable;
 import com.baidu.hugegraph.backend.store.Shard;
+import com.baidu.hugegraph.backend.store.rocksdb.RocksDBSessions.Countable;
 import com.baidu.hugegraph.backend.store.rocksdb.RocksDBSessions.Session;
 import com.baidu.hugegraph.exception.NotSupportException;
-import com.baidu.hugegraph.iterator.ExtendableIterator;
+import com.baidu.hugegraph.iterator.FlatMapperIterator;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
-import com.google.common.collect.ImmutableList;
+import com.baidu.hugegraph.util.StringEncoding;
 
 public class RocksDBTable extends BackendTable<Session, BackendEntry> {
 
@@ -112,42 +121,60 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
     }
 
     @Override
-    public Iterator<BackendEntry> query(Session session, Query query) {
-        if (query.limit() == 0 && query.limit() != Query.NO_LIMIT) {
-            LOG.debug("Return empty result(limit=0) for query {}", query);
-            return ImmutableList.<BackendEntry>of().iterator();
+    public Number queryNumber(Session session, Query query) {
+        Aggregate aggregate = query.aggregateNotNull();
+        if (aggregate.func() != AggregateFunc.COUNT) {
+            throw new NotSupportException(aggregate.toString());
         }
 
+        assert aggregate.func() == AggregateFunc.COUNT;
+        assert query.noLimit();
+        Iterator<BackendColumn> results = this.queryBy(session, query);
+        if (results instanceof Countable) {
+            return ((Countable) results).count();
+        }
+        return IteratorUtils.count(results);
+    }
+
+    @Override
+    public Iterator<BackendEntry> query(Session session, Query query) {
+        if (query.limit() == 0L && !query.noLimit()) {
+            LOG.debug("Return empty result(limit=0) for query {}", query);
+            return Collections.emptyIterator();
+        }
+        return newEntryIterator(this.queryBy(session, query), query);
+    }
+
+    protected BackendColumnIterator queryBy(Session session, Query query) {
         // Query all
         if (query.empty()) {
-            return newEntryIterator(this.queryAll(session, query), query);
+            return this.queryAll(session, query);
         }
 
         // Query by prefix
         if (query instanceof IdPrefixQuery) {
             IdPrefixQuery pq = (IdPrefixQuery) query;
-            return newEntryIterator(this.queryByPrefix(session, pq), query);
+            return this.queryByPrefix(session, pq);
         }
 
         // Query by range
         if (query instanceof IdRangeQuery) {
             IdRangeQuery rq = (IdRangeQuery) query;
-            return newEntryIterator(this.queryByRange(session, rq), query);
+            return this.queryByRange(session, rq);
         }
 
         // Query by id
         if (query.conditions().isEmpty()) {
             assert !query.ids().isEmpty();
-            ExtendableIterator<BackendEntry> rs = new ExtendableIterator<>();
-            for (Id id : query.ids()) {
-                rs.extend(newEntryIterator(this.queryById(session, id), query));
-            }
-            return rs;
+            // NOTE: this will lead to lazy create rocksdb iterator
+            return new BackendColumnIteratorWrapper(new FlatMapperIterator<>(
+                   query.ids().iterator(), id -> this.queryById(session, id)
+            ));
         }
 
         // Query by condition (or condition + id)
         ConditionQuery cq = (ConditionQuery) query;
-        return newEntryIterator(this.queryByCond(session, cq), query);
+        return this.queryByCond(session, cq);
     }
 
     protected BackendColumnIterator queryAll(Session session, Query query) {
@@ -163,6 +190,15 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
     protected BackendColumnIterator queryById(Session session, Id id) {
         // TODO: change to get() after vertex and schema don't use id prefix
         return session.scan(this.table(), id.asBytes());
+    }
+
+    protected BackendColumnIterator getById(Session session, Id id) {
+        byte[] value = session.get(this.table(), id.asBytes());
+        if (value == null) {
+            return BackendColumnIterator.empty();
+        }
+        BackendColumn col = BackendColumn.of(id.asBytes(), value);
+        return new BackendEntry.BackendColumnIteratorWrapper(col);
     }
 
     protected BackendColumnIterator queryByPrefix(Session session,
@@ -205,16 +241,24 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
         byte[] end = this.shardSpliter.position(shard.end());
         if (page != null && !page.isEmpty()) {
             byte[] position = PageState.fromString(page).position();
-            E.checkArgument(Bytes.compare(position, start) >= 0,
+            E.checkArgument(start == null ||
+                            Bytes.compare(position, start) >= 0,
                             "Invalid page out of lower bound");
             start = position;
         }
-        return session.scan(this.table(), start, end);
+        if (start == null) {
+            start = ShardSpliter.START_BYTES;
+        }
+        int type = Session.SCAN_GTE_BEGIN;
+        if (end != null) {
+            type |= Session.SCAN_LT_END;
+        }
+        return session.scan(this.table(), start, end, type);
     }
 
-    protected static BackendEntryIterator newEntryIterator(
-                                          BackendColumnIterator cols,
-                                          Query query) {
+    protected static final BackendEntryIterator newEntryIterator(
+                                                BackendColumnIterator cols,
+                                                Query query) {
         return new BinaryEntryIterator<>(cols, query, (entry, col) -> {
             if (entry == null || !entry.belongToMe(col)) {
                 HugeType type = query.resultType();
@@ -224,6 +268,10 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
             entry.columns(col);
             return entry;
         });
+    }
+
+    protected static final long sizeOfBackendEntry(BackendEntry entry) {
+        return BinaryEntryIterator.sizeOfBackendEntry(entry);
     }
 
     private static class RocksDBShardSpliter extends ShardSpliter<Session> {
@@ -238,6 +286,34 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
         }
 
         @Override
+        public List<Shard> getSplits(Session session, long splitSize) {
+            E.checkArgument(splitSize >= MIN_SHARD_SIZE,
+                            "The split-size must be >= %s bytes, but got %s",
+                            MIN_SHARD_SIZE, splitSize);
+
+            Pair<byte[], byte[]> keyRange = session.keyRange(this.table());
+            if (keyRange == null || keyRange.getRight() == null) {
+                return super.getSplits(session, splitSize);
+            }
+
+            long size = this.estimateDataSize(session);
+            if (size <= 0) {
+                size = this.estimateNumKeys(session) * ESTIMATE_BYTES_PER_KV;
+            }
+
+            double count = Math.ceil(size / (double) splitSize);
+            if (count <= 0) {
+                count = 1;
+            }
+
+            Range range = new Range(keyRange.getLeft(),
+                                    Range.increase(keyRange.getRight()));
+            List<Shard> splits = new ArrayList<>((int) count);
+            splits.addAll(range.splitEven((int) count));
+            return splits;
+        }
+
+        @Override
         public long estimateDataSize(Session session) {
             long mem = Long.parseLong(session.property(this.table(), MEM_SIZE));
             long sst = Long.parseLong(session.property(this.table(), SST_SIZE));
@@ -247,6 +323,14 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
         @Override
         public long estimateNumKeys(Session session) {
             return Long.parseLong(session.property(this.table(), NUM_KEYS));
+        }
+
+        @Override
+        public byte[] position(String position) {
+            if (END.equals(position)) {
+                return null;
+            }
+            return StringEncoding.decodeBase64(position);
         }
     }
 }

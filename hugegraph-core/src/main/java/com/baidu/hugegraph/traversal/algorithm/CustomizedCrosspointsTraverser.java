@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 import javax.ws.rs.core.MultivaluedMap;
 
 import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
@@ -48,17 +49,20 @@ public class CustomizedCrosspointsTraverser extends HugeTraverser {
         super(graph);
     }
 
-    public CrosspointsPaths crosspointsPaths(List<HugeVertex> vertices,
+    public CrosspointsPaths crosspointsPaths(Iterator<Vertex> vertices,
                                              List<PathPattern> pathPatterns,
                                              long capacity, long limit) {
-        E.checkArgument(!vertices.isEmpty(),
+        E.checkArgument(vertices.hasNext(),
                         "The source vertices can't be empty");
         E.checkArgument(!pathPatterns.isEmpty(),
                         "The steps pattern can't be empty");
         checkCapacity(capacity);
         checkLimit(limit);
         MultivaluedMap<Id, Node> initialSources = newMultivalueMap();
-        for (HugeVertex vertex : vertices) {
+        List<HugeVertex> verticesList = new ArrayList<>();
+        while (vertices.hasNext()) {
+            HugeVertex vertex = (HugeVertex) vertices.next();
+            verticesList.add(vertex);
             Node node = new Node(vertex.id(), null);
             initialSources.add(vertex.id(), node);
         }
@@ -77,9 +81,7 @@ public class CustomizedCrosspointsTraverser extends HugeTraverser {
                 // Traversal vertices of previous level
                 for (Map.Entry<Id, List<Node>> entry : sources.entrySet()) {
                     List<Node> adjacency = new ArrayList<>();
-                    edges = edgesOfVertex(entry.getKey(), step.direction,
-                                          step.labels, step.properties,
-                                          step.degree);
+                    edges = this.edgesOfVertex(entry.getKey(), step.edgeStep);
                     while (edges.hasNext()) {
                         HugeEdge edge = (HugeEdge) edges.next();
                         Id target = edge.id().otherVertexId();
@@ -107,11 +109,11 @@ public class CustomizedCrosspointsTraverser extends HugeTraverser {
             assert stepNum == 0;
             for (List<Node> nodes : newVertices.values()) {
                 for (Node n : nodes) {
-                    paths.add(new Path(null, n.path()));
+                    paths.add(new Path(n.path()));
                 }
             }
         }
-        return intersectionPaths(vertices, paths, limit);
+        return intersectionPaths(verticesList, paths, limit);
     }
 
     private static CrosspointsPaths intersectionPaths(List<HugeVertex> sources,
@@ -186,17 +188,13 @@ public class CustomizedCrosspointsTraverser extends HugeTraverser {
 
     public static class Step {
 
-        private Directions direction;
-        private Map<Id, String> labels;
-        private Map<String, Object> properties;
-        private long degree;
+        private final EdgeStep edgeStep;
 
-        public Step(Directions direction, Map<Id, String> labels,
-                    Map<String, Object> properties, long degree) {
-            this.direction = direction;
-            this.labels = labels;
-            this.properties = properties;
-            this.degree = degree;
+        public Step(HugeGraph g, Directions direction, List<String> labels,
+                    Map<String, Object> properties, long degree,
+                    long skipDegree) {
+            this.edgeStep = new EdgeStep(g, direction, labels, properties,
+                                         degree, skipDegree);
         }
     }
 

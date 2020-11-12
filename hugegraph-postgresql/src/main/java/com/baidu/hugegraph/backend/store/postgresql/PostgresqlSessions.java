@@ -28,10 +28,10 @@ import org.postgresql.core.Utils;
 import org.postgresql.util.PSQLException;
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.store.mysql.MysqlSessions;
 import com.baidu.hugegraph.backend.store.mysql.MysqlStore;
+import com.baidu.hugegraph.backend.store.mysql.MysqlUtil;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.util.Log;
 
@@ -57,8 +57,7 @@ public class PostgresqlSessions extends MysqlSessions {
             ResultSet result = conn.createStatement().executeQuery(statement);
             return result.next();
         } catch (Exception e) {
-            throw new BackendException("Failed to obtain PostgreSQL metadata," +
-                                       " please ensure it is ok", e);
+            throw new BackendException("Failed to obtain database info", e);
         }
     }
 
@@ -105,6 +104,14 @@ public class PostgresqlSessions extends MysqlSessions {
     }
 
     @Override
+    protected String buildExistsTable(String table) {
+        return String.format(
+               "SELECT * FROM information_schema.tables " +
+               "WHERE table_schema = 'public' AND table_name = '%s' LIMIT 1;",
+               MysqlUtil.escapeString(table));
+    }
+
+    @Override
     protected URIBuilder newConnectionURIBuilder() {
         // Suppress error log when database does not exist
         return new URIBuilder().addParameter("loggerLevel", "OFF");
@@ -116,7 +123,7 @@ public class PostgresqlSessions extends MysqlSessions {
         try {
             Utils.escapeLiteral(builder, value, false);
         } catch (SQLException e) {
-            throw new HugeException("Failed to escape '%s'", e, value);
+            throw new BackendException("Failed to escape '%s'", e, value);
         }
         builder.append('\'');
         return builder.toString();

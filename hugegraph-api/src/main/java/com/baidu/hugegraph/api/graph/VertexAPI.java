@@ -25,7 +25,9 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
+import javax.annotation.security.RolesAllowed;
 import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -56,12 +58,13 @@ import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.define.UpdateStrategy;
+import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.VertexLabel;
-import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.structure.HugeVertex;
+import com.baidu.hugegraph.traversal.optimize.QueryHolder;
 import com.baidu.hugegraph.traversal.optimize.Text;
-import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
 import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
@@ -73,13 +76,14 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @Singleton
 public class VertexAPI extends BatchAPI {
 
-    private static final Logger LOG = Log.logger(RestServer.class);
+    private static final Logger LOG = Log.logger(VertexAPI.class);
 
     @POST
     @Timed(name = "single-create")
     @Status(Status.CREATED)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin", "$owner=$graph $action=vertex_write"})
     public String create(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          JsonVertex jsonVertex) {
@@ -99,10 +103,11 @@ public class VertexAPI extends BatchAPI {
     @Status(Status.CREATED)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    public List<String> create(@Context HugeConfig config,
-                               @Context GraphManager manager,
-                               @PathParam("graph") String graph,
-                               List<JsonVertex> jsonVertices) {
+    @RolesAllowed({"admin", "$owner=$graph $action=vertex_write"})
+    public String create(@Context HugeConfig config,
+                         @Context GraphManager manager,
+                         @PathParam("graph") String graph,
+                         List<JsonVertex> jsonVertices) {
         LOG.debug("Graph [{}] create vertices: {}", graph, jsonVertices);
         checkCreatingBody(jsonVertices);
         checkBatchSize(config, jsonVertices);
@@ -110,11 +115,11 @@ public class VertexAPI extends BatchAPI {
         HugeGraph g = graph(manager, graph);
 
         return this.commit(config, g, jsonVertices.size(), () -> {
-            List<String> ids = new ArrayList<>(jsonVertices.size());
+            List<Id> ids = new ArrayList<>(jsonVertices.size());
             for (JsonVertex vertex : jsonVertices) {
-                ids.add(g.addVertex(vertex.properties()).id().toString());
+                ids.add((Id) g.addVertex(vertex.properties()).id());
             }
-            return ids;
+            return manager.serializer(g).writeIds(ids);
         });
     }
 
@@ -130,6 +135,7 @@ public class VertexAPI extends BatchAPI {
     @Path("batch")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin", "$owner=$graph $action=vertex_write"})
     public String update(@Context HugeConfig config,
                          @Context GraphManager manager,
                          @PathParam("graph") String graph,
@@ -181,6 +187,7 @@ public class VertexAPI extends BatchAPI {
     @Path("{id}")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin", "$owner=$graph $action=vertex_write"})
     public String update(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          @PathParam("id") String idValue,
@@ -214,10 +221,13 @@ public class VertexAPI extends BatchAPI {
     @Timed
     @Compress
     @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin", "$owner=$graph $action=vertex_read"})
     public String list(@Context GraphManager manager,
                        @PathParam("graph") String graph,
                        @QueryParam("label") String label,
                        @QueryParam("properties") String properties,
+                       @QueryParam("keep_start_p")
+                       @DefaultValue("false") boolean keepStartP,
                        @QueryParam("offset") @DefaultValue("0") long offset,
                        @QueryParam("page") String page,
                        @QueryParam("limit") @DefaultValue("100") long limit) {
@@ -230,9 +240,6 @@ public class VertexAPI extends BatchAPI {
             E.checkArgument(offset == 0,
                             "Not support querying vertices based on paging " +
                             "and offset together");
-            E.checkArgument(props.size() <= 1,
-                            "Not support querying vertices based on paging " +
-                            "and more than one property");
         }
 
         HugeGraph g = graph(manager, graph);
@@ -242,6 +249,15 @@ public class VertexAPI extends BatchAPI {
             traversal = traversal.hasLabel(label);
         }
 
+        // Convert relational operator like P.gt()/P.lt()
+        for (Map.Entry<String, Object> prop : props.entrySet()) {
+            Object value = prop.getValue();
+            if (!keepStartP && value instanceof String &&
+                ((String) value).startsWith(TraversalUtil.P_CALL)) {
+                prop.setValue(TraversalUtil.parsePredicate((String) value));
+            }
+        }
+
         for (Map.Entry<String, Object> entry : props.entrySet()) {
             traversal = traversal.has(entry.getKey(), entry.getValue());
         }
@@ -249,16 +265,25 @@ public class VertexAPI extends BatchAPI {
         if (page == null) {
             traversal = traversal.range(offset, offset + limit);
         } else {
-            traversal = traversal.has("~page", page).limit(limit);
+            traversal = traversal.has(QueryHolder.SYSPROP_PAGE, page)
+                                 .limit(limit);
         }
 
-        return manager.serializer(g).writeVertices(traversal, page != null);
+        try {
+            return manager.serializer(g).writeVertices(traversal,
+                                                       page != null);
+        } finally {
+            if (g.tx().isOpen()) {
+                g.tx().close();
+            }
+        }
     }
 
     @GET
     @Timed
     @Path("{id}")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin", "$owner=$graph $action=vertex_read"})
     public String get(@Context GraphManager manager,
                       @PathParam("graph") String graph,
                       @PathParam("id") String idValue) {
@@ -266,28 +291,39 @@ public class VertexAPI extends BatchAPI {
 
         Id id = checkAndParseVertexId(idValue);
         HugeGraph g = graph(manager, graph);
-        Iterator<Vertex> vertices = g.vertices(id);
-        checkExist(vertices, HugeType.VERTEX, idValue);
-        return manager.serializer(g).writeVertex(vertices.next());
+        try {
+            Vertex vertex = g.vertex(id);
+            return manager.serializer(g).writeVertex(vertex);
+        } finally {
+            if (g.tx().isOpen()) {
+                g.tx().close();
+            }
+        }
     }
 
     @DELETE
     @Timed
     @Path("{id}")
     @Consumes(APPLICATION_JSON)
+    @RolesAllowed({"admin", "$owner=$graph $action=vertex_delete"})
     public void delete(@Context GraphManager manager,
                        @PathParam("graph") String graph,
-                       @PathParam("id") String idValue) {
+                       @PathParam("id") String idValue,
+                       @QueryParam("label") String label) {
         LOG.debug("Graph [{}] remove vertex by id '{}'", graph, idValue);
 
         Id id = checkAndParseVertexId(idValue);
         HugeGraph g = graph(manager, graph);
-        // TODO: add removeVertex(id) to improve
         commit(g, () -> {
-            Iterator<Vertex> iter = g.vertices(id);
-            E.checkArgument(iter.hasNext(),
-                            "No such vertex with id: '%s'", idValue);
-            iter.next().remove();
+            try {
+                g.removeVertex(label, id);
+            } catch (NotFoundException e) {
+                throw new IllegalArgumentException(String.format(
+                          "No such vertex with id: '%s', %s", id, e));
+            } catch (NoSuchElementException e) {
+                throw new IllegalArgumentException(String.format(
+                          "No such vertex with id: '%s'", id));
+            }
         });
     }
 

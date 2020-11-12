@@ -35,13 +35,17 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.io.Io;
 
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.id.IdGenerator;
+import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
 import com.baidu.hugegraph.io.HugeGraphIoRegistry;
 import com.baidu.hugegraph.io.HugeGraphSONModule;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaManager;
-import com.baidu.hugegraph.structure.HugeFeatures;
+import com.baidu.hugegraph.task.TaskScheduler;
 import com.baidu.hugegraph.type.define.IdStrategy;
+import com.baidu.hugegraph.type.define.NodeRole;
 import com.google.common.collect.ImmutableSet;
 
 @Graph.OptIn("com.baidu.hugegraph.tinkerpop.StructureBasicSuite")
@@ -74,7 +78,17 @@ public class TestGraph implements Graph {
 
     @Watched
     protected void initBackend() {
-        this.graph.initBackend();
+        BackendStoreSystemInfo sysInfo = this.graph.backendStoreSystemInfo();
+        if (!sysInfo.exists()) {
+            this.graph.initBackend();
+        } else {
+            // May reopen a closed graph
+            assert sysInfo.exists() && !this.graph.closed();
+        }
+
+        Id id = IdGenerator.of("server-tinkerpop");
+        this.graph.serverStarted(id, NodeRole.MASTER);
+
         this.initedBackend = true;
     }
 
@@ -131,6 +145,11 @@ public class TestGraph implements Graph {
 
         schema.getPropertyKeys().stream().forEach(elem -> {
             schema.propertyKey(elem.name()).remove();
+        });
+
+        TaskScheduler scheduler = this.graph.taskScheduler();
+        scheduler.tasks(null, -1, null).forEachRemaining(elem -> {
+            scheduler.delete(elem.id());
         });
     }
 
@@ -249,7 +268,7 @@ public class TestGraph implements Graph {
     }
 
     @Override
-    public HugeFeatures features() {
+    public Features features() {
         return this.graph.features();
     }
 
@@ -613,7 +632,6 @@ public class TestGraph implements Graph {
          * datatype String
          */
         schema.propertyKey("short").asText().ifNotExist().create();
-        schema.propertyKey("long").asLong().ifNotExist().create();
         schema.propertyKey("x").asInt().ifNotExist().create();
         schema.propertyKey("y").asInt().ifNotExist().create();
         schema.propertyKey("age").asInt().ifNotExist().create();
@@ -632,7 +650,6 @@ public class TestGraph implements Graph {
         schema.propertyKey("state").ifNotExist().create();
         schema.propertyKey("acl").ifNotExist().create();
         schema.propertyKey("stars").asInt().ifNotExist().create();
-        schema.propertyKey("aKey").asDouble().ifNotExist().create();
         schema.propertyKey("b").asBoolean().ifNotExist().create();
         schema.propertyKey("s").ifNotExist().create();
         schema.propertyKey("n").ifNotExist().create();
@@ -655,6 +672,13 @@ public class TestGraph implements Graph {
               .ifNotExist().create();
         schema.propertyKey("blah").asDouble().ifNotExist().create();
         schema.propertyKey("bloop").asInt().ifNotExist().create();
+
+        if (!this.graph.existsPropertyKey("long")) {
+            schema.propertyKey("long").asLong().ifNotExist().create();
+        }
+        if (!this.graph.existsPropertyKey("aKey")) {
+            schema.propertyKey("aKey").asDouble().ifNotExist().create();
+        }
 
         if (this.ioTest) {
             schema.propertyKey("weight").asFloat().ifNotExist().create();
@@ -734,10 +758,12 @@ public class TestGraph implements Graph {
     private void initBasicVertexLabelAndEdgeLabelExceptV(String defaultVL) {
         SchemaManager schema = this.graph.schema();
 
-        schema.vertexLabel("person")
-              .properties("name", "age")
-              .nullableKeys("name", "age")
-              .ifNotExist().create();
+        if (!defaultVL.equals("person")) {
+            schema.vertexLabel("person")
+                  .properties("name", "age")
+                  .nullableKeys("name", "age")
+                  .ifNotExist().create();
+        }
         schema.vertexLabel("software")
               .properties("name", "lang")
               .nullableKeys("name", "lang")

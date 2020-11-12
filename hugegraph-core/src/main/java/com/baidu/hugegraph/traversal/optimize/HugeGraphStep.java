@@ -29,6 +29,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.step.map.GraphStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.util.HasContainer;
 import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
+import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
@@ -50,7 +51,7 @@ public final class HugeGraphStep<S, E extends Element>
     // Store limit/order-by
     private final Query queryInfo = new Query(HugeType.UNKNOWN);
 
-    private Iterator<E> lastTimeResults = null;
+    private Iterator<E> lastTimeResults = QueryResults.emptyIterator();
 
     public HugeGraphStep(final GraphStep<S, E> originGraphStep) {
         super(originGraphStep.getTraversal(),
@@ -70,31 +71,48 @@ public final class HugeGraphStep<S, E extends Element>
         });
     }
 
+    protected long count() {
+        if (this.returnsVertex()) {
+            return this.verticesCount();
+        } else {
+            assert this.returnsEdge();
+            return this.edgesCount();
+        }
+    }
+
+    private long verticesCount() {
+        if (!this.hasIds()) {
+            HugeGraph graph = TraversalUtil.getGraph(this);
+            Query query = this.makeQuery(graph, HugeType.VERTEX);
+            return graph.queryNumber(query).longValue();
+        }
+        return IteratorUtils.count(this.vertices());
+    }
+
+    private long edgesCount() {
+        if (!this.hasIds()) {
+            HugeGraph graph = TraversalUtil.getGraph(this);
+            Query query = this.makeQuery(graph, HugeType.EDGE);
+            return graph.queryNumber(query).longValue();
+        }
+        return IteratorUtils.count(this.edges());
+    }
+
     private Iterator<E> vertices() {
         LOG.debug("HugeGraphStep.vertices(): {}", this);
 
-        HugeGraph graph = (HugeGraph) this.getTraversal().getGraph().get();
+        HugeGraph graph = TraversalUtil.getGraph(this);
         // g.V().hasId(EMPTY_LIST) will set ids to null
         if (this.ids == null) {
             return QueryResults.emptyIterator();
         }
-        if (this.ids.length > 0) {
+
+        if (this.hasIds()) {
             return TraversalUtil.filterResult(this.hasContainers,
                                               graph.vertices(this.ids));
         }
 
-        Query query = null;
-        if (this.hasContainers.isEmpty()) {
-            // Query all
-            query = new Query(HugeType.VERTEX);
-        } else {
-            ConditionQuery q = new ConditionQuery(HugeType.VERTEX);
-            query = TraversalUtil.fillConditionQuery(this.hasContainers,
-                                                     q, graph);
-        }
-
-        query = this.injectQueryInfo(query);
-
+        Query query = this.makeQuery(graph, HugeType.VERTEX);
         @SuppressWarnings("unchecked")
         Iterator<E> result = (Iterator<E>) graph.vertices(query);
         return result;
@@ -103,29 +121,41 @@ public final class HugeGraphStep<S, E extends Element>
     private Iterator<E> edges() {
         LOG.debug("HugeGraphStep.edges(): {}", this);
 
-        HugeGraph graph = (HugeGraph) this.getTraversal().getGraph().get();
+        HugeGraph graph = TraversalUtil.getGraph(this);
 
-        if (this.ids != null && this.ids.length > 0) {
+        // g.E().hasId(EMPTY_LIST) will set ids to null
+        if (this.ids == null) {
+            return QueryResults.emptyIterator();
+        }
+
+        if (this.hasIds()) {
             return TraversalUtil.filterResult(this.hasContainers,
                                               graph.edges(this.ids));
         }
 
-        Query query = null;
-
-        if (this.hasContainers.isEmpty()) {
-            /* Query all */
-            query = new Query(HugeType.EDGE);
-        } else {
-            ConditionQuery q = new ConditionQuery(HugeType.EDGE);
-            query = TraversalUtil.fillConditionQuery(this.hasContainers,
-                                                     q, graph);
-        }
-
-        query = this.injectQueryInfo(query);
-
+        Query query = this.makeQuery(graph, HugeType.EDGE);
         @SuppressWarnings("unchecked")
         Iterator<E> result = (Iterator<E>) graph.edges(query);
         return result;
+    }
+
+    private boolean hasIds() {
+        return this.ids != null && this.ids.length > 0;
+    }
+
+    private Query makeQuery(HugeGraph graph, HugeType type) {
+        Query query = null;
+        if (this.hasContainers.isEmpty()) {
+            // Query all
+            query = new Query(type);
+        } else {
+            ConditionQuery q = new ConditionQuery(type);
+            query = TraversalUtil.fillConditionQuery(q, this.hasContainers,
+                                                     graph);
+        }
+
+        query = this.injectQueryInfo(query);
+        return query;
     }
 
     @Override

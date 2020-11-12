@@ -57,7 +57,11 @@ public class RocksDBStoreProvider extends AbstractBackendStoreProvider {
          *                    rangeLong and rangeDouble
          * [1.4] #633: support unique index
          * [1.5] #680: update index element-id to bin format
+         * [1.6] #746: support userdata for indexlabel
+         * [1.7] #820: store vertex properties in one column
+         * [1.8] #894: encode label id in string index
+         * [1.9] #295: support ttl for vertex and edge
          */
-        return "1.5";
+        return "1.9";
     }
 }

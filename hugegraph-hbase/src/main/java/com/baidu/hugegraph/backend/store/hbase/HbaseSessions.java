@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.backend.store.hbase;
 
 import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -40,7 +41,9 @@ import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.NamespaceDescriptor;
 import org.apache.hadoop.hbase.RegionMetrics;
 import org.apache.hadoop.hbase.ServerName;
+import org.apache.hadoop.hbase.Size;
 import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.TableNotDisabledException;
 import org.apache.hadoop.hbase.TableNotEnabledException;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.ColumnFamilyDescriptorBuilder;
@@ -55,6 +58,8 @@ import org.apache.hadoop.hbase.client.Row;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.client.TableDescriptorBuilder;
+import org.apache.hadoop.hbase.client.coprocessor.AggregationClient;
+import org.apache.hadoop.hbase.client.coprocessor.LongColumnInterpreter;
 import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.filter.FilterList.Operator;
 import org.apache.hadoop.hbase.filter.MultiRowRangeFilter;
@@ -62,19 +67,26 @@ import org.apache.hadoop.hbase.filter.MultiRowRangeFilter.RowRange;
 import org.apache.hadoop.hbase.filter.PageFilter;
 import org.apache.hadoop.hbase.filter.PrefixFilter;
 import org.apache.hadoop.hbase.util.VersionInfo;
+import org.apache.hadoop.security.UserGroupInformation;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumn;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendIterator;
-import com.baidu.hugegraph.backend.store.BackendSession;
+import com.baidu.hugegraph.backend.store.BackendSession.AbstractBackendSession;
 import com.baidu.hugegraph.backend.store.BackendSessionPool;
 import com.baidu.hugegraph.config.HugeConfig;
+import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.StringEncoding;
 import com.baidu.hugegraph.util.VersionUtil;
+import com.google.common.util.concurrent.Futures;
 
 public class HbaseSessions extends BackendSessionPool {
+
+    private static final String COPROCESSOR_AGGR =
+            "org.apache.hadoop.hbase.coprocessor.AggregateImplementation";
+    private static final long SCANNER_CACHEING = 1000L;
 
     private final String namespace;
     private Connection hbase;
@@ -84,10 +96,24 @@ public class HbaseSessions extends BackendSessionPool {
         this.namespace = namespace;
     }
 
+    protected Connection hbase() {
+        E.checkState(this.hbase != null, "HBase connection is not opened");
+        return this.hbase;
+    }
+
     private Table table(String table) throws IOException {
         E.checkState(this.hbase != null, "HBase connection is not opened");
         TableName tableName = TableName.valueOf(this.namespace, table);
         return this.hbase.getTable(tableName);
+    }
+
+    private AggregationClient aggregationClient() {
+        Configuration hConfig = this.hbase.getConfiguration();
+        hConfig = HBaseConfiguration.create(hConfig);
+        long timeout = this.config().get(HbaseOptions.AGGR_TIMEOUT);
+        hConfig.setLong("hbase.rpc.timeout", timeout * 1000L);
+        hConfig.setLong("hbase.client.scanner.caching", SCANNER_CACHEING);
+        return new AggregationClient(hConfig);
     }
 
     @Override
@@ -96,20 +122,37 @@ public class HbaseSessions extends BackendSessionPool {
         String hosts = config.get(HbaseOptions.HBASE_HOSTS);
         int port = config.get(HbaseOptions.HBASE_PORT);
         String znodeParent = config.get(HbaseOptions.HBASE_ZNODE_PARENT);
-
+        boolean isEnableKerberos = config.get(HbaseOptions.HBASE_KERBEROS_ENABLE);
         Configuration hConfig = HBaseConfiguration.create();
         hConfig.set(HConstants.ZOOKEEPER_QUORUM, hosts);
         hConfig.set(HConstants.ZOOKEEPER_CLIENT_PORT, String.valueOf(port));
         hConfig.set(HConstants.ZOOKEEPER_ZNODE_PARENT, znodeParent);
+
+        hConfig.setInt("zookeeper.recovery.retry",
+                       config.get(HbaseOptions.HBASE_ZK_RETRY));
+
         // Set hbase.hconnection.threads.max 64 to avoid OOM(default value: 256)
         hConfig.setInt("hbase.hconnection.threads.max",
                        config.get(HbaseOptions.HBASE_THREADS_MAX));
 
+        if(isEnableKerberos) {
+            String krb5Conf = config.get(HbaseOptions.HBASE_KRB5_CONF);
+            System.setProperty("java.security.krb5.conf", krb5Conf);
+            String principal = config.get(HbaseOptions.HBASE_KERBEROS_PRINCIPAL);
+            String keyTab = config.get(HbaseOptions.HBASE_KERBEROS_KEYTAB);
+            hConfig.set("hadoop.security.authentication", "kerberos");
+            hConfig.set("hbase.security.authentication", "kerberos");
+
+            //  login/authenticate using keytab
+            UserGroupInformation.setConfiguration(hConfig);
+            UserGroupInformation.loginUserFromKeytab(principal, keyTab);
+        }
         this.hbase = ConnectionFactory.createConnection(hConfig);
     }
 
     @Override
     protected synchronized boolean opened() {
+        // NOTE: isClosed() seems to always return true even if not connected
         return this.hbase != null && !this.hbase.isClosed();
     }
 
@@ -136,7 +179,7 @@ public class HbaseSessions extends BackendSessionPool {
     }
 
     public boolean existsNamespace() throws IOException {
-        try(Admin admin = this.hbase.getAdmin()) {
+        try (Admin admin = this.hbase.getAdmin()) {
             for (NamespaceDescriptor ns : admin.listNamespaceDescriptors()) {
                 if (this.namespace.equals(ns.getName())) {
                     return true;
@@ -149,39 +192,40 @@ public class HbaseSessions extends BackendSessionPool {
     public void createNamespace() throws IOException {
         NamespaceDescriptor ns = NamespaceDescriptor.create(this.namespace)
                                                     .build();
-        try(Admin admin = this.hbase.getAdmin()) {
+        try (Admin admin = this.hbase.getAdmin()) {
             admin.createNamespace(ns);
         }
     }
 
     public void dropNamespace() throws IOException {
-        try(Admin admin = this.hbase.getAdmin()) {
+        try (Admin admin = this.hbase.getAdmin()) {
             admin.deleteNamespace(this.namespace);
         }
     }
 
     public boolean existsTable(String table) throws IOException {
         TableName tableName = TableName.valueOf(this.namespace, table);
-        try(Admin admin = this.hbase.getAdmin()) {
+        try (Admin admin = this.hbase.getAdmin()) {
             return admin.tableExists(tableName);
         }
     }
 
     public void createTable(String table, List<byte[]> cfs) throws IOException {
-        TableDescriptorBuilder tb = TableDescriptorBuilder.newBuilder(
-                                    TableName.valueOf(this.namespace, table));
+        TableDescriptorBuilder tdb = TableDescriptorBuilder.newBuilder(
+                                     TableName.valueOf(this.namespace, table));
         for (byte[] cf : cfs) {
-            tb.setColumnFamily(ColumnFamilyDescriptorBuilder.newBuilder(cf)
-                                                            .build());
+            tdb.setColumnFamily(ColumnFamilyDescriptorBuilder.newBuilder(cf)
+                                                             .build());
         }
+        tdb.setCoprocessor(COPROCESSOR_AGGR);
         try(Admin admin = this.hbase.getAdmin()) {
-            admin.createTable(tb.build());
+            admin.createTable(tdb.build());
         }
     }
 
     public void dropTable(String table) throws IOException {
         TableName tableName = TableName.valueOf(this.namespace, table);
-        try(Admin admin = this.hbase.getAdmin()) {
+        try (Admin admin = this.hbase.getAdmin()) {
             try {
                 admin.disableTable(tableName);
             } catch (TableNotEnabledException ignored) {
@@ -191,22 +235,45 @@ public class HbaseSessions extends BackendSessionPool {
         }
     }
 
-    public Future<Void> truncateTable(String table) throws IOException {
+    public void enableTable(String table) throws IOException {
         assert this.existsTable(table);
         TableName tableName = TableName.valueOf(this.namespace, table);
-        try(Admin admin = this.hbase.getAdmin()) {
+        try (Admin admin = this.hbase.getAdmin()) {
+            if (admin.isTableEnabled(tableName)) {
+                return;
+            }
             try {
-                admin.disableTable(tableName);
-            } catch (TableNotEnabledException ignored) {
+                admin.enableTable(tableName);
+            } catch (TableNotDisabledException ignored) {
                 // pass
             }
-            return admin.truncateTableAsync(tableName, false);
+        }
+    }
+
+    public Future<Void> disableTableAsync(String table) throws IOException {
+        assert this.existsTable(table);
+        TableName tableName = TableName.valueOf(this.namespace, table);
+        try (Admin admin = this.hbase.getAdmin()) {
+            try {
+                return admin.disableTableAsync(tableName);
+            } catch (TableNotEnabledException ignored) {
+                // Ignore if it's disabled
+                return Futures.immediateFuture(null);
+            }
+        }
+    }
+
+    public Future<Void> truncateTableAsync(String table) throws IOException {
+        assert this.existsTable(table);
+        TableName tableName = TableName.valueOf(this.namespace, table);
+        try (Admin admin = this.hbase.getAdmin()) {
+            return admin.truncateTableAsync(tableName, true);
         }
     }
 
     public long storeSize(String table) throws IOException {
         long total = 0;
-        try(Admin admin = this.hbase.getAdmin()) {
+        try (Admin admin = this.hbase.getAdmin()) {
             for (ServerName rs : admin.getRegionServers()) {
                 // NOTE: we can use getLoad() before hbase 2.0
                 //ServerLoad load = admin.getClusterStatus().getLoad(rs);
@@ -214,8 +281,8 @@ public class HbaseSessions extends BackendSessionPool {
                 //total += load.getMemStoreSizeMB() * Bytes.MB;
                 TableName tableName = TableName.valueOf(this.namespace, table);
                 for (RegionMetrics m : admin.getRegionMetrics(rs, tableName)) {
-                    total += m.getStoreFileSize().getLongValue();
-                    total += m.getMemStoreSize().getLongValue();
+                    total += m.getStoreFileSize().get(Size.Unit.BYTE);
+                    total += m.getMemStoreSize().get(Size.Unit.BYTE);
                 }
             }
         }
@@ -223,15 +290,146 @@ public class HbaseSessions extends BackendSessionPool {
     }
 
     /**
-     * Session for HBase
+     * Session interface for HBase
      */
-    public final class Session extends BackendSession {
+    public interface HbaseSession<R> {
 
-        private boolean closed;
+        /**
+         * Add a row record to a table
+         */
+        public abstract void put(String table, byte[] family, byte[] rowkey,
+                                 Collection<BackendColumn> columns);
+
+        /**
+         * Add a row record to a table(can be used when adding an index)
+         */
+        public abstract void put(String table, byte[] family,
+                                 byte[] rowkey, byte[] qualifier, byte[] value);
+
+        /**
+         * Delete a record by rowkey and qualifier from a table
+         */
+        public default void remove(String table, byte[] family,
+                                   byte[] rowkey, byte[] qualifier) {
+            this.remove(table, family, rowkey, qualifier, false);
+        }
+
+        /**
+         * Delete a record by rowkey and qualifier from a table,
+         * just delete the latest version of the specified column if need
+         */
+        public void remove(String table, byte[] family, byte[] rowkey,
+                           byte[] qualifier, boolean latestVersion);
+
+        /**
+         * Delete a record by rowkey from a table
+         */
+        public void delete(String table, byte[] family, byte[] rowkey);
+
+        /**
+         * Get a record by rowkey and qualifier from a table
+         */
+        public R get(String table, byte[] family, byte[] rowkey,
+                     byte[] qualifier);
+
+        /**
+         * Get a record by rowkey from a table
+         */
+        public R get(String table, byte[] family, byte[] rowkey);
+
+        /**
+         * Get multi records by rowkeys from a table
+         */
+        public R get(String table, byte[] family, Set<byte[]> rowkeys);
+
+        /**
+         * Scan all records from a table
+         */
+        public default R scan(String table, long limit) {
+            Scan scan = new Scan();
+            if (limit >= 0) {
+                scan.setFilter(new PageFilter(limit));
+            }
+            return this.scan(table, scan);
+        }
+
+        /**
+         * Scan records by rowkey prefix from a table
+         */
+        public default R scan(String table, byte[] prefix) {
+            return this.scan(table, prefix, true, prefix);
+        }
+
+        /**
+         * Scan records by multi rowkey prefixs from a table
+         */
+        public default R scan(String table, Set<byte[]> prefixs) {
+            FilterList orFilters = new FilterList(Operator.MUST_PASS_ONE);
+            for (byte[] prefix : prefixs) {
+                FilterList andFilters = new FilterList(Operator.MUST_PASS_ALL);
+                List<RowRange> ranges = new ArrayList<>();
+                ranges.add(new RowRange(prefix, true, null, true));
+                andFilters.addFilter(new MultiRowRangeFilter(ranges));
+                andFilters.addFilter(new PrefixFilter(prefix));
+
+                orFilters.addFilter(andFilters);
+            }
+
+            Scan scan = new Scan().setFilter(orFilters);
+            return this.scan(table, scan);
+        }
+
+        /**
+         * Scan records by rowkey start and prefix from a table
+         */
+        public default R scan(String table, byte[] startRow,
+                              boolean inclusiveStart, byte[] prefix) {
+            Scan scan = new Scan().withStartRow(startRow, inclusiveStart)
+                                  .setFilter(new PrefixFilter(prefix));
+            return this.scan(table, scan);
+        }
+
+        /**
+         * Scan records by rowkey range from a table
+         */
+        public default R scan(String table, byte[] startRow, byte[] stopRow) {
+            return this.scan(table, startRow, true, stopRow, false);
+        }
+
+        /**
+         * Scan records by rowkey range from a table
+         */
+        public default R scan(String table,
+                              byte[] startRow, boolean inclusiveStart,
+                              byte[] stopRow, boolean inclusiveStop) {
+            Scan scan = new Scan().withStartRow(startRow, inclusiveStart);
+            if (stopRow != null) {
+                scan.withStopRow(stopRow, inclusiveStop);
+            }
+            return this.scan(table, scan);
+        }
+
+        /**
+         * Inner scan: send scan request to HBase and get iterator
+         */
+        public R scan(String table, Scan scan);
+
+        /**
+         * Increase a counter by rowkey and qualifier to a table
+         */
+        public long increase(String table, byte[] family,
+                             byte[] rowkey, byte[] qualifier, long value);
+    }
+
+    /**
+     * Session implement for HBase
+     */
+    public class Session extends AbstractBackendSession
+                         implements HbaseSession<RowIterator> {
+
         private final Map<String, List<Row>> batch;
 
         public Session() {
-            this.closed = false;
             this.batch = new HashMap<>();
         }
 
@@ -267,15 +465,28 @@ public class HbaseSessions extends BackendSessionPool {
             }
         }
 
+        public Connection hbase() {
+            return HbaseSessions.this.hbase();
+        }
+
+        public String namespace() {
+            return HbaseSessions.this.namespace;
+        }
+
+        @Override
+        public void open() {
+            this.opened = true;
+        }
+
         @Override
         public void close() {
             assert this.closeable();
-            this.closed = true;
+            this.opened = false;
         }
 
         @Override
         public boolean closed() {
-            return this.closed;
+            return !this.opened || !HbaseSessions.this.opened();
         }
 
         /**
@@ -303,6 +514,9 @@ public class HbaseSessions extends BackendSessionPool {
                 try (Table table = table(action.getKey())) {
                     table.batch(rows, results);
                     checkBatchResults(results, rows);
+                } catch (InterruptedIOException e) {
+                    throw new BackendException("Interrupted, " +
+                                               "maybe it is timed out", e);
                 } catch (Throwable e) {
                     // TODO: Mark and delete committed records
                     throw new BackendException("Failed to commit, " +
@@ -327,6 +541,7 @@ public class HbaseSessions extends BackendSessionPool {
         /**
          * Add a row record to a table
          */
+        @Override
         public void put(String table, byte[] family, byte[] rowkey,
                         Collection<BackendColumn> columns) {
             Put put = new Put(rowkey);
@@ -337,8 +552,22 @@ public class HbaseSessions extends BackendSessionPool {
         }
 
         /**
+         * Add a row record to a table with ttl
+         */
+        public void put(String table, byte[] family, byte[] rowkey,
+                        Collection<BackendColumn> columns, long ttl) {
+            Put put = new Put(rowkey);
+            for (BackendColumn column : columns) {
+                put.addColumn(family, column.name, column.value);
+            }
+            put.setTTL(ttl);
+            this.batch(table, put);
+        }
+
+        /**
          * Add a row record to a table(can be used when adding an index)
          */
+        @Override
         public void put(String table, byte[] family,
                         byte[] rowkey, byte[] qualifier, byte[] value) {
             Put put = new Put(rowkey);
@@ -347,8 +576,20 @@ public class HbaseSessions extends BackendSessionPool {
         }
 
         /**
+         * Add a row record to a table with ttl for index
+         */
+        public void put(String table, byte[] family, byte[] rowkey,
+                        byte[] qualifier, byte[] value, long ttl) {
+            Put put = new Put(rowkey);
+            put.addColumn(family, qualifier, value);
+            put.setTTL(ttl);
+            this.batch(table, put);
+        }
+
+        /**
          * Delete a record by rowkey and qualifier from a table
          */
+        @Override
         public void remove(String table, byte[] family,
                            byte[] rowkey, byte[] qualifier) {
             this.remove(table, family, rowkey, qualifier, false);
@@ -358,6 +599,7 @@ public class HbaseSessions extends BackendSessionPool {
          * Delete a record by rowkey and qualifier from a table,
          * just delete the latest version of the specified column if need
          */
+        @Override
         public void remove(String table, byte[] family, byte[] rowkey,
                            byte[] qualifier, boolean latestVersion) {
             assert family != null;
@@ -378,6 +620,7 @@ public class HbaseSessions extends BackendSessionPool {
         /**
          * Delete a record by rowkey from a table
          */
+        @Override
         public void delete(String table, byte[] family, byte[] rowkey) {
             assert rowkey != null;
             Delete delete = new Delete(rowkey);
@@ -390,6 +633,7 @@ public class HbaseSessions extends BackendSessionPool {
         /**
          * Get a record by rowkey and qualifier from a table
          */
+        @Override
         public RowIterator get(String table, byte[] family,
                                byte[] rowkey, byte[] qualifier) {
             assert !this.hasChanges();
@@ -407,6 +651,7 @@ public class HbaseSessions extends BackendSessionPool {
         /**
          * Get a record by rowkey from a table
          */
+        @Override
         public RowIterator get(String table, byte[] family, byte[] rowkey) {
             assert !this.hasChanges();
 
@@ -425,6 +670,7 @@ public class HbaseSessions extends BackendSessionPool {
         /**
          * Get multi records by rowkeys from a table
          */
+        @Override
         public RowIterator get(String table, byte[] family,
                                Set<byte[]> rowkeys) {
             assert !this.hasChanges();
@@ -446,72 +692,14 @@ public class HbaseSessions extends BackendSessionPool {
         }
 
         /**
-         * Scan all records from a table
-         */
-        public RowIterator scan(String table, long limit) {
-            assert !this.hasChanges();
-            Scan scan = new Scan();
-            if (limit >= 0) {
-                scan.setFilter(new PageFilter(limit));
-            }
-            return this.scan(table, scan);
-        }
-
-        /**
-         * Scan records by rowkey prefix from a table
-         */
-        public RowIterator scan(String table, byte[] prefix) {
-            assert !this.hasChanges();
-            return this.scan(table, prefix, true, prefix);
-        }
-
-        /**
-         * Scan records by multi rowkey prefixs from a table
-         */
-        public RowIterator scan(String table, Set<byte[]> prefixs) {
-            assert !this.hasChanges();
-
-            FilterList orFilters = new FilterList(Operator.MUST_PASS_ONE);
-            for (byte[] prefix : prefixs) {
-                FilterList andFilters = new FilterList(Operator.MUST_PASS_ALL);
-                List<RowRange> ranges = new ArrayList<>();
-                ranges.add(new RowRange(prefix, true, null, true));
-                andFilters.addFilter(new MultiRowRangeFilter(ranges));
-                andFilters.addFilter(new PrefixFilter(prefix));
-
-                orFilters.addFilter(andFilters);
-            }
-
-            Scan scan = new Scan().setFilter(orFilters);
-            return this.scan(table, scan);
-        }
-
-        /**
-         * Scan records by rowkey start and prefix from a table
-         */
-        public RowIterator scan(String table, byte[] startRow,
-                                boolean inclusiveStart, byte[] prefix) {
-            assert !this.hasChanges();
-            Scan scan = new Scan().withStartRow(startRow, inclusiveStart)
-                                  .setFilter(new PrefixFilter(prefix));
-            return this.scan(table, scan);
-        }
-
-        /**
          * Scan records by rowkey range from a table
          */
-        public RowIterator scan(String table, byte[] startRow, byte[] stopRow) {
-            assert !this.hasChanges();
-            return this.scan(table, startRow, true, stopRow, false);
-        }
-
-        /**
-         * Scan records by rowkey range from a table
-         */
+        @Override
         public RowIterator scan(String table,
                                 byte[] startRow, boolean inclusiveStart,
                                 byte[] stopRow, boolean inclusiveStop) {
             assert !this.hasChanges();
+
             Scan scan = new Scan().withStartRow(startRow, inclusiveStart);
             if (stopRow != null) {
                 String version = VersionInfo.getVersion();
@@ -535,7 +723,10 @@ public class HbaseSessions extends BackendSessionPool {
         /**
          * Inner scan: send scan request to HBase and get iterator
          */
-        private RowIterator scan(String table, Scan scan) {
+        @Override
+        public RowIterator scan(String table, Scan scan) {
+            assert !this.hasChanges();
+
             try (Table htable = table(table)) {
                 return new RowIterator(htable.getScanner(scan));
             } catch (IOException e) {
@@ -546,6 +737,7 @@ public class HbaseSessions extends BackendSessionPool {
         /**
          * Increase a counter by rowkey and qualifier to a table
          */
+        @Override
         public long increase(String table, byte[] family, byte[] rowkey,
                              byte[] qualifier, long value) {
             try (Table htable = table(table)) {
@@ -584,6 +776,91 @@ public class HbaseSessions extends BackendSessionPool {
                                        StringEncoding.format(val)));
                 }
             }
+        }
+
+        public CountSession countSession() {
+            return new CountSession(this);
+        }
+    }
+
+    public class CountSession implements HbaseSession<Number>, AutoCloseable {
+
+        private final Session origin;
+        private final AggregationClient aggrClient;
+
+        public CountSession(Session origin) {
+            this.origin = origin;
+            this.aggrClient = aggregationClient();
+        }
+
+        @Override
+        public void put(String table, byte[] family, byte[] rowkey,
+                        Collection<BackendColumn> columns) {
+            throw new NotSupportException("AggrSession.put");
+        }
+
+        @Override
+        public void put(String table, byte[] family, byte[] rowkey,
+                        byte[] qualifier, byte[] value) {
+            throw new NotSupportException("AggrSession.put");
+        }
+
+        @Override
+        public void remove(String table, byte[] family, byte[] rowkey,
+                           byte[] qualifier, boolean latestVersion) {
+            throw new NotSupportException("AggrSession.remove");
+        }
+
+        @Override
+        public void delete(String table, byte[] family, byte[] rowkey) {
+            throw new NotSupportException("AggrSession.delete");
+        }
+
+        @Override
+        public Number get(String table, byte[] family, byte[] rowkey,
+                          byte[] qualifier) {
+            return count(this.origin.get(table, family, rowkey, qualifier));
+        }
+
+        @Override
+        public Number get(String table, byte[] family, byte[] rowkey) {
+            return count(this.origin.get(table, family, rowkey));
+        }
+
+        @Override
+        public Number get(String table, byte[] family, Set<byte[]> rowkeys) {
+            return count(this.origin.get(table, family, rowkeys));
+        }
+
+        private long count(RowIterator iter) {
+            long count = 0L;
+            while (iter.hasNext()) {
+                if (!iter.next().isEmpty()) {
+                    count++;
+                }
+            }
+            return count;
+        }
+
+        @Override
+        public Number scan(String table, Scan scan) {
+            LongColumnInterpreter ci = new LongColumnInterpreter();
+            try {
+                return this.aggrClient.rowCount(table(table), ci, scan);
+            } catch (Throwable e) {
+                throw new BackendException(e);
+            }
+        }
+
+        @Override
+        public long increase(String table, byte[] family, byte[] rowkey,
+                             byte[] qualifier, long value) {
+            throw new NotSupportException("AggrSession.increase");
+        }
+
+        @Override
+        public void close() throws IOException {
+            this.aggrClient.close();
         }
     }
 

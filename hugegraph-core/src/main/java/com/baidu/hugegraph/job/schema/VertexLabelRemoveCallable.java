@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.Set;
 
 import com.baidu.hugegraph.HugeException;
-import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
@@ -42,11 +42,11 @@ public class VertexLabelRemoveCallable extends SchemaCallable {
 
     @Override
     public Object execute() {
-        removeVertexLabel(this.graph(), this.schemaId());
+        removeVertexLabel(this.params(), this.schemaId());
         return null;
     }
 
-    protected static void removeVertexLabel(HugeGraph graph, Id id) {
+    protected static void removeVertexLabel(HugeGraphParams graph, Id id) {
         GraphTransaction graphTx = graph.graphTransaction();
         SchemaTransaction schemaTx = graph.schemaTransaction();
         VertexLabel vertexLabel = schemaTx.getVertexLabel(id);
@@ -74,16 +74,23 @@ public class VertexLabelRemoveCallable extends SchemaCallable {
         try {
             locks.lockWrites(LockUtil.VERTEX_LABEL_DELETE, id);
             schemaTx.updateSchemaStatus(vertexLabel, SchemaStatus.DELETING);
-            for (Id indexLabelId : indexLabelIds) {
-                IndexLabelRemoveCallable.removeIndexLabel(graph, indexLabelId);
+            try {
+                for (Id ilId : indexLabelIds) {
+                    IndexLabelRemoveCallable.removeIndexLabel(graph, ilId);
+                }
+                // TODO: use event to replace direct call
+                // Deleting a vertex will automatically deletes the held edge
+                graphTx.removeVertices(vertexLabel);
+                removeSchema(schemaTx, vertexLabel);
+                /*
+                 * Should commit changes to backend store before release
+                 * delete lock
+                 */
+                graph.graph().tx().commit();
+            } catch (Throwable e) {
+                schemaTx.updateSchemaStatus(vertexLabel, SchemaStatus.UNDELETED);
+                throw e;
             }
-
-            // TODO: use event to replace direct call
-            // Deleting a vertex will automatically deletes the held edge
-            graphTx.removeVertices(vertexLabel);
-            removeSchema(schemaTx, vertexLabel);
-            // Should commit changes to backend store before release delete lock
-            graph.tx().commit();
         } finally {
             locks.unlock();
         }

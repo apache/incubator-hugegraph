@@ -20,7 +20,9 @@
 package com.baidu.hugegraph.type.define;
 
 import com.baidu.hugegraph.backend.BackendException;
+import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.CollectionUtil;
+import com.baidu.hugegraph.util.E;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
 
@@ -42,8 +44,18 @@ public interface SerialEnum {
         }
     }
 
-    @SuppressWarnings("unchecked")
     public static <T extends SerialEnum> T fromCode(Class<T> clazz, byte code) {
-        return (T) table.get(clazz, code);
+        @SuppressWarnings("unchecked")
+        T value = (T) table.get(clazz, code);
+        if (value == null) {
+            E.checkArgument(false, "Can't construct %s from code %s",
+                            clazz.getSimpleName(), code);
+        }
+        return value;
+    }
+
+    public static void registerInternalEnums() {
+        SerialEnum.register(Action.class);
+        SerialEnum.register(HugeType.class);
     }
 }
