@@ -49,6 +49,15 @@ public class ServerOptions extends OptionHolder {
                     "http://127.0.0.1:8080"
             );
 
+    public static final ConfigOption<String> REST_SERVER_PROTOCOL =
+            new ConfigOption<>(
+                    "restserver.protocol",
+                    "The protocol of rest-server, allowed values are: " +
+                    "http or https.",
+                    allowValues("http", "https"),
+                    "http"
+            );
+
     public static final ConfigOption<String> SERVER_ID =
             new ConfigOption<>(
                     "server.id",
@@ -222,30 +231,21 @@ public class ServerOptions extends OptionHolder {
                     "hugegraph:9fd95c9c-711b-415b-b85f-d4df46ba5c31"
             );
 
-    public static final ConfigOption<String> SERVER_KEYSTORE_FILE =
+    public static final ConfigOption<String> SSL_KEYSTORE_FILE =
             new ConfigOption<>(
-                    "ssl.server_keystore_file",
+                    "ssl.keystore_file",
                     "The path of server keystore file used when https " +
                     "protocol is enabled.",
                     disallowEmpty(),
                     "hugegraph-server.keystore"
             );
 
-    public static final ConfigOption<String> SERVER_KEYSTORE_PASSWORD =
+    public static final ConfigOption<String> SSL_KEYSTORE_PASSWORD =
             new ConfigOption<>(
-                    "ssl.server_keystore_password",
-                    "The password of the path of the server keystore file " +
-                    "used when the https protocol is enabled.",
+                    "ssl.keystore_password",
+                    "The password of the server keystore file " +
+                    "when the https protocol is enabled.",
                     null,
                     "hugegraph"
-            );
-
-    public static final ConfigOption<String> SERVER_PROTOCOL =
-            new ConfigOption<>(
-                    "server.protocol",
-                    "The protocol of rest-server, allowed values are: " +
-                    "http or https.",
-                    allowValues("http", "https"),
-                    "http"
             );
 }
