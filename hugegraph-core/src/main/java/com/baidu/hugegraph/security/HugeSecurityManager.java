@@ -142,7 +142,8 @@ public class HugeSecurityManager extends SecurityManager {
     public void checkAccess(Thread thread) {
         if (callFromGremlin() && !callFromCaffeine() &&
             !callFromAsyncTasks() && !callFromEventHubNotify() &&
-            !callFromBackendThread() && !callFromBackendHbase()) {
+            !callFromBackendThread() && !callFromBackendHbase() &&
+            !callFromRaftMethods()) {
             throw newSecurityException(
                   "Not allowed to access thread via Gremlin");
         }
@@ -153,7 +154,8 @@ public class HugeSecurityManager extends SecurityManager {
     public void checkAccess(ThreadGroup threadGroup) {
         if (callFromGremlin() && !callFromCaffeine() &&
             !callFromAsyncTasks() && !callFromEventHubNotify() &&
-            !callFromBackendThread() && !callFromBackendHbase()) {
+            !callFromBackendThread() && !callFromBackendHbase() &&
+            !callFromRaftMethods()) {
             throw newSecurityException(
                   "Not allowed to access thread group via Gremlin");
         }
@@ -305,7 +307,8 @@ public class HugeSecurityManager extends SecurityManager {
     @Override
     public void checkPropertyAccess(String key) {
         if (!callFromAcceptClassLoaders() && callFromGremlin() &&
-            !WHITE_SYSTEM_PROPERTYS.contains(key) && !callFromBackendHbase()) {
+            !WHITE_SYSTEM_PROPERTYS.contains(key) && !callFromBackendHbase() &&
+            !callFromRaftMethods()) {
             throw newSecurityException(
                   "Not allowed to access system property(%s) via Gremlin", key);
         }
@@ -423,6 +426,11 @@ public class HugeSecurityManager extends SecurityManager {
     private static boolean callFromBackendHbase() {
         // TODO: remove this unsafe entrance
         return callFromWorkerWithClass(HBASE_CLASSES);
+    }
+
+    private static boolean callFromRaftMethods() {
+        return callFromMethod("com.baidu.hugegraph.backend.store.raft.rpc.RpcForwarder",
+                              "forwardToLeader");
     }
 
     private static boolean callFromWorkerWithClass(Set<String> classes) {
