@@ -500,6 +500,9 @@ public class RocksDBStdSessions extends RocksDBSessions {
             cf.setMaxWriteBufferNumberToMaintain(
                     conf.get(RocksDBOptions.MAX_MEMTABLES_TO_MAINTAIN));
 
+            cf.setLevelCompactionDynamicLevelBytes(
+                    conf.get(RocksDBOptions.DYNAMIC_LEVEL_BYTES));
+
             // https://github.com/facebook/rocksdb/wiki/Block-Cache
             BlockBasedTableConfig tableConfig = new BlockBasedTableConfig();
             long cacheCapacity = conf.get(RocksDBOptions.BLOCK_CACHE_CAPACITY);
