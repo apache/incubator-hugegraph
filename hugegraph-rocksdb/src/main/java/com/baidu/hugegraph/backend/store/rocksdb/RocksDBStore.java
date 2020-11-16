@@ -60,6 +60,7 @@ import com.baidu.hugegraph.backend.store.rocksdb.RocksDBSessions.Session;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.exception.ConnectionException;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.util.Consumers;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.ExecutorUtil;
 import com.baidu.hugegraph.util.GZipUtil;
@@ -205,8 +206,8 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         waitOpenFinish(futures, openPool);
     }
 
-    private static void waitOpenFinish(List<Future<?>> futures,
-                                       ExecutorService openPool) {
+    private void waitOpenFinish(List<Future<?>> futures,
+                                ExecutorService openPool) {
         for (Future<?> future : futures) {
             try {
                 future.get();
@@ -217,6 +218,16 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         if (openPool.isShutdown()) {
             return;
         }
+
+        this.sessions.session();
+        try {
+            Consumers.executeOncePerThread(openPool, OPEN_POOL_THREADS,
+                                           () -> this.sessions.closeSession());
+        } catch (InterruptedException e) {
+            throw new BackendException("Failed to close session opened by " +
+                                       "open-pool");
+        }
+
         boolean terminated = false;
         openPool.shutdown();
         try {
