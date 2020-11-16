@@ -321,11 +321,11 @@ public class MultiGraphsTest {
         }, e -> {
             Throwable root = HugeException.rootCause(e);
             Assert.assertInstanceOf(RocksDBException.class, root);
-            Assert.assertContains("While mkdir if missing: /g",
+            Assert.assertContains("lock hold by current process",
                                   root.getMessage());
         });
 
-        destoryGraphs(ImmutableList.of(g1, g2[0]));
+        destoryGraphs(ImmutableList.of(g1));
     }
 
     public static List<HugeGraph> openGraphs(String... graphNames) {
