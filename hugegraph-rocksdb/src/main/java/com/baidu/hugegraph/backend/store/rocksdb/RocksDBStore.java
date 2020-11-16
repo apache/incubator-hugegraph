@@ -219,6 +219,12 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
             return;
         }
 
+        /*
+         * Transfer the session holder from db-open thread to main thread,
+         * otherwise once the db-open thread pool is closed, we can no longer
+         * close the session created by it, which will cause the rocksdb
+         * instance fail to close
+         */
         this.sessions.session();
         try {
             Consumers.executeOncePerThread(openPool, OPEN_POOL_THREADS,
