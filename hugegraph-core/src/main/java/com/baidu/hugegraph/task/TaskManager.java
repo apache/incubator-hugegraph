@@ -88,7 +88,7 @@ public final class TaskManager {
         E.checkArgumentNotNull(graph, "The graph can't be null");
 
         TaskScheduler scheduler = new StandardTaskScheduler(graph,
-                                  this.taskExecutor,this.taskDbExecutor,
+                                  this.taskExecutor, this.taskDbExecutor,
                                   this.serverInfoDbExecutor);
         this.schedulers.put(graph, scheduler);
     }
@@ -148,11 +148,6 @@ public final class TaskManager {
             Thread.yield();
             return null;
         };
-        try {
-            this.serverInfoDbExecutor.submit(closeTx).get();
-        } catch (Exception e) {
-            throw new HugeException("Exception when closing scheduler tx", e);
-        }
         try {
             this.schedulerExecutor.submit(closeTx).get();
         } catch (Exception e) {

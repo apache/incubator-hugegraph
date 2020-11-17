@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -173,7 +174,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
 
         if (this.sessions != null && !this.sessions.closed()) {
             LOG.debug("Store {} has been opened before", this.store);
-            this.sessions.useSession();
+            this.useSessions();
             return;
         }
 
@@ -225,10 +226,10 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
          * close the session created by it, which will cause the rocksdb
          * instance fail to close
          */
-        this.sessions.session();
+        this.useSessions();
         try {
             Consumers.executeOncePerThread(openPool, OPEN_POOL_THREADS,
-                                           () -> this.sessions.closeSession());
+                                           this::closeSessions);
         } catch (InterruptedException e) {
             throw new BackendException("Failed to close session opened by " +
                                        "open-pool");
@@ -356,7 +357,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         LOG.debug("Store close: {}", this.store);
 
         this.checkOpened();
-        this.sessions.close();
+        this.closeSessions();
     }
 
     @Override
@@ -660,6 +661,25 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         }
     }
 
+    private final void useSessions() {
+        for (RocksDBSessions sessions : this.sessions()) {
+            sessions.useSession();
+        }
+    }
+
+    private final void closeSessions() {
+        Iterator<Map.Entry<String, RocksDBSessions>> iter = dbs.entrySet()
+                                                               .iterator();
+        while (iter.hasNext()) {
+            Map.Entry<String, RocksDBSessions> entry = iter.next();
+            RocksDBSessions sessions = entry.getValue();
+            boolean closed = sessions.close();
+            if (closed) {
+                iter.remove();
+            }
+        }
+    }
+
     private Session findMatchedSession(File snapshotFile) {
         String fileName = snapshotFile.getName();
         for (Session session : this.session()) {
@@ -685,6 +705,10 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
             list.add(db(disk).session());
         }
         return list;
+    }
+
+    private final Collection<RocksDBSessions> sessions() {
+        return dbs.values();
     }
 
     private final void parseTableDiskMapping(Map<String, String> disks,
