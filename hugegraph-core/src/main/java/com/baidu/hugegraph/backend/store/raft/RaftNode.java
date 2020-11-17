@@ -282,6 +282,7 @@ public class RaftNode {
         /**
          * Maybe useful in the future
          */
+        @SuppressWarnings("unused")
         private boolean isRpcTimeout(Status status) {
             String expectMsg = "Invoke timeout";
             return RaftError.EINTERNAL == status.getRaftError() &&
