@@ -96,10 +96,10 @@ public class RestClientTest {
 
         public RestClientImpl(String url, String user, String password,
                               int timeout, int maxTotal, int maxPerRoute,
-                              String protocol, String trustStoreFile,
-                              String trustStorePassword, int status) {
+                              String trustStoreFile, String trustStorePassword,
+                              int status) {
             super(url, user, password, timeout, maxTotal, maxPerRoute,
-                  protocol, trustStoreFile, trustStorePassword);
+                  trustStoreFile, trustStorePassword);
             this.status = status;
             this.headers = ImmutableMultivaluedMap.empty();
             this.content = "";
@@ -225,7 +225,7 @@ public class RestClientTest {
         String trustStoreFile = "src/test/resources/cacerts.jks";
         String trustStorePassword = "changeit";
         RestClient client = new RestClientImpl("/test", "user", "", 1000,
-                                               10, 5, "https", trustStoreFile,
+                                               10, 5, trustStoreFile,
                                                trustStorePassword, 200);
         RestResult restResult = client.post("path", "body");
         Assert.assertEquals(200, restResult.status());

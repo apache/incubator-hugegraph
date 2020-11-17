@@ -47,6 +47,11 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Variant;
 
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.http.config.Registry;
+import org.apache.http.config.RegistryBuilder;
+import org.apache.http.conn.socket.ConnectionSocketFactory;
+import org.apache.http.conn.socket.PlainConnectionSocketFactory;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.pool.PoolStats;
 import org.glassfish.jersey.SslConfigurator;
@@ -60,6 +65,7 @@ import org.glassfish.jersey.internal.util.collection.Refs;
 import org.glassfish.jersey.message.GZipEncoder;
 import org.glassfish.jersey.uri.UriComponent;
 
+import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.ExecutorUtil;
 import com.google.common.collect.ImmutableMap;
 
@@ -112,25 +118,19 @@ public abstract class AbstractRestClient implements RestClient {
 
     public AbstractRestClient(String url, String user, String password,
                               int timeout, int maxTotal, int maxPerRoute,
-                              String protocol, String trustStoreFile,
+                              String trustStoreFile,
                               String trustStorePassword) {
         this(url, new ConfigBuilder().configTimeout(timeout)
                                      .configUser(user, password)
                                      .configPool(maxTotal, maxPerRoute)
-                                     .configSSL(protocol, trustStoreFile,
+                                     .configSSL(trustStoreFile,
                                                 trustStorePassword)
                                      .build());
     }
 
     public AbstractRestClient(String url, ClientConfig config) {
-        Client client = null;
-        Object protocol = config.getProperty("protocol");
-        if (protocol != null && protocol.equals("https")) {
-            client = wrapTrustConfig(url, config);
-        } else {
-            client = ClientBuilder.newClient(config);
-        }
-        this.client = client;
+        configConnectionManager(url, config);
+        this.client = ClientBuilder.newClient(config);
         this.client.register(GZipEncoder.class);
         this.target = this.client.target(url);
         this.pool = (PoolingHttpClientConnectionManager) config.getProperty(
@@ -340,25 +340,69 @@ public abstract class AbstractRestClient implements RestClient {
         return Pair.of(builder, entity);
     }
 
-    private static Client wrapTrustConfig(String url, ClientConfig config) {
-        SslConfigurator sslConfig = SslConfigurator.newInstance();
-        String trustStoreFile = config.getProperty("trustStoreFile").toString();
-        String trustStorePassword = config.getProperty("trustStorePassword")
-                                          .toString();
-        sslConfig.trustStoreFile(trustStoreFile)
-                 .trustStorePassword(trustStorePassword);
-        sslConfig.securityProtocol("SSL");
-        SSLContext context = sslConfig.createSSLContext();
+    private static void configConnectionManager(String url, ClientConfig conf) {
+        /*
+         * Using httpclient with connection pooling, and configuring the
+         * jersey connector, reference:
+         * http://www.theotherian.com/2013/08/jersey-client-2.0-httpclient-timeouts-max-connections.html
+         * https://stackoverflow.com/questions/43228051/memory-issue-with-jax-rs-using-jersey/46175943#46175943
+         *
+         * But the jersey that has been released in the maven central
+         * repository seems to have a bug.
+         * https://github.com/jersey/jersey/pull/3752
+         */
+        PoolingHttpClientConnectionManager pool = connectionManager(url, conf);
+        Object maxTotal = conf.getProperty("maxTotal");
+        Object maxPerRoute = conf.getProperty("maxPerRoute");
+        if (maxTotal != null) {
+            pool.setMaxTotal((int) maxTotal);
+        }
+        if (maxPerRoute != null) {
+            pool.setDefaultMaxPerRoute((int) maxPerRoute);
+        }
+        conf.property(ApacheClientProperties.CONNECTION_MANAGER, pool);
+        conf.connectorProvider(new ApacheConnectorProvider());
+    }
+
+    private static PoolingHttpClientConnectionManager connectionManager(
+                                                      String url,
+                                                      ClientConfig conf) {
+        String protocol = (String) conf.getProperty("protocol");
+        if (protocol == null || protocol.equals("http")) {
+            return new PoolingHttpClientConnectionManager(TTL, TimeUnit.HOURS);
+        }
+
+        assert protocol.equals("https");
+        String trustStoreFile = (String) conf.getProperty("trustStoreFile");
+        E.checkArgument(trustStoreFile != null && !trustStoreFile.isEmpty(),
+                        "The trust store file must be set when use https");
+        String trustStorePass = (String) conf.getProperty("trustStorePassword");
+        E.checkArgument(trustStorePass != null,
+                        "The trust store password must be set when use https");
+        SSLContext context = SslConfigurator.newInstance()
+                                            .trustStoreFile(trustStoreFile)
+                                            .trustStorePassword(trustStorePass)
+                                            .securityProtocol("SSL")
+                                            .createSSLContext();
         TrustManager[] trustAllManager = NoCheckTrustManager.create();
         try {
             context.init(null, trustAllManager, new SecureRandom());
         } catch (KeyManagementException e) {
             throw new ClientException("Failed to init security management", e);
         }
-        return ClientBuilder.newBuilder()
-                            .hostnameVerifier(new HostNameVerifier(url))
-                            .sslContext(context)
-                            .build();
+
+        HostnameVerifier verifier = new HostNameVerifier(url);
+        ConnectionSocketFactory httpSocketFactory, httpsSocketFactory;
+        httpSocketFactory = PlainConnectionSocketFactory.getSocketFactory();
+        httpsSocketFactory = new SSLConnectionSocketFactory(context, verifier);
+        Registry<ConnectionSocketFactory> registry =
+                RegistryBuilder.<ConnectionSocketFactory>create()
+                .register("http", httpSocketFactory)
+                .register("https", httpsSocketFactory)
+                .build();
+        return new PoolingHttpClientConnectionManager(registry, null,
+                                                      null, null, TTL,
+                                                      TimeUnit.HOURS);
     }
 
     public static String encode(String raw) {
@@ -441,22 +485,8 @@ public abstract class AbstractRestClient implements RestClient {
         }
 
         public ConfigBuilder configPool(int maxTotal, int maxPerRoute) {
-            /*
-             * Using httpclient with connection pooling, and configuring the
-             * jersey connector, reference:
-             * http://www.theotherian.com/2013/08/jersey-client-2.0-httpclient-timeouts-max-connections.html
-             * https://stackoverflow.com/questions/43228051/memory-issue-with-jax-rs-using-jersey/46175943#46175943
-             *
-             * But the jersey that has been released in the maven central
-             * repository seems to have a bug.
-             * https://github.com/jersey/jersey/pull/3752
-             */
-            PoolingHttpClientConnectionManager pool;
-            pool = new PoolingHttpClientConnectionManager(TTL, TimeUnit.HOURS);
-            pool.setMaxTotal(maxTotal);
-            pool.setDefaultMaxPerRoute(maxPerRoute);
-            this.config.property(ApacheClientProperties.CONNECTION_MANAGER, pool);
-            this.config.connectorProvider(new ApacheConnectorProvider());
+            this.config.property("maxTotal", maxTotal);
+            this.config.property("maxPerRoute", maxPerRoute);
             return this;
         }
 
@@ -465,9 +495,14 @@ public abstract class AbstractRestClient implements RestClient {
             return this;
         }
 
-        public ConfigBuilder configSSL(String protocol, String trustStoreFile,
+        public ConfigBuilder configSSL(String trustStoreFile,
                                        String trustStorePassword) {
-            this.config.property("protocol", protocol);
+            if (trustStoreFile == null || trustStoreFile.isEmpty() ||
+                trustStorePassword == null) {
+                this.config.property("protocol", "http");
+            } else {
+                this.config.property("protocol", "https");
+            }
             this.config.property("trustStoreFile", trustStoreFile);
             this.config.property("trustStorePassword", trustStorePassword);
             return this;
