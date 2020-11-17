@@ -260,7 +260,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
             sessions = this.openSessionPool(config, dataPath,
                                             walPath, tableNames);
         } catch (RocksDBException e) {
-            RocksDBSessions origin = dbs.get(dataPath);
+            RocksDBSessions origin = this.dbs.get(dataPath);
             if (origin != null) {
                 if (e.getMessage().contains("No locks available")) {
                     // Open twice, but we should support keyspace
@@ -305,7 +305,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
 
         if (sessions != null) {
             // May override the original session pool
-            dbs.put(dataPath, sessions);
+            this.dbs.put(dataPath, sessions);
             sessions.session();
             LOG.debug("Store opened: {}", dataPath);
         }
@@ -603,7 +603,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         writeLock.lock();
         try {
             // Every rocksdb instance should create an snapshot
-            for (RocksDBSessions sessions : this.dbs.values()) {
+            for (RocksDBSessions sessions : this.sessions()) {
                 sessions.createSnapshot(parentPath);
             }
         } finally {
@@ -633,7 +633,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
              * if close after copying the snapshot directory to origin position,
              * it may produce dirty data.
              */
-            for (RocksDBSessions sessions : this.dbs.values()) {
+            for (RocksDBSessions sessions : this.sessions()) {
                 sessions.forceCloseRocksDB();
             }
             // Copy snapshot file to dest file
@@ -652,7 +652,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
                 }
             }
             // Reload rocksdb instance
-            for (RocksDBSessions sessions : this.dbs.values()) {
+            for (RocksDBSessions sessions : this.sessions()) {
                 sessions.reload();
             }
             LOG.info("The store {} load snapshot successfully", this.store);
@@ -670,8 +670,8 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
     }
 
     private final void closeSessions() {
-        Iterator<Map.Entry<String, RocksDBSessions>> iter = dbs.entrySet()
-                                                               .iterator();
+        Iterator<Map.Entry<String, RocksDBSessions>> iter = this.dbs.entrySet()
+                                                                    .iterator();
         while (iter.hasNext()) {
             Map.Entry<String, RocksDBSessions> entry = iter.next();
             RocksDBSessions sessions = entry.getValue();
@@ -711,7 +711,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
     }
 
     private final Collection<RocksDBSessions> sessions() {
-        return dbs.values();
+        return this.dbs.values();
     }
 
     private final void parseTableDiskMapping(Map<String, String> disks,
