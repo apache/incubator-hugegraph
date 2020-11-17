@@ -19,8 +19,13 @@
 
 package com.baidu.hugegraph.util;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -183,6 +188,40 @@ public class Consumers<V> {
         if (this.exception != null) {
             throw this.throwException();
         }
+    }
+
+    public static void executeOncePerThread(ExecutorService executor,
+                                            int totalThreads,
+                                            Runnable callback)
+                                            throws InterruptedException {
+        // Ensure callback execute at least once for every thread
+        final Map<Thread, Integer> threadsTimes = new ConcurrentHashMap<>();
+        final List<Callable<Void>> tasks = new ArrayList<>();
+        final Callable<Void> task = () -> {
+            Thread current = Thread.currentThread();
+            threadsTimes.putIfAbsent(current, 0);
+            int times = threadsTimes.get(current);
+            if (times == 0) {
+                callback.run();
+                // Let other threads run
+                Thread.yield();
+            } else {
+                assert times < totalThreads;
+                assert threadsTimes.size() < totalThreads;
+                E.checkState(tasks.size() == totalThreads,
+                             "Bad tasks size: %s", tasks.size());
+                // Let another thread run and wait for it
+                executor.submit(tasks.get(0)).get();
+            }
+            threadsTimes.put(current, ++times);
+            return null;
+        };
+
+        // NOTE: expect each task thread to perform a close operation
+        for (int i = 0; i < totalThreads; i++) {
+            tasks.add(task);
+        }
+        executor.invokeAll(tasks);
     }
 
     public static ExecutorService newThreadPool(String prefix, int workers) {

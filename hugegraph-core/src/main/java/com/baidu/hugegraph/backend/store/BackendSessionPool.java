@@ -94,7 +94,7 @@ public abstract class BackendSessionPool {
         session.update();
     }
 
-    public Pair<Integer, Integer> closeSession() {
+    private Pair<Integer, Integer> closeSession() {
         int sessionCount = this.sessionCount.get();
         if (sessionCount <= 0) {
             assert sessionCount == 0 : sessionCount;
@@ -104,7 +104,7 @@ public abstract class BackendSessionPool {
         assert sessionCount > 0 : sessionCount;
         BackendSession session = this.threadLocalSession.get();
         if (session == null) {
-            LOG.warn("Current session has ever been closed: {}", this);
+            LOG.debug("Current session has ever been closed: {}", this);
             return Pair.of(sessionCount, -1);
         }
 
@@ -134,7 +134,7 @@ public abstract class BackendSessionPool {
         }
     }
 
-    public void close() {
+    public boolean close() {
         Pair<Integer, Integer> result = Pair.of(-1, -1);
         try {
             result = this.closeSession();
@@ -146,6 +146,7 @@ public abstract class BackendSessionPool {
         LOG.debug("Now(after close({})) session count is: {}, " +
                   "current session reference is: {}",
                   this, result.getLeft(), result.getRight());
+        return result.getLeft() == 0;
     }
 
     public boolean closed() {
