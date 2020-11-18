@@ -263,7 +263,14 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
             RocksDBSessions origin = this.dbs.get(dataPath);
             if (origin != null) {
                 if (e.getMessage().contains("No locks available")) {
-                    // Open twice, but we should support keyspace
+                    /*
+                     * Open twice, copy a RocksDBSessions reference, since from
+                     * v0.11.2 release we don't support multi graphs share
+                     * rocksdb instance (before v0.11.2 graphs with different
+                     * CF-prefix share one rocksdb instance and data path),
+                     * so each graph has its independent data paths, but multi
+                     * CFs may share same optimized disk(or optimized disk path).
+                     */
                     sessions = origin.copy(config, this.database, this.store);
                 }
             }
