@@ -37,7 +37,6 @@ import com.alipay.sofa.jraft.error.RaftError;
 import com.alipay.sofa.jraft.storage.snapshot.SnapshotReader;
 import com.alipay.sofa.jraft.storage.snapshot.SnapshotWriter;
 import com.alipay.sofa.jraft.util.CRC64;
-import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.baidu.hugegraph.util.ZipUtil;
@@ -49,22 +48,27 @@ public class StoreSnapshotFile {
     private static final String SNAPSHOT_DIR = "ss";
     private static final String SNAPSHOT_ARCHIVE = "ss.zip";
 
-    public void save(BackendStore store, SnapshotWriter writer,
-                     Closure done, ExecutorService executor) {
+    private final RaftBackendStore[] stores;
+
+    public StoreSnapshotFile(RaftBackendStore[] stores) {
+        this.stores = stores;
+    }
+
+    public void save(SnapshotWriter writer, Closure done,
+                     ExecutorService executor) {
         String writerPath = writer.getPath();
         String snapshotPath = Paths.get(writerPath, SNAPSHOT_DIR).toString();
         try {
-            this.doSnapshotSave(store, snapshotPath)
-                .whenComplete((metaBuilder, throwable) -> {
-                if (throwable == null) {
+            this.doSnapshotSave(snapshotPath).whenComplete((metaBuilder, t) -> {
+                if (t == null) {
                     executor.execute(() -> compressSnapshot(writer, metaBuilder,
                                                             done));
                 } else {
-                    LOG.error("Failed to save snapshot, path={}, files={}, {}.",
-                              writerPath, writer.listFiles(), throwable);
+                    LOG.error("Failed to save snapshot, path={}, files={}",
+                              writerPath, writer.listFiles(), t);
                     done.run(new Status(RaftError.EIO,
                              "Failed to save snapshot at %s, error is %s",
-                             writerPath, throwable.getMessage()));
+                             writerPath, t.getMessage()));
                 }
             });
         } catch (Throwable t) {
@@ -76,17 +80,17 @@ public class StoreSnapshotFile {
         }
     }
 
-    public boolean load(BackendStore store, SnapshotReader reader) {
+    public boolean load(SnapshotReader reader) {
         LocalFileMeta meta = (LocalFileMeta) reader.getFileMeta(SNAPSHOT_ARCHIVE);
         String readerPath = reader.getPath();
         if (meta == null) {
-            LOG.error("Can't find snapshot file, path={}.", readerPath);
+            LOG.error("Can't find snapshot archive file, path={}.", readerPath);
             return false;
         }
         String snapshotPath = Paths.get(readerPath, SNAPSHOT_DIR).toString();
         try {
             this.decompressSnapshot(readerPath, meta);
-            this.doSnapshotLoad(store, snapshotPath);
+            this.doSnapshotLoad(snapshotPath);
             File tmp = new File(snapshotPath);
             // Delete the decompressed temporary file. If the deletion fails
             // (although it is a small probability event), it may affect the
@@ -94,7 +98,7 @@ public class StoreSnapshotFile {
             // is to terminate the state machine immediately. Users can choose
             // to manually delete and restart according to the log information.
             if (tmp.exists()) {
-                FileUtils.forceDelete(new File(snapshotPath));
+                FileUtils.forceDelete(tmp);
             }
             return true;
         } catch (Throwable t) {
@@ -104,15 +108,22 @@ public class StoreSnapshotFile {
         }
     }
 
-    public CompletableFuture<LocalFileMeta.Builder> doSnapshotSave(
-                                                    BackendStore store,
-                                                    String snapshotPath) {
-        store.writeSnapshot(snapshotPath);
+    private CompletableFuture<LocalFileMeta.Builder> doSnapshotSave(
+                                                     String snapshotPath) {
+        for (RaftBackendStore store : this.stores) {
+            String parentPath = Paths.get(snapshotPath, store.store())
+                                     .toString();
+            store.writeSnapshot(parentPath);
+        }
         return CompletableFuture.completedFuture(LocalFileMeta.newBuilder());
     }
 
-    public void doSnapshotLoad(BackendStore store, String snapshotPath) {
-        store.readSnapshot(snapshotPath);
+    private void doSnapshotLoad(String snapshotPath) {
+        for (RaftBackendStore store : this.stores) {
+            String parentPath = Paths.get(snapshotPath, store.store())
+                                     .toString();
+            store.readSnapshot(parentPath);
+        }
     }
 
     private void compressSnapshot(SnapshotWriter writer,

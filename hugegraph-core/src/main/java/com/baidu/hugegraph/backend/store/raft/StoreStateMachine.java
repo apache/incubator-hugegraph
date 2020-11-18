@@ -60,7 +60,7 @@ public class StoreStateMachine extends StateMachineAdapter {
 
     public StoreStateMachine(RaftSharedContext context) {
         this.context = context;
-        this.snapshotFile = new StoreSnapshotFile();
+        this.snapshotFile = new StoreSnapshotFile(context.stores());
         this.funcs = new EnumMap<>(StoreAction.class);
         this.registerCommands();
     }
@@ -191,25 +191,16 @@ public class StoreStateMachine extends StateMachineAdapter {
     @Override
     public void onSnapshotSave(SnapshotWriter writer, Closure done) {
         LOG.debug("The node {} start snapshot save", this.node().nodeId());
-        for (BackendStore store : this.context.originStores()) {
-            this.snapshotFile.save(store, writer, done,
-                                   this.context.snapshotExecutor());
-        }
+        this.snapshotFile.save(writer, done, this.context.snapshotExecutor());
     }
 
     @Override
     public boolean onSnapshotLoad(SnapshotReader reader) {
-        if (this.node().selfIsLeader()) {
+        if (this.node() != null && this.node().selfIsLeader()) {
             LOG.warn("Leader is not supposed to load snapshot.");
             return false;
         }
-        LOG.debug("The node {} start snapshot load", this.node().nodeId());
-        for (BackendStore store : this.context.originStores()) {
-             if (!this.snapshotFile.load(store, reader)) {
-                 return false;
-             }
-        }
-        return true;
+        return this.snapshotFile.load(reader);
     }
 
     @Override

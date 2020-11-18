@@ -171,7 +171,7 @@ public class RaftNode {
             long consumedTime = System.currentTimeMillis() - beginTime;
             if (timeout > 0 && consumedTime >= timeout) {
                 throw new BackendException(
-                          "Waiting for raft group '{}' election timeout({}ms)",
+                          "Waiting for raft group '%s' election timeout(%sms)",
                           group, consumedTime);
             }
             LOG.warn("Waiting for raft group '{}' election cost {}s",
@@ -205,7 +205,7 @@ public class RaftNode {
             long consumedTime = System.currentTimeMillis() - beginTime;
             if (timeout > 0 && consumedTime >= timeout) {
                 throw new BackendException(
-                          "Waiting for raft group '{}' heartbeat timeout({}ms)",
+                          "Waiting for raft group '%s' heartbeat timeout(%sms)",
                           group, consumedTime);
             }
             LOG.warn("Waiting for raft group '{}' heartbeat cost {}s",
@@ -282,6 +282,7 @@ public class RaftNode {
         /**
          * Maybe useful in the future
          */
+        @SuppressWarnings("unused")
         private boolean isRpcTimeout(Status status) {
             String expectMsg = "Invoke timeout";
             return RaftError.EINTERNAL == status.getRaftError() &&

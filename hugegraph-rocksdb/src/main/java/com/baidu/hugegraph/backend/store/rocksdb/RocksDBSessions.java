@@ -47,6 +47,12 @@ public abstract class RocksDBSessions extends BackendSessionPool {
     public abstract RocksDBSessions copy(HugeConfig config,
                                          String database, String store);
 
+    public abstract void createSnapshot(String parentPath);
+
+    public abstract void reload() throws RocksDBException;
+
+    public abstract void forceCloseRocksDB();
+
     @Override
     public abstract Session session();
 
@@ -86,8 +92,6 @@ public abstract class RocksDBSessions extends BackendSessionPool {
                                                    byte[] keyFrom,
                                                    byte[] keyTo,
                                                    int scanType);
-
-        public abstract void createSnapshot(String parentPath);
 
         public BackendColumnIterator scan(String table,
                                           byte[] keyFrom,

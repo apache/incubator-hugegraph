@@ -78,7 +78,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
     private final String dataPath;
     private final String walPath;
 
-    private final RocksDB rocksdb;
+    private volatile RocksDB rocksdb;
     private final SstFileManager sstFileManager;
 
     private final Map<String, CFHandle> cfs;
@@ -251,9 +251,11 @@ public class RocksDBStdSessions extends RocksDBSessions {
         }
     }
 
-    @SuppressWarnings("unused")
-    private void reload() throws RocksDBException {
-        this.rocksdb.close();
+    @Override
+    public void reload() throws RocksDBException {
+        if (this.rocksdb.isOwningHandle()) {
+            this.rocksdb.close();
+        }
         this.cfs.values().forEach(CFHandle::destroy);
         // Init CFs options
         Set<String> mergedCFs = this.mergeOldCFs(this.dataPath, new ArrayList<>(
@@ -276,11 +278,15 @@ public class RocksDBStdSessions extends RocksDBSessions {
                                        null, null);
         options.setWalDir(this.walPath);
         options.setSstFileManager(this.sstFileManager);
-        // NOTE: before using this method, remeber to uncomment the next line
-        // this.rocksdb = RocksDB.open(options, this.dataPath, cfds, cfhs);
+        this.rocksdb = RocksDB.open(options, this.dataPath, cfds, cfhs);
         for (int i = 0; i < cfNames.size(); i++) {
             this.cfs.put(cfNames.get(i), new CFHandle(cfhs.get(i)));
         }
+    }
+
+    @Override
+    public void forceCloseRocksDB() {
+        this.rocksdb().close();
     }
 
     @Override
@@ -311,6 +317,30 @@ public class RocksDBStdSessions extends RocksDBSessions {
     public RocksDBSessions copy(HugeConfig config,
                                 String database, String store) {
         return new RocksDBStdSessions(config, database, store, this);
+    }
+
+    @Override
+    public void createSnapshot(String parentPath) {
+        String md5 = GZipUtil.md5(this.dataPath);
+        String snapshotPath = Paths.get(parentPath, md5).toString();
+        // https://github.com/facebook/rocksdb/wiki/Checkpoints
+        try (Checkpoint checkpoint = Checkpoint.create(this.rocksdb)) {
+            String tempPath = snapshotPath + "_temp";
+            File tempFile = new File(tempPath);
+            FileUtils.deleteDirectory(tempFile);
+
+            FileUtils.forceMkdir(tempFile.getParentFile());
+            checkpoint.createCheckpoint(tempPath);
+            File snapshotFile = new File(snapshotPath);
+            FileUtils.deleteDirectory(snapshotFile);
+            if (!tempFile.renameTo(snapshotFile)) {
+                throw new IOException(String.format("Failed to rename %s to %s",
+                                                    tempFile, snapshotFile));
+            }
+        } catch (Exception e) {
+            throw new BackendException("Failed to write snapshot at path %s",
+                                       e, snapshotPath);
+        }
     }
 
     @Override
@@ -899,32 +929,6 @@ public class RocksDBStdSessions extends RocksDBSessions {
                 RocksIterator iter = rocksdb().newIterator(cf.get());
                 return new ColumnIterator(table, iter, keyFrom,
                                           keyTo, scanType);
-            }
-        }
-
-        @Override
-        public void createSnapshot(String parentPath) {
-            String md5 = GZipUtil.md5(this.dataPath());
-            String snapshotPath = Paths.get(parentPath, md5).toString();
-            // https://github.com/facebook/rocksdb/wiki/Checkpoints
-            try (Checkpoint checkpoint = Checkpoint.create(rocksdb())) {
-                String tempPath = snapshotPath + "_temp";
-                File tempFile = new File(tempPath);
-                FileUtils.deleteDirectory(tempFile);
-
-                FileUtils.forceMkdir(tempFile.getParentFile());
-                checkpoint.createCheckpoint(tempPath);
-                File snapshotFile = new File(snapshotPath);
-                FileUtils.deleteDirectory(snapshotFile);
-                if (!tempFile.renameTo(snapshotFile)) {
-                    throw new IOException(String.format(
-                              "Failed to rename %s to %s",
-                              tempFile, snapshotFile));
-                }
-            } catch (Exception e) {
-                throw new BackendException(
-                          "Failed to write snapshot at path %s",
-                          e, snapshotPath);
             }
         }
     }

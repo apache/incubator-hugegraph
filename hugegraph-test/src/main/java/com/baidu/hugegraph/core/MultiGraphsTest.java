@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.core;
 
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -36,6 +37,7 @@ import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.IdGenerator;
+import com.baidu.hugegraph.backend.store.rocksdb.RocksDBOptions;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.exception.ExistedException;
 import com.baidu.hugegraph.schema.EdgeLabel;
@@ -306,8 +308,9 @@ public class MultiGraphsTest {
         HugeGraph g1 = openGraphWithBackend(
                        "g1", "rocksdb", "binary",
                        "rocksdb.data_disks",
-                       "[g/secondary_index:rocksdb-index," +
-                       " g/range_int_index:rocksdb-index]");
+                       "[g/secondary_index:rocksdb-index1," +
+                       " g/range_int_index:rocksdb-index1," +
+                       " g/range_long_index:rocksdb-index2]");
         g1.initBackend();
         g1.clearBackend();
 
@@ -315,36 +318,43 @@ public class MultiGraphsTest {
         Assert.assertThrows(BackendException.class, () -> {
             g2[0] = openGraphWithBackend("g2", "rocksdb", "binary",
                                          "rocksdb.data_disks",
-                                         "[g/secondary_index:/," +
-                                         " g/range_int_index:rocksdb-index]");
+                                         "[g/range_int_index:rocksdb-index1]");
             g2[0].initBackend();
         }, e -> {
             Throwable root = HugeException.rootCause(e);
             Assert.assertInstanceOf(RocksDBException.class, root);
-            Assert.assertContains("While mkdir if missing: /g",
+            Assert.assertContains("lock hold by current process",
+                                  root.getMessage());
+            Assert.assertContains("No locks available",
                                   root.getMessage());
         });
 
-        destoryGraphs(ImmutableList.of(g1, g2[0]));
+        final HugeGraph[] g3 = new HugeGraph[1];
+        Assert.assertThrows(BackendException.class, () -> {
+            g3[0] = openGraphWithBackend("g3", "rocksdb", "binary",
+                                         "rocksdb.data_disks",
+                                         "[g/secondary_index:/]");
+            g3[0].initBackend();
+        }, e -> {
+            Throwable root = HugeException.rootCause(e);
+            Assert.assertInstanceOf(RocksDBException.class, root);
+            Assert.assertContains("While mkdir if missing",
+                                  root.getMessage());
+        });
+
+        destoryGraphs(ImmutableList.of(g1));
     }
 
-    public static List<HugeGraph> openGraphs(String... graphNames) {
+    private static List<HugeGraph> openGraphs(String... graphNames) {
         List<HugeGraph> graphs = new ArrayList<>(graphNames.length);
-        PropertiesConfiguration conf = Utils.getConf();
-        Configuration config = new BaseConfiguration();
-        for (Iterator<String> keys = conf.getKeys(); keys.hasNext();) {
-            String key = keys.next();
-            config.setProperty(key, conf.getProperty(key));
-        }
-        ((BaseConfiguration) config).setDelimiterParsingDisabled(true);
         for (String graphName : graphNames) {
-            config.setProperty(CoreOptions.STORE.name(), graphName);
+            Configuration config = buildConfig(graphName);
             graphs.add((HugeGraph) GraphFactory.open(config));
         }
         return graphs;
     }
 
-    public static void destoryGraphs(List<HugeGraph> graphs) {
+    private static void destoryGraphs(List<HugeGraph> graphs) {
         for (HugeGraph graph : graphs) {
             try {
                 graph.close();
@@ -354,9 +364,19 @@ public class MultiGraphsTest {
         }
     }
 
-    public static HugeGraph openGraphWithBackend(String graph, String backend,
-                                                 String serializer,
-                                                 String... configs) {
+    private static HugeGraph openGraphWithBackend(String graph, String backend,
+                                                  String serializer,
+                                                  String... configs) {
+        Configuration config = buildConfig(graph);
+        config.setProperty(CoreOptions.BACKEND.name(), backend);
+        config.setProperty(CoreOptions.SERIALIZER.name(), serializer);
+        for (int i = 0; i < configs.length;) {
+            config.setProperty(configs[i++], configs[i++]);
+        }
+        return ((HugeGraph) GraphFactory.open(config));
+    }
+
+    private static Configuration buildConfig(String graphName) {
         PropertiesConfiguration conf = Utils.getConf();
         Configuration config = new BaseConfiguration();
         for (Iterator<String> keys = conf.getKeys(); keys.hasNext();) {
@@ -364,12 +384,14 @@ public class MultiGraphsTest {
             config.setProperty(key, conf.getProperty(key));
         }
         ((BaseConfiguration) config).setDelimiterParsingDisabled(true);
-        config.setProperty(CoreOptions.STORE.name(), graph);
-        config.setProperty(CoreOptions.BACKEND.name(), backend);
-        config.setProperty(CoreOptions.SERIALIZER.name(), serializer);
-        for (int i = 0; i < configs.length;) {
-            config.setProperty(configs[i++], configs[i++]);
-        }
-        return ((HugeGraph) GraphFactory.open(config));
+
+        config.setProperty(CoreOptions.STORE.name(), graphName);
+        String dataPath = config.getString(RocksDBOptions.DATA_PATH.name());
+        config.setProperty(RocksDBOptions.DATA_PATH.name(),
+                           Paths.get(dataPath, graphName).toString());
+        String walPath = config.getString(RocksDBOptions.WAL_PATH.name());
+        config.setProperty(RocksDBOptions.WAL_PATH.name(),
+                           Paths.get(walPath, graphName).toString());
+        return config;
     }
 }
