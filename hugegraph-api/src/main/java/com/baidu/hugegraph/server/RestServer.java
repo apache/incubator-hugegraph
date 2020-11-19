@@ -70,7 +70,7 @@ public class RestServer {
     }
 
     private HttpServer configHttpServer(URI uri, ResourceConfig rc) {
-        String protocol = this.conf.get(ServerOptions.REST_SERVER_PROTOCOL);
+        String protocol = uri.getScheme();
         final HttpServer server;
         if (protocol != null && protocol.equals("https")) {
             SSLContextConfigurator sslContext = new SSLContextConfigurator();
