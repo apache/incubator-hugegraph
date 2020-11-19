@@ -95,7 +95,14 @@ public class RocksDBSstSessions extends RocksDBSessions {
     }
 
     @Override
-    public void createTable(String table) throws RocksDBException {
+    public synchronized void createTable(String... tables)
+                                         throws RocksDBException {
+        for (String table : tables) {
+            this.createTable(table);
+        }
+    }
+
+    private void createTable(String table) throws RocksDBException {
         EnvOptions env = new EnvOptions();
         Options options = new Options();
         RocksDBStdSessions.initOptions(this.config(), options, options,
@@ -109,6 +116,13 @@ public class RocksDBSstSessions extends RocksDBSessions {
     }
 
     @Override
+    public synchronized void dropTable(String... tables)
+                                       throws RocksDBException {
+        for (String table : tables) {
+            this.dropTable(table);
+        }
+    }
+
     public void dropTable(String table) throws RocksDBException {
         this.tables.remove(table);
     }
@@ -129,6 +143,20 @@ public class RocksDBSstSessions extends RocksDBSessions {
         return new RocksDBSstSessions(config, database, store, this);
     }
 
+    @Override
+    public void createSnapshot(String snapshotPath) {
+        throw new UnsupportedOperationException("createSnapshot");
+    }
+
+    @Override
+    public void reload() throws RocksDBException {
+        throw new UnsupportedOperationException("reload");
+    }
+
+    @Override
+    public void forceCloseRocksDB() {
+        throw new UnsupportedOperationException("forceCloseRocksDB");
+    }
 
     private SstFileWriter table(String table) {
         SstFileWriter sst = this.tables.get(table);
@@ -237,6 +265,16 @@ public class RocksDBSstSessions extends RocksDBSessions {
         @Override
         public void rollback() {
             this.batch.clear();
+        }
+
+        @Override
+        public String dataPath() {
+            return RocksDBSstSessions.this.dataPath;
+        }
+
+        @Override
+        public String walPath() {
+            return RocksDBSstSessions.this.dataPath;
         }
 
         /**

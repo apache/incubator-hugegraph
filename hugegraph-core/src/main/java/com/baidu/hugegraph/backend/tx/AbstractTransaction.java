@@ -19,8 +19,10 @@
 
 package com.baidu.hugegraph.backend.tx;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.BackendException;
@@ -31,13 +33,16 @@ import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.serializer.AbstractSerializer;
 import com.baidu.hugegraph.backend.store.BackendEntry;
+import com.baidu.hugegraph.backend.store.BackendEntryIterator;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
+import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Action;
+import com.baidu.hugegraph.type.define.GraphMode;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.google.common.util.concurrent.RateLimiter;
@@ -92,12 +97,28 @@ public abstract class AbstractTransaction implements Transaction {
         return this.store.features();
     }
 
-    public boolean initialized() {
+    public boolean storeInitialized() {
         return this.store.initialized();
     }
 
     public <R> R metadata(HugeType type, String meta, Object... args) {
         return this.store().metadata(type, meta, args);
+    }
+
+    public String graphName() {
+        return this.params().name();
+    }
+
+    public GraphMode graphMode() {
+        return this.params().mode();
+    }
+
+    public long taskWaitTimeout() {
+        return this.params().configuration().get(CoreOptions.TASK_WAIT_TIMEOUT);
+    }
+
+    public boolean syncDelete() {
+        return this.params().configuration().get(CoreOptions.TASK_SYNC_DELETION);
     }
 
     @Watched(prefix = "tx")
@@ -129,6 +150,16 @@ public abstract class AbstractTransaction implements Transaction {
         }
 
         Query squery = this.serializer.writeQuery(query);
+
+        // Do rate limit if needed
+        RateLimiter rateLimiter = this.graph.readRateLimiter();
+        if (rateLimiter != null && query.resultType().isGraph()) {
+            double time = rateLimiter.acquire(1);
+            if (time > 0) {
+                LOG.debug("Waited for {}s to query", time);
+            }
+            BackendEntryIterator.checkInterrupted();
+        }
 
         this.beforeRead();
         try {
@@ -175,13 +206,14 @@ public abstract class AbstractTransaction implements Transaction {
         }
 
         // Do rate limit if needed
-        RateLimiter rateLimiter = this.graph.rateLimiter();
+        RateLimiter rateLimiter = this.graph.writeRateLimiter();
         if (rateLimiter != null) {
             int size = this.mutationSize();
             double time = size > 0 ? rateLimiter.acquire(size) : 0.0;
             if (time > 0) {
                 LOG.debug("Waited for {}s to mutate {} item(s)", time, size);
             }
+            BackendEntryIterator.checkInterrupted();
         }
 
         // Do commit
@@ -335,10 +367,11 @@ public abstract class AbstractTransaction implements Transaction {
             /*
              * Rethrow the commit exception
              * The e.getMessage maybe too long to see key information,
-             * therefore use e.getCause
              */
-            throw new BackendException(
-                      "Failed to commit changes: %s", e1.getCause());
+            throw new BackendException("Failed to commit changes: %s(%s)",
+                                       StringUtils.abbreviateMiddle(
+                                       e1.getMessage(), ".", 256),
+                                       HugeException.rootCause(e1));
         }
     }
 

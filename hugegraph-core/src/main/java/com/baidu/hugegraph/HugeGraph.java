@@ -36,6 +36,7 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
+import com.baidu.hugegraph.backend.store.raft.RaftGroupManager;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -50,6 +51,7 @@ import com.baidu.hugegraph.traversal.optimize.HugeGraphStepStrategy;
 import com.baidu.hugegraph.traversal.optimize.HugeVertexStepStrategy;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.GraphMode;
+import com.baidu.hugegraph.type.define.NodeRole;
 
 /**
  * Graph interface for Gremlin operations
@@ -97,19 +99,27 @@ public interface HugeGraph extends Graph {
     @Override
     public Vertex addVertex(Object... keyValues);
     public void removeVertex(Vertex vertex);
+    public void removeVertex(String label, Object id);
     public <V> void addVertexProperty(VertexProperty<V> property);
     public <V> void removeVertexProperty(VertexProperty<V> property);
 
     public Edge addEdge(Edge edge);
     public void canAddEdge(Edge edge);
     public void removeEdge(Edge edge);
+    public void removeEdge(String label, Object id);
     public <V> void addEdgeProperty(Property<V> property);
     public <V> void removeEdgeProperty(Property<V> property);
 
+    public Vertex vertex(Object object);
+    @Override
+    public Iterator<Vertex> vertices(Object... objects);
     public Iterator<Vertex> vertices(Query query);
     public Iterator<Vertex> adjacentVertex(Object id);
     public boolean checkAdjacentVertexExist();
 
+    public Edge edge(Object object);
+    @Override
+    public Iterator<Edge> edges(Object... objects);
     public Iterator<Edge> edges(Query query);
     public Iterator<Vertex> adjacentVertices(Iterator<Edge> edges) ;
     public Iterator<Edge> adjacentEdges(Id vertexId);
@@ -119,13 +129,15 @@ public interface HugeGraph extends Graph {
     public String name();
     public String backend();
     public String backendVersion();
-    public boolean backendStoreInitialized();
     public BackendStoreSystemInfo backendStoreSystemInfo();
     public BackendFeatures backendStoreFeatures();
 
     public GraphMode mode();
     public void mode(GraphMode mode);
 
+    public void waitStarted();
+    public void serverStarted(Id serverId, NodeRole serverRole);
+    public boolean started();
     public boolean closed();
 
     public <T> T metadata(HugeType type, String meta, Object... args);
@@ -139,8 +151,11 @@ public interface HugeGraph extends Graph {
 
     public UserManager userManager();
     public TaskScheduler taskScheduler();
+    public RaftGroupManager raftGroupManager(String group);
 
     public void proxy(HugeGraph graph);
+
+    public boolean sameAs(HugeGraph graph);
 
     public long now();
 

@@ -22,7 +22,6 @@ package com.baidu.hugegraph.auth;
 import com.baidu.hugegraph.auth.SchemaDefine.UserElement;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.structure.HugeElement;
-import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.Namifiable;
 import com.baidu.hugegraph.util.E;
 
@@ -55,8 +54,12 @@ public class ResourceObject<V> {
 
     @Override
     public String toString() {
-        return String.format("ResourceObject{graph=%s,type=%s,operated=%s}",
-                             this.graph, this.type, this.operated);
+        Object operated = this.operated;
+        if (this.type.isUsers()) {
+            operated = ((UserElement) this.operated).idString();
+        }
+        return String.format("Resource{graph=%s,type=%s,operated=%s}",
+                             this.graph, this.type, operated);
     }
 
     public static ResourceObject<SchemaElement> of(String graph,
@@ -79,98 +82,5 @@ public class ResourceObject<V> {
     public static ResourceObject<?> of(String graph, ResourceType type,
                                        Namifiable elem) {
         return new ResourceObject<>(graph, type, elem);
-    }
-
-    public static enum ResourceType {
-
-        NONE,
-
-        STATUS,
-
-        VERTEX,
-
-        EDGE,
-
-        VERTEX_AGGR,
-
-        EDGE_AGGR,
-
-        VAR,
-
-        GREMLIN,
-
-        GREMLIN_JOB,
-
-        TASK,
-
-        PROPERTY_KEY,
-
-        VERTEX_LABEL,
-
-        EDGE_LABEL,
-
-        INDEX_LABEL, // include create/rebuild/delete index
-
-        META,
-
-        ALL,
-
-        GRANT,
-
-        USER_GROUP,
-
-        TARGET,
-
-        ROOT;
-
-        public boolean match(ResourceType type) {
-            if (this == type || this == ROOT ||
-                (this == ALL && type.ordinal() <= ALL.ordinal())) {
-                return true;
-            }
-            return this == type;
-        }
-
-        public boolean isGraph() {
-            int ord = this.ordinal();
-            return VERTEX.ordinal() <= ord && ord <= EDGE.ordinal();
-        }
-
-        public boolean isSchema() {
-            int ord = this.ordinal();
-            return PROPERTY_KEY.ordinal() <= ord && ord <= INDEX_LABEL.ordinal();
-        }
-
-        public boolean isUser() {
-            int ord = this.ordinal();
-            return GRANT.ordinal() <= ord && ord <= TARGET.ordinal();
-        }
-
-        public boolean isAny() {
-            return this == ALL || this == ROOT;
-        }
-
-        public static ResourceType from(HugeType type) {
-            switch (type) {
-                case VERTEX:
-                    return VERTEX;
-                case EDGE:
-                case EDGE_OUT:
-                case EDGE_IN:
-                    return EDGE;
-                case PROPERTY_KEY:
-                    return PROPERTY_KEY;
-                case VERTEX_LABEL:
-                    return VERTEX_LABEL;
-                case EDGE_LABEL:
-                    return EDGE_LABEL;
-                case INDEX_LABEL:
-                    return INDEX_LABEL;
-                default:
-                    // pass
-                    break;
-            }
-            return NONE;
-        }
     }
 }

@@ -34,7 +34,7 @@ public class JobCounters {
                                                   new ConcurrentHashMap<>();
 
     public JobCounter jobCounter(HugeGraphParams g) {
-        int batch = g.configuration().get(CoreOptions.EXPIRED_DELETE_BATCH);
+        int batch = g.configuration().get(CoreOptions.TASK_TTL_DELETE_BATCH);
         String graph = g.name();
         if (!this.jobCounters.containsKey(graph)) {
             this.jobCounters.putIfAbsent(graph, new JobCounter(batch));
@@ -68,7 +68,7 @@ public class JobCounters {
             this.jobs.incrementAndGet();
         }
 
-        public Set<HugeElement> edges() {
+        public Set<HugeElement> elements() {
             return this.elements;
         }
 

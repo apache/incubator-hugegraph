@@ -67,7 +67,7 @@ public class CassandraTables {
     private static final DataType TYPE_ID = DataType.blob();
     private static final DataType TYPE_PROP = DataType.blob();
 
-    private static final DataType TYPE_TTL = DataType.cint();
+    private static final DataType TYPE_TTL = DataType.bigint();
     private static final DataType TYPE_EXPIRED_TIME = DataType.bigint();
 
     private static final long COMMIT_DELETE_BATCH = Query.COMMIT_BATCH;
@@ -624,7 +624,7 @@ public class CassandraTables {
         @Override
         public void append(CassandraSessionPool.Session session,
                            CassandraBackendEntry.Row entry) {
-            assert entry.columns().size() == 4;
+            assert entry.columns().size() == 3 || entry.columns().size() == 4;
             Insert insert = this.buildInsert(entry);
             session.add(setTtl(insert, entry));
         }
@@ -632,7 +632,7 @@ public class CassandraTables {
         @Override
         public void eliminate(CassandraSessionPool.Session session,
                               CassandraBackendEntry.Row entry) {
-            assert entry.columns().size() == 4;
+            assert entry.columns().size() == 3 || entry.columns().size() == 4;
             this.delete(session, entry);
         }
     }
@@ -740,7 +740,7 @@ public class CassandraTables {
         @Override
         public void append(CassandraSessionPool.Session session,
                            CassandraBackendEntry.Row entry) {
-            assert entry.columns().size() == 4;
+            assert entry.columns().size() == 3 || entry.columns().size() == 4;
             Insert insert = this.buildInsert(entry);
             session.add(setTtl(insert, entry));
         }
@@ -748,7 +748,7 @@ public class CassandraTables {
         @Override
         public void eliminate(CassandraSessionPool.Session session,
                               CassandraBackendEntry.Row entry) {
-            assert entry.columns().size() == 4;
+            assert entry.columns().size() == 3 || entry.columns().size() == 4;
             this.delete(session, entry);
         }
     }

@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.backend.serializer;
 
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collection;
@@ -34,6 +35,7 @@ import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
+import com.baidu.hugegraph.util.Blob;
 import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.KryoUtil;
@@ -42,7 +44,7 @@ import com.baidu.hugegraph.util.StringEncoding;
 /**
  * class BytesBuffer is a util for read/write binary
  */
-public final class BytesBuffer {
+public final class BytesBuffer extends OutputStream {
 
     public static final int BYTE_LEN = Byte.BYTES;
     public static final int SHORT_LEN = Short.BYTES;
@@ -62,7 +64,8 @@ public final class BytesBuffer {
     public static final int ID_LEN_MAX = 0x7f + 1; // 128
     public static final int BIG_ID_LEN_MAX = 0x7fff + 1; // 32768
 
-    public static final byte STRING_ENDING_BYTE = (byte) 0xff;
+    public static final byte STRING_ENDING_BYTE = (byte) 0x00;
+    public static final byte STRING_ENDING_BYTE_FF = (byte) 0xff;
     public static final int STRING_LEN_MAX = UINT16_MAX;
     public static final long BLOB_LEN_MAX = 1 * Bytes.GB;
 
@@ -116,8 +119,13 @@ public final class BytesBuffer {
         return this.buffer;
     }
 
-    public BytesBuffer flip() {
+    public BytesBuffer forReadWritten() {
         this.buffer.flip();
+        return this;
+    }
+
+    public BytesBuffer forReadAll() {
+        this.buffer.position(this.buffer.limit());
         return this;
     }
 
@@ -140,7 +148,8 @@ public final class BytesBuffer {
     }
 
     public BytesBuffer copyFrom(BytesBuffer other) {
-        return this.write(other.bytes());
+        this.write(other.bytes());
+        return this;
     }
 
     public int remaining() {
@@ -172,27 +181,28 @@ public final class BytesBuffer {
         return this;
     }
 
-    public BytesBuffer write(int val) {
+    @Override
+    public void write(int val) {
         assert val <= UINT8_MAX;
         require(BYTE_LEN);
         this.buffer.put((byte) val);
-        return this;
     }
 
-    public BytesBuffer write(byte[] val) {
+    @Override
+    public void write(byte[] val) {
         require(BYTE_LEN * val.length);
         this.buffer.put(val);
-        return this;
     }
 
-    public BytesBuffer write(byte[] val, int offset, int length) {
+    @Override
+    public void write(byte[] val, int offset, int length) {
         require(BYTE_LEN * length);
         this.buffer.put(val, offset, length);
-        return this;
     }
 
     public BytesBuffer writeBoolean(boolean val) {
-        return this.write(val ? 1 : 0);
+        this.write(val ? 1 : 0);
+        return this;
     }
 
     public BytesBuffer writeChar(char val) {
@@ -326,14 +336,27 @@ public final class BytesBuffer {
         return StringEncoding.decode(this.readBytes());
     }
 
-    public BytesBuffer writeStringWithEnding(String val) {
-        if (!val.isEmpty()) {
-            byte[] bytes = StringEncoding.encode(val);
-            // assert '0xff' not exist in string-id-with-ending (utf8 bytes)
-            assert !Bytes.contains(bytes, STRING_ENDING_BYTE);
+    public BytesBuffer writeStringWithEnding(String value) {
+        if (!value.isEmpty()) {
+            byte[] bytes = StringEncoding.encode(value);
+            /*
+             * assert '0x00'/'0xFF' not exist in string index id
+             * NOTE:
+             *   0x00 is NULL in UTF8(or ASCII) bytes
+             *   0xFF is not a valid byte in UTF8 bytes
+             */
+            assert !Bytes.contains(bytes, STRING_ENDING_BYTE_FF) :
+                   "Invalid UTF8 bytes: " + value;
+            if (Bytes.contains(bytes, STRING_ENDING_BYTE)) {
+                E.checkArgument(false,
+                                "Can't contains byte '0x00' in string: '%s'",
+                                value);
+            }
             this.write(bytes);
         }
         /*
+         * Choose 0x00 as ending symbol (see #1057)
+         * The following is out of date:
          * A reasonable ending symbol should be 0x00(to ensure order), but
          * considering that some backends like PG do not support 0x00 string,
          * so choose 0xFF currently.
@@ -560,7 +583,9 @@ public final class BytesBuffer {
                 this.writeString((String) value);
                 break;
             case BLOB:
-                this.writeBigBytes((byte[]) value);
+                byte[] bytes = value instanceof byte[] ?
+                               (byte[]) value : ((Blob) value).bytes();
+                this.writeBigBytes(bytes);
                 break;
             case UUID:
                 UUID uuid = (UUID) value;
@@ -593,7 +618,7 @@ public final class BytesBuffer {
             case TEXT:
                 return this.readString();
             case BLOB:
-                return this.readBigBytes();
+                return Blob.wrap(this.readBigBytes());
             case UUID:
                 return new UUID(this.readLong(), this.readLong());
             default:
@@ -710,12 +735,14 @@ public final class BytesBuffer {
 
         this.write(bytes);
         if (type.isStringIndex()) {
-            // Not allow '0xff' exist in string-id-with-ending
-            E.checkArgument(!Bytes.contains(bytes, STRING_ENDING_BYTE),
-                            "The %s type index id can't contains " +
-                            "byte '0x%s', but got: 0x%s", type,
-                            Bytes.toHex(STRING_ENDING_BYTE),
-                            Bytes.toHex(bytes));
+            if (Bytes.contains(bytes, STRING_ENDING_BYTE)) {
+                // Not allow STRING_ENDING_BYTE exist in string index id
+                E.checkArgument(false,
+                                "The %s type index id can't contains " +
+                                "byte '0x%s', but got: 0x%s", type,
+                                Bytes.toHex(STRING_ENDING_BYTE),
+                                Bytes.toHex(bytes));
+            }
             if (withEnding) {
                 this.writeStringWithEnding("");
             }
@@ -878,10 +905,9 @@ public final class BytesBuffer {
 
     private byte[] readBytesWithEnding() {
         int start = this.buffer.position();
-        boolean foundEnding =false;
-        byte current;
+        boolean foundEnding = false;
         while (this.remaining() > 0) {
-            current = this.read();
+            byte current = this.read();
             if (current == STRING_ENDING_BYTE) {
                 foundEnding = true;
                 break;

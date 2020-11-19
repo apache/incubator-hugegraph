@@ -27,10 +27,12 @@ import org.junit.runners.Suite;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.core.PropertyCoreTest.EdgePropertyCoreTest;
 import com.baidu.hugegraph.core.PropertyCoreTest.VertexPropertyCoreTest;
 import com.baidu.hugegraph.dist.RegisterUtil;
 import com.baidu.hugegraph.testutil.Utils;
+import com.baidu.hugegraph.type.define.NodeRole;
 import com.baidu.hugegraph.util.Log;
 
 @RunWith(Suite.class)
@@ -46,7 +48,8 @@ import com.baidu.hugegraph.util.Log;
     RestoreCoreTest.class,
     TaskCoreTest.class,
     UsersTest.class,
-    MultiGraphsTest.class
+    MultiGraphsTest.class,
+    RamTableTest.class
 })
 public class CoreTestSuite {
 
@@ -64,6 +67,7 @@ public class CoreTestSuite {
         graph = Utils.open();
         graph.clearBackend();
         graph.initBackend();
+        graph.serverStarted(IdGenerator.of("server1"), NodeRole.MASTER);
     }
 
     @AfterClass

@@ -280,6 +280,20 @@ public class RocksDBOptions extends OptionHolder {
                     0
             );
 
+    public static final ConfigOption<Boolean> DYNAMIC_LEVEL_BYTES =
+            new ConfigOption<>(
+                    "rocksdb.level_compaction_dynamic_level_bytes",
+                    "Whether to enable level_compaction_dynamic_level_bytes, " +
+                    "if it's enabled we give max_bytes_for_level_multiplier a " +
+                    "priority against max_bytes_for_level_base, the bytes of " +
+                    "base level is dynamic for a more predictable LSM tree, " +
+                    "it is useful to limit worse case space amplification. " +
+                    "Turning this feature on/off for an existing DB can cause " +
+                    "unexpected LSM tree structure so it's not recommended.",
+                    disallowEmpty(),
+                    false
+            );
+
     public static final ConfigOption<Long> MAX_LEVEL1_BYTES =
             new ConfigOption<>(
                     "rocksdb.max_bytes_for_level_base",

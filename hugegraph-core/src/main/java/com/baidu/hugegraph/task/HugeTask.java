@@ -27,7 +27,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
@@ -43,7 +42,11 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.baidu.hugegraph.exception.LimitExceedException;
+import com.baidu.hugegraph.exception.NotFoundException;
+import com.baidu.hugegraph.job.ComputerJob;
+import com.baidu.hugegraph.job.EphemeralJob;
 import com.baidu.hugegraph.type.define.SerialEnum;
+import com.baidu.hugegraph.util.Blob;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.JsonUtil;
@@ -53,6 +56,8 @@ import com.baidu.hugegraph.util.StringEncoding;
 public class HugeTask<V> extends FutureTask<V> {
 
     private static final Logger LOG = Log.logger(HugeTask.class);
+
+    private static final float DECOMPRESS_RATIO = 10.0F;
 
     private transient TaskScheduler scheduler = null;
 
@@ -66,6 +71,9 @@ public class HugeTask<V> extends FutureTask<V> {
     private String description;
     private String context;
     private Date create;
+    private Id server;
+    private int load;
+
     private volatile TaskStatus status;
     private volatile int progress;
     private volatile Date update;
@@ -100,6 +108,8 @@ public class HugeTask<V> extends FutureTask<V> {
         this.retries = 0;
         this.input = null;
         this.result = null;
+        this.server = null;
+        this.load = 1;
     }
 
     public Id id() {
@@ -215,12 +225,40 @@ public class HugeTask<V> extends FutureTask<V> {
         this.result = result;
     }
 
+    public void server(Id server) {
+        this.server = server;
+    }
+
+    public Id server() {
+        return this.server;
+    }
+
+    public void load(int load) {
+        this.load = load;
+    }
+
+    public int load() {
+        return this.load;
+    }
+
     public boolean completed() {
         return TaskStatus.COMPLETED_STATUSES.contains(this.status);
     }
 
+    public boolean success() {
+        return this.status == TaskStatus.SUCCESS;
+    }
+
     public boolean cancelled() {
         return this.status == TaskStatus.CANCELLED || this.isCancelled();
+    }
+
+    public boolean cancelling() {
+        return this.status == TaskStatus.CANCELLING;
+    }
+
+    public boolean computer() {
+        return ComputerJob.COMPUTER.equals(this.type);
     }
 
     @Override
@@ -302,7 +340,9 @@ public class HugeTask<V> extends FutureTask<V> {
         } catch (Throwable e) {
             LOG.error("An exception occurred when calling done()", e);
         } finally {
-            ((StandardTaskScheduler) this.scheduler()).remove(this.id);
+            StandardTaskScheduler scheduler = (StandardTaskScheduler)
+                                              this.scheduler();
+            scheduler.taskDone(this);
         }
     }
 
@@ -312,6 +352,8 @@ public class HugeTask<V> extends FutureTask<V> {
         checkPropertySize(result, P.RESULT);
         if (this.status(TaskStatus.SUCCESS)) {
             this.result = result;
+        } else {
+            assert this.completed();
         }
         // Will call done() and may cause to save to store
         super.set(v);
@@ -374,6 +416,9 @@ public class HugeTask<V> extends FutureTask<V> {
             E.checkState(this.name != null, "Task name can't be null");
         }
         if (!this.completed()) {
+            assert this.status.code() < status.code() ||
+                   status == TaskStatus.RESTORING :
+                   this.status + " => " + status + " (task " + this.id + ")";
             this.status = status;
             return true;
         }
@@ -421,10 +466,15 @@ public class HugeTask<V> extends FutureTask<V> {
                                                    .collect(toOrderSet());
                 break;
             case P.INPUT:
-                this.input = StringEncoding.decompress((byte[]) value);
+                this.input = StringEncoding.decompress(((Blob) value).bytes(),
+                                                       DECOMPRESS_RATIO);
                 break;
             case P.RESULT:
-                this.result = StringEncoding.decompress((byte[]) value);
+                this.result = StringEncoding.decompress(((Blob) value).bytes(),
+                                                        DECOMPRESS_RATIO);
+                break;
+            case P.SERVER:
+                this.server = IdGenerator.of((String) value);
                 break;
             default:
                 throw new AssertionError("Unsupported key: " + key);
@@ -499,6 +549,11 @@ public class HugeTask<V> extends FutureTask<V> {
             list.add(bytes);
         }
 
+        if (this.server != null) {
+            list.add(P.SERVER);
+            list.add(this.server.asString());
+        }
+
         return list.toArray();
     }
 
@@ -531,6 +586,10 @@ public class HugeTask<V> extends FutureTask<V> {
             Set<Long> value = this.dependencies.stream().map(Id::asLong)
                                                         .collect(toOrderSet());
             map.put(Hidden.unHide(P.DEPENDENCIES), value);
+        }
+
+        if (this.server != null) {
+            map.put(Hidden.unHide(P.SERVER), this.server.asString());
         }
 
         if (withDetails) {
@@ -590,19 +649,32 @@ public class HugeTask<V> extends FutureTask<V> {
     }
 
     public void syncWait() {
+        // This method is just called by tests
+        HugeTask<?> task = null;
         try {
-            this.get();
-            assert this.completed();
-        } catch (ExecutionException e) {
-            Throwable cause = e.getCause();
-            if (cause instanceof RuntimeException) {
-                throw (RuntimeException) cause;
+            task = this.scheduler().waitUntilTaskCompleted(this.id());
+        } catch (Throwable e) {
+            if (this.callable() instanceof EphemeralJob &&
+                e.getClass() == NotFoundException.class &&
+                e.getMessage().contains("Can't find task with id")) {
+                /*
+                 * The task with EphemeralJob won't saved in backends and
+                 * will be removed from memory when completed
+                 */
+                return;
             }
-            throw new HugeException("Async task failed with error: %s",
-                                    cause, cause.getMessage());
-        } catch (Exception e) {
-            throw new HugeException("Async task failed with error: %s",
-                                    e, e.getMessage());
+            throw new HugeException("Failed to wait for task '%s' completed",
+                                    e, this.id);
+        }
+        assert task != null;
+        /*
+         * This can be enabled for debug to expose schema-clear errors early，
+         * but also lead to some negative tests failed,
+         */
+        boolean debugTest = false;
+        if (debugTest && !task.success()) {
+            throw new HugeException("Task '%s' is failed with error: %s",
+                                    task.id(), task.result());
         }
     }
 
@@ -626,6 +698,7 @@ public class HugeTask<V> extends FutureTask<V> {
         public static final String INPUT = "~task_input";
         public static final String RESULT = "~task_result";
         public static final String DEPENDENCIES = "~task_dependencies";
+        public static final String SERVER = "~task_server";
 
         //public static final String PARENT = hide("parent");
         //public static final String CHILDREN = hide("children");

@@ -29,7 +29,6 @@ import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
 import org.apache.tinkerpop.gremlin.structure.T;
 
 import com.baidu.hugegraph.HugeGraphParams;
-import com.baidu.hugegraph.auth.ResourceObject.ResourceType;
 import com.baidu.hugegraph.auth.SchemaDefine.Relationship;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.schema.EdgeLabel;
@@ -155,7 +154,7 @@ public class HugeAccess extends Relationship {
         map.put(Hidden.unHide(P.GROUP), this.group);
         map.put(Hidden.unHide(P.TARGET), this.target);
 
-        map.put(Hidden.unHide(P.PERMISSION), this.permission.string());
+        map.put(Hidden.unHide(P.PERMISSION), this.permission);
 
         if (this.description != null) {
             map.put(Hidden.unHide(P.DESCRIPTION), this.description);

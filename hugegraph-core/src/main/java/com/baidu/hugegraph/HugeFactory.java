@@ -34,6 +34,8 @@ import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.task.TaskManager;
+import com.baidu.hugegraph.traversal.algorithm.OltpTraverser;
+import com.baidu.hugegraph.type.define.SerialEnum;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 
@@ -42,6 +44,7 @@ public class HugeFactory {
     private static final Logger LOG = Log.logger(HugeGraph.class);
 
     static {
+        SerialEnum.registerInternalEnums();
         HugeGraph.registerTraversalStrategies(StandardHugeGraph.class);
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
@@ -57,15 +60,19 @@ public class HugeFactory {
     public static synchronized HugeGraph open(Configuration config) {
         HugeConfig conf = config instanceof HugeConfig ?
                           (HugeConfig) config : new HugeConfig(config);
-        String name = conf.get(CoreOptions.STORE);
+        return open(conf);
+    }
+
+    public static synchronized HugeGraph open(HugeConfig config) {
+        String name = config.get(CoreOptions.STORE);
         checkGraphName(name, "graph config(like hugegraph.properties)");
         name = name.toLowerCase();
         HugeGraph graph = graphs.get(name);
         if (graph == null || graph.closed()) {
-            graph = new StandardHugeGraph(conf);
+            graph = new StandardHugeGraph(config);
             graphs.put(name, graph);
         } else {
-            String backend = conf.get(CoreOptions.BACKEND);
+            String backend = config.get(CoreOptions.BACKEND);
             E.checkState(backend.equalsIgnoreCase(graph.backend()),
                          "Graph name '%s' has been used by backend '%s'",
                          name, graph.backend());
@@ -90,7 +97,7 @@ public class HugeFactory {
                         "Note: letter is case insensitive", name, configFile);
     }
 
-    private static PropertiesConfiguration getLocalConfig(String path) {
+    public static PropertiesConfiguration getLocalConfig(String path) {
         File file = new File(path);
         E.checkArgument(file.exists() && file.isFile() && file.canRead(),
                         "Please specify a proper config file rather than: %s",
@@ -102,7 +109,7 @@ public class HugeFactory {
         }
     }
 
-    private static PropertiesConfiguration getRemoteConfig(URL url) {
+    public static PropertiesConfiguration getRemoteConfig(URL url) {
         try {
             return new PropertiesConfiguration(url);
         } catch (ConfigurationException e) {
@@ -121,6 +128,7 @@ public class HugeFactory {
                 throw new TimeoutException(timeout + "s");
             }
             TaskManager.instance().shutdown(timeout);
+            OltpTraverser.destroy();
         } catch (Throwable e) {
             LOG.error("Error while shutdown", e);
             throw new HugeException("Failed to shutdown", e);

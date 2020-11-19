@@ -37,7 +37,7 @@ public interface TaskScheduler {
 
     public <V> Future<?> schedule(HugeTask<V> task);
 
-    public <V> boolean cancel(HugeTask<V> task);
+    public <V> void cancel(HugeTask<V> task);
 
     public <V> void save(HugeTask<V> task);
 
@@ -54,6 +54,9 @@ public interface TaskScheduler {
     public int taskResultSizeLimit();
 
     public <V> HugeTask<V> waitUntilTaskCompleted(Id id, long seconds)
+                                                  throws TimeoutException;
+
+    public <V> HugeTask<V> waitUntilTaskCompleted(Id id)
                                                   throws TimeoutException;
 
     public void waitUntilAllTasksCompleted(long seconds)

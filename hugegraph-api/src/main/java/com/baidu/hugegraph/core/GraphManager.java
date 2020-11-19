@@ -43,6 +43,7 @@ import com.baidu.hugegraph.auth.UserManager;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.cache.Cache;
 import com.baidu.hugegraph.backend.cache.CacheManager;
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
@@ -54,6 +55,7 @@ import com.baidu.hugegraph.serializer.JsonSerializer;
 import com.baidu.hugegraph.serializer.Serializer;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.task.TaskManager;
+import com.baidu.hugegraph.type.define.NodeRole;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 
@@ -70,8 +72,9 @@ public final class GraphManager {
 
         this.loadGraphs(conf.getMap(ServerOptions.GRAPHS));
         // this.installLicense(conf, "");
+        this.waitGraphsStarted();
         this.checkBackendVersionOrExit();
-        this.restoreUncompletedTasks();
+        this.serverStarted(conf);
         this.addMetrics(conf);
     }
 
@@ -86,6 +89,13 @@ public final class GraphManager {
                 LOG.error("Graph '{}' can't be loaded: '{}'", name, path, e);
             }
         }
+    }
+
+    public void waitGraphsStarted() {
+        this.graphs.keySet().forEach(name -> {
+            HugeGraph graph = this.graph(name);
+            graph.waitStarted();
+        });
     }
 
     public Set<String> graphs() {
@@ -212,12 +222,18 @@ public final class GraphManager {
         }
     }
 
-    private void restoreUncompletedTasks() {
+    private void serverStarted(HugeConfig config) {
+        String server = config.get(ServerOptions.SERVER_ID);
+        String role = config.get(ServerOptions.SERVER_ROLE);
+        E.checkArgument(server != null && !server.isEmpty(),
+                        "The server name can't be null or empty");
+        E.checkArgument(role != null && !role.isEmpty(),
+                        "The server role can't be null or empty");
+        NodeRole nodeRole = NodeRole.valueOf(role.toUpperCase());
         for (String graph : this.graphs()) {
             HugeGraph hugegraph = this.graph(graph);
             assert hugegraph != null;
-            LOG.info("Restoring incomplete tasks for graph '{}'...", graph);
-            hugegraph.taskScheduler().restoreTasks();
+            hugegraph.serverStarted(IdGenerator.of(server), nodeRole);
         }
     }
 

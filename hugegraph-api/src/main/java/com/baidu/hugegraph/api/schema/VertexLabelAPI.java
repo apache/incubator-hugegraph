@@ -52,6 +52,7 @@ import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
 
@@ -173,6 +174,7 @@ public class VertexLabelAPI extends API {
     /**
      * JsonVertexLabel is only used to receive create and append requests
      */
+    @JsonIgnoreProperties(value = {"index_labels", "status"})
     private static class JsonVertexLabel implements Checkable {
 
         @JsonProperty("id")

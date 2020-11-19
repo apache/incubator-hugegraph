@@ -98,7 +98,8 @@ public class JsonUtilTest extends BaseUnitTest {
                             "\"data_type\":\"TEXT\"," +
                             "\"cardinality\":\"SINGLE\"," +
                             "\"aggregate_type\":\"NONE\"," +
-                            "\"properties\":[],\"user_data\":{}}", json);
+                            "\"properties\":[],\"status\":\"CREATED\"," +
+                            "\"user_data\":{}}", json);
 
         PropertyKey rate = fakeObject.newPropertyKey(IdGenerator.of(2), "rate",
                                                      DataType.INT,
@@ -106,8 +107,8 @@ public class JsonUtilTest extends BaseUnitTest {
         json = JsonUtil.toJson(rate);
         Assert.assertEquals("{\"id\":2,\"name\":\"rate\"," +
                             "\"data_type\":\"INT\",\"cardinality\":\"LIST\"," +
-                            "\"aggregate_type\":\"NONE\"," +
-                            "\"properties\":[],\"user_data\":{}}", json);
+                            "\"aggregate_type\":\"NONE\",\"properties\":[]," +
+                            "\"status\":\"CREATED\",\"user_data\":{}}", json);
     }
 
     @Test
@@ -132,6 +133,7 @@ public class JsonUtilTest extends BaseUnitTest {
                             "\"primary_keys\":[],\"nullable_keys\":[]," +
                             "\"index_labels\":[]," +
                             "\"properties\":[\"name\",\"age\",\"city\"]," +
+                            "\"status\":\"CREATED\"," +
                             "\"ttl\":0,\"enable_label_index\":true," +
                             "\"user_data\":{}}", json);
     }
@@ -171,6 +173,7 @@ public class JsonUtilTest extends BaseUnitTest {
                             "\"frequency\":\"SINGLE\",\"sort_keys\":[]," +
                             "\"nullable_keys\":[],\"index_labels\":[]," +
                             "\"properties\":[\"date\",\"weight\"]," +
+                            "\"status\":\"CREATED\"," +
                             "\"ttl\":0,\"enable_label_index\":true," +
                             "\"user_data\":{}}", json);
     }
@@ -207,6 +210,7 @@ public class JsonUtilTest extends BaseUnitTest {
                             "\"base_value\":\"person\"," +
                             "\"index_type\":\"SECONDARY\"," +
                             "\"fields\":[\"age\",\"city\"]," +
+                            "\"status\":\"CREATED\"," +
                             "\"user_data\":{}}", json);
     }
 
@@ -282,14 +286,14 @@ public class JsonUtilTest extends BaseUnitTest {
         );
         Whitebox.setInternalState(edge, "properties", properties);
 
-        long dateTime = Utils.date("2019-03-12").getTime();
         String json = JsonUtil.toJson(edge);
-        Assert.assertEquals(String.format("{\"id\":\"L123456>1>>L987654\"," +
+        Assert.assertEquals("{\"id\":\"L123456>1>>L987654\"," +
                             "\"label\":\"knows\",\"type\":\"edge\"," +
                             "\"outV\":123456,\"outVLabel\":\"person\"," +
                             "\"inV\":987654,\"inVLabel\":\"person\"," +
-                            "\"properties\":{\"date\":%s," +
-                            "\"weight\":0.8}}", dateTime), json);
+                            "\"properties\":{\"date\":" +
+                            "\"2019-03-12 00:00:00.000\"," +
+                            "\"weight\":0.8}}", json);
     }
 
     @Test

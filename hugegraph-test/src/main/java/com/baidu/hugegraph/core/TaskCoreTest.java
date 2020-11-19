@@ -48,8 +48,6 @@ import com.google.common.collect.ImmutableMap;
 
 public class TaskCoreTest extends BaseCoreTest {
 
-    private static final int SLEEP_TIME = 200;
-
     @Before
     @Override
     public void setup() {
@@ -69,18 +67,8 @@ public class TaskCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         TaskScheduler scheduler = graph.taskScheduler();
 
-        TaskCallable<Integer> callable = new TaskCallable<Integer>() {
-            @Override
-            public Integer call() throws Exception {
-                Thread.sleep(SLEEP_TIME);
-                return 125;
-            }
 
-            @Override
-            protected void done() {
-                scheduler.save(this.task());
-            }
-        };
+        TaskCallable<Object> callable = new SleepCallable<>();
 
         Id id = IdGenerator.of(88888);
         HugeTask<?> task = new HugeTask<>(id, null, callable);
@@ -138,7 +126,7 @@ public class TaskCoreTest extends BaseCoreTest {
         TaskCallable<Integer> callable = new TaskCallable<Integer>() {
             @Override
             public Integer call() throws Exception {
-                Thread.sleep(SLEEP_TIME);
+                sleepAWhile();
                 return 125;
             }
             @Override
@@ -199,7 +187,7 @@ public class TaskCoreTest extends BaseCoreTest {
                     }
                     @Override
                     public Object execute() throws Exception {
-                        Thread.sleep(SLEEP_TIME);
+                        sleepAWhile();
                         return ImmutableMap.of("k1", 13579, "k2", "24680");
                     }
                });
@@ -324,7 +312,7 @@ public class TaskCoreTest extends BaseCoreTest {
                .input("")
                .job(new GremlinJob());
         HugeTask<Object> task = builder.schedule();
-        scheduler.waitUntilTaskCompleted(task.id(), 10);
+        task = scheduler.waitUntilTaskCompleted(task.id(), 10);
         Assert.assertEquals(TaskStatus.FAILED, task.status());
         Assert.assertContains("Can't read json", task.result());
 
@@ -333,6 +321,7 @@ public class TaskCoreTest extends BaseCoreTest {
                .job(new GremlinJob());
         task = builder.schedule();
         scheduler.waitUntilTaskCompleted(task.id(), 10);
+        task = scheduler.task(task.id());
         Assert.assertEquals(TaskStatus.FAILED, task.status());
         Assert.assertContains("The input can't be null", task.result());
 
@@ -341,7 +330,7 @@ public class TaskCoreTest extends BaseCoreTest {
                .input("{}")
                .job(new GremlinJob());
         task = builder.schedule();
-        scheduler.waitUntilTaskCompleted(task.id(), 10);
+        task = scheduler.waitUntilTaskCompleted(task.id(), 10);
         Assert.assertEquals(TaskStatus.FAILED, task.status());
         Assert.assertContains("Invalid gremlin value 'null'", task.result());
 
@@ -350,7 +339,7 @@ public class TaskCoreTest extends BaseCoreTest {
                .input("{\"gremlin\":8}")
                .job(new GremlinJob());
         task = builder.schedule();
-        scheduler.waitUntilTaskCompleted(task.id(), 10);
+        task = scheduler.waitUntilTaskCompleted(task.id(), 10);
         Assert.assertEquals(TaskStatus.FAILED, task.status());
         Assert.assertContains("Invalid gremlin value '8'", task.result());
 
@@ -359,7 +348,7 @@ public class TaskCoreTest extends BaseCoreTest {
                .input("{\"gremlin\":\"\"}")
                .job(new GremlinJob());
         task = builder.schedule();
-        scheduler.waitUntilTaskCompleted(task.id(), 10);
+        task = scheduler.waitUntilTaskCompleted(task.id(), 10);
         Assert.assertEquals(TaskStatus.FAILED, task.status());
         Assert.assertContains("Invalid bindings value 'null'", task.result());
 
@@ -368,7 +357,7 @@ public class TaskCoreTest extends BaseCoreTest {
                .input("{\"gremlin\":\"\", \"bindings\":\"\"}")
                .job(new GremlinJob());
         task = builder.schedule();
-        scheduler.waitUntilTaskCompleted(task.id(), 10);
+        task = scheduler.waitUntilTaskCompleted(task.id(), 10);
         Assert.assertEquals(TaskStatus.FAILED, task.status());
         Assert.assertContains("Invalid bindings value ''", task.result());
 
@@ -377,7 +366,7 @@ public class TaskCoreTest extends BaseCoreTest {
                .input("{\"gremlin\":\"\", \"bindings\":{}}")
                .job(new GremlinJob());
         task = builder.schedule();
-        scheduler.waitUntilTaskCompleted(task.id(), 10);
+        task = scheduler.waitUntilTaskCompleted(task.id(), 10);
         Assert.assertEquals(TaskStatus.FAILED, task.status());
         Assert.assertContains("Invalid language value 'null'", task.result());
 
@@ -386,7 +375,7 @@ public class TaskCoreTest extends BaseCoreTest {
                .input("{\"gremlin\":\"\", \"bindings\":{}, \"language\":{}}")
                .job(new GremlinJob());
         task = builder.schedule();
-        scheduler.waitUntilTaskCompleted(task.id(), 10);
+        task = scheduler.waitUntilTaskCompleted(task.id(), 10);
         Assert.assertEquals(TaskStatus.FAILED, task.status());
         Assert.assertContains("Invalid language value '{}'", task.result());
 
@@ -395,7 +384,7 @@ public class TaskCoreTest extends BaseCoreTest {
                .input("{\"gremlin\":\"\", \"bindings\":{}, \"language\":\"\"}")
                .job(new GremlinJob());
         task = builder.schedule();
-        scheduler.waitUntilTaskCompleted(task.id(), 10);
+        task = scheduler.waitUntilTaskCompleted(task.id(), 10);
         Assert.assertEquals(TaskStatus.FAILED, task.status());
         Assert.assertContains("Invalid aliases value 'null'", task.result());
 
@@ -405,7 +394,7 @@ public class TaskCoreTest extends BaseCoreTest {
                       "\"language\":\"test\", \"aliases\":{}}")
                .job(new GremlinJob());
         task = builder.schedule();
-        scheduler.waitUntilTaskCompleted(task.id(), 10);
+        task = scheduler.waitUntilTaskCompleted(task.id(), 10);
         Assert.assertEquals(TaskStatus.FAILED, task.status());
         Assert.assertContains("test is not an available GremlinScriptEngine",
                               task.result());
@@ -432,11 +421,11 @@ public class TaskCoreTest extends BaseCoreTest {
         });
 
         // Test failure task with big input
-        int length = 16 * 1024 * 1024;
+        int length = 8 * 1024 * 1024;
         Random random = new Random();
         StringBuilder sb = new StringBuilder(length);
         for (int i = 0; i < length; i++) {
-            sb.append(random.nextInt(1000));
+            sb.append("node:").append(random.nextInt(1000));
         }
         String bigInput = sb.toString();
         Assert.assertThrows(HugeException.class, () -> {
@@ -454,13 +443,15 @@ public class TaskCoreTest extends BaseCoreTest {
         TaskScheduler scheduler = graph.taskScheduler();
 
         HugeTask<Object> task = runGremlinJob("Thread.sleep(1000 * 10);");
+
+        sleepAWhile();
+        task = scheduler.task(task.id());
         scheduler.cancel(task);
 
-        Assert.assertEquals(TaskStatus.CANCELLED, task.status());
-        Assert.assertTrue(task.result(), task.result() == null ||
-                          task.result().endsWith("InterruptedException"));
-
         task = scheduler.task(task.id());
+        Assert.assertEquals(TaskStatus.CANCELLING, task.status());
+
+        task = scheduler.waitUntilTaskCompleted(task.id(), 10);
         Assert.assertEquals(TaskStatus.CANCELLED, task.status());
         Assert.assertEquals("test-gremlin-job", task.name());
         Assert.assertTrue(task.result(), task.result() == null ||
@@ -468,18 +459,20 @@ public class TaskCoreTest extends BaseCoreTest {
 
         // Cancel success task
         HugeTask<Object> task2 = runGremlinJob("1+2");
-        scheduler.waitUntilTaskCompleted(task2.id(), 10);
+        task2 = scheduler.waitUntilTaskCompleted(task2.id(), 10);
         Assert.assertEquals(TaskStatus.SUCCESS, task2.status());
         scheduler.cancel(task2);
+        task2 = scheduler.task(task2.id());
         Assert.assertEquals(TaskStatus.SUCCESS, task2.status());
         Assert.assertEquals("3", task2.result());
 
         // Cancel failure task with big results (job size exceeded limit)
         String bigList = "def l=[]; for (i in 1..800001) l.add(i); l;";
         HugeTask<Object> task3 = runGremlinJob(bigList);
-        scheduler.waitUntilTaskCompleted(task3.id(), 12);
+        task3 = scheduler.waitUntilTaskCompleted(task3.id(), 12);
         Assert.assertEquals(TaskStatus.FAILED, task3.status());
         scheduler.cancel(task3);
+        task3 = scheduler.task(task3.id());
         Assert.assertEquals(TaskStatus.FAILED, task3.status());
         Assert.assertContains("LimitExceedException: Job results size 800001 " +
                               "has exceeded the max limit 800000",
@@ -487,18 +480,22 @@ public class TaskCoreTest extends BaseCoreTest {
 
         // Cancel failure task with big results (task exceeded limit 16M)
         String bigResults = "def random = new Random(); def rs=[];" +
-                            "for (i in 0..20) {" +
+                            "for (i in 0..4) {" +
                             "  def len = 1024 * 1024;" +
                             "  def item = new StringBuilder(len);" +
-                            "  for (j in 0..len)" +
-                            "    item.append((char) random.nextInt(256));" +
+                            "  for (j in 0..len) { " +
+                            "    item.append(\"node:\"); " +
+                            "    item.append((char) random.nextInt(256)); " +
+                            "    item.append(\",\"); " +
+                            "  };" +
                             "  rs.add(item);" +
                             "};" +
                             "rs;";
         HugeTask<Object> task4 = runGremlinJob(bigResults);
-        scheduler.waitUntilTaskCompleted(task4.id(), 10);
+        task4 = scheduler.waitUntilTaskCompleted(task4.id(), 10);
         Assert.assertEquals(TaskStatus.FAILED, task4.status());
         scheduler.cancel(task4);
+        task4 = scheduler.task(task4.id());
         Assert.assertEquals(TaskStatus.FAILED, task4.status());
         Assert.assertContains("LimitExceedException: Task result size",
                               task4.result());
@@ -511,22 +508,32 @@ public class TaskCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         TaskScheduler scheduler = graph.taskScheduler();
 
-        String gremlin = "for(int i=gremlinJob.progress(); i<=10; i++) {" +
+        String gremlin = "System.out.println('task start');" +
+                         "for(int i=gremlinJob.progress(); i<=10; i++) {" +
                          "  gremlinJob.updateProgress(i);" +
-                         "  Thread.sleep(1000);" +
+                         "  Thread.sleep(200); " +
+                         "  System.out.println('sleep=>'+i);" +
                          "}; 100;";
         HugeTask<Object> task = runGremlinJob(gremlin);
-        Thread.sleep(1000 * 6);
+
+        sleepAWhile(200 * 6);
+        task = scheduler.task(task.id());
         scheduler.cancel(task);
 
+        task = scheduler.task(task.id());
+        Assert.assertEquals(TaskStatus.CANCELLING, task.status());
+
+        task = scheduler.waitUntilTaskCompleted(task.id(), 10);
         Assert.assertEquals(TaskStatus.CANCELLED, task.status());
         Assert.assertTrue("progress=" + task.progress(),
                           0 < task.progress() && task.progress() < 10);
         Assert.assertEquals(0, task.retries());
         Assert.assertEquals(null, task.result());
 
+        HugeTask<Object> finalTask = task;
         Assert.assertThrows(IllegalArgumentException.class, () -> {
-            Whitebox.invoke(scheduler.getClass(), "restore", scheduler, task);
+            Whitebox.invoke(scheduler.getClass(), "restore", scheduler,
+                            finalTask);
         }, e -> {
             Assert.assertContains("No need to restore completed task",
                                   e.getMessage());
@@ -539,6 +546,7 @@ public class TaskCoreTest extends BaseCoreTest {
             Assert.assertContains("No need to restore completed task",
                                   e.getMessage());
         });
+
         Whitebox.setInternalState(task2, "status", TaskStatus.RUNNING);
         Whitebox.invoke(scheduler.getClass(), "restore", scheduler, task2);
 
@@ -549,6 +557,7 @@ public class TaskCoreTest extends BaseCoreTest {
         });
 
         scheduler.waitUntilTaskCompleted(task2.id(), 10);
+        sleepAWhile(500);
         Assert.assertEquals(10, task2.progress());
         Assert.assertEquals(1, task2.retries());
         Assert.assertEquals("100", task2.result());
@@ -565,7 +574,36 @@ public class TaskCoreTest extends BaseCoreTest {
                .input(request.toJson())
                .job(new GremlinJob());
 
-        HugeTask<Object> task = builder.schedule();
-        return task;
+        return builder.schedule();
+    }
+
+    private static void sleepAWhile() {
+        sleepAWhile(100);
+    }
+
+    private static void sleepAWhile(long ms) {
+        try {
+            Thread.sleep(ms);
+        } catch (InterruptedException e) {
+            // ignore
+        }
+    }
+
+    public static class SleepCallable<V> extends TaskCallable<V> {
+
+        public SleepCallable() {
+            // pass
+        }
+
+        @Override
+        public V call() throws Exception {
+            Thread.sleep(1000);
+            return null;
+        }
+
+        @Override
+        public void done() {
+            this.graph().taskScheduler().save(this.task());
+        }
     }
 }

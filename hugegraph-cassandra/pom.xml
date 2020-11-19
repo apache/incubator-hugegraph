@@ -5,7 +5,7 @@
     <parent>
         <artifactId>hugegraph</artifactId>
         <groupId>com.baidu.hugegraph</groupId>
-        <version>0.11.1</version>
+        <version>0.11.2</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -55,17 +55,17 @@
         <dependency>
             <groupId>com.datastax.cassandra</groupId>
             <artifactId>cassandra-driver-core</artifactId>
-            <version>3.2.0</version>
+            <version>3.6.0</version>
         </dependency>
         <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-all</artifactId>
-            <version>4.1.42.Final</version>
+            <version>4.1.13.Final</version>
         </dependency>
         <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-transport-native-epoll</artifactId>
-            <version>4.1.36.Final</version>
+            <version>4.1.13.Final</version>
             <classifier>linux-x86_64</classifier>
         </dependency>
     </dependencies>

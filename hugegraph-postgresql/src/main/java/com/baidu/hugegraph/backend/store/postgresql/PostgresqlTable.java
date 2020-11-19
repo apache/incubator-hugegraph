@@ -32,8 +32,7 @@ import com.baidu.hugegraph.type.define.HugeKeys;
 
 public abstract class PostgresqlTable extends MysqlTable {
 
-    private String insertTemplate = null;
-    private String orderByKeys = null;
+    private String orderByKeysTemplate = null;
 
     public PostgresqlTable(String table) {
         super(table);
@@ -63,11 +62,7 @@ public abstract class PostgresqlTable extends MysqlTable {
     }
 
     @Override
-    protected String buildInsertTemplate(MysqlBackendEntry.Row entry) {
-        if (this.insertTemplate != null) {
-            return this.insertTemplate;
-        }
-
+    protected String buildInsertTemplateForce(MysqlBackendEntry.Row entry) {
         StringBuilder insert = new StringBuilder();
         insert.append("INSERT INTO ").append(this.table()).append(" (");
 
@@ -110,15 +105,14 @@ public abstract class PostgresqlTable extends MysqlTable {
             }
         }
 
-        this.insertTemplate = insert.toString();
-        return this.insertTemplate;
+        return insert.toString();
     }
 
-    // Set order-by to keep results order consistence for PostgreSQL result
     @Override
     protected String orderByKeys() {
-        if (this.orderByKeys != null) {
-            return this.orderByKeys;
+        // Set order-by to keep results order consistence for PostgreSQL result
+        if (this.orderByKeysTemplate != null) {
+            return this.orderByKeysTemplate;
         }
         int i = 0;
         int size = this.tableDefine().keys().size();
@@ -131,8 +125,8 @@ public abstract class PostgresqlTable extends MysqlTable {
                 select.append(", ");
             }
         }
-        this.orderByKeys = select.toString();
-        return this.orderByKeys;
+        this.orderByKeysTemplate = select.toString();
+        return this.orderByKeysTemplate;
     }
 
     @Override

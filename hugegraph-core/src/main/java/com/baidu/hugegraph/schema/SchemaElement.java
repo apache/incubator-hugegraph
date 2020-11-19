@@ -27,16 +27,21 @@ import org.apache.tinkerpop.gremlin.structure.Graph;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.type.Namifiable;
 import com.baidu.hugegraph.type.Typifiable;
 import com.baidu.hugegraph.type.define.SchemaStatus;
 import com.baidu.hugegraph.util.E;
+import com.google.common.base.Objects;
 
 public abstract class SchemaElement implements Namifiable, Typifiable,
                                                Cloneable {
 
     public static final int MAX_PRIMITIVE_SYS_ID = 32;
     public static final int NEXT_PRIMITIVE_SYS_ID = 7;
+
+    public static final Id NONE_ID = IdGenerator.ZERO;
+    public static final String UNDEF = "~undefined";
 
     protected final HugeGraph graph;
 
@@ -126,6 +131,11 @@ public abstract class SchemaElement implements Namifiable, Typifiable,
         } catch (CloneNotSupportedException e) {
             throw new HugeException("Failed to clone schema", e);
         }
+    }
+
+    public boolean hasSameContent(SchemaElement other) {
+        return Objects.equal(this.name(), other.name()) &&
+               Objects.equal(this.userdata(), other.userdata());
     }
 
     @Override

@@ -149,7 +149,7 @@ public abstract class BackendEntryIterator implements CIter<BackendEntry> {
                 this.current = null;
             }
         }
-        this.query.skipOffset(this.count);
+        this.query.goOffset(this.count);
     }
 
     protected long sizeOf(BackendEntry entry) {

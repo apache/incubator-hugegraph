@@ -87,13 +87,15 @@ public class WeightedShortestPathAPI extends API {
         E.checkArgumentNotNull(weight, "The weight property can't be null");
 
         HugeGraph g = graph(manager, graph);
-        SingleSourceShortestPathTraverser traverser = new SingleSourceShortestPathTraverser(g);
+        SingleSourceShortestPathTraverser traverser =
+                new SingleSourceShortestPathTraverser(g);
 
         NodeWithWeight path = traverser.weightedShortestPath(
                               sourceId, targetId, dir, edgeLabel, weight,
                               degree, skipDegree, capacity);
         Iterator<Vertex> iterator = QueryResults.emptyIterator();
-        if (withVertex) {
+        if (path != null && withVertex) {
+            assert !path.node().path().isEmpty();
             iterator = g.vertices(path.node().path().toArray());
         }
         return manager.serializer(g).writeWeightedPath(path, iterator);

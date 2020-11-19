@@ -224,6 +224,10 @@ public class EdgeId implements Id {
         return Directions.convert(HugeType.fromCode(code));
     }
 
+    public static boolean isOutDirectionFromCode(byte code) {
+        return code == HugeType.EDGE_OUT.code();
+    }
+
     public static EdgeId parse(String id) throws NotFoundException {
         return parse(id, false);
     }

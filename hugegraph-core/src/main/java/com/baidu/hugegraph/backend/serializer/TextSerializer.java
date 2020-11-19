@@ -42,6 +42,7 @@ import com.baidu.hugegraph.backend.query.IdPrefixQuery;
 import com.baidu.hugegraph.backend.query.IdRangeQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
+import com.baidu.hugegraph.backend.tx.GraphIndexTransaction;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -72,6 +73,10 @@ import com.google.common.collect.ImmutableMap;
 public class TextSerializer extends AbstractSerializer {
 
     private static final String VALUE_SPLITOR = TextBackendEntry.VALUE_SPLITOR;
+    private static final String EDGE_NAME_ENDING =
+                                GraphIndexTransaction.INDEX_SYM_ENDING + "";
+
+    private static final String EDGE_OUT_TYPE = writeType(HugeType.EDGE_OUT);
 
     @Override
     public TextBackendEntry newBackendEntry(HugeType type, Id id) {
@@ -213,38 +218,13 @@ public class TextSerializer extends AbstractSerializer {
         String[] colParts = EdgeId.split(colName);
 
         HugeGraph graph = vertex.graph();
-        EdgeLabel label = graph.edgeLabelOrNone(readId(colParts[1]));
-
-        VertexLabel sourceLabel = graph.vertexLabelOrNone(label.sourceLabel());
-        VertexLabel targetLabel = graph.vertexLabelOrNone(label.targetLabel());
-
+        boolean direction = colParts[0].equals(EDGE_OUT_TYPE);
+        String sortValues = readEdgeName(colParts[2]);
+        EdgeLabel edgeLabel = graph.edgeLabelOrNone(readId(colParts[1]));
         Id otherVertexId = readEntryId(colParts[3]);
-
-        boolean isOutEdge = colParts[0].equals(writeType(HugeType.EDGE_OUT));
-        HugeVertex otherVertex;
-        if (isOutEdge) {
-            vertex.vertexLabel(sourceLabel);
-            otherVertex = new HugeVertex(graph, otherVertexId, targetLabel);
-        } else {
-            vertex.vertexLabel(targetLabel);
-            otherVertex = new HugeVertex(graph, otherVertexId, sourceLabel);
-        }
-
-        HugeEdge edge = new HugeEdge(graph, null, label);
-        edge.name(colParts[2]);
-        edge.vertices(isOutEdge, vertex, otherVertex);
-        edge.assignId();
-
-        if (isOutEdge) {
-            vertex.addOutEdge(edge);
-            otherVertex.addInEdge(edge.switchOwner());
-        } else {
-            vertex.addInEdge(edge);
-            otherVertex.addOutEdge(edge.switchOwner());
-        }
-
-        vertex.propNotLoaded();
-        otherVertex.propNotLoaded();
+        // Construct edge
+        HugeEdge edge = HugeEdge.constructEdge(vertex, direction, edgeLabel,
+                                               sortValues, otherVertexId);
 
         String[] valParts = colValue.split(VALUE_SPLITOR);
         // Parse edge expired time
@@ -771,7 +751,7 @@ public class TextSerializer extends AbstractSerializer {
         // Edge name: type + edge-label-name + sortKeys + targetVertex
         list.add(writeType(edgeId.direction().type()));
         list.add(writeId(edgeId.edgeLabelId()));
-        list.add(edgeId.sortValues());
+        list.add(writeEdgeName(edgeId.sortValues()));
         list.add(writeEntryId(edgeId.otherVertexId()));
 
         return EdgeId.concat(list.toArray(new String[0]));
@@ -787,6 +767,16 @@ public class TextSerializer extends AbstractSerializer {
 
     private static Id readEntryId(String id) {
         return IdUtil.readString(id);
+    }
+
+    private static String writeEdgeName(String name) {
+        return name + EDGE_NAME_ENDING;
+    }
+
+    private static String readEdgeName(String name) {
+        E.checkState(name.endsWith(EDGE_NAME_ENDING),
+                     "Invalid edge name: %s", name);
+        return name.substring(0, name.length() - 1);
     }
 
     private static String writeId(Id id) {
@@ -824,14 +814,6 @@ public class TextSerializer extends AbstractSerializer {
         return JsonUtil.toJson(array);
     }
 
-    private static String writeElementId(Id id, long expiredTime) {
-        Object[] array = new Object[1];
-        Object idValue = id.number() ? id.asLong() : id.asString();
-        array[0] = ImmutableMap.of(HugeKeys.ID.string(), idValue,
-                                   HugeKeys.EXPIRED_TIME.string(), expiredTime);
-        return JsonUtil.toJson(array);
-    }
-
     private static Id[] readIds(String str) {
         Object[] values = JsonUtil.fromJson(str, Object[].class);
         Id[] ids = new Id[values.length];
@@ -847,15 +829,35 @@ public class TextSerializer extends AbstractSerializer {
         return ids;
     }
 
+    private static String writeElementId(Id id, long expiredTime) {
+        Object[] array = new Object[1];
+        Object idValue = id.number() ? id.asLong() : id.asString();
+        if (expiredTime <= 0L) {
+            array[0] = id;
+        } else {
+            array[0] = ImmutableMap.of(HugeKeys.ID.string(), idValue,
+                                       HugeKeys.EXPIRED_TIME.string(),
+                                       expiredTime);
+        }
+        return JsonUtil.toJson(array);
+    }
+
     private static IdWithExpiredTime[] readElementIds(String str) {
         Object[] values = JsonUtil.fromJson(str, Object[].class);
         IdWithExpiredTime[] ids = new IdWithExpiredTime[values.length];
         for (int i = 0; i < values.length; i++) {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> map = (Map) values[i];
-            Object idValue = map.get(HugeKeys.ID.string());
-            long expiredTime = ((Number) map.get(
-                               HugeKeys.EXPIRED_TIME.string())).longValue();
+            Object idValue;
+            long expiredTime;
+            if (values[i] instanceof Map) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> map = (Map<String, Object>) values[i];
+                idValue = map.get(HugeKeys.ID.string());
+                expiredTime = ((Number) map.get(
+                              HugeKeys.EXPIRED_TIME.string())).longValue();
+            } else {
+                idValue = values[i];
+                expiredTime = 0L;
+            }
             Id id;
             if (idValue instanceof Number) {
                 id = IdGenerator.of(((Number) idValue).longValue());

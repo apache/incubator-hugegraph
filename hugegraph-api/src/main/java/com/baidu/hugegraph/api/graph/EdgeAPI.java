@@ -63,12 +63,10 @@ import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.VertexLabel;
-import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.traversal.optimize.QueryHolder;
 import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
-import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
@@ -79,7 +77,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @Singleton
 public class EdgeAPI extends BatchAPI {
 
-    private static final Logger LOG = Log.logger(RestServer.class);
+    private static final Logger LOG = Log.logger(EdgeAPI.class);
 
     @POST
     @Timed(name = "single-create")
@@ -125,12 +123,12 @@ public class EdgeAPI extends BatchAPI {
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin", "$owner=$graph $action=edge_write"})
-    public List<String> create(@Context HugeConfig config,
-                               @Context GraphManager manager,
-                               @PathParam("graph") String graph,
-                               @QueryParam("check_vertex")
-                               @DefaultValue("true") boolean checkVertex,
-                               List<JsonEdge> jsonEdges) {
+    public String create(@Context HugeConfig config,
+                         @Context GraphManager manager,
+                         @PathParam("graph") String graph,
+                         @QueryParam("check_vertex")
+                         @DefaultValue("true") boolean checkVertex,
+                         List<JsonEdge> jsonEdges) {
         LOG.debug("Graph [{}] create edges: {}", graph, jsonEdges);
         checkCreatingBody(jsonEdges);
         checkBatchSize(config, jsonEdges);
@@ -141,7 +139,7 @@ public class EdgeAPI extends BatchAPI {
                     checkVertex ? EdgeAPI::getVertex : EdgeAPI::newVertex;
 
         return this.commit(config, g, jsonEdges.size(), () -> {
-            List<String> ids = new ArrayList<>(jsonEdges.size());
+            List<Id> ids = new ArrayList<>(jsonEdges.size());
             for (JsonEdge jsonEdge : jsonEdges) {
                 /*
                  * NOTE: If the query param 'checkVertex' is false,
@@ -154,9 +152,9 @@ public class EdgeAPI extends BatchAPI {
                                                    jsonEdge.targetLabel);
                 Edge edge = srcVertex.addEdge(jsonEdge.label, tgtVertex,
                                               jsonEdge.properties());
-                ids.add(edge.id().toString());
+                ids.add((Id) edge.id());
             }
-            return ids;
+            return manager.serializer(g).writeIds(ids);
         });
     }
 
@@ -326,7 +324,13 @@ public class EdgeAPI extends BatchAPI {
                                  .limit(limit);
         }
 
-        return manager.serializer(g).writeEdges(traversal, page != null);
+        try {
+            return manager.serializer(g).writeEdges(traversal, page != null);
+        } finally {
+            if (g.tx().isOpen()) {
+                g.tx().close();
+            }
+        }
     }
 
     @GET
@@ -340,9 +344,14 @@ public class EdgeAPI extends BatchAPI {
         LOG.debug("Graph [{}] get edge by id '{}'", graph, id);
 
         HugeGraph g = graph(manager, graph);
-        Iterator<Edge> edges = g.edges(id);
-        checkExist(edges, HugeType.EDGE, id);
-        return manager.serializer(g).writeEdge(edges.next());
+        try {
+            Edge edge = g.edge(id);
+            return manager.serializer(g).writeEdge(edge);
+        } finally {
+            if (g.tx().isOpen()) {
+                g.tx().close();
+            }
+        }
     }
 
     @DELETE
@@ -352,22 +361,21 @@ public class EdgeAPI extends BatchAPI {
     @RolesAllowed({"admin", "$owner=$graph $action=edge_delete"})
     public void delete(@Context GraphManager manager,
                        @PathParam("graph") String graph,
-                       @PathParam("id") String id) {
+                       @PathParam("id") String id,
+                       @QueryParam("label") String label) {
         LOG.debug("Graph [{}] remove vertex by id '{}'", graph, id);
 
         HugeGraph g = graph(manager, graph);
-        // TODO: add removeEdge(id) to improve
         commit(g, () -> {
-            Edge edge;
             try {
-                edge = g.edges(id).next();
+                g.removeEdge(label, id);
             } catch (NotFoundException e) {
-                throw new IllegalArgumentException(e.getMessage());
+                throw new IllegalArgumentException(String.format(
+                          "No such edge with id: '%s', %s", id, e));
             } catch (NoSuchElementException e) {
                 throw new IllegalArgumentException(String.format(
                           "No such edge with id: '%s'", id));
             }
-            edge.remove();
         });
     }
 
@@ -440,7 +448,7 @@ public class EdgeAPI extends BatchAPI {
                 E.checkArgument(sortKeyValue != null,
                                 "The value of sort key '%s' can't be null",
                                 sortKey);
-                sortKeyValue = pk.convValue(sortKeyValue, true);
+                sortKeyValue = pk.validValueOrThrow(sortKeyValue);
                 sortKeyValues.add(sortKeyValue);
             });
             sortKeys = ConditionQuery.concatValues(sortKeyValues);

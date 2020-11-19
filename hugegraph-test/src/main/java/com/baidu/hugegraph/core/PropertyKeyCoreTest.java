@@ -24,6 +24,7 @@ import java.util.Date;
 import org.junit.Test;
 
 import com.baidu.hugegraph.HugeException;
+import com.baidu.hugegraph.exception.ExistedException;
 import com.baidu.hugegraph.exception.NotAllowException;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -472,5 +473,52 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
         id = schema.getPropertyKey("id");
         createTime = (Date) id.userdata().get(Userdata.CREATE_TIME);
         Assert.assertFalse(createTime.after(now));
+    }
+
+    @Test
+    public void testDuplicatePropertyKeyWithIdentityProperties() {
+        SchemaManager schema = graph().schema();
+        schema.propertyKey("fakePropKey")
+              .asText()
+              .ifNotExist()
+              .create();
+        schema.propertyKey("fakePropKey")
+              .asText()
+              .checkExist(false)
+              .create();
+        schema.propertyKey("fakePropKey")
+              .userdata("b", "") // won't check userdata
+              .asText()
+              .checkExist(false)
+              .create();
+    }
+
+    @Test
+    public void testDuplicatePropertyKeyWithDifferentProperties() {
+        SchemaManager schema = graph().schema();
+        schema.propertyKey("fakePropKey")
+              .asText()
+              .ifNotExist()
+              .create();
+        Assert.assertThrows(ExistedException.class, () -> {
+            schema.propertyKey("fakePropKey")
+                  .asDouble()
+                  .checkExist(false)
+                  .create();
+        });
+        Assert.assertThrows(ExistedException.class, () -> {
+            schema.propertyKey("fakePropKey")
+                  .asText()
+                  .valueList()
+                  .checkExist(false)
+                  .create();
+        });
+        Assert.assertThrows(ExistedException.class, () -> {
+            schema.propertyKey("fakePropKey")
+                  .asText()
+                  .aggregateType(AggregateType.MAX)
+                  .checkExist(false)
+                  .create();
+        });
     }
 }

@@ -30,9 +30,11 @@ import com.baidu.hugegraph.exception.ExistedException;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
+import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.GraphMode;
+import com.baidu.hugegraph.type.define.SchemaStatus;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.LockUtil;
 
@@ -66,7 +68,7 @@ public abstract class AbstractBuilder {
 
     protected <V> V lockCheckAndCreateSchema(HugeType type, String name,
                                              Function<String, V> callback) {
-        String graph = this.transaction.graph().name();
+        String graph = this.transaction.graphName();
         LockUtil.Locks locks = new LockUtil.Locks(graph);
         try {
             locks.lockWrites(LockUtil.hugeType2Group(type),
@@ -77,8 +79,13 @@ public abstract class AbstractBuilder {
         }
     }
 
+    protected void updateSchemaStatus(SchemaElement element,
+                                      SchemaStatus status) {
+        this.transaction.updateSchemaStatus(element, status);
+    }
+
     protected void checkSchemaIdIfRestoringMode(HugeType type, Id id) {
-        if (this.transaction.graph().mode() == GraphMode.RESTORING) {
+        if (this.transaction.graphMode() == GraphMode.RESTORING) {
             E.checkArgument(id != null,
                             "Must provide schema id if in RESTORING mode");
             if (this.transaction.existsSchemaId(type, id)) {

@@ -47,10 +47,12 @@ public class StandardAuthenticator implements HugeAuthenticator {
         E.checkState(caller.equals("main"), "Invalid caller '%s'", caller);
 
         UserManager userManager = this.graph().hugegraph().userManager();
-        HugeUser admin = new HugeUser(HugeAuthenticator.USER_ADMIN);
-        admin.password(StringEncoding.hashPassword(inputPassword()));
-        admin.creator(HugeAuthenticator.USER_SYSTEM);
-        userManager.createUser(admin);
+        if (userManager.findUser(HugeAuthenticator.USER_ADMIN) == null) {
+            HugeUser admin = new HugeUser(HugeAuthenticator.USER_ADMIN);
+            admin.password(StringEncoding.hashPassword(inputPassword()));
+            admin.creator(HugeAuthenticator.USER_SYSTEM);
+            userManager.createUser(admin);
+        }
 
         this.graph.close();
     }
@@ -63,7 +65,7 @@ public class StandardAuthenticator implements HugeAuthenticator {
             return new String(chars);
         } else {
             System.out.print(prompt);
-            @SuppressWarnings("resource")
+            @SuppressWarnings("resource") // just wrapper of System.in
             Scanner scanner = new Scanner(System.in);
             return scanner.nextLine();
         }

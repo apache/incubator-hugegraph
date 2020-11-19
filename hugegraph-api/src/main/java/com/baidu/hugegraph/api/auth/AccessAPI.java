@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.api.users;
+package com.baidu.hugegraph.api.auth;
 
 import java.util.List;
 
@@ -42,7 +42,6 @@ import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.auth.HugeAccess;
 import com.baidu.hugegraph.auth.HugePermission;
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.define.Checkable;
 import com.baidu.hugegraph.exception.NotFoundException;
@@ -50,9 +49,10 @@ import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-@Path("graphs/{graph}/accesses")
+@Path("graphs/{graph}/auth/accesses")
 @Singleton
 public class AccessAPI extends API {
 
@@ -109,6 +109,8 @@ public class AccessAPI extends API {
                        @QueryParam("limit") @DefaultValue("100") long limit) {
         LOG.debug("Graph [{}] list belongs by group {} or target {}",
                   graph, group, target);
+        E.checkArgument(group == null || target == null,
+                        "Can't pass both group and target at the same time");
 
         HugeGraph g = graph(manager, graph);
         List<HugeAccess> belongs;
@@ -134,7 +136,7 @@ public class AccessAPI extends API {
         LOG.debug("Graph [{}] get access: {}", graph, id);
 
         HugeGraph g = graph(manager, graph);
-        HugeAccess access = manager.userManager().getAccess(IdGenerator.of(id));
+        HugeAccess access = manager.userManager().getAccess(UserAPI.parseId(id));
         return manager.serializer(g).writeUserElement(access);
     }
 
@@ -147,9 +149,15 @@ public class AccessAPI extends API {
                        @PathParam("id") String id) {
         LOG.debug("Graph [{}] delete access: {}", graph, id);
 
-        manager.userManager().deleteAccess(IdGenerator.of(id));
+        try {
+            manager.userManager().deleteAccess(UserAPI.parseId(id));
+        } catch (NotFoundException e) {
+            throw new IllegalArgumentException("Invalid access id: " + id);
+        }
     }
 
+    @JsonIgnoreProperties(value = {"id", "access_creator",
+                                   "access_create", "access_update"})
     private static class JsonAccess implements Checkable {
 
         @JsonProperty("group")
@@ -163,10 +171,10 @@ public class AccessAPI extends API {
 
         public HugeAccess build(HugeAccess access) {
             E.checkArgument(this.group == null ||
-                            access.source().equals(this.group),
+                            access.source().equals(UserAPI.parseId(this.group)),
                             "The group of access can't be updated");
             E.checkArgument(this.target == null ||
-                            access.target().equals(this.target),
+                            access.target().equals(UserAPI.parseId(this.target)),
                             "The target of access can't be updated");
             E.checkArgument(this.permission == null ||
                             access.permission().equals(this.permission),

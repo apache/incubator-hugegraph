@@ -38,14 +38,20 @@ public abstract class RocksDBSessions extends BackendSessionPool {
 
     public abstract Set<String> openedTables();
 
-    public abstract void createTable(String table) throws RocksDBException;
-    public abstract void dropTable(String table) throws RocksDBException;
+    public abstract void createTable(String... tables) throws RocksDBException;
+    public abstract void dropTable(String... tables) throws RocksDBException;
     public abstract boolean existsTable(String table);
 
     public abstract List<String> property(String property);
 
     public abstract RocksDBSessions copy(HugeConfig config,
                                          String database, String store);
+
+    public abstract void createSnapshot(String parentPath);
+
+    public abstract void reload() throws RocksDBException;
+
+    public abstract void forceCloseRocksDB();
 
     @Override
     public abstract Session session();
@@ -62,6 +68,9 @@ public abstract class RocksDBSessions extends BackendSessionPool {
         public static final int SCAN_GTE_BEGIN = 0x0c;
         public static final int SCAN_LT_END = 0x10;
         public static final int SCAN_LTE_END = 0x30;
+
+        public abstract String dataPath();
+        public abstract String walPath();
 
         public abstract String property(String table, String property);
         public abstract Pair<byte[], byte[]> keyRange(String table);

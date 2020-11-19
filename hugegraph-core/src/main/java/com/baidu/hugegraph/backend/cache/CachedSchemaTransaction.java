@@ -21,7 +21,6 @@ package com.baidu.hugegraph.backend.cache;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -29,9 +28,9 @@ import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.store.BackendStore;
+import com.baidu.hugegraph.backend.store.ram.IntObjectMap;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.config.CoreOptions;
-import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.event.EventListener;
 import com.baidu.hugegraph.schema.SchemaElement;
@@ -44,18 +43,25 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
     private final Cache<Id, Object> idCache;
     private final Cache<Id, Object> nameCache;
 
+    private final SchemaCaches<SchemaElement> arrayCaches;
+
     private EventListener storeEventListener;
     private EventListener cacheEventListener;
-
-    private final Map<HugeType, Boolean> cachedTypes;
 
     public CachedSchemaTransaction(HugeGraphParams graph, BackendStore store) {
         super(graph, store);
 
-        this.idCache = this.cache("schema-id");
-        this.nameCache = this.cache("schema-name");
+        final long capacity = graph.configuration()
+                                   .get(CoreOptions.SCHEMA_CACHE_CAPACITY);
+        this.idCache = this.cache("schema-id", capacity);
+        this.nameCache = this.cache("schema-name", capacity);
 
-        this.cachedTypes = new ConcurrentHashMap<>();
+        SchemaCaches<SchemaElement> attachment = this.idCache.attachment();
+        if (attachment == null) {
+            int acSize = (int) (capacity >> 3);
+            attachment = this.idCache.attachment(new SchemaCaches<>(acSize));
+        }
+        this.arrayCaches = attachment;
 
         this.listenChanges();
     }
@@ -65,15 +71,13 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
         try {
             super.close();
         } finally {
+            this.clearCache();
             this.unlistenChanges();
         }
     }
 
-    private Cache<Id, Object> cache(String prefix) {
-        HugeConfig conf = super.params().configuration();
-
-        final String name = prefix + "-" + super.params().name();
-        final long capacity = conf.get(CoreOptions.SCHEMA_CACHE_CAPACITY);
+    private Cache<Id, Object> cache(String prefix, long capacity) {
+        final String name = prefix + "-" + this.graphName();
         // NOTE: must disable schema cache-expire due to getAllSchema()
         return CacheManager.instance().cache(name, capacity);
     }
@@ -87,9 +91,7 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
             if (storeEvents.contains(event.name())) {
                 LOG.debug("Graph {} clear schema cache on event '{}'",
                           this.graph(), event.name());
-                this.idCache.clear();
-                this.nameCache.clear();
-                this.cachedTypes.clear();
+                this.clearCache();
                 return true;
             }
             return false;
@@ -100,10 +102,14 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
         this.cacheEventListener = event -> {
             LOG.debug("Graph {} received schema cache event: {}",
                       this.graph(), event);
-            event.checkArgs(String.class, Id.class);
+            event.checkArgs(String.class, HugeType.class, Id.class);
             Object[] args = event.args();
             if ("invalid".equals(args[0])) {
-                Id id = (Id) args[1];
+                HugeType type = (HugeType) args[1];
+                Id id = (Id) args[2];
+                this.arrayCaches.remove(type, id);
+
+                id = generateId(type, id);
                 Object value = this.idCache.get(id);
                 if (value != null) {
                     // Invalidate id cache
@@ -117,9 +123,7 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
                 }
                 return true;
             } else if ("clear".equals(args[0])) {
-                this.idCache.clear();
-                this.nameCache.clear();
-                this.cachedTypes.clear();
+                this.clearCache();
                 return true;
             }
             return false;
@@ -128,6 +132,12 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
         if (!schemaEventHub.containsListener(Events.CACHE)) {
             schemaEventHub.listen(Events.CACHE, this.cacheEventListener);
         }
+    }
+
+    private void clearCache() {
+        this.idCache.clear();
+        this.nameCache.clear();
+        this.arrayCaches.clear();
     }
 
     private void unlistenChanges() {
@@ -139,12 +149,16 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
         schemaEventHub.unlisten(Events.CACHE, this.cacheEventListener);
     }
 
-    private void resetCachedAllIfReachedCapacity() {
+    private final void resetCachedAllIfReachedCapacity() {
         if (this.idCache.size() >= this.idCache.capacity()) {
             LOG.warn("Schema cache reached capacity({}): {}",
                      this.idCache.capacity(), this.idCache.size());
-            this.cachedTypes.clear();
+            this.cachedTypes().clear();
         }
+    }
+
+    private final CachedTypes cachedTypes() {
+        return this.arrayCaches.cachedTypes();
     }
 
     private static Id generateId(HugeType type, Id id) {
@@ -163,16 +177,29 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
 
         this.resetCachedAllIfReachedCapacity();
 
+        // update id cache
         Id prefixedId = generateId(schema.type(), schema.id());
         this.idCache.update(prefixedId, schema);
 
+        // update name cache
         Id prefixedName = generateId(schema.type(), schema.name());
         this.nameCache.update(prefixedName, schema);
+
+        // update optimized array cache
+        this.arrayCaches.updateIfNeeded(schema);
     }
 
     @Override
     @SuppressWarnings("unchecked")
     protected <T extends SchemaElement> T getSchema(HugeType type, Id id) {
+        // try get from optimized array cache
+        if (id.number() && id.asLong() > 0L) {
+            SchemaElement value = this.arrayCaches.get(type, id);
+            if (value != null) {
+                return (T) value;
+            }
+        }
+
         Id prefixedId = generateId(type, id);
         Object value = this.idCache.get(prefixedId);
         if (value == null) {
@@ -187,6 +214,10 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
                 this.nameCache.update(prefixedName, schema);
             }
         }
+
+        // update optimized array cache
+        this.arrayCaches.updateIfNeeded((SchemaElement) value);
+
         return (T) value;
     }
 
@@ -224,11 +255,14 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
             Id prefixedName = generateId(schema.type(), schema.name());
             this.nameCache.invalidate(prefixedName);
         }
+
+        // remove from optimized array cache
+        this.arrayCaches.remove(schema.type(), schema.id());
     }
 
     @Override
     protected <T extends SchemaElement> List<T> getAllSchema(HugeType type) {
-        Boolean cachedAll = this.cachedTypes.getOrDefault(type, false);
+        Boolean cachedAll = this.cachedTypes().getOrDefault(type, false);
         if (cachedAll) {
             List<T> results = new ArrayList<>();
             // Get from cache
@@ -252,9 +286,147 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
                     Id prefixedName = generateId(schema.type(), schema.name());
                     this.nameCache.update(prefixedName, schema);
                 }
-                this.cachedTypes.putIfAbsent(type, true);
+                this.cachedTypes().putIfAbsent(type, true);
             }
             return results;
         }
+    }
+
+    private static final class SchemaCaches<V extends SchemaElement> {
+
+        private final int size;
+
+        private final IntObjectMap<V> pks;
+        private final IntObjectMap<V> vls;
+        private final IntObjectMap<V> els;
+        private final IntObjectMap<V> ils;
+
+        private final CachedTypes cachedTypes;
+
+        public SchemaCaches(int size) {
+            // TODO: improve size of each type for optimized array cache
+            this.size = size;
+
+            this.pks = new IntObjectMap<>(size);
+            this.vls = new IntObjectMap<>(size);
+            this.els = new IntObjectMap<>(size);
+            this.ils = new IntObjectMap<>(size);
+
+            this.cachedTypes = new CachedTypes();
+        }
+
+        public void updateIfNeeded(V schema) {
+            if (schema == null) {
+                return;
+            }
+            Id id = schema.id();
+            if (id.number() && id.asLong() > 0L) {
+                this.set(schema.type(), id, schema);
+            }
+        }
+
+        public V get(HugeType type, Id id) {
+            assert id.number();
+            long longId = id.asLong();
+            if (longId <= 0L) {
+                assert false : id;
+                return null;
+            }
+            int key = (int) longId;
+            if (key >= this.size) {
+                return null;
+            }
+            switch (type) {
+                case PROPERTY_KEY:
+                    return this.pks.get(key);
+                case VERTEX_LABEL:
+                    return this.vls.get(key);
+                case EDGE_LABEL:
+                    return this.els.get(key);
+                case INDEX_LABEL:
+                    return this.ils.get(key);
+                default:
+                    return null;
+            }
+        }
+
+        public void set(HugeType type, Id id, V value) {
+            assert id.number();
+            long longId = id.asLong();
+            if (longId <= 0L) {
+                assert false : id;
+                return;
+            }
+            int key = (int) longId;
+            if (key >= this.size) {
+                return;
+            }
+            switch (type) {
+                case PROPERTY_KEY:
+                    this.pks.set(key, value);
+                    break;
+                case VERTEX_LABEL:
+                    this.vls.set(key, value);
+                    break;
+                case EDGE_LABEL:
+                    this.els.set(key, value);
+                    break;
+                case INDEX_LABEL:
+                    this.ils.set(key, value);
+                    break;
+                default:
+                    // pass
+                    break;
+            }
+        }
+
+        public void remove(HugeType type, Id id) {
+            assert id.number();
+            long longId = id.asLong();
+            if (longId <= 0L) {
+                return;
+            }
+            int key = (int) longId;
+            V value = null;
+            if (key >= this.size) {
+                return;
+            }
+            switch (type) {
+                case PROPERTY_KEY:
+                    this.pks.set(key, value);
+                    break;
+                case VERTEX_LABEL:
+                    this.vls.set(key, value);
+                    break;
+                case EDGE_LABEL:
+                    this.els.set(key, value);
+                    break;
+                case INDEX_LABEL:
+                    this.ils.set(key, value);
+                    break;
+                default:
+                    // pass
+                    break;
+            }
+        }
+
+        public void clear() {
+            this.pks.clear();
+            this.vls.clear();
+            this.els.clear();
+            this.ils.clear();
+
+            this.cachedTypes.clear();
+        }
+
+        public CachedTypes cachedTypes() {
+            return this.cachedTypes;
+        }
+    }
+
+    private static class CachedTypes
+                   extends ConcurrentHashMap<HugeType, Boolean> {
+
+        private static final long serialVersionUID = -2215549791679355996L;
     }
 }

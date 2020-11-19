@@ -22,6 +22,7 @@ package com.baidu.hugegraph.config;
 import static com.baidu.hugegraph.backend.tx.GraphTransaction.COMMIT_BATCH;
 import static com.baidu.hugegraph.config.OptionChecker.allowValues;
 import static com.baidu.hugegraph.config.OptionChecker.disallowEmpty;
+import static com.baidu.hugegraph.config.OptionChecker.positiveInt;
 import static com.baidu.hugegraph.config.OptionChecker.rangeInt;
 
 import com.baidu.hugegraph.backend.query.Query;
@@ -34,6 +35,8 @@ public class CoreOptions extends OptionHolder {
     }
 
     private static volatile CoreOptions instance;
+
+    private static final int CPUS = Runtime.getRuntime().availableProcessors();
 
     public static synchronized CoreOptions instance() {
         if (instance == null) {
@@ -100,10 +103,188 @@ public class CoreOptions extends OptionHolder {
                     "text"
             );
 
-    public static final ConfigOption<Integer> RATE_LIMIT =
+    public static final ConfigOption<Boolean> RAFT_MODE =
             new ConfigOption<>(
-                    "rate_limit",
+                    "raft.mode",
+                    "Whether the backend storage works in raft mode.",
+                    disallowEmpty(),
+                    false
+            );
+
+    public static final ConfigOption<Boolean> RAFT_SAFE_READ =
+            new ConfigOption<>(
+                    "raft.safe_read",
+                    "Whether to use linearly consistent read.",
+                    disallowEmpty(),
+                    false
+            );
+
+    public static final ConfigOption<Boolean> RAFT_USE_SNAPSHOT =
+            new ConfigOption<>(
+                    "raft.use_snapshot",
+                    "Whether to use snapshot.",
+                    disallowEmpty(),
+                    false
+            );
+
+    public static final ConfigOption<String> RAFT_ENDPOINT =
+            new ConfigOption<>(
+                    "raft.endpoint",
+                    "The peerid of current raft node.",
+                    disallowEmpty(),
+                    "127.0.0.1:8281"
+            );
+
+    public static final ConfigOption<String> RAFT_GROUP_PEERS =
+            new ConfigOption<>(
+                    "raft.group_peers",
+                    "The peers of current raft group.",
+                    disallowEmpty(),
+                    "127.0.0.1:8281,127.0.0.1:8282,127.0.0.1:8283"
+            );
+
+    public static final ConfigOption<String> RAFT_PATH =
+            new ConfigOption<>(
+                    "raft.path",
+                    "The log path of current raft node.",
+                    disallowEmpty(),
+                    "./raftlog"
+            );
+
+    public static final ConfigOption<Boolean> RAFT_REPLICATOR_PIPELINE =
+            new ConfigOption<>(
+                    "raft.use_replicator_pipeline",
+                    "Whether to use replicator line, when turned on it " +
+                    "multiple logs can be sent in parallel, and the next log " +
+                    "doesn't have to wait for the ack message of the current " +
+                    "log to be sent.",
+                    disallowEmpty(),
+                    true
+            );
+
+    public static final ConfigOption<Integer> RAFT_ELECTION_TIMEOUT =
+            new ConfigOption<>(
+                    "raft.election_timeout",
+                    "Timeout in milliseconds to launch a round of election.",
+                    rangeInt(0, Integer.MAX_VALUE),
+                    10000
+            );
+
+    public static final ConfigOption<Integer> RAFT_SNAPSHOT_INTERVAL =
+            new ConfigOption<>(
+                    "raft.snapshot_interval",
+                    "The interval in seconds to trigger snapshot save.",
+                    rangeInt(0, Integer.MAX_VALUE),
+                    3600
+            );
+
+    public static final ConfigOption<Integer> RAFT_BACKEND_THREADS =
+            new ConfigOption<>(
+                    "raft.backend_threads",
+                    "The thread number used to apply task to bakcend.",
+                    rangeInt(0, Integer.MAX_VALUE),
+                    CPUS
+            );
+
+    public static final ConfigOption<Integer> RAFT_READ_INDEX_THREADS =
+            new ConfigOption<>(
+                    "raft.read_index_threads",
+                    "The thread number used to execute reading index.",
+                    rangeInt(0, Integer.MAX_VALUE),
+                    8
+            );
+
+    public static final ConfigOption<Integer> RAFT_APPLY_BATCH =
+            new ConfigOption<>(
+                    "raft.apply_batch",
+                    "The apply batch size to trigger disruptor event handler.",
+                    positiveInt(),
+                    // jraft default value is 32
+                    1
+            );
+
+    public static final ConfigOption<Integer> RAFT_QUEUE_SIZE =
+            new ConfigOption<>(
+                    "raft.queue_size",
+                    "The disruptor buffers size for jraft RaftNode, " +
+                    "StateMachine and LogManager.",
+                    positiveInt(),
+                    // jraft default value is 16384
+                    16384
+            );
+
+    public static final ConfigOption<Integer> RAFT_QUEUE_PUBLISH_TIMEOUT =
+            new ConfigOption<>(
+                    "raft.queue_publish_timeout",
+                    "The timeout in second when publish event into disruptor.",
+                    positiveInt(),
+                    // jraft default value is 10(sec)
+                    60
+            );
+
+    public static final ConfigOption<Integer> RAFT_RPC_THREADS =
+            new ConfigOption<>(
+                    "raft.rpc_threads",
+                    "The rpc threads for jraft RPC layer",
+                    positiveInt(),
+                    // jraft default value is 80
+                    Math.max(CPUS * 2, 80)
+            );
+
+    public static final ConfigOption<Integer> RAFT_RPC_CONNECT_TIMEOUT =
+            new ConfigOption<>(
+                    "raft.rpc_connect_timeout",
+                    "The rpc connect timeout for jraft rpc.",
+                    positiveInt(),
+                    // jraft default value is 1000(ms)
+                    5000
+            );
+
+    public static final ConfigOption<Integer> RAFT_RPC_TIMEOUT =
+            new ConfigOption<>(
+                    "raft.rpc_timeout",
+                    "The rpc timeout for jraft rpc.",
+                    positiveInt(),
+                    // jraft default value is 5000(ms)
+                    60000
+            );
+
+    public static final ConfigOption<Integer> RAFT_RPC_BUF_LOW_WATER_MARK =
+            new ConfigOption<>(
+                    "raft.rpc_buf_low_water_mark",
+                    "The ChannelOutboundBuffer's low water mark of netty, " +
+                    "when buffer size less than this size, the method " +
+                    "ChannelOutboundBuffer.isWritable() will return true, " +
+                    "it means that low downstream pressure or good network.",
+                    positiveInt(),
+                    10 * 1024 * 1024
+            );
+
+    public static final ConfigOption<Integer> RAFT_RPC_BUF_HIGH_WATER_MARK =
+            new ConfigOption<>(
+                    "raft.rpc_buf_high_water_mark",
+                    "The ChannelOutboundBuffer's high water mark of netty, " +
+                    "only when buffer size exceed this size, the method " +
+                    "ChannelOutboundBuffer.isWritable() will return false, " +
+                    "it means that the downstream pressure is too great to " +
+                    "process the request or network is very congestion, " +
+                    "upstream needs to limit rate at this time.",
+                    positiveInt(),
+                    20 * 1024 * 1024
+            );
+
+    public static final ConfigOption<Integer> RATE_LIMIT_WRITE =
+            new ConfigOption<>(
+                    "rate_limit.write",
                     "The max rate(items/s) to add/update/delete vertices/edges.",
+                    rangeInt(0, Integer.MAX_VALUE),
+                    0
+            );
+
+    public static final ConfigOption<Integer> RATE_LIMIT_READ =
+            new ConfigOption<>(
+                    "rate_limit.read",
+                    "The max rate(times/s) to execute query of vertices/edges.",
                     rangeInt(0, Integer.MAX_VALUE),
                     0
             );
@@ -111,8 +292,9 @@ public class CoreOptions extends OptionHolder {
     public static final ConfigOption<Long> TASK_WAIT_TIMEOUT =
             new ConfigOption<>(
                     "task.wait_timeout",
-                    "Timeout in seconds for waiting for the task to complete," +
-                    "such as when truncating or clearing the backend.",
+                    "Timeout in seconds for waiting for the task to " +
+                    "complete, such as when truncating or clearing the " +
+                    "backend.",
                     rangeInt(0L, Long.MAX_VALUE),
                     10L
             );
@@ -131,6 +313,14 @@ public class CoreOptions extends OptionHolder {
                     "The job result size limit in bytes.",
                     rangeInt(0L, Bytes.GB),
                     16 * Bytes.MB
+            );
+
+    public static final ConfigOption<Integer> TASK_TTL_DELETE_BATCH =
+            new ConfigOption<>(
+                    "task.ttl_delete_batch",
+                    "The batch size used to delete expired data.",
+                    rangeInt(1, 500),
+                    1
             );
 
     public static final ConfigOption<Long> CONNECTION_DETECT_INTERVAL =
@@ -156,7 +346,7 @@ public class CoreOptions extends OptionHolder {
             new ConfigOption<>(
                     "vertex.check_customized_id_exist",
                     "Whether to check the vertices exist for those using " +
-                    "customized id strategy",
+                    "customized id strategy.",
                     disallowEmpty(),
                     false
             );
@@ -164,7 +354,7 @@ public class CoreOptions extends OptionHolder {
     public static final ConfigOption<Boolean> VERTEX_ADJACENT_VERTEX_EXIST =
             new ConfigOption<>(
                     "vertex.check_adjacent_vertex_exist",
-                    "Whether to check the adjacent vertices of edges exist",
+                    "Whether to check the adjacent vertices of edges exist.",
                     disallowEmpty(),
                     false
             );
@@ -172,7 +362,7 @@ public class CoreOptions extends OptionHolder {
     public static final ConfigOption<Boolean> VERTEX_ADJACENT_VERTEX_LAZY =
             new ConfigOption<>(
                     "vertex.lazy_load_adjacent_vertex",
-                    "Whether to lazy load adjacent vertices of edges",
+                    "Whether to lazy load adjacent vertices of edges.",
                     disallowEmpty(),
                     true
             );
@@ -180,8 +370,8 @@ public class CoreOptions extends OptionHolder {
     public static final ConfigOption<Integer> VERTEX_PART_EDGE_COMMIT_SIZE =
             new ConfigOption<>(
                     "vertex.part_edge_commit_size",
-                    "Whether to enable the mode to commit part of edges of vertex, " +
-                    "enabled if commit size > 0, 0 meas disabled.",
+                    "Whether to enable the mode to commit part of edges of " +
+                    "vertex, enabled if commit size > 0, 0 meas disabled.",
                     rangeInt(0, (int) Query.DEFAULT_CAPACITY),
                     5000
             );
@@ -210,10 +400,47 @@ public class CoreOptions extends OptionHolder {
                     500
             );
 
+    public static final ConfigOption<Integer> QUERY_INDEX_INTERSECT_THRESHOLD =
+            new ConfigOption<>(
+                    "query.index_intersect_threshold",
+                    "The maximum number of intermediate results to " +
+                    "intersect indexes when querying by multiple single " +
+                    "index properties.",
+                    rangeInt(1, (int) Query.DEFAULT_CAPACITY),
+                    1000
+            );
+
+    public static final ConfigOption<Boolean> QUERY_RAMTABLE_ENABLE =
+            new ConfigOption<>(
+                    "query.ramtable_enable",
+                    "Whether to enable ramtable for query of adjacent edges.",
+                    disallowEmpty(),
+                    false
+            );
+
+    public static final ConfigOption<Long> QUERY_RAMTABLE_VERTICES_CAPACITY =
+            new ConfigOption<>(
+                    "query.ramtable_vertices_capacity",
+                    "The maximum number of vertices in ramtable, " +
+                    "generally the largest vertex id is used as capacity.",
+                    rangeInt(1L, Integer.MAX_VALUE * 2L),
+                    10000000L
+            );
+
+    public static final ConfigOption<Integer> QUERY_RAMTABLE_EDGES_CAPACITY =
+            new ConfigOption<>(
+                    "query.ramtable_edges_capacity",
+                    "The maximum number of edges in ramtable, " +
+                    "include OUT and IN edges.",
+                    rangeInt(1, Integer.MAX_VALUE),
+                    20000000
+            );
+
     public static final ConfigOption<Integer> VERTEX_TX_CAPACITY =
             new ConfigOption<>(
                     "vertex.tx_capacity",
-                    "The max size(items) of vertices(uncommitted) in transaction.",
+                    "The max size(items) of vertices(uncommitted) in " +
+                    "transaction.",
                     rangeInt(COMMIT_BATCH, 1000000),
                     10000
             );
@@ -221,7 +448,8 @@ public class CoreOptions extends OptionHolder {
     public static final ConfigOption<Integer> EDGE_TX_CAPACITY =
             new ConfigOption<>(
                     "edge.tx_capacity",
-                    "The max size(items) of edges(uncommitted) in transaction.",
+                    "The max size(items) of edges(uncommitted) in " +
+                     "transaction.",
                     rangeInt(COMMIT_BATCH, 1000000),
                     10000
             );
@@ -261,14 +489,6 @@ public class CoreOptions extends OptionHolder {
                     "The type of vertex cache, allowed values are [l1, l2].",
                     allowValues("l1", "l2"),
                     "l1"
-            );
-
-    public static final ConfigOption<Integer> EXPIRED_DELETE_BATCH =
-            new ConfigOption<>(
-                    "expired.delete_batch",
-                    "The batch size used to delete expired data.",
-                    rangeInt(1, 500),
-                    10
             );
 
     public static final ConfigOption<Long> VERTEX_CACHE_CAPACITY =
@@ -341,7 +561,7 @@ public class CoreOptions extends OptionHolder {
                     "Choose a text analyzer for searching the " +
                     "vertex/edge properties, available type are " +
                     "[word, ansj, hanlp, smartcn, jieba, jcseg, " +
-                    "mmseg4j, ikanalyzer]",
+                    "mmseg4j, ikanalyzer].",
                     disallowEmpty(),
                     "ikanalyzer"
             );
@@ -366,8 +586,32 @@ public class CoreOptions extends OptionHolder {
                     "jcseg: [Simple, Complex], " +
                     "mmseg4j: [Simple, Complex, MaxWord], " +
                     "ikanalyzer: [smart, max_word]" +
-                    "}",
+                    "}.",
                     disallowEmpty(),
                     "smart"
+            );
+
+    public static final ConfigOption<String> COMPUTER_CONFIG =
+            new ConfigOption<>(
+                    "computer.config",
+                    "The config file path of computer job.",
+                    disallowEmpty(),
+                    "./conf/computer.yaml"
+            );
+
+    public static final ConfigOption<Integer> OLTP_CONCURRENT_THREADS =
+            new ConfigOption<>(
+                    "oltp.concurrent_threads",
+                    "Thread number to concurrently execute oltp algorithm.",
+                    rangeInt(0, 65535),
+                    10
+            );
+
+    public static final ConfigOption<Integer> OLTP_CONCURRENT_DEPTH =
+            new ConfigOption<>(
+                    "oltp.concurrent_depth",
+                    "The min depth to enable concurrent oltp algorithm.",
+                    rangeInt(0, 65535),
+                    10
             );
 }

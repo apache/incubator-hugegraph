@@ -21,8 +21,10 @@ package com.baidu.hugegraph.api;
 
 import java.io.IOException;
 import java.net.URLEncoder;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -163,46 +165,53 @@ public class BaseApiTest {
     protected static void initPropertyKey() {
         String path = URL_PREFIX + SCHEMA_PKS;
 
-        client.post(path, "{\n"
+        createAndAssert(path, "{\n"
                 + "\"name\": \"name\",\n"
                 + "\"data_type\": \"TEXT\",\n"
                 + "\"cardinality\": \"SINGLE\",\n"
+                + "\"check_exist\": false,\n"
                 + "\"properties\":[]\n"
                 + "}");
-        client.post(path, "{\n"
+        createAndAssert(path, "{\n"
                 + "\"name\": \"age\",\n"
                 + "\"data_type\": \"INT\",\n"
                 + "\"cardinality\": \"SINGLE\",\n"
+                + "\"check_exist\": false,\n"
                 + "\"properties\":[]\n"
                 + "}");
-        client.post(path, "{\n"
+        createAndAssert(path, "{\n"
                 + "\"name\": \"city\",\n"
                 + "\"data_type\": \"TEXT\",\n"
                 + "\"cardinality\": \"SINGLE\",\n"
+                + "\"check_exist\": false,\n"
                 + "\"properties\":[]\n"
                 + "}");
-        client.post(path, "{\n"
+        createAndAssert(path, "{\n"
                 + "\"name\": \"lang\",\n"
                 + "\"data_type\": \"TEXT\",\n"
                 + "\"cardinality\": \"SINGLE\",\n"
+                + "\"check_exist\": false,\n"
                 + "\"properties\":[]\n"
                 + "}");
-        client.post(path, "{\n"
+        createAndAssert(path, "{\n"
                 + "\"name\": \"date\",\n"
                 + "\"data_type\": \"TEXT\",\n"
                 + "\"cardinality\": \"SINGLE\",\n"
+                + "\"check_exist\": false,\n"
                 + "\"properties\":[]\n"
                 + "}");
-        client.post(path, "{\n"
+        createAndAssert(path, "{\n"
                 + "\"name\": \"price\",\n"
                 + "\"data_type\": \"INT\",\n"
                 + "\"cardinality\": \"SINGLE\",\n"
+                + "\"check_exist\": false,\n"
                 + "\"properties\":[]\n"
                 + "}");
-        client.post(path, "{\n"
+        createAndAssert(path, "{\n"
                 + "\"name\": \"weight\",\n"
                 + "\"data_type\": \"DOUBLE\",\n"
                 + "\"cardinality\": \"SINGLE\",\n"
+                + "\"check_exist\": false,\n"
                 + "\"properties\":[]\n"
                 + "}");
     }
@@ -210,18 +219,21 @@ public class BaseApiTest {
     protected static void initVertexLabel() {
         String path = URL_PREFIX + SCHEMA_VLS;
 
-        client.post(path, "{\n"
+        createAndAssert(path, "{\n"
                 + "\"primary_keys\":[\"name\"],\n"
                 + "\"id_strategy\": \"PRIMARY_KEY\",\n"
                 + "\"name\": \"person\",\n"
                 + "\"properties\":[\"city\", \"name\", \"age\"],\n"
+                + "\"check_exist\": false,\n"
                 + "\"nullable_keys\":[]\n"
                 + "}");
-        client.post(path, "{\n"
+
+        createAndAssert(path, "{\n"
                 + "\"primary_keys\":[\"name\"],\n"
                 + "\"id_strategy\": \"PRIMARY_KEY\",\n"
                 + "\"name\": \"software\",\n"
                 + "\"properties\":[\"price\", \"name\", \"lang\"],\n"
+                + "\"check_exist\": false,\n"
                 + "\"nullable_keys\":[]\n"
                 + "}");
     }
@@ -229,22 +241,24 @@ public class BaseApiTest {
     protected static void initEdgeLabel() {
         String path = URL_PREFIX + SCHEMA_ELS;
 
-        client.post(path, "{\n"
+        createAndAssert(path, "{\n"
                 + "\"name\": \"created\",\n"
                 + "\"source_label\": \"person\",\n"
                 + "\"target_label\": \"software\",\n"
                 + "\"frequency\": \"SINGLE\",\n"
                 + "\"properties\":[\"date\", \"weight\"],\n"
                 + "\"sort_keys\":[],\n"
+                + "\"check_exist\": false,\n"
                 + "\"nullable_keys\":[]\n"
                 + "}");
-        client.post(path, "{\n"
+        createAndAssert(path, "{\n"
                 + "\"name\": \"knows\",\n"
                 + "\"source_label\": \"person\",\n"
                 + "\"target_label\": \"person\",\n"
                 + "\"frequency\": \"MULTIPLE\",\n"
                 + "\"properties\":[\"date\", \"weight\"],\n"
                 + "\"sort_keys\":[\"date\"],\n"
+                + "\"check_exist\": false,\n"
                 + "\"nullable_keys\":[]\n"
                 + "}");
     }
@@ -252,21 +266,23 @@ public class BaseApiTest {
     protected static void initIndexLabel() {
         String path = URL_PREFIX + SCHEMA_ILS;
 
-        client.post(path, "{\n"
+        Response r = client.post(path, "{\n"
                 + "\"name\": \"personByCity\",\n"
                 + "\"base_type\": \"VERTEX_LABEL\",\n"
                 + "\"base_value\": \"person\",\n"
                 + "\"index_type\": \"SECONDARY\",\n"
+                + "\"check_exist\": false,\n"
                 + "\"fields\": [\n"
                 + "\"city\"\n"
                 + "]\n"
                 + "}");
+        assertResponseStatus(202, r);
     }
 
     protected static void initVertex() {
         String path = URL_PREFIX + GRAPH_VERTEX;
 
-        client.post(path, "{\n"
+        createAndAssert(path, "{\n"
                 + "\"label\": \"person\",\n"
                 + "\"type\": \"vertex\",\n"
                 + "\"properties\":{"
@@ -275,7 +291,7 @@ public class BaseApiTest {
                 + "\"city\": \"Beijing\""
                 + "}\n"
                 + "}");
-        client.post(path, "{\n"
+        createAndAssert(path, "{\n"
                 + "\"label\": \"person\",\n"
                 + "\"type\": \"vertex\",\n"
                 + "\"properties\":{"
@@ -284,7 +300,7 @@ public class BaseApiTest {
                 + "\"city\": \"HongKong\""
                 + "}\n"
                 + "}");
-        client.post(path, "{\n"
+        createAndAssert(path, "{\n"
                 + "\"label\": \"person\",\n"
                 + "\"type\": \"vertex\",\n"
                 + "\"properties\":{"
@@ -293,7 +309,7 @@ public class BaseApiTest {
                 + "\"city\": \"Beijing\""
                 + "}\n"
                 + "}");
-        client.post(path, "{\n"
+        createAndAssert(path, "{\n"
                 + "\"label\": \"person\",\n"
                 + "\"type\": \"vertex\",\n"
                 + "\"properties\":{"
@@ -302,7 +318,7 @@ public class BaseApiTest {
                 + "\"city\": \"Shanghai\""
                 + "}\n"
                 + "}");
-        client.post(path, "{\n"
+        createAndAssert(path, "{\n"
                 + "\"label\": \"software\",\n"
                 + "\"type\": \"vertex\",\n"
                 + "\"properties\":{"
@@ -311,7 +327,7 @@ public class BaseApiTest {
                 + "\"price\": 199"
                 + "}\n"
                 + "}");
-        client.post(path, "{\n"
+        createAndAssert(path, "{\n"
                 + "\"label\": \"software\",\n"
                 + "\"type\": \"vertex\",\n"
                 + "\"properties\":{"
@@ -320,6 +336,12 @@ public class BaseApiTest {
                 + "\"price\": 328"
                 + "}\n"
                 + "}");
+    }
+
+    protected static Response createAndAssert(String path, String body) {
+        Response r = client.post(path, body);
+        assertResponseStatus(201, r);
+        return r;
     }
 
     protected static String getVertexId(String label, String key, String value)
@@ -378,15 +400,34 @@ public class BaseApiTest {
             List<Map> list = readList(content, type, Map.class);
             List<Object> names = list.stream().map(e -> e.get("name"))
                                      .collect(Collectors.toList());
+            Set<Integer> tasks = new HashSet<>();
             names.forEach(name -> {
-                client.delete(path, (String) name);
+                Response response = client.delete(path, (String) name);
+                if (urlSuffix.equals(SCHEMA_PKS)) {
+                    return;
+                }
+                String result = assertResponseStatus(202, response);
+                tasks.add(assertJsonContains(result, "task_id"));
             });
+            for (Integer task : tasks) {
+                waitTaskSuccess(task);
+            }
         };
 
         consumer.accept(SCHEMA_ILS);
         consumer.accept(SCHEMA_ELS);
         consumer.accept(SCHEMA_VLS);
         consumer.accept(SCHEMA_PKS);
+    }
+
+    protected static void waitTaskSuccess(int task) {
+        String status;
+        do {
+            Response r = client.get("/graphs/hugegraph/tasks/",
+                                    String.valueOf(task));
+            String content = assertResponseStatus(200, r);
+            status = assertJsonContains(content, "task_status");
+        } while (!"success".equals(status));
     }
 
     protected static String parseId(String content) throws IOException {

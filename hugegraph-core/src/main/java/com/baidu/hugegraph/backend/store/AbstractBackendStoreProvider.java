@@ -91,6 +91,11 @@ public abstract class AbstractBackendStoreProvider
     }
 
     @Override
+    public void waitStoreStarted() {
+        // pass
+    }
+
+    @Override
     public void close() throws BackendException {
         LOG.debug("Graph '{}' close StoreProvider", this.graph);
         this.checkOpened();
@@ -148,7 +153,7 @@ public abstract class AbstractBackendStoreProvider
     @Override
     public BackendStore loadSchemaStore(final String name) {
         LOG.debug("The '{}' StoreProvider load SchemaStore '{}'",
-                  this.type(),  name);
+                  this.type(), name);
 
         this.checkOpened();
         if (!this.stores.containsKey(name)) {
@@ -180,5 +185,10 @@ public abstract class AbstractBackendStoreProvider
     @Override
     public BackendStore loadSystemStore(String name) {
         return this.loadGraphStore(name);
+    }
+
+    @Override
+    public EventHub storeEventHub() {
+        return this.storeEventHub;
     }
 }

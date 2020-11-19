@@ -80,13 +80,13 @@ public class RelationshipManager<T extends Relationship> {
 
     public Id add(T relationship) {
         E.checkArgumentNotNull(relationship, "Relationship can't be null");
-        return this.save(relationship);
+        return this.save(relationship, false);
     }
 
     public Id update(T relationship) {
         E.checkArgumentNotNull(relationship, "Relationship can't be null");
         relationship.onUpdate();
-        return this.save(relationship);
+        return this.save(relationship, true);
     }
 
     public T delete(Id id) {
@@ -114,6 +114,17 @@ public class RelationshipManager<T extends Relationship> {
                                         this.unhideLabel(), id);
         }
         return relationship;
+    }
+
+    public boolean exists(Id id) {
+        Iterator<Edge> edges = this.tx().queryEdges(id);
+        if (edges.hasNext()) {
+            Edge edge = edges.next();
+            if (this.label.equals(edge.label())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public List<T> list(List<Id> ids) {
@@ -159,7 +170,7 @@ public class RelationshipManager<T extends Relationship> {
                                              Map<String, Object> conditions,
                                              long limit) {
         ConditionQuery query = new ConditionQuery(HugeType.EDGE);
-        EdgeLabel el = this.graph.graph().edgeLabel(label);
+        EdgeLabel el = this.graph().edgeLabel(label);
         if (direction == null) {
             direction = Directions.OUT;
         }
@@ -171,7 +182,7 @@ public class RelationshipManager<T extends Relationship> {
             query.eq(HugeKeys.LABEL, el.id());
         }
         for (Map.Entry<String, Object> entry : conditions.entrySet()) {
-            PropertyKey pk = this.graph.graph().propertyKey(entry.getKey());
+            PropertyKey pk = this.graph().propertyKey(entry.getKey());
             query.query(Condition.eq(pk.id(), entry.getValue()));
         }
         query.showHidden(true);
@@ -191,7 +202,7 @@ public class RelationshipManager<T extends Relationship> {
         });
     }
 
-    private Id save(T relationship) {
+    private Id save(T relationship, boolean expectExists) {
         if (!this.graph().existsEdgeLabel(relationship.label())) {
             throw new HugeException("Schema is missing for %s '%s'",
                                     relationship.label(),
@@ -203,6 +214,11 @@ public class RelationshipManager<T extends Relationship> {
                                            relationship.targetLabel());
         HugeEdge edge = source.constructEdge(relationship.label(), target,
                                              relationship.asArray());
+        E.checkArgument(this.exists(edge.id()) == expectExists,
+                        "Can't save %s '%s' that %s exists",
+                        this.unhideLabel(), edge.id(),
+                        expectExists ? "not" : "already");
+
         this.tx().addEdge(edge);
         this.commitOrRollback();
         return edge.id();
@@ -211,7 +227,7 @@ public class RelationshipManager<T extends Relationship> {
     private HugeVertex newVertex(Object id, String label) {
         VertexLabel vl = this.graph().vertexLabel(label);
         Id idValue = HugeVertex.getIdValue(id);
-        return new HugeVertex(this.tx(), idValue, vl);
+        return HugeVertex.create(this.tx(), idValue, vl);
     }
 
     private void commitOrRollback() {

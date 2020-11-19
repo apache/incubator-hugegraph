@@ -66,6 +66,11 @@ public class BinaryBackendEntry implements BackendEntry {
     }
 
     @Override
+    public Id originId() {
+        return this.id.origin();
+    }
+
+    @Override
     public Id subId() {
         return this.subId;
     }
@@ -109,9 +114,6 @@ public class BinaryBackendEntry implements BackendEntry {
 
     @Override
     public Collection<BackendColumn> columns() {
-        if (this.columns.size() > 1) {
-            Collections.sort(this.columns);
-        }
         return Collections.unmodifiableList(this.columns);
     }
 

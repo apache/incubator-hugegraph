@@ -31,12 +31,15 @@ public enum TaskStatus implements SerialEnum {
     UNKNOWN(0, "UNKNOWN"),
 
     NEW(1, "new"),
-    QUEUED(2, "queued"),
-    RESTORING(3, "restoring"),
-    RUNNING(4, "running"),
-    SUCCESS(5, "success"),
-    CANCELLED(6, "cancelled"),
-    FAILED(7, "failed");
+    SCHEDULING(2, "scheduling"),
+    SCHEDULED(3, "scheduled"),
+    QUEUED(4, "queued"),
+    RESTORING(5, "restoring"),
+    RUNNING(6, "running"),
+    SUCCESS(7, "success"),
+    CANCELLING(8, "cancelling"),
+    CANCELLED(9, "cancelled"),
+    FAILED(10, "failed");
 
     // NOTE: order is important(RESTORING > RUNNING > QUEUED) when restoring
     public static final List<TaskStatus> PENDING_STATUSES = ImmutableList.of(

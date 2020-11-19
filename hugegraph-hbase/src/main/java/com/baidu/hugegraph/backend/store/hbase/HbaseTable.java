@@ -67,6 +67,7 @@ import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.Log;
+import com.baidu.hugegraph.util.StringEncoding;
 import com.google.common.collect.ImmutableList;
 
 public class HbaseTable extends BackendTable<Session, BackendEntry> {
@@ -152,7 +153,7 @@ public class HbaseTable extends BackendTable<Session, BackendEntry> {
 
     @Override
     public Iterator<BackendEntry> query(Session session, Query query) {
-        if (query.limit() == 0L && !query.nolimit()) {
+        if (query.limit() == 0L && !query.noLimit()) {
             LOG.debug("Return empty result(limit=0) for query {}", query);
             return Collections.emptyIterator();
         }
@@ -369,7 +370,7 @@ public class HbaseTable extends BackendTable<Session, BackendEntry> {
             if (END.equals(position)) {
                 return null;
             }
-            return decoder.decode(position);
+            return StringEncoding.decodeBase64(position);
         }
 
         @Override

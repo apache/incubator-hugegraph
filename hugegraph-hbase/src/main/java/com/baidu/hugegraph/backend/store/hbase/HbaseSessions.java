@@ -67,6 +67,7 @@ import org.apache.hadoop.hbase.filter.MultiRowRangeFilter.RowRange;
 import org.apache.hadoop.hbase.filter.PageFilter;
 import org.apache.hadoop.hbase.filter.PrefixFilter;
 import org.apache.hadoop.hbase.util.VersionInfo;
+import org.apache.hadoop.security.UserGroupInformation;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumn;
@@ -121,7 +122,7 @@ public class HbaseSessions extends BackendSessionPool {
         String hosts = config.get(HbaseOptions.HBASE_HOSTS);
         int port = config.get(HbaseOptions.HBASE_PORT);
         String znodeParent = config.get(HbaseOptions.HBASE_ZNODE_PARENT);
-
+        boolean isEnableKerberos = config.get(HbaseOptions.HBASE_KERBEROS_ENABLE);
         Configuration hConfig = HBaseConfiguration.create();
         hConfig.set(HConstants.ZOOKEEPER_QUORUM, hosts);
         hConfig.set(HConstants.ZOOKEEPER_CLIENT_PORT, String.valueOf(port));
@@ -134,6 +135,18 @@ public class HbaseSessions extends BackendSessionPool {
         hConfig.setInt("hbase.hconnection.threads.max",
                        config.get(HbaseOptions.HBASE_THREADS_MAX));
 
+        if(isEnableKerberos) {
+            String krb5Conf = config.get(HbaseOptions.HBASE_KRB5_CONF);
+            System.setProperty("java.security.krb5.conf", krb5Conf);
+            String principal = config.get(HbaseOptions.HBASE_KERBEROS_PRINCIPAL);
+            String keyTab = config.get(HbaseOptions.HBASE_KERBEROS_KEYTAB);
+            hConfig.set("hadoop.security.authentication", "kerberos");
+            hConfig.set("hbase.security.authentication", "kerberos");
+
+            //  login/authenticate using keytab
+            UserGroupInformation.setConfiguration(hConfig);
+            UserGroupInformation.loginUserFromKeytab(principal, keyTab);
+        }
         this.hbase = ConnectionFactory.createConnection(hConfig);
     }
 
@@ -563,8 +576,6 @@ public class HbaseSessions extends BackendSessionPool {
         }
 
         /**
-<<<<<<< HEAD
-=======
          * Add a row record to a table with ttl for index
          */
         public void put(String table, byte[] family, byte[] rowkey,
@@ -578,13 +589,13 @@ public class HbaseSessions extends BackendSessionPool {
         /**
          * Delete a record by rowkey and qualifier from a table
          */
+        @Override
         public void remove(String table, byte[] family,
                            byte[] rowkey, byte[] qualifier) {
             this.remove(table, family, rowkey, qualifier, false);
         }
 
         /**
->>>>>>> support edgeLabel ttl
          * Delete a record by rowkey and qualifier from a table,
          * just delete the latest version of the specified column if need
          */

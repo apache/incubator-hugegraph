@@ -20,7 +20,6 @@
 package com.baidu.hugegraph.traversal.algorithm;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -29,28 +28,34 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.ws.rs.core.MultivaluedHashMap;
 import javax.ws.rs.core.MultivaluedMap;
 
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.tinkerpop.gremlin.process.traversal.P;
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Edge;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.query.Aggregate;
+import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
+import com.baidu.hugegraph.config.CoreOptions;
+import com.baidu.hugegraph.config.HugeConfig;
+import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
+import com.baidu.hugegraph.iterator.FilterIterator;
 import com.baidu.hugegraph.iterator.MapperIterator;
 import com.baidu.hugegraph.schema.SchemaLabel;
 import com.baidu.hugegraph.structure.HugeEdge;
+import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Directions;
+import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
@@ -62,16 +67,17 @@ public class HugeTraverser {
 
     private HugeGraph graph;
 
-    public static final List<Id> PATH_NONE = ImmutableList.of();
-
     public static final String DEFAULT_CAPACITY = "10000000";
     public static final String DEFAULT_ELEMENTS_LIMIT = "10000000";
     public static final String DEFAULT_PATHS_LIMIT = "10";
     public static final String DEFAULT_LIMIT = "100";
     public static final String DEFAULT_DEGREE = "10000";
+    public static final String DEFAULT_SKIP_DEGREE = "100000";
     public static final String DEFAULT_SAMPLE = "100";
     public static final String DEFAULT_MAX_DEPTH = "50";
     public static final String DEFAULT_WEIGHT = "0";
+
+    protected static final int MAX_VERTICES = 10;
 
     // Empirical value of scan limit, with which results can be returned in 3s
     public static final String DEFAULT_PAGE_LIMIT = "100000";
@@ -86,138 +92,17 @@ public class HugeTraverser {
         return this.graph;
     }
 
-    public Set<Id> kout(Id sourceV, Directions dir, String label,
-                        int depth, boolean nearest,
-                        long degree, long capacity, long limit) {
-        E.checkNotNull(sourceV, "source vertex id");
-        E.checkNotNull(dir, "direction");
-        checkPositive(depth, "k-out max_depth");
-        checkDegree(degree);
-        checkCapacity(capacity);
-        checkLimit(limit);
-        if (capacity != NO_LIMIT) {
-            // Capacity must > limit because sourceV is counted in capacity
-            E.checkArgument(capacity >= limit && limit != NO_LIMIT,
-                            "Capacity can't be less than limit, " +
-                            "but got capacity '%s' and limit '%s'",
-                            capacity, limit);
-        }
-
-        Id labelId = this.getEdgeLabelId(label);
-
-        Set<Id> latest = newSet();
-        latest.add(sourceV);
-
-        Set<Id> all = newSet();
-        all.add(sourceV);
-
-        long remaining = capacity == NO_LIMIT ?
-                         NO_LIMIT : capacity - latest.size();
-        while (depth-- > 0) {
-            // Just get limit nodes in last layer if limit < remaining capacity
-            if (depth == 0 && limit != NO_LIMIT &&
-                (limit < remaining || remaining == NO_LIMIT)) {
-                remaining = limit;
-            }
-            if (nearest) {
-                latest = this.adjacentVertices(latest, dir, labelId, all,
-                                               degree, remaining);
-                all.addAll(latest);
-            } else {
-                latest = this.adjacentVertices(latest, dir, labelId, null,
-                                               degree, remaining);
-            }
-            if (capacity != NO_LIMIT) {
-                // Update 'remaining' value to record remaining capacity
-                remaining -= latest.size();
-
-                if (remaining <= 0 && depth > 0) {
-                    throw new HugeException(
-                              "Reach capacity '%s' while remaining depth '%s'",
-                              capacity, depth);
-                }
-            }
-        }
-
-        return latest;
+    protected int concurrentDepth() {
+        return this.config().get(CoreOptions.OLTP_CONCURRENT_DEPTH);
     }
 
-    public Set<Id> kneighbor(Id sourceV, Directions dir,
-                             String label, int depth,
-                             long degree, long limit) {
-        E.checkNotNull(sourceV, "source vertex id");
-        E.checkNotNull(dir, "direction");
-        checkPositive(depth, "k-neighbor max_depth");
-        checkDegree(degree);
-        checkLimit(limit);
-
-        Id labelId = this.getEdgeLabelId(label);
-
-        Set<Id> latest = newSet();
-        latest.add(sourceV);
-
-        Set<Id> all = newSet();
-        all.add(sourceV);
-
-        while (depth-- > 0) {
-            long remaining = limit == NO_LIMIT ? NO_LIMIT : limit - all.size();
-            latest = this.adjacentVertices(latest, dir, labelId, all,
-                                           degree, remaining);
-            all.addAll(latest);
-            if (limit != NO_LIMIT && all.size() >= limit) {
-                break;
-            }
-        }
-
-        return all;
+    protected HugeConfig config() {
+        return ((HugeConfig) this.graph().hugegraph().configuration());
     }
 
-    public Set<Id> sameNeighbors(Id vertex, Id other, Directions direction,
-                                 String label, long degree, long limit) {
-        E.checkNotNull(vertex, "vertex id");
-        E.checkNotNull(other, "the other vertex id");
-        E.checkNotNull(direction, "direction");
-        checkDegree(degree);
-        checkLimit(limit);
-
-        Id labelId = this.getEdgeLabelId(label);
-
-        Set<Id> sourceNeighbors = IteratorUtils.set(this.adjacentVertices(
-                                  vertex, direction, labelId, degree));
-        Set<Id> targetNeighbors = IteratorUtils.set(this.adjacentVertices(
-                                  other, direction, labelId, degree));
-        Set<Id> sameNeighbors = (Set<Id>) CollectionUtil.intersect(
-                                sourceNeighbors, targetNeighbors);
-        if (limit != NO_LIMIT) {
-            int end = Math.min(sameNeighbors.size(), (int) limit);
-            sameNeighbors = CollectionUtil.subSet(sameNeighbors, 0, end);
-        }
-        return sameNeighbors;
-    }
-
-    public double jaccardSimilarity(Id vertex, Id other, Directions dir,
-                                    String label, long degree) {
-        E.checkNotNull(vertex, "vertex id");
-        E.checkNotNull(other, "the other vertex id");
-        E.checkNotNull(dir, "direction");
-        checkDegree(degree);
-
-        Id labelId = this.getEdgeLabelId(label);
-
-        Set<Id> sourceNeighbors = IteratorUtils.set(this.adjacentVertices(
-                                  vertex, dir, labelId, degree));
-        Set<Id> targetNeighbors = IteratorUtils.set(this.adjacentVertices(
-                                  other, dir, labelId, degree));
-        int interNum = CollectionUtil.intersect(sourceNeighbors,
-                                                targetNeighbors).size();
-        int unionNum = CollectionUtil.union(sourceNeighbors,
-                                            targetNeighbors).size();
-        return (double) interNum / unionNum;
-    }
-
-    private Set<Id> adjacentVertices(Set<Id> vertices, Directions dir,
-                                     Id label, Set<Id> excluded,
-                                     long degree, long limit) {
+    protected Set<Id> adjacentVertices(Set<Id> vertices, Directions dir,
+                                       Id label, Set<Id> excluded,
+                                       long degree, long limit) {
         if (limit == 0) {
             return ImmutableSet.of();
         }
@@ -250,6 +135,35 @@ public class HugeTraverser {
         });
     }
 
+    protected Set<Id> adjacentVertices(Id source, EdgeStep step) {
+        Set<Id> neighbors = new HashSet<>();
+        Iterator<Edge> edges = this.edgesOfVertex(source, step);
+        while (edges.hasNext()) {
+            neighbors.add(((HugeEdge) edges.next()).id().otherVertexId());
+        }
+        return neighbors;
+    }
+
+    protected Set<Node> adjacentVertices(Set<Node> vertices, EdgeStep step,
+                                         Set<Node> excluded, long remaining) {
+        Set<Node> neighbors = newSet();
+        for (Node source : vertices) {
+            Iterator<Edge> edges = this.edgesOfVertex(source.id(), step);
+            while (edges.hasNext()) {
+                Id target = ((HugeEdge) edges.next()).id().otherVertexId();
+                KNode kNode = new KNode(target, (KNode) source);
+                if (excluded != null && excluded.contains(kNode)) {
+                    continue;
+                }
+                neighbors.add(kNode);
+                if (remaining != NO_LIMIT && --remaining <= 0L) {
+                    return neighbors;
+                }
+            }
+        }
+        return neighbors;
+    }
+
     protected Iterator<Edge> edgesOfVertex(Id source, Directions dir,
                                            Id label, long limit) {
         Id[] labels = {};
@@ -265,12 +179,12 @@ public class HugeTraverser {
     }
 
     protected Iterator<Edge> edgesOfVertex(Id source, Directions dir,
-                                           Set<Id> labels, long limit) {
+                                           Map<Id, String> labels, long limit) {
         if (labels == null || labels.isEmpty()) {
             return this.edgesOfVertex(source, dir, (Id) null, limit);
         }
         ExtendableIterator<Edge> results = new ExtendableIterator<>();
-        for (Id label : labels) {
+        for (Id label : labels.keySet()) {
             E.checkNotNull(label, "edge label");
             // TODO: limit should be applied to all labels
             results.extend(this.edgesOfVertex(source, dir, label, limit));
@@ -278,27 +192,98 @@ public class HugeTraverser {
         return results;
     }
 
-    protected Iterator<Edge> edgesOfVertex(Id source, Directions dir,
-                                           Map<Id, String> labels,
-                                           Map<String, Object> properties,
-                                           long limit) {
+    protected Iterator<Edge> edgesOfVertex(Id source, EdgeStep edgeStep) {
+        if (edgeStep.properties == null || edgeStep.properties.isEmpty()) {
+            Iterator<Edge> edges = this.edgesOfVertex(source,
+                                                      edgeStep.direction,
+                                                      edgeStep.labels,
+                                                      edgeStep.limit());
+            return edgeStep.skipSuperNodeIfNeeded(edges);
+        }
+        return this.edgesOfVertex(source, edgeStep, false);
+    }
+
+    protected Iterator<Edge> edgesOfVertexWithSK(Id source, EdgeStep edgeStep) {
+        assert edgeStep.properties != null && !edgeStep.properties.isEmpty();
+        return this.edgesOfVertex(source, edgeStep, true);
+    }
+
+    private Iterator<Edge> edgesOfVertex(Id source, EdgeStep edgeStep,
+                                         boolean mustAllSK) {
+        Id[] edgeLabels = edgeStep.edgeLabels();
+        Query query = GraphTransaction.constructEdgesQuery(source,
+                                                           edgeStep.direction,
+                                                           edgeLabels);
+        ConditionQuery filter = null;
+        if (mustAllSK) {
+            this.fillFilterBySortKeys(query, edgeLabels, edgeStep.properties);
+        } else {
+            filter = (ConditionQuery) query.copy();
+            this.fillFilterByProperties(filter, edgeStep.properties);
+        }
+        query.capacity(Query.NO_CAPACITY);
+        if (edgeStep.limit() != NO_LIMIT) {
+            query.limit(edgeStep.limit());
+        }
+        Iterator<Edge> edges = this.graph().edges(query);
+        if (filter != null) {
+            ConditionQuery finalFilter = filter;
+            edges = new FilterIterator<>(edges, (e) -> {
+                return finalFilter.test((HugeEdge) e);
+            });
+        }
+        return edgeStep.skipSuperNodeIfNeeded(edges);
+    }
+
+    private void fillFilterBySortKeys(Query query, Id[] edgeLabels,
+                                      Map<Id, Object> properties) {
         if (properties == null || properties.isEmpty()) {
-            return edgesOfVertex(source, dir, labels.keySet(), limit);
+            return;
         }
-        // Use traversal format if has properties filter
-        String[] els = labels.values().toArray(new String[labels.size()]);
-        GraphTraversal<Vertex, Edge> g;
-        g = this.graph().traversal().V(source).toE(dir.direction(), els);
-        for (Map.Entry<String, Object> entry : properties.entrySet()) {
-            String key = entry.getKey();
-            Object value = entry.getValue();
-            if (value instanceof List) {
-                g = g.has(key, P.within((Collection<?>) value));
-            } else {
-                g = g.has(key, value);
-            }
+
+        E.checkArgument(edgeLabels.length == 1,
+                        "The properties filter condition can be set " +
+                        "only if just set one edge label");
+
+        this.fillFilterByProperties(query, properties);
+
+        ConditionQuery condQuery = (ConditionQuery) query;
+        if (!GraphTransaction.matchFullEdgeSortKeys(condQuery, this.graph())) {
+            Id label = condQuery.condition(HugeKeys.LABEL);
+            E.checkArgument(false, "The properties %s does not match " +
+                            "sort keys of edge label '%s'",
+                            this.graph().mapPkId2Name(properties.keySet()),
+                            this.graph().edgeLabel(label).name());
         }
-        return g.limit(limit);
+    }
+
+    private void fillFilterByProperties(Query query,
+                                        Map<Id, Object> properties) {
+        if (properties == null || properties.isEmpty()) {
+            return;
+        }
+
+        ConditionQuery condQuery = (ConditionQuery) query;
+        TraversalUtil.fillConditionQuery(condQuery, properties, this.graph);
+    }
+
+    protected long edgesCount(Id source, EdgeStep edgeStep) {
+        Id[] edgeLabels = edgeStep.edgeLabels();
+        Query query = GraphTransaction.constructEdgesQuery(source,
+                                                           edgeStep.direction,
+                                                           edgeLabels);
+        this.fillFilterBySortKeys(query, edgeLabels, edgeStep.properties);
+        query.aggregate(Aggregate.AggregateFunc.COUNT, null);
+        query.capacity(Query.NO_CAPACITY);
+        query.limit(Query.NO_LIMIT);
+        long count = graph().queryNumber(query).longValue();
+        if (edgeStep.degree == NO_LIMIT || count < edgeStep.degree) {
+            return count;
+        } else if (edgeStep.skipDegree != 0L && count >= edgeStep.skipDegree) {
+            return 0L;
+        } else {
+            return edgeStep.degree;
+        }
     }
 
     protected Object getVertexLabelId(Object label) {
@@ -313,6 +298,15 @@ public class HugeTraverser {
             return null;
         }
         return SchemaLabel.getLabelId(this.graph, HugeType.EDGE, label);
+    }
+
+    protected void checkVertexExist(Id vertexId, String name) {
+        try {
+            this.graph.vertex(vertexId);
+        } catch (NotFoundException e) {
+            throw new IllegalArgumentException(String.format(
+                      "The %s with id '%s' does not exist", name, vertexId), e);
+        }
     }
 
     public static void checkDegree(long degree) {
@@ -359,8 +353,76 @@ public class HugeTraverser {
         }
     }
 
+    public static void checkSkipDegree(long skipDegree, long degree,
+                                       long capacity) {
+        E.checkArgument(skipDegree >= 0L &&
+                        skipDegree <= Query.DEFAULT_CAPACITY ,
+                        "The skipped degree must be in [0, %s], but got '%s'",
+                        Query.DEFAULT_CAPACITY, skipDegree);
+        if (capacity != NO_LIMIT) {
+            E.checkArgument(degree != NO_LIMIT && degree < capacity,
+                            "The degree must be < capacity");
+            E.checkArgument(skipDegree < capacity,
+                            "The skipped degree must be < capacity");
+        }
+        if (skipDegree > 0L) {
+            E.checkArgument(degree != NO_LIMIT && skipDegree >= degree,
+                            "The skipped degree must be >= degree, " +
+                            "but got skipped degree '%s' and degree '%s'",
+                            skipDegree, degree);
+        }
+    }
+
+    public static <K, V extends Comparable<? super V>> Map<K, V> topN(
+                                                                 Map<K, V> map,
+                                                                 boolean sorted,
+                                                                 long limit) {
+        if (sorted) {
+            map = CollectionUtil.sortByValue(map, false);
+        }
+        if (limit == NO_LIMIT || map.size() <= limit) {
+            return map;
+        }
+        Map<K, V> results = InsertionOrderUtil.newMap();
+        long count = 0L;
+        for (Map.Entry<K, V> entry : map.entrySet()) {
+            results.put(entry.getKey(), entry.getValue());
+            if (++count >= limit) {
+                break;
+            }
+        }
+        return results;
+    }
+
+    public static Iterator<Edge> skipSuperNodeIfNeeded(Iterator<Edge> edges,
+                                                       long degree,
+                                                       long skipDegree) {
+        if (skipDegree <= 0L) {
+            return edges;
+        }
+        List<Edge> edgeList = new ArrayList<>();
+        for (int i = 1; edges.hasNext(); i++) {
+            Edge edge = edges.next();
+            if (i <= degree) {
+                edgeList.add(edge);
+            }
+            if (i >= skipDegree) {
+                return QueryResults.emptyIterator();
+            }
+        }
+        return edgeList.iterator();
+    }
+
     protected static <V> Set<V> newSet() {
-        return new HashSet<>();
+        return newSet(false);
+    }
+
+    protected static <V> Set<V> newSet(boolean concurrent) {
+        if (concurrent) {
+            return ConcurrentHashMap.newKeySet();
+        } else {
+            return new HashSet<>();
+        }
     }
 
     protected static <K, V> Map<K, V> newMap() {
@@ -371,25 +433,24 @@ public class HugeTraverser {
         return new MultivaluedHashMap<>();
     }
 
-    public static <K, V extends Comparable<? super V>> Map<K, V> topN(
-                                                                 Map<K, V> map,
-                                                                 boolean sorted,
-                                                                 long limit) {
-        if (sorted) {
-            map = CollectionUtil.sortByValue(map, false);
-        }
-        if (limit == NO_LIMIT) {
-            return map;
-        }
-        Map<K, V> results = InsertionOrderUtil.newMap();
-        long count = 0;
-        for (Map.Entry<K, V> entry : map.entrySet()) {
-            results.put(entry.getKey(), entry.getValue());
-            if (++count >= limit) {
-                break;
+    protected static List<Id> joinPath(Node prev, Node back, boolean ring) {
+        // Get self path
+        List<Id> path = prev.path();
+
+        // Get reversed other path
+        List<Id> backPath = back.path();
+        Collections.reverse(backPath);
+
+        if (!ring) {
+            // Avoid loop in path
+            if (CollectionUtils.containsAny(path, backPath)) {
+                return ImmutableList.of();
             }
         }
-        return results;
+
+        // Append other path behind self path
+        path.addAll(backPath);
+        return path;
     }
 
     public static class Node {
@@ -427,21 +488,7 @@ public class HugeTraverser {
         }
 
         public List<Id> joinPath(Node back) {
-            // Get self path
-            List<Id> path = this.path();
-
-            // Get reversed other path
-            List<Id> backPath = back.path();
-            Collections.reverse(backPath);
-
-            // Avoid loop in path
-            if (CollectionUtils.containsAny(path, backPath)) {
-                return ImmutableList.of();
-            }
-
-            // Append other path behind self path
-            path.addAll(backPath);
-            return path;
+            return HugeTraverser.joinPath(this, back, false);
         }
 
         public boolean contains(Id id) {
@@ -468,6 +515,27 @@ public class HugeTraverser {
             Node other = (Node) object;
             return Objects.equals(this.id, other.id) &&
                    Objects.equals(this.parent, other.parent);
+        }
+
+        @Override
+        public String toString() {
+            return this.id.toString();
+        }
+    }
+
+    public static class KNode extends Node {
+
+        public KNode(Id id, KNode parent) {
+            super(id, parent);
+        }
+
+        @Override
+        public boolean equals(Object object) {
+            if (!(object instanceof KNode)) {
+                return false;
+            }
+            KNode other = (KNode) object;
+            return Objects.equals(this.id(), other.id());
         }
     }
 
@@ -506,6 +574,17 @@ public class HugeTraverser {
             } else {
                 return ImmutableMap.of("objects", this.vertices);
             }
+        }
+
+        public boolean ownedBy(Id source) {
+            E.checkNotNull(source, "source");
+            Id min = null;
+            for (Id id : this.vertices) {
+                if (min == null || id.compareTo(min) < 0) {
+                    min = id;
+                }
+            }
+            return source.equals(min);
         }
 
         @Override

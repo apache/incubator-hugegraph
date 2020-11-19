@@ -49,14 +49,15 @@ public final class FakeObjects {
 
     private final HugeGraph graph;
 
-    public FakeObjects() {
-        this.graph = Mockito.mock(HugeGraph.class);
-        Mockito.doReturn(newConfig()).when(this.graph).configuration();
-    }
-
     public FakeObjects(String name) {
         this();
         Mockito.doReturn(name).when(this.graph).name();
+    }
+
+    public FakeObjects() {
+        this.graph = Mockito.mock(HugeGraph.class);
+        Mockito.doReturn(newConfig()).when(this.graph).configuration();
+        Mockito.doReturn(true).when(this.graph).sameAs(this.graph);
     }
 
     public static HugeConfig newConfig() {

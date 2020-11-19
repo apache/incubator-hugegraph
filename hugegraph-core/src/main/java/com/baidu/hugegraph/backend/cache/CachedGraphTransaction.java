@@ -34,6 +34,7 @@ import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
+import com.baidu.hugegraph.backend.store.ram.RamTable;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
@@ -46,7 +47,6 @@ import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.HugeType;
-import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.Events;
 import com.google.common.collect.ImmutableSet;
 
@@ -136,16 +136,21 @@ public final class CachedGraphTransaction extends GraphTransaction {
         this.cacheEventListener = event -> {
             LOG.debug("Graph {} received graph cache event: {}",
                       this.graph(), event);
-            event.checkArgs(String.class, Id.class);
+            event.checkArgs(String.class, HugeType.class, Id.class);
             Object[] args = event.args();
             if ("invalid".equals(args[0])) {
-                Id id = (Id) args[1];
-                if (this.verticesCache.get(id) != null) {
+                HugeType type = (HugeType) args[1];
+                Id id = (Id) args[2];
+                if (type.isVertex()) {
                     // Invalidate vertex cache
                     this.verticesCache.invalidate(id);
-                } else if (this.edgesCache.get(id) != null) {
-                    // Invalidate edge cache
-                    this.edgesCache.invalidate(id);
+                } else if (type.isEdge()) {
+                    /*
+                     * Invalidate edge cache via clear instead of invalidate
+                     * because of the cacheKey is QueryId not EdgeId
+                     */
+                    // this.edgesCache.invalidate(id);
+                    this.edgesCache.clear();
                 }
                 return true;
             } else if ("clear".equals(args[0])) {
@@ -220,9 +225,13 @@ public final class CachedGraphTransaction extends GraphTransaction {
         return results;
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     protected final Iterator<HugeEdge> queryEdgesFromBackend(Query query) {
+        RamTable ramtable = this.params().ramtable();
+        if (ramtable != null && ramtable.matched(query)) {
+            return ramtable.query(query);
+        }
+
         if (query.empty() || query.paging() || query.bigCapacity()) {
             // Query all edges or query edges in paging, don't cache it
             return super.queryEdgesFromBackend(query);
@@ -230,6 +239,7 @@ public final class CachedGraphTransaction extends GraphTransaction {
 
         Id cacheKey = new QueryId(query);
         Object value = this.edgesCache.get(cacheKey);
+        @SuppressWarnings("unchecked")
         Collection<HugeEdge> edges = (Collection<HugeEdge>) value;
         if (value != null) {
             for (HugeEdge edge : edges) {
@@ -241,23 +251,31 @@ public final class CachedGraphTransaction extends GraphTransaction {
         }
 
         if (value != null) {
+            // Not cached or the cache expired
             return edges.iterator();
         }
 
         Iterator<HugeEdge> rs = super.queryEdgesFromBackend(query);
+
         /*
          * Iterator can't be cached, caching list instead
-         * Generally there are not too much data with id query
+         * there may be super node and too many edges in a query,
+         * try fetch a few of the head results and determine whether to cache.
          */
-        ListIterator<HugeEdge> listIterator = QueryResults.toList(rs);
-        edges = listIterator.list();
+        final int tryMax = 1 + MAX_CACHE_EDGES_PER_QUERY;
+        assert tryMax > MAX_CACHE_EDGES_PER_QUERY;
+        edges = new ArrayList<>(tryMax);
+        for (int i = 0; rs.hasNext() && i < tryMax; i++) {
+            edges.add(rs.next());
+        }
+
         if (edges.size() == 0) {
             this.edgesCache.update(cacheKey, Collections.emptyList());
         } else if (edges.size() <= MAX_CACHE_EDGES_PER_QUERY) {
             this.edgesCache.update(cacheKey, edges);
         }
 
-        return listIterator;
+        return new ExtendableIterator<>(edges.iterator(), rs);
     }
 
     @Override

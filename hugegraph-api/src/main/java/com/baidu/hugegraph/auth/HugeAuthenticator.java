@@ -34,6 +34,7 @@ import org.apache.tinkerpop.shaded.jackson.annotation.JsonProperty;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.auth.HugeGraphAuthProxy.Context;
+import com.baidu.hugegraph.auth.SchemaDefine.UserElement;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.OptionSpace;
 import com.baidu.hugegraph.config.ServerOptions;
@@ -47,7 +48,7 @@ public interface HugeAuthenticator extends Authenticator {
     public static final String KEY_PASSWORD =
                                CredentialGraphTokens.PROPERTY_PASSWORD;
     public static final String KEY_ROLE = "role";
-    public static final String KEY_CLIENT = "client";
+    public static final String KEY_ADDRESS = "address";
     public static final String KEY_PATH = "path";
 
     public static final String USER_SYSTEM = "system";
@@ -96,7 +97,7 @@ public interface HugeAuthenticator extends Authenticator {
                 throw new AuthenticationException(message);
             }
             user = new User(username, role);
-            user.client(credentials.get(KEY_CLIENT));
+            user.client(credentials.get(KEY_ADDRESS));
         }
 
         HugeGraphAuthProxy.logUser(user, credentials.get(KEY_PATH));
@@ -265,6 +266,7 @@ public interface HugeAuthenticator extends Authenticator {
 
         private boolean matchPermission(String owner,
                                         Set<HugePermission> actions) {
+            // It's OK if owner and action are matched
             if (owner == null) {
                 return true;
             }
@@ -288,6 +290,16 @@ public interface HugeAuthenticator extends Authenticator {
         private boolean matchResource(HugePermission required,
                                       ResourceObject<?> resourceObject) {
             E.checkNotNull(resourceObject, "resource object");
+
+            /*
+             * Is resource allowed to access by anyone?
+             * TODO: only allowed resource of related type(USER/TASK/VAR),
+             *       such as role VAR is allowed to access '~variables' label
+             */
+            if (HugeResource.allowed(resourceObject)) {
+                return true;
+            }
+
             String owner = resourceObject.graph();
             Map<HugePermission, Object> permissions = this.roles.get(owner);
             if (permissions == null) {
@@ -390,6 +402,16 @@ public interface HugeAuthenticator extends Authenticator {
             if (role == ROLE_NONE) {
                 return false;
             }
+
+            if (resourceObject != null) {
+                UserElement element = (UserElement) resourceObject.operated();
+                if (element instanceof HugeUser &&
+                    ((HugeUser) element).name().equals(USER_ADMIN)) {
+                    // Can't access admin by other users
+                    return false;
+                }
+            }
+
             RolePermission rolePerm = RolePermission.fromJson(role);
             return rolePerm.contains(grant);
         }
@@ -437,15 +459,17 @@ public interface HugeAuthenticator extends Authenticator {
             if (0 < offset && ++offset < action.length()) {
                 /*
                  * In order to be compatible with the old permission mechanism,
-                 * here is only to provide pre-control.
+                 * here is only to provide pre-control by extract the suffix of
+                 * action {vertex/edge/schema}_{read/write} like vertex_read.
                  */
                 action = action.substring(offset);
             }
             return HugePermission.valueOf(action.toUpperCase());
         }
 
-        public static String roleFor(String owner) {
-            return KEY_OWNER + "=" + owner;
+        public static String roleFor(String owner, HugePermission perm) {
+            return String.format("%s=%s %s=%s", KEY_OWNER, owner,
+                                 KEY_ACTION, perm.string());
         }
 
         public static RoleAction fromJson(String json) {

@@ -26,7 +26,7 @@ import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.util.E;
 
-public class DeleteExpiredElementJob extends DeleteExpiredJob<Object> {
+public class DeleteExpiredElementJob<V> extends DeleteExpiredJob<V> {
 
     private static final String JOB_TYPE = "delete_expired_element";
 
@@ -44,7 +44,9 @@ public class DeleteExpiredElementJob extends DeleteExpiredJob<Object> {
     }
 
     @Override
-    public Object execute() throws Exception {
+    public V execute() throws Exception {
+        LOG.debug("Delete expired elements: {}", this.elements);
+
         HugeGraphParams graph = this.params();
         GraphTransaction tx = graph.graphTransaction();
         try {

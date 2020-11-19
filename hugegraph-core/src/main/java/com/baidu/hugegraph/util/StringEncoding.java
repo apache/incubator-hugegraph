@@ -32,21 +32,15 @@
 
 package com.baidu.hugegraph.util;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 import java.util.UUID;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
 
 import org.mindrot.jbcrypt.BCrypt;
 
 import com.baidu.hugegraph.HugeException;
-import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.google.common.base.CharMatcher;
 
@@ -57,6 +51,8 @@ import com.google.common.base.CharMatcher;
 public final class StringEncoding {
 
     private static final MessageDigest DIGEST;
+    private static final byte[] BYTES_EMPTY = new byte[0];
+    private static final int BLOCK_SIZE = 4096;
 
     static {
         final String ALG = "SHA-256";
@@ -66,6 +62,9 @@ public final class StringEncoding {
             throw new HugeException("Failed to load algorithm %s", e, ALG);
         }
     }
+
+    private static final Base64.Encoder BASE64_ENCODER = Base64.getEncoder();
+    private static final Base64.Decoder BASE64_DECODER = Base64.getDecoder();
 
     // Similar to {@link StringSerializer}
     public static int writeAsciiString(byte[] array, int offset, String value) {
@@ -125,31 +124,42 @@ public final class StringEncoding {
         }
     }
 
-    public static byte[] compress(String value) {
-        try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
-             GZIPOutputStream out = new GZIPOutputStream(bos, 256)) {
-            byte[] bytes = encode(value);
-            out.write(bytes);
-            out.finish();
-            return bos.toByteArray();
-        } catch (IOException e) {
-            throw new BackendException("Failed to compress: %s", e, value);
+    public static String decode(byte[] bytes, int offset, int length) {
+        try {
+            return new String(bytes, offset, length, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            throw new HugeException("Failed to decode string", e);
         }
     }
 
-    public static String decompress(byte[] value) {
-        BytesBuffer buf = BytesBuffer.allocate(value.length * 2);
-        try (ByteArrayInputStream bis = new ByteArrayInputStream(value);
-             GZIPInputStream in = new GZIPInputStream(bis)) {
-            byte[] bytes = new byte[value.length];
-            int len;
-            while ((len = in.read(bytes)) > 0) {
-                buf.write(bytes, 0, len);
-            }
-            return decode(buf.bytes());
-        } catch (IOException e) {
-            throw new BackendException("Failed to decompress: %s", e, value);
+    public static String encodeBase64(byte[] bytes) {
+        return BASE64_ENCODER.encodeToString(bytes);
+    }
+
+    public static byte[] decodeBase64(String value) {
+        if (value.isEmpty()) {
+            return BYTES_EMPTY;
         }
+        return BASE64_DECODER.decode(value);
+    }
+
+    public static byte[] compress(String value) {
+        return compress(value, LZ4Util.DEFAULT_BUFFER_RATIO);
+    }
+
+    public static byte[] compress(String value, float bufferRatio) {
+        BytesBuffer buf = LZ4Util.compress(encode(value), BLOCK_SIZE,
+                                           bufferRatio);
+        return buf.bytes();
+    }
+
+    public static String decompress(byte[] value) {
+        return decompress(value, LZ4Util.DEFAULT_BUFFER_RATIO);
+    }
+
+    public static String decompress(byte[] value, float bufferRatio) {
+        BytesBuffer buf = LZ4Util.decompress(value, BLOCK_SIZE, bufferRatio);
+        return decode(buf.array(), 0, buf.position());
     }
 
     public static String hashPassword(String password) {
@@ -164,7 +174,7 @@ public final class StringEncoding {
     public static String sha256(String string) {
         byte[] stringBytes = encode(string);
         DIGEST.reset();
-        return Base64.getEncoder().encodeToString(DIGEST.digest(stringBytes));
+        return StringEncoding.encodeBase64(DIGEST.digest(stringBytes));
     }
 
     public static String format(byte[] bytes) {

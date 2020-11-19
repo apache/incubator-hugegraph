@@ -55,4 +55,8 @@ public interface Cache<K, V> {
     public long hits();
 
     public long miss();
+
+    public <T> T attachment(T object);
+
+    public <T> T attachment();
 }

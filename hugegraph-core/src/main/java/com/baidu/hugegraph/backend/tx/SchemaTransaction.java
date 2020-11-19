@@ -279,7 +279,7 @@ public class SchemaTransaction extends IndexableTransaction {
                   schema.type(), schema.id());
         setCreateTimeIfNeeded(schema);
 
-        LockUtil.Locks locks = new LockUtil.Locks(this.graph().name());
+        LockUtil.Locks locks = new LockUtil.Locks(this.params().name());
         try {
             locks.lockWrites(LockUtil.hugeType2Group(schema.type()),
                              schema.id());
@@ -351,7 +351,7 @@ public class SchemaTransaction extends IndexableTransaction {
     protected void removeSchema(SchemaElement schema) {
         LOG.debug("SchemaTransaction remove {} by id '{}'",
                   schema.type(), schema.id());
-        LockUtil.Locks locks = new LockUtil.Locks(this.graph().name());
+        LockUtil.Locks locks = new LockUtil.Locks(this.graphName());
         try {
             locks.lockWrites(LockUtil.hugeType2Group(schema.type()),
                              schema.id());
@@ -407,22 +407,13 @@ public class SchemaTransaction extends IndexableTransaction {
         E.checkArgument(name.length() < 256,
                         "The length of name must less than 256 bytes.");
         E.checkArgument(!name.matches(illegalReg),
-                        String.format("Illegal schema name '%s'", name));
+                        "Illegal schema name '%s'", name);
 
         final char[] filters = {'#', '>', ':', '!'};
         for (char c : filters) {
             E.checkArgument(name.indexOf(c) == -1,
                             "The name can't contain character '%s'.", c);
         }
-    }
-
-    public long taskWaitTimeout() {
-        return this.params().configuration().get(CoreOptions.TASK_WAIT_TIMEOUT);
-    }
-
-    public boolean syncDelete() {
-        return this.params().configuration()
-                            .get(CoreOptions.TASK_SYNC_DELETION);
     }
 
     @Watched(prefix = "schema")
@@ -449,13 +440,13 @@ public class SchemaTransaction extends IndexableTransaction {
             throw new IllegalStateException(String.format(
                       "Invalid system id '%s'", id));
         }
-        HugeGraph graph = this.graph();
         E.checkState(id.number() && id.asLong() > 0L,
                      "Schema id must be number and >0, but got '%s'", id);
-        E.checkState(graph.mode() == GraphMode.RESTORING,
+        GraphMode mode = this.graphMode();
+        E.checkState(mode == GraphMode.RESTORING,
                      "Can't build schema with provided id '%s' " +
                      "when graph '%s' in mode '%s'",
-                     id, graph, graph.mode());
+                     id, this.graphName(), mode);
         this.setNextIdLowest(type, id.asLong());
     }
 

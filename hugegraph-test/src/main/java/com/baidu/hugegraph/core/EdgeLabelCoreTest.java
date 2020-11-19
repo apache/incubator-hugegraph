@@ -32,6 +32,7 @@ import org.junit.Test;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.IdGenerator;
+import com.baidu.hugegraph.exception.ExistedException;
 import com.baidu.hugegraph.exception.NoIndexException;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.EdgeLabel;
@@ -1214,7 +1215,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
         Assert.assertTrue(edgeLabels.contains(write));
 
         // clear cache
-        params().schemaEventHub().call(Events.CACHE, "clear", null);
+        params().schemaEventHub().call(Events.CACHE, "clear", null, null);
 
         Assert.assertEquals(look, schema.getEdgeLabel("look"));
 
@@ -1247,5 +1248,116 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
         look = schema.getEdgeLabel("look");
         createTime = (Date) look.userdata().get(Userdata.CREATE_TIME);
         Assert.assertFalse(createTime.after(now));
+    }
+
+    @Test
+    public void testDuplicateEdgeLabelWithIdentityProperties() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+        schema.vertexLabel("person")
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .create();
+        schema.vertexLabel("person")
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .ifNotExist()
+              .create();
+        schema.vertexLabel("book")
+              .properties("id", "name")
+              .primaryKeys("id")
+              .ifNotExist()
+              .create();
+
+        schema.edgeLabel("friend")
+              .sourceLabel("person").targetLabel("person")
+              .ifNotExist().create();
+        schema.edgeLabel("friend")
+              .sourceLabel("person").targetLabel("person")
+              .ifNotExist().create();
+
+        schema.edgeLabel("follow")
+              .sourceLabel("person").targetLabel("person")
+              .properties("time", "weight")
+              .ifNotExist().create();
+        schema.edgeLabel("follow")
+              .properties("weight", "time")
+              .sourceLabel("person").targetLabel("person")
+              .ifNotExist().create();
+
+        schema.edgeLabel("looks")
+              .multiTimes()
+              .properties("time")
+              .link("person", "book")
+              .sortKeys("time")
+              .ifNotExist()
+              .create();
+        schema.edgeLabel("looks")
+              .multiTimes()
+              .properties("time")
+              .link("person", "book")
+              .sortKeys("time")
+              .checkExist(false)
+              .create();
+    }
+
+    @Test
+    public void testDuplicateEdgeLabelWithDifferentProperties() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+
+        schema.vertexLabel("person")
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .ifNotExist()
+              .create();
+        schema.vertexLabel("book")
+              .properties("id", "name")
+              .primaryKeys("id")
+              .ifNotExist().create();
+
+        schema.edgeLabel("friend")
+              .link("person", "person")
+              .properties("time")
+              .ifNotExist()
+              .create();
+        Assert.assertThrows(ExistedException.class, () -> {
+            schema.edgeLabel("friend")
+                  .link("person", "book")
+                  .properties() // no time property
+                  .ifNotExist()
+                  .create();
+        });
+
+        schema.edgeLabel("looks")
+              .multiTimes()
+              .properties("time")
+              .link("person", "book")
+              .sortKeys("time")
+              .ifNotExist()
+              .create();
+        Assert.assertThrows(ExistedException.class, () -> {
+            schema.edgeLabel("looks").multiTimes()
+                  .properties("time", "city") // add city
+                  .link("person", "book")
+                  .sortKeys("time")
+                  .checkExist(false)
+                  .create();
+        });
+        Assert.assertThrows(ExistedException.class, () -> {
+            schema.edgeLabel("looks").multiTimes()
+                  .properties("time", "city")
+                  .link("person", "person") // not person->book
+                  .sortKeys("time")
+                  .checkExist(false)
+                  .create();
+        });
+        Assert.assertThrows(ExistedException.class, () -> {
+            schema.edgeLabel("looks").multiTimes()
+                  .properties("time", "city")
+                  .link("person", "person") // no sortKeys
+                  .checkExist(false)
+                  .create();
+        });
     }
 }

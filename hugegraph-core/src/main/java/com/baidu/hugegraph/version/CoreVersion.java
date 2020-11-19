@@ -33,13 +33,13 @@ public class CoreVersion {
 
     // The second parameter of Version.of() is for IDE running without JAR
     public static final Version VERSION = Version.of(CoreVersion.class,
-                                                     "0.11.1");
+                                                     "0.11.2");
 
     public static final String GREMLIN_VERSION = "3.4.3";
 
     public static void check() {
         // Check version of hugegraph-common
-        VersionUtil.check(CommonVersion.VERSION, "1.7.0", "1.8",
+        VersionUtil.check(CommonVersion.VERSION, "1.8.0", "1.9",
                           CommonVersion.NAME);
     }
 }

@@ -19,14 +19,12 @@
 
 package com.baidu.hugegraph.backend.id;
 
-import java.util.Base64;
 import java.util.Objects;
 import java.util.UUID;
 
 import com.baidu.hugegraph.backend.id.Id.IdType;
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.baidu.hugegraph.structure.HugeVertex;
-import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.LongEncoding;
 import com.baidu.hugegraph.util.NumericUtil;
@@ -85,7 +83,7 @@ public abstract class IdGenerator {
             case LONG:
                 return of(LongEncoding.decodeSignedB64(id));
             case UUID:
-                byte[] bytes = Base64.getDecoder().decode(id);
+                byte[] bytes = StringEncoding.decodeBase64(id);
                 return of(bytes, IdType.UUID);
             case STRING:
                 return of(id);
@@ -99,12 +97,32 @@ public abstract class IdGenerator {
             case LONG:
                 return LongEncoding.encodeSignedB64(id.asLong());
             case UUID:
-                return Base64.getEncoder().encodeToString(id.asBytes());
+                return StringEncoding.encodeBase64(id.asBytes());
             case STRING:
                 return id.asString();
             default:
                 throw new AssertionError("Invalid id type " + id.type());
         }
+    }
+
+    public final static IdType idType(Id id) {
+        if (id instanceof LongId) {
+            return IdType.LONG;
+        }
+        if (id instanceof UuidId) {
+            return IdType.UUID;
+        }
+        if (id instanceof StringId) {
+            return IdType.STRING;
+        }
+        if (id instanceof EdgeId) {
+            return IdType.EDGE;
+        }
+        return IdType.UNKNOWN;
+    }
+
+    private final static int compareType(Id id1, Id id2) {
+        return idType(id1).ordinal() - idType(id2).ordinal();
     }
 
     /****************************** id defines ******************************/
@@ -154,6 +172,10 @@ public abstract class IdGenerator {
 
         @Override
         public int compareTo(Id other) {
+            int cmp = compareType(this, other);
+            if (cmp != 0) {
+                return cmp;
+            }
             return this.id.compareTo(other.asString());
         }
 
@@ -223,6 +245,10 @@ public abstract class IdGenerator {
 
         @Override
         public int compareTo(Id other) {
+            int cmp = compareType(this, other);
+            if (cmp != 0) {
+                return cmp;
+            }
             return Long.compare(this.id, other.asLong());
         }
 
@@ -326,10 +352,11 @@ public abstract class IdGenerator {
         @Override
         public int compareTo(Id other) {
             E.checkNotNull(other, "compare id");
-            if (other instanceof UuidId) {
-                return this.uuid.compareTo(((UuidId) other).uuid);
+            int cmp = compareType(this, other);
+            if (cmp != 0) {
+                return cmp;
             }
-            return Bytes.compare(this.asBytes(), other.asBytes());
+            return this.uuid.compareTo(((UuidId) other).uuid);
         }
 
         @Override

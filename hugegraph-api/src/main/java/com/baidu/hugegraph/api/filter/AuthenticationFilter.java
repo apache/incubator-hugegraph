@@ -121,7 +121,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
             return manager.authenticate(ImmutableMap.of(
                            HugeAuthenticator.KEY_USERNAME, username,
                            HugeAuthenticator.KEY_PASSWORD, password,
-                           HugeAuthenticator.KEY_CLIENT, peer,
+                           HugeAuthenticator.KEY_ADDRESS, peer,
                            HugeAuthenticator.KEY_PATH, path));
         } catch (AuthenticationException e) {
             String msg = String.format("Authentication failed for user '%s'",

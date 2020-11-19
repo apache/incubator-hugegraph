@@ -19,10 +19,15 @@
 
 package com.baidu.hugegraph.type.define;
 
+import java.nio.ByteBuffer;
 import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 
 import com.baidu.hugegraph.HugeException;
+import com.baidu.hugegraph.backend.serializer.BytesBuffer;
+import com.baidu.hugegraph.util.Blob;
+import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.StringEncoding;
 
@@ -37,7 +42,7 @@ public enum DataType implements SerialEnum {
     FLOAT(6, "float", Float.class),
     DOUBLE(7, "double", Double.class),
     TEXT(8, "text", String.class),
-    BLOB(9, "blob", byte[].class),
+    BLOB(9, "blob", Blob.class),
     DATE(10, "date", Date.class),
     UUID(11, "uuid", UUID.class);
 
@@ -87,6 +92,10 @@ public enum DataType implements SerialEnum {
         return this == LONG || this == DOUBLE;
     }
 
+    public boolean isBlob() {
+        return this == DataType.BLOB;
+    }
+
     public boolean isDate() {
         return this == DataType.DATE;
     }
@@ -132,8 +141,10 @@ public enum DataType implements SerialEnum {
                               "Number type only contains Byte, Integer, " +
                               "Long, Float, Double, but got %s", this.clazz()));
             }
-        } catch (NumberFormatException ignored) {
-            // Unmatched type found
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException(String.format(
+                      "Can't read '%s' as %s: %s",
+                      value, this.name, e.getMessage()));
         }
         return number;
     }
@@ -144,7 +155,9 @@ public enum DataType implements SerialEnum {
         }
         if (value instanceof Date) {
             return (Date) value;
-        } else if (value instanceof Number) {
+        } else if (value instanceof Integer) {
+            return new Date(((Number) value).intValue());
+        } else if (value instanceof Long) {
             return new Date(((Number) value).longValue());
         } else if (value instanceof String) {
             return DateUtil.parse((String) value);
@@ -160,6 +173,42 @@ public enum DataType implements SerialEnum {
             return (UUID) value;
         } else if (value instanceof String) {
             return StringEncoding.uuid((String) value);
+        }
+        return null;
+    }
+
+    public <V> Blob valueToBlob(V value) {
+        if (!this.isBlob()) {
+            return null;
+        }
+        if (value instanceof Blob) {
+            return (Blob) value;
+        } else if (value instanceof byte[]) {
+            return Blob.wrap((byte[]) value);
+        } else if (value instanceof ByteBuffer) {
+            return Blob.wrap(((ByteBuffer) value).array());
+        } else if (value instanceof BytesBuffer) {
+            return Blob.wrap(((BytesBuffer) value).bytes());
+        } else if (value instanceof String) {
+            // Only base64 string or hex string accepted
+            String str = ((String) value);
+            if (str.startsWith("0x")) {
+                return Blob.wrap(Bytes.fromHex(str.substring(2)));
+            }
+            return Blob.wrap(StringEncoding.decodeBase64(str));
+        } else if (value instanceof List) {
+            List<?> values = (List<?>) value;
+            byte[] bytes = new byte[values.size()];
+            for (int i = 0; i < bytes.length; i++) {
+                Object v = values.get(i);
+                if (v instanceof Byte || v instanceof Integer) {
+                    bytes[i] = ((Number) v).byteValue();
+                } else {
+                    throw new IllegalArgumentException(String.format(
+                              "expect byte or int value, but got '%s'", v));
+                }
+            }
+            return Blob.wrap(bytes);
         }
         return null;
     }

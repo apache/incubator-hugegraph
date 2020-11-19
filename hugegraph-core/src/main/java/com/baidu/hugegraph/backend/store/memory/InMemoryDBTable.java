@@ -27,6 +27,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.slf4j.Logger;
+
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Aggregate;
@@ -46,9 +48,12 @@ import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
+import com.baidu.hugegraph.util.Log;
 
 public class InMemoryDBTable extends BackendTable<BackendSession,
                                                   TextBackendEntry> {
+
+    private static final Logger LOG = Log.logger(InMemoryDBTable.class);
 
     protected final Map<Id, BackendEntry> store;
     private final InMemoryShardSpliter shardSpliter;
@@ -182,15 +187,15 @@ public class InMemoryDBTable extends BackendTable<BackendSession,
 
         long offset = query.offset() - query.actualOffset();
         if (offset >= rs.size()) {
-            query.skipOffset(rs.size());
+            query.goOffset(rs.size());
             return QueryResults.emptyIterator();
         }
         if (offset > 0L) {
-            query.skipOffset(offset);
+            query.goOffset(offset);
             iterator = this.skipOffset(iterator, offset);
         }
 
-        if (!query.nolimit() && query.total() < rs.size()) {
+        if (!query.noLimit() && query.total() < rs.size()) {
             iterator = this.dropTails(iterator, query.limit());
         }
         return iterator;
@@ -254,6 +259,7 @@ public class InMemoryDBTable extends BackendTable<BackendSession,
 
         Map<Id, BackendEntry> rs = new HashMap<>();
 
+        LOG.trace("queryByFilter {} size = {}", this.table(), entries.size());
         for (BackendEntry entry : entries.values()) {
             // Query by conditions
             boolean matched = true;
@@ -320,7 +326,7 @@ public class InMemoryDBTable extends BackendTable<BackendSession,
         return false;
     }
 
-    private class InMemoryShardSpliter extends ShardSpliter {
+    private class InMemoryShardSpliter extends ShardSpliter<BackendSession> {
 
         public InMemoryShardSpliter(String table) {
             super(table);

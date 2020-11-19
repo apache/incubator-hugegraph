@@ -30,7 +30,7 @@ import com.baidu.hugegraph.structure.HugeIndex;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 
-public class DeleteExpiredIndexJob extends DeleteExpiredJob<Object> {
+public class DeleteExpiredIndexJob<V> extends DeleteExpiredJob<V> {
 
     private static final String JOB_TYPE = "delete_expired_index";
 
@@ -48,7 +48,9 @@ public class DeleteExpiredIndexJob extends DeleteExpiredJob<Object> {
     }
 
     @Override
-    public Object execute() throws Exception {
+    public V execute() throws Exception {
+        LOG.debug("Delete expired indexes: {}", this.indexes);
+
         HugeGraphParams graph = this.params();
         GraphTransaction tx = graph.graphTransaction();
         try {
@@ -56,7 +58,7 @@ public class DeleteExpiredIndexJob extends DeleteExpiredJob<Object> {
                 this.deleteExpiredIndex(graph, index);
             }
             tx.commit();
-        } catch (Exception e) {
+        } catch (Throwable e) {
             tx.rollback();
             LOG.warn("Failed to delete expired indexes: {}", this.indexes);
             throw e;

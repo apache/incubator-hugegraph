@@ -41,12 +41,14 @@ import org.junit.Test;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.job.GremlinJob;
 import com.baidu.hugegraph.job.JobBuilder;
 import com.baidu.hugegraph.security.HugeSecurityManager;
 import com.baidu.hugegraph.task.HugeTask;
 import com.baidu.hugegraph.testutil.Assert;
+import com.baidu.hugegraph.type.define.NodeRole;
 import com.baidu.hugegraph.unit.FakeObjects;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.google.common.collect.ImmutableMap;
@@ -66,6 +68,7 @@ public class SecurityManagerTest {
     @AfterClass
     public static void clear() throws Exception {
         System.setSecurityManager(null);
+        graph.clearBackend();
         graph.close();
         // Stop daemon thread
         HugeFactory.shutdown(30L);
@@ -310,7 +313,7 @@ public class SecurityManagerTest {
                .job(new GremlinJob());
         HugeTask<?> task = builder.schedule();
         try {
-            graph.taskScheduler().waitUntilTaskCompleted(task.id(), 10);
+            task = graph.taskScheduler().waitUntilTaskCompleted(task.id(), 10);
         } catch (TimeoutException e) {
             throw new HugeException("Wait for task timeout: %s", e, task);
         }
@@ -325,6 +328,7 @@ public class SecurityManagerTest {
             graph.clearBackend();
         }
         graph.initBackend();
+        graph.serverStarted(IdGenerator.of("server1"), NodeRole.MASTER);
 
         return graph;
     }

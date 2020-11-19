@@ -21,11 +21,15 @@ package com.baidu.hugegraph;
 
 import com.baidu.hugegraph.analyzer.Analyzer;
 import com.baidu.hugegraph.backend.serializer.AbstractSerializer;
+import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendStore;
+import com.baidu.hugegraph.backend.store.ram.RamTable;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.event.EventHub;
+import com.baidu.hugegraph.task.ServerInfoManager;
+import com.baidu.hugegraph.type.define.GraphMode;
 import com.google.common.util.concurrent.RateLimiter;
 
 /**
@@ -35,6 +39,7 @@ public interface HugeGraphParams {
 
     public HugeGraph graph();
     public String name();
+    public GraphMode mode();
 
     public SchemaTransaction schemaTransaction();
     public GraphTransaction systemTransaction();
@@ -42,6 +47,11 @@ public interface HugeGraphParams {
 
     public GraphTransaction openTransaction();
     public void closeTx();
+
+    public boolean started();
+    public boolean closed();
+    public boolean initialized();
+    public BackendFeatures backendStoreFeatures();
 
     public BackendStore loadSchemaStore();
     public BackendStore loadGraphStore();
@@ -53,7 +63,11 @@ public interface HugeGraphParams {
 
     public HugeConfig configuration();
 
+    public ServerInfoManager serverManager();
+
     public AbstractSerializer serializer();
     public Analyzer analyzer();
-    public RateLimiter rateLimiter();
+    public RateLimiter writeRateLimiter();
+    public RateLimiter readRateLimiter();
+    public RamTable ramtable();
 }

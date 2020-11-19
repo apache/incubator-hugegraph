@@ -36,7 +36,9 @@ import org.apache.tinkerpop.shaded.jackson.core.type.WritableTypeId;
 import org.apache.tinkerpop.shaded.jackson.databind.DeserializationContext;
 import org.apache.tinkerpop.shaded.jackson.databind.JsonSerializer;
 import org.apache.tinkerpop.shaded.jackson.databind.SerializerProvider;
+import org.apache.tinkerpop.shaded.jackson.databind.deser.std.DateDeserializers.DateDeserializer;
 import org.apache.tinkerpop.shaded.jackson.databind.deser.std.StdDeserializer;
+import org.apache.tinkerpop.shaded.jackson.databind.deser.std.UUIDDeserializer;
 import org.apache.tinkerpop.shaded.jackson.databind.jsontype.TypeSerializer;
 import org.apache.tinkerpop.shaded.jackson.databind.module.SimpleModule;
 import org.apache.tinkerpop.shaded.jackson.databind.ser.std.DateSerializer;
@@ -61,6 +63,7 @@ import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.util.Blob;
 
 @SuppressWarnings("serial")
 public class HugeGraphSONModule extends TinkerPopJacksonModule {
@@ -113,10 +116,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
     private HugeGraphSONModule() {
         super(TYPE_NAMESPACE);
 
-        addSerializer(Optional.class, new OptionalSerializer());
-
-        addSerializer(Date.class, new DateSerializer(false, DATE_FORMAT));
-        addSerializer(UUID.class, new UUIDSerializer());
+        registerCommonSerializers(this);
 
         // HugeGraph id serializer
         registerIdSerializers(this);
@@ -139,6 +139,26 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
     @Override
     public String getTypeNamespace() {
         return TYPE_NAMESPACE;
+    }
+
+    public static void registerCommonSerializers(SimpleModule module) {
+        module.addSerializer(Optional.class, new OptionalSerializer());
+
+        module.addSerializer(Shard.class, new ShardSerializer());
+
+        module.addSerializer(File.class, new FileSerializer());
+
+        boolean useTimestamp = false;
+        module.addSerializer(Date.class,
+                             new DateSerializer(useTimestamp, DATE_FORMAT));
+        module.addDeserializer(Date.class, new DateDeserializer(
+                               new DateDeserializer(), DATE_FORMAT, DF));
+
+        module.addSerializer(UUID.class, new UUIDSerializer());
+        module.addDeserializer(UUID.class, new UUIDDeserializer());
+
+        module.addSerializer(Blob.class, new BlobSerializer());
+        module.addDeserializer(Blob.class, new BlobDeserializer());
     }
 
     public static void registerIdSerializers(SimpleModule module) {
@@ -168,9 +188,6 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         module.addSerializer(VertexLabel.class, new VertexLabelSerializer());
         module.addSerializer(EdgeLabel.class, new EdgeLabelSerializer());
         module.addSerializer(IndexLabel.class, new IndexLabelSerializer());
-
-        module.addSerializer(Shard.class, new ShardSerializer());
-        module.addSerializer(File.class, new FileSerializer());
     }
 
     public static void registerGraphSerializers(SimpleModule module) {
@@ -411,6 +428,17 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
 
             generator.writeEndObject();
         }
+
+        @Override
+        public void serializeWithType(HugeVertex value, JsonGenerator generator,
+                                      SerializerProvider provider,
+                                      TypeSerializer typeSer)
+                                      throws IOException {
+            WritableTypeId typeId = typeSer.typeId(value, JsonToken.VALUE_STRING);
+            typeSer.writeTypePrefix(generator, typeId);
+            this.serialize(value, generator, provider);
+            typeSer.writeTypeSuffix(generator, typeId);
+        }
     }
 
     private static class HugeEdgeSerializer
@@ -443,6 +471,17 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
                                       generator, provider);
 
             generator.writeEndObject();
+        }
+
+        @Override
+        public void serializeWithType(HugeEdge value, JsonGenerator generator,
+                                      SerializerProvider provider,
+                                      TypeSerializer typeSer)
+                                      throws IOException {
+            WritableTypeId typeId = typeSer.typeId(value, JsonToken.VALUE_STRING);
+            typeSer.writeTypePrefix(generator, typeId);
+            this.serialize(value, generator, provider);
+            typeSer.writeTypeSuffix(generator, typeId);
         }
     }
 
@@ -477,6 +516,36 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
             jsonGenerator.writeStartObject();
             jsonGenerator.writeStringField("file", file.getName());
             jsonGenerator.writeEndObject();
+        }
+    }
+
+    private static class BlobSerializer extends StdSerializer<Blob> {
+
+        public BlobSerializer() {
+            super(Blob.class);
+        }
+
+        @Override
+        public void serialize(Blob blob, JsonGenerator jsonGenerator,
+                              SerializerProvider provider)
+                              throws IOException {
+            jsonGenerator.writeBinary(blob.bytes());
+        }
+    }
+
+
+    private static class BlobDeserializer extends StdDeserializer<Blob> {
+
+        public BlobDeserializer() {
+            super(Blob.class);
+        }
+
+        @Override
+        public Blob deserialize(JsonParser jsonParser,
+                                DeserializationContext ctxt)
+                                throws IOException {
+            byte[] bytes = jsonParser.getBinaryValue();
+            return Blob.wrap(bytes);
         }
     }
 }

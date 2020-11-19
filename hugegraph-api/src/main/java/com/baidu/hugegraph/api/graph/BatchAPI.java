@@ -44,7 +44,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class BatchAPI extends API {
 
-    private static final Logger LOG = Log.logger(RestServer.class);
+    private static final Logger LOG = Log.logger(BatchAPI.class);
 
     // NOTE: VertexAPI and EdgeAPI should share a counter
     private static final AtomicInteger batchWriteThreads = new AtomicInteger(0);
@@ -143,7 +143,7 @@ public class BatchAPI extends API {
                 Object value = updateStrategy.checkAndUpdateProperty(
                                oldElement.property(key).value(),
                                newElement.properties.get(key));
-                value = g.propertyKey(key).convValue(value, false);
+                value = g.propertyKey(key).validValueOrThrow(value);
                 newElement.properties.put(key, value);
             } else if (oldElement.property(key).isPresent() &&
                        newElement.properties.get(key) == null) {

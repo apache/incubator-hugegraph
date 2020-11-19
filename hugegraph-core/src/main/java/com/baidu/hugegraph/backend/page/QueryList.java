@@ -27,6 +27,8 @@ import java.util.Set;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.page.IdHolder.BatchIdHolder;
 import com.baidu.hugegraph.backend.page.IdHolder.FixedIdHolder;
+import com.baidu.hugegraph.backend.query.ConditionQuery;
+import com.baidu.hugegraph.backend.query.ConditionQuery.OptimizedType;
 import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.query.QueryResults;
@@ -60,7 +62,7 @@ public final class QueryList<R> {
     }
 
     public void add(Query query) {
-        // TODO: maybe need do deduplicate(for -> flatten)
+        // TODO: maybe need do dedup(for -> flatten)
         this.queries.add(new OptimizedQuery(query));
     }
 
@@ -166,7 +168,7 @@ public final class QueryList<R> {
             Query query = this.query.copy();
             query.page(page);
             // Not set limit to pageSize due to PageEntryIterator.remaining
-            if (this.query.nolimit()) {
+            if (this.query.noLimit()) {
                 query.limit(pageSize);
             }
 
@@ -215,26 +217,32 @@ public final class QueryList<R> {
         }
 
         private QueryResults<R> each(IdHolder holder) {
-            Query parent = parent();
             assert !holder.paging();
+            Query bindQuery = holder.query();
+            this.updateOffsetIfNeeded(bindQuery);
 
             // Iterate by all
             if (holder instanceof FixedIdHolder) {
                 Set<Id> ids = holder.all();
-                ids = parent.skipOffset(ids);
+                ids = bindQuery.skipOffsetIfNeeded(ids);
                 if (ids.isEmpty()) {
                     return null;
                 }
 
-                IdQuery query = new IdQuery(parent, ids);
-                return fetcher().apply(query);
+                /*
+                 * Sort by input ids because search index results need to keep
+                 * in order by ids weight. In addition all the ids (IdQuery)
+                 * can be collected by upper layer.
+                 */
+                return this.queryByIndexIds(ids, true);
             }
 
             // Iterate by batch
             assert holder instanceof BatchIdHolder;
             return QueryResults.flatMap((BatchIdHolder) holder, h -> {
-                long remaining = parent.nolimit() ? Query.NO_LIMIT :
-                                 parent.remaining();
+                assert ((BatchIdHolder) holder).hasNext();
+                long remaining = bindQuery.remaining();
+                assert remaining >= 0L || remaining == Query.NO_LIMIT;
                 if (remaining > this.batchSize || remaining == Query.NO_LIMIT) {
                     /*
                      * Avoid too many ids in one time query,
@@ -243,13 +251,12 @@ public final class QueryList<R> {
                     remaining = this.batchSize;
                 }
                 Set<Id> ids = h.fetchNext(null, remaining).ids();
-                ids = parent.skipOffset(ids);
+                ids = bindQuery.skipOffsetIfNeeded(ids);
                 if (ids.isEmpty()) {
                     return null;
                 }
 
-                IdQuery query = new IdQuery(parent, ids);
-                return fetcher().apply(query);
+                return this.queryByIndexIds(ids);
             });
         }
 
@@ -264,8 +271,7 @@ public final class QueryList<R> {
                 return PageResults.emptyIterator();
             }
 
-            IdQuery query = new IdQuery(parent(), pageIds.ids());
-            QueryResults<R> results = fetcher().apply(query);
+            QueryResults<R> results = this.queryByIndexIds(pageIds.ids());
 
             return new PageResults<>(results, pageIds.pageState());
         }
@@ -278,6 +284,27 @@ public final class QueryList<R> {
         @Override
         public String toString() {
             return String.format("IndexQuery{%s}", this.holders);
+        }
+
+        private void updateOffsetIfNeeded(Query query) {
+            Query parent = parent();
+            assert parent instanceof ConditionQuery;
+            OptimizedType optimized = ((ConditionQuery) parent).optimized();
+            if (optimized == OptimizedType.INDEX_FILTER) {
+                return;
+            }
+            // Others sub-query may update parent offset, so copy to this query
+            query.copyOffset(parent);
+        }
+
+        private QueryResults<R> queryByIndexIds(Set<Id> ids) {
+            return this.queryByIndexIds(ids, false);
+        }
+
+        private QueryResults<R> queryByIndexIds(Set<Id> ids, boolean inOrder) {
+            IdQuery query = new IdQuery(parent(), ids);
+            query.mustSortByInput(inOrder);
+            return fetcher().apply(query);
         }
     }
 

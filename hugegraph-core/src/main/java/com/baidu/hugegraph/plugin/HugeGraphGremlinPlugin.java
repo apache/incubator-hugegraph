@@ -29,13 +29,14 @@ import org.apache.tinkerpop.gremlin.jsr223.DefaultImportCustomizer;
 import org.apache.tinkerpop.gremlin.jsr223.ImportCustomizer;
 
 import com.baidu.hugegraph.HugeException;
+import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.util.ReflectionUtil;
 import com.google.common.reflect.ClassPath;
 
 public class HugeGraphGremlinPlugin extends AbstractGremlinPlugin {
 
     private static final String PACKAGE = "com.baidu.hugegraph.type.define";
-    private static final String NAME = "com.baidu.hugegraph";
+    private static final String NAME = "HugeGraph";
 
     private static final HugeGraphGremlinPlugin instance;
     private static final ImportCustomizer imports;
@@ -48,12 +49,15 @@ public class HugeGraphGremlinPlugin extends AbstractGremlinPlugin {
             classInfos = ReflectionUtil.classes(PACKAGE);
         } catch (IOException e) {
             throw new HugeException("Failed to scan classes under package %s",
-                                    PACKAGE);
+                                    e, PACKAGE);
         }
 
         @SuppressWarnings("rawtypes")
         Set<Class> classes = new HashSet<>();
         classInfos.forEachRemaining(classInfo -> classes.add(classInfo.load()));
+        // Add entrance class: graph = HugeFactory.open("hugegraph.properties")
+        classes.add(HugeFactory.class);
+
         imports = DefaultImportCustomizer.build()
                                          .addClassImports(classes)
                                          .create();

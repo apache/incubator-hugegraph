@@ -54,6 +54,9 @@ import com.baidu.hugegraph.backend.store.BackendProviderFactory;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
+import com.baidu.hugegraph.backend.store.raft.RaftBackendStoreProvider;
+import com.baidu.hugegraph.backend.store.raft.RaftGroupManager;
+import com.baidu.hugegraph.backend.store.ram.RamTable;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.config.CoreOptions;
@@ -72,10 +75,12 @@ import com.baidu.hugegraph.structure.HugeEdgeProperty;
 import com.baidu.hugegraph.structure.HugeFeatures;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.structure.HugeVertexProperty;
+import com.baidu.hugegraph.task.ServerInfoManager;
 import com.baidu.hugegraph.task.TaskManager;
 import com.baidu.hugegraph.task.TaskScheduler;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.GraphMode;
+import com.baidu.hugegraph.type.define.NodeRole;
 import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.LockUtil;
@@ -92,13 +97,14 @@ public class StandardHugeGraph implements HugeGraph {
     public static final Class<?>[] PROTECT_CLASSES = {
            StandardHugeGraph.class,
            StandardHugeGraph.StandardHugeGraphParams.class,
-           StandardHugeGraph.TinkerpopTransaction.class,
+           TinkerPopTransaction.class,
            StandardHugeGraph.Txs.class,
            StandardHugeGraph.SysTransaction.class
     };
 
     private static final Logger LOG = Log.logger(HugeGraph.class);
 
+    private volatile boolean started;
     private volatile boolean closed;
     private volatile GraphMode mode;
     private volatile HugeVariables variables;
@@ -113,31 +119,48 @@ public class StandardHugeGraph implements HugeGraph {
     private final EventHub graphEventHub;
     private final EventHub indexEventHub;
 
-    private final RateLimiter rateLimiter;
+    private final RateLimiter writeRateLimiter;
+    private final RateLimiter readRateLimiter;
     private final TaskManager taskManager;
     private final UserManager userManager;
 
     private final HugeFeatures features;
 
     private final BackendStoreProvider storeProvider;
-    private final TinkerpopTransaction tx;
+    private final TinkerPopTransaction tx;
 
-    public StandardHugeGraph(HugeConfig configuration) {
+    private final RamTable ramtable;
+
+    public StandardHugeGraph(HugeConfig config) {
         this.params = new StandardHugeGraphParams();
-        this.configuration = configuration;
+        this.configuration = config;
 
         this.schemaEventHub = new EventHub("schema");
         this.graphEventHub = new EventHub("graph");
         this.indexEventHub = new EventHub("index");
 
-        final int limit = configuration.get(CoreOptions.RATE_LIMIT);
-        this.rateLimiter = limit > 0 ? RateLimiter.create(limit) : null;
+        final int writeLimit = config.get(CoreOptions.RATE_LIMIT_WRITE);
+        this.writeRateLimiter = writeLimit > 0 ?
+                                RateLimiter.create(writeLimit) : null;
+        final int readLimit = config.get(CoreOptions.RATE_LIMIT_READ);
+        this.readRateLimiter = readLimit > 0 ?
+                               RateLimiter.create(readLimit) : null;
+
+        boolean ramtableEnable = config.get(CoreOptions.QUERY_RAMTABLE_ENABLE);
+        if (ramtableEnable) {
+            long vc = config.get(CoreOptions.QUERY_RAMTABLE_VERTICES_CAPACITY);
+            int ec = config.get(CoreOptions.QUERY_RAMTABLE_EDGES_CAPACITY);
+            this.ramtable = new RamTable(this, vc, ec);
+        } else {
+            this.ramtable = null;
+        }
 
         this.taskManager = TaskManager.instance();
 
         this.features = new HugeFeatures(this, true);
 
-        this.name = configuration.get(CoreOptions.STORE);
+        this.name = config.get(CoreOptions.STORE);
+        this.started = false;
         this.closed = false;
         this.mode = GraphMode.NONE;
 
@@ -152,7 +175,7 @@ public class StandardHugeGraph implements HugeGraph {
             throw new HugeException(message);
         }
 
-        this.tx = new TinkerpopTransaction(this);
+        this.tx = new TinkerPopTransaction(this);
 
         SnowflakeIdGenerator.init(this.params);
 
@@ -182,11 +205,6 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
-    public boolean backendStoreInitialized() {
-        return this.graphTransaction().initialized();
-    }
-
-    @Override
     public BackendStoreSystemInfo backendStoreSystemInfo() {
         return new BackendStoreSystemInfo(this.schemaTransaction());
     }
@@ -194,6 +212,22 @@ public class StandardHugeGraph implements HugeGraph {
     @Override
     public BackendFeatures backendStoreFeatures() {
         return this.graphTransaction().storeFeatures();
+    }
+
+    @Override
+    public void serverStarted(Id serverId, NodeRole serverRole) {
+        LOG.info("Init server info for graph '{}'...", this.name);
+        this.serverInfoManager().initServerInfo(serverId, serverRole);
+
+        LOG.info("Restoring incomplete tasks for graph '{}'...", this.name);
+        this.taskScheduler().restoreTasks();
+
+        this.started = true;
+    }
+
+    @Override
+    public boolean started() {
+        return this.started;
     }
 
     @Override
@@ -211,7 +245,15 @@ public class StandardHugeGraph implements HugeGraph {
 
     @Override
     public void mode(GraphMode mode) {
+        LOG.info("Graph {} will work in {} mode", this, mode);
         this.mode = mode;
+    }
+
+    @Override
+    public void waitStarted() {
+        // Just for trigger Tx.getOrNewTransaction, then load 3 stores
+        this.schemaTransaction();
+        this.storeProvider.waitStoreStarted();
     }
 
     @Override
@@ -219,10 +261,13 @@ public class StandardHugeGraph implements HugeGraph {
         this.loadSchemaStore().open(this.configuration);
         this.loadSystemStore().open(this.configuration);
         this.loadGraphStore().open(this.configuration);
+
+        LockUtil.lock(this.name, LockUtil.GRAPH_LOCK);
         try {
             this.storeProvider.init();
             this.storeProvider.initSystemInfo(this);
         } finally {
+            LockUtil.unlock(this.name, LockUtil.GRAPH_LOCK);
             this.loadGraphStore().close();
             this.loadSystemStore().close();
             this.loadSchemaStore().close();
@@ -238,9 +283,12 @@ public class StandardHugeGraph implements HugeGraph {
         this.loadSchemaStore().open(this.configuration);
         this.loadSystemStore().open(this.configuration);
         this.loadGraphStore().open(this.configuration);
+
+        LockUtil.lock(this.name, LockUtil.GRAPH_LOCK);
         try {
             this.storeProvider.clear();
         } finally {
+            LockUtil.unlock(this.name, LockUtil.GRAPH_LOCK);
             this.loadGraphStore().close();
             this.loadSystemStore().close();
             this.loadSchemaStore().close();
@@ -253,8 +301,15 @@ public class StandardHugeGraph implements HugeGraph {
     public void truncateBackend() {
         this.waitUntilAllTasksCompleted();
 
-        this.storeProvider.truncate();
-        this.storeProvider.initSystemInfo(this);
+        LockUtil.lock(this.name, LockUtil.GRAPH_LOCK);
+        try {
+            this.storeProvider.truncate();
+            this.storeProvider.initSystemInfo(this);
+            this.serverStarted(this.serverInfoManager().selfServerId(),
+                               this.serverInfoManager().selfServerRole());
+        } finally {
+            LockUtil.unlock(this.name, LockUtil.GRAPH_LOCK);
+        }
 
         LOG.info("Graph '{}' has been truncated", this.name);
     }
@@ -342,10 +397,7 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     private BackendStoreProvider loadStoreProvider() {
-        String backend = this.configuration.get(CoreOptions.BACKEND);
-        LOG.info("Opening backend store '{}' for graph '{}'",
-                 backend, this.name);
-        return BackendProviderFactory.open(backend, this.name);
+        return BackendProviderFactory.open(this.params);
     }
 
     private AbstractSerializer serializer() {
@@ -364,6 +416,19 @@ public class StandardHugeGraph implements HugeGraph {
         LOG.debug("Loading text analyzer '{}' with mode '{}' for graph '{}'",
                   name, mode, this.name);
         return AnalyzerFactory.analyzer(name, mode);
+    }
+
+    protected void reloadRamtable() {
+        this.reloadRamtable(false);
+    }
+
+    protected void reloadRamtable(boolean loadFromFile) {
+        // Expect triggered manually, like gremlin job
+        if (this.ramtable != null) {
+            this.ramtable.reload(loadFromFile, this.name);
+        } else {
+            LOG.warn("The ramtable feature is not enabled for graph {}", this);
+        }
     }
 
     @Override
@@ -396,6 +461,23 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
+    public void removeVertex(String label, Object id) {
+        if (label != null) {
+            VertexLabel vl = this.vertexLabel(label);
+            // It's OK even if exist adjacent edges `vl.existsLinkLabel()`
+            if (!vl.existsIndexLabel()) {
+                // Improve perf by removeVertex(id)
+                Id idValue = HugeVertex.getIdValue(id);
+                HugeVertex vertex = new HugeVertex(this, idValue, vl);
+                this.removeVertex(vertex);
+                return;
+            }
+        }
+
+        this.vertex(id).remove();
+    }
+
+    @Override
     public <V> void addVertexProperty(VertexProperty<V> p) {
         this.graphTransaction().addVertexProperty((HugeVertexProperty<V>) p);
     }
@@ -421,6 +503,22 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
+    public void removeEdge(String label, Object id) {
+        if (label != null) {
+            EdgeLabel el = this.edgeLabel(label);
+            if (!el.existsIndexLabel()) {
+                // Improve perf by removeEdge(id)
+                Id idValue = HugeEdge.getIdValue(id, false);
+                HugeEdge edge = new HugeEdge(this, idValue, el);
+                this.removeEdge(edge);
+                return;
+            }
+        }
+
+        this.edge(id).remove();
+    }
+
+    @Override
     public <V> void addEdgeProperty(Property<V> p) {
         this.graphTransaction().addEdgeProperty((HugeEdgeProperty<V>) p);
     }
@@ -428,6 +526,11 @@ public class StandardHugeGraph implements HugeGraph {
     @Override
     public <V> void removeEdgeProperty(Property<V> p) {
         this.graphTransaction().removeEdgeProperty((HugeEdgeProperty<V>) p);
+    }
+
+    @Override
+    public Vertex vertex(Object object) {
+        return this.graphTransaction().queryVertex(object);
     }
 
     @Override
@@ -451,6 +554,11 @@ public class StandardHugeGraph implements HugeGraph {
     @Override
     public boolean checkAdjacentVertexExist() {
         return this.graphTransaction().checkAdjacentVertexExist();
+    }
+
+    @Override
+    public Edge edge(Object object) {
+        return this.graphTransaction().queryEdge(object);
     }
 
     @Override
@@ -482,13 +590,14 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
-    public void addPropertyKey(PropertyKey key) {
-        this.schemaTransaction().addPropertyKey(key);
+    public void addPropertyKey(PropertyKey pkey) {
+        assert this.name.equals(pkey.graph().name());
+        this.schemaTransaction().addPropertyKey(pkey);
     }
 
     @Override
-    public void removePropertyKey(Id key) {
-        this.schemaTransaction().removePropertyKey(key);
+    public void removePropertyKey(Id pkey) {
+        this.schemaTransaction().removePropertyKey(pkey);
     }
 
     @Override
@@ -517,6 +626,7 @@ public class StandardHugeGraph implements HugeGraph {
 
     @Override
     public void addVertexLabel(VertexLabel vertexLabel) {
+        assert this.name.equals(vertexLabel.graph().name());
         this.schemaTransaction().addVertexLabel(vertexLabel);
     }
 
@@ -571,6 +681,7 @@ public class StandardHugeGraph implements HugeGraph {
 
     @Override
     public void addEdgeLabel(EdgeLabel edgeLabel) {
+        assert this.name.equals(edgeLabel.graph().name());
         this.schemaTransaction().addEdgeLabel(edgeLabel);
     }
 
@@ -614,6 +725,8 @@ public class StandardHugeGraph implements HugeGraph {
 
     @Override
     public void addIndexLabel(SchemaLabel schemaLabel, IndexLabel indexLabel) {
+        assert this.name.equals(schemaLabel.graph().name());
+        assert this.name.equals(indexLabel.graph().name());
         this.schemaTransaction().addIndexLabel(schemaLabel, indexLabel);
     }
 
@@ -657,7 +770,7 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
-    public void close() throws Exception {
+    public synchronized void close() throws Exception {
         if (this.closed()) {
             return;
         }
@@ -716,10 +829,28 @@ public class StandardHugeGraph implements HugeGraph {
         return scheduler;
     }
 
+    private ServerInfoManager serverInfoManager() {
+        ServerInfoManager manager = this.taskManager
+                                        .getServerInfoManager(this.params);
+        E.checkState(manager != null,
+                     "Can't find server info manager for graph '%s'", this);
+        return manager;
+    }
+
     @Override
     public UserManager userManager() {
         // this.userManager.initSchemaIfNeeded();
         return this.userManager;
+    }
+
+    @Override
+    public RaftGroupManager raftGroupManager(String group) {
+        if (!(this.storeProvider instanceof RaftBackendStoreProvider)) {
+            return null;
+        }
+        RaftBackendStoreProvider provider =
+                ((RaftBackendStoreProvider) this.storeProvider);
+        return provider.raftNodeManager(group);
     }
 
     @Override
@@ -730,6 +861,21 @@ public class StandardHugeGraph implements HugeGraph {
     @Override
     public String toString() {
         return StringFactory.graphString(this, this.name());
+    }
+
+    @Override
+    public final void proxy(HugeGraph graph) {
+        this.params.graph(graph);
+    }
+
+    @Override
+    public boolean sameAs(HugeGraph graph) {
+        return this == graph;
+    }
+
+    @Override
+    public long now() {
+        return ((TinkerPopTransaction) this.tx()).openedTime();
     }
 
     private void closeTx() {
@@ -751,16 +897,6 @@ public class StandardHugeGraph implements HugeGraph {
         }
     }
 
-    @Override
-    public final void proxy(HugeGraph graph) {
-        this.params.graph(graph);
-    }
-
-    @Override
-    public long now() {
-        return ((TinkerpopTransaction) this.tx()).openedTime();
-    }
-
     private class StandardHugeGraphParams implements HugeGraphParams {
 
         private HugeGraph graph = StandardHugeGraph.this;
@@ -777,6 +913,11 @@ public class StandardHugeGraph implements HugeGraph {
         @Override
         public String name() {
             return StandardHugeGraph.this.name();
+        }
+
+        @Override
+        public GraphMode mode() {
+            return StandardHugeGraph.this.mode();
         }
 
         @Override
@@ -803,6 +944,26 @@ public class StandardHugeGraph implements HugeGraph {
         @Override
         public void closeTx() {
             StandardHugeGraph.this.closeTx();
+        }
+
+        @Override
+        public boolean started() {
+            return StandardHugeGraph.this.started();
+        }
+
+        @Override
+        public boolean closed() {
+            return StandardHugeGraph.this.closed();
+        }
+
+        @Override
+        public boolean initialized() {
+            return StandardHugeGraph.this.graphTransaction().storeInitialized();
+        }
+
+        @Override
+        public BackendFeatures backendStoreFeatures() {
+            return StandardHugeGraph.this.backendStoreFeatures();
         }
 
         @Override
@@ -841,6 +1002,12 @@ public class StandardHugeGraph implements HugeGraph {
         }
 
         @Override
+        public ServerInfoManager serverManager() {
+            // this.serverManager.initSchemaIfNeeded();
+            return StandardHugeGraph.this.serverInfoManager();
+        }
+
+        @Override
         public AbstractSerializer serializer() {
             return StandardHugeGraph.this.serializer();
         }
@@ -851,12 +1018,22 @@ public class StandardHugeGraph implements HugeGraph {
         }
 
         @Override
-        public RateLimiter rateLimiter() {
-            return StandardHugeGraph.this.rateLimiter;
+        public RateLimiter writeRateLimiter() {
+            return StandardHugeGraph.this.writeRateLimiter;
         }
-    };
 
-    private class TinkerpopTransaction extends AbstractThreadLocalTransaction {
+        @Override
+        public RateLimiter readRateLimiter() {
+            return StandardHugeGraph.this.readRateLimiter;
+        }
+
+        @Override
+        public RamTable ramtable() {
+            return StandardHugeGraph.this.ramtable;
+        }
+    }
+
+    private class TinkerPopTransaction extends AbstractThreadLocalTransaction {
 
         // Times opened from upper layer
         private final AtomicInteger refs;
@@ -865,7 +1042,7 @@ public class StandardHugeGraph implements HugeGraph {
         // Backend transactions
         private final ThreadLocal<Txs> transactions;
 
-        public TinkerpopTransaction(Graph graph) {
+        public TinkerPopTransaction(Graph graph) {
             super(graph);
 
             this.refs = new AtomicInteger();
@@ -949,7 +1126,7 @@ public class StandardHugeGraph implements HugeGraph {
 
         @Override
         public String toString() {
-            return String.format("TinkerpopTransaction{opened=%s, txs=%s}",
+            return String.format("TinkerPopTransaction{opened=%s, txs=%s}",
                                  this.opened.get(), this.transactions.get());
         }
 

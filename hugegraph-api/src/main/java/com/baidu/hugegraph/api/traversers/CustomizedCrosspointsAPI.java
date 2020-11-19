@@ -22,10 +22,8 @@ package com.baidu.hugegraph.api.traversers;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPACITY;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PATHS_LIMIT;
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.NO_LIMIT;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -48,7 +46,6 @@ import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.core.GraphManager;
-import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.traversal.algorithm.CustomizedCrosspointsTraverser;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
@@ -87,7 +84,7 @@ public class CustomizedCrosspointsAPI extends API {
                   request.capacity, request.limit);
 
         HugeGraph g = graph(manager, graph);
-        Iterator<Vertex> sources = request.sources.sourcesVertices(g);
+        Iterator<Vertex> sources = request.sources.vertices(g);
         List<CustomizedCrosspointsTraverser.PathPattern> patterns;
         patterns = pathPatterns(g, request);
 
@@ -135,7 +132,7 @@ public class CustomizedCrosspointsAPI extends API {
     private static class CrosspointsRequest {
 
         @JsonProperty("sources")
-        public SourceVertices sources;
+        public Vertices sources;
         @JsonProperty("path_patterns")
         public List<PathPattern> pathPatterns;
         @JsonProperty("capacity")
@@ -178,29 +175,23 @@ public class CustomizedCrosspointsAPI extends API {
         public Map<String, Object> properties;
         @JsonProperty("degree")
         public long degree = Long.valueOf(DEFAULT_DEGREE);
+        @JsonProperty("skip_degree")
+        public long skipDegree = 0L;
 
         @Override
         public String toString() {
             return String.format("Step{direction=%s,labels=%s,properties=%s," +
-                                 "degree=%s}", this.direction, this.labels,
-                                 this.properties, this.degree);
+                                 "degree=%s,skipDegree=%s}",
+                                 this.direction, this.labels, this.properties,
+                                 this.degree, this.skipDegree);
         }
 
         private CustomizedCrosspointsTraverser.Step jsonToStep(HugeGraph g) {
-            E.checkArgument(this.degree > 0 || this.degree == NO_LIMIT,
-                            "The degree must be > 0 or == -1, but got: %s",
-                            this.degree);
-            Map<Id, String> labelIds = new HashMap<>();
-            if (this.labels != null) {
-                for (String label : this.labels) {
-                    EdgeLabel el = g.edgeLabel(label);
-                    labelIds.put(el.id(), label);
-                }
-            }
-            return new CustomizedCrosspointsTraverser.Step(this.direction,
-                                                           labelIds,
+            return new CustomizedCrosspointsTraverser.Step(g, this.direction,
+                                                           this.labels,
                                                            this.properties,
-                                                           this.degree);
+                                                           this.degree,
+                                                           this.skipDegree);
         }
     }
 }

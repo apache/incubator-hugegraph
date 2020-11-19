@@ -83,6 +83,26 @@ public class EdgeLabelBuilder extends AbstractBuilder
         this.checkExist = true;
     }
 
+    public EdgeLabelBuilder(SchemaTransaction transaction,
+                            HugeGraph graph, EdgeLabel copy) {
+        super(transaction, graph);
+        E.checkNotNull(copy, "copy");
+        HugeGraph origin = copy.graph();
+        this.id = null;
+        this.name = copy.name();
+        this.sourceLabel = copy.sourceLabelName();
+        this.targetLabel = copy.targetLabelName();
+        this.frequency = copy.frequency();
+        this.properties = mapPkId2Name(origin, copy.properties());
+        this.sortKeys = mapPkId2Name(origin, copy.sortKeys());
+        this.nullableKeys = mapPkId2Name(origin, copy.nullableKeys());
+        this.ttl = copy.ttl();
+        this.ttlStartTime = copy.ttlStartTimeName();
+        this.enableLabelIndex = copy.enableLabelIndex();
+        this.userdata = new Userdata(copy.userdata());
+        this.checkExist = false;
+    }
+
     @Override
     public EdgeLabel build() {
         Id id = this.validOrGenerateId(HugeType.EDGE_LABEL,
@@ -91,7 +111,8 @@ public class EdgeLabelBuilder extends AbstractBuilder
         EdgeLabel edgeLabel = new EdgeLabel(graph, id, this.name);
         edgeLabel.sourceLabel(graph.vertexLabel(this.sourceLabel).id());
         edgeLabel.targetLabel(graph.vertexLabel(this.targetLabel).id());
-        edgeLabel.frequency(this.frequency);
+        edgeLabel.frequency(this.frequency == Frequency.DEFAULT ?
+                            Frequency.SINGLE : this.frequency);
         edgeLabel.ttl(this.ttl);
         if (this.ttlStartTime != null) {
             edgeLabel.ttlStartTime(this.graph().propertyKey(
@@ -123,16 +144,13 @@ public class EdgeLabelBuilder extends AbstractBuilder
         return this.lockCheckAndCreateSchema(type, this.name, name -> {
             EdgeLabel edgeLabel = this.edgeLabelOrNull(this.name);
             if (edgeLabel != null) {
-                if (this.checkExist) {
+                if (this.checkExist || !hasSameProperties(edgeLabel)) {
                     throw new ExistedException(type, this.name);
                 }
                 return edgeLabel;
             }
             this.checkSchemaIdIfRestoringMode(type, this.id);
 
-            if (this.frequency == Frequency.DEFAULT) {
-                this.frequency = Frequency.SINGLE;
-            }
             // These methods will check params and fill to member variables
             this.checkRelation();
             this.checkProperties(Action.INSERT);
@@ -147,6 +165,79 @@ public class EdgeLabelBuilder extends AbstractBuilder
             this.graph().addEdgeLabel(edgeLabel);
             return edgeLabel;
         });
+    }
+
+    /**
+     * Check whether this has same properties with existedEdgeLabel.
+     * Only sourceId, targetId, frequency, enableLabelIndex, properties, sortKeys,
+     * nullableKeys are checked.
+     * The id, ttl, ttlStartTime, userdata are not checked.
+     * @param existedEdgeLabel to be compared with
+     * @return true if this has same properties with existedVertexLabel
+     */
+    private boolean hasSameProperties(EdgeLabel existedEdgeLabel) {
+        HugeGraph graph = this.graph();
+        Id sourceId = graph.vertexLabel(this.sourceLabel).id();
+        if (!existedEdgeLabel.sourceLabel().equals(sourceId)) {
+            return false;
+        }
+
+        Id targetId = graph.vertexLabel(this.targetLabel).id();
+        if (!existedEdgeLabel.targetLabel().equals(targetId)) {
+            return false;
+        }
+
+        if ((this.frequency == Frequency.DEFAULT &&
+             existedEdgeLabel.frequency() != Frequency.SINGLE) ||
+            (this.frequency != Frequency.DEFAULT &&
+             this.frequency != existedEdgeLabel.frequency())) {
+            return false;
+        }
+
+        // this.enableLabelIndex == null, it means true.
+        if (this.enableLabelIndex == null || this.enableLabelIndex) {
+            if (!existedEdgeLabel.enableLabelIndex()) {
+                return false;
+            }
+        } else { // this false
+            if (existedEdgeLabel.enableLabelIndex() == true) {
+                return false;
+            }
+        }
+
+        Set<Id> existedProperties = existedEdgeLabel.properties();
+        if (this.properties.size() != existedProperties.size()) {
+            return false;
+        }
+        for (String key : this.properties) {
+            PropertyKey propertyKey = graph.propertyKey(key);
+            if (!existedProperties.contains(propertyKey.id())) {
+                return false;
+            }
+        }
+
+        List<Id> existedSortKeys = existedEdgeLabel.sortKeys();
+        if (this.sortKeys.size() != existedSortKeys.size()) {
+            return false;
+        }
+        for (String key : this.sortKeys) {
+            PropertyKey propertyKey = graph.propertyKey(key);
+            if (!existedSortKeys.contains(propertyKey.id())) {
+                return false;
+            }
+        }
+
+        Set<Id> existedNullableKeys = existedEdgeLabel.nullableKeys();
+        if (this.nullableKeys.size() != existedNullableKeys.size()) {
+            return false;
+        }
+        for (String nullableKeyName : this.nullableKeys) {
+            PropertyKey nullableKey = graph.propertyKey(nullableKeyName);
+            if (!existedNullableKeys.contains(nullableKey.id())) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @Override
@@ -391,7 +482,8 @@ public class EdgeLabelBuilder extends AbstractBuilder
     }
 
     private void checkSortKeys() {
-        if (this.frequency == Frequency.SINGLE) {
+        if (this.frequency == Frequency.SINGLE ||
+            this.frequency == Frequency.DEFAULT) {
             E.checkArgument(this.sortKeys.isEmpty(),
                             "EdgeLabel can't contain sortKeys " +
                             "when the cardinality property is single");
@@ -519,5 +611,13 @@ public class EdgeLabelBuilder extends AbstractBuilder
                 throw new AssertionError(String.format(
                           "Unknown schema action '%s'", action));
         }
+    }
+
+    private static Set<String> mapPkId2Name(HugeGraph graph, Set<Id> ids) {
+        return new HashSet<>(graph.mapPkId2Name(ids));
+    }
+
+    private static List<String> mapPkId2Name(HugeGraph graph, List<Id> ids) {
+        return graph.mapPkId2Name(ids);
     }
 }

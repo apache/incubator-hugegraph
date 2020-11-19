@@ -25,6 +25,7 @@ import java.util.Map;
 
 import org.apache.commons.collections.map.MultiValueMap;
 import org.apache.commons.configuration.tree.ConfigurationNode;
+import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
 import org.apache.tinkerpop.gremlin.util.config.YamlConfiguration;
 import org.slf4j.Logger;
 
@@ -32,6 +33,8 @@ import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.auth.StandardAuthenticator;
 import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
+import com.baidu.hugegraph.config.CoreOptions;
+import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.dist.RegisterUtil;
 import com.baidu.hugegraph.util.E;
@@ -101,9 +104,12 @@ public class InitStore {
         HugeFactory.shutdown(30L);
     }
 
-    private static void initGraph(String config) throws Exception {
-        LOG.info("Init graph with config file: {}", config);
-        HugeGraph graph = HugeFactory.open(config);
+    private static void initGraph(String configPath) throws Exception {
+        LOG.info("Init graph with config file: {}", configPath);
+        HugeConfig config = new HugeConfig(configPath);
+        // Forced set to false when initializing backend
+        config.setProperty(CoreOptions.RAFT_MODE.name(), "false");
+        HugeGraph graph = (HugeGraph) GraphFactory.open(config);
 
         BackendStoreSystemInfo sysInfo = graph.backendStoreSystemInfo();
         try {

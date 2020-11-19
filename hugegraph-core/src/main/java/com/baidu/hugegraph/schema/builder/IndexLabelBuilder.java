@@ -42,7 +42,6 @@ import com.baidu.hugegraph.schema.Userdata;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Action;
-import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.type.define.IndexType;
 import com.baidu.hugegraph.type.define.SchemaStatus;
@@ -61,6 +60,7 @@ public class IndexLabelBuilder extends AbstractBuilder
     private List<String> indexFields;
     private Userdata userdata;
     private boolean checkExist;
+    private boolean rebuild;
 
     public IndexLabelBuilder(SchemaTransaction transaction,
                              HugeGraph graph, String name) {
@@ -74,6 +74,25 @@ public class IndexLabelBuilder extends AbstractBuilder
         this.indexFields = new ArrayList<>();
         this.userdata = new Userdata();
         this.checkExist = true;
+        this.rebuild = true;
+    }
+
+    public IndexLabelBuilder(SchemaTransaction transaction,
+                             HugeGraph graph, IndexLabel copy) {
+        super(transaction, graph);
+        E.checkNotNull(copy, "copy");
+        // Get base element from self graph
+        SchemaLabel schemaLabel = IndexLabel.getElement(graph, copy.baseType(),
+                                                        copy.baseValue());
+        this.id = null;
+        this.name = copy.name();
+        this.baseType = copy.baseType();
+        this.baseValue = schemaLabel.name();
+        this.indexType = copy.indexType();
+        this.indexFields = copy.graph().mapPkId2Name(copy.indexFields());
+        this.userdata = new Userdata(copy.userdata());
+        this.checkExist = false;
+        this.rebuild = true;
     }
 
     @Override
@@ -90,13 +109,65 @@ public class IndexLabelBuilder extends AbstractBuilder
         SchemaLabel schemaLabel = this.loadElement();
         indexLabel.baseValue(schemaLabel.id());
         indexLabel.indexType(this.indexType);
-        indexLabel.ttl(schemaLabel.ttl());
         for (String field : this.indexFields) {
             PropertyKey propertyKey = graph.propertyKey(field);
             indexLabel.indexField(propertyKey.id());
         }
         indexLabel.userdata(this.userdata);
         return indexLabel;
+    }
+
+
+    /**
+     * Check whether this has same properties with existedIndexLabel.
+     * Only baseType, baseValue, indexType, indexFields are checked.
+     * The id, checkExist, userdata are not checked.
+     * @param existedIndexLabel to be compared with
+     * @return true if this has same properties with existedIndexLabel
+     */
+    private boolean hasSameProperties(IndexLabel existedIndexLabel) {
+        // baseType is null, it means HugeType.SYS_SCHEMA
+        if ((this.baseType == null &&
+             existedIndexLabel.baseType() != HugeType.SYS_SCHEMA) ||
+            (this.baseType != null &&
+             this.baseType != existedIndexLabel.baseType())) {
+            return false;
+        }
+
+        SchemaLabel schemaLabel = this.loadElement();
+        if (!schemaLabel.id().equals(existedIndexLabel.baseValue())) {
+            return false;
+        }
+
+        if (this.indexType == null) {
+            // The default index type is SECONDARY
+            if (existedIndexLabel.indexType() != IndexType.SECONDARY) {
+                return false;
+            }
+        } else {
+            // NOTE: IndexType.RANGE.isRange() return false
+            if (this.indexType == IndexType.RANGE) {
+                // existedIndexLabel index type format: RANGE_INT, RANGE_LONG
+                if (!existedIndexLabel.indexType().isRange()) {
+                    return false;
+                }
+            } else if (this.indexType != existedIndexLabel.indexType()) {
+                return false;
+            }
+        }
+
+        List<Id> existedIndexFieldIds = existedIndexLabel.indexFields();
+        if (this.indexFields.size() != existedIndexFieldIds.size()) {
+            return false;
+        }
+        for (String field : this.indexFields) {
+            PropertyKey propertyKey = graph().propertyKey(field);
+            if (!existedIndexFieldIds.contains(propertyKey.id())) {
+                return false;
+            }
+        }
+        // all properties are same, return true.
+        return true;
     }
 
     /**
@@ -110,10 +181,11 @@ public class IndexLabelBuilder extends AbstractBuilder
         return this.lockCheckAndCreateSchema(type, this.name, name -> {
             IndexLabel indexLabel = this.indexLabelOrNull(name);
             if (indexLabel != null) {
-                if (this.checkExist) {
+                if (this.checkExist || !hasSameProperties(indexLabel)) {
                     throw new ExistedException(type, name);
                 }
-                return new IndexLabel.CreatedIndexLabel(indexLabel, null);
+                return new IndexLabel.CreatedIndexLabel(indexLabel,
+                                                        IdGenerator.ZERO);
             }
             this.checkSchemaIdIfRestoringMode(type, this.id);
 
@@ -134,17 +206,34 @@ public class IndexLabelBuilder extends AbstractBuilder
             // TODO: use event to replace direct call
             Set<Id> removeTasks = this.removeSubIndex(schemaLabel);
 
-            // Create index label (just schema)
             indexLabel = this.build();
             assert indexLabel.name().equals(name);
+
+            /*
+             * If not rebuild, just create index label and return.
+             * The actual indexes may be rebuilt later as needed
+             */
+            if (!this.rebuild) {
+                indexLabel.status(SchemaStatus.CREATED);
+                this.graph().addIndexLabel(schemaLabel, indexLabel);
+                return new IndexLabel.CreatedIndexLabel(indexLabel,
+                                                        IdGenerator.ZERO);
+            }
+
+            // Create index label (just schema)
             indexLabel.status(SchemaStatus.CREATING);
             this.graph().addIndexLabel(schemaLabel, indexLabel);
+            try {
+                // Async rebuild index
+                Id rebuildTask = this.rebuildIndex(indexLabel, removeTasks);
+                E.checkNotNull(rebuildTask, "rebuild-index task");
 
-            // Async rebuild index
-            Id rebuildTask = this.rebuildIndex(indexLabel, removeTasks);
-            E.checkNotNull(rebuildTask, "rebuild-index task");
-
-            return new IndexLabel.CreatedIndexLabel(indexLabel, rebuildTask);
+                return new IndexLabel.CreatedIndexLabel(indexLabel,
+                                                        rebuildTask);
+            } catch (Throwable e) {
+                this.updateSchemaStatus(indexLabel, SchemaStatus.INVALID);
+                throw e;
+            }
         });
     }
 
@@ -157,8 +246,11 @@ public class IndexLabelBuilder extends AbstractBuilder
         IndexLabel.CreatedIndexLabel createdIndexLabel = this.createWithTask();
 
         Id task = createdIndexLabel.task();
-        if (task == null) {
-            // Task id will be null if creating index label already exists.
+        if (task == IdGenerator.ZERO) {
+            /*
+             * Task id will be IdGenerator.ZERO if creating index label
+             * already exists.
+             */
             return createdIndexLabel.indexLabel();
         }
 
@@ -185,10 +277,8 @@ public class IndexLabelBuilder extends AbstractBuilder
         }
         this.checkStableVars();
         Userdata.check(this.userdata, Action.APPEND);
-
-        SchemaLabel schemaLabel = this.loadElement(indexLabel.baseType(),
-                                                   indexLabel.baseValue());
         indexLabel.userdata(this.userdata);
+        SchemaLabel schemaLabel = indexLabel.baseElement();
         this.graph().addIndexLabel(schemaLabel, indexLabel);
         return indexLabel;
     }
@@ -203,9 +293,8 @@ public class IndexLabelBuilder extends AbstractBuilder
         this.checkStableVars();
         Userdata.check(this.userdata, Action.ELIMINATE);
 
-        SchemaLabel schemaLabel = this.loadElement(indexLabel.baseType(),
-                                                   indexLabel.baseValue());
         indexLabel.removeUserdata(this.userdata);
+        SchemaLabel schemaLabel = indexLabel.baseElement();
         this.graph().addIndexLabel(schemaLabel, indexLabel);
         return indexLabel;
     }
@@ -328,6 +417,12 @@ public class IndexLabelBuilder extends AbstractBuilder
     }
 
     @Override
+    public IndexLabel.Builder rebuild(boolean rebuild) {
+        this.rebuild = rebuild;
+        return this;
+    }
+
+    @Override
     public IndexLabelBuilder ifNotExist() {
         this.checkExist = false;
         return this;
@@ -352,42 +447,8 @@ public class IndexLabelBuilder extends AbstractBuilder
     }
 
     private SchemaLabel loadElement() {
-        return this.loadElement(this.baseType, this.baseValue);
-    }
-
-    private SchemaLabel loadElement(HugeType baseType, Object baseValue) {
-        E.checkNotNull(baseType, "base type", "index label");
-        E.checkNotNull(baseValue, "base value", "index label");
-        E.checkArgument(baseValue instanceof String || baseValue instanceof Id,
-                        "The base value must be instance of String or Id, " +
-                        "but got %s(%s)", baseValue,
-                        baseValue.getClass().getSimpleName());
-
-        SchemaLabel label;
-        switch (baseType) {
-            case VERTEX_LABEL:
-                if (baseValue instanceof String) {
-                    label = this.graph().vertexLabel((String) baseValue);
-                } else {
-                    assert baseValue instanceof Id;
-                    label = this.graph().vertexLabel((Id) baseValue);
-                }
-                break;
-            case EDGE_LABEL:
-                if (baseValue instanceof String) {
-                    label = this.graph().edgeLabel((String) baseValue);
-                } else {
-                    assert baseValue instanceof Id;
-                    label = this.graph().edgeLabel((Id) baseValue);
-                }
-                break;
-            default:
-                throw new AssertionError(String.format(
-                          "Unsupported base type '%s' of index label '%s'",
-                          baseType, this.name));
-        }
-
-        return label;
+        return IndexLabel.getElement(this.graph(),
+                                     this.baseType, this.baseValue);
     }
 
     private void checkFields(Set<Id> propertyIds) {
@@ -404,7 +465,7 @@ public class IndexLabelBuilder extends AbstractBuilder
             E.checkArgument(pkey.aggregateType().isIndexable(),
                             "The aggregate type %s is not indexable",
                             pkey.aggregateType());
-            E.checkArgument(pkey.cardinality() == Cardinality.SINGLE,
+            E.checkArgument(pkey.cardinality().single(),
                             "Not allowed to build index on property key " +
                             "'%s' whose cardinality is list or set",
                             pkey.name());

@@ -22,8 +22,8 @@ CONF="$TOP/conf"
 LIB="$TOP/lib"
 EXT="$TOP/ext"
 PLUGINS="$TOP/plugins"
-LOG="$TOP/logs"
-OUTPUT=${LOG}/hugegraph-server.log
+LOGS="$TOP/logs"
+OUTPUT=${LOGS}/hugegraph-server.log
 
 export HUGEGRAPH_HOME="$TOP"
 . ${BIN}/util.sh
@@ -43,7 +43,7 @@ elif [[ $# -eq 5 ]]; then
     GC_OPTION="$5"
 fi
 
-ensure_path_writable $LOG
+ensure_path_writable $LOGS
 ensure_path_writable $PLUGINS
 
 # The maximum and minium heap memory that service can use
@@ -95,7 +95,7 @@ if [ "$JAVA_OPTIONS" = "" ]; then
              >> ${OUTPUT}
         exit 1
     fi
-    JAVA_OPTIONS="-Xms${MIN_MEM}m -Xmx${XMX}m ${USER_OPTION}"
+    JAVA_OPTIONS="-Xms${MIN_MEM}m -Xmx${XMX}m -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=${LOGS} ${USER_OPTION}"
 
     # Rolling out detailed GC logs
     #JAVA_OPTIONS="${JAVA_OPTIONS} -XX:+UseGCLogFileRotation -XX:GCLogFileSize=10M -XX:NumberOfGCLogFiles=3 \

@@ -78,6 +78,24 @@ public class VertexLabelBuilder extends AbstractBuilder
         this.checkExist = true;
     }
 
+    public VertexLabelBuilder(SchemaTransaction transaction,
+                              HugeGraph graph, VertexLabel copy) {
+        super(transaction, graph);
+        E.checkNotNull(copy, "copy");
+        HugeGraph origin = copy.graph();
+        this.id = null;
+        this.name = copy.name();
+        this.idStrategy = copy.idStrategy();
+        this.properties = mapPkId2Name(origin, copy.properties());
+        this.primaryKeys = mapPkId2Name(origin, copy.primaryKeys());
+        this.nullableKeys = mapPkId2Name(origin, copy.nullableKeys());
+        this.ttl = copy.ttl();
+        this.ttlStartTime = copy.ttlStartTimeName();
+        this.enableLabelIndex = copy.enableLabelIndex();
+        this.userdata = new Userdata(copy.userdata());
+        this.checkExist = false;
+    }
+
     @Override
     public VertexLabel build() {
         Id id = this.validOrGenerateId(HugeType.VERTEX_LABEL,
@@ -116,7 +134,7 @@ public class VertexLabelBuilder extends AbstractBuilder
         return this.lockCheckAndCreateSchema(type, this.name, name -> {
             VertexLabel vertexLabel = this.vertexLabelOrNull(name);
             if (vertexLabel != null) {
-                if (this.checkExist) {
+                if (this.checkExist || !hasSameProperties(vertexLabel)) {
                     throw new ExistedException(type, name);
                 }
                 return vertexLabel;
@@ -135,6 +153,62 @@ public class VertexLabelBuilder extends AbstractBuilder
             this.graph().addVertexLabel(vertexLabel);
             return vertexLabel;
         });
+    }
+
+    /**
+     * Check whether this has same properties with existedVertexLabel.
+     * Only properties, primaryKeys, nullableKeys, enableLabelIndex are checked.
+     * The id, idStrategy, checkExist, userdata are not checked.
+     * @param existedVertexLabel to be compared with
+     * @return true if this has same properties with existedVertexLabel
+     */
+    private boolean hasSameProperties(VertexLabel existedVertexLabel) {
+        HugeGraph graph = this.graph();
+
+        Set<Id> existedProperties = existedVertexLabel.properties();
+        if (this.properties.size() != existedProperties.size()) {
+            return false;
+        }
+        for (String propertyName : this.properties) {
+            PropertyKey propertyKey = graph.propertyKey(propertyName);
+            if (!existedProperties.contains(propertyKey.id())) {
+                return false;
+            }
+        }
+
+        List<Id> existedPrimaryKeys = existedVertexLabel.primaryKeys();
+        if (this.primaryKeys.size() != existedPrimaryKeys.size()) {
+            return false;
+        }
+        for (String primaryKeyName : this.primaryKeys) {
+            PropertyKey primaryKey = graph.propertyKey(primaryKeyName);
+            if (!existedPrimaryKeys.contains(primaryKey.id())) {
+                return false;
+            }
+        }
+
+        Set<Id> existedNullableKeys = existedVertexLabel.nullableKeys();
+        if (this.nullableKeys.size() != existedNullableKeys.size()) {
+            return false;
+        }
+        for (String nullableKeyName : this.nullableKeys) {
+            PropertyKey nullableKey = graph.propertyKey(nullableKeyName);
+            if (!existedNullableKeys.contains(nullableKey.id())) {
+                return false;
+            }
+        }
+
+        // this.enableLabelIndex == null, it means true.
+        if (this.enableLabelIndex == null || this.enableLabelIndex) {
+            if (!existedVertexLabel.enableLabelIndex()) {
+                return false;
+            }
+        } else { // this.enableLabelIndex is false
+            if (existedVertexLabel.enableLabelIndex() == true) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @Override
@@ -520,5 +594,13 @@ public class VertexLabelBuilder extends AbstractBuilder
                 throw new AssertionError(String.format(
                           "Unknown schema action '%s'", action));
         }
+    }
+
+    private static Set<String> mapPkId2Name(HugeGraph graph, Set<Id> ids) {
+        return new HashSet<>(graph.mapPkId2Name(ids));
+    }
+
+    private static List<String> mapPkId2Name(HugeGraph graph, List<Id> ids) {
+        return graph.mapPkId2Name(ids);
     }
 }

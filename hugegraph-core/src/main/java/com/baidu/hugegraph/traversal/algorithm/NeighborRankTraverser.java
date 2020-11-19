@@ -41,7 +41,6 @@ import com.baidu.hugegraph.util.OrderLimitMap;
 public class NeighborRankTraverser extends HugeTraverser {
 
     public static final int MAX_TOP = 1000;
-    public static final int DEFAULT_CAPACITY_PER_LAYER = 100000;
 
     private final double alpha;
     private final long capacity;
@@ -54,7 +53,8 @@ public class NeighborRankTraverser extends HugeTraverser {
     }
 
     public List<Map<Id, Double>> neighborRank(Id source, List<Step> steps) {
-        E.checkArgumentNotNull(source, "The source vertex id can't be null");
+        E.checkNotNull(source, "source vertex id");
+        this.checkVertexExist(source, "source vertex");
         E.checkArgument(!steps.isEmpty(), "The steps can't be empty");
 
         MultivaluedMap<Id, Node> sources = newMultivalueMap();
@@ -74,9 +74,8 @@ public class NeighborRankTraverser extends HugeTraverser {
             // Traversal vertices of previous level
             for (Map.Entry<Id, List<Node>> entry : sources.entrySet()) {
                 Id vertex = entry.getKey();
-                Iterator<Edge> edges = edgesOfVertex(vertex, step.direction,
-                                                     step.labels, null,
-                                                     step.degree);
+                Iterator<Edge> edges = this.edgesOfVertex(vertex,
+                                                          step.edgeStep);
 
                 Adjacencies adjacenciesV = new Adjacencies(vertex);
                 Set<Id> sameLayerNodesV = new HashSet<>();
@@ -237,19 +236,19 @@ public class NeighborRankTraverser extends HugeTraverser {
 
     public static class Step {
 
-        private final Directions direction;
-        private final Map<Id, String> labels;
-        private final long degree;
+        private final EdgeStep edgeStep;
         private final int top;
         private final int capacity;
 
-        public Step(Directions direction, Map<Id, String> labels,
-                    long degree, int top) {
-            this.direction = direction;
-            this.labels = labels;
-            this.degree = degree;
+        public Step(HugeGraph g, Directions direction, List<String> labels,
+                    long degree, long skipDegree, int top, int capacity) {
+            E.checkArgument(top > 0 && top <= MAX_TOP,
+                            "The top of each layer can't exceed %s", MAX_TOP);
+
+            this.edgeStep = new EdgeStep(g, direction, labels, null,
+                                         degree, skipDegree);
             this.top = top;
-            this.capacity = DEFAULT_CAPACITY_PER_LAYER;
+            this.capacity = capacity;
         }
     }
 

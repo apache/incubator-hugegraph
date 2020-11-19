@@ -63,6 +63,7 @@ public abstract class MysqlTable
 
     // The template for insert and delete statements
     private String insertTemplate;
+    private String insertTemplateTtl;
     private String deleteTemplate;
 
     private final MysqlShardSpliter shardSpliter;
@@ -70,6 +71,7 @@ public abstract class MysqlTable
     public MysqlTable(String table) {
         super(table);
         this.insertTemplate = null;
+        this.insertTemplateTtl = null;
         this.deleteTemplate = null;
         this.shardSpliter = new MysqlShardSpliter(this.table());
     }
@@ -175,10 +177,28 @@ public abstract class MysqlTable
     }
 
     protected String buildInsertTemplate(MysqlBackendEntry.Row entry) {
+        if (entry.ttl() != 0L) {
+            return this.buildInsertTemplateWithTtl(entry);
+        }
         if (this.insertTemplate != null) {
             return this.insertTemplate;
         }
 
+        this.insertTemplate = this.buildInsertTemplateForce(entry);
+        return this.insertTemplate;
+    }
+
+    protected String buildInsertTemplateWithTtl(MysqlBackendEntry.Row entry) {
+        assert entry.ttl() != 0L;
+        if (this.insertTemplateTtl != null) {
+            return this.insertTemplateTtl;
+        }
+
+        this.insertTemplateTtl = this.buildInsertTemplateForce(entry);
+        return this.insertTemplateTtl;
+    }
+
+    protected String buildInsertTemplateForce(MysqlBackendEntry.Row entry) {
         StringBuilder insert = new StringBuilder();
         insert.append("REPLACE INTO ").append(this.table()).append(" (");
 
@@ -200,8 +220,7 @@ public abstract class MysqlTable
         }
         insert.append(")");
 
-        this.insertTemplate = insert.toString();
-        return this.insertTemplate;
+        return insert.toString();
     }
 
     protected String buildDeleteTemplate(List<HugeKeys> idNames) {
@@ -219,18 +238,6 @@ public abstract class MysqlTable
 
         this.deleteTemplate = delete.toString();
         return this.deleteTemplate;
-    }
-
-    protected String buildDeleteTemplateWithoutCache(List<HugeKeys> idNames) {
-        StringBuilder delete = new StringBuilder();
-        delete.append("DELETE FROM ").append(this.table());
-        this.appendPartition(delete);
-
-        WhereBuilder where = this.newWhereBuilder();
-        where.and(formatKeys(idNames), "=");
-        delete.append(where.build());
-
-        return delete.toString();
     }
 
     protected String buildDropTemplate() {
@@ -349,7 +356,7 @@ public abstract class MysqlTable
                                     parser) {
         ExtendableIterator<R> rs = new ExtendableIterator<>();
 
-        if (query.limit() == 0L && !query.nolimit()) {
+        if (query.limit() == 0L && !query.noLimit()) {
             LOG.debug("Return empty result(limit=0) for query {}", query);
             return rs;
         }
@@ -420,7 +427,7 @@ public abstract class MysqlTable
                 if (aggregate == null && !hasOrder) {
                     select.append(this.orderByKeys());
                 }
-                if (!query.nolimit() || query.offset() > 0L) {
+                if (!query.noLimit() || query.offset() > 0L) {
                     this.wrapOffset(selection, query);
                 }
             }
@@ -639,7 +646,7 @@ public abstract class MysqlTable
 
     private void wrapLimit(StringBuilder select, Query query) {
         select.append(this.orderByKeys());
-        if (!query.nolimit()) {
+        if (!query.noLimit()) {
             // Fetch `limit + 1` rows for judging whether reached the last page
             select.append(" limit ");
             select.append(query.limit() + 1);
@@ -661,7 +668,7 @@ public abstract class MysqlTable
         select.append(query.offset());
         select.append(";");
 
-        query.skipOffset(query.offset());
+        query.goOffset(query.offset());
     }
 
     protected Iterator<BackendEntry> results2Entries(Query query,
@@ -701,6 +708,7 @@ public abstract class MysqlTable
             super(table);
         }
 
+        @Override
         public List<Shard> getSplits(Session session, long splitSize) {
             E.checkArgument(splitSize >= MIN_SHARD_SIZE,
                             "The split-size must be >= %s bytes, but got %s",

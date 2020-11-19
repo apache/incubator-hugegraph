@@ -57,12 +57,15 @@ import com.baidu.hugegraph.backend.query.Condition.RangeConditions;
 import com.baidu.hugegraph.backend.query.Condition.Relation;
 import com.baidu.hugegraph.backend.query.Condition.RelationType;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
+import com.baidu.hugegraph.backend.query.ConditionQuery.OptimizedType;
 import com.baidu.hugegraph.backend.query.ConditionQueryFlatten;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.serializer.AbstractSerializer;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendStore;
+import com.baidu.hugegraph.config.CoreOptions;
+import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.exception.NoIndexException;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.iterator.Metadatable;
@@ -94,16 +97,23 @@ import com.google.common.collect.ImmutableSet;
 
 public class GraphIndexTransaction extends AbstractTransaction {
 
-    private static final String INDEX_EMPTY_SYM = "\u0000";
-    private static final String INDEX_NULL_SYM = "\u0001";
+    public static final char INDEX_SYM_ENDING = '\u0000';
+    public static final String INDEX_SYM_NULL = "\u0001";
+    public static final String INDEX_SYM_EMPTY = "\u0002";
+    public static final char INDEX_SYM_MAX = '\u0003';
 
     private final Analyzer textAnalyzer;
+    private final int indexIntersectThresh;
 
     public GraphIndexTransaction(HugeGraphParams graph, BackendStore store) {
         super(graph, store);
 
         this.textAnalyzer = graph.analyzer();
         assert this.textAnalyzer != null;
+
+        final HugeConfig conf = graph.configuration();
+        this.indexIntersectThresh =
+             conf.get(CoreOptions.QUERY_INDEX_INTERSECT_THRESHOLD);
     }
 
     protected Id asyncRemoveIndexLeft(ConditionQuery query,
@@ -182,11 +192,11 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 if (firstNullField == fieldsNum) {
                     firstNullField = allPropValues.size();
                 }
-                allPropValues.add(INDEX_NULL_SYM);
+                allPropValues.add(INDEX_SYM_NULL);
             } else {
-                E.checkArgument(!INDEX_NULL_SYM.equals(property.value()),
+                E.checkArgument(!INDEX_SYM_NULL.equals(property.value()),
                                 "Illegal value of index property: '%s'",
-                                INDEX_NULL_SYM);
+                                INDEX_SYM_NULL);
                 allPropValues.add(property.value());
             }
         }
@@ -195,7 +205,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
             // The property value of first index field is null
             return;
         }
-        // Not build index for record with nullable field except unique index
+        // Not build index for record with nullable field (except unique index)
         List<Object> propValues = allPropValues.subList(0, firstNullField);
 
         // Expired time
@@ -228,43 +238,20 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 for (int i = 0, n = propValues.size(); i < n; i++) {
                     List<Object> prefixValues = propValues.subList(0, i + 1);
                     value = ConditionQuery.concatValues(prefixValues);
-
-                    // Use `\u0000` as escape for empty String and treat it as
-                    // illegal value for text property
-                    E.checkArgument(!value.equals(INDEX_EMPTY_SYM),
-                                    "Illegal value of index property: '%s'",
-                                    INDEX_EMPTY_SYM);
-                    if (((String) value).isEmpty()) {
-                        value = INDEX_EMPTY_SYM;
-                    }
-
+                    value = escapeIndexValueIfNeeded((String) value);
                     this.updateIndex(indexLabel, value, element.id(),
                                      expiredTime, removed);
                 }
                 break;
             case SHARD:
                 value = ConditionQuery.concatValues(propValues);
-                // Use `\u0000` as escape for empty String and treat it as
-                // illegal value for text property
-                E.checkArgument(!value.equals(INDEX_EMPTY_SYM),
-                                "Illegal value of index property: '%s'",
-                                INDEX_EMPTY_SYM);
-                if (((String) value).isEmpty()) {
-                    value = INDEX_EMPTY_SYM;
-                }
+                value = escapeIndexValueIfNeeded((String) value);
                 this.updateIndex(indexLabel, value, element.id(),
                                  expiredTime, removed);
                 break;
             case UNIQUE:
                 value = ConditionQuery.concatValues(allPropValues);
-                // Use `\u0000` as escape for empty String and treat it as
-                // illegal value for text property
-                E.checkArgument(!value.equals(INDEX_EMPTY_SYM),
-                                "Illegal value of index property: '%s'",
-                                INDEX_EMPTY_SYM);
-                if (((String) value).isEmpty()) {
-                    value = INDEX_EMPTY_SYM;
-                }
+                assert !value.equals("");
                 Id id = element.id();
                 // TODO: add lock for updating unique index
                 if (!removed && this.existUniqueValue(indexLabel, value, id)) {
@@ -367,7 +354,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
         }
 
         // Query by index
-        query.optimized(OptimizedType.INDEX.ordinal());
+        query.optimized(OptimizedType.INDEX);
         if (query.allSysprop() && conds.size() == 1 &&
             query.containsCondition(HugeKeys.LABEL)) {
             // Query only by label
@@ -382,6 +369,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
     private IdHolderList queryByLabel(ConditionQuery query) {
         HugeType queryType = query.resultType();
         IndexLabel il = IndexLabel.label(queryType);
+        validateIndexLabel(il);
         Id label = query.condition(HugeKeys.LABEL);
         assert label != null;
 
@@ -411,11 +399,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
          * Set offset and limit to avoid redundant element ids
          * NOTE: the backend itself will skip the offset
          */
-        indexQuery.page(query.pageWithoutCheck());
-        indexQuery.limit(query.limit());
-        indexQuery.offset(query.offset());
-        indexQuery.capacity(query.capacity());
-        indexQuery.showExpired(query.showExpired());
+        indexQuery.copyBasic(query);
 
         IdHolder idHolder = this.doIndexQuery(il, indexQuery);
 
@@ -443,6 +427,9 @@ public class GraphIndexTransaction extends AbstractTransaction {
         // Do index query
         IdHolderList holders = new IdHolderList(paging);
         for (MatchedIndex index : indexes) {
+            for (IndexLabel il : index.indexLabels()) {
+                validateIndexLabel(il);
+            }
             if (paging && index.indexLabels().size() > 1) {
                 throw new NotSupportException("joint index query in paging");
             }
@@ -463,7 +450,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
              * it here because the query may a sub-query after flatten,
              * so the offset will be handle in QueryList.IndexQuery
              *
-             * TODO: finish early if records exceeds required limit with
+             * TODO: finish early here if records exceeds required limit with
              *       FixedIdHolder.
              */
         }
@@ -476,9 +463,10 @@ public class GraphIndexTransaction extends AbstractTransaction {
         query = this.constructSearchQuery(query, index);
         // Sorted by matched count
         IdHolderList holders = new SortByCountIdHolderList(query.paging());
-        for (ConditionQuery q : ConditionQueryFlatten.flatten(query)) {
-            if (!q.nolimit()) {
-                // Increase limit for intersection
+        List<ConditionQuery> flatten = ConditionQueryFlatten.flatten(query);
+        for (ConditionQuery q : flatten) {
+            if (!q.noLimit() && flatten.size() > 1) {
+                // Increase limit for union operation
                 increaseLimit(q);
             }
             IndexQueries queries = index.constructIndexQueries(q);
@@ -510,31 +498,68 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
     @Watched(prefix = "index")
     private IdHolder doJointIndex(IndexQueries queries) {
-        if (queries.bigCapacity()) {
+        if (queries.oomRisk()) {
             LOG.warn("There is OOM risk if the joint operation is based on a " +
                      "large amount of data, please use single index + filter " +
                      "instead of joint index: {}", queries.rootQuery());
         }
         // All queries are joined with AND
         Set<Id> intersectIds = null;
+        boolean filtering = false;
+        IdHolder resultHolder = null;
         for (Map.Entry<IndexLabel, ConditionQuery> e : queries.entrySet()) {
             IndexLabel indexLabel = e.getKey();
             ConditionQuery query = e.getValue();
-            if (!query.nolimit()) {
-                // Increase limit for intersection
-                increaseLimit(query);
+            assert !query.paging();
+            if (!query.noLimit() && queries.size() > 1) {
+                // Unset limit for intersection operation
+                query.limit(Query.NO_LIMIT);
             }
-            Set<Id> ids = this.doIndexQuery(indexLabel, query).all();
-            if (intersectIds == null) {
-                intersectIds = ids;
-            } else {
-                CollectionUtil.intersectWithModify(intersectIds, ids);
+            /*
+             * Try to query by joint indexes:
+             * 1 If there is any index exceeded the threshold, transform into
+             *   partial index query, then filter after back-table.
+             * 1.1 Return the holder of the first index that not exceeded the
+             *     threshold if there exists one index, this holder will be used
+             *     as the only query condition.
+             * 1.2 Return the holder of the first index if all indexes exceeded
+             *     the threshold.
+             * 2 Else intersect holders for all indexes, and return intersection
+             *   ids of all indexes.
+             */
+            IdHolder holder = this.doIndexQuery(indexLabel, query);
+            if (resultHolder == null) {
+                resultHolder = holder;
             }
-            if (intersectIds.isEmpty()) {
+            assert this.indexIntersectThresh > 0; // default value is 1000
+            Set<Id> ids = ((BatchIdHolder) holder).peekNext(
+                          this.indexIntersectThresh).ids();
+            if (ids.size() >= this.indexIntersectThresh) {
+                // Transform into filtering
+                filtering = true;
+                query.optimized(OptimizedType.INDEX_FILTER);
+            } else if (filtering) {
+                assert ids.size() < this.indexIntersectThresh;
+                resultHolder = holder;
                 break;
+            } else {
+                if (intersectIds == null) {
+                    intersectIds = ids;
+                } else {
+                    CollectionUtil.intersectWithModify(intersectIds, ids);
+                }
+                if (intersectIds.isEmpty()) {
+                    break;
+                }
             }
         }
-        return new FixedIdHolder(queries.asJointQuery(), intersectIds);
+
+        if (filtering) {
+            return resultHolder;
+        } else {
+            assert intersectIds != null;
+            return new FixedIdHolder(queries.asJointQuery(), intersectIds);
+        }
     }
 
     @Watched(prefix = "index")
@@ -553,7 +578,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                                        ConditionQuery query) {
         Iterator<BackendEntry> entries = super.query(query).iterator();
         return new BatchIdHolder(query, entries, batch -> {
-            LockUtil.Locks locks = new LockUtil.Locks(this.graph().name());
+            LockUtil.Locks locks = new LockUtil.Locks(this.graphName());
             try {
                 // Catch lock every batch
                 locks.lockReads(LockUtil.INDEX_LABEL_DELETE, indexLabel.id());
@@ -584,26 +609,12 @@ public class GraphIndexTransaction extends AbstractTransaction {
         });
     }
 
-    private void removeExpiredIndexIfNeeded(HugeIndex index,
-                                            boolean showExpired) {
-        if (this.store().features().supportsTtl() || showExpired) {
-            return;
-        }
-        for (HugeIndex.IdWithExpiredTime id : index.expiredElementIds()) {
-            HugeIndex removeIndex = index.clone();
-            removeIndex.resetElementIds();
-            removeIndex.elementIds(id.id(), id.expiredTime());
-            DeleteExpiredJob.asyncDeleteExpiredObject(this.params(),
-                                                      removeIndex);
-        }
-    }
-
     @Watched(prefix = "index")
     private PageIds doIndexQueryOnce(IndexLabel indexLabel,
                                      ConditionQuery query) {
         // Query all or one page
         Iterator<BackendEntry> entries = null;
-        LockUtil.Locks locks = new LockUtil.Locks(this.graph().name());
+        LockUtil.Locks locks = new LockUtil.Locks(this.graphName());
         try {
             locks.lockReads(LockUtil.INDEX_LABEL_DELETE, indexLabel.id());
             locks.lockReads(LockUtil.INDEX_LABEL_REBUILD, indexLabel.id());
@@ -706,7 +717,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
         // Try to match single or composite index
         Set<IndexLabel> matchedILs = matchSingleOrCompositeIndex(query, ils);
         if (matchedILs.isEmpty()) {
-            // Try joint indexes
+            // Try to match joint indexes
             matchedILs = matchJointIndexes(query, ils);
         }
 
@@ -736,7 +747,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
             query.query(Condition.textContainsAny(indexField, words));
         }
 
-        // Register results filter
+        // Register results filter to compare property value and search text
         query.registerResultsFilter(elem -> {
             for (Condition cond : originQuery.conditions()) {
                 Object key = cond.isRelation() ? ((Relation) cond).key() : null;
@@ -774,9 +785,26 @@ public class GraphIndexTransaction extends AbstractTransaction {
         return !this.store().features().supportsQueryByLabel();
     }
 
+    private void removeExpiredIndexIfNeeded(HugeIndex index,
+                                            boolean showExpired) {
+        if (this.store().features().supportsTtl() || showExpired) {
+            return;
+        }
+        for (HugeIndex.IdWithExpiredTime id : index.expiredElementIds()) {
+            HugeIndex removeIndex = index.clone();
+            removeIndex.resetElementIds();
+            removeIndex.elementIds(id.id(), id.expiredTime());
+            DeleteExpiredJob.asyncDeleteExpiredObject(this.params(),
+                                                      removeIndex);
+        }
+    }
+
     private static Set<IndexLabel> matchSingleOrCompositeIndex(
                                    ConditionQuery query,
                                    Set<IndexLabel> indexLabels) {
+        if (query.hasNeqCondition()) {
+            return ImmutableSet.of();
+        }
         boolean requireRange = query.hasRangeCondition();
         boolean requireSearch = query.hasSearchCondition();
         Set<Id> queryPropKeys = query.userpropKeys();
@@ -815,6 +843,9 @@ public class GraphIndexTransaction extends AbstractTransaction {
     private static Set<IndexLabel> matchJointIndexes(
                                    ConditionQuery query,
                                    Set<IndexLabel> indexLabels) {
+        if (query.hasNeqCondition()) {
+            return ImmutableSet.of();
+        }
         Set<Id> queryPropKeys = query.userpropKeys();
         assert !queryPropKeys.isEmpty();
         Set<IndexLabel> allILs = InsertionOrderUtil.newSet(indexLabels);
@@ -927,11 +958,11 @@ public class GraphIndexTransaction extends AbstractTransaction {
         }
 
         // Handle secondary joint indexes
-        final ConditionQuery q = query;
+        final ConditionQuery finalQuery = query;
         for (int i = 1, size = allILs.size(); i <= size; i++) {
             boolean found = cmn(allILs, size, i, 0, null, r -> {
                 // All n indexLabels are selected, test current combination
-                IndexQueries qs = constructJointSecondaryQueries(q, r);
+                IndexQueries qs = constructJointSecondaryQueries(finalQuery, r);
                 if (qs.isEmpty()) {
                     return false;
                 }
@@ -1060,6 +1091,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
                              indexType, indexFields);
                 Object fieldValue = query.userpropValue(indexFields.get(0));
                 assert fieldValue instanceof String;
+                fieldValue = escapeIndexValueIfNeeded((String) fieldValue);
+
                 // Query search index from SECONDARY_INDEX table
                 indexQuery = new ConditionQuery(indexType.type(), query);
                 indexQuery.eq(HugeKeys.INDEX_LABEL_ID, indexLabel.id());
@@ -1068,11 +1101,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
             case SECONDARY:
                 List<Id> joinedKeys = indexFields.subList(0, queryKeys.size());
                 String joinedValues = query.userpropValuesString(joinedKeys);
+                joinedValues = escapeIndexValueIfNeeded(joinedValues);
 
-                // Escape empty String to '\u0000'
-                if (joinedValues.isEmpty()) {
-                    joinedValues = INDEX_EMPTY_SYM;
-                }
                 indexQuery = new ConditionQuery(indexType.type(), query);
                 indexQuery.eq(HugeKeys.INDEX_LABEL_ID, indexLabel.id());
                 indexQuery.eq(HugeKeys.FIELD_VALUES, joinedValues);
@@ -1113,12 +1143,24 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 throw new AssertionError(String.format(
                           "Unknown index type '%s'", indexType));
         }
+
+        /*
+         * Set limit for single index or composite index, also for joint index,
+         * to avoid redundant element ids and out of capacity.
+         * NOTE: not set offset because this query might be a sub-query,
+         * see queryByUserprop()
+         */
+        indexQuery.page(query.page());
+        indexQuery.limit(query.total());
+        indexQuery.capacity(query.capacity());
+
         return indexQuery;
     }
 
-    public static List<Condition> constructShardConditions(ConditionQuery query,
-                                                           List<Id> fields,
-                                                           HugeKeys key) {
+    protected static List<Condition> constructShardConditions(
+                                     ConditionQuery query,
+                                     List<Id> fields,
+                                     HugeKeys key) {
         List<Condition> conditions = new ArrayList<>(2);
         boolean hasRange = false;
         int processedCondCount = 0;
@@ -1257,12 +1299,31 @@ public class GraphIndexTransaction extends AbstractTransaction {
                          "Expect user property values for key '%s', " +
                          "but got none", pk);
             for (Object value : values) {
-                if (!pk.checkValue(value)) {
+                if (!pk.checkValueType(value)) {
                     return false;
                 }
             }
         }
         return true;
+    }
+
+    private static String escapeIndexValueIfNeeded(String value) {
+        for (int i = 0; i < value.length(); i++) {
+            char ch = value.charAt(i);
+            if (ch <= INDEX_SYM_MAX) {
+                /*
+                 * Escape symbols can't be used due to impossible to parse,
+                 * and treat it as illegal value for the origin text property
+                 */
+                E.checkArgument(false, "Illegal char '\\u000%s' " +
+                                "in index property: '%s'", (int) ch, value);
+            }
+        }
+        if (value.isEmpty()) {
+            // Escape empty String to INDEX_SYM_EMPTY (char `\u0002`)
+            value = INDEX_SYM_EMPTY;
+        }
+        return value;
     }
 
     private static NoIndexException noIndexException(HugeGraph graph,
@@ -1282,11 +1343,21 @@ public class GraphIndexTransaction extends AbstractTransaction {
         if (query.hasSearchCondition()) {
             mismatched.add("search");
         }
+        if (query.hasNeqCondition()) {
+            mismatched.add("not-equal");
+        }
         return new NoIndexException("Don't accept query based on properties " +
                                     "%s that are not indexed in %s, " +
                                     "may not match %s condition",
                                     graph.mapPkId2Name(query.userpropKeys()),
                                     name, String.join("/", mismatched));
+    }
+
+    private static void validateIndexLabel(IndexLabel indexLabel) {
+        E.checkArgument(indexLabel.status().ok(),
+                        "Can't query by label index '%s' due to " +
+                        "it's in status %s(CREATED expected)",
+                        indexLabel, indexLabel.status());
     }
 
     private static boolean hasNullableProp(HugeElement element, Id key) {
@@ -1305,15 +1376,19 @@ public class GraphIndexTransaction extends AbstractTransaction {
     }
 
     private static void increaseLimit(Query query) {
-        assert !query.nolimit();
+        assert !query.noLimit();
         /*
          * NOTE: in order to retain enough records after the intersection.
          * The parameters don't make much sense and need to be improved
          */
-        query.limit(query.limit() * 2L + 8L);
+        if (!query.paging()) {
+            long limit = Math.min(query.limit() * 10L + 8L,
+                                  Query.DEFAULT_CAPACITY);
+            query.limit(limit);
+        }
     }
 
-    public void removeIndex(IndexLabel indexLabel) {
+    protected void removeIndex(IndexLabel indexLabel) {
         HugeIndex index = new HugeIndex(this.graph(), indexLabel);
         this.doRemove(this.serializer.writeIndex(index));
     }
@@ -1340,24 +1415,17 @@ public class GraphIndexTransaction extends AbstractTransaction {
         public IndexQueries constructIndexQueries(ConditionQuery query) {
             // Condition query => Index Queries
             if (this.indexLabels().size() == 1) {
-                // Single index or composite index
-
+                /*
+                 * Query by single index or composite index
+                 */
                 IndexLabel il = this.indexLabels().iterator().next();
                 ConditionQuery indexQuery = constructQuery(query, il);
                 assert indexQuery != null;
-
-                /*
-                 * Set limit for single index or composite index
-                 * to avoid redundant element ids.
-                 * Not set offset because this query might be a sub-query,
-                 * see queryByUserprop()
-                 */
-                indexQuery.page(query.page());
-                indexQuery.limit(query.total());
-
                 return IndexQueries.of(il, indexQuery);
             } else {
-                // Joint indexes
+                /*
+                 * Query by joint indexes
+                 */
                 IndexQueries queries = buildJointIndexesQueries(query, this);
                 assert !queries.isEmpty();
                 return queries;
@@ -1387,9 +1455,9 @@ public class GraphIndexTransaction extends AbstractTransaction {
             return indexQueries;
         }
 
-        public boolean bigCapacity() {
+        public boolean oomRisk() {
             for (Query subQuery : this.values()) {
-                if (subQuery.bigCapacity()) {
+                if (subQuery.bigCapacity() && subQuery.aggregate() != null) {
                     return true;
                 }
             }
@@ -1420,7 +1488,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
             private final Collection<Query> queries;
 
             public JointQuery(HugeType type, Collection<Query> queries) {
-                super(type);
+                super(type, parent(queries));
                 this.queries = queries;
             }
 
@@ -1437,14 +1505,15 @@ public class GraphIndexTransaction extends AbstractTransaction {
             public String toString() {
                 return String.format("JointQuery %s", this.queries);
             }
-        }
-    }
 
-    public enum OptimizedType {
-        NONE,
-        PRIMARY_KEY,
-        SORT_KEYS,
-        INDEX
+            private static Query parent(Collection<Query> queries) {
+                if (queries.size() > 0) {
+                    // Chose the first one as origin query (any one is OK)
+                    return queries.iterator().next();
+                }
+                return null;
+            }
+        }
     }
 
     public static class RemoveLeftIndexJob extends EphemeralJob<Object> {
@@ -1488,7 +1557,9 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
             // Check label is matched
             Id label = query.condition(HugeKeys.LABEL);
-            if (!element.schemaLabel().id().equals(label)) {
+            // NOTE: original condition query may not have label condition,
+            // which means possibly label == null.
+            if (label != null && !element.schemaLabel().id().equals(label)) {
                 String labelName = element.type().isVertex() ?
                                    this.graph().vertexLabel(label).name() :
                                    this.graph().edgeLabel(label).name();

@@ -50,6 +50,7 @@ public class SingleSourceShortestPathTraverser extends HugeTraverser {
                                                    long degree, long skipDegree,
                                                    long capacity, long limit) {
         E.checkNotNull(sourceV, "source vertex id");
+        this.checkVertexExist(sourceV, "source vertex");
         E.checkNotNull(dir, "direction");
         checkDegree(degree);
         checkCapacity(capacity);
@@ -75,6 +76,7 @@ public class SingleSourceShortestPathTraverser extends HugeTraverser {
                                                String weight, long degree,
                                                long skipDegree, long capacity) {
         E.checkNotNull(sourceV, "source vertex id");
+        this.checkVertexExist(sourceV, "source vertex");
         E.checkNotNull(dir, "direction");
         E.checkNotNull(weight, "weight property");
         checkDegree(degree);
@@ -92,25 +94,6 @@ public class SingleSourceShortestPathTraverser extends HugeTraverser {
                 return results.get(targetV);
             }
             checkCapacity(traverser.capacity, traverser.size, "shortest path");
-        }
-    }
-
-    private static void checkSkipDegree(long skipDegree, long degree,
-                                        long capacity) {
-        E.checkArgument(skipDegree >= 0L,
-                        "The skipped degree must be >= 0, but got '%s'",
-                        skipDegree);
-        if (capacity != NO_LIMIT) {
-            E.checkArgument(degree != NO_LIMIT && degree < capacity,
-                            "The degree must be < capacity");
-            E.checkArgument(skipDegree < capacity,
-                            "The skipped degree must be < capacity");
-        }
-        if (skipDegree > 0L) {
-            E.checkArgument(degree != NO_LIMIT && skipDegree >= degree,
-                            "The skipped degree must be >= degree, " +
-                            "but got skipped degree '%s' and degree '%s'",
-                            skipDegree, degree);
         }
     }
 

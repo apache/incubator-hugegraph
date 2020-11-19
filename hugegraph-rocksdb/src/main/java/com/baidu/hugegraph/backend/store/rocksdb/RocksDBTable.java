@@ -24,8 +24,8 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.backend.id.Id;
@@ -54,6 +54,7 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
+import com.baidu.hugegraph.util.StringEncoding;
 
 public class RocksDBTable extends BackendTable<Session, BackendEntry> {
 
@@ -127,7 +128,7 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
         }
 
         assert aggregate.func() == AggregateFunc.COUNT;
-        assert query.nolimit();
+        assert query.noLimit();
         Iterator<BackendColumn> results = this.queryBy(session, query);
         if (results instanceof Countable) {
             return ((Countable) results).count();
@@ -137,7 +138,7 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
 
     @Override
     public Iterator<BackendEntry> query(Session session, Query query) {
-        if (query.limit() == 0L && !query.nolimit()) {
+        if (query.limit() == 0L && !query.noLimit()) {
             LOG.debug("Return empty result(limit=0) for query {}", query);
             return Collections.emptyIterator();
         }
@@ -329,7 +330,7 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
             if (END.equals(position)) {
                 return null;
             }
-            return decoder.decode(position);
+            return StringEncoding.decodeBase64(position);
         }
     }
 }

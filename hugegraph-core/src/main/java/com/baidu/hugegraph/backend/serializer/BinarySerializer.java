@@ -258,38 +258,15 @@ public class BinarySerializer extends AbstractSerializer {
         }
         byte type = buffer.read();
         Id labelId = buffer.readId();
-        String sk = buffer.readStringWithEnding();
+        String sortValues = buffer.readStringWithEnding();
         Id otherVertexId = buffer.readId();
 
-        boolean isOutEdge = (type == HugeType.EDGE_OUT.code());
+        boolean direction = EdgeId.isOutDirectionFromCode(type);
         EdgeLabel edgeLabel = graph.edgeLabelOrNone(labelId);
-        VertexLabel srcLabel = graph.vertexLabelOrNone(edgeLabel.sourceLabel());
-        VertexLabel tgtLabel = graph.vertexLabelOrNone(edgeLabel.targetLabel());
 
-        HugeVertex otherVertex;
-        if (isOutEdge) {
-            vertex.vertexLabel(srcLabel);
-            otherVertex = new HugeVertex(graph, otherVertexId, tgtLabel);
-        } else {
-            vertex.vertexLabel(tgtLabel);
-            otherVertex = new HugeVertex(graph, otherVertexId, srcLabel);
-        }
-
-        HugeEdge edge = new HugeEdge(graph, null, edgeLabel);
-        edge.name(sk);
-        edge.vertices(isOutEdge, vertex, otherVertex);
-        edge.assignId();
-
-        if (isOutEdge) {
-            vertex.addOutEdge(edge);
-            otherVertex.addInEdge(edge.switchOwner());
-        } else {
-            vertex.addInEdge(edge);
-            otherVertex.addOutEdge(edge.switchOwner());
-        }
-
-        vertex.propNotLoaded();
-        otherVertex.propNotLoaded();
+        // Construct edge
+        HugeEdge edge = HugeEdge.constructEdge(vertex, direction, edgeLabel,
+                                               sortValues, otherVertexId);
 
         // Parse edge-id + edge-properties
         buffer = BytesBuffer.wrap(col.value);
@@ -311,7 +288,7 @@ public class BinarySerializer extends AbstractSerializer {
 
         // Parse vertex label
         VertexLabel label = vertex.graph().vertexLabelOrNone(buffer.readId());
-        vertex.vertexLabel(label);
+        vertex.correctVertexLabel(label);
 
         // Parse properties
         this.parseProperties(buffer, vertex);
@@ -412,16 +389,13 @@ public class BinarySerializer extends AbstractSerializer {
 
         // Write vertex expired time if needed
         if (vertex.hasTtl()) {
+            entry.ttl(vertex.ttl());
             this.formatExpiredTime(vertex.expiredTime(), buffer);
         }
 
         // Fill column
         byte[] name = this.keyWithIdPrefix ? entry.id().asBytes() : EMPTY_BYTES;
         entry.column(name, buffer.bytes());
-
-        if (vertex.hasTtl()) {
-            entry.ttl(vertex.ttl());
-        }
 
         return entry;
     }
@@ -1118,6 +1092,7 @@ public class BinarySerializer extends AbstractSerializer {
         }
 
         private void writeLong(HugeKeys key, long value) {
+            @SuppressWarnings("resource")
             BytesBuffer buffer = new BytesBuffer(8);
             buffer.writeVLong(value);
             this.entry.column(formatColumnName(key), buffer.bytes());

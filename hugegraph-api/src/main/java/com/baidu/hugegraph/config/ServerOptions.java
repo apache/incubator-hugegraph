@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.config;
 
+import static com.baidu.hugegraph.config.OptionChecker.allowValues;
 import static com.baidu.hugegraph.config.OptionChecker.disallowEmpty;
 import static com.baidu.hugegraph.config.OptionChecker.nonNegativeInt;
 import static com.baidu.hugegraph.config.OptionChecker.positiveInt;
@@ -54,6 +55,15 @@ public class ServerOptions extends OptionHolder {
                     "The id of hugegraph-server.",
                     disallowEmpty(),
                     "server-1"
+            );
+
+    public static final ConfigOption<String> SERVER_ROLE =
+            new ConfigOption<>(
+                    "server.role",
+                    "The role of nodes in the cluster, available types are " +
+                    "[master, worker, computer]",
+                    allowValues("master", "worker", "computer"),
+                    "master"
             );
 
     public static final ConfigOption<Integer> MAX_WORKER_THREADS =
@@ -194,7 +204,6 @@ public class ServerOptions extends OptionHolder {
                     "hugegraph"
             );
 
-
     public static final ConfigOption<String> ADMIN_TOKEN =
             new ConfigOption<>(
                     "auth.admin_token",
@@ -211,5 +220,23 @@ public class ServerOptions extends OptionHolder {
                     "only for com.baidu.hugegraph.auth.ConfigAuthenticator.",
                     disallowEmpty(),
                     "hugegraph:9fd95c9c-711b-415b-b85f-d4df46ba5c31"
+            );
+
+    public static final ConfigOption<String> SSL_KEYSTORE_FILE =
+            new ConfigOption<>(
+                    "ssl.keystore_file",
+                    "The path of server keystore file used when https " +
+                    "protocol is enabled.",
+                    disallowEmpty(),
+                    "conf/hugegraph-server.keystore"
+            );
+
+    public static final ConfigOption<String> SSL_KEYSTORE_PASSWORD =
+            new ConfigOption<>(
+                    "ssl.keystore_password",
+                    "The password of the server keystore file " +
+                    "when the https protocol is enabled.",
+                    null,
+                    "hugegraph"
             );
 }

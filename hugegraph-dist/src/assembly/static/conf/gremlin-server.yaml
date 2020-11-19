@@ -17,7 +17,9 @@ scriptEngines: {
       org.apache.tinkerpop.gremlin.jsr223.ImportGremlinPlugin: {
         classImports: [
           java.lang.Math,
+          com.baidu.hugegraph.backend.id.IdGenerator,
           com.baidu.hugegraph.type.define.Directions,
+          com.baidu.hugegraph.type.define.NodeRole,
           com.baidu.hugegraph.traversal.algorithm.CustomizePathsTraverser,
           com.baidu.hugegraph.traversal.algorithm.CustomizedCrosspointsTraverser,
           com.baidu.hugegraph.traversal.algorithm.FusiformSimilarityTraverser,
@@ -40,12 +42,6 @@ scriptEngines: {
   }
 }
 serializers:
-  - { className: org.apache.tinkerpop.gremlin.driver.ser.GryoLiteMessageSerializerV1d0,
-      config: {
-        serializeResultToString: false,
-        ioRegistries: [com.baidu.hugegraph.io.HugeGraphIoRegistry]
-      }
-  }
   - { className: org.apache.tinkerpop.gremlin.driver.ser.GraphBinaryMessageSerializerV1,
       config: {
         serializeResultToString: false,
@@ -72,7 +68,7 @@ serializers:
   }
 metrics: {
   consoleReporter: {enabled: false, interval: 180000},
-  csvReporter: {enabled: true, interval: 180000, fileName: /tmp/gremlin-server-metrics.csv},
+  csvReporter: {enabled: false, interval: 180000, fileName: ./metrics/gremlin-server-metrics.csv},
   jmxReporter: {enabled: false},
   slf4jReporter: {enabled: false, interval: 180000},
   gangliaReporter: {enabled: false, interval: 180000, addressingMode: MULTICAST},

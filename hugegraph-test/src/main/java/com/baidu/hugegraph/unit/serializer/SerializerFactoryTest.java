@@ -47,8 +47,7 @@ public class SerializerFactoryTest extends BaseUnitTest {
         Assert.assertThrows(BackendException.class, () -> {
             SerializerFactory.serializer("invalid");
         }, e -> {
-            Assert.assertTrue(e.getMessage().contains(
-                              "Not exists serializer:"));
+            Assert.assertContains("Not exists serializer:", e.getMessage());
         });
     }
 
@@ -62,22 +61,22 @@ public class SerializerFactoryTest extends BaseUnitTest {
             // exist
             SerializerFactory.register("fake", FakeSerializer.class.getName());
         }, e -> {
-            Assert.assertTrue(e.getMessage().contains("Exists serializer:"));
+            Assert.assertContains("Exists serializer:", e.getMessage());
         });
 
         Assert.assertThrows(BackendException.class, () -> {
             // invalid class
             SerializerFactory.register("fake", "com.baidu.hugegraph.Invalid");
         }, e -> {
-            Assert.assertTrue(e.getMessage().contains("Invalid class:"));
+            Assert.assertContains("Invalid class:", e.getMessage());
         });
 
         Assert.assertThrows(BackendException.class, () -> {
             // subclass
             SerializerFactory.register("fake", "com.baidu.hugegraph.HugeGraph");
         }, e -> {
-            Assert.assertTrue(e.getMessage().contains(
-                              "Class is not a subclass of class"));
+            Assert.assertContains("Class is not a subclass of class",
+                                  e.getMessage());
         });
     }
 

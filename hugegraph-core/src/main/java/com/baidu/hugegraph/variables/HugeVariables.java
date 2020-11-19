@@ -45,7 +45,6 @@ import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
-import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.schema.VertexLabel;
@@ -111,15 +110,10 @@ public class HugeVariables implements Graph.Variables {
         this.graph = params.graph();
     }
 
-    public void initSchemaIfNeeded() {
-        SchemaManager schema = this.graph.schema();
-
-        try {
-            schema.getVertexLabel(Hidden.hide(VARIABLES));
+    public synchronized void initSchemaIfNeeded() {
+        if (this.graph.existsVertexLabel(Hidden.hide(VARIABLES))) {
             // Ignore if exist
             return;
-        } catch (NotFoundException ignored) {
-            LOG.debug("Variables schema not exist, create them...");
         }
 
         createPropertyKey(Hidden.hide(VARIABLE_KEY), DataType.TEXT,
@@ -173,6 +167,7 @@ public class HugeVariables implements Graph.Variables {
                                Hidden.hide(VARIABLE_TYPE)};
         properties = ArrayUtils.addAll(properties, TYPES);
 
+        SchemaManager schema = this.graph.schema();
         VertexLabel variables = schema.vertexLabel(Hidden.hide(VARIABLES))
                                       .properties(properties)
                                       .usePrimaryKeyId()
@@ -340,12 +335,12 @@ public class HugeVariables implements Graph.Variables {
         VertexLabel vl = this.graph.vertexLabel(Hidden.hide(VARIABLES));
         GraphTransaction tx = this.params.graphTransaction();
 
-        HugeVertex vertex = new HugeVertex(tx, null, vl);
+        HugeVertex vertex = HugeVertex.create(tx, null, vl);
         try {
             this.setProperty(vertex, key, value);
         } catch (IllegalArgumentException e) {
             throw Graph.Variables.Exceptions
-                       .dataTypeOfVariableValueNotSupported(value);
+                       .dataTypeOfVariableValueNotSupported(value, e);
         }
         // PrimaryKey id
         vertex.assignId(null);

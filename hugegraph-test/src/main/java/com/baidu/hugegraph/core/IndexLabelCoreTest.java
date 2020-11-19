@@ -31,6 +31,7 @@ import org.junit.Test;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.exception.ExistedException;
 import com.baidu.hugegraph.exception.NoIndexException;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.EdgeLabel;
@@ -338,16 +339,16 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
             schema.indexLabel("authorByName").onV("author")
                   .by("name").range().create();
         }, e -> {
-            Assert.assertTrue(e.getMessage(), e.getMessage().contains(
-                              "Range index can only build on numeric"));
+            Assert.assertContains("Range index can only build on numeric",
+                                  e.getMessage());
         });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.indexLabel("authoredByAgeAndWeight").onE("authored")
                   .by("age", "weight").range().create();
         }, e -> {
-            Assert.assertTrue(e.getMessage(), e.getMessage().contains(
-                              "Range index can only build on one field"));
+            Assert.assertContains("Range index can only build on one field",
+                                  e.getMessage());
         });
 
         // Invalid search-index
@@ -363,8 +364,8 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
             schema.indexLabel("authorByNameAndAge").onV("author")
                   .by("name", "age").search().create();
         }, e -> {
-            Assert.assertTrue(e.getMessage(), e.getMessage().contains(
-                              "Search index can only build on one field"));
+            Assert.assertContains("Search index can only build on one field",
+                                  e.getMessage());
         });
     }
 
@@ -383,8 +384,8 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
                   .onV("author").by("sumProp").secondary()
                   .ifNotExist().create();
         }, e -> {
-            Assert.assertTrue(e.getMessage(), e.getMessage().contains(
-                              "The aggregate type SUM is not indexable"));
+            Assert.assertContains("The aggregate type SUM is not indexable",
+                                  e.getMessage());
         });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
@@ -392,8 +393,8 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
                   .onV("author").by("sumProp").range()
                   .ifNotExist().create();
         }, e -> {
-            Assert.assertTrue(e.getMessage(), e.getMessage().contains(
-                              "The aggregate type SUM is not indexable"));
+            Assert.assertContains("The aggregate type SUM is not indexable",
+                                  e.getMessage());
         });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
@@ -401,8 +402,8 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
                   .onV("author").by("sumProp").shard()
                   .ifNotExist().create();
         }, e -> {
-            Assert.assertTrue(e.getMessage(), e.getMessage().contains(
-                              "The aggregate type SUM is not indexable"));
+            Assert.assertContains("The aggregate type SUM is not indexable",
+                                  e.getMessage());
         });
     }
 
@@ -1663,5 +1664,114 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
         personByName = schema.getIndexLabel("personByName");
         createTime = (Date) personByName.userdata().get(Userdata.CREATE_TIME);
         Assert.assertFalse(createTime.after(now));
+    }
+
+    @Test
+    public void testDuplicateIndexLabelWithIdentityProperties() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+        schema.vertexLabel("person")
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .create();
+
+        schema.indexLabel("index4Person")
+              .onV("person")
+              .by("age", "city")
+              .secondary()
+              .ifNotExist()
+              .create();
+        schema.indexLabel("index4Person")
+              .onV("person")
+              .by("age", "city")
+              .secondary()
+              .checkExist(false)
+              .create();
+        schema.indexLabel("index4Person")
+              .onV("person")
+              .by("age", "city")
+              .ifNotExist()
+              .create();
+
+        schema.indexLabel("ageIndex4Person")
+              .onV("person")
+              .by("age")
+              .range()
+              .ifNotExist()
+              .create();
+        schema.indexLabel("ageIndex4Person")
+              .onV("person")
+              .by("age")
+              .range()
+              .checkExist(false)
+              .create();
+    }
+
+    @Test
+    public void testDuplicateIndexLabelWithDifferentProperties() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+
+        schema.vertexLabel("person")
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .create();
+        schema.edgeLabel("friend")
+              .link("person", "person")
+              .properties("time")
+              .ifNotExist()
+              .create();
+
+        schema.indexLabel("index4Person")
+              .onV("person")
+              .by("age", "city")
+              .secondary()
+              .ifNotExist()
+              .create();
+        Assert.assertThrows(ExistedException.class, () -> {
+            schema.indexLabel("index4Person")
+                  .onV("person")
+                  .by("age") // remove city
+                  .secondary()
+                  .checkExist(false)
+                  .create();
+        });
+        Assert.assertThrows(ExistedException.class, () -> {
+            schema.indexLabel("index4Person")
+                  .onE("friend") // not on person
+                  .by("age")
+                  .secondary()
+                  .checkExist(false)
+                  .create();
+        });
+
+        schema.indexLabel("index4Friend")
+              .onE("friend")
+              .search()
+              .by("time")
+              .ifNotExist()
+              .create();
+        Assert.assertThrows(ExistedException.class, () -> {
+            schema.indexLabel("index4Friend")
+                  .onE("friend")
+                  .by("time")
+                  .checkExist(false)
+                  .create();
+        });
+
+        schema.indexLabel("ageIndex4Person")
+              .onV("person")
+              .by("age")
+              .range()
+              .ifNotExist()
+              .create();
+        Assert.assertThrows(ExistedException.class, () -> {
+            schema.indexLabel("ageIndex4Person")
+                  .onV("person")
+                  .by("age")
+                  .secondary()  // different index type
+                  .ifNotExist()
+                  .create();
+        });
     }
 }

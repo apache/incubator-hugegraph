@@ -5,7 +5,7 @@
     <parent>
         <artifactId>hugegraph</artifactId>
         <groupId>com.baidu.hugegraph</groupId>
-        <version>0.11.1</version>
+        <version>0.11.2</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -139,7 +139,7 @@
                     <execution>
                         <id>tinkerpop-process-test</id>
                         <configuration>
-                            <!-- Tinkerpop process ReadTest.Traversals.class need write/read disk -->
+                            <!-- TinkerPop process ReadTest.Traversals.class need write/read disk -->
                             <argLine>-Dbuild.dir=${project.build.directory}</argLine>
                             <testSourceDirectory>${basedir}/src/main/java/
                             </testSourceDirectory>

@@ -32,7 +32,7 @@ import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.auth.HugeTarget.P;
-import com.baidu.hugegraph.auth.ResourceObject.ResourceType;
+import com.baidu.hugegraph.auth.ResourceType;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -140,6 +140,10 @@ public abstract class SchemaDefine {
             this.id = id;
         }
 
+        public String idString() {
+            return Hidden.unHide(this.label()) + "(" + this.id + ")";
+        }
+
         public Date create() {
             return this.create;
         }
@@ -232,7 +236,6 @@ public abstract class SchemaDefine {
         public abstract Map<String, Object> asMap();
 
         protected abstract Object[] asArray();
-
     }
 
     public static abstract class Entity extends UserElement
@@ -249,6 +252,16 @@ public abstract class SchemaDefine {
                 entity.property(prop.key(), prop.value());
             }
             return entity;
+        }
+
+        @Override
+        public String idString() {
+            String label = Hidden.unHide(this.label());
+            String name = this.name();
+            StringBuilder sb = new StringBuilder(label.length() +
+                                                 name.length() + 2);
+            sb.append(label).append("(").append(name).append(")");
+            return sb.toString();
         }
     }
 
@@ -272,6 +285,17 @@ public abstract class SchemaDefine {
                 relationship.property(prop.key(), prop.value());
             }
             return relationship;
+        }
+
+        @Override
+        public String idString() {
+            String label = Hidden.unHide(this.label());
+            StringBuilder sb = new StringBuilder(label.length() +
+                                                 this.source().length() +
+                                                 this.target().length() + 4);
+            sb.append(label).append("(").append(this.source())
+              .append("->").append(this.target()).append(")");
+            return sb.toString();
         }
     }
 }
