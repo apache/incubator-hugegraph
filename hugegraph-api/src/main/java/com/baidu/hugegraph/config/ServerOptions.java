@@ -49,15 +49,6 @@ public class ServerOptions extends OptionHolder {
                     "http://127.0.0.1:8080"
             );
 
-    public static final ConfigOption<String> REST_SERVER_PROTOCOL =
-            new ConfigOption<>(
-                    "restserver.protocol",
-                    "The protocol of rest-server, allowed values are: " +
-                    "http or https.",
-                    allowValues("http", "https"),
-                    "http"
-            );
-
     public static final ConfigOption<String> SERVER_ID =
             new ConfigOption<>(
                     "server.id",
@@ -237,7 +228,7 @@ public class ServerOptions extends OptionHolder {
                     "The path of server keystore file used when https " +
                     "protocol is enabled.",
                     disallowEmpty(),
-                    "hugegraph-server.keystore"
+                    "conf/hugegraph-server.keystore"
             );
 
     public static final ConfigOption<String> SSL_KEYSTORE_PASSWORD =
