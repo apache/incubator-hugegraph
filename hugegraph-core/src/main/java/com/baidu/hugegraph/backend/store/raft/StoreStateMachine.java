@@ -23,7 +23,6 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 
 import org.slf4j.Logger;
 
@@ -57,13 +56,11 @@ public class StoreStateMachine extends StateMachineAdapter {
 
     private final RaftSharedContext context;
     private final StoreSnapshotFile snapshotFile;
-    private final Map<StoreAction, BiConsumer<BackendStore, BytesBuffer>> biFuncs;
-    private final Map<StoreAction, Consumer<BytesBuffer>> funcs;
+    private final Map<StoreAction, BiConsumer<BackendStore, BytesBuffer>> funcs;
 
     public StoreStateMachine(RaftSharedContext context) {
         this.context = context;
         this.snapshotFile = new StoreSnapshotFile(context.stores());
-        this.biFuncs = new EnumMap<>(StoreAction.class);
         this.funcs = new EnumMap<>(StoreAction.class);
         this.registerCommands();
     }
@@ -77,7 +74,6 @@ public class StoreStateMachine extends StateMachineAdapter {
     }
 
     private void registerCommands() {
-        // Register biFuncs
         // clear
         this.register(StoreAction.CLEAR, (store, buffer) -> {
             boolean clearSpace = buffer.read() > 0;
@@ -85,6 +81,10 @@ public class StoreStateMachine extends StateMachineAdapter {
         });
         this.register(StoreAction.TRUNCATE, (store, buffer) -> {
             store.truncate();
+        });
+        this.register(StoreAction.SNAPSHOT, (store, buffer) -> {
+            assert store == null;
+            this.node().snapshot();
         });
         this.register(StoreAction.BEGIN_TX, (store, buffer) -> store.beginTx());
         this.register(StoreAction.COMMIT_TX, (store, buffer) -> {
@@ -107,11 +107,6 @@ public class StoreStateMachine extends StateMachineAdapter {
             IncrCounter counter = StoreSerializer.readIncrCounter(buffer);
             store.increaseCounter(counter.type(), counter.increment());
         });
-
-        // Register funcs
-        this.register(StoreAction.SNAPSHOT, buffer -> {
-            this.node().snapshot();
-        });
     }
 
     private void updateCacheIfNeeded(BackendMutation mutation) {
@@ -133,11 +128,7 @@ public class StoreStateMachine extends StateMachineAdapter {
 
     private void register(StoreAction action,
                           BiConsumer<BackendStore, BytesBuffer> biFunc) {
-        this.biFuncs.put(action, biFunc);
-    }
-
-    private void register(StoreAction action, Consumer<BytesBuffer> func) {
-        this.funcs.put(action, func);
+        this.funcs.put(action, biFunc);
     }
 
     @Override
@@ -195,14 +186,9 @@ public class StoreStateMachine extends StateMachineAdapter {
 
     private Object applyCommand(StoreType type, StoreAction action,
                                 BytesBuffer buffer) {
-        if (type != StoreType.ALL) {
-            BackendStore store = this.store(type);
-            BiConsumer<BackendStore, BytesBuffer> func = this.biFuncs.get(action);
-            func.accept(store, buffer);
-        } else {
-            Consumer<BytesBuffer> func = this.funcs.get(action);
-            func.accept(buffer);
-        }
+        BackendStore store = type != StoreType.ALL ? this.store(type) : null;
+        BiConsumer<BackendStore, BytesBuffer> func = this.funcs.get(action);
+        func.accept(store, buffer);
         return null;
     }
 
