@@ -107,7 +107,7 @@ public class RaftNode {
             this.node().snapshot(future);
             future.waitFinished();
         } catch (Throwable e) {
-            throw new BackendException("Failed to genearet snapshot", e);
+            throw new BackendException("Failed to generate snapshot", e);
         }
     }
 
