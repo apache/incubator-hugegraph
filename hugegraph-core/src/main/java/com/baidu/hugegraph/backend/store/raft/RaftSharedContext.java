@@ -98,7 +98,7 @@ public final class RaftSharedContext {
         this.schemaStoreName = config.get(CoreOptions.STORE_SCHEMA);
         this.graphStoreName = config.get(CoreOptions.STORE_GRAPH);
         this.systemStoreName = config.get(CoreOptions.STORE_SYSTEM);
-        this.stores = new RaftBackendStore[StoreType.SIZE.getNumber()];
+        this.stores = new RaftBackendStore[StoreType.ALL.getNumber()];
         this.rpcServer = this.initAndStartRpcServer();
         if (config.get(CoreOptions.RAFT_SAFE_READ)) {
             int readIndexThreads = config.get(CoreOptions.RAFT_READ_INDEX_THREADS);
@@ -283,6 +283,10 @@ public final class RaftSharedContext {
 
     public boolean isSafeRead() {
         return this.config().get(CoreOptions.RAFT_SAFE_READ);
+    }
+
+    public boolean useSnapshot() {
+        return this.config().get(CoreOptions.RAFT_USE_SNAPSHOT);
     }
 
     public ExecutorService snapshotExecutor() {

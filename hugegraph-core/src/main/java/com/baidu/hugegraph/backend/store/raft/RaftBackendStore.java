@@ -185,16 +185,6 @@ public class RaftBackendStore implements BackendStore {
         return (Long) this.queryByRaft(type, o -> this.store.getCounter(type));
     }
 
-    @Override
-    public void writeSnapshot(String snapshotPath) {
-        this.store.writeSnapshot(snapshotPath);
-    }
-
-    @Override
-    public void readSnapshot(String snapshotPath) {
-        this.store.readSnapshot(snapshotPath);
-    }
-
     private Object submitAndWait(StoreAction action, byte[] data) {
         StoreType type = this.context.storeType(this.store());
         return this.submitAndWait(new StoreCommand(type, action, data));

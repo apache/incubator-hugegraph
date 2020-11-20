@@ -3,14 +3,13 @@
 
 package com.baidu.hugegraph.backend.store.raft.rpc;
 
-@SuppressWarnings("unused")
 public final class RaftRequests {
   private RaftRequests() {}
   public static void registerAllExtensions(
       com.google.protobuf.ExtensionRegistry registry) {
   }
   /**
-   * Protobuf enum {@code com.baidu.hugegraph.backend.store.raft.StoreType}
+   * Protobuf enum {@code com.baidu.hugegraph.backend.store.raft.rpc.StoreType}
    */
   public enum StoreType
       implements com.google.protobuf.ProtocolMessageEnum {
@@ -27,9 +26,9 @@ public final class RaftRequests {
      */
     SYSTEM(2, 2),
     /**
-     * <code>SIZE = 3;</code>
+     * <code>ALL = 3;</code>
      */
-    SIZE(3, 3),
+    ALL(3, 3),
     ;
 
     /**
@@ -45,9 +44,9 @@ public final class RaftRequests {
      */
     public static final int SYSTEM_VALUE = 2;
     /**
-     * <code>SIZE = 3;</code>
+     * <code>ALL = 3;</code>
      */
-    public static final int SIZE_VALUE = 3;
+    public static final int ALL_VALUE = 3;
 
 
     public final int getNumber() { return value; }
@@ -57,7 +56,7 @@ public final class RaftRequests {
         case 0: return SCHEMA;
         case 1: return GRAPH;
         case 2: return SYSTEM;
-        case 3: return SIZE;
+        case 3: return ALL;
         default: return null;
       }
     }
@@ -84,7 +83,7 @@ public final class RaftRequests {
     }
     public static final com.google.protobuf.Descriptors.EnumDescriptor
         getDescriptor() {
-      return RaftRequests.getDescriptor().getEnumTypes().get(0);
+      return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.getDescriptor().getEnumTypes().get(0);
     }
 
     private static final StoreType[] VALUES = values();
@@ -106,11 +105,11 @@ public final class RaftRequests {
       this.value = value;
     }
 
-    // @@protoc_insertion_point(enum_scope:com.baidu.hugegraph.backend.store.raft.StoreType)
+    // @@protoc_insertion_point(enum_scope:com.baidu.hugegraph.backend.store.raft.rpc.StoreType)
   }
 
   /**
-   * Protobuf enum {@code com.baidu.hugegraph.backend.store.raft.StoreAction}
+   * Protobuf enum {@code com.baidu.hugegraph.backend.store.raft.rpc.StoreAction}
    */
   public enum StoreAction
       implements com.google.protobuf.ProtocolMessageEnum {
@@ -131,29 +130,33 @@ public final class RaftRequests {
      */
     TRUNCATE(3, 3),
     /**
+     * <code>SNAPSHOT = 4;</code>
+     */
+    SNAPSHOT(4, 4),
+    /**
      * <code>BEGIN_TX = 10;</code>
      */
-    BEGIN_TX(4, 10),
+    BEGIN_TX(5, 10),
     /**
      * <code>COMMIT_TX = 11;</code>
      */
-    COMMIT_TX(5, 11),
+    COMMIT_TX(6, 11),
     /**
      * <code>ROLLBACK_TX = 12;</code>
      */
-    ROLLBACK_TX(6, 12),
+    ROLLBACK_TX(7, 12),
     /**
      * <code>MUTATE = 20;</code>
      */
-    MUTATE(7, 20),
+    MUTATE(8, 20),
     /**
      * <code>INCR_COUNTER = 21;</code>
      */
-    INCR_COUNTER(8, 21),
+    INCR_COUNTER(9, 21),
     /**
      * <code>QUERY = 30;</code>
      */
-    QUERY(9, 30),
+    QUERY(10, 30),
     ;
 
     /**
@@ -172,6 +175,10 @@ public final class RaftRequests {
      * <code>TRUNCATE = 3;</code>
      */
     public static final int TRUNCATE_VALUE = 3;
+    /**
+     * <code>SNAPSHOT = 4;</code>
+     */
+    public static final int SNAPSHOT_VALUE = 4;
     /**
      * <code>BEGIN_TX = 10;</code>
      */
@@ -206,6 +213,7 @@ public final class RaftRequests {
         case 1: return INIT;
         case 2: return CLEAR;
         case 3: return TRUNCATE;
+        case 4: return SNAPSHOT;
         case 10: return BEGIN_TX;
         case 11: return COMMIT_TX;
         case 12: return ROLLBACK_TX;
@@ -238,7 +246,7 @@ public final class RaftRequests {
     }
     public static final com.google.protobuf.Descriptors.EnumDescriptor
         getDescriptor() {
-      return RaftRequests.getDescriptor().getEnumTypes().get(1);
+      return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.getDescriptor().getEnumTypes().get(1);
     }
 
     private static final StoreAction[] VALUES = values();
@@ -260,31 +268,31 @@ public final class RaftRequests {
       this.value = value;
     }
 
-    // @@protoc_insertion_point(enum_scope:com.baidu.hugegraph.backend.store.raft.StoreAction)
+    // @@protoc_insertion_point(enum_scope:com.baidu.hugegraph.backend.store.raft.rpc.StoreAction)
   }
 
   public interface StoreCommandRequestOrBuilder
       extends com.google.protobuf.MessageOrBuilder {
 
-    // required .com.baidu.hugegraph.backend.store.raft.StoreType type = 1;
+    // required .com.baidu.hugegraph.backend.store.raft.rpc.StoreType type = 1;
     /**
-     * <code>required .com.baidu.hugegraph.backend.store.raft.StoreType type = 1;</code>
+     * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.StoreType type = 1;</code>
      */
     boolean hasType();
     /**
-     * <code>required .com.baidu.hugegraph.backend.store.raft.StoreType type = 1;</code>
+     * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.StoreType type = 1;</code>
      */
-    RaftRequests.StoreType getType();
+    com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType getType();
 
-    // required .com.baidu.hugegraph.backend.store.raft.StoreAction action = 2;
+    // required .com.baidu.hugegraph.backend.store.raft.rpc.StoreAction action = 2;
     /**
-     * <code>required .com.baidu.hugegraph.backend.store.raft.StoreAction action = 2;</code>
+     * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.StoreAction action = 2;</code>
      */
     boolean hasAction();
     /**
-     * <code>required .com.baidu.hugegraph.backend.store.raft.StoreAction action = 2;</code>
+     * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.StoreAction action = 2;</code>
      */
-    RaftRequests.StoreAction getAction();
+    com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction getAction();
 
     // required bytes data = 3;
     /**
@@ -297,7 +305,7 @@ public final class RaftRequests {
     com.google.protobuf.ByteString getData();
   }
   /**
-   * Protobuf type {@code com.baidu.hugegraph.backend.store.raft.StoreCommandRequest}
+   * Protobuf type {@code com.baidu.hugegraph.backend.store.raft.rpc.StoreCommandRequest}
    */
   public static final class StoreCommandRequest extends
       com.google.protobuf.GeneratedMessage
@@ -349,7 +357,7 @@ public final class RaftRequests {
             }
             case 8: {
               int rawValue = input.readEnum();
-              RaftRequests.StoreType value = RaftRequests.StoreType.valueOf(rawValue);
+              com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType value = com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType.valueOf(rawValue);
               if (value == null) {
                 unknownFields.mergeVarintField(1, rawValue);
               } else {
@@ -360,7 +368,7 @@ public final class RaftRequests {
             }
             case 16: {
               int rawValue = input.readEnum();
-              RaftRequests.StoreAction value = RaftRequests.StoreAction.valueOf(rawValue);
+              com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction value = com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction.valueOf(rawValue);
               if (value == null) {
                 unknownFields.mergeVarintField(2, rawValue);
               } else {
@@ -388,14 +396,14 @@ public final class RaftRequests {
     }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
-      return RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_StoreCommandRequest_descriptor;
+      return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_StoreCommandRequest_descriptor;
     }
 
     protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
         internalGetFieldAccessorTable() {
-      return RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_StoreCommandRequest_fieldAccessorTable
+      return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_StoreCommandRequest_fieldAccessorTable
           .ensureFieldAccessorsInitialized(
-                  RaftRequests.StoreCommandRequest.class, RaftRequests.StoreCommandRequest.Builder.class);
+              com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandRequest.class, com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandRequest.Builder.class);
     }
 
     public static com.google.protobuf.Parser<StoreCommandRequest> PARSER =
@@ -414,35 +422,35 @@ public final class RaftRequests {
     }
 
     private int bitField0_;
-    // required .com.baidu.hugegraph.backend.store.raft.StoreType type = 1;
+    // required .com.baidu.hugegraph.backend.store.raft.rpc.StoreType type = 1;
     public static final int TYPE_FIELD_NUMBER = 1;
-    private RaftRequests.StoreType type_;
+    private com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType type_;
     /**
-     * <code>required .com.baidu.hugegraph.backend.store.raft.StoreType type = 1;</code>
+     * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.StoreType type = 1;</code>
      */
     public boolean hasType() {
       return ((bitField0_ & 0x00000001) == 0x00000001);
     }
     /**
-     * <code>required .com.baidu.hugegraph.backend.store.raft.StoreType type = 1;</code>
+     * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.StoreType type = 1;</code>
      */
-    public RaftRequests.StoreType getType() {
+    public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType getType() {
       return type_;
     }
 
-    // required .com.baidu.hugegraph.backend.store.raft.StoreAction action = 2;
+    // required .com.baidu.hugegraph.backend.store.raft.rpc.StoreAction action = 2;
     public static final int ACTION_FIELD_NUMBER = 2;
-    private RaftRequests.StoreAction action_;
+    private com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction action_;
     /**
-     * <code>required .com.baidu.hugegraph.backend.store.raft.StoreAction action = 2;</code>
+     * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.StoreAction action = 2;</code>
      */
     public boolean hasAction() {
       return ((bitField0_ & 0x00000002) == 0x00000002);
     }
     /**
-     * <code>required .com.baidu.hugegraph.backend.store.raft.StoreAction action = 2;</code>
+     * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.StoreAction action = 2;</code>
      */
-    public RaftRequests.StoreAction getAction() {
+    public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction getAction() {
       return action_;
     }
 
@@ -463,8 +471,8 @@ public final class RaftRequests {
     }
 
     private void initFields() {
-      type_ = RaftRequests.StoreType.SCHEMA;
-      action_ = RaftRequests.StoreAction.NONE;
+      type_ = com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType.SCHEMA;
+      action_ = com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction.NONE;
       data_ = com.google.protobuf.ByteString.EMPTY;
     }
     private byte memoizedIsInitialized = -1;
@@ -533,53 +541,53 @@ public final class RaftRequests {
       return super.writeReplace();
     }
 
-    public static RaftRequests.StoreCommandRequest parseFrom(
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandRequest parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
-    public static RaftRequests.StoreCommandRequest parseFrom(
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandRequest parseFrom(
         com.google.protobuf.ByteString data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
-    public static RaftRequests.StoreCommandRequest parseFrom(byte[] data)
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandRequest parseFrom(byte[] data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
-    public static RaftRequests.StoreCommandRequest parseFrom(
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandRequest parseFrom(
         byte[] data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
-    public static RaftRequests.StoreCommandRequest parseFrom(java.io.InputStream input)
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandRequest parseFrom(java.io.InputStream input)
         throws java.io.IOException {
       return PARSER.parseFrom(input);
     }
-    public static RaftRequests.StoreCommandRequest parseFrom(
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandRequest parseFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return PARSER.parseFrom(input, extensionRegistry);
     }
-    public static RaftRequests.StoreCommandRequest parseDelimitedFrom(java.io.InputStream input)
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandRequest parseDelimitedFrom(java.io.InputStream input)
         throws java.io.IOException {
       return PARSER.parseDelimitedFrom(input);
     }
-    public static RaftRequests.StoreCommandRequest parseDelimitedFrom(
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandRequest parseDelimitedFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return PARSER.parseDelimitedFrom(input, extensionRegistry);
     }
-    public static RaftRequests.StoreCommandRequest parseFrom(
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandRequest parseFrom(
         com.google.protobuf.CodedInputStream input)
         throws java.io.IOException {
       return PARSER.parseFrom(input);
     }
-    public static RaftRequests.StoreCommandRequest parseFrom(
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandRequest parseFrom(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
@@ -588,7 +596,7 @@ public final class RaftRequests {
 
     public static Builder newBuilder() { return Builder.create(); }
     public Builder newBuilderForType() { return newBuilder(); }
-    public static Builder newBuilder(RaftRequests.StoreCommandRequest prototype) {
+    public static Builder newBuilder(com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandRequest prototype) {
       return newBuilder().mergeFrom(prototype);
     }
     public Builder toBuilder() { return newBuilder(this); }
@@ -600,21 +608,21 @@ public final class RaftRequests {
       return builder;
     }
     /**
-     * Protobuf type {@code com.baidu.hugegraph.backend.store.raft.StoreCommandRequest}
+     * Protobuf type {@code com.baidu.hugegraph.backend.store.raft.rpc.StoreCommandRequest}
      */
     public static final class Builder extends
         com.google.protobuf.GeneratedMessage.Builder<Builder>
-       implements RaftRequests.StoreCommandRequestOrBuilder {
+       implements com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandRequestOrBuilder {
       public static final com.google.protobuf.Descriptors.Descriptor
           getDescriptor() {
-        return RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_StoreCommandRequest_descriptor;
+        return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_StoreCommandRequest_descriptor;
       }
 
       protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
           internalGetFieldAccessorTable() {
-        return RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_StoreCommandRequest_fieldAccessorTable
+        return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_StoreCommandRequest_fieldAccessorTable
             .ensureFieldAccessorsInitialized(
-                    RaftRequests.StoreCommandRequest.class, RaftRequests.StoreCommandRequest.Builder.class);
+                com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandRequest.class, com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandRequest.Builder.class);
       }
 
       // Construct using com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandRequest.newBuilder()
@@ -637,9 +645,9 @@ public final class RaftRequests {
 
       public Builder clear() {
         super.clear();
-        type_ = RaftRequests.StoreType.SCHEMA;
+        type_ = com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType.SCHEMA;
         bitField0_ = (bitField0_ & ~0x00000001);
-        action_ = RaftRequests.StoreAction.NONE;
+        action_ = com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction.NONE;
         bitField0_ = (bitField0_ & ~0x00000002);
         data_ = com.google.protobuf.ByteString.EMPTY;
         bitField0_ = (bitField0_ & ~0x00000004);
@@ -652,23 +660,23 @@ public final class RaftRequests {
 
       public com.google.protobuf.Descriptors.Descriptor
           getDescriptorForType() {
-        return RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_StoreCommandRequest_descriptor;
+        return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_StoreCommandRequest_descriptor;
       }
 
-      public RaftRequests.StoreCommandRequest getDefaultInstanceForType() {
-        return RaftRequests.StoreCommandRequest.getDefaultInstance();
+      public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandRequest getDefaultInstanceForType() {
+        return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandRequest.getDefaultInstance();
       }
 
-      public RaftRequests.StoreCommandRequest build() {
-        RaftRequests.StoreCommandRequest result = buildPartial();
+      public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandRequest build() {
+        com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandRequest result = buildPartial();
         if (!result.isInitialized()) {
           throw newUninitializedMessageException(result);
         }
         return result;
       }
 
-      public RaftRequests.StoreCommandRequest buildPartial() {
-        RaftRequests.StoreCommandRequest result = new RaftRequests.StoreCommandRequest(this);
+      public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandRequest buildPartial() {
+        com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandRequest result = new com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandRequest(this);
         int from_bitField0_ = bitField0_;
         int to_bitField0_ = 0;
         if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
@@ -689,16 +697,16 @@ public final class RaftRequests {
       }
 
       public Builder mergeFrom(com.google.protobuf.Message other) {
-        if (other instanceof RaftRequests.StoreCommandRequest) {
-          return mergeFrom((RaftRequests.StoreCommandRequest)other);
+        if (other instanceof com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandRequest) {
+          return mergeFrom((com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandRequest)other);
         } else {
           super.mergeFrom(other);
           return this;
         }
       }
 
-      public Builder mergeFrom(RaftRequests.StoreCommandRequest other) {
-        if (other == RaftRequests.StoreCommandRequest.getDefaultInstance()) return this;
+      public Builder mergeFrom(com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandRequest other) {
+        if (other == com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandRequest.getDefaultInstance()) return this;
         if (other.hasType()) {
           setType(other.getType());
         }
@@ -714,15 +722,15 @@ public final class RaftRequests {
 
       public final boolean isInitialized() {
         if (!hasType()) {
-
+          
           return false;
         }
         if (!hasAction()) {
-
+          
           return false;
         }
         if (!hasData()) {
-
+          
           return false;
         }
         return true;
@@ -732,11 +740,11 @@ public final class RaftRequests {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        RaftRequests.StoreCommandRequest parsedMessage = null;
+        com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandRequest parsedMessage = null;
         try {
           parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (RaftRequests.StoreCommandRequest) e.getUnfinishedMessage();
+          parsedMessage = (com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandRequest) e.getUnfinishedMessage();
           throw e;
         } finally {
           if (parsedMessage != null) {
@@ -747,24 +755,24 @@ public final class RaftRequests {
       }
       private int bitField0_;
 
-      // required .com.baidu.hugegraph.backend.store.raft.StoreType type = 1;
-      private RaftRequests.StoreType type_ = RaftRequests.StoreType.SCHEMA;
+      // required .com.baidu.hugegraph.backend.store.raft.rpc.StoreType type = 1;
+      private com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType type_ = com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType.SCHEMA;
       /**
-       * <code>required .com.baidu.hugegraph.backend.store.raft.StoreType type = 1;</code>
+       * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.StoreType type = 1;</code>
        */
       public boolean hasType() {
         return ((bitField0_ & 0x00000001) == 0x00000001);
       }
       /**
-       * <code>required .com.baidu.hugegraph.backend.store.raft.StoreType type = 1;</code>
+       * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.StoreType type = 1;</code>
        */
-      public RaftRequests.StoreType getType() {
+      public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType getType() {
         return type_;
       }
       /**
-       * <code>required .com.baidu.hugegraph.backend.store.raft.StoreType type = 1;</code>
+       * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.StoreType type = 1;</code>
        */
-      public Builder setType(RaftRequests.StoreType value) {
+      public Builder setType(com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType value) {
         if (value == null) {
           throw new NullPointerException();
         }
@@ -774,33 +782,33 @@ public final class RaftRequests {
         return this;
       }
       /**
-       * <code>required .com.baidu.hugegraph.backend.store.raft.StoreType type = 1;</code>
+       * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.StoreType type = 1;</code>
        */
       public Builder clearType() {
         bitField0_ = (bitField0_ & ~0x00000001);
-        type_ = RaftRequests.StoreType.SCHEMA;
+        type_ = com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType.SCHEMA;
         onChanged();
         return this;
       }
 
-      // required .com.baidu.hugegraph.backend.store.raft.StoreAction action = 2;
-      private RaftRequests.StoreAction action_ = RaftRequests.StoreAction.NONE;
+      // required .com.baidu.hugegraph.backend.store.raft.rpc.StoreAction action = 2;
+      private com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction action_ = com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction.NONE;
       /**
-       * <code>required .com.baidu.hugegraph.backend.store.raft.StoreAction action = 2;</code>
+       * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.StoreAction action = 2;</code>
        */
       public boolean hasAction() {
         return ((bitField0_ & 0x00000002) == 0x00000002);
       }
       /**
-       * <code>required .com.baidu.hugegraph.backend.store.raft.StoreAction action = 2;</code>
+       * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.StoreAction action = 2;</code>
        */
-      public RaftRequests.StoreAction getAction() {
+      public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction getAction() {
         return action_;
       }
       /**
-       * <code>required .com.baidu.hugegraph.backend.store.raft.StoreAction action = 2;</code>
+       * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.StoreAction action = 2;</code>
        */
-      public Builder setAction(RaftRequests.StoreAction value) {
+      public Builder setAction(com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction value) {
         if (value == null) {
           throw new NullPointerException();
         }
@@ -810,11 +818,11 @@ public final class RaftRequests {
         return this;
       }
       /**
-       * <code>required .com.baidu.hugegraph.backend.store.raft.StoreAction action = 2;</code>
+       * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.StoreAction action = 2;</code>
        */
       public Builder clearAction() {
         bitField0_ = (bitField0_ & ~0x00000002);
-        action_ = RaftRequests.StoreAction.NONE;
+        action_ = com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction.NONE;
         onChanged();
         return this;
       }
@@ -855,7 +863,7 @@ public final class RaftRequests {
         return this;
       }
 
-      // @@protoc_insertion_point(builder_scope:com.baidu.hugegraph.backend.store.raft.StoreCommandRequest)
+      // @@protoc_insertion_point(builder_scope:com.baidu.hugegraph.backend.store.raft.rpc.StoreCommandRequest)
     }
 
     static {
@@ -863,7 +871,7 @@ public final class RaftRequests {
       defaultInstance.initFields();
     }
 
-    // @@protoc_insertion_point(class_scope:com.baidu.hugegraph.backend.store.raft.StoreCommandRequest)
+    // @@protoc_insertion_point(class_scope:com.baidu.hugegraph.backend.store.raft.rpc.StoreCommandRequest)
   }
 
   public interface StoreCommandResponseOrBuilder
@@ -895,7 +903,7 @@ public final class RaftRequests {
         getMessageBytes();
   }
   /**
-   * Protobuf type {@code com.baidu.hugegraph.backend.store.raft.StoreCommandResponse}
+   * Protobuf type {@code com.baidu.hugegraph.backend.store.raft.rpc.StoreCommandResponse}
    */
   public static final class StoreCommandResponse extends
       com.google.protobuf.GeneratedMessage
@@ -969,14 +977,14 @@ public final class RaftRequests {
     }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
-      return RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_StoreCommandResponse_descriptor;
+      return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_StoreCommandResponse_descriptor;
     }
 
     protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
         internalGetFieldAccessorTable() {
-      return RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_StoreCommandResponse_fieldAccessorTable
+      return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_StoreCommandResponse_fieldAccessorTable
           .ensureFieldAccessorsInitialized(
-                  RaftRequests.StoreCommandResponse.class, RaftRequests.StoreCommandResponse.Builder.class);
+              com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandResponse.class, com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandResponse.Builder.class);
     }
 
     public static com.google.protobuf.Parser<StoreCommandResponse> PARSER =
@@ -1028,7 +1036,7 @@ public final class RaftRequests {
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs =
+        com.google.protobuf.ByteString bs = 
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         if (bs.isValidUtf8()) {
@@ -1044,7 +1052,7 @@ public final class RaftRequests {
         getMessageBytes() {
       java.lang.Object ref = message_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b =
+        com.google.protobuf.ByteString b = 
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         message_ = b;
@@ -1109,53 +1117,53 @@ public final class RaftRequests {
       return super.writeReplace();
     }
 
-    public static RaftRequests.StoreCommandResponse parseFrom(
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandResponse parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
-    public static RaftRequests.StoreCommandResponse parseFrom(
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandResponse parseFrom(
         com.google.protobuf.ByteString data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
-    public static RaftRequests.StoreCommandResponse parseFrom(byte[] data)
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandResponse parseFrom(byte[] data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
-    public static RaftRequests.StoreCommandResponse parseFrom(
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandResponse parseFrom(
         byte[] data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
-    public static RaftRequests.StoreCommandResponse parseFrom(java.io.InputStream input)
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandResponse parseFrom(java.io.InputStream input)
         throws java.io.IOException {
       return PARSER.parseFrom(input);
     }
-    public static RaftRequests.StoreCommandResponse parseFrom(
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandResponse parseFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return PARSER.parseFrom(input, extensionRegistry);
     }
-    public static RaftRequests.StoreCommandResponse parseDelimitedFrom(java.io.InputStream input)
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandResponse parseDelimitedFrom(java.io.InputStream input)
         throws java.io.IOException {
       return PARSER.parseDelimitedFrom(input);
     }
-    public static RaftRequests.StoreCommandResponse parseDelimitedFrom(
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandResponse parseDelimitedFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return PARSER.parseDelimitedFrom(input, extensionRegistry);
     }
-    public static RaftRequests.StoreCommandResponse parseFrom(
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandResponse parseFrom(
         com.google.protobuf.CodedInputStream input)
         throws java.io.IOException {
       return PARSER.parseFrom(input);
     }
-    public static RaftRequests.StoreCommandResponse parseFrom(
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandResponse parseFrom(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
@@ -1164,7 +1172,7 @@ public final class RaftRequests {
 
     public static Builder newBuilder() { return Builder.create(); }
     public Builder newBuilderForType() { return newBuilder(); }
-    public static Builder newBuilder(RaftRequests.StoreCommandResponse prototype) {
+    public static Builder newBuilder(com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandResponse prototype) {
       return newBuilder().mergeFrom(prototype);
     }
     public Builder toBuilder() { return newBuilder(this); }
@@ -1176,21 +1184,21 @@ public final class RaftRequests {
       return builder;
     }
     /**
-     * Protobuf type {@code com.baidu.hugegraph.backend.store.raft.StoreCommandResponse}
+     * Protobuf type {@code com.baidu.hugegraph.backend.store.raft.rpc.StoreCommandResponse}
      */
     public static final class Builder extends
         com.google.protobuf.GeneratedMessage.Builder<Builder>
-       implements RaftRequests.StoreCommandResponseOrBuilder {
+       implements com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandResponseOrBuilder {
       public static final com.google.protobuf.Descriptors.Descriptor
           getDescriptor() {
-        return RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_StoreCommandResponse_descriptor;
+        return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_StoreCommandResponse_descriptor;
       }
 
       protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
           internalGetFieldAccessorTable() {
-        return RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_StoreCommandResponse_fieldAccessorTable
+        return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_StoreCommandResponse_fieldAccessorTable
             .ensureFieldAccessorsInitialized(
-                    RaftRequests.StoreCommandResponse.class, RaftRequests.StoreCommandResponse.Builder.class);
+                com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandResponse.class, com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandResponse.Builder.class);
       }
 
       // Construct using com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandResponse.newBuilder()
@@ -1226,23 +1234,23 @@ public final class RaftRequests {
 
       public com.google.protobuf.Descriptors.Descriptor
           getDescriptorForType() {
-        return RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_StoreCommandResponse_descriptor;
+        return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_StoreCommandResponse_descriptor;
       }
 
-      public RaftRequests.StoreCommandResponse getDefaultInstanceForType() {
-        return RaftRequests.StoreCommandResponse.getDefaultInstance();
+      public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandResponse getDefaultInstanceForType() {
+        return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandResponse.getDefaultInstance();
       }
 
-      public RaftRequests.StoreCommandResponse build() {
-        RaftRequests.StoreCommandResponse result = buildPartial();
+      public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandResponse build() {
+        com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandResponse result = buildPartial();
         if (!result.isInitialized()) {
           throw newUninitializedMessageException(result);
         }
         return result;
       }
 
-      public RaftRequests.StoreCommandResponse buildPartial() {
-        RaftRequests.StoreCommandResponse result = new RaftRequests.StoreCommandResponse(this);
+      public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandResponse buildPartial() {
+        com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandResponse result = new com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandResponse(this);
         int from_bitField0_ = bitField0_;
         int to_bitField0_ = 0;
         if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
@@ -1259,16 +1267,16 @@ public final class RaftRequests {
       }
 
       public Builder mergeFrom(com.google.protobuf.Message other) {
-        if (other instanceof RaftRequests.StoreCommandResponse) {
-          return mergeFrom((RaftRequests.StoreCommandResponse)other);
+        if (other instanceof com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandResponse) {
+          return mergeFrom((com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandResponse)other);
         } else {
           super.mergeFrom(other);
           return this;
         }
       }
 
-      public Builder mergeFrom(RaftRequests.StoreCommandResponse other) {
-        if (other == RaftRequests.StoreCommandResponse.getDefaultInstance()) return this;
+      public Builder mergeFrom(com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandResponse other) {
+        if (other == com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandResponse.getDefaultInstance()) return this;
         if (other.hasStatus()) {
           setStatus(other.getStatus());
         }
@@ -1283,7 +1291,7 @@ public final class RaftRequests {
 
       public final boolean isInitialized() {
         if (!hasStatus()) {
-
+          
           return false;
         }
         return true;
@@ -1293,11 +1301,11 @@ public final class RaftRequests {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        RaftRequests.StoreCommandResponse parsedMessage = null;
+        com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandResponse parsedMessage = null;
         try {
           parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (RaftRequests.StoreCommandResponse) e.getUnfinishedMessage();
+          parsedMessage = (com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandResponse) e.getUnfinishedMessage();
           throw e;
         } finally {
           if (parsedMessage != null) {
@@ -1370,7 +1378,7 @@ public final class RaftRequests {
           getMessageBytes() {
         java.lang.Object ref = message_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b =
+          com.google.protobuf.ByteString b = 
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           message_ = b;
@@ -1415,7 +1423,7 @@ public final class RaftRequests {
         return this;
       }
 
-      // @@protoc_insertion_point(builder_scope:com.baidu.hugegraph.backend.store.raft.StoreCommandResponse)
+      // @@protoc_insertion_point(builder_scope:com.baidu.hugegraph.backend.store.raft.rpc.StoreCommandResponse)
     }
 
     static {
@@ -1423,7 +1431,7 @@ public final class RaftRequests {
       defaultInstance.initFields();
     }
 
-    // @@protoc_insertion_point(class_scope:com.baidu.hugegraph.backend.store.raft.StoreCommandResponse)
+    // @@protoc_insertion_point(class_scope:com.baidu.hugegraph.backend.store.raft.rpc.StoreCommandResponse)
   }
 
   public interface CommonResponseOrBuilder
@@ -1455,7 +1463,7 @@ public final class RaftRequests {
         getMessageBytes();
   }
   /**
-   * Protobuf type {@code com.baidu.hugegraph.backend.store.raft.CommonResponse}
+   * Protobuf type {@code com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse}
    */
   public static final class CommonResponse extends
       com.google.protobuf.GeneratedMessage
@@ -1529,14 +1537,14 @@ public final class RaftRequests {
     }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
-      return RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_CommonResponse_descriptor;
+      return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_CommonResponse_descriptor;
     }
 
     protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
         internalGetFieldAccessorTable() {
-      return RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_CommonResponse_fieldAccessorTable
+      return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_CommonResponse_fieldAccessorTable
           .ensureFieldAccessorsInitialized(
-                  RaftRequests.CommonResponse.class, RaftRequests.CommonResponse.Builder.class);
+              com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse.class, com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse.Builder.class);
     }
 
     public static com.google.protobuf.Parser<CommonResponse> PARSER =
@@ -1588,7 +1596,7 @@ public final class RaftRequests {
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs =
+        com.google.protobuf.ByteString bs = 
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         if (bs.isValidUtf8()) {
@@ -1604,7 +1612,7 @@ public final class RaftRequests {
         getMessageBytes() {
       java.lang.Object ref = message_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b =
+        com.google.protobuf.ByteString b = 
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         message_ = b;
@@ -1669,53 +1677,53 @@ public final class RaftRequests {
       return super.writeReplace();
     }
 
-    public static RaftRequests.CommonResponse parseFrom(
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
-    public static RaftRequests.CommonResponse parseFrom(
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse parseFrom(
         com.google.protobuf.ByteString data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
-    public static RaftRequests.CommonResponse parseFrom(byte[] data)
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse parseFrom(byte[] data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
-    public static RaftRequests.CommonResponse parseFrom(
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse parseFrom(
         byte[] data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
-    public static RaftRequests.CommonResponse parseFrom(java.io.InputStream input)
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse parseFrom(java.io.InputStream input)
         throws java.io.IOException {
       return PARSER.parseFrom(input);
     }
-    public static RaftRequests.CommonResponse parseFrom(
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse parseFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return PARSER.parseFrom(input, extensionRegistry);
     }
-    public static RaftRequests.CommonResponse parseDelimitedFrom(java.io.InputStream input)
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse parseDelimitedFrom(java.io.InputStream input)
         throws java.io.IOException {
       return PARSER.parseDelimitedFrom(input);
     }
-    public static RaftRequests.CommonResponse parseDelimitedFrom(
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse parseDelimitedFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return PARSER.parseDelimitedFrom(input, extensionRegistry);
     }
-    public static RaftRequests.CommonResponse parseFrom(
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse parseFrom(
         com.google.protobuf.CodedInputStream input)
         throws java.io.IOException {
       return PARSER.parseFrom(input);
     }
-    public static RaftRequests.CommonResponse parseFrom(
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse parseFrom(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
@@ -1724,7 +1732,7 @@ public final class RaftRequests {
 
     public static Builder newBuilder() { return Builder.create(); }
     public Builder newBuilderForType() { return newBuilder(); }
-    public static Builder newBuilder(RaftRequests.CommonResponse prototype) {
+    public static Builder newBuilder(com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse prototype) {
       return newBuilder().mergeFrom(prototype);
     }
     public Builder toBuilder() { return newBuilder(this); }
@@ -1736,21 +1744,21 @@ public final class RaftRequests {
       return builder;
     }
     /**
-     * Protobuf type {@code com.baidu.hugegraph.backend.store.raft.CommonResponse}
+     * Protobuf type {@code com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse}
      */
     public static final class Builder extends
         com.google.protobuf.GeneratedMessage.Builder<Builder>
-       implements RaftRequests.CommonResponseOrBuilder {
+       implements com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponseOrBuilder {
       public static final com.google.protobuf.Descriptors.Descriptor
           getDescriptor() {
-        return RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_CommonResponse_descriptor;
+        return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_CommonResponse_descriptor;
       }
 
       protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
           internalGetFieldAccessorTable() {
-        return RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_CommonResponse_fieldAccessorTable
+        return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_CommonResponse_fieldAccessorTable
             .ensureFieldAccessorsInitialized(
-                    RaftRequests.CommonResponse.class, RaftRequests.CommonResponse.Builder.class);
+                com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse.class, com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse.Builder.class);
       }
 
       // Construct using com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse.newBuilder()
@@ -1786,23 +1794,23 @@ public final class RaftRequests {
 
       public com.google.protobuf.Descriptors.Descriptor
           getDescriptorForType() {
-        return RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_CommonResponse_descriptor;
+        return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_CommonResponse_descriptor;
       }
 
-      public RaftRequests.CommonResponse getDefaultInstanceForType() {
-        return RaftRequests.CommonResponse.getDefaultInstance();
+      public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse getDefaultInstanceForType() {
+        return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse.getDefaultInstance();
       }
 
-      public RaftRequests.CommonResponse build() {
-        RaftRequests.CommonResponse result = buildPartial();
+      public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse build() {
+        com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse result = buildPartial();
         if (!result.isInitialized()) {
           throw newUninitializedMessageException(result);
         }
         return result;
       }
 
-      public RaftRequests.CommonResponse buildPartial() {
-        RaftRequests.CommonResponse result = new RaftRequests.CommonResponse(this);
+      public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse buildPartial() {
+        com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse result = new com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse(this);
         int from_bitField0_ = bitField0_;
         int to_bitField0_ = 0;
         if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
@@ -1819,16 +1827,16 @@ public final class RaftRequests {
       }
 
       public Builder mergeFrom(com.google.protobuf.Message other) {
-        if (other instanceof RaftRequests.CommonResponse) {
-          return mergeFrom((RaftRequests.CommonResponse)other);
+        if (other instanceof com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse) {
+          return mergeFrom((com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse)other);
         } else {
           super.mergeFrom(other);
           return this;
         }
       }
 
-      public Builder mergeFrom(RaftRequests.CommonResponse other) {
-        if (other == RaftRequests.CommonResponse.getDefaultInstance()) return this;
+      public Builder mergeFrom(com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse other) {
+        if (other == com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse.getDefaultInstance()) return this;
         if (other.hasStatus()) {
           setStatus(other.getStatus());
         }
@@ -1843,7 +1851,7 @@ public final class RaftRequests {
 
       public final boolean isInitialized() {
         if (!hasStatus()) {
-
+          
           return false;
         }
         return true;
@@ -1853,11 +1861,11 @@ public final class RaftRequests {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        RaftRequests.CommonResponse parsedMessage = null;
+        com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse parsedMessage = null;
         try {
           parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (RaftRequests.CommonResponse) e.getUnfinishedMessage();
+          parsedMessage = (com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse) e.getUnfinishedMessage();
           throw e;
         } finally {
           if (parsedMessage != null) {
@@ -1930,7 +1938,7 @@ public final class RaftRequests {
           getMessageBytes() {
         java.lang.Object ref = message_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b =
+          com.google.protobuf.ByteString b = 
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           message_ = b;
@@ -1975,7 +1983,7 @@ public final class RaftRequests {
         return this;
       }
 
-      // @@protoc_insertion_point(builder_scope:com.baidu.hugegraph.backend.store.raft.CommonResponse)
+      // @@protoc_insertion_point(builder_scope:com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse)
     }
 
     static {
@@ -1983,14 +1991,14 @@ public final class RaftRequests {
       defaultInstance.initFields();
     }
 
-    // @@protoc_insertion_point(class_scope:com.baidu.hugegraph.backend.store.raft.CommonResponse)
+    // @@protoc_insertion_point(class_scope:com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse)
   }
 
   public interface ListPeersRequestOrBuilder
       extends com.google.protobuf.MessageOrBuilder {
   }
   /**
-   * Protobuf type {@code com.baidu.hugegraph.backend.store.raft.ListPeersRequest}
+   * Protobuf type {@code com.baidu.hugegraph.backend.store.raft.rpc.ListPeersRequest}
    */
   public static final class ListPeersRequest extends
       com.google.protobuf.GeneratedMessage
@@ -2053,14 +2061,14 @@ public final class RaftRequests {
     }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
-      return RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_ListPeersRequest_descriptor;
+      return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_ListPeersRequest_descriptor;
     }
 
     protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
         internalGetFieldAccessorTable() {
-      return RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_ListPeersRequest_fieldAccessorTable
+      return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_ListPeersRequest_fieldAccessorTable
           .ensureFieldAccessorsInitialized(
-                  RaftRequests.ListPeersRequest.class, RaftRequests.ListPeersRequest.Builder.class);
+              com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersRequest.class, com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersRequest.Builder.class);
     }
 
     public static com.google.protobuf.Parser<ListPeersRequest> PARSER =
@@ -2113,53 +2121,53 @@ public final class RaftRequests {
       return super.writeReplace();
     }
 
-    public static RaftRequests.ListPeersRequest parseFrom(
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersRequest parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
-    public static RaftRequests.ListPeersRequest parseFrom(
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersRequest parseFrom(
         com.google.protobuf.ByteString data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
-    public static RaftRequests.ListPeersRequest parseFrom(byte[] data)
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersRequest parseFrom(byte[] data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
-    public static RaftRequests.ListPeersRequest parseFrom(
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersRequest parseFrom(
         byte[] data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
-    public static RaftRequests.ListPeersRequest parseFrom(java.io.InputStream input)
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersRequest parseFrom(java.io.InputStream input)
         throws java.io.IOException {
       return PARSER.parseFrom(input);
     }
-    public static RaftRequests.ListPeersRequest parseFrom(
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersRequest parseFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return PARSER.parseFrom(input, extensionRegistry);
     }
-    public static RaftRequests.ListPeersRequest parseDelimitedFrom(java.io.InputStream input)
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersRequest parseDelimitedFrom(java.io.InputStream input)
         throws java.io.IOException {
       return PARSER.parseDelimitedFrom(input);
     }
-    public static RaftRequests.ListPeersRequest parseDelimitedFrom(
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersRequest parseDelimitedFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return PARSER.parseDelimitedFrom(input, extensionRegistry);
     }
-    public static RaftRequests.ListPeersRequest parseFrom(
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersRequest parseFrom(
         com.google.protobuf.CodedInputStream input)
         throws java.io.IOException {
       return PARSER.parseFrom(input);
     }
-    public static RaftRequests.ListPeersRequest parseFrom(
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersRequest parseFrom(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
@@ -2168,7 +2176,7 @@ public final class RaftRequests {
 
     public static Builder newBuilder() { return Builder.create(); }
     public Builder newBuilderForType() { return newBuilder(); }
-    public static Builder newBuilder(RaftRequests.ListPeersRequest prototype) {
+    public static Builder newBuilder(com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersRequest prototype) {
       return newBuilder().mergeFrom(prototype);
     }
     public Builder toBuilder() { return newBuilder(this); }
@@ -2180,21 +2188,21 @@ public final class RaftRequests {
       return builder;
     }
     /**
-     * Protobuf type {@code com.baidu.hugegraph.backend.store.raft.ListPeersRequest}
+     * Protobuf type {@code com.baidu.hugegraph.backend.store.raft.rpc.ListPeersRequest}
      */
     public static final class Builder extends
         com.google.protobuf.GeneratedMessage.Builder<Builder>
-       implements RaftRequests.ListPeersRequestOrBuilder {
+       implements com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersRequestOrBuilder {
       public static final com.google.protobuf.Descriptors.Descriptor
           getDescriptor() {
-        return RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_ListPeersRequest_descriptor;
+        return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_ListPeersRequest_descriptor;
       }
 
       protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
           internalGetFieldAccessorTable() {
-        return RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_ListPeersRequest_fieldAccessorTable
+        return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_ListPeersRequest_fieldAccessorTable
             .ensureFieldAccessorsInitialized(
-                    RaftRequests.ListPeersRequest.class, RaftRequests.ListPeersRequest.Builder.class);
+                com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersRequest.class, com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersRequest.Builder.class);
       }
 
       // Construct using com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersRequest.newBuilder()
@@ -2226,38 +2234,38 @@ public final class RaftRequests {
 
       public com.google.protobuf.Descriptors.Descriptor
           getDescriptorForType() {
-        return RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_ListPeersRequest_descriptor;
+        return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_ListPeersRequest_descriptor;
       }
 
-      public RaftRequests.ListPeersRequest getDefaultInstanceForType() {
-        return RaftRequests.ListPeersRequest.getDefaultInstance();
+      public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersRequest getDefaultInstanceForType() {
+        return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersRequest.getDefaultInstance();
       }
 
-      public RaftRequests.ListPeersRequest build() {
-        RaftRequests.ListPeersRequest result = buildPartial();
+      public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersRequest build() {
+        com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersRequest result = buildPartial();
         if (!result.isInitialized()) {
           throw newUninitializedMessageException(result);
         }
         return result;
       }
 
-      public RaftRequests.ListPeersRequest buildPartial() {
-        RaftRequests.ListPeersRequest result = new RaftRequests.ListPeersRequest(this);
+      public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersRequest buildPartial() {
+        com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersRequest result = new com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersRequest(this);
         onBuilt();
         return result;
       }
 
       public Builder mergeFrom(com.google.protobuf.Message other) {
-        if (other instanceof RaftRequests.ListPeersRequest) {
-          return mergeFrom((RaftRequests.ListPeersRequest)other);
+        if (other instanceof com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersRequest) {
+          return mergeFrom((com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersRequest)other);
         } else {
           super.mergeFrom(other);
           return this;
         }
       }
 
-      public Builder mergeFrom(RaftRequests.ListPeersRequest other) {
-        if (other == RaftRequests.ListPeersRequest.getDefaultInstance()) return this;
+      public Builder mergeFrom(com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersRequest other) {
+        if (other == com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersRequest.getDefaultInstance()) return this;
         this.mergeUnknownFields(other.getUnknownFields());
         return this;
       }
@@ -2270,11 +2278,11 @@ public final class RaftRequests {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        RaftRequests.ListPeersRequest parsedMessage = null;
+        com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersRequest parsedMessage = null;
         try {
           parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (RaftRequests.ListPeersRequest) e.getUnfinishedMessage();
+          parsedMessage = (com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersRequest) e.getUnfinishedMessage();
           throw e;
         } finally {
           if (parsedMessage != null) {
@@ -2284,7 +2292,7 @@ public final class RaftRequests {
         return this;
       }
 
-      // @@protoc_insertion_point(builder_scope:com.baidu.hugegraph.backend.store.raft.ListPeersRequest)
+      // @@protoc_insertion_point(builder_scope:com.baidu.hugegraph.backend.store.raft.rpc.ListPeersRequest)
     }
 
     static {
@@ -2292,25 +2300,25 @@ public final class RaftRequests {
       defaultInstance.initFields();
     }
 
-    // @@protoc_insertion_point(class_scope:com.baidu.hugegraph.backend.store.raft.ListPeersRequest)
+    // @@protoc_insertion_point(class_scope:com.baidu.hugegraph.backend.store.raft.rpc.ListPeersRequest)
   }
 
   public interface ListPeersResponseOrBuilder
       extends com.google.protobuf.MessageOrBuilder {
 
-    // required .com.baidu.hugegraph.backend.store.raft.CommonResponse common = 1;
+    // required .com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse common = 1;
     /**
-     * <code>required .com.baidu.hugegraph.backend.store.raft.CommonResponse common = 1;</code>
+     * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse common = 1;</code>
      */
     boolean hasCommon();
     /**
-     * <code>required .com.baidu.hugegraph.backend.store.raft.CommonResponse common = 1;</code>
+     * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse common = 1;</code>
      */
-    RaftRequests.CommonResponse getCommon();
+    com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse getCommon();
     /**
-     * <code>required .com.baidu.hugegraph.backend.store.raft.CommonResponse common = 1;</code>
+     * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse common = 1;</code>
      */
-    RaftRequests.CommonResponseOrBuilder getCommonOrBuilder();
+    com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponseOrBuilder getCommonOrBuilder();
 
     // repeated string endpoints = 2;
     /**
@@ -2333,7 +2341,7 @@ public final class RaftRequests {
         getEndpointsBytes(int index);
   }
   /**
-   * Protobuf type {@code com.baidu.hugegraph.backend.store.raft.ListPeersResponse}
+   * Protobuf type {@code com.baidu.hugegraph.backend.store.raft.rpc.ListPeersResponse}
    */
   public static final class ListPeersResponse extends
       com.google.protobuf.GeneratedMessage
@@ -2384,11 +2392,11 @@ public final class RaftRequests {
               break;
             }
             case 10: {
-              RaftRequests.CommonResponse.Builder subBuilder = null;
+              com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse.Builder subBuilder = null;
               if (((bitField0_ & 0x00000001) == 0x00000001)) {
                 subBuilder = common_.toBuilder();
               }
-              common_ = input.readMessage(RaftRequests.CommonResponse.PARSER, extensionRegistry);
+              common_ = input.readMessage(com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse.PARSER, extensionRegistry);
               if (subBuilder != null) {
                 subBuilder.mergeFrom(common_);
                 common_ = subBuilder.buildPartial();
@@ -2421,14 +2429,14 @@ public final class RaftRequests {
     }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
-      return RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_ListPeersResponse_descriptor;
+      return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_ListPeersResponse_descriptor;
     }
 
     protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
         internalGetFieldAccessorTable() {
-      return RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_ListPeersResponse_fieldAccessorTable
+      return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_ListPeersResponse_fieldAccessorTable
           .ensureFieldAccessorsInitialized(
-                  RaftRequests.ListPeersResponse.class, RaftRequests.ListPeersResponse.Builder.class);
+              com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersResponse.class, com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersResponse.Builder.class);
     }
 
     public static com.google.protobuf.Parser<ListPeersResponse> PARSER =
@@ -2447,25 +2455,25 @@ public final class RaftRequests {
     }
 
     private int bitField0_;
-    // required .com.baidu.hugegraph.backend.store.raft.CommonResponse common = 1;
+    // required .com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse common = 1;
     public static final int COMMON_FIELD_NUMBER = 1;
-    private RaftRequests.CommonResponse common_;
+    private com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse common_;
     /**
-     * <code>required .com.baidu.hugegraph.backend.store.raft.CommonResponse common = 1;</code>
+     * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse common = 1;</code>
      */
     public boolean hasCommon() {
       return ((bitField0_ & 0x00000001) == 0x00000001);
     }
     /**
-     * <code>required .com.baidu.hugegraph.backend.store.raft.CommonResponse common = 1;</code>
+     * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse common = 1;</code>
      */
-    public RaftRequests.CommonResponse getCommon() {
+    public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse getCommon() {
       return common_;
     }
     /**
-     * <code>required .com.baidu.hugegraph.backend.store.raft.CommonResponse common = 1;</code>
+     * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse common = 1;</code>
      */
-    public RaftRequests.CommonResponseOrBuilder getCommonOrBuilder() {
+    public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponseOrBuilder getCommonOrBuilder() {
       return common_;
     }
 
@@ -2500,7 +2508,7 @@ public final class RaftRequests {
     }
 
     private void initFields() {
-      common_ = RaftRequests.CommonResponse.getDefaultInstance();
+      common_ = com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse.getDefaultInstance();
       endpoints_ = com.google.protobuf.LazyStringArrayList.EMPTY;
     }
     private byte memoizedIsInitialized = -1;
@@ -2563,53 +2571,53 @@ public final class RaftRequests {
       return super.writeReplace();
     }
 
-    public static RaftRequests.ListPeersResponse parseFrom(
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersResponse parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
-    public static RaftRequests.ListPeersResponse parseFrom(
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersResponse parseFrom(
         com.google.protobuf.ByteString data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
-    public static RaftRequests.ListPeersResponse parseFrom(byte[] data)
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersResponse parseFrom(byte[] data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
-    public static RaftRequests.ListPeersResponse parseFrom(
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersResponse parseFrom(
         byte[] data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
-    public static RaftRequests.ListPeersResponse parseFrom(java.io.InputStream input)
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersResponse parseFrom(java.io.InputStream input)
         throws java.io.IOException {
       return PARSER.parseFrom(input);
     }
-    public static RaftRequests.ListPeersResponse parseFrom(
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersResponse parseFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return PARSER.parseFrom(input, extensionRegistry);
     }
-    public static RaftRequests.ListPeersResponse parseDelimitedFrom(java.io.InputStream input)
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersResponse parseDelimitedFrom(java.io.InputStream input)
         throws java.io.IOException {
       return PARSER.parseDelimitedFrom(input);
     }
-    public static RaftRequests.ListPeersResponse parseDelimitedFrom(
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersResponse parseDelimitedFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return PARSER.parseDelimitedFrom(input, extensionRegistry);
     }
-    public static RaftRequests.ListPeersResponse parseFrom(
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersResponse parseFrom(
         com.google.protobuf.CodedInputStream input)
         throws java.io.IOException {
       return PARSER.parseFrom(input);
     }
-    public static RaftRequests.ListPeersResponse parseFrom(
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersResponse parseFrom(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
@@ -2618,7 +2626,7 @@ public final class RaftRequests {
 
     public static Builder newBuilder() { return Builder.create(); }
     public Builder newBuilderForType() { return newBuilder(); }
-    public static Builder newBuilder(RaftRequests.ListPeersResponse prototype) {
+    public static Builder newBuilder(com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersResponse prototype) {
       return newBuilder().mergeFrom(prototype);
     }
     public Builder toBuilder() { return newBuilder(this); }
@@ -2630,21 +2638,21 @@ public final class RaftRequests {
       return builder;
     }
     /**
-     * Protobuf type {@code com.baidu.hugegraph.backend.store.raft.ListPeersResponse}
+     * Protobuf type {@code com.baidu.hugegraph.backend.store.raft.rpc.ListPeersResponse}
      */
     public static final class Builder extends
         com.google.protobuf.GeneratedMessage.Builder<Builder>
-       implements RaftRequests.ListPeersResponseOrBuilder {
+       implements com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersResponseOrBuilder {
       public static final com.google.protobuf.Descriptors.Descriptor
           getDescriptor() {
-        return RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_ListPeersResponse_descriptor;
+        return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_ListPeersResponse_descriptor;
       }
 
       protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
           internalGetFieldAccessorTable() {
-        return RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_ListPeersResponse_fieldAccessorTable
+        return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_ListPeersResponse_fieldAccessorTable
             .ensureFieldAccessorsInitialized(
-                    RaftRequests.ListPeersResponse.class, RaftRequests.ListPeersResponse.Builder.class);
+                com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersResponse.class, com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersResponse.Builder.class);
       }
 
       // Construct using com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersResponse.newBuilder()
@@ -2669,7 +2677,7 @@ public final class RaftRequests {
       public Builder clear() {
         super.clear();
         if (commonBuilder_ == null) {
-          common_ = RaftRequests.CommonResponse.getDefaultInstance();
+          common_ = com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse.getDefaultInstance();
         } else {
           commonBuilder_.clear();
         }
@@ -2685,23 +2693,23 @@ public final class RaftRequests {
 
       public com.google.protobuf.Descriptors.Descriptor
           getDescriptorForType() {
-        return RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_ListPeersResponse_descriptor;
+        return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_ListPeersResponse_descriptor;
       }
 
-      public RaftRequests.ListPeersResponse getDefaultInstanceForType() {
-        return RaftRequests.ListPeersResponse.getDefaultInstance();
+      public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersResponse getDefaultInstanceForType() {
+        return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersResponse.getDefaultInstance();
       }
 
-      public RaftRequests.ListPeersResponse build() {
-        RaftRequests.ListPeersResponse result = buildPartial();
+      public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersResponse build() {
+        com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersResponse result = buildPartial();
         if (!result.isInitialized()) {
           throw newUninitializedMessageException(result);
         }
         return result;
       }
 
-      public RaftRequests.ListPeersResponse buildPartial() {
-        RaftRequests.ListPeersResponse result = new RaftRequests.ListPeersResponse(this);
+      public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersResponse buildPartial() {
+        com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersResponse result = new com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersResponse(this);
         int from_bitField0_ = bitField0_;
         int to_bitField0_ = 0;
         if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
@@ -2724,16 +2732,16 @@ public final class RaftRequests {
       }
 
       public Builder mergeFrom(com.google.protobuf.Message other) {
-        if (other instanceof RaftRequests.ListPeersResponse) {
-          return mergeFrom((RaftRequests.ListPeersResponse)other);
+        if (other instanceof com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersResponse) {
+          return mergeFrom((com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersResponse)other);
         } else {
           super.mergeFrom(other);
           return this;
         }
       }
 
-      public Builder mergeFrom(RaftRequests.ListPeersResponse other) {
-        if (other == RaftRequests.ListPeersResponse.getDefaultInstance()) return this;
+      public Builder mergeFrom(com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersResponse other) {
+        if (other == com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersResponse.getDefaultInstance()) return this;
         if (other.hasCommon()) {
           mergeCommon(other.getCommon());
         }
@@ -2753,11 +2761,11 @@ public final class RaftRequests {
 
       public final boolean isInitialized() {
         if (!hasCommon()) {
-
+          
           return false;
         }
         if (!getCommon().isInitialized()) {
-
+          
           return false;
         }
         return true;
@@ -2767,11 +2775,11 @@ public final class RaftRequests {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        RaftRequests.ListPeersResponse parsedMessage = null;
+        com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersResponse parsedMessage = null;
         try {
           parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (RaftRequests.ListPeersResponse) e.getUnfinishedMessage();
+          parsedMessage = (com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersResponse) e.getUnfinishedMessage();
           throw e;
         } finally {
           if (parsedMessage != null) {
@@ -2782,20 +2790,20 @@ public final class RaftRequests {
       }
       private int bitField0_;
 
-      // required .com.baidu.hugegraph.backend.store.raft.CommonResponse common = 1;
-      private RaftRequests.CommonResponse common_ = RaftRequests.CommonResponse.getDefaultInstance();
+      // required .com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse common = 1;
+      private com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse common_ = com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse.getDefaultInstance();
       private com.google.protobuf.SingleFieldBuilder<
-          RaftRequests.CommonResponse, RaftRequests.CommonResponse.Builder, RaftRequests.CommonResponseOrBuilder> commonBuilder_;
+          com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse, com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse.Builder, com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponseOrBuilder> commonBuilder_;
       /**
-       * <code>required .com.baidu.hugegraph.backend.store.raft.CommonResponse common = 1;</code>
+       * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse common = 1;</code>
        */
       public boolean hasCommon() {
         return ((bitField0_ & 0x00000001) == 0x00000001);
       }
       /**
-       * <code>required .com.baidu.hugegraph.backend.store.raft.CommonResponse common = 1;</code>
+       * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse common = 1;</code>
        */
-      public RaftRequests.CommonResponse getCommon() {
+      public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse getCommon() {
         if (commonBuilder_ == null) {
           return common_;
         } else {
@@ -2803,9 +2811,9 @@ public final class RaftRequests {
         }
       }
       /**
-       * <code>required .com.baidu.hugegraph.backend.store.raft.CommonResponse common = 1;</code>
+       * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse common = 1;</code>
        */
-      public Builder setCommon(RaftRequests.CommonResponse value) {
+      public Builder setCommon(com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse value) {
         if (commonBuilder_ == null) {
           if (value == null) {
             throw new NullPointerException();
@@ -2819,10 +2827,10 @@ public final class RaftRequests {
         return this;
       }
       /**
-       * <code>required .com.baidu.hugegraph.backend.store.raft.CommonResponse common = 1;</code>
+       * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse common = 1;</code>
        */
       public Builder setCommon(
-          RaftRequests.CommonResponse.Builder builderForValue) {
+          com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse.Builder builderForValue) {
         if (commonBuilder_ == null) {
           common_ = builderForValue.build();
           onChanged();
@@ -2833,14 +2841,14 @@ public final class RaftRequests {
         return this;
       }
       /**
-       * <code>required .com.baidu.hugegraph.backend.store.raft.CommonResponse common = 1;</code>
+       * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse common = 1;</code>
        */
-      public Builder mergeCommon(RaftRequests.CommonResponse value) {
+      public Builder mergeCommon(com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse value) {
         if (commonBuilder_ == null) {
           if (((bitField0_ & 0x00000001) == 0x00000001) &&
-              common_ != RaftRequests.CommonResponse.getDefaultInstance()) {
+              common_ != com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse.getDefaultInstance()) {
             common_ =
-              RaftRequests.CommonResponse.newBuilder(common_).mergeFrom(value).buildPartial();
+              com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse.newBuilder(common_).mergeFrom(value).buildPartial();
           } else {
             common_ = value;
           }
@@ -2852,11 +2860,11 @@ public final class RaftRequests {
         return this;
       }
       /**
-       * <code>required .com.baidu.hugegraph.backend.store.raft.CommonResponse common = 1;</code>
+       * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse common = 1;</code>
        */
       public Builder clearCommon() {
         if (commonBuilder_ == null) {
-          common_ = RaftRequests.CommonResponse.getDefaultInstance();
+          common_ = com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse.getDefaultInstance();
           onChanged();
         } else {
           commonBuilder_.clear();
@@ -2865,17 +2873,17 @@ public final class RaftRequests {
         return this;
       }
       /**
-       * <code>required .com.baidu.hugegraph.backend.store.raft.CommonResponse common = 1;</code>
+       * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse common = 1;</code>
        */
-      public RaftRequests.CommonResponse.Builder getCommonBuilder() {
+      public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse.Builder getCommonBuilder() {
         bitField0_ |= 0x00000001;
         onChanged();
         return getCommonFieldBuilder().getBuilder();
       }
       /**
-       * <code>required .com.baidu.hugegraph.backend.store.raft.CommonResponse common = 1;</code>
+       * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse common = 1;</code>
        */
-      public RaftRequests.CommonResponseOrBuilder getCommonOrBuilder() {
+      public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponseOrBuilder getCommonOrBuilder() {
         if (commonBuilder_ != null) {
           return commonBuilder_.getMessageOrBuilder();
         } else {
@@ -2883,14 +2891,14 @@ public final class RaftRequests {
         }
       }
       /**
-       * <code>required .com.baidu.hugegraph.backend.store.raft.CommonResponse common = 1;</code>
+       * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse common = 1;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
-          RaftRequests.CommonResponse, RaftRequests.CommonResponse.Builder, RaftRequests.CommonResponseOrBuilder>
+          com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse, com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse.Builder, com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponseOrBuilder> 
           getCommonFieldBuilder() {
         if (commonBuilder_ == null) {
           commonBuilder_ = new com.google.protobuf.SingleFieldBuilder<
-              RaftRequests.CommonResponse, RaftRequests.CommonResponse.Builder, RaftRequests.CommonResponseOrBuilder>(
+              com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse, com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse.Builder, com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponseOrBuilder>(
                   common_,
                   getParentForChildren(),
                   isClean());
@@ -2992,7 +3000,7 @@ public final class RaftRequests {
         return this;
       }
 
-      // @@protoc_insertion_point(builder_scope:com.baidu.hugegraph.backend.store.raft.ListPeersResponse)
+      // @@protoc_insertion_point(builder_scope:com.baidu.hugegraph.backend.store.raft.rpc.ListPeersResponse)
     }
 
     static {
@@ -3000,7 +3008,7 @@ public final class RaftRequests {
       defaultInstance.initFields();
     }
 
-    // @@protoc_insertion_point(class_scope:com.baidu.hugegraph.backend.store.raft.ListPeersResponse)
+    // @@protoc_insertion_point(class_scope:com.baidu.hugegraph.backend.store.raft.rpc.ListPeersResponse)
   }
 
   public interface SetLeaderRequestOrBuilder
@@ -3022,7 +3030,7 @@ public final class RaftRequests {
         getEndpointBytes();
   }
   /**
-   * Protobuf type {@code com.baidu.hugegraph.backend.store.raft.SetLeaderRequest}
+   * Protobuf type {@code com.baidu.hugegraph.backend.store.raft.rpc.SetLeaderRequest}
    */
   public static final class SetLeaderRequest extends
       com.google.protobuf.GeneratedMessage
@@ -3091,14 +3099,14 @@ public final class RaftRequests {
     }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
-      return RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_SetLeaderRequest_descriptor;
+      return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_SetLeaderRequest_descriptor;
     }
 
     protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
         internalGetFieldAccessorTable() {
-      return RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_SetLeaderRequest_fieldAccessorTable
+      return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_SetLeaderRequest_fieldAccessorTable
           .ensureFieldAccessorsInitialized(
-                  RaftRequests.SetLeaderRequest.class, RaftRequests.SetLeaderRequest.Builder.class);
+              com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderRequest.class, com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderRequest.Builder.class);
     }
 
     public static com.google.protobuf.Parser<SetLeaderRequest> PARSER =
@@ -3134,7 +3142,7 @@ public final class RaftRequests {
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs =
+        com.google.protobuf.ByteString bs = 
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         if (bs.isValidUtf8()) {
@@ -3150,7 +3158,7 @@ public final class RaftRequests {
         getEndpointBytes() {
       java.lang.Object ref = endpoint_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b =
+        com.google.protobuf.ByteString b = 
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         endpoint_ = b;
@@ -3207,53 +3215,53 @@ public final class RaftRequests {
       return super.writeReplace();
     }
 
-    public static RaftRequests.SetLeaderRequest parseFrom(
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderRequest parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
-    public static RaftRequests.SetLeaderRequest parseFrom(
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderRequest parseFrom(
         com.google.protobuf.ByteString data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
-    public static RaftRequests.SetLeaderRequest parseFrom(byte[] data)
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderRequest parseFrom(byte[] data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
-    public static RaftRequests.SetLeaderRequest parseFrom(
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderRequest parseFrom(
         byte[] data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
-    public static RaftRequests.SetLeaderRequest parseFrom(java.io.InputStream input)
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderRequest parseFrom(java.io.InputStream input)
         throws java.io.IOException {
       return PARSER.parseFrom(input);
     }
-    public static RaftRequests.SetLeaderRequest parseFrom(
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderRequest parseFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return PARSER.parseFrom(input, extensionRegistry);
     }
-    public static RaftRequests.SetLeaderRequest parseDelimitedFrom(java.io.InputStream input)
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderRequest parseDelimitedFrom(java.io.InputStream input)
         throws java.io.IOException {
       return PARSER.parseDelimitedFrom(input);
     }
-    public static RaftRequests.SetLeaderRequest parseDelimitedFrom(
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderRequest parseDelimitedFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return PARSER.parseDelimitedFrom(input, extensionRegistry);
     }
-    public static RaftRequests.SetLeaderRequest parseFrom(
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderRequest parseFrom(
         com.google.protobuf.CodedInputStream input)
         throws java.io.IOException {
       return PARSER.parseFrom(input);
     }
-    public static RaftRequests.SetLeaderRequest parseFrom(
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderRequest parseFrom(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
@@ -3262,7 +3270,7 @@ public final class RaftRequests {
 
     public static Builder newBuilder() { return Builder.create(); }
     public Builder newBuilderForType() { return newBuilder(); }
-    public static Builder newBuilder(RaftRequests.SetLeaderRequest prototype) {
+    public static Builder newBuilder(com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderRequest prototype) {
       return newBuilder().mergeFrom(prototype);
     }
     public Builder toBuilder() { return newBuilder(this); }
@@ -3274,21 +3282,21 @@ public final class RaftRequests {
       return builder;
     }
     /**
-     * Protobuf type {@code com.baidu.hugegraph.backend.store.raft.SetLeaderRequest}
+     * Protobuf type {@code com.baidu.hugegraph.backend.store.raft.rpc.SetLeaderRequest}
      */
     public static final class Builder extends
         com.google.protobuf.GeneratedMessage.Builder<Builder>
-       implements RaftRequests.SetLeaderRequestOrBuilder {
+       implements com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderRequestOrBuilder {
       public static final com.google.protobuf.Descriptors.Descriptor
           getDescriptor() {
-        return RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_SetLeaderRequest_descriptor;
+        return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_SetLeaderRequest_descriptor;
       }
 
       protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
           internalGetFieldAccessorTable() {
-        return RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_SetLeaderRequest_fieldAccessorTable
+        return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_SetLeaderRequest_fieldAccessorTable
             .ensureFieldAccessorsInitialized(
-                    RaftRequests.SetLeaderRequest.class, RaftRequests.SetLeaderRequest.Builder.class);
+                com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderRequest.class, com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderRequest.Builder.class);
       }
 
       // Construct using com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderRequest.newBuilder()
@@ -3322,23 +3330,23 @@ public final class RaftRequests {
 
       public com.google.protobuf.Descriptors.Descriptor
           getDescriptorForType() {
-        return RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_SetLeaderRequest_descriptor;
+        return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_SetLeaderRequest_descriptor;
       }
 
-      public RaftRequests.SetLeaderRequest getDefaultInstanceForType() {
-        return RaftRequests.SetLeaderRequest.getDefaultInstance();
+      public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderRequest getDefaultInstanceForType() {
+        return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderRequest.getDefaultInstance();
       }
 
-      public RaftRequests.SetLeaderRequest build() {
-        RaftRequests.SetLeaderRequest result = buildPartial();
+      public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderRequest build() {
+        com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderRequest result = buildPartial();
         if (!result.isInitialized()) {
           throw newUninitializedMessageException(result);
         }
         return result;
       }
 
-      public RaftRequests.SetLeaderRequest buildPartial() {
-        RaftRequests.SetLeaderRequest result = new RaftRequests.SetLeaderRequest(this);
+      public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderRequest buildPartial() {
+        com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderRequest result = new com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderRequest(this);
         int from_bitField0_ = bitField0_;
         int to_bitField0_ = 0;
         if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
@@ -3351,16 +3359,16 @@ public final class RaftRequests {
       }
 
       public Builder mergeFrom(com.google.protobuf.Message other) {
-        if (other instanceof RaftRequests.SetLeaderRequest) {
-          return mergeFrom((RaftRequests.SetLeaderRequest)other);
+        if (other instanceof com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderRequest) {
+          return mergeFrom((com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderRequest)other);
         } else {
           super.mergeFrom(other);
           return this;
         }
       }
 
-      public Builder mergeFrom(RaftRequests.SetLeaderRequest other) {
-        if (other == RaftRequests.SetLeaderRequest.getDefaultInstance()) return this;
+      public Builder mergeFrom(com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderRequest other) {
+        if (other == com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderRequest.getDefaultInstance()) return this;
         if (other.hasEndpoint()) {
           bitField0_ |= 0x00000001;
           endpoint_ = other.endpoint_;
@@ -3372,7 +3380,7 @@ public final class RaftRequests {
 
       public final boolean isInitialized() {
         if (!hasEndpoint()) {
-
+          
           return false;
         }
         return true;
@@ -3382,11 +3390,11 @@ public final class RaftRequests {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        RaftRequests.SetLeaderRequest parsedMessage = null;
+        com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderRequest parsedMessage = null;
         try {
           parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (RaftRequests.SetLeaderRequest) e.getUnfinishedMessage();
+          parsedMessage = (com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderRequest) e.getUnfinishedMessage();
           throw e;
         } finally {
           if (parsedMessage != null) {
@@ -3426,7 +3434,7 @@ public final class RaftRequests {
           getEndpointBytes() {
         java.lang.Object ref = endpoint_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b =
+          com.google.protobuf.ByteString b = 
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           endpoint_ = b;
@@ -3471,7 +3479,7 @@ public final class RaftRequests {
         return this;
       }
 
-      // @@protoc_insertion_point(builder_scope:com.baidu.hugegraph.backend.store.raft.SetLeaderRequest)
+      // @@protoc_insertion_point(builder_scope:com.baidu.hugegraph.backend.store.raft.rpc.SetLeaderRequest)
     }
 
     static {
@@ -3479,28 +3487,28 @@ public final class RaftRequests {
       defaultInstance.initFields();
     }
 
-    // @@protoc_insertion_point(class_scope:com.baidu.hugegraph.backend.store.raft.SetLeaderRequest)
+    // @@protoc_insertion_point(class_scope:com.baidu.hugegraph.backend.store.raft.rpc.SetLeaderRequest)
   }
 
   public interface SetLeaderResponseOrBuilder
       extends com.google.protobuf.MessageOrBuilder {
 
-    // required .com.baidu.hugegraph.backend.store.raft.CommonResponse common = 1;
+    // required .com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse common = 1;
     /**
-     * <code>required .com.baidu.hugegraph.backend.store.raft.CommonResponse common = 1;</code>
+     * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse common = 1;</code>
      */
     boolean hasCommon();
     /**
-     * <code>required .com.baidu.hugegraph.backend.store.raft.CommonResponse common = 1;</code>
+     * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse common = 1;</code>
      */
-    RaftRequests.CommonResponse getCommon();
+    com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse getCommon();
     /**
-     * <code>required .com.baidu.hugegraph.backend.store.raft.CommonResponse common = 1;</code>
+     * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse common = 1;</code>
      */
-    RaftRequests.CommonResponseOrBuilder getCommonOrBuilder();
+    com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponseOrBuilder getCommonOrBuilder();
   }
   /**
-   * Protobuf type {@code com.baidu.hugegraph.backend.store.raft.SetLeaderResponse}
+   * Protobuf type {@code com.baidu.hugegraph.backend.store.raft.rpc.SetLeaderResponse}
    */
   public static final class SetLeaderResponse extends
       com.google.protobuf.GeneratedMessage
@@ -3551,11 +3559,11 @@ public final class RaftRequests {
               break;
             }
             case 10: {
-              RaftRequests.CommonResponse.Builder subBuilder = null;
+              com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse.Builder subBuilder = null;
               if (((bitField0_ & 0x00000001) == 0x00000001)) {
                 subBuilder = common_.toBuilder();
               }
-              common_ = input.readMessage(RaftRequests.CommonResponse.PARSER, extensionRegistry);
+              common_ = input.readMessage(com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse.PARSER, extensionRegistry);
               if (subBuilder != null) {
                 subBuilder.mergeFrom(common_);
                 common_ = subBuilder.buildPartial();
@@ -3577,14 +3585,14 @@ public final class RaftRequests {
     }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
-      return RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_SetLeaderResponse_descriptor;
+      return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_SetLeaderResponse_descriptor;
     }
 
     protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
         internalGetFieldAccessorTable() {
-      return RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_SetLeaderResponse_fieldAccessorTable
+      return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_SetLeaderResponse_fieldAccessorTable
           .ensureFieldAccessorsInitialized(
-                  RaftRequests.SetLeaderResponse.class, RaftRequests.SetLeaderResponse.Builder.class);
+              com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderResponse.class, com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderResponse.Builder.class);
     }
 
     public static com.google.protobuf.Parser<SetLeaderResponse> PARSER =
@@ -3603,30 +3611,30 @@ public final class RaftRequests {
     }
 
     private int bitField0_;
-    // required .com.baidu.hugegraph.backend.store.raft.CommonResponse common = 1;
+    // required .com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse common = 1;
     public static final int COMMON_FIELD_NUMBER = 1;
-    private RaftRequests.CommonResponse common_;
+    private com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse common_;
     /**
-     * <code>required .com.baidu.hugegraph.backend.store.raft.CommonResponse common = 1;</code>
+     * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse common = 1;</code>
      */
     public boolean hasCommon() {
       return ((bitField0_ & 0x00000001) == 0x00000001);
     }
     /**
-     * <code>required .com.baidu.hugegraph.backend.store.raft.CommonResponse common = 1;</code>
+     * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse common = 1;</code>
      */
-    public RaftRequests.CommonResponse getCommon() {
+    public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse getCommon() {
       return common_;
     }
     /**
-     * <code>required .com.baidu.hugegraph.backend.store.raft.CommonResponse common = 1;</code>
+     * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse common = 1;</code>
      */
-    public RaftRequests.CommonResponseOrBuilder getCommonOrBuilder() {
+    public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponseOrBuilder getCommonOrBuilder() {
       return common_;
     }
 
     private void initFields() {
-      common_ = RaftRequests.CommonResponse.getDefaultInstance();
+      common_ = com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse.getDefaultInstance();
     }
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
@@ -3676,53 +3684,53 @@ public final class RaftRequests {
       return super.writeReplace();
     }
 
-    public static RaftRequests.SetLeaderResponse parseFrom(
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderResponse parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
-    public static RaftRequests.SetLeaderResponse parseFrom(
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderResponse parseFrom(
         com.google.protobuf.ByteString data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
-    public static RaftRequests.SetLeaderResponse parseFrom(byte[] data)
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderResponse parseFrom(byte[] data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
-    public static RaftRequests.SetLeaderResponse parseFrom(
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderResponse parseFrom(
         byte[] data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
-    public static RaftRequests.SetLeaderResponse parseFrom(java.io.InputStream input)
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderResponse parseFrom(java.io.InputStream input)
         throws java.io.IOException {
       return PARSER.parseFrom(input);
     }
-    public static RaftRequests.SetLeaderResponse parseFrom(
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderResponse parseFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return PARSER.parseFrom(input, extensionRegistry);
     }
-    public static RaftRequests.SetLeaderResponse parseDelimitedFrom(java.io.InputStream input)
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderResponse parseDelimitedFrom(java.io.InputStream input)
         throws java.io.IOException {
       return PARSER.parseDelimitedFrom(input);
     }
-    public static RaftRequests.SetLeaderResponse parseDelimitedFrom(
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderResponse parseDelimitedFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return PARSER.parseDelimitedFrom(input, extensionRegistry);
     }
-    public static RaftRequests.SetLeaderResponse parseFrom(
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderResponse parseFrom(
         com.google.protobuf.CodedInputStream input)
         throws java.io.IOException {
       return PARSER.parseFrom(input);
     }
-    public static RaftRequests.SetLeaderResponse parseFrom(
+    public static com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderResponse parseFrom(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
@@ -3731,7 +3739,7 @@ public final class RaftRequests {
 
     public static Builder newBuilder() { return Builder.create(); }
     public Builder newBuilderForType() { return newBuilder(); }
-    public static Builder newBuilder(RaftRequests.SetLeaderResponse prototype) {
+    public static Builder newBuilder(com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderResponse prototype) {
       return newBuilder().mergeFrom(prototype);
     }
     public Builder toBuilder() { return newBuilder(this); }
@@ -3743,21 +3751,21 @@ public final class RaftRequests {
       return builder;
     }
     /**
-     * Protobuf type {@code com.baidu.hugegraph.backend.store.raft.SetLeaderResponse}
+     * Protobuf type {@code com.baidu.hugegraph.backend.store.raft.rpc.SetLeaderResponse}
      */
     public static final class Builder extends
         com.google.protobuf.GeneratedMessage.Builder<Builder>
-       implements RaftRequests.SetLeaderResponseOrBuilder {
+       implements com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderResponseOrBuilder {
       public static final com.google.protobuf.Descriptors.Descriptor
           getDescriptor() {
-        return RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_SetLeaderResponse_descriptor;
+        return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_SetLeaderResponse_descriptor;
       }
 
       protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
           internalGetFieldAccessorTable() {
-        return RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_SetLeaderResponse_fieldAccessorTable
+        return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_SetLeaderResponse_fieldAccessorTable
             .ensureFieldAccessorsInitialized(
-                    RaftRequests.SetLeaderResponse.class, RaftRequests.SetLeaderResponse.Builder.class);
+                com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderResponse.class, com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderResponse.Builder.class);
       }
 
       // Construct using com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderResponse.newBuilder()
@@ -3782,7 +3790,7 @@ public final class RaftRequests {
       public Builder clear() {
         super.clear();
         if (commonBuilder_ == null) {
-          common_ = RaftRequests.CommonResponse.getDefaultInstance();
+          common_ = com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse.getDefaultInstance();
         } else {
           commonBuilder_.clear();
         }
@@ -3796,23 +3804,23 @@ public final class RaftRequests {
 
       public com.google.protobuf.Descriptors.Descriptor
           getDescriptorForType() {
-        return RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_SetLeaderResponse_descriptor;
+        return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_SetLeaderResponse_descriptor;
       }
 
-      public RaftRequests.SetLeaderResponse getDefaultInstanceForType() {
-        return RaftRequests.SetLeaderResponse.getDefaultInstance();
+      public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderResponse getDefaultInstanceForType() {
+        return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderResponse.getDefaultInstance();
       }
 
-      public RaftRequests.SetLeaderResponse build() {
-        RaftRequests.SetLeaderResponse result = buildPartial();
+      public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderResponse build() {
+        com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderResponse result = buildPartial();
         if (!result.isInitialized()) {
           throw newUninitializedMessageException(result);
         }
         return result;
       }
 
-      public RaftRequests.SetLeaderResponse buildPartial() {
-        RaftRequests.SetLeaderResponse result = new RaftRequests.SetLeaderResponse(this);
+      public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderResponse buildPartial() {
+        com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderResponse result = new com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderResponse(this);
         int from_bitField0_ = bitField0_;
         int to_bitField0_ = 0;
         if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
@@ -3829,16 +3837,16 @@ public final class RaftRequests {
       }
 
       public Builder mergeFrom(com.google.protobuf.Message other) {
-        if (other instanceof RaftRequests.SetLeaderResponse) {
-          return mergeFrom((RaftRequests.SetLeaderResponse)other);
+        if (other instanceof com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderResponse) {
+          return mergeFrom((com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderResponse)other);
         } else {
           super.mergeFrom(other);
           return this;
         }
       }
 
-      public Builder mergeFrom(RaftRequests.SetLeaderResponse other) {
-        if (other == RaftRequests.SetLeaderResponse.getDefaultInstance()) return this;
+      public Builder mergeFrom(com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderResponse other) {
+        if (other == com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderResponse.getDefaultInstance()) return this;
         if (other.hasCommon()) {
           mergeCommon(other.getCommon());
         }
@@ -3848,11 +3856,11 @@ public final class RaftRequests {
 
       public final boolean isInitialized() {
         if (!hasCommon()) {
-
+          
           return false;
         }
         if (!getCommon().isInitialized()) {
-
+          
           return false;
         }
         return true;
@@ -3862,11 +3870,11 @@ public final class RaftRequests {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        RaftRequests.SetLeaderResponse parsedMessage = null;
+        com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderResponse parsedMessage = null;
         try {
           parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (RaftRequests.SetLeaderResponse) e.getUnfinishedMessage();
+          parsedMessage = (com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderResponse) e.getUnfinishedMessage();
           throw e;
         } finally {
           if (parsedMessage != null) {
@@ -3877,20 +3885,20 @@ public final class RaftRequests {
       }
       private int bitField0_;
 
-      // required .com.baidu.hugegraph.backend.store.raft.CommonResponse common = 1;
-      private RaftRequests.CommonResponse common_ = RaftRequests.CommonResponse.getDefaultInstance();
+      // required .com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse common = 1;
+      private com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse common_ = com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse.getDefaultInstance();
       private com.google.protobuf.SingleFieldBuilder<
-          RaftRequests.CommonResponse, RaftRequests.CommonResponse.Builder, RaftRequests.CommonResponseOrBuilder> commonBuilder_;
+          com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse, com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse.Builder, com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponseOrBuilder> commonBuilder_;
       /**
-       * <code>required .com.baidu.hugegraph.backend.store.raft.CommonResponse common = 1;</code>
+       * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse common = 1;</code>
        */
       public boolean hasCommon() {
         return ((bitField0_ & 0x00000001) == 0x00000001);
       }
       /**
-       * <code>required .com.baidu.hugegraph.backend.store.raft.CommonResponse common = 1;</code>
+       * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse common = 1;</code>
        */
-      public RaftRequests.CommonResponse getCommon() {
+      public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse getCommon() {
         if (commonBuilder_ == null) {
           return common_;
         } else {
@@ -3898,9 +3906,9 @@ public final class RaftRequests {
         }
       }
       /**
-       * <code>required .com.baidu.hugegraph.backend.store.raft.CommonResponse common = 1;</code>
+       * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse common = 1;</code>
        */
-      public Builder setCommon(RaftRequests.CommonResponse value) {
+      public Builder setCommon(com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse value) {
         if (commonBuilder_ == null) {
           if (value == null) {
             throw new NullPointerException();
@@ -3914,10 +3922,10 @@ public final class RaftRequests {
         return this;
       }
       /**
-       * <code>required .com.baidu.hugegraph.backend.store.raft.CommonResponse common = 1;</code>
+       * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse common = 1;</code>
        */
       public Builder setCommon(
-          RaftRequests.CommonResponse.Builder builderForValue) {
+          com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse.Builder builderForValue) {
         if (commonBuilder_ == null) {
           common_ = builderForValue.build();
           onChanged();
@@ -3928,14 +3936,14 @@ public final class RaftRequests {
         return this;
       }
       /**
-       * <code>required .com.baidu.hugegraph.backend.store.raft.CommonResponse common = 1;</code>
+       * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse common = 1;</code>
        */
-      public Builder mergeCommon(RaftRequests.CommonResponse value) {
+      public Builder mergeCommon(com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse value) {
         if (commonBuilder_ == null) {
           if (((bitField0_ & 0x00000001) == 0x00000001) &&
-              common_ != RaftRequests.CommonResponse.getDefaultInstance()) {
+              common_ != com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse.getDefaultInstance()) {
             common_ =
-              RaftRequests.CommonResponse.newBuilder(common_).mergeFrom(value).buildPartial();
+              com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse.newBuilder(common_).mergeFrom(value).buildPartial();
           } else {
             common_ = value;
           }
@@ -3947,11 +3955,11 @@ public final class RaftRequests {
         return this;
       }
       /**
-       * <code>required .com.baidu.hugegraph.backend.store.raft.CommonResponse common = 1;</code>
+       * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse common = 1;</code>
        */
       public Builder clearCommon() {
         if (commonBuilder_ == null) {
-          common_ = RaftRequests.CommonResponse.getDefaultInstance();
+          common_ = com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse.getDefaultInstance();
           onChanged();
         } else {
           commonBuilder_.clear();
@@ -3960,17 +3968,17 @@ public final class RaftRequests {
         return this;
       }
       /**
-       * <code>required .com.baidu.hugegraph.backend.store.raft.CommonResponse common = 1;</code>
+       * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse common = 1;</code>
        */
-      public RaftRequests.CommonResponse.Builder getCommonBuilder() {
+      public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse.Builder getCommonBuilder() {
         bitField0_ |= 0x00000001;
         onChanged();
         return getCommonFieldBuilder().getBuilder();
       }
       /**
-       * <code>required .com.baidu.hugegraph.backend.store.raft.CommonResponse common = 1;</code>
+       * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse common = 1;</code>
        */
-      public RaftRequests.CommonResponseOrBuilder getCommonOrBuilder() {
+      public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponseOrBuilder getCommonOrBuilder() {
         if (commonBuilder_ != null) {
           return commonBuilder_.getMessageOrBuilder();
         } else {
@@ -3978,14 +3986,14 @@ public final class RaftRequests {
         }
       }
       /**
-       * <code>required .com.baidu.hugegraph.backend.store.raft.CommonResponse common = 1;</code>
+       * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse common = 1;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
-          RaftRequests.CommonResponse, RaftRequests.CommonResponse.Builder, RaftRequests.CommonResponseOrBuilder>
+          com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse, com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse.Builder, com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponseOrBuilder> 
           getCommonFieldBuilder() {
         if (commonBuilder_ == null) {
           commonBuilder_ = new com.google.protobuf.SingleFieldBuilder<
-              RaftRequests.CommonResponse, RaftRequests.CommonResponse.Builder, RaftRequests.CommonResponseOrBuilder>(
+              com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse, com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse.Builder, com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponseOrBuilder>(
                   common_,
                   getParentForChildren(),
                   isClean());
@@ -3994,7 +4002,7 @@ public final class RaftRequests {
         return commonBuilder_;
       }
 
-      // @@protoc_insertion_point(builder_scope:com.baidu.hugegraph.backend.store.raft.SetLeaderResponse)
+      // @@protoc_insertion_point(builder_scope:com.baidu.hugegraph.backend.store.raft.rpc.SetLeaderResponse)
     }
 
     static {
@@ -4002,44 +4010,44 @@ public final class RaftRequests {
       defaultInstance.initFields();
     }
 
-    // @@protoc_insertion_point(class_scope:com.baidu.hugegraph.backend.store.raft.SetLeaderResponse)
+    // @@protoc_insertion_point(class_scope:com.baidu.hugegraph.backend.store.raft.rpc.SetLeaderResponse)
   }
 
   private static com.google.protobuf.Descriptors.Descriptor
-    internal_static_com_baidu_hugegraph_backend_store_raft_StoreCommandRequest_descriptor;
+    internal_static_com_baidu_hugegraph_backend_store_raft_rpc_StoreCommandRequest_descriptor;
   private static
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_com_baidu_hugegraph_backend_store_raft_StoreCommandRequest_fieldAccessorTable;
+      internal_static_com_baidu_hugegraph_backend_store_raft_rpc_StoreCommandRequest_fieldAccessorTable;
   private static com.google.protobuf.Descriptors.Descriptor
-    internal_static_com_baidu_hugegraph_backend_store_raft_StoreCommandResponse_descriptor;
+    internal_static_com_baidu_hugegraph_backend_store_raft_rpc_StoreCommandResponse_descriptor;
   private static
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_com_baidu_hugegraph_backend_store_raft_StoreCommandResponse_fieldAccessorTable;
+      internal_static_com_baidu_hugegraph_backend_store_raft_rpc_StoreCommandResponse_fieldAccessorTable;
   private static com.google.protobuf.Descriptors.Descriptor
-    internal_static_com_baidu_hugegraph_backend_store_raft_CommonResponse_descriptor;
+    internal_static_com_baidu_hugegraph_backend_store_raft_rpc_CommonResponse_descriptor;
   private static
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_com_baidu_hugegraph_backend_store_raft_CommonResponse_fieldAccessorTable;
+      internal_static_com_baidu_hugegraph_backend_store_raft_rpc_CommonResponse_fieldAccessorTable;
   private static com.google.protobuf.Descriptors.Descriptor
-    internal_static_com_baidu_hugegraph_backend_store_raft_ListPeersRequest_descriptor;
+    internal_static_com_baidu_hugegraph_backend_store_raft_rpc_ListPeersRequest_descriptor;
   private static
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_com_baidu_hugegraph_backend_store_raft_ListPeersRequest_fieldAccessorTable;
+      internal_static_com_baidu_hugegraph_backend_store_raft_rpc_ListPeersRequest_fieldAccessorTable;
   private static com.google.protobuf.Descriptors.Descriptor
-    internal_static_com_baidu_hugegraph_backend_store_raft_ListPeersResponse_descriptor;
+    internal_static_com_baidu_hugegraph_backend_store_raft_rpc_ListPeersResponse_descriptor;
   private static
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_com_baidu_hugegraph_backend_store_raft_ListPeersResponse_fieldAccessorTable;
+      internal_static_com_baidu_hugegraph_backend_store_raft_rpc_ListPeersResponse_fieldAccessorTable;
   private static com.google.protobuf.Descriptors.Descriptor
-    internal_static_com_baidu_hugegraph_backend_store_raft_SetLeaderRequest_descriptor;
+    internal_static_com_baidu_hugegraph_backend_store_raft_rpc_SetLeaderRequest_descriptor;
   private static
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_com_baidu_hugegraph_backend_store_raft_SetLeaderRequest_fieldAccessorTable;
+      internal_static_com_baidu_hugegraph_backend_store_raft_rpc_SetLeaderRequest_fieldAccessorTable;
   private static com.google.protobuf.Descriptors.Descriptor
-    internal_static_com_baidu_hugegraph_backend_store_raft_SetLeaderResponse_descriptor;
+    internal_static_com_baidu_hugegraph_backend_store_raft_rpc_SetLeaderResponse_descriptor;
   private static
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_com_baidu_hugegraph_backend_store_raft_SetLeaderResponse_fieldAccessorTable;
+      internal_static_com_baidu_hugegraph_backend_store_raft_rpc_SetLeaderResponse_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -4050,75 +4058,76 @@ public final class RaftRequests {
   static {
     java.lang.String[] descriptorData = {
       "\n,hugegraph-core/src/main/resources/raft" +
-      ".proto\022&com.baidu.hugegraph.backend.stor" +
-      "e.raft\"\251\001\n\023StoreCommandRequest\022?\n\004type\030\001" +
-      " \002(\01621.com.baidu.hugegraph.backend.store" +
-      ".raft.StoreType\022C\n\006action\030\002 \002(\01623.com.ba" +
-      "idu.hugegraph.backend.store.raft.StoreAc" +
-      "tion\022\014\n\004data\030\003 \002(\014\"7\n\024StoreCommandRespon" +
-      "se\022\016\n\006status\030\001 \002(\010\022\017\n\007message\030\002 \001(\t\"1\n\016C" +
-      "ommonResponse\022\016\n\006status\030\001 \002(\010\022\017\n\007message" +
-      "\030\002 \001(\t\"\022\n\020ListPeersRequest\"n\n\021ListPeersR",
-      "esponse\022F\n\006common\030\001 \002(\01326.com.baidu.huge" +
-      "graph.backend.store.raft.CommonResponse\022" +
-      "\021\n\tendpoints\030\002 \003(\t\"$\n\020SetLeaderRequest\022\020" +
-      "\n\010endpoint\030\001 \002(\t\"[\n\021SetLeaderResponse\022F\n" +
-      "\006common\030\001 \002(\01326.com.baidu.hugegraph.back" +
-      "end.store.raft.CommonResponse*8\n\tStoreTy" +
-      "pe\022\n\n\006SCHEMA\020\000\022\t\n\005GRAPH\020\001\022\n\n\006SYSTEM\020\002\022\010\n" +
-      "\004SIZE\020\003*\221\001\n\013StoreAction\022\010\n\004NONE\020\000\022\010\n\004INI" +
-      "T\020\001\022\t\n\005CLEAR\020\002\022\014\n\010TRUNCATE\020\003\022\014\n\010BEGIN_TX" +
-      "\020\n\022\r\n\tCOMMIT_TX\020\013\022\017\n\013ROLLBACK_TX\020\014\022\n\n\006MU",
-      "TATE\020\024\022\020\n\014INCR_COUNTER\020\025\022\t\n\005QUERY\020\036B6\n&c" +
-      "om.baidu.hugegraph.backend.store.raftB\014R" +
-      "aftRequests"
+      ".proto\022*com.baidu.hugegraph.backend.stor" +
+      "e.raft.rpc\"\261\001\n\023StoreCommandRequest\022C\n\004ty" +
+      "pe\030\001 \002(\01625.com.baidu.hugegraph.backend.s" +
+      "tore.raft.rpc.StoreType\022G\n\006action\030\002 \002(\0162" +
+      "7.com.baidu.hugegraph.backend.store.raft" +
+      ".rpc.StoreAction\022\014\n\004data\030\003 \002(\014\"7\n\024StoreC" +
+      "ommandResponse\022\016\n\006status\030\001 \002(\010\022\017\n\007messag" +
+      "e\030\002 \001(\t\"1\n\016CommonResponse\022\016\n\006status\030\001 \002(" +
+      "\010\022\017\n\007message\030\002 \001(\t\"\022\n\020ListPeersRequest\"r",
+      "\n\021ListPeersResponse\022J\n\006common\030\001 \002(\0132:.co" +
+      "m.baidu.hugegraph.backend.store.raft.rpc" +
+      ".CommonResponse\022\021\n\tendpoints\030\002 \003(\t\"$\n\020Se" +
+      "tLeaderRequest\022\020\n\010endpoint\030\001 \002(\t\"_\n\021SetL" +
+      "eaderResponse\022J\n\006common\030\001 \002(\0132:.com.baid" +
+      "u.hugegraph.backend.store.raft.rpc.Commo" +
+      "nResponse*7\n\tStoreType\022\n\n\006SCHEMA\020\000\022\t\n\005GR" +
+      "APH\020\001\022\n\n\006SYSTEM\020\002\022\007\n\003ALL\020\003*\237\001\n\013StoreActi" +
+      "on\022\010\n\004NONE\020\000\022\010\n\004INIT\020\001\022\t\n\005CLEAR\020\002\022\014\n\010TRU" +
+      "NCATE\020\003\022\014\n\010SNAPSHOT\020\004\022\014\n\010BEGIN_TX\020\n\022\r\n\tC",
+      "OMMIT_TX\020\013\022\017\n\013ROLLBACK_TX\020\014\022\n\n\006MUTATE\020\024\022" +
+      "\020\n\014INCR_COUNTER\020\025\022\t\n\005QUERY\020\036B:\n*com.baid" +
+      "u.hugegraph.backend.store.raft.rpcB\014Raft" +
+      "Requests"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
       new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {
         public com.google.protobuf.ExtensionRegistry assignDescriptors(
             com.google.protobuf.Descriptors.FileDescriptor root) {
           descriptor = root;
-          internal_static_com_baidu_hugegraph_backend_store_raft_StoreCommandRequest_descriptor =
+          internal_static_com_baidu_hugegraph_backend_store_raft_rpc_StoreCommandRequest_descriptor =
             getDescriptor().getMessageTypes().get(0);
-          internal_static_com_baidu_hugegraph_backend_store_raft_StoreCommandRequest_fieldAccessorTable = new
+          internal_static_com_baidu_hugegraph_backend_store_raft_rpc_StoreCommandRequest_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-              internal_static_com_baidu_hugegraph_backend_store_raft_StoreCommandRequest_descriptor,
+              internal_static_com_baidu_hugegraph_backend_store_raft_rpc_StoreCommandRequest_descriptor,
               new java.lang.String[] { "Type", "Action", "Data", });
-          internal_static_com_baidu_hugegraph_backend_store_raft_StoreCommandResponse_descriptor =
+          internal_static_com_baidu_hugegraph_backend_store_raft_rpc_StoreCommandResponse_descriptor =
             getDescriptor().getMessageTypes().get(1);
-          internal_static_com_baidu_hugegraph_backend_store_raft_StoreCommandResponse_fieldAccessorTable = new
+          internal_static_com_baidu_hugegraph_backend_store_raft_rpc_StoreCommandResponse_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-              internal_static_com_baidu_hugegraph_backend_store_raft_StoreCommandResponse_descriptor,
+              internal_static_com_baidu_hugegraph_backend_store_raft_rpc_StoreCommandResponse_descriptor,
               new java.lang.String[] { "Status", "Message", });
-          internal_static_com_baidu_hugegraph_backend_store_raft_CommonResponse_descriptor =
+          internal_static_com_baidu_hugegraph_backend_store_raft_rpc_CommonResponse_descriptor =
             getDescriptor().getMessageTypes().get(2);
-          internal_static_com_baidu_hugegraph_backend_store_raft_CommonResponse_fieldAccessorTable = new
+          internal_static_com_baidu_hugegraph_backend_store_raft_rpc_CommonResponse_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-              internal_static_com_baidu_hugegraph_backend_store_raft_CommonResponse_descriptor,
+              internal_static_com_baidu_hugegraph_backend_store_raft_rpc_CommonResponse_descriptor,
               new java.lang.String[] { "Status", "Message", });
-          internal_static_com_baidu_hugegraph_backend_store_raft_ListPeersRequest_descriptor =
+          internal_static_com_baidu_hugegraph_backend_store_raft_rpc_ListPeersRequest_descriptor =
             getDescriptor().getMessageTypes().get(3);
-          internal_static_com_baidu_hugegraph_backend_store_raft_ListPeersRequest_fieldAccessorTable = new
+          internal_static_com_baidu_hugegraph_backend_store_raft_rpc_ListPeersRequest_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-              internal_static_com_baidu_hugegraph_backend_store_raft_ListPeersRequest_descriptor,
+              internal_static_com_baidu_hugegraph_backend_store_raft_rpc_ListPeersRequest_descriptor,
               new java.lang.String[] { });
-          internal_static_com_baidu_hugegraph_backend_store_raft_ListPeersResponse_descriptor =
+          internal_static_com_baidu_hugegraph_backend_store_raft_rpc_ListPeersResponse_descriptor =
             getDescriptor().getMessageTypes().get(4);
-          internal_static_com_baidu_hugegraph_backend_store_raft_ListPeersResponse_fieldAccessorTable = new
+          internal_static_com_baidu_hugegraph_backend_store_raft_rpc_ListPeersResponse_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-              internal_static_com_baidu_hugegraph_backend_store_raft_ListPeersResponse_descriptor,
+              internal_static_com_baidu_hugegraph_backend_store_raft_rpc_ListPeersResponse_descriptor,
               new java.lang.String[] { "Common", "Endpoints", });
-          internal_static_com_baidu_hugegraph_backend_store_raft_SetLeaderRequest_descriptor =
+          internal_static_com_baidu_hugegraph_backend_store_raft_rpc_SetLeaderRequest_descriptor =
             getDescriptor().getMessageTypes().get(5);
-          internal_static_com_baidu_hugegraph_backend_store_raft_SetLeaderRequest_fieldAccessorTable = new
+          internal_static_com_baidu_hugegraph_backend_store_raft_rpc_SetLeaderRequest_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-              internal_static_com_baidu_hugegraph_backend_store_raft_SetLeaderRequest_descriptor,
+              internal_static_com_baidu_hugegraph_backend_store_raft_rpc_SetLeaderRequest_descriptor,
               new java.lang.String[] { "Endpoint", });
-          internal_static_com_baidu_hugegraph_backend_store_raft_SetLeaderResponse_descriptor =
+          internal_static_com_baidu_hugegraph_backend_store_raft_rpc_SetLeaderResponse_descriptor =
             getDescriptor().getMessageTypes().get(6);
-          internal_static_com_baidu_hugegraph_backend_store_raft_SetLeaderResponse_fieldAccessorTable = new
+          internal_static_com_baidu_hugegraph_backend_store_raft_rpc_SetLeaderResponse_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-              internal_static_com_baidu_hugegraph_backend_store_raft_SetLeaderResponse_descriptor,
+              internal_static_com_baidu_hugegraph_backend_store_raft_rpc_SetLeaderResponse_descriptor,
               new java.lang.String[] { "Common", });
           return null;
         }

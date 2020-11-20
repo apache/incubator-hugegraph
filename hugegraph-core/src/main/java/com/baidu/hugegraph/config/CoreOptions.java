@@ -124,7 +124,7 @@ public class CoreOptions extends OptionHolder {
                     "raft.use_snapshot",
                     "Whether to use snapshot.",
                     disallowEmpty(),
-                    false
+                    true
             );
 
     public static final ConfigOption<String> RAFT_ENDPOINT =

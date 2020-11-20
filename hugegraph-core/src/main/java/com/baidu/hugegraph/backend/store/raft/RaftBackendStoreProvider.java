@@ -29,6 +29,7 @@ import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
+import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction;
 import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType;
 import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.event.EventListener;
@@ -186,6 +187,20 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
 
         this.notifyAndWaitEvent(Events.STORE_INITED);
         LOG.debug("Graph '{}' system info has been initialized", this.graph());
+    }
+
+    @Override
+    public void writeSnapshot() {
+        StoreCommand command = new StoreCommand(StoreType.ALL,
+                                                StoreAction.SNAPSHOT, null);
+        StoreClosure closure = new StoreClosure(command);
+        this.context.node().submitAndWait(command, closure);
+        LOG.debug("Graph '{}' has writed snapshot", this.graph());
+    }
+
+    @Override
+    public void readSnapshot() {
+        // How to read snapshot by jraft explicity?
     }
 
     @Override

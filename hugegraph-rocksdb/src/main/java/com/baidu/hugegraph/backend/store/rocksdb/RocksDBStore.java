@@ -55,6 +55,7 @@ import com.baidu.hugegraph.backend.store.BackendAction;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendMutation;
+import com.baidu.hugegraph.backend.store.BackendSessionPool;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import com.baidu.hugegraph.backend.store.BackendTable;
 import com.baidu.hugegraph.backend.store.rocksdb.RocksDBSessions.Session;
@@ -537,6 +538,8 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
 
             this.clear(false);
             this.init();
+            // clear write batch
+            dbs.values().forEach(BackendSessionPool::forceResetSessions);
             LOG.debug("Store truncated: {}", this.store);
         } finally {
             writeLock.unlock();
@@ -819,16 +822,28 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
 
         @Override
         public void increaseCounter(HugeType type, long increment) {
-            super.checkOpened();
-            Session session = super.sessions.session();
-            this.counters.increaseCounter(session, type, increment);
+            Lock readLock = super.storeLock.readLock();
+            readLock.lock();
+            try {
+                super.checkOpened();
+                Session session = super.sessions.session();
+                this.counters.increaseCounter(session, type, increment);
+            } finally {
+                readLock.unlock();
+            }
         }
 
         @Override
         public long getCounter(HugeType type) {
-            super.checkOpened();
-            Session session = super.sessions.session();
-            return this.counters.getCounter(session, type);
+            Lock readLock = super.storeLock.readLock();
+            readLock.lock();
+            try {
+                super.checkOpened();
+                Session session = super.sessions.session();
+                return this.counters.getCounter(session, type);
+            } finally {
+                readLock.unlock();
+            }
         }
 
         @Override

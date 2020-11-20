@@ -307,6 +307,16 @@ public class StandardHugeGraph implements HugeGraph {
             this.storeProvider.initSystemInfo(this);
             this.serverStarted(this.serverInfoManager().selfServerId(),
                                this.serverInfoManager().selfServerRole());
+            /*
+             * Take the initiative to generate a snapshot, it can avoid this
+             * situation: when the server restart need to read the database
+             * (such as checkBackendVersionInfo), it happens that raft replays
+             * the truncate log, at this time, the library has been cleared,
+             * which will cause reading errors.
+             * When restarting, load the snapshot first and then read backend,
+             * will not encounter such an intermediate state.
+             */
+            this.storeProvider.writeSnapshot();
         } finally {
             LockUtil.unlock(this.name, LockUtil.GRAPH_LOCK);
         }
