@@ -3,6 +3,7 @@
 
 package com.baidu.hugegraph.backend.store.raft.rpc;
 
+@SuppressWarnings("unused")
 public final class RaftRequests {
   private RaftRequests() {}
   public static void registerAllExtensions(
@@ -722,15 +723,15 @@ public final class RaftRequests {
 
       public final boolean isInitialized() {
         if (!hasType()) {
-          
+
           return false;
         }
         if (!hasAction()) {
-          
+
           return false;
         }
         if (!hasData()) {
-          
+
           return false;
         }
         return true;
@@ -1036,7 +1037,7 @@ public final class RaftRequests {
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         if (bs.isValidUtf8()) {
@@ -1052,7 +1053,7 @@ public final class RaftRequests {
         getMessageBytes() {
       java.lang.Object ref = message_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         message_ = b;
@@ -1291,7 +1292,7 @@ public final class RaftRequests {
 
       public final boolean isInitialized() {
         if (!hasStatus()) {
-          
+
           return false;
         }
         return true;
@@ -1378,7 +1379,7 @@ public final class RaftRequests {
           getMessageBytes() {
         java.lang.Object ref = message_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           message_ = b;
@@ -1596,7 +1597,7 @@ public final class RaftRequests {
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         if (bs.isValidUtf8()) {
@@ -1612,7 +1613,7 @@ public final class RaftRequests {
         getMessageBytes() {
       java.lang.Object ref = message_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         message_ = b;
@@ -1851,7 +1852,7 @@ public final class RaftRequests {
 
       public final boolean isInitialized() {
         if (!hasStatus()) {
-          
+
           return false;
         }
         return true;
@@ -1938,7 +1939,7 @@ public final class RaftRequests {
           getMessageBytes() {
         java.lang.Object ref = message_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           message_ = b;
@@ -2761,11 +2762,11 @@ public final class RaftRequests {
 
       public final boolean isInitialized() {
         if (!hasCommon()) {
-          
+
           return false;
         }
         if (!getCommon().isInitialized()) {
-          
+
           return false;
         }
         return true;
@@ -2894,7 +2895,7 @@ public final class RaftRequests {
        * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse common = 1;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
-          com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse, com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse.Builder, com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponseOrBuilder> 
+          com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse, com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse.Builder, com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponseOrBuilder>
           getCommonFieldBuilder() {
         if (commonBuilder_ == null) {
           commonBuilder_ = new com.google.protobuf.SingleFieldBuilder<
@@ -3142,7 +3143,7 @@ public final class RaftRequests {
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         if (bs.isValidUtf8()) {
@@ -3158,7 +3159,7 @@ public final class RaftRequests {
         getEndpointBytes() {
       java.lang.Object ref = endpoint_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         endpoint_ = b;
@@ -3380,7 +3381,7 @@ public final class RaftRequests {
 
       public final boolean isInitialized() {
         if (!hasEndpoint()) {
-          
+
           return false;
         }
         return true;
@@ -3434,7 +3435,7 @@ public final class RaftRequests {
           getEndpointBytes() {
         java.lang.Object ref = endpoint_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           endpoint_ = b;
@@ -3856,11 +3857,11 @@ public final class RaftRequests {
 
       public final boolean isInitialized() {
         if (!hasCommon()) {
-          
+
           return false;
         }
         if (!getCommon().isInitialized()) {
-          
+
           return false;
         }
         return true;
@@ -3989,7 +3990,7 @@ public final class RaftRequests {
        * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse common = 1;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
-          com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse, com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse.Builder, com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponseOrBuilder> 
+          com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse, com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse.Builder, com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponseOrBuilder>
           getCommonFieldBuilder() {
         if (commonBuilder_ == null) {
           commonBuilder_ = new com.google.protobuf.SingleFieldBuilder<

@@ -127,8 +127,8 @@ public class StoreStateMachine extends StateMachineAdapter {
     }
 
     private void register(StoreAction action,
-                          BiConsumer<BackendStore, BytesBuffer> biFunc) {
-        this.funcs.put(action, biFunc);
+                          BiConsumer<BackendStore, BytesBuffer> func) {
+        this.funcs.put(action, func);
     }
 
     @Override
