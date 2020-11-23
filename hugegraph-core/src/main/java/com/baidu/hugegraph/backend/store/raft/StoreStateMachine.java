@@ -74,13 +74,17 @@ public class StoreStateMachine extends StateMachineAdapter {
     }
 
     private void registerCommands() {
-        this.register(StoreAction.TRUNCATE, (store, buffer) -> {
-            store.truncate();
-        });
         // clear
         this.register(StoreAction.CLEAR, (store, buffer) -> {
             boolean clearSpace = buffer.read() > 0;
             store.clear(clearSpace);
+        });
+        this.register(StoreAction.TRUNCATE, (store, buffer) -> {
+            store.truncate();
+        });
+        this.register(StoreAction.SNAPSHOT, (store, buffer) -> {
+            assert store == null;
+            this.node().snapshot();
         });
         this.register(StoreAction.BEGIN_TX, (store, buffer) -> store.beginTx());
         this.register(StoreAction.COMMIT_TX, (store, buffer) -> {
@@ -182,7 +186,7 @@ public class StoreStateMachine extends StateMachineAdapter {
 
     private Object applyCommand(StoreType type, StoreAction action,
                                 BytesBuffer buffer) {
-        BackendStore store = this.store(type);
+        BackendStore store = type != StoreType.ALL ? this.store(type) : null;
         BiConsumer<BackendStore, BytesBuffer> func = this.funcs.get(action);
         func.accept(store, buffer);
         return null;

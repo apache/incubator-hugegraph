@@ -98,6 +98,19 @@ public class RaftNode {
         this.node.shutdown();
     }
 
+    public void snapshot() {
+        if (!this.context.useSnapshot()) {
+            return;
+        }
+        RaftClosure<?> future = new RaftClosure<>();
+        try {
+            this.node().snapshot(future);
+            future.waitFinished();
+        } catch (Throwable e) {
+            throw new BackendException("Failed to generate snapshot", e);
+        }
+    }
+
     private Node initRaftNode() throws IOException {
         NodeOptions nodeOptions = this.context.nodeOptions();
         nodeOptions.setFsm(this.stateMachine);

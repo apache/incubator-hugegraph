@@ -113,7 +113,7 @@ public class StoreSnapshotFile {
         for (RaftBackendStore store : this.stores) {
             String parentPath = Paths.get(snapshotPath, store.store())
                                      .toString();
-            store.writeSnapshot(parentPath);
+            store.originStore().writeSnapshot(parentPath);
         }
         return CompletableFuture.completedFuture(LocalFileMeta.newBuilder());
     }
@@ -122,7 +122,7 @@ public class StoreSnapshotFile {
         for (RaftBackendStore store : this.stores) {
             String parentPath = Paths.get(snapshotPath, store.store())
                                      .toString();
-            store.readSnapshot(parentPath);
+            store.originStore().readSnapshot(parentPath);
         }
     }
 
