@@ -19,6 +19,8 @@
 
 package com.baidu.hugegraph.backend.store.raft;
 
+import static com.baidu.hugegraph.backend.cache.AbstractCache.ACTION_CLEAR;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
@@ -255,7 +257,13 @@ public final class RaftSharedContext {
         return nodeOptions;
     }
 
-    public void notifyCache(HugeType type, Id id) {
+    public void clearCache() {
+        // Just choose two representatives used to represent schema and graph
+        this.notifyCache(ACTION_CLEAR, HugeType.VERTEX_LABEL, null);
+        this.notifyCache(ACTION_CLEAR, HugeType.VERTEX, null);
+    }
+
+    public void notifyCache(String action, HugeType type, Id id) {
         EventHub eventHub;
         if (type.isGraph()) {
             eventHub = this.params.graphEventHub();
@@ -266,7 +274,7 @@ public final class RaftSharedContext {
         }
         try {
             // How to avoid update cache from server info
-            eventHub.notify(Events.CACHE, "invalid", type, id);
+            eventHub.notify(Events.CACHE, action, type, id);
         } catch (RejectedExecutionException e) {
             LOG.warn("Can't update cache due to EventHub is too busy");
         }

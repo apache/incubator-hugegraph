@@ -19,6 +19,8 @@
 
 package com.baidu.hugegraph.backend.store.raft;
 
+import static com.baidu.hugegraph.backend.cache.AbstractCache.ACTION_INVALID;
+
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -88,7 +90,7 @@ public class StoreStateMachine extends StateMachineAdapter {
             for (java.util.Iterator<BackendAction> it = mutation.mutation(type);
                  it.hasNext();) {
                 BackendEntry entry = it.next().entry();
-                this.context.notifyCache(type, entry.originId());
+                this.context.notifyCache(ACTION_INVALID, type, entry.originId());
             }
         }
     }
@@ -156,9 +158,11 @@ public class StoreStateMachine extends StateMachineAdapter {
             case CLEAR:
                 boolean clearSpace = buffer.read() > 0;
                 store.clear(clearSpace);
+                this.context.clearCache();
                 break;
             case TRUNCATE:
                 store.truncate();
+                this.context.clearCache();
                 break;
             case SNAPSHOT:
                 assert store == null;
