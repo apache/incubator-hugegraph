@@ -76,6 +76,6 @@ public class StoreCommandProcessor
         StoreType type = request.getType();
         StoreAction action = request.getAction();
         byte[] data = request.getData().toByteArray();
-        return new StoreCommand(type, action, data);
+        return new StoreCommand(type, action, data, true);
     }
 }
