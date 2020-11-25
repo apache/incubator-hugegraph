@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -36,6 +37,7 @@ import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
@@ -168,7 +170,7 @@ public class SingleSourceShortestPathTraverser extends HugeTraverser {
             Map<Id, NodeWithWeight> sorted = CollectionUtil.sortByValue(
                                              this.findingNodes, true);
             double minWeight = 0;
-            Set<NodeWithWeight> newSources = new HashSet<>();
+            Set<NodeWithWeight> newSources = InsertionOrderUtil.newSet();
             for (Map.Entry<Id, NodeWithWeight> entry : sorted.entrySet()) {
                 Id id = entry.getKey();
                 NodeWithWeight wn = entry.getValue();
@@ -265,7 +267,7 @@ public class SingleSourceShortestPathTraverser extends HugeTraverser {
         }
     }
 
-    public static class WeightedPaths extends HashMap<Id, NodeWithWeight> {
+    public static class WeightedPaths extends LinkedHashMap<Id, NodeWithWeight> {
 
         private static final long serialVersionUID = -313873642177730993L;
 
