@@ -19,6 +19,9 @@
 
 package com.baidu.hugegraph.backend.cache;
 
+import static com.baidu.hugegraph.backend.cache.AbstractCache.ACTION_CLEAR;
+import static com.baidu.hugegraph.backend.cache.AbstractCache.ACTION_INVALID;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -104,7 +107,7 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
                       this.graph(), event);
             event.checkArgs(String.class, HugeType.class, Id.class);
             Object[] args = event.args();
-            if ("invalid".equals(args[0])) {
+            if (ACTION_INVALID.equals(args[0])) {
                 HugeType type = (HugeType) args[1];
                 Id id = (Id) args[2];
                 this.arrayCaches.remove(type, id);
@@ -122,7 +125,7 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
                     this.nameCache.invalidate(prefixedName);
                 }
                 return true;
-            } else if ("clear".equals(args[0])) {
+            } else if (ACTION_CLEAR.equals(args[0])) {
                 this.clearCache();
                 return true;
             }

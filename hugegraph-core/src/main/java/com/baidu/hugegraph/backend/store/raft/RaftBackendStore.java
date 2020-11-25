@@ -145,6 +145,7 @@ public class RaftBackendStore implements BackendStore {
 
     @Override
     public void beginTx() {
+        // Don't write raft log, commitTx(in statemachine) will call beginTx
     }
 
     @Override

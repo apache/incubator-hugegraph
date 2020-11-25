@@ -19,6 +19,9 @@
 
 package com.baidu.hugegraph.backend.cache;
 
+import static com.baidu.hugegraph.backend.cache.AbstractCache.ACTION_CLEAR;
+import static com.baidu.hugegraph.backend.cache.AbstractCache.ACTION_INVALID;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -138,7 +141,7 @@ public final class CachedGraphTransaction extends GraphTransaction {
                       this.graph(), event);
             event.checkArgs(String.class, HugeType.class, Id.class);
             Object[] args = event.args();
-            if ("invalid".equals(args[0])) {
+            if (ACTION_INVALID.equals(args[0])) {
                 HugeType type = (HugeType) args[1];
                 Id id = (Id) args[2];
                 if (type.isVertex()) {
@@ -153,7 +156,7 @@ public final class CachedGraphTransaction extends GraphTransaction {
                     this.edgesCache.clear();
                 }
                 return true;
-            } else if ("clear".equals(args[0])) {
+            } else if (ACTION_CLEAR.equals(args[0])) {
                 this.verticesCache.clear();
                 this.edgesCache.clear();
                 return true;
