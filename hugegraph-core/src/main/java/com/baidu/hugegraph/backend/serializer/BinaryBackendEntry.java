@@ -209,6 +209,11 @@ public class BinaryBackendEntry implements BackendEntry {
         }
 
         @Override
+        public int asInt() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
         public int compareTo(Id other) {
             return Bytes.compare(this.bytes, other.asBytes());
         }
