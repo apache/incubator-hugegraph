@@ -155,7 +155,7 @@ public class SubGraphTraverser extends HugeTraverser {
                         // Store rays
                         paths.add(new Path(n.path()));
                         this.pathCount++;
-                        if (reachLimit()) {
+                        if (this.reachLimit()) {
                             return paths;
                         }
                     }
@@ -190,7 +190,7 @@ public class SubGraphTraverser extends HugeTraverser {
                         if (!this.rings && bothBack && uniqueEdge) {
                             paths.add(new Path(node.path()));
                             this.pathCount++;
-                            if (reachLimit()) {
+                            if (this.reachLimit()) {
                                 return paths;
                             }
                         }
@@ -215,7 +215,7 @@ public class SubGraphTraverser extends HugeTraverser {
                                 path.add(target);
                                 paths.add(new RingPath(null, path));
                                 this.pathCount++;
-                                if (reachLimit()) {
+                                if (this.reachLimit()) {
                                     return paths;
                                 }
                             }
@@ -230,6 +230,10 @@ public class SubGraphTraverser extends HugeTraverser {
                 for (List<Node> list : newVertices.values()) {
                     for (Node n : list) {
                         paths.add(new Path(n.path()));
+                        this.pathCount++;
+                        if (this.reachLimit()) {
+                            return paths;
+                        }
                     }
                 }
             }
