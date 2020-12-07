@@ -22,7 +22,6 @@ package com.baidu.hugegraph.traversal.algorithm;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang.mutable.MutableLong;
@@ -34,7 +33,6 @@ import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.iterator.FilterIterator;
 import com.baidu.hugegraph.iterator.FlatMapperIterator;
 import com.baidu.hugegraph.structure.HugeEdge;
-import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
 
 public class CountTraverser extends HugeTraverser {
@@ -48,7 +46,7 @@ public class CountTraverser extends HugeTraverser {
         super(graph);
     }
 
-    public long count(Id source, List<Step> steps,
+    public long count(Id source, List<EdgeStep> steps,
                       boolean containsTraversed, long dedupSize) {
         E.checkNotNull(source, "source vertex id");
         this.checkVertexExist(source, "source vertex");
@@ -63,45 +61,45 @@ public class CountTraverser extends HugeTraverser {
         }
 
         int stepNum = steps.size();
-        Step firstStep = steps.get(0);
+        EdgeStep firstStep = steps.get(0);
         if (stepNum == 1) {
             // Just one step, query count and return
-            long edgesCount = this.edgesCount(source, firstStep.edgeStep);
+            long edgesCount = this.edgesCount(source, firstStep);
             this.count.add(edgesCount);
             return this.count.longValue();
         }
 
         // Multiple steps, construct first step to iterator
-        Iterator<Edge> edges = this.edgesOfVertex(source, firstStep);
+        Iterator<Edge> edges = this.edgesOfVertexWithDedup(source, firstStep);
         // Wrap steps to Iterator except last step
         for (int i = 1; i < stepNum - 1; i++) {
-            Step currentStep = steps.get(i);
+            EdgeStep currentStep = steps.get(i);
             edges = new FlatMapperIterator<>(edges, (edge) -> {
                 Id target = ((HugeEdge) edge).id().otherVertexId();
-                return this.edgesOfVertex(target, currentStep);
+                return this.edgesOfVertexWithDedup(target, currentStep);
             });
         }
 
         // The last step, just query count
-        Step lastStep = steps.get(stepNum - 1);
+        EdgeStep lastStep = steps.get(stepNum - 1);
         while (edges.hasNext()) {
             Id target = ((HugeEdge) edges.next()).id().otherVertexId();
             if (this.dedup(target)) {
                 continue;
             }
             // Count last layer vertices(without dedup size)
-            long edgesCount = this.edgesCount(target, lastStep.edgeStep);
+            long edgesCount = this.edgesCount(target, lastStep);
             this.count.add(edgesCount);
         }
 
         return this.count.longValue();
     }
 
-    private Iterator<Edge> edgesOfVertex(Id source, Step step) {
+    private Iterator<Edge> edgesOfVertexWithDedup(Id source, EdgeStep step) {
         if (this.dedup(source)) {
             return QueryResults.emptyIterator();
         }
-        Iterator<Edge> flatten = this.edgesOfVertex(source, step.edgeStep);
+        Iterator<Edge> flatten = this.edgesOfVertex(source, step);
         return new FilterIterator<>(flatten, e -> {
             if (this.containsTraversed) {
                 // Count intermediate vertices
@@ -137,17 +135,5 @@ public class CountTraverser extends HugeTraverser {
     private boolean reachDedup() {
         return this.dedupSize != NO_LIMIT &&
                this.dedupSet.size() >= this.dedupSize;
-    }
-
-    public static class Step {
-
-        private final EdgeStep edgeStep;
-
-        public Step(HugeGraph g, Directions direction, List<String> labels,
-                    Map<String, Object> properties, long degree,
-                    long skipDegree) {
-            this.edgeStep = new EdgeStep(g, direction, labels, properties,
-                                         degree, skipDegree);
-        }
     }
 }

@@ -246,6 +246,29 @@ public class CustomizePathsTraverser extends HugeTraverser {
         private final double defaultWeight;
         private final long sample;
 
+        public Step(HugeGraph g, Directions direction) {
+            this(g, direction, ImmutableList.of());
+        }
+
+        public Step(HugeGraph g, List<String> labels) {
+            this(g, Directions.BOTH, labels);
+        }
+
+        public Step(HugeGraph g, Map<String, Object> properties) {
+            this(g, Directions.BOTH, ImmutableList.of(), properties);
+        }
+
+        public Step(HugeGraph g, Directions direction, List<String> labels) {
+            this(g, direction, labels, ImmutableMap.of());
+        }
+
+        public Step(HugeGraph g, Directions direction, List<String> labels,
+                    Map<String, Object> properties) {
+            this(g, direction, labels, properties,
+                 Long.valueOf(DEFAULT_DEGREE), 0L, null, 0.0D,
+                 Long.valueOf(DEFAULT_SAMPLE));
+        }
+
         public Step(HugeGraph g, Directions direction, List<String> labels,
                     Map<String, Object> properties,
                     long degree, long skipDegree,

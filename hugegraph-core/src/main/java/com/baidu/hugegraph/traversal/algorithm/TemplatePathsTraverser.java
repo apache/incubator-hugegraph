@@ -34,6 +34,8 @@ import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.traversal.algorithm.strategy.TraverseStrategy;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 public class TemplatePathsTraverser extends HugeTraverser {
 
@@ -282,6 +284,59 @@ public class TemplatePathsTraverser extends HugeTraverser {
     public static class RepeatEdgeStep extends EdgeStep {
 
         private int maxTimes = 1;
+
+        public RepeatEdgeStep(HugeGraph g, Directions direction) {
+            this(g, direction, ImmutableList.of());
+        }
+
+        public RepeatEdgeStep(HugeGraph g, Directions direction, int maxTimes) {
+            this(g, direction);
+            this.maxTimes = maxTimes;
+        }
+
+        public RepeatEdgeStep(HugeGraph g, List<String> labels) {
+            this(g, Directions.BOTH, labels);
+        }
+
+        public RepeatEdgeStep(HugeGraph g, List<String> labels, int maxTimes) {
+            this(g, labels);
+            this.maxTimes = maxTimes;
+        }
+
+        public RepeatEdgeStep(HugeGraph g, Map<String, Object> properties) {
+            this(g, Directions.BOTH, ImmutableList.of(), properties);
+        }
+
+        public RepeatEdgeStep(HugeGraph g, Map<String, Object> properties,
+                              int maxTimes) {
+            this(g, properties);
+            this.maxTimes = maxTimes;
+        }
+
+        public RepeatEdgeStep(HugeGraph g, Directions direction,
+                              List<String> labels) {
+            this(g, direction, labels, ImmutableMap.of());
+        }
+
+        public RepeatEdgeStep(HugeGraph g, Directions direction,
+                              List<String> labels, int maxTimes) {
+            this(g, direction, labels);
+            this.maxTimes = maxTimes;
+        }
+
+        public RepeatEdgeStep(HugeGraph g, Directions direction,
+                              List<String> labels,
+                              Map<String, Object> properties) {
+            this(g, direction, labels, properties,
+                 Long.valueOf(DEFAULT_DEGREE), 0L, 1);
+        }
+
+        public RepeatEdgeStep(HugeGraph g, Directions direction,
+                              List<String> labels,
+                              Map<String, Object> properties, int maxTimes) {
+            this(g, direction, labels, properties);
+            this.maxTimes = maxTimes;
+        }
 
         public RepeatEdgeStep(HugeGraph g, Directions direction,
                               List<String> labels,
