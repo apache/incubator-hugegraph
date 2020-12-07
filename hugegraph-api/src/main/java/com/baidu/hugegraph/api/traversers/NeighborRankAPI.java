@@ -67,7 +67,7 @@ public class NeighborRankAPI extends API {
                                "The source of rank request can't be null");
         E.checkArgument(request.steps != null && !request.steps.isEmpty(),
                         "The steps of rank request can't be empty");
-        E.checkArgument(request.steps.size() <= Long.valueOf(DEFAULT_MAX_DEPTH),
+        E.checkArgument(request.steps.size() <= Long.parseLong(DEFAULT_MAX_DEPTH),
                         "The steps length of rank request can't exceed %s",
                         DEFAULT_MAX_DEPTH);
         E.checkArgument(request.alpha > 0 && request.alpha <= 1.0,
@@ -107,7 +107,7 @@ public class NeighborRankAPI extends API {
         @JsonProperty("alpha")
         private double alpha;
         @JsonProperty("capacity")
-        public long capacity = Long.valueOf(DEFAULT_CAPACITY);
+        public long capacity = Long.parseLong(DEFAULT_CAPACITY);
 
         @Override
         public String toString() {
@@ -124,11 +124,11 @@ public class NeighborRankAPI extends API {
         @JsonProperty("labels")
         public List<String> labels;
         @JsonProperty("degree")
-        public long degree = Long.valueOf(DEFAULT_DEGREE);
+        public long degree = Long.parseLong(DEFAULT_DEGREE);
         @JsonProperty("skip_degree")
         public long skipDegree = 0L;
         @JsonProperty("top")
-        public int top = Integer.valueOf(DEFAULT_PATHS_LIMIT);
+        public int top = Integer.parseInt(DEFAULT_PATHS_LIMIT);
 
         public static final int DEFAULT_CAPACITY_PER_LAYER = 100000;
 

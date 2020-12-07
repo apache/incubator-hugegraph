@@ -244,7 +244,9 @@ public class NeighborRankTraverser extends HugeTraverser {
                     long degree, long skipDegree, int top, int capacity) {
             E.checkArgument(top > 0 && top <= MAX_TOP,
                             "The top of each layer can't exceed %s", MAX_TOP);
-
+            E.checkArgument(capacity > 0,
+                            "The capacity of each layer must be > 0, " +
+                            "but got %s", capacity);
             this.edgeStep = new EdgeStep(g, direction, labels, null,
                                          degree, skipDegree);
             this.top = top;
