@@ -19,7 +19,10 @@
 
 package com.baidu.hugegraph.backend.store.postgresql;
 
+import static com.baidu.hugegraph.config.OptionChecker.disallowEmpty;
+
 import com.baidu.hugegraph.backend.store.mysql.MysqlOptions;
+import com.baidu.hugegraph.config.ConfigOption;
 
 public class PostgresqlOptions extends MysqlOptions {
 
@@ -36,4 +39,12 @@ public class PostgresqlOptions extends MysqlOptions {
         }
         return instance;
     }
+
+    public static final ConfigOption<String> POSTGRESQL_CONNECT_DATABASE =
+            new ConfigOption<>(
+                    "postgresql.connect_database",
+                    "The database used to connect when not specify database.",
+                    disallowEmpty(),
+                    "template1"
+            );
 }
