@@ -71,13 +71,13 @@ public class CountTraverser extends HugeTraverser {
         }
 
         // Multiple steps, construct first step to iterator
-        Iterator<Edge> edges = this.edgesOfVertexWithDedup(source, firstStep);
+        Iterator<Edge> edges = this.edgesOfVertexWithCount(source, firstStep);
         // Wrap steps to Iterator except last step
         for (int i = 1; i < stepNum - 1; i++) {
             EdgeStep currentStep = steps.get(i);
             edges = new FlatMapperIterator<>(edges, (edge) -> {
                 Id target = ((HugeEdge) edge).id().otherVertexId();
-                return this.edgesOfVertexWithDedup(target, currentStep);
+                return this.edgesOfVertexWithCount(target, currentStep);
             });
         }
 
@@ -96,7 +96,7 @@ public class CountTraverser extends HugeTraverser {
         return this.count.longValue();
     }
 
-    private Iterator<Edge> edgesOfVertexWithDedup(Id source, EdgeStep step) {
+    private Iterator<Edge> edgesOfVertexWithCount(Id source, EdgeStep step) {
         if (this.dedup(source)) {
             return QueryResults.emptyIterator();
         }

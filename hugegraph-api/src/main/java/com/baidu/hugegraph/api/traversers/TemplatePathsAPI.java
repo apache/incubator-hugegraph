@@ -114,6 +114,13 @@ public class TemplatePathsAPI extends TraverserAPI {
         return edgeSteps;
     }
 
+    private static RepeatEdgeStep repeatEdgeStep(HugeGraph graph,
+                                                 TemplatePathStep step) {
+        return new RepeatEdgeStep(graph, step.direction, step.labels,
+                                  step.properties, step.degree,
+                                  step.skipDegree, step.maxTimes);
+    }
+
     private static class Request {
 
         @JsonProperty("sources")
