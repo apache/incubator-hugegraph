@@ -32,6 +32,7 @@ import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.structure.HugeEdge;
+import com.baidu.hugegraph.traversal.algorithm.steps.EdgeStep;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
 import com.google.common.collect.ImmutableList;
@@ -89,9 +90,10 @@ public class ShortestPathTraverser extends HugeTraverser {
 
     public Path shortestPath(Id sourceV, Id targetV, EdgeStep step,
                              int depth, long capacity) {
-        return this.shortestPath(sourceV, targetV, step.direction,
-                                 new ArrayList<>(step.labels.values()),
-                                 depth, step.degree, step.skipDegree, capacity);
+        return this.shortestPath(sourceV, targetV, step.direction(),
+                                 new ArrayList<>(step.labels().values()),
+                                 depth, step.degree(), step.skipDegree(),
+                                 capacity);
     }
 
     public PathSet allShortestPaths(Id sourceV, Id targetV, Directions dir,

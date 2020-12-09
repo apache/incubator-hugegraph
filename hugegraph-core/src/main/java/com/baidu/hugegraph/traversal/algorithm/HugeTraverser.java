@@ -52,6 +52,7 @@ import com.baidu.hugegraph.iterator.FilterIterator;
 import com.baidu.hugegraph.iterator.MapperIterator;
 import com.baidu.hugegraph.schema.SchemaLabel;
 import com.baidu.hugegraph.structure.HugeEdge;
+import com.baidu.hugegraph.traversal.algorithm.steps.EdgeStep;
 import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Directions;
@@ -193,10 +194,10 @@ public class HugeTraverser {
     }
 
     protected Iterator<Edge> edgesOfVertex(Id source, EdgeStep edgeStep) {
-        if (edgeStep.properties == null || edgeStep.properties.isEmpty()) {
+        if (edgeStep.properties() == null || edgeStep.properties().isEmpty()) {
             Iterator<Edge> edges = this.edgesOfVertex(source,
-                                                      edgeStep.direction,
-                                                      edgeStep.labels,
+                                                      edgeStep.direction(),
+                                                      edgeStep.labels(),
                                                       edgeStep.limit());
             return edgeStep.skipSuperNodeIfNeeded(edges);
         }
@@ -204,7 +205,7 @@ public class HugeTraverser {
     }
 
     protected Iterator<Edge> edgesOfVertexWithSK(Id source, EdgeStep edgeStep) {
-        assert edgeStep.properties != null && !edgeStep.properties.isEmpty();
+        assert edgeStep.properties() != null && !edgeStep.properties().isEmpty();
         return this.edgesOfVertex(source, edgeStep, true);
     }
 
@@ -212,14 +213,14 @@ public class HugeTraverser {
                                          boolean mustAllSK) {
         Id[] edgeLabels = edgeStep.edgeLabels();
         Query query = GraphTransaction.constructEdgesQuery(source,
-                                                           edgeStep.direction,
+                                                           edgeStep.direction(),
                                                            edgeLabels);
         ConditionQuery filter = null;
         if (mustAllSK) {
-            this.fillFilterBySortKeys(query, edgeLabels, edgeStep.properties);
+            this.fillFilterBySortKeys(query, edgeLabels, edgeStep.properties());
         } else {
             filter = (ConditionQuery) query.copy();
-            this.fillFilterByProperties(filter, edgeStep.properties);
+            this.fillFilterByProperties(filter, edgeStep.properties());
         }
         query.capacity(Query.NO_CAPACITY);
         if (edgeStep.limit() != NO_LIMIT) {
@@ -270,19 +271,20 @@ public class HugeTraverser {
     protected long edgesCount(Id source, EdgeStep edgeStep) {
         Id[] edgeLabels = edgeStep.edgeLabels();
         Query query = GraphTransaction.constructEdgesQuery(source,
-                                                           edgeStep.direction,
+                                                           edgeStep.direction(),
                                                            edgeLabels);
-        this.fillFilterBySortKeys(query, edgeLabels, edgeStep.properties);
+        this.fillFilterBySortKeys(query, edgeLabels, edgeStep.properties());
         query.aggregate(Aggregate.AggregateFunc.COUNT, null);
         query.capacity(Query.NO_CAPACITY);
         query.limit(Query.NO_LIMIT);
         long count = graph().queryNumber(query).longValue();
-        if (edgeStep.degree == NO_LIMIT || count < edgeStep.degree) {
+        if (edgeStep.degree() == NO_LIMIT || count < edgeStep.degree()) {
             return count;
-        } else if (edgeStep.skipDegree != 0L && count >= edgeStep.skipDegree) {
+        } else if (edgeStep.skipDegree() != 0L &&
+                   count >= edgeStep.skipDegree()) {
             return 0L;
         } else {
-            return edgeStep.degree;
+            return edgeStep.degree();
         }
     }
 

@@ -24,8 +24,8 @@ import java.util.Map;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
-import com.baidu.hugegraph.traversal.algorithm.EdgeStep;
-import com.baidu.hugegraph.traversal.algorithm.TemplatePathsTraverser;
+import com.baidu.hugegraph.traversal.algorithm.steps.EdgeStep;
+import com.baidu.hugegraph.traversal.algorithm.steps.RepeatEdgeStep;
 import com.baidu.hugegraph.type.define.Directions;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -38,14 +38,11 @@ public class TraverserAPI extends API {
                             step.degree, step.skipDegree);
     }
 
-    protected static TemplatePathsTraverser.RepeatEdgeStep repeatEdgeStep(
-              HugeGraph graph, TemplatePathsAPI.RepeatEdgeStep step) {
-        return new TemplatePathsTraverser.RepeatEdgeStep(graph, step.direction,
-                                                         step.labels,
-                                                         step.properties,
-                                                         step.degree,
-                                                         step.skipDegree,
-                                                         step.maxTimes);
+    protected static RepeatEdgeStep repeatEdgeStep(
+              HugeGraph graph, TemplatePathsAPI.TemplatePathStep step) {
+        return new RepeatEdgeStep(graph, step.direction, step.labels,
+                                  step.properties, step.degree,
+                                  step.skipDegree, step.maxTimes);
     }
 
     protected static class Step {

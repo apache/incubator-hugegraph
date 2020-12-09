@@ -33,6 +33,7 @@ import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.iterator.FilterIterator;
 import com.baidu.hugegraph.iterator.FlatMapperIterator;
 import com.baidu.hugegraph.structure.HugeEdge;
+import com.baidu.hugegraph.traversal.algorithm.steps.EdgeStep;
 import com.baidu.hugegraph.util.E;
 
 public class CountTraverser extends HugeTraverser {
