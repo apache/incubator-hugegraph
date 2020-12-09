@@ -45,7 +45,7 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.structure.HugeVertex;
-import com.baidu.hugegraph.traversal.algorithm.EdgeStep;
+import com.baidu.hugegraph.traversal.algorithm.steps.EdgeStep;
 import com.baidu.hugegraph.traversal.algorithm.JaccardSimilarTraverser;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;

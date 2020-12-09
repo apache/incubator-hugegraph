@@ -51,6 +51,7 @@ import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.traversal.algorithm.CustomizePathsTraverser;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
+import com.baidu.hugegraph.traversal.algorithm.steps.WeightedEdgeStep;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
@@ -87,7 +88,7 @@ public class CustomizedPathsAPI extends API {
 
         HugeGraph g = graph(manager, graph);
         Iterator<Vertex> sources = request.sources.vertices(g);
-        List<CustomizePathsTraverser.Step> steps = step(g, request);
+        List<WeightedEdgeStep> steps = step(g, request);
         boolean sorted = request.sortBy != SortBy.NONE;
 
         CustomizePathsTraverser traverser = new CustomizePathsTraverser(g);
@@ -116,10 +117,10 @@ public class CustomizedPathsAPI extends API {
         return manager.serializer(g).writePaths("paths", paths, false, iter);
     }
 
-    private static List<CustomizePathsTraverser.Step> step(HugeGraph graph,
-                                                           PathRequest req) {
+    private static List<WeightedEdgeStep> step(HugeGraph graph,
+                                               PathRequest req) {
         int stepSize = req.steps.size();
-        List<CustomizePathsTraverser.Step> steps = new ArrayList<>(stepSize);
+        List<WeightedEdgeStep> steps = new ArrayList<>(stepSize);
         for (Step step : req.steps) {
             steps.add(step.jsonToStep(graph));
         }
@@ -181,15 +182,11 @@ public class CustomizedPathsAPI extends API {
                                  this.sample);
         }
 
-        private CustomizePathsTraverser.Step jsonToStep(HugeGraph g) {
-            return new CustomizePathsTraverser.Step(g, this.direction,
-                                                    this.labels,
-                                                    this.properties,
-                                                    this.degree,
-                                                    this.skipDegree,
-                                                    this.weightBy,
-                                                    this.defaultWeight,
-                                                    this.sample);
+        private WeightedEdgeStep jsonToStep(HugeGraph g) {
+            return new WeightedEdgeStep(g, this.direction, this.labels,
+                                        this.properties, this.degree,
+                                        this.skipDegree, this.weightBy,
+                                        this.defaultWeight, this.sample);
         }
     }
 

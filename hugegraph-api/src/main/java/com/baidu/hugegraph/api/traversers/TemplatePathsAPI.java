@@ -19,6 +19,9 @@
 
 package com.baidu.hugegraph.api.traversers;
 
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPACITY;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PATHS_LIMIT;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -43,13 +46,11 @@ import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
 import com.baidu.hugegraph.traversal.algorithm.TemplatePathsTraverser;
+import com.baidu.hugegraph.traversal.algorithm.steps.RepeatEdgeStep;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPACITY;
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PATHS_LIMIT;
 
 @Path("graphs/{graph}/traversers/templatepaths")
 @Singleton
@@ -81,8 +82,7 @@ public class TemplatePathsAPI extends TraverserAPI {
         HugeGraph g = graph(manager, graph);
         Iterator<Vertex> sources = request.sources.vertices(g);
         Iterator<Vertex> targets = request.targets.vertices(g);
-        List<TemplatePathsTraverser.RepeatEdgeStep> steps =
-                                                    steps(g, request.steps);
+        List<RepeatEdgeStep> steps = steps(g, request.steps);
 
         TemplatePathsTraverser traverser = new TemplatePathsTraverser(g);
         Set<HugeTraverser.Path> paths;
@@ -105,14 +105,20 @@ public class TemplatePathsAPI extends TraverserAPI {
         return manager.serializer(g).writePaths("paths", paths, false, iter);
     }
 
-    private static List<TemplatePathsTraverser.RepeatEdgeStep> steps(
-                   HugeGraph g, List<RepeatEdgeStep> steps) {
-        List<TemplatePathsTraverser.RepeatEdgeStep> edgeSteps =
-                new ArrayList<>(steps.size());
-        for (RepeatEdgeStep step : steps) {
+    private static List<RepeatEdgeStep> steps(HugeGraph g,
+                                              List<TemplatePathStep> steps) {
+        List<RepeatEdgeStep> edgeSteps = new ArrayList<>(steps.size());
+        for (TemplatePathStep step : steps) {
             edgeSteps.add(repeatEdgeStep(g, step));
         }
         return edgeSteps;
+    }
+
+    private static RepeatEdgeStep repeatEdgeStep(HugeGraph graph,
+                                                 TemplatePathStep step) {
+        return new RepeatEdgeStep(graph, step.direction, step.labels,
+                                  step.properties, step.degree,
+                                  step.skipDegree, step.maxTimes);
     }
 
     private static class Request {
@@ -122,7 +128,7 @@ public class TemplatePathsAPI extends TraverserAPI {
         @JsonProperty("targets")
         public Vertices targets;
         @JsonProperty("steps")
-        public List<RepeatEdgeStep> steps;
+        public List<TemplatePathStep> steps;
         @JsonProperty("with_ring")
         public boolean withRing = false;
         @JsonProperty("capacity")
@@ -143,14 +149,14 @@ public class TemplatePathsAPI extends TraverserAPI {
         }
     }
 
-    protected static class RepeatEdgeStep extends Step {
+    protected static class TemplatePathStep extends Step {
 
         @JsonProperty("max_times")
         public int maxTimes = 1;
 
         @Override
         public String toString() {
-            return String.format("RepeatEdgeStep{direction=%s,labels=%s," +
+            return String.format("TemplatePathStep{direction=%s,labels=%s," +
                                  "properties=%s,degree=%s,skipDegree=%s," +
                                  "maxTimes=%s}",
                                  this.direction, this.labels, this.properties,

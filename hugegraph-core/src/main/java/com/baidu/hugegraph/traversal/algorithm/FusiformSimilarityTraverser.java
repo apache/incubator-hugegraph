@@ -56,7 +56,7 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
     }
 
     public SimilarsMap fusiformSimilarity(Iterator<Vertex> vertices,
-                                          Directions direction, EdgeLabel label,
+                                          Directions direction, String label,
                                           int minNeighbors, double alpha,
                                           int minSimilars, int top,
                                           String groupProperty, int minGroups,
@@ -92,7 +92,7 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
 
     private Set<Similar> fusiformSimilarityForVertex(
                          HugeVertex vertex, Directions direction,
-                         EdgeLabel label, int minNeighbors, double alpha,
+                         String label, int minNeighbors, double alpha,
                          int minSimilars, int top, String groupProperty,
                          int minGroups, long degree, long capacity,
                          boolean withIntermediary) {
@@ -102,7 +102,7 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
             // Ignore current vertex if its neighbors number is not enough
             return ImmutableSet.of();
         }
-        Id labelId = label == null ? null : label.id();
+        Id labelId = this.getEdgeLabelId(label);
         // Get similar nodes and counts
         Iterator<Edge> edges = this.edgesOfVertex(vertex.id(), direction,
                                                   labelId, degree);
@@ -209,12 +209,17 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
 
     private boolean matchMinNeighborCount(HugeVertex vertex,
                                           Directions direction,
-                                          EdgeLabel edgeLabel,
+                                          String label,
                                           int minNeighbors,
                                           long degree) {
         Iterator<Edge> edges;
         long neighborCount;
-        Id labelId = edgeLabel == null ? null : edgeLabel.id();
+        EdgeLabel edgeLabel = null;
+        Id labelId = null;
+        if (label != null) {
+            edgeLabel = this.graph().edgeLabel(label);
+            labelId = edgeLabel.id();
+        }
         if (edgeLabel != null && edgeLabel.frequency() == Frequency.SINGLE) {
             edges = this.edgesOfVertex(vertex.id(), direction,
                                        labelId, minNeighbors);

@@ -17,8 +17,9 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.traversal.algorithm;
+package com.baidu.hugegraph.traversal.algorithm.steps;
 
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.NO_LIMIT;
 
 import java.util.HashMap;
@@ -31,9 +32,12 @@ import org.apache.tinkerpop.gremlin.structure.Edge;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.schema.EdgeLabel;
+import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
 import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 public class EdgeStep {
 
@@ -42,6 +46,28 @@ public class EdgeStep {
     protected final Map<Id, Object> properties;
     protected final long degree;
     protected final long skipDegree;
+
+    public EdgeStep(HugeGraph g, Directions direction) {
+        this(g, direction, ImmutableList.of());
+    }
+
+    public EdgeStep(HugeGraph g, List<String> labels) {
+        this(g, Directions.BOTH, labels);
+    }
+
+    public EdgeStep(HugeGraph g, Map<String, Object> properties) {
+        this(g, Directions.BOTH, ImmutableList.of(), properties);
+    }
+
+    public EdgeStep(HugeGraph g, Directions direction, List<String> labels) {
+        this(g, direction, labels, ImmutableMap.of());
+    }
+
+    public EdgeStep(HugeGraph g, Directions direction, List<String> labels,
+                    Map<String, Object> properties) {
+        this(g, direction, labels, properties,
+             Long.valueOf(DEFAULT_DEGREE), 0L);
+    }
 
     public EdgeStep(HugeGraph g, Directions direction, List<String> labels,
                     Map<String, Object> properties,
@@ -72,6 +98,26 @@ public class EdgeStep {
 
         this.degree = degree;
         this.skipDegree = skipDegree;
+    }
+
+    public Directions direction() {
+        return this.direction;
+    }
+
+    public Map<Id, String> labels() {
+        return this.labels;
+    }
+
+    public Map<Id, Object> properties() {
+        return this.properties;
+    }
+
+    public long degree() {
+        return this.degree;
+    }
+
+    public long skipDegree() {
+        return this.skipDegree;
     }
 
     public Id[] edgeLabels() {

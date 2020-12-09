@@ -39,6 +39,7 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.iterator.FilterIterator;
 import com.baidu.hugegraph.structure.HugeEdge;
+import com.baidu.hugegraph.traversal.algorithm.steps.EdgeStep;
 import com.baidu.hugegraph.util.Consumers;
 
 import jersey.repackaged.com.google.common.base.Objects;

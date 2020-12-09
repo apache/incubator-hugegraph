@@ -30,6 +30,7 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.structure.HugeVertex;
+import com.baidu.hugegraph.traversal.algorithm.steps.EdgeStep;
 import com.baidu.hugegraph.traversal.algorithm.strategy.TraverseStrategy;
 import com.baidu.hugegraph.util.E;
 import com.google.common.collect.ImmutableList;

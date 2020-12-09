@@ -26,7 +26,7 @@ import java.util.function.BiConsumer;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.traversal.algorithm.EdgeStep;
+import com.baidu.hugegraph.traversal.algorithm.steps.EdgeStep;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
 
 public interface TraverseStrategy {

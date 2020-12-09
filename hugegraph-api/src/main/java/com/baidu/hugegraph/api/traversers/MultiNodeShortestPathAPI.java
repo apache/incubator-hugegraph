@@ -42,7 +42,7 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.RestServer;
-import com.baidu.hugegraph.traversal.algorithm.EdgeStep;
+import com.baidu.hugegraph.traversal.algorithm.steps.EdgeStep;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
 import com.baidu.hugegraph.traversal.algorithm.MultiNodeShortestPathTraverser;
 import com.baidu.hugegraph.util.E;
