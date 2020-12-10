@@ -42,8 +42,9 @@ public class PostgresqlOptions extends MysqlOptions {
 
     public static final ConfigOption<String> POSTGRESQL_CONNECT_DATABASE =
             new ConfigOption<>(
-                    "postgresql.connect_database",
-                    "The database used to connect when not specify database.",
+                    "jdbc.postgresql.connect_database",
+                    "The database used to connect when init store, " +
+                    "drop store or check store exist.",
                     disallowEmpty(),
                     "template1"
             );
