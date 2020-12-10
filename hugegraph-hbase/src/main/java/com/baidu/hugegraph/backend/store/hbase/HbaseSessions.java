@@ -33,6 +33,7 @@ import java.util.Set;
 import java.util.concurrent.Future;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellScanner;
 import org.apache.hadoop.hbase.CellUtil;
@@ -134,6 +135,9 @@ public class HbaseSessions extends BackendSessionPool {
         // Set hbase.hconnection.threads.max 64 to avoid OOM(default value: 256)
         hConfig.setInt("hbase.hconnection.threads.max",
                        config.get(HbaseOptions.HBASE_THREADS_MAX));
+
+        String hbaseSite = config.get(HbaseOptions.HBASE_HBASE_SITE);
+        hConfig.addResource(new Path(hbaseSite));
 
         if(isEnableKerberos) {
             String krb5Conf = config.get(HbaseOptions.HBASE_KRB5_CONF);
