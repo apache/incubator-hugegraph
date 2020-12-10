@@ -19,12 +19,11 @@
 
 package com.baidu.hugegraph.backend.store.raft;
 
+import static com.baidu.hugegraph.backend.cache.AbstractCache.ACTION_CLEAR;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -37,21 +36,26 @@ import org.slf4j.Logger;
 
 import com.alipay.sofa.jraft.conf.Configuration;
 import com.alipay.sofa.jraft.entity.PeerId;
-import com.alipay.sofa.jraft.option.CliOptions;
 import com.alipay.sofa.jraft.option.NodeOptions;
 import com.alipay.sofa.jraft.option.RaftOptions;
 import com.alipay.sofa.jraft.rpc.RaftRpcServerFactory;
 import com.alipay.sofa.jraft.rpc.RpcServer;
+import com.alipay.sofa.jraft.rpc.impl.BoltRaftRpcFactory;
 import com.alipay.sofa.jraft.util.NamedThreadFactory;
 import com.alipay.sofa.jraft.util.ThreadPoolUtil;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.store.BackendStore;
-import com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreType;
+import com.baidu.hugegraph.backend.store.raft.rpc.ListPeersProcessor;
+import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType;
+import com.baidu.hugegraph.backend.store.raft.rpc.RpcForwarder;
+import com.baidu.hugegraph.backend.store.raft.rpc.SetLeaderProcessor;
+import com.baidu.hugegraph.backend.store.raft.rpc.StoreCommandProcessor;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.event.EventHub;
+import com.baidu.hugegraph.testutil.Whitebox;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.GraphMode;
 import com.baidu.hugegraph.util.E;
@@ -72,7 +76,7 @@ public final class RaftSharedContext {
     // compress block size
     public static final int BLOCK_SIZE = 4096;
 
-    private static final String DEFAULT_GROUP = "default-group";
+    public static final String DEFAULT_GROUP = "default";
 
     private final HugeGraphParams params;
     private final String schemaStoreName;
@@ -86,6 +90,8 @@ public final class RaftSharedContext {
     private final ExecutorService backendExecutor;
 
     private RaftNode raftNode;
+    private RaftGroupManager raftGroupManager;
+    private RpcForwarder rpcForwarder;
 
     public RaftSharedContext(HugeGraphParams params) {
         this.params = params;
@@ -94,7 +100,7 @@ public final class RaftSharedContext {
         this.schemaStoreName = config.get(CoreOptions.STORE_SCHEMA);
         this.graphStoreName = config.get(CoreOptions.STORE_GRAPH);
         this.systemStoreName = config.get(CoreOptions.STORE_SYSTEM);
-        this.stores = new RaftBackendStore[StoreType.SIZE.getNumber()];
+        this.stores = new RaftBackendStore[StoreType.ALL.getNumber()];
         this.rpcServer = this.initAndStartRpcServer();
         if (config.get(CoreOptions.RAFT_SAFE_READ)) {
             int readIndexThreads = config.get(CoreOptions.RAFT_READ_INDEX_THREADS);
@@ -111,19 +117,27 @@ public final class RaftSharedContext {
         this.backendExecutor = this.createBackendExecutor(backendThreads);
 
         this.raftNode = null;
+        this.raftGroupManager = null;
+        this.rpcForwarder = null;
+        this.registerRpcRequestProcessors();
+    }
+
+    private void registerRpcRequestProcessors() {
+        this.rpcServer.registerProcessor(new StoreCommandProcessor(this));
+        this.rpcServer.registerProcessor(new SetLeaderProcessor(this));
+        this.rpcServer.registerProcessor(new ListPeersProcessor(this));
     }
 
     public void initRaftNode() {
         this.raftNode = new RaftNode(this);
-        CliOptions cliOptions = new CliOptions();
-        cliOptions.setTimeoutMs(WAIT_LEADER_TIMEOUT);
-        cliOptions.setMaxRetry(1);
+        this.rpcForwarder = new RpcForwarder(this.raftNode);
+        this.raftGroupManager = new RaftGroupManagerImpl(this);
     }
 
     public void waitRaftNodeStarted() {
         RaftNode node = this.node();
         node.waitLeaderElected(RaftSharedContext.WAIT_LEADER_TIMEOUT);
-        if (node.isRaftLeader()) {
+        if (node.selfIsLeader()) {
             node.waitStarted(RaftSharedContext.NO_TIMEOUT);
         }
     }
@@ -135,6 +149,21 @@ public final class RaftSharedContext {
 
     public RaftNode node() {
         return this.raftNode;
+    }
+
+    public RpcForwarder rpcForwarder() {
+        return this.rpcForwarder;
+    }
+
+    public RaftGroupManager raftNodeManager(String group) {
+        E.checkArgument(DEFAULT_GROUP.equals(group),
+                        "The group must be '%s' now, actual is '%s'",
+                        DEFAULT_GROUP, group);
+        return this.raftGroupManager;
+    }
+
+    public RpcServer rpcServer() {
+        return this.rpcServer;
     }
 
     public String group() {
@@ -156,19 +185,15 @@ public final class RaftSharedContext {
         }
     }
 
+    protected RaftBackendStore[] stores() {
+        return this.stores;
+    }
+
     public BackendStore originStore(StoreType storeType) {
         RaftBackendStore raftStore = this.stores[storeType.getNumber()];
         E.checkState(raftStore != null,
                      "The raft store of type %s shouldn't be null", storeType);
         return raftStore.originStore();
-    }
-
-    public Collection<BackendStore> originStores() {
-        List<BackendStore> originStores = new ArrayList<>();
-        for (RaftBackendStore store : this.stores) {
-            originStores.add(store.originStore());
-        }
-        return originStores;
     }
 
     public NodeOptions nodeOptions() throws IOException {
@@ -232,7 +257,13 @@ public final class RaftSharedContext {
         return nodeOptions;
     }
 
-    public void notifyCache(HugeType type, Id id) {
+    public void clearCache() {
+        // Just choose two representatives used to represent schema and graph
+        this.notifyCache(ACTION_CLEAR, HugeType.VERTEX_LABEL, null);
+        this.notifyCache(ACTION_CLEAR, HugeType.VERTEX, null);
+    }
+
+    public void notifyCache(String action, HugeType type, Id id) {
         EventHub eventHub;
         if (type.isGraph()) {
             eventHub = this.params.graphEventHub();
@@ -243,9 +274,9 @@ public final class RaftSharedContext {
         }
         try {
             // How to avoid update cache from server info
-            eventHub.notify(Events.CACHE, "invalid", type, id);
+            eventHub.notify(Events.CACHE, action, type, id);
         } catch (RejectedExecutionException e) {
-            // pass
+            LOG.warn("Can't update cache due to EventHub is too busy");
         }
     }
 
@@ -262,8 +293,8 @@ public final class RaftSharedContext {
         return this.config().get(CoreOptions.RAFT_SAFE_READ);
     }
 
-    public RpcServer rpcServer() {
-        return this.rpcServer;
+    public boolean useSnapshot() {
+        return this.config().get(CoreOptions.RAFT_USE_SNAPSHOT);
     }
 
     public ExecutorService snapshotExecutor() {
@@ -283,6 +314,13 @@ public final class RaftSharedContext {
     }
 
     private RpcServer initAndStartRpcServer() {
+        Whitebox.setInternalState(
+                 BoltRaftRpcFactory.class, "CHANNEL_WRITE_BUF_LOW_WATER_MARK",
+                 this.config().get(CoreOptions.RAFT_RPC_BUF_LOW_WATER_MARK));
+        Whitebox.setInternalState(
+                 BoltRaftRpcFactory.class, "CHANNEL_WRITE_BUF_HIGH_WATER_MARK",
+                 this.config().get(CoreOptions.RAFT_RPC_BUF_HIGH_WATER_MARK));
+
         PeerId serverId = new PeerId();
         serverId.parse(this.config().get(CoreOptions.RAFT_ENDPOINT));
         RpcServer rpcServer = RaftRpcServerFactory.createAndStartRaftRpcServer(
@@ -291,7 +329,6 @@ public final class RaftSharedContext {
         return rpcServer;
     }
 
-    @SuppressWarnings("unused")
     private ExecutorService createReadIndexExecutor(int coreThreads) {
         int maxThreads = coreThreads << 2;
         String name = "store-read-index-callback";
@@ -320,7 +357,7 @@ public final class RaftSharedContext {
         BlockingQueue<Runnable> workQueue = new LinkedBlockingQueue<>();
         return ThreadPoolUtil.newBuilder()
                              .poolName(name)
-                             .enableMetric(true)
+                             .enableMetric(false)
                              .coreThreads(coreThreads)
                              .maximumThreads(maxThreads)
                              .keepAliveSeconds(300L)

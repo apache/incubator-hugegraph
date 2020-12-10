@@ -19,16 +19,16 @@
 
 package com.baidu.hugegraph.backend.store.raft;
 
-import java.util.EnumMap;
+import static com.baidu.hugegraph.backend.cache.AbstractCache.ACTION_INVALID;
+
 import java.util.List;
-import java.util.Map;
-import java.util.function.BiConsumer;
 
 import org.slf4j.Logger;
 
 import com.alipay.sofa.jraft.Closure;
 import com.alipay.sofa.jraft.Iterator;
 import com.alipay.sofa.jraft.Status;
+import com.alipay.sofa.jraft.conf.Configuration;
 import com.alipay.sofa.jraft.core.StateMachineAdapter;
 import com.alipay.sofa.jraft.entity.LeaderChangeContext;
 import com.alipay.sofa.jraft.error.RaftError;
@@ -42,8 +42,8 @@ import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.raft.RaftBackendStore.IncrCounter;
-import com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreAction;
-import com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreType;
+import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction;
+import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.GraphMode;
 import com.baidu.hugegraph.util.LZ4Util;
@@ -55,13 +55,10 @@ public class StoreStateMachine extends StateMachineAdapter {
 
     private final RaftSharedContext context;
     private final StoreSnapshotFile snapshotFile;
-    private final Map<StoreAction, BiConsumer<BackendStore, BytesBuffer>> funcs;
 
     public StoreStateMachine(RaftSharedContext context) {
         this.context = context;
-        this.snapshotFile = new StoreSnapshotFile();
-        this.funcs = new EnumMap<>(StoreAction.class);
-        this.registerCommands();
+        this.snapshotFile = new StoreSnapshotFile(context.stores());
     }
 
     private BackendStore store(StoreType type) {
@@ -72,41 +69,18 @@ public class StoreStateMachine extends StateMachineAdapter {
         return this.context.node();
     }
 
-    private void registerCommands() {
-        this.register(StoreAction.TRUNCATE, (store, buffer) -> {
-            store.truncate();
-        });
-        // clear
-        this.register(StoreAction.CLEAR, (store, buffer) -> {
-            boolean clearSpace = buffer.read() > 0;
-            store.clear(clearSpace);
-        });
-        this.register(StoreAction.BEGIN_TX, (store, buffer) -> store.beginTx());
-        this.register(StoreAction.COMMIT_TX, (store, buffer) -> {
-            List<BackendMutation> ms = StoreSerializer.readMutations(buffer);
-            store.beginTx();
-            for (BackendMutation mutation : ms) {
-                store.mutate(mutation);
-                // update cache on follower when graph run in general mode
-                if (this.context.graphMode() == GraphMode.NONE) {
-                    this.updateCacheIfNeeded(mutation);
-                }
-            }
-            store.commitTx();
-        });
-        this.register(StoreAction.ROLLBACK_TX, (store, buffer) -> {
-            store.rollbackTx();
-        });
-        // increase counter
-        this.register(StoreAction.INCR_COUNTER, (store, buffer) -> {
-            IncrCounter counter = StoreSerializer.readIncrCounter(buffer);
-            store.increaseCounter(counter.type(), counter.increment());
-        });
-    }
-
-    private void updateCacheIfNeeded(BackendMutation mutation) {
-        // Only follower need to update cache from store to tx
-        if (this.node().isRaftLeader()) {
+    private void updateCacheIfNeeded(BackendMutation mutation,
+                                     boolean forwarded) {
+        // Update cache only when graph run in general mode
+        if (this.context.graphMode() != GraphMode.NONE) {
+            return;
+        }
+        /*
+         * 1. Follower need to update cache from store to tx
+         * 2. If request come from leader, cache will be updated by upper layer
+         * 3. If request is forwarded by follower, need to update cache
+         */
+        if (!forwarded && this.node().selfIsLeader()) {
             return;
         }
         for (HugeType type : mutation.types()) {
@@ -116,50 +90,45 @@ public class StoreStateMachine extends StateMachineAdapter {
             for (java.util.Iterator<BackendAction> it = mutation.mutation(type);
                  it.hasNext();) {
                 BackendEntry entry = it.next().entry();
-                this.context.notifyCache(type, entry.originId());
+                this.context.notifyCache(ACTION_INVALID, type, entry.originId());
             }
         }
     }
 
-    private void register(StoreAction action,
-                          BiConsumer<BackendStore, BytesBuffer> func) {
-        this.funcs.put(action, func);
-    }
-
     @Override
     public void onApply(Iterator iter) {
-        LOG.debug("Node role: {}", this.node().isRaftLeader() ?
+        LOG.debug("Node role: {}", this.node().selfIsLeader() ?
                                    "leader" : "follower");
         StoreClosure closure = null;
         try {
             while (iter.hasNext()) {
-                StoreType type;
-                StoreAction action;
-                BytesBuffer buffer;
                 closure = (StoreClosure) iter.done();
                 if (closure != null) {
                     // Leader just take it out from the closure
-                    buffer = BytesBuffer.wrap(closure.command().data());
-                } else {
-                    // Follower need readMutation data
-                    buffer = LZ4Util.decompress(iter.getData().array(),
-                                                RaftSharedContext.BLOCK_SIZE);
-                }
-                // The first two bytes are StoreType and StoreAction
-                type = StoreType.valueOf(buffer.read());
-                action = StoreAction.valueOf(buffer.read());
-                if (closure != null) {
-                    // Closure is null on follower node
+                    StoreCommand command = closure.command();
+                    BytesBuffer buffer = BytesBuffer.wrap(command.data());
+                    // The first two bytes are StoreType and StoreAction
+                    StoreType type = StoreType.valueOf(buffer.read());
+                    StoreAction action = StoreAction.valueOf(buffer.read());
+                    boolean forwarded = command.forwarded();
                     // Let the producer thread to handle it
                     closure.complete(Status.OK(), () -> {
-                        return this.applyCommand(type, action, buffer);
+                        this.applyCommand(type, action, buffer, forwarded);
+                        return null;
                     });
                 } else {
+                    // Follower need readMutation data
+                    byte[] bytes = iter.getData().array();
                     // Follower seems no way to wait future
                     // Let the backend thread do it directly
                     this.context.backendExecutor().submit(() -> {
+                        BytesBuffer buffer = LZ4Util.decompress(bytes,
+                                             RaftSharedContext.BLOCK_SIZE);
+                        buffer.forReadWritten();
+                        StoreType type = StoreType.valueOf(buffer.read());
+                        StoreAction action = StoreAction.valueOf(buffer.read());
                         try {
-                            this.applyCommand(type, action, buffer);
+                            this.applyCommand(type, action, buffer, false);
                         } catch (Throwable e) {
                             LOG.error("Failed to execute backend command: {}",
                                       action, e);
@@ -182,66 +151,95 @@ public class StoreStateMachine extends StateMachineAdapter {
         }
     }
 
-    private Object applyCommand(StoreType type, StoreAction action,
-                                BytesBuffer buffer) {
-        BackendStore store = this.store(type);
-        BiConsumer<BackendStore, BytesBuffer> func = this.funcs.get(action);
-        func.accept(store, buffer);
-        return null;
+    private void applyCommand(StoreType type, StoreAction action,
+                              BytesBuffer buffer, boolean forwarded) {
+        BackendStore store = type != StoreType.ALL ? this.store(type) : null;
+        switch (action) {
+            case CLEAR:
+                boolean clearSpace = buffer.read() > 0;
+                store.clear(clearSpace);
+                this.context.clearCache();
+                break;
+            case TRUNCATE:
+                store.truncate();
+                this.context.clearCache();
+                break;
+            case SNAPSHOT:
+                assert store == null;
+                this.node().snapshot();
+                break;
+            case BEGIN_TX:
+                store.beginTx();
+                break;
+            case COMMIT_TX:
+                List<BackendMutation> ms = StoreSerializer.readMutations(buffer);
+                // RaftBackendStore doesn't write raft log for beginTx
+                store.beginTx();
+                for (BackendMutation mutation : ms) {
+                    store.mutate(mutation);
+                    this.updateCacheIfNeeded(mutation, forwarded);
+                }
+                store.commitTx();
+                break;
+            case ROLLBACK_TX:
+                store.rollbackTx();
+                break;
+            // increase counter
+            case INCR_COUNTER:
+                IncrCounter counter = StoreSerializer.readIncrCounter(buffer);
+                store.increaseCounter(counter.type(), counter.increment());
+                break;
+            default:
+                throw new IllegalArgumentException("Invalid action " + action);
+        }
     }
 
     @Override
     public void onSnapshotSave(SnapshotWriter writer, Closure done) {
         LOG.debug("The node {} start snapshot save", this.node().nodeId());
-        for (BackendStore store : this.context.originStores()) {
-            this.snapshotFile.save(store, writer, done,
-                                   this.context.snapshotExecutor());
-        }
+        this.snapshotFile.save(writer, done, this.context.snapshotExecutor());
     }
 
     @Override
     public boolean onSnapshotLoad(SnapshotReader reader) {
-        if (this.node().isRaftLeader()) {
+        if (this.node() != null && this.node().selfIsLeader()) {
             LOG.warn("Leader is not supposed to load snapshot.");
             return false;
         }
-        LOG.debug("The node {} start snapshot load", this.node().nodeId());
-        for (BackendStore store : this.context.originStores()) {
-             if (!this.snapshotFile.load(store, reader)) {
-                 return false;
-             }
-        }
-        return true;
+        return this.snapshotFile.load(reader);
     }
 
     @Override
     public void onLeaderStart(long term) {
         LOG.info("The node {} become to leader", this.node().nodeId());
-        this.node().leaderTerm(term);
-        this.node().onElected(true);
+        this.node().onLeaderInfoChange(this.node().nodeId(), true);
         super.onLeaderStart(term);
     }
 
     @Override
     public void onLeaderStop(Status status) {
         LOG.info("The node {} abdicated from leader", this.node().nodeId());
-        this.node().leaderTerm(-1);
-        this.node().onElected(false);
+        this.node().onLeaderInfoChange(null, false);
         super.onLeaderStop(status);
     }
 
     @Override
     public void onStartFollowing(LeaderChangeContext ctx) {
         LOG.info("The node {} become to follower", this.node().nodeId());
-        this.node().onElected(true);
+        this.node().onLeaderInfoChange(ctx.getLeaderId(), false);
         super.onStartFollowing(ctx);
     }
 
     @Override
     public void onStopFollowing(LeaderChangeContext ctx) {
         LOG.info("The node {} abdicated from follower", this.node().nodeId());
-        this.node().onElected(false);
+        this.node().onLeaderInfoChange(null, false);
         super.onStopFollowing(ctx);
+    }
+
+    @Override
+    public void onConfigurationCommitted(Configuration conf) {
+        super.onConfigurationCommitted(conf);
     }
 
     @Override

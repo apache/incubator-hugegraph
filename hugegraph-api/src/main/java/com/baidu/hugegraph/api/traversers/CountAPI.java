@@ -43,6 +43,7 @@ import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.traversal.algorithm.CountTraverser;
+import com.baidu.hugegraph.traversal.algorithm.steps.EdgeStep;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
@@ -77,7 +78,7 @@ public class CountAPI extends API {
                                request.dedupSize);
 
         HugeGraph g = graph(manager, graph);
-        List<CountTraverser.Step> steps = step(g, request);
+        List<EdgeStep> steps = steps(g, request);
         CountTraverser traverser = new CountTraverser(g);
         long count = traverser.count(sourceId, steps, request.containsTraversed,
                                      request.dedupSize);
@@ -85,10 +86,9 @@ public class CountAPI extends API {
         return manager.serializer(g).writeMap(ImmutableMap.of("count", count));
     }
 
-    private static List<CountTraverser.Step> step(HugeGraph graph,
-                                                  CountRequest request) {
+    private static List<EdgeStep> steps(HugeGraph graph, CountRequest request) {
         int stepSize = request.steps.size();
-        List<CountTraverser.Step> steps = new ArrayList<>(stepSize);
+        List<EdgeStep> steps = new ArrayList<>(stepSize);
         for (Step step : request.steps) {
             steps.add(step.jsonToStep(graph));
         }
@@ -136,10 +136,9 @@ public class CountAPI extends API {
                                  this.degree, this.skipDegree);
         }
 
-        private CountTraverser.Step jsonToStep(HugeGraph graph) {
-            return new CountTraverser.Step(graph, this.direction, this.labels,
-                                           this.properties, this.degree,
-                                           this.skipDegree);
+        private EdgeStep jsonToStep(HugeGraph graph) {
+            return new EdgeStep(graph, this.direction, this.labels,
+                                this.properties, this.degree, this.skipDegree);
         }
     }
 }

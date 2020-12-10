@@ -27,19 +27,16 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.structure.HugeVertex;
+import com.baidu.hugegraph.traversal.algorithm.steps.EdgeStep;
+import com.baidu.hugegraph.traversal.algorithm.steps.RepeatEdgeStep;
 import com.baidu.hugegraph.traversal.algorithm.strategy.TraverseStrategy;
-import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
-import com.baidu.hugegraph.util.Log;
 
 public class TemplatePathsTraverser extends HugeTraverser {
-
-    private static final Logger LOG = Log.logger(TemplatePathsTraverser.class);
 
     public TemplatePathsTraverser(HugeGraph graph) {
         super(graph);
@@ -72,7 +69,7 @@ public class TemplatePathsTraverser extends HugeTraverser {
 
         int totalSteps = 0;
         for (RepeatEdgeStep step : steps) {
-            totalSteps += step.maxTimes;
+            totalSteps += step.maxTimes();
         }
         TraverseStrategy strategy = TraverseStrategy.create(
                                     totalSteps >= this.concurrentDepth(),
@@ -116,7 +113,7 @@ public class TemplatePathsTraverser extends HugeTraverser {
             this.steps = steps;
             this.withRing = withRing;
             for (RepeatEdgeStep step : steps) {
-                this.totalSteps += step.maxTimes;
+                this.totalSteps += step.maxTimes();
             }
 
             this.sourceIndex = 0;
@@ -126,6 +123,7 @@ public class TemplatePathsTraverser extends HugeTraverser {
             this.targetFinishOneStep = false;
         }
 
+        @Override
         public RepeatEdgeStep nextStep(boolean forward) {
             return forward ? this.forwardStep() : this.backwardStep();
         }
@@ -255,7 +253,7 @@ public class TemplatePathsTraverser extends HugeTraverser {
                 RepeatEdgeStep step = this.steps.get(i);
                 if (step.remainTimes() > 0) {
                     currentStep = step;
-                    this.targetIndex = i;
+                    this.sourceIndex = i;
                     break;
                 }
             }
@@ -279,27 +277,6 @@ public class TemplatePathsTraverser extends HugeTraverser {
         public boolean lastSuperStep() {
             return this.targetIndex == this.sourceIndex ||
                    this.targetIndex == this.sourceIndex + 1;
-        }
-    }
-
-    public static class RepeatEdgeStep extends EdgeStep {
-
-        private int maxTimes = 1;
-
-        public RepeatEdgeStep(HugeGraph g, Directions direction,
-                              List<String> labels,
-                              Map<String, Object> properties, long degree,
-                              long skipDegree, int maxTimes) {
-            super(g, direction, labels, properties, degree, skipDegree);
-            this.maxTimes = maxTimes;
-        }
-
-        private int remainTimes() {
-            return this.maxTimes;
-        }
-
-        private void decreaseTimes() {
-            this.maxTimes--;
         }
     }
 }

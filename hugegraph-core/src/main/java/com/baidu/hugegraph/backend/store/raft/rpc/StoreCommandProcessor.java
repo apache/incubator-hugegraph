@@ -17,28 +17,33 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.backend.store.raft;
+package com.baidu.hugegraph.backend.store.raft.rpc;
 
 import org.slf4j.Logger;
 
 import com.alipay.sofa.jraft.rpc.RpcRequestClosure;
 import com.alipay.sofa.jraft.rpc.RpcRequestProcessor;
-import com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreAction;
-import com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreCommandRequest;
-import com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreCommandResponse;
-import com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreType;
+import com.baidu.hugegraph.backend.store.raft.RaftNode;
+import com.baidu.hugegraph.backend.store.raft.RaftSharedContext;
+import com.baidu.hugegraph.backend.store.raft.StoreClosure;
+import com.baidu.hugegraph.backend.store.raft.StoreCommand;
+import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction;
+import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandRequest;
+import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandResponse;
+import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType;
 import com.baidu.hugegraph.util.Log;
 import com.google.protobuf.Message;
 
-public class StoreCommandRequestProcessor
+public class StoreCommandProcessor
        extends RpcRequestProcessor<StoreCommandRequest> {
 
-    private static final Logger LOG = Log.logger(StoreCommandRequestProcessor.class);
+    private static final Logger LOG = Log.logger(
+                                      StoreCommandProcessor.class);
 
     private final RaftSharedContext context;
 
-    public StoreCommandRequestProcessor(RaftSharedContext context) {
-        super(null, StoreCommandResponse.newBuilder().setStatus(true).build());
+    public StoreCommandProcessor(RaftSharedContext context) {
+        super(null, null);
         this.context = context;
     }
 
@@ -71,6 +76,6 @@ public class StoreCommandRequestProcessor
         StoreType type = request.getType();
         StoreAction action = request.getAction();
         byte[] data = request.getData().toByteArray();
-        return new StoreCommand(type, action, data);
+        return new StoreCommand(type, action, data, true);
     }
 }

@@ -1092,6 +1092,7 @@ public class BinarySerializer extends AbstractSerializer {
         }
 
         private void writeLong(HugeKeys key, long value) {
+            @SuppressWarnings("resource")
             BytesBuffer buffer = new BytesBuffer(8);
             buffer.writeVLong(value);
             this.entry.column(formatColumnName(key), buffer.bytes());

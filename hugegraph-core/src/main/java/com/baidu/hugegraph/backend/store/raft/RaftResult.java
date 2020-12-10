@@ -24,13 +24,13 @@ import java.util.function.Supplier;
 import com.alipay.sofa.jraft.Status;
 import com.baidu.hugegraph.util.E;
 
-public class RaftResult {
+public class RaftResult<T> {
 
     private final Status status;
-    private final Supplier<Object> callback;
+    private final Supplier<T> callback;
     private final Throwable exception;
 
-    public RaftResult(Status status, Supplier<Object> callback) {
+    public RaftResult(Status status, Supplier<T> callback) {
         this(status, callback, null);
     }
 
@@ -38,7 +38,7 @@ public class RaftResult {
         this(status, () -> null, exception);
     }
 
-    public RaftResult(Status status, Supplier<Object> callback,
+    public RaftResult(Status status, Supplier<T> callback,
                       Throwable exception) {
         E.checkNotNull(status, "status");
         E.checkNotNull(callback, "callback");
@@ -51,7 +51,7 @@ public class RaftResult {
         return this.status;
     }
 
-    public Supplier<Object> callback() {
+    public Supplier<T> callback() {
         return this.callback;
     }
 

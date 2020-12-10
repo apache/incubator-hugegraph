@@ -24,6 +24,7 @@ import java.util.Set;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.traversal.algorithm.steps.EdgeStep;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
@@ -102,7 +103,7 @@ public class KoutTraverser extends OltpTraverser {
 
         Set<Node> results;
         boolean single = maxDepth < this.concurrentDepth() ||
-                         step.direction != Directions.BOTH;
+                         step.direction() != Directions.BOTH;
         results = this.customizedKout(source, step, maxDepth, nearest,
                                       capacity, single);
 

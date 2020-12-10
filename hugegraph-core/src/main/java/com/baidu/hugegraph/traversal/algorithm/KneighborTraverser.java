@@ -24,6 +24,7 @@ import java.util.Set;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.traversal.algorithm.steps.EdgeStep;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
 
@@ -72,7 +73,7 @@ public class KneighborTraverser extends OltpTraverser {
         checkLimit(limit);
 
         boolean single = maxDepth < this.concurrentDepth() ||
-                         step.direction != Directions.BOTH;
+                         step.direction() != Directions.BOTH;
         return this.customizedKneighbor(source, step, maxDepth,
                                         limit, single);
     }

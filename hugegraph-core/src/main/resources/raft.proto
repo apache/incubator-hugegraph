@@ -1,15 +1,15 @@
 syntax="proto2";
 
-package com.baidu.hugegraph.backend.store.raft;
+package com.baidu.hugegraph.backend.store.raft.rpc;
 
-option java_package="com.baidu.hugegraph.backend.store.raft";
+option java_package="com.baidu.hugegraph.backend.store.raft.rpc";
 option java_outer_classname = "RaftRequests";
 
 enum StoreType {
     SCHEMA = 0;
     GRAPH = 1;
     SYSTEM = 2;
-    SIZE = 3;
+    ALL = 3;
 }
 
 enum StoreAction {
@@ -17,6 +17,7 @@ enum StoreAction {
     INIT = 1;
     CLEAR = 2;
     TRUNCATE = 3;
+    SNAPSHOT = 4;
 
     BEGIN_TX = 10;
     COMMIT_TX = 11;
@@ -37,4 +38,25 @@ message StoreCommandRequest {
 message StoreCommandResponse {
     required bool status = 1;
     optional string message = 2;
+}
+
+message CommonResponse {
+    required bool status = 1;
+    optional string message = 2;
+}
+
+message ListPeersRequest {
+}
+
+message ListPeersResponse {
+    required CommonResponse common = 1;
+    repeated string endpoints = 2;
+}
+
+message SetLeaderRequest {
+    required string endpoint = 1;
+}
+
+message SetLeaderResponse {
+    required CommonResponse common = 1;
 }

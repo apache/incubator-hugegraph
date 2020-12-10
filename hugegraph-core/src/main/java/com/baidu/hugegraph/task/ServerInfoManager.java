@@ -361,10 +361,13 @@ public class ServerInfoManager {
     }
 
     public Collection<HugeServerInfo> allServerInfos() {
-        @SuppressWarnings("resource")
-        ListIterator<HugeServerInfo> iter = new ListIterator<>(MAX_SERVERS,
-                                            this.serverInfos(NO_LIMIT, null));
-        return iter.list();
+        Iterator<HugeServerInfo> infos = this.serverInfos(NO_LIMIT, null);
+        try (ListIterator<HugeServerInfo> iter = new ListIterator<>(
+                                                 MAX_SERVERS, infos)) {
+            return iter.list();
+        } catch (Exception e) {
+            throw new HugeException("Failed to close server info iterator", e);
+        }
     }
 
     public Iterator<HugeServerInfo> serverInfos(String page) {

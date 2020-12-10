@@ -29,6 +29,9 @@ public class ComputerPool {
     static {
         INSTANCE.register(new PageRankComputer());
         INSTANCE.register(new WeakConnectedComponentComputer());
+        INSTANCE.register(new LpaComputer());
+        INSTANCE.register(new TriangleCountComputer());
+        INSTANCE.register(new LouvainComputer());
     }
 
     private final Map<String, Computer> computers;

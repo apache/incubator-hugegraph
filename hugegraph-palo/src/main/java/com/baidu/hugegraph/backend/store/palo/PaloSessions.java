@@ -107,10 +107,11 @@ public class PaloSessions extends MysqlSessions {
     }
 
     @Override
-    public void close() {
+    public boolean close() {
         this.loadTask.join();
         this.timer.cancel();
         super.close();
+        return true;
     }
 
     public final class Session extends MysqlSessions.Session {

@@ -26,19 +26,16 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.structure.HugeVertex;
+import com.baidu.hugegraph.traversal.algorithm.steps.EdgeStep;
 import com.baidu.hugegraph.traversal.algorithm.strategy.TraverseStrategy;
 import com.baidu.hugegraph.util.E;
-import com.baidu.hugegraph.util.Log;
 import com.google.common.collect.ImmutableList;
 
 public class CollectionPathsTraverser extends HugeTraverser {
-
-    private static final Logger LOG = Log.logger(CollectionPathsTraverser.class);
 
     public CollectionPathsTraverser(HugeGraph graph) {
         super(graph);
@@ -275,6 +272,7 @@ public class CollectionPathsTraverser extends HugeTraverser {
             }
         }
 
+        @Override
         protected int accessedNodes() {
             return this.sourcesAll.size() + this.targetsAll.size();
         }

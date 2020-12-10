@@ -124,7 +124,7 @@ public class CoreOptions extends OptionHolder {
                     "raft.use_snapshot",
                     "Whether to use snapshot.",
                     disallowEmpty(),
-                    false
+                    true
             );
 
     public static final ConfigOption<String> RAFT_ENDPOINT =
@@ -157,7 +157,7 @@ public class CoreOptions extends OptionHolder {
                     "Whether to use replicator line, when turned on it " +
                     "multiple logs can be sent in parallel, and the next log " +
                     "doesn't have to wait for the ack message of the current " +
-                    "log to be sent",
+                    "log to be sent.",
                     disallowEmpty(),
                     true
             );
@@ -207,7 +207,7 @@ public class CoreOptions extends OptionHolder {
             new ConfigOption<>(
                     "raft.queue_size",
                     "The disruptor buffers size for jraft RaftNode, " +
-                    "StateMachine and LogManager",
+                    "StateMachine and LogManager.",
                     positiveInt(),
                     // jraft default value is 16384
                     16384
@@ -216,7 +216,7 @@ public class CoreOptions extends OptionHolder {
     public static final ConfigOption<Integer> RAFT_QUEUE_PUBLISH_TIMEOUT =
             new ConfigOption<>(
                     "raft.queue_publish_timeout",
-                    "The timeout in second when publish event into disruptor",
+                    "The timeout in second when publish event into disruptor.",
                     positiveInt(),
                     // jraft default value is 10(sec)
                     60
@@ -234,7 +234,7 @@ public class CoreOptions extends OptionHolder {
     public static final ConfigOption<Integer> RAFT_RPC_CONNECT_TIMEOUT =
             new ConfigOption<>(
                     "raft.rpc_connect_timeout",
-                    "The rpc connect timeout for jraft rpc",
+                    "The rpc connect timeout for jraft rpc.",
                     positiveInt(),
                     // jraft default value is 1000(ms)
                     5000
@@ -243,10 +243,34 @@ public class CoreOptions extends OptionHolder {
     public static final ConfigOption<Integer> RAFT_RPC_TIMEOUT =
             new ConfigOption<>(
                     "raft.rpc_timeout",
-                    "The rpc timeout for jraft rpc",
+                    "The rpc timeout for jraft rpc.",
                     positiveInt(),
                     // jraft default value is 5000(ms)
                     60000
+            );
+
+    public static final ConfigOption<Integer> RAFT_RPC_BUF_LOW_WATER_MARK =
+            new ConfigOption<>(
+                    "raft.rpc_buf_low_water_mark",
+                    "The ChannelOutboundBuffer's low water mark of netty, " +
+                    "when buffer size less than this size, the method " +
+                    "ChannelOutboundBuffer.isWritable() will return true, " +
+                    "it means that low downstream pressure or good network.",
+                    positiveInt(),
+                    10 * 1024 * 1024
+            );
+
+    public static final ConfigOption<Integer> RAFT_RPC_BUF_HIGH_WATER_MARK =
+            new ConfigOption<>(
+                    "raft.rpc_buf_high_water_mark",
+                    "The ChannelOutboundBuffer's high water mark of netty, " +
+                    "only when buffer size exceed this size, the method " +
+                    "ChannelOutboundBuffer.isWritable() will return false, " +
+                    "it means that the downstream pressure is too great to " +
+                    "process the request or network is very congestion, " +
+                    "upstream needs to limit rate at this time.",
+                    positiveInt(),
+                    20 * 1024 * 1024
             );
 
     public static final ConfigOption<Integer> RATE_LIMIT_WRITE =
@@ -268,8 +292,9 @@ public class CoreOptions extends OptionHolder {
     public static final ConfigOption<Long> TASK_WAIT_TIMEOUT =
             new ConfigOption<>(
                     "task.wait_timeout",
-                    "Timeout in seconds for waiting for the task to complete," +
-                    "such as when truncating or clearing the backend.",
+                    "Timeout in seconds for waiting for the task to " +
+                    "complete, such as when truncating or clearing the " +
+                    "backend.",
                     rangeInt(0L, Long.MAX_VALUE),
                     10L
             );
@@ -288,6 +313,14 @@ public class CoreOptions extends OptionHolder {
                     "The job result size limit in bytes.",
                     rangeInt(0L, Bytes.GB),
                     16 * Bytes.MB
+            );
+
+    public static final ConfigOption<Integer> TASK_TTL_DELETE_BATCH =
+            new ConfigOption<>(
+                    "task.ttl_delete_batch",
+                    "The batch size used to delete expired data.",
+                    rangeInt(1, 500),
+                    1
             );
 
     public static final ConfigOption<Long> CONNECTION_DETECT_INTERVAL =
@@ -313,7 +346,7 @@ public class CoreOptions extends OptionHolder {
             new ConfigOption<>(
                     "vertex.check_customized_id_exist",
                     "Whether to check the vertices exist for those using " +
-                    "customized id strategy",
+                    "customized id strategy.",
                     disallowEmpty(),
                     false
             );
@@ -321,7 +354,7 @@ public class CoreOptions extends OptionHolder {
     public static final ConfigOption<Boolean> VERTEX_ADJACENT_VERTEX_EXIST =
             new ConfigOption<>(
                     "vertex.check_adjacent_vertex_exist",
-                    "Whether to check the adjacent vertices of edges exist",
+                    "Whether to check the adjacent vertices of edges exist.",
                     disallowEmpty(),
                     false
             );
@@ -329,7 +362,7 @@ public class CoreOptions extends OptionHolder {
     public static final ConfigOption<Boolean> VERTEX_ADJACENT_VERTEX_LAZY =
             new ConfigOption<>(
                     "vertex.lazy_load_adjacent_vertex",
-                    "Whether to lazy load adjacent vertices of edges",
+                    "Whether to lazy load adjacent vertices of edges.",
                     disallowEmpty(),
                     true
             );
@@ -337,8 +370,8 @@ public class CoreOptions extends OptionHolder {
     public static final ConfigOption<Integer> VERTEX_PART_EDGE_COMMIT_SIZE =
             new ConfigOption<>(
                     "vertex.part_edge_commit_size",
-                    "Whether to enable the mode to commit part of edges of vertex, " +
-                    "enabled if commit size > 0, 0 meas disabled.",
+                    "Whether to enable the mode to commit part of edges of " +
+                    "vertex, enabled if commit size > 0, 0 meas disabled.",
                     rangeInt(0, (int) Query.DEFAULT_CAPACITY),
                     5000
             );
@@ -370,8 +403,9 @@ public class CoreOptions extends OptionHolder {
     public static final ConfigOption<Integer> QUERY_INDEX_INTERSECT_THRESHOLD =
             new ConfigOption<>(
                     "query.index_intersect_threshold",
-                    "The maximum number of intermediate results to intersect " +
-                    "indexes when querying by multiple single index properties.",
+                    "The maximum number of intermediate results to " +
+                    "intersect indexes when querying by multiple single " +
+                    "index properties.",
                     rangeInt(1, (int) Query.DEFAULT_CAPACITY),
                     1000
             );
@@ -405,7 +439,8 @@ public class CoreOptions extends OptionHolder {
     public static final ConfigOption<Integer> VERTEX_TX_CAPACITY =
             new ConfigOption<>(
                     "vertex.tx_capacity",
-                    "The max size(items) of vertices(uncommitted) in transaction.",
+                    "The max size(items) of vertices(uncommitted) in " +
+                    "transaction.",
                     rangeInt(COMMIT_BATCH, 1000000),
                     10000
             );
@@ -413,7 +448,8 @@ public class CoreOptions extends OptionHolder {
     public static final ConfigOption<Integer> EDGE_TX_CAPACITY =
             new ConfigOption<>(
                     "edge.tx_capacity",
-                    "The max size(items) of edges(uncommitted) in transaction.",
+                    "The max size(items) of edges(uncommitted) in " +
+                     "transaction.",
                     rangeInt(COMMIT_BATCH, 1000000),
                     10000
             );
@@ -453,14 +489,6 @@ public class CoreOptions extends OptionHolder {
                     "The type of vertex cache, allowed values are [l1, l2].",
                     allowValues("l1", "l2"),
                     "l1"
-            );
-
-    public static final ConfigOption<Integer> EXPIRED_DELETE_BATCH =
-            new ConfigOption<>(
-                    "expired.delete_batch",
-                    "The batch size used to delete expired data.",
-                    rangeInt(1, 500),
-                    1
             );
 
     public static final ConfigOption<Long> VERTEX_CACHE_CAPACITY =
@@ -533,7 +561,7 @@ public class CoreOptions extends OptionHolder {
                     "Choose a text analyzer for searching the " +
                     "vertex/edge properties, available type are " +
                     "[word, ansj, hanlp, smartcn, jieba, jcseg, " +
-                    "mmseg4j, ikanalyzer]",
+                    "mmseg4j, ikanalyzer].",
                     disallowEmpty(),
                     "ikanalyzer"
             );
@@ -558,7 +586,7 @@ public class CoreOptions extends OptionHolder {
                     "jcseg: [Simple, Complex], " +
                     "mmseg4j: [Simple, Complex, MaxWord], " +
                     "ikanalyzer: [smart, max_word]" +
-                    "}",
+                    "}.",
                     disallowEmpty(),
                     "smart"
             );
@@ -566,7 +594,7 @@ public class CoreOptions extends OptionHolder {
     public static final ConfigOption<String> COMPUTER_CONFIG =
             new ConfigOption<>(
                     "computer.config",
-                    "The config file path of computer job",
+                    "The config file path of computer job.",
                     disallowEmpty(),
                     "./conf/computer.yaml"
             );

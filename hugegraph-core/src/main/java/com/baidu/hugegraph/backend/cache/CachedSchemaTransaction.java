@@ -19,6 +19,9 @@
 
 package com.baidu.hugegraph.backend.cache;
 
+import static com.baidu.hugegraph.backend.cache.AbstractCache.ACTION_CLEAR;
+import static com.baidu.hugegraph.backend.cache.AbstractCache.ACTION_INVALID;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -104,7 +107,7 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
                       this.graph(), event);
             event.checkArgs(String.class, HugeType.class, Id.class);
             Object[] args = event.args();
-            if ("invalid".equals(args[0])) {
+            if (ACTION_INVALID.equals(args[0])) {
                 HugeType type = (HugeType) args[1];
                 Id id = (Id) args[2];
                 this.arrayCaches.remove(type, id);
@@ -122,7 +125,7 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
                     this.nameCache.invalidate(prefixedName);
                 }
                 return true;
-            } else if ("clear".equals(args[0])) {
+            } else if (ACTION_CLEAR.equals(args[0])) {
                 this.clearCache();
                 return true;
             }
@@ -193,7 +196,7 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
     @SuppressWarnings("unchecked")
     protected <T extends SchemaElement> T getSchema(HugeType type, Id id) {
         // try get from optimized array cache
-        if (id.number() && id.asLong() > 0) {
+        if (id.number() && id.asLong() > 0L) {
             SchemaElement value = this.arrayCaches.get(type, id);
             if (value != null) {
                 return (T) value;
@@ -320,14 +323,19 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
                 return;
             }
             Id id = schema.id();
-            if (id.number() && id.asLong() > 0) {
+            if (id.number() && id.asLong() > 0L) {
                 this.set(schema.type(), id, schema);
             }
         }
 
         public V get(HugeType type, Id id) {
-            assert id.number() && id.asLong() > 0 : id;
-            int key = (int) id.asLong();
+            assert id.number();
+            long longId = id.asLong();
+            if (longId <= 0L) {
+                assert false : id;
+                return null;
+            }
+            int key = (int) longId;
             if (key >= this.size) {
                 return null;
             }
@@ -346,8 +354,13 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
         }
 
         public void set(HugeType type, Id id, V value) {
-            assert id.number() && id.asLong() > 0 : id;
-            int key = (int) id.asLong();
+            assert id.number();
+            long longId = id.asLong();
+            if (longId <= 0L) {
+                assert false : id;
+                return;
+            }
+            int key = (int) longId;
             if (key >= this.size) {
                 return;
             }
@@ -371,8 +384,12 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
         }
 
         public void remove(HugeType type, Id id) {
-            assert id.number() && id.asLong() > 0 : id;
-            int key = (int) id.asLong();
+            assert id.number();
+            long longId = id.asLong();
+            if (longId <= 0L) {
+                return;
+            }
+            int key = (int) longId;
             V value = null;
             if (key >= this.size) {
                 return;

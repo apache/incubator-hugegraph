@@ -36,8 +36,8 @@ import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
-import com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreAction;
-import com.baidu.hugegraph.backend.store.raft.RaftRequests.StoreType;
+import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction;
+import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.Log;
@@ -124,6 +124,9 @@ public class RaftBackendStore implements BackendStore {
 
     @Override
     public void mutate(BackendMutation mutation) {
+        if (mutation.isEmpty()) {
+            return;
+        }
         // Just add to local buffer
         this.getOrNewBatch().add(mutation);
     }
@@ -142,6 +145,7 @@ public class RaftBackendStore implements BackendStore {
 
     @Override
     public void beginTx() {
+        // Don't write raft log, commitTx(in statemachine) will call beginTx
     }
 
     @Override
@@ -182,16 +186,6 @@ public class RaftBackendStore implements BackendStore {
         return (Long) this.queryByRaft(type, o -> this.store.getCounter(type));
     }
 
-    @Override
-    public void writeSnapshot(String snapshotPath) {
-        this.store.writeSnapshot(snapshotPath);
-    }
-
-    @Override
-    public void readSnapshot(String snapshotPath) {
-        this.store.readSnapshot(snapshotPath);
-    }
-
     private Object submitAndWait(StoreAction action, byte[] data) {
         StoreType type = this.context.storeType(this.store());
         return this.submitAndWait(new StoreCommand(type, action, data));
@@ -203,11 +197,11 @@ public class RaftBackendStore implements BackendStore {
     }
 
     private Object queryByRaft(Object query, Function<Object, Object> func) {
-        if (!this.context.isSafeRead()) {
+        if (this.node().selfIsLeader() || !this.context.isSafeRead()) {
             return func.apply(query);
         }
 
-        RaftClosure future = new RaftClosure();
+        RaftClosure<Object> future = new RaftClosure<>();
         ReadIndexClosure readIndexClosure = new ReadIndexClosure() {
             @Override
             public void run(Status status, long index, byte[] reqCtx) {
@@ -223,10 +217,10 @@ public class RaftBackendStore implements BackendStore {
         this.node().node().readIndex(BytesUtil.EMPTY_BYTES, readIndexClosure);
         try {
             return future.waitFinished();
-        } catch (Throwable t) {
+        } catch (Throwable e) {
             LOG.warn("Failed to execute query {} with read-index: {}",
                      query, future.status());
-            throw new BackendException("Failed to execute query", t);
+            throw new BackendException("Failed to execute query", e);
         }
     }
 

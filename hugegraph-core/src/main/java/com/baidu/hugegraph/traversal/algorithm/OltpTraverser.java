@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
@@ -40,6 +39,7 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.iterator.FilterIterator;
 import com.baidu.hugegraph.structure.HugeEdge;
+import com.baidu.hugegraph.traversal.algorithm.steps.EdgeStep;
 import com.baidu.hugegraph.util.Consumers;
 
 import jersey.repackaged.com.google.common.base.Objects;
@@ -48,20 +48,20 @@ public abstract class OltpTraverser extends HugeTraverser
                                     implements AutoCloseable {
 
     private static final String EXECUTOR_NAME = "oltp";
-    private static ExecutorService executor;
+    private static Consumers.ExecutorPool executors;
 
     protected OltpTraverser(HugeGraph graph) {
         super(graph);
-        if (executor != null) {
+        if (executors != null) {
             return;
         }
         synchronized (OltpTraverser.class) {
-            if (executor != null) {
+            if (executors != null) {
                 return;
             }
             int workers = this.config().get(CoreOptions.OLTP_CONCURRENT_THREADS);
             if (workers > 0) {
-                executor = Consumers.newThreadPool(EXECUTOR_NAME, workers);
+                executors = new Consumers.ExecutorPool(EXECUTOR_NAME, workers);
             }
         }
     }
@@ -72,9 +72,11 @@ public abstract class OltpTraverser extends HugeTraverser
     }
 
     public static void destroy() {
-        if (executor != null) {
-            executor.shutdown();
-            executor = null;
+        synchronized (OltpTraverser.class) {
+            if (executors != null) {
+                executors.destroy();
+                executors = null;
+            }
         }
     }
 
@@ -126,7 +128,12 @@ public abstract class OltpTraverser extends HugeTraverser
 
     protected <K> long traverse(Iterator<K> iterator, Consumer<K> consumer,
                                 String name) {
-        Consumers<K> consumers = new Consumers<>(executor, consumer, null);
+        if (!iterator.hasNext()) {
+            return 0L;
+        }
+
+        Consumers<K> consumers = new Consumers<>(executors.getExecutor(),
+                                                 consumer, null);
         consumers.start(name);
         long total = 0L;
         try {
@@ -143,8 +150,9 @@ public abstract class OltpTraverser extends HugeTraverser
             try {
                 consumers.await();
             } catch (Throwable e) {
-                Consumers.wrapException(e);
+                throw Consumers.wrapException(e);
             } finally {
+                executors.returnExecutor(consumers.executor());
                 CloseableIterator.closeIterator(iterator);
             }
         }
@@ -168,6 +176,8 @@ public abstract class OltpTraverser extends HugeTraverser
 
     public class ConcurrentMultiValuedMap<K, V>
            extends ConcurrentHashMap<K, List<V>> {
+
+        private static final long serialVersionUID = -7249946839643493614L;
 
         public ConcurrentMultiValuedMap() {
             super();

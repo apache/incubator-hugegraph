@@ -67,17 +67,18 @@ import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumnIterator;
 import com.baidu.hugegraph.backend.store.BackendEntryIterator;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.util.Bytes;
-import com.baidu.hugegraph.util.GZipUtil;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.GZipUtil;
 import com.baidu.hugegraph.util.StringEncoding;
 import com.google.common.collect.ImmutableList;
 
 public class RocksDBStdSessions extends RocksDBSessions {
 
+    private final HugeConfig config;
     private final String dataPath;
     private final String walPath;
 
-    private final RocksDB rocksdb;
+    private volatile RocksDB rocksdb;
     private final SstFileManager sstFileManager;
 
     private final Map<String, CFHandle> cfs;
@@ -87,6 +88,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
                               String dataPath, String walPath)
                               throws RocksDBException {
         super(config, database, store);
+        this.config = config;
         this.dataPath = dataPath;
         this.walPath = walPath;
         // Init options
@@ -112,6 +114,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
                               String dataPath, String walPath,
                               List<String> cfNames) throws RocksDBException {
         super(config, database, store);
+        this.config = config;
         this.dataPath = dataPath;
         this.walPath = walPath;
         // Old CFs should always be opened
@@ -156,6 +159,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
     private RocksDBStdSessions(HugeConfig config, String database, String store,
                                RocksDBStdSessions origin) {
         super(config, database, store);
+        this.config = config;
         this.dataPath = origin.dataPath;
         this.walPath = origin.walPath;
         this.rocksdb = origin.rocksdb;
@@ -248,6 +252,44 @@ public class RocksDBStdSessions extends RocksDBSessions {
     }
 
     @Override
+    public void reload() throws RocksDBException {
+        if (this.rocksdb.isOwningHandle()) {
+            this.rocksdb.close();
+        }
+        this.cfs.values().forEach(CFHandle::destroy);
+        // Init CFs options
+        Set<String> mergedCFs = this.mergeOldCFs(this.dataPath, new ArrayList<>(
+                                                 this.cfs.keySet()));
+        List<String> cfNames = ImmutableList.copyOf(mergedCFs);
+
+        List<ColumnFamilyDescriptor> cfds = new ArrayList<>(cfNames.size());
+        for (String cf : cfNames) {
+            ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(encode(cf));
+            ColumnFamilyOptions options = cfd.getOptions();
+            RocksDBStdSessions.initOptions(this.config, null, null,
+                                           options, options);
+            cfds.add(cfd);
+        }
+        List<ColumnFamilyHandle> cfhs = new ArrayList<>();
+
+        // Init DB options
+        DBOptions options = new DBOptions();
+        RocksDBStdSessions.initOptions(this.config, options, options,
+                                       null, null);
+        options.setWalDir(this.walPath);
+        options.setSstFileManager(this.sstFileManager);
+        this.rocksdb = RocksDB.open(options, this.dataPath, cfds, cfhs);
+        for (int i = 0; i < cfNames.size(); i++) {
+            this.cfs.put(cfNames.get(i), new CFHandle(cfhs.get(i)));
+        }
+    }
+
+    @Override
+    public void forceCloseRocksDB() {
+        this.rocksdb().close();
+    }
+
+    @Override
     public boolean existsTable(String table) {
         return this.cfs.containsKey(table);
     }
@@ -275,6 +317,30 @@ public class RocksDBStdSessions extends RocksDBSessions {
     public RocksDBSessions copy(HugeConfig config,
                                 String database, String store) {
         return new RocksDBStdSessions(config, database, store, this);
+    }
+
+    @Override
+    public void createSnapshot(String parentPath) {
+        String md5 = GZipUtil.md5(this.dataPath);
+        String snapshotPath = Paths.get(parentPath, md5).toString();
+        // https://github.com/facebook/rocksdb/wiki/Checkpoints
+        try (Checkpoint checkpoint = Checkpoint.create(this.rocksdb)) {
+            String tempPath = snapshotPath + "_temp";
+            File tempFile = new File(tempPath);
+            FileUtils.deleteDirectory(tempFile);
+
+            FileUtils.forceMkdir(tempFile.getParentFile());
+            checkpoint.createCheckpoint(tempPath);
+            File snapshotFile = new File(snapshotPath);
+            FileUtils.deleteDirectory(snapshotFile);
+            if (!tempFile.renameTo(snapshotFile)) {
+                throw new IOException(String.format("Failed to rename %s to %s",
+                                                    tempFile, snapshotFile));
+            }
+        } catch (Exception e) {
+            throw new BackendException("Failed to write snapshot at path %s",
+                                       e, snapshotPath);
+        }
     }
 
     @Override
@@ -464,6 +530,9 @@ public class RocksDBStdSessions extends RocksDBSessions {
             cf.setMaxWriteBufferNumberToMaintain(
                     conf.get(RocksDBOptions.MAX_MEMTABLES_TO_MAINTAIN));
 
+            cf.setLevelCompactionDynamicLevelBytes(
+                    conf.get(RocksDBOptions.DYNAMIC_LEVEL_BYTES));
+
             // https://github.com/facebook/rocksdb/wiki/Block-Cache
             BlockBasedTableConfig tableConfig = new BlockBasedTableConfig();
             long cacheCapacity = conf.get(RocksDBOptions.BLOCK_CACHE_CAPACITY);
@@ -635,6 +704,11 @@ public class RocksDBStdSessions extends RocksDBSessions {
         @Override
         public boolean closed() {
             return !this.opened || !RocksDBStdSessions.this.opened();
+        }
+
+        @Override
+        public void reset() {
+            this.batch = new WriteBatch();
         }
 
         /**
@@ -855,32 +929,6 @@ public class RocksDBStdSessions extends RocksDBSessions {
                 RocksIterator iter = rocksdb().newIterator(cf.get());
                 return new ColumnIterator(table, iter, keyFrom,
                                           keyTo, scanType);
-            }
-        }
-
-        @Override
-        public void createSnapshot(String parentPath) {
-            String md5 = GZipUtil.md5(this.dataPath());
-            String snapshotPath = Paths.get(parentPath, md5).toString();
-            // https://github.com/facebook/rocksdb/wiki/Checkpoints
-            try (Checkpoint checkpoint = Checkpoint.create(rocksdb)) {
-                String tempPath = snapshotPath + "_temp";
-                File tempFile = new File(tempPath);
-                FileUtils.deleteDirectory(tempFile);
-
-                FileUtils.forceMkdir(tempFile.getParentFile());
-                checkpoint.createCheckpoint(tempPath);
-                File snapshotFile = new File(snapshotPath);
-                FileUtils.deleteDirectory(snapshotFile);
-                if (!tempFile.renameTo(snapshotFile)) {
-                    throw new IOException(String.format(
-                              "Failed to rename %s to %s",
-                              tempFile, snapshotFile));
-                }
-            } catch (Exception e) {
-                throw new BackendException(
-                          "Failed to write snapshot at path %s",
-                          e, snapshotPath);
             }
         }
     }

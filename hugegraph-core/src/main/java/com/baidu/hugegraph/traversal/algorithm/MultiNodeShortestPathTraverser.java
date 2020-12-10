@@ -32,6 +32,7 @@ import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.structure.HugeVertex;
+import com.baidu.hugegraph.traversal.algorithm.steps.EdgeStep;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
 
@@ -61,7 +62,7 @@ public class MultiNodeShortestPathTraverser extends OltpTraverser {
         });
 
         if (maxDepth >= this.concurrentDepth() &&
-            step.direction == Directions.BOTH ||
+            step.direction() == Directions.BOTH ||
             vertexCount > 10) {
             return this.multiNodeShortestPathConcurrent(pairs, step,
                                                         maxDepth, capacity);

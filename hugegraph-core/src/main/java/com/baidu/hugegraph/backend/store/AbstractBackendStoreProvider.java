@@ -151,6 +151,16 @@ public abstract class AbstractBackendStoreProvider
     }
 
     @Override
+    public void writeSnapshot() {
+        // TODO: to be implemented
+    }
+
+    @Override
+    public void readSnapshot() {
+        // TODO: to be implemented
+    }
+
+    @Override
     public BackendStore loadSchemaStore(final String name) {
         LOG.debug("The '{}' StoreProvider load SchemaStore '{}'",
                   this.type(), name);

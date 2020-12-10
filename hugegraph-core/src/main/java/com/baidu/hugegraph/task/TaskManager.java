@@ -19,8 +19,6 @@
 
 package com.baidu.hugegraph.task;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.Callable;
@@ -35,6 +33,7 @@ import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraphParams;
+import com.baidu.hugegraph.util.Consumers;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.ExecutorUtil;
 import com.baidu.hugegraph.util.LockUtil;
@@ -89,7 +88,7 @@ public final class TaskManager {
         E.checkArgumentNotNull(graph, "The graph can't be null");
 
         TaskScheduler scheduler = new StandardTaskScheduler(graph,
-                                  this.taskExecutor,this.taskDbExecutor,
+                                  this.taskExecutor, this.taskDbExecutor,
                                   this.serverInfoDbExecutor);
         this.schedulers.put(graph, scheduler);
     }
@@ -127,42 +126,14 @@ public final class TaskManager {
     private void closeTaskTx(HugeGraphParams graph) {
         final boolean selfIsTaskWorker = Thread.currentThread().getName()
                                                .startsWith(TASK_WORKER_PREFIX);
-        final Map<Thread, Integer> threadsTimes = new ConcurrentHashMap<>();
-        final List<Callable<Void>> tasks = new ArrayList<>();
         final int totalThreads = selfIsTaskWorker ? THREADS - 1 : THREADS;
-
-        final Callable<Void> closeTx = () -> {
-            Thread current = Thread.currentThread();
-            threadsTimes.putIfAbsent(current, 0);
-            int times = threadsTimes.get(current);
-            if (times == 0) {
-                // Do close-tx for current thread
-                graph.closeTx();
-                // Let other threads run
-                Thread.yield();
-            } else {
-                assert times < totalThreads;
-                assert threadsTimes.size() < totalThreads;
-                E.checkState(tasks.size() == totalThreads,
-                             "Bad tasks size: %s", tasks.size());
-                // Let another thread run and wait for it
-                this.taskExecutor.submit(tasks.get(0)).get();
-            }
-            threadsTimes.put(current, ++times);
-            return null;
-        };
-
-        // NOTE: expect each task thread to perform a close operation
-        for (int i = 0; i < totalThreads; i++) {
-            tasks.add(closeTx);
-        }
-
         try {
             if (selfIsTaskWorker) {
                 // Call closeTx directly if myself is task thread(ignore others)
-                closeTx.call();
+                graph.closeTx();
             } else {
-                this.taskExecutor.invokeAll(tasks);
+                Consumers.executeOncePerThread(this.taskExecutor, totalThreads,
+                                               graph::closeTx);
             }
         } catch (Exception e) {
             throw new HugeException("Exception when closing task tx", e);
@@ -177,7 +148,6 @@ public final class TaskManager {
             Thread.yield();
             return null;
         };
-
         try {
             this.schedulerExecutor.submit(closeTx).get();
         } catch (Exception e) {

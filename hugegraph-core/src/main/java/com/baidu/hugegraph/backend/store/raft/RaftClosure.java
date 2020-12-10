@@ -34,18 +34,18 @@ import com.alipay.sofa.jraft.Status;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.util.Log;
 
-public class RaftClosure implements Closure {
+public class RaftClosure<T> implements Closure {
 
     private static final Logger LOG = Log.logger(StoreClosure.class);
 
-    private final CompletableFuture<RaftResult> future;
+    private final CompletableFuture<RaftResult<T>> future;
 
     public RaftClosure() {
         this.future = new CompletableFuture<>();
     }
 
-    public Object waitFinished() throws Throwable {
-        RaftResult result = this.get();
+    public T waitFinished() throws Throwable {
+        RaftResult<T> result = this.get();
         if (result.status().isOk()) {
             return result.callback().get();
         } else {
@@ -57,22 +57,24 @@ public class RaftClosure implements Closure {
         return this.get().status();
     }
 
-    private RaftResult get() {
+    private RaftResult<T> get() {
         try {
             return this.future.get(WAIT_RAFT_LOG_TIMEOUT, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException | ExecutionException e) {
+        } catch (ExecutionException e) {
             throw new BackendException("ExecutionException", e);
+        } catch (InterruptedException e) {
+            throw new BackendException("InterruptedException", e);
         } catch (TimeoutException e) {
             throw new BackendException("Wait closure timeout");
         }
     }
 
-    public void complete(Status status, Supplier<Object> callback) {
-        this.future.complete(new RaftResult(status, callback));
+    public void complete(Status status, Supplier<T> callback) {
+        this.future.complete(new RaftResult<>(status, callback));
     }
 
     public void failure(Status status, Throwable exception) {
-        this.future.complete(new RaftResult(status, exception));
+        this.future.complete(new RaftResult<>(status, exception));
     }
 
     @Override

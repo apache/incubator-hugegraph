@@ -29,6 +29,6 @@ HugeGraph is licensed under Apache 2.0 License.
 ## Thanks
 
 HugeGraph relies on the [TinkerPop](http://tinkerpop.apache.org) framework, we refer to the storage structure of Titan and the schema definition of DataStax. 
-Thanks to Tinkerpop, thanks to Titan, thanks to DataStax. Thanks to all other organizations or authors who contributed to the project.
+Thanks to TinkerPop, thanks to Titan, thanks to DataStax. Thanks to all other organizations or authors who contributed to the project.
 
 You are welcome to contribute to HugeGraph, and we are looking forward to working with you to build an excellent open source community.

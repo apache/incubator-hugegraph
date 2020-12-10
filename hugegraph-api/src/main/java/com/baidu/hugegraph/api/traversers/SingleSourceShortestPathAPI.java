@@ -91,7 +91,8 @@ public class SingleSourceShortestPathAPI extends API {
                               sourceId, dir, edgeLabel, weight,
                               degree, skipDegree, capacity, limit);
         Iterator<Vertex> iterator = QueryResults.emptyIterator();
-        if (withVertex) {
+        assert paths != null;
+        if (!paths.isEmpty() && withVertex) {
             iterator = g.vertices(paths.vertices().toArray());
         }
         return manager.serializer(g).writeWeightedPaths(paths, iterator);

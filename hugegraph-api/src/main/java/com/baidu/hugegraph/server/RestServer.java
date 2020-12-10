@@ -70,23 +70,26 @@ public class RestServer {
     }
 
     private HttpServer configHttpServer(URI uri, ResourceConfig rc) {
+        String protocol = uri.getScheme();
         final HttpServer server;
-        String protocol = this.conf.get(ServerOptions.SERVER_PROTOCOL);
-        String keystoreServerFile = this.conf.get(ServerOptions.SERVER_KEYSTORE_FILE);
-        String keystoreServerPassword = this.conf.get(ServerOptions.SERVER_KEYSTORE_PASSWORD);
         if (protocol != null && protocol.equals("https")) {
             SSLContextConfigurator sslContext = new SSLContextConfigurator();
-            // set up security context
-            sslContext.setKeyStoreFile(keystoreServerFile);
-            sslContext.setKeyStorePass(keystoreServerPassword);
-            SSLEngineConfigurator sslEngineConfigurator = new SSLEngineConfigurator(sslContext)
-                                                              .setClientMode(false)
-                                                              .setWantClientAuth(true);
+            String keystoreFile = this.conf.get(
+                                  ServerOptions.SSL_KEYSTORE_FILE);
+            String keystorePass = this.conf.get(
+                                  ServerOptions.SSL_KEYSTORE_PASSWORD);
+            sslContext.setKeyStoreFile(keystoreFile);
+            sslContext.setKeyStorePass(keystorePass);
+            SSLEngineConfigurator sslConfig = new SSLEngineConfigurator(
+                                              sslContext);
+            sslConfig.setClientMode(false);
+            sslConfig.setWantClientAuth(true);
             server = GrizzlyHttpServerFactory.createHttpServer(uri, rc, true,
-                                                               sslEngineConfigurator);
+                                                               sslConfig);
         } else {
             server = GrizzlyHttpServerFactory.createHttpServer(uri, rc, false);
         }
+
         Collection<NetworkListener> listeners = server.getListeners();
         E.checkState(listeners.size() > 0,
                      "Http Server should have some listeners, but now is none");

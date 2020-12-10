@@ -54,6 +54,8 @@ import com.baidu.hugegraph.backend.store.BackendProviderFactory;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
+import com.baidu.hugegraph.backend.store.raft.RaftBackendStoreProvider;
+import com.baidu.hugegraph.backend.store.raft.RaftGroupManager;
 import com.baidu.hugegraph.backend.store.ram.RamTable;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
@@ -95,7 +97,7 @@ public class StandardHugeGraph implements HugeGraph {
     public static final Class<?>[] PROTECT_CLASSES = {
            StandardHugeGraph.class,
            StandardHugeGraph.StandardHugeGraphParams.class,
-           StandardHugeGraph.TinkerpopTransaction.class,
+           TinkerPopTransaction.class,
            StandardHugeGraph.Txs.class,
            StandardHugeGraph.SysTransaction.class
     };
@@ -125,7 +127,7 @@ public class StandardHugeGraph implements HugeGraph {
     private final HugeFeatures features;
 
     private final BackendStoreProvider storeProvider;
-    private final TinkerpopTransaction tx;
+    private final TinkerPopTransaction tx;
 
     private final RamTable ramtable;
 
@@ -173,7 +175,7 @@ public class StandardHugeGraph implements HugeGraph {
             throw new HugeException(message);
         }
 
-        this.tx = new TinkerpopTransaction(this);
+        this.tx = new TinkerPopTransaction(this);
 
         SnowflakeIdGenerator.init(this.params);
 
@@ -305,6 +307,17 @@ public class StandardHugeGraph implements HugeGraph {
             this.storeProvider.initSystemInfo(this);
             this.serverStarted(this.serverInfoManager().selfServerId(),
                                this.serverInfoManager().selfServerRole());
+            /*
+             * Take the initiative to generate a snapshot, it can avoid this
+             * situation: when the server restart need to read the database
+             * (such as checkBackendVersionInfo), it happens that raft replays
+             * the truncate log, at the same time, the store has been cleared
+             * (truncate) but init-store has not been completed, which will
+             * cause reading errors.
+             * When restarting, load the snapshot first and then read backend,
+             * will not encounter such an intermediate state.
+             */
+            this.storeProvider.writeSnapshot();
         } finally {
             LockUtil.unlock(this.name, LockUtil.GRAPH_LOCK);
         }
@@ -842,6 +855,16 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
+    public RaftGroupManager raftGroupManager(String group) {
+        if (!(this.storeProvider instanceof RaftBackendStoreProvider)) {
+            return null;
+        }
+        RaftBackendStoreProvider provider =
+                ((RaftBackendStoreProvider) this.storeProvider);
+        return provider.raftNodeManager(group);
+    }
+
+    @Override
     public HugeConfig configuration() {
         return this.configuration;
     }
@@ -863,7 +886,7 @@ public class StandardHugeGraph implements HugeGraph {
 
     @Override
     public long now() {
-        return ((TinkerpopTransaction) this.tx()).openedTime();
+        return ((TinkerPopTransaction) this.tx()).openedTime();
     }
 
     private void closeTx() {
@@ -1021,7 +1044,7 @@ public class StandardHugeGraph implements HugeGraph {
         }
     }
 
-    private class TinkerpopTransaction extends AbstractThreadLocalTransaction {
+    private class TinkerPopTransaction extends AbstractThreadLocalTransaction {
 
         // Times opened from upper layer
         private final AtomicInteger refs;
@@ -1030,7 +1053,7 @@ public class StandardHugeGraph implements HugeGraph {
         // Backend transactions
         private final ThreadLocal<Txs> transactions;
 
-        public TinkerpopTransaction(Graph graph) {
+        public TinkerPopTransaction(Graph graph) {
             super(graph);
 
             this.refs = new AtomicInteger();
@@ -1114,7 +1137,7 @@ public class StandardHugeGraph implements HugeGraph {
 
         @Override
         public String toString() {
-            return String.format("TinkerpopTransaction{opened=%s, txs=%s}",
+            return String.format("TinkerPopTransaction{opened=%s, txs=%s}",
                                  this.opened.get(), this.transactions.get());
         }
 
