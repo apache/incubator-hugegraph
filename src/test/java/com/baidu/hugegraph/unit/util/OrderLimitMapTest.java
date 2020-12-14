@@ -30,6 +30,15 @@ import com.google.common.collect.ImmutableList;
 public class OrderLimitMapTest {
 
     @Test
+    public void testInvalidCapacity() {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            new OrderLimitMap<>(-1);
+        }, e -> {
+            Assert.assertEquals("The capacity must be > 0", e.getMessage());
+        });
+    }
+
+    @Test
     public void testMap() {
         OrderLimitMap<Integer, Double> map = new OrderLimitMap<>(5);
         map.put(4, 0.4);

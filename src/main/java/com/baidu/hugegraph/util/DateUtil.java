@@ -73,13 +73,6 @@ public final class DateUtil {
         SafeDateFormat dateFormat = DATE_FORMATS.get(df);
         if (dateFormat == null) {
             dateFormat = new SafeDateFormat(df);
-            /*
-             * Specify whether or not date/time parsing is to be lenient.
-             * With lenient parsing, the parser may use heuristics to interpret
-             * inputs that do not precisely match this object's format.
-             * With strict parsing, inputs must match this object's format.
-             */
-            dateFormat.setLenient(false);
             SafeDateFormat previous = DATE_FORMATS.putIfAbsent(df, dateFormat);
             if (previous != null) {
                 dateFormat = previous;

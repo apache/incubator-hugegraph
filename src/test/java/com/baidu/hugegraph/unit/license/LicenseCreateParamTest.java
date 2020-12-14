@@ -22,6 +22,8 @@ package com.baidu.hugegraph.unit.license;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.ParseException;
+import java.time.ZoneId;
+import java.util.Arrays;
 import java.util.TimeZone;
 
 import org.junit.Test;
@@ -93,8 +95,8 @@ public class LicenseCreateParamTest {
         Assert.assertEquals("./hugegraph-evaluation.license",
                             param.licensePath());
 
-        DateFormat df = new SafeDateFormat("yyyy-MM-dd HH:mm:ss");
-        df.setTimeZone(TimeZone.getTimeZone("GMT+08:00"));
+        SafeDateFormat df = new SafeDateFormat("yyyy-MM-dd HH:mm:ss");
+        df.setTimeZone("GMT+8");
         Assert.assertEquals(df.parse("2019-08-10 00:00:00"),
                             param.issuedTime());
         Assert.assertEquals(df.parse("2019-08-10 00:00:00"),

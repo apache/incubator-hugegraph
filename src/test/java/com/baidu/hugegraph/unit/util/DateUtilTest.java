@@ -19,7 +19,12 @@
 
 package com.baidu.hugegraph.unit.util;
 
+import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Test;
 
@@ -45,7 +50,8 @@ public class DateUtilTest extends BaseUnitTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             DateUtil.parse("2018-15-07 12:00:00");
         }, e -> {
-            Assert.assertContains(", expect format: ", e.getMessage());
+            Assert.assertContains("Value 15 for monthOfYear must be " +
+                                  "in the range [1,12]", e.getMessage());
         });
     }
 
@@ -62,6 +68,39 @@ public class DateUtilTest extends BaseUnitTest {
     }
 
     @Test
+    public void testParseCornerDateValue() throws InterruptedException {
+        final CountDownLatch latch = new CountDownLatch(1);
+        int threadCount = 10;
+        List<Thread> threads = new ArrayList<>(threadCount);
+        AtomicInteger errorCount = new AtomicInteger(0);
+        for (int t = 0; t < threadCount; t++) {
+            Thread thread = new Thread(() -> {
+                try {
+                    latch.await();
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+                try {
+                    DateUtil.parse("0", "yyyy");
+                } catch (ParseException e) {
+                    errorCount.incrementAndGet();
+                }
+            });
+            threads.add(thread);
+        }
+
+        for (Thread thread : threads) {
+            thread.start();
+        }
+        latch.countDown();
+        for (Thread thread : threads) {
+            thread.join();
+        }
+
+        Assert.assertEquals(0, errorCount.get());
+    }
+
+    @Test
     public void testToPattern() {
         Object pattern = DateUtil.toPattern("yyyyMMdd HH:mm:ss.SSS");
         Assert.assertEquals("yyyyMMdd HH:mm:ss.SSS", pattern);
@@ -69,7 +108,7 @@ public class DateUtilTest extends BaseUnitTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             DateUtil.toPattern("iyyyyMMdd");
         }, e -> {
-            Assert.assertContains("Illegal pattern character 'i'", e.getMessage());
+            Assert.assertContains("Illegal pattern component: i", e.getMessage());
         });
     }
 }

@@ -61,6 +61,7 @@ public class OrderLimitMap<K extends Comparable<K>, V extends Comparable<V>>
          */
         super(ordering.onResultOf(Functions.forMap(valueMap))
                       .compound(Ordering.natural()));
+        E.checkArgument(capacity > 0, "The capacity must be > 0");
         this.capacity = capacity;
         this.valueMap = valueMap;
     }

@@ -19,49 +19,54 @@
 
 package com.baidu.hugegraph.date;
 
-import java.text.DateFormat;
-import java.text.FieldPosition;
-import java.text.ParsePosition;
-import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.TimeZone;
+
+import org.joda.time.DateTimeZone;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
 
 /**
- * SafeDateFormat is a thread safe DateFormat
- * NOTE: DateFormat is not thread safe, need synchronized manually.
- * http://blog.jrwang.me/2016/java-simpledateformat-multithread-threadlocal
+ * The SafeDateFormat actually is a proxy for joda DateTimeFormatter
  */
-public class SafeDateFormat extends DateFormat {
+public class SafeDateFormat {
 
-    private static final long serialVersionUID = -4838048315029312489L;
+    private static final int ONE_HOUR_MS = 3600 * 1000;
 
-    private final ThreadLocal<SimpleDateFormat> formatter;
+    private final String pattern;
+    private DateTimeFormatter formatter;
 
-    public SafeDateFormat(String template) {
-        this.formatter = ThreadLocal.withInitial(() -> {
-            return new SimpleDateFormat(template);
-        });
-        this.setCalendar(this.formatter.get().getCalendar());
-        this.setNumberFormat(this.formatter.get().getNumberFormat());
+    public SafeDateFormat(String pattern) {
+        this.pattern = pattern;
+        this.formatter = DateTimeFormat.forPattern(pattern);
     }
 
-    @Override
-    public StringBuffer format(Date date, StringBuffer toAppendTo,
-                               FieldPosition fieldPosition) {
-        return this.formatter.get().format(date, toAppendTo, fieldPosition);
+    public synchronized void setTimeZone(String zoneId) {
+        int hoursOffset = TimeZone.getTimeZone(zoneId).getRawOffset() /
+                          ONE_HOUR_MS;
+        DateTimeZone zone = DateTimeZone.forOffsetHours(hoursOffset);
+        this.formatter = this.formatter.withZone(zone);
     }
 
-    @Override
-    public Date parse(String source, ParsePosition pos) {
-        return this.formatter.get().parse(source, pos);
+    public TimeZone getTimeZome() {
+        return this.formatter.getZone().toTimeZone();
+    }
+
+    public Date parse(String source) {
+        return this.formatter.parseDateTime(source).toDate();
+    }
+
+    public String format(Date date) {
+        return this.formatter.print(date.getTime());
+    }
+
+    public Object toPattern() {
+        return this.pattern;
     }
 
     @Override
     public Object clone() {
         // No need to clone due to itself is thread safe
         return this;
-    }
-
-    public Object toPattern() {
-        return this.formatter.get().toPattern();
     }
 }
