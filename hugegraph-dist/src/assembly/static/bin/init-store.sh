@@ -22,15 +22,17 @@ ensure_path_writable $PLUGINS
 
 if [ -n "$JAVA_HOME" ]; then
     JAVA="$JAVA_HOME"/bin/java
+    EXT="$JAVA_HOME/jre/lib/ext:$LIB:$PLUGINS"
 else
     JAVA=java
+    EXT="$LIB:$PLUGINS"
 fi
 
 cd $TOP
 
 echo "Initializing HugeGraph Store..."
 
-$JAVA -cp $LIB/hugegraph-dist-*.jar -Djava.ext.dirs=$LIB:$PLUGINS \
+$JAVA -cp $LIB/hugegraph-dist-*.jar -Djava.ext.dirs=$EXT \
       com.baidu.hugegraph.cmd.InitStore \
       "$CONF"/gremlin-server.yaml "$CONF"/rest-server.properties
 

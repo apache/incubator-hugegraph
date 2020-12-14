@@ -86,6 +86,7 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Action;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IndexType;
+import com.baidu.hugegraph.type.define.SchemaStatus;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
