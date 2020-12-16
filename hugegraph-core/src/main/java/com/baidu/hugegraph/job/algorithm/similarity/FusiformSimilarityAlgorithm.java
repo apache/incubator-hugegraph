@@ -28,7 +28,6 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.job.UserJob;
 import com.baidu.hugegraph.job.algorithm.AbstractAlgorithm;
 import com.baidu.hugegraph.job.algorithm.Consumers.StopExecution;
-import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.traversal.algorithm.FusiformSimilarityTraverser;
 import com.baidu.hugegraph.traversal.algorithm.FusiformSimilarityTraverser.SimilarsMap;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
@@ -165,7 +164,6 @@ public class FusiformSimilarityAlgorithm extends AbstractAlgorithm {
                                        String groupProperty, int minGroups,
                                        long degree, long limit) {
             HugeGraph graph = this.graph();
-            EdgeLabel edgeLabel = label == null ? null : graph.edgeLabel(label);
 
             FusiformSimilarityTraverser traverser =
                                         new FusiformSimilarityTraverser(graph);
@@ -177,7 +175,7 @@ public class FusiformSimilarityAlgorithm extends AbstractAlgorithm {
             this.traverse(sourceLabel, sourceCLabel, v -> {
                 SimilarsMap similars = traverser.fusiformSimilarity(
                                        IteratorUtils.of(v), direction,
-                                       edgeLabel, minNeighbors, alpha,
+                                       label, minNeighbors, alpha,
                                        minSimilars, (int) topSimilars,
                                        groupProperty, minGroups, degree,
                                        MAX_CAPACITY, NO_LIMIT, true);
