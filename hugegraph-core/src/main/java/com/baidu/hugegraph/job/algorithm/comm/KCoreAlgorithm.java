@@ -34,7 +34,6 @@ import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.job.UserJob;
-import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.traversal.algorithm.FusiformSimilarityTraverser;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.CollectionUtil;
@@ -111,7 +110,6 @@ public class KCoreAlgorithm extends AbstractCommAlgorithm {
                             Directions dir, String label, int k, double alpha,
                             long degree, boolean merged) {
             HugeGraph graph = this.graph();
-            EdgeLabel edgeLabel = label == null ? null : graph.edgeLabel(label);
 
             KcoreTraverser traverser = new KcoreTraverser(graph);
             JsonMap kcoresJson = new JsonMap();
@@ -123,8 +121,7 @@ public class KCoreAlgorithm extends AbstractCommAlgorithm {
 
             this.traverse(sourceLabel, sourceCLabel, v -> {
                 Set<Id> kcore = traverser.kcore(IteratorUtils.of(v),
-                                                dir, edgeLabel, k, alpha,
-                                                degree);
+                                                dir, label, k, alpha, degree);
                 if (kcore.isEmpty()) {
                     return;
                 }
@@ -183,8 +180,7 @@ public class KCoreAlgorithm extends AbstractCommAlgorithm {
         }
 
         public Set<Id> kcore(Iterator<Vertex> vertices, Directions direction,
-                             EdgeLabel label, int k, double alpha,
-                             long degree) {
+                             String label, int k, double alpha, long degree) {
             int minNeighbors = (int) Math.floor(1.0 / alpha * k);
             SimilarsMap map = fusiformSimilarity(vertices, direction, label,
                                                  minNeighbors, alpha, k - 1,

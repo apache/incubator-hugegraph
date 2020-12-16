@@ -30,7 +30,7 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.job.UserJob;
 import com.baidu.hugegraph.structure.HugeEdge;
-import com.baidu.hugegraph.traversal.algorithm.EdgeStep;
+import com.baidu.hugegraph.traversal.algorithm.steps.EdgeStep;
 import com.baidu.hugegraph.type.define.Directions;
 
 public class DegreeCentralityAlgorithm extends AbstractCentAlgorithm {
