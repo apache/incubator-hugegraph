@@ -78,7 +78,9 @@ public class SingleSourceShortestPathTraverser extends HugeTraverser {
                                                String weight, long degree,
                                                long skipDegree, long capacity) {
         E.checkNotNull(sourceV, "source vertex id");
+        E.checkNotNull(targetV, "target vertex id");
         this.checkVertexExist(sourceV, "source vertex");
+        this.checkVertexExist(targetV, "target vertex");
         E.checkNotNull(dir, "direction");
         E.checkNotNull(weight, "weight property");
         checkDegree(degree);
