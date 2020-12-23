@@ -101,7 +101,7 @@ public class NeighborRankAPI extends API {
     private static class RankRequest {
 
         @JsonProperty("source")
-        private String source;
+        private Object source;
         @JsonProperty("steps")
         private List<Step> steps;
         @JsonProperty("alpha")

@@ -101,7 +101,7 @@ public class PersonalRankAPI extends API {
     private static class RankRequest {
 
         @JsonProperty("source")
-        private String source;
+        private Object source;
         @JsonProperty("label")
         private String label;
         @JsonProperty("alpha")
