@@ -26,10 +26,12 @@ import java.util.concurrent.TimeoutException;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.dist.RegisterUtil;
 import com.baidu.hugegraph.perf.PerfUtil;
 import com.baidu.hugegraph.task.HugeTask;
 import com.baidu.hugegraph.task.TaskScheduler;
+import com.baidu.hugegraph.type.define.NodeRole;
 
 public class ExampleUtil {
 
@@ -77,6 +79,7 @@ public class ExampleUtil {
             graph.clearBackend();
         }
         graph.initBackend();
+        graph.serverStarted(IdGenerator.of("server1"), NodeRole.MASTER);
 
         return graph;
     }
