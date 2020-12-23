@@ -204,7 +204,7 @@ public abstract class BackendTable<Session extends BackendSession, Entry> {
 
         protected abstract long estimateNumKeys(Session session);
 
-        protected static class Range {
+        public static class Range {
 
             private byte[] startKey;
             private byte[] endKey;
@@ -247,7 +247,6 @@ public abstract class BackendTable<Session extends BackendSession, Entry> {
                 }
 
                 assert count > 1;
-                assert startChanged != endChanged;
                 byte[] each = align(new BigInteger(1, subtract(end, start))
                                         .divide(BigInteger.valueOf(count))
                                         .toByteArray(),
