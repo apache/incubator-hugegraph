@@ -659,6 +659,11 @@ public class StandardTaskScheduler implements TaskScheduler {
                   taskSize, seconds));
     }
 
+    @Override
+    public void checkRequirement(String op) {
+        this.checkOnMasterNode(op);
+    }
+
     private <V> Iterator<HugeTask<V>> queryTask(String key, Object value,
                                                 long limit, String page) {
         return this.queryTask(ImmutableMap.of(key, value), limit, page);
