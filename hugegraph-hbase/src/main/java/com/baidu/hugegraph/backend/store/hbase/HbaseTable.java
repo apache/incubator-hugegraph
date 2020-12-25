@@ -344,7 +344,7 @@ public class HbaseTable extends BackendTable<Session, BackendEntry> {
         private static Map<String, Range> regionRanges(Session session,
                                                        String namespace,
                                                        String table) {
-            Map<String, Range> regionRanges = new HashMap<>();
+            Map<String, Range> regionRanges = InsertionOrderUtil.newMap();
             TableName tableName = TableName.valueOf(namespace, table);
             try (Admin admin = session.hbase().getAdmin()) {
                 for (RegionInfo regionInfo : admin.getRegions(tableName)) {

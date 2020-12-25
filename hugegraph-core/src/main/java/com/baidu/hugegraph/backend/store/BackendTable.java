@@ -204,7 +204,7 @@ public abstract class BackendTable<Session extends BackendSession, Entry> {
 
         protected abstract long estimateNumKeys(Session session);
 
-        protected static class Range {
+        public static class Range {
 
             private byte[] startKey;
             private byte[] endKey;
@@ -247,15 +247,15 @@ public abstract class BackendTable<Session extends BackendSession, Entry> {
                 }
 
                 assert count > 1;
-                assert startChanged != endChanged;
                 byte[] each = align(new BigInteger(1, subtract(end, start))
                                         .divide(BigInteger.valueOf(count))
                                         .toByteArray(),
                                     length);
                 byte[] offset = start;
                 byte[] last = offset;
+                boolean finished = false;
                 List<Shard> shards = new ArrayList<>(count);
-                while (Bytes.compare(offset, end) < 0) {
+                while (Bytes.compare(offset, end) < 0 && !finished) {
                     offset = add(offset, each);
                     if (offset.length > end.length ||
                         Bytes.compare(offset, end) > 0) {
@@ -267,6 +267,7 @@ public abstract class BackendTable<Session extends BackendSession, Entry> {
                     }
                     if (endChanged && Arrays.equals(offset, end)) {
                         offset = this.endKey;
+                        finished = true;
                     }
                     shards.add(new Shard(startKey(last), endKey(offset), 0));
                     last = offset;
