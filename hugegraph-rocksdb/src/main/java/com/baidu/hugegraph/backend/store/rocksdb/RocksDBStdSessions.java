@@ -65,6 +65,7 @@ import com.baidu.hugegraph.backend.serializer.BinarySerializer;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumn;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumnIterator;
 import com.baidu.hugegraph.backend.store.BackendEntryIterator;
+import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
@@ -683,11 +684,17 @@ public class RocksDBStdSessions extends RocksDBSessions {
         private WriteOptions writeOptions;
 
         public StdSession(HugeConfig conf) {
-            boolean bulkload = conf.get(RocksDBOptions.BULKLOAD_MODE);
+            boolean raftMode = conf.get(CoreOptions.RAFT_MODE);
             this.batch = new WriteBatch();
             this.writeOptions = new WriteOptions();
-            this.writeOptions.setDisableWAL(bulkload);
-            //this.writeOptions.setSync(false);
+            /*
+             * When work under raft mode. if store crashed, the state-machine
+             * can restore by snapshot + raft log, doesn't need wal and sync
+             */
+            if (raftMode) {
+                this.writeOptions.setDisableWAL(true);
+                this.writeOptions.setSync(false);
+            }
         }
 
         @Override
