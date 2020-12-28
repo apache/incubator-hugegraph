@@ -684,17 +684,11 @@ public class RocksDBStdSessions extends RocksDBSessions {
         private WriteOptions writeOptions;
 
         public StdSession(HugeConfig conf) {
-            boolean raftMode = conf.get(CoreOptions.RAFT_MODE);
+            boolean bulkload = conf.get(RocksDBOptions.BULKLOAD_MODE);
             this.batch = new WriteBatch();
             this.writeOptions = new WriteOptions();
-            /*
-             * When work under raft mode. if store crashed, the state-machine
-             * can restore by snapshot + raft log, doesn't need wal and sync
-             */
-            if (raftMode) {
-                this.writeOptions.setDisableWAL(true);
-                this.writeOptions.setSync(false);
-            }
+            this.writeOptions.setDisableWAL(bulkload);
+            //this.writeOptions.setSync(false);
         }
 
         @Override
