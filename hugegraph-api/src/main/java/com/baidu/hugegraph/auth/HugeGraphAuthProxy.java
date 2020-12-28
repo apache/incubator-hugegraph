@@ -974,6 +974,12 @@ public final class HugeGraphAuthProxy implements HugeGraph {
             this.taskScheduler.waitUntilAllTasksCompleted(seconds);
         }
 
+        @Override
+        public void checkRequirement(String op) {
+            verifyStatusPermission();
+            this.taskScheduler.checkRequirement(op);
+        }
+
         private void verifyTaskPermission(HugePermission actionPerm) {
             verifyPermission(actionPerm, ResourceType.TASK);
         }

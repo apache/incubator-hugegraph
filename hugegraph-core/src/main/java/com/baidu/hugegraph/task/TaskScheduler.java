@@ -61,4 +61,6 @@ public interface TaskScheduler {
 
     public void waitUntilAllTasksCompleted(long seconds)
                                            throws TimeoutException;
+
+    public void checkRequirement(String op);
 }
