@@ -212,6 +212,11 @@ public class Query implements Cloneable {
     }
 
     public <T> Set<T> skipOffsetIfNeeded(Set<T> elems) {
+        /*
+         * Skip index(index query with offset) for performance optimization.
+         * We assume one result is returned by each index, but if there are
+         * overridden index it will cause confusing offset and results.
+         */
         long fromIndex = this.offset() - this.actualOffset();
         if (fromIndex < 0L) {
             // Skipping offset is overhead, no need to skip
