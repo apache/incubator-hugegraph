@@ -376,6 +376,15 @@ public class CoreOptions extends OptionHolder {
                     5000
             );
 
+    public static final ConfigOption<Boolean> VERTEX_ENCODE_PK_NUMBER =
+            new ConfigOption<>(
+                    "vertex.encode_primary_key_number",
+                    "Whether to encode number value of primary key " +
+                    "in vertex id.",
+                    disallowEmpty(),
+                    true
+            );
+
     public static final ConfigOption<Boolean> QUERY_IGNORE_INVALID_DATA =
             new ConfigOption<>(
                     "query.ignore_invalid_data",
