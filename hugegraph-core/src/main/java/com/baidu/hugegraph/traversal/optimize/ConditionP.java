@@ -34,7 +34,7 @@ public class ConditionP extends P<Object> {
         super(predicate, value);
     }
 
-    public static ConditionP textContains(String value) {
+    public static ConditionP textContains(Object value) {
         return new ConditionP(RelationType.TEXT_CONTAINS, value);
     }
 

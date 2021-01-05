@@ -382,6 +382,10 @@ public abstract class Condition {
         return new UserpropRelation(key, RelationType.TEXT_CONTAINS_ANY, words);
     }
 
+    public static Condition contains(Id key, Object value) {
+        return new UserpropRelation(key, RelationType.CONTAINS, value);
+    }
+
     /**
      * Condition defines
      */
