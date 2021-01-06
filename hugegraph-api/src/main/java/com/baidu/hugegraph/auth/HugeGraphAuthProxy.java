@@ -550,6 +550,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
     @Override
     public <V> V option(ConfigOption<V> option) {
+        this.verifyStatusPermission();
         return this.hugegraph.option(option);
     }
 

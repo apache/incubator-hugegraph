@@ -200,9 +200,9 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
                         "Primary key can't be empty for id strategy '%s'",
                         IdStrategy.PRIMARY_KEY);
 
-        List<Object> propValues = new ArrayList<>(primaryKeys.size());
         boolean encodeNumber = this.graph()
                                    .option(CoreOptions.VERTEX_ENCODE_PK_NUMBER);
+        List<Object> propValues = new ArrayList<>(primaryKeys.size());
         for (Id pk : primaryKeys) {
             HugeProperty<?> property = this.getProperty(pk);
             E.checkState(property != null,

@@ -95,10 +95,6 @@ public abstract class AbstractBuilder {
         }
     }
 
-    protected long taskWaitTimeout() {
-        return this.graph.option(CoreOptions.TASK_WAIT_TIMEOUT);
-    }
-
     protected PropertyKey propertyKeyOrNull(String name) {
         return this.transaction.getPropertyKey(name);
     }

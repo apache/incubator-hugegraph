@@ -278,7 +278,7 @@ public class HugeFeatures implements Graph.Features {
 
         public String defaultLabel() {
             return HugeFeatures.this.graph
-                                    .option(CoreOptions.VERTEX_DEFAULT_LABEL);
+                               .option(CoreOptions.VERTEX_DEFAULT_LABEL);
         }
     }
 
