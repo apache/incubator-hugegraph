@@ -1647,7 +1647,7 @@ public class GraphTransaction extends IndexableTransaction {
         // Filter expired vertices/edges with TTL
         return new FilterIterator<>(results, elem -> {
             if (elem.expired()) {
-                DeleteExpiredJob.asyncDeleteExpiredObject(this.params(), elem);
+                DeleteExpiredJob.asyncDeleteExpiredObject(this.graph(), elem);
                 return false;
             }
             return true;
