@@ -38,9 +38,11 @@ import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
+import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
+import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.exception.LimitExceedException;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.job.ComputerJob;
@@ -635,10 +637,13 @@ public class HugeTask<V> extends FutureTask<V> {
 
     private void checkPropertySize(int propertyLength, String propertyName) {
         int propertyLimit = BytesBuffer.STRING_LEN_MAX;
+        HugeGraph graph = this.scheduler().graph();
         if (propertyName.equals(P.INPUT)) {
-            propertyLimit = this.scheduler().taskInputSizeLimit();
+            propertyLimit = graph.option(CoreOptions.TASK_INPUT_SIZE_LIMIT)
+                                 .intValue();
         } else if (propertyName.equals(P.RESULT)) {
-            propertyLimit = this.scheduler().taskResultSizeLimit();
+            propertyLimit = graph.option(CoreOptions.TASK_RESULT_SIZE_LIMIT)
+                                 .intValue();
         }
 
         if (propertyLength > propertyLimit) {

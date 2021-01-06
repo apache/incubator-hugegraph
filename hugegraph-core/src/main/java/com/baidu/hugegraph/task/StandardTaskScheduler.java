@@ -125,18 +125,6 @@ public class StandardTaskScheduler implements TaskScheduler {
         return this.tasks.size();
     }
 
-    @Override
-    public int taskInputSizeLimit() {
-        return this.graph.configuration()
-                         .get(CoreOptions.TASK_INPUT_SIZE_LIMIT).intValue();
-    }
-
-    @Override
-    public int taskResultSizeLimit() {
-        return this.graph.configuration()
-                         .get(CoreOptions.TASK_RESULT_SIZE_LIMIT).intValue();
-    }
-
     private TaskTransaction tx() {
         // NOTE: only the owner thread can access task tx
         if (this.taskTx == null) {

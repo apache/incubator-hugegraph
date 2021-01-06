@@ -47,7 +47,6 @@ import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.config.CoreOptions;
-import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -202,8 +201,8 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
                         IdStrategy.PRIMARY_KEY);
 
         List<Object> propValues = new ArrayList<>(primaryKeys.size());
-        boolean encodeNumber = ((HugeConfig) this.graph().configuration()).get(
-                               CoreOptions.VERTEX_ENCODE_PK_NUMBER);
+        boolean encodeNumber = this.graph()
+                                   .option(CoreOptions.VERTEX_ENCODE_PK_NUMBER);
         for (Id pk : primaryKeys) {
             HugeProperty<?> property = this.getProperty(pk);
             E.checkState(property != null,

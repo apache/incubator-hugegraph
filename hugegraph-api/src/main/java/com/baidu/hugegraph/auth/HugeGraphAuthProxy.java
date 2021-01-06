@@ -63,6 +63,7 @@ import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
 import com.baidu.hugegraph.backend.store.raft.RaftGroupManager;
+import com.baidu.hugegraph.config.ConfigOption;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.iterator.FilterIterator;
@@ -548,6 +549,11 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     @Override
+    public <V> V option(ConfigOption<V> option) {
+        return this.hugegraph.option(option);
+    }
+
+    @Override
     public String name() {
         this.verifyStatusPermission();
         return this.hugegraph.name();
@@ -939,18 +945,6 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         public boolean close() {
             verifyAdminPermission();
             return this.taskScheduler.close();
-        }
-
-        @Override
-        public int taskInputSizeLimit() {
-            verifyStatusPermission();
-            return this.taskScheduler.taskInputSizeLimit();
-        }
-
-        @Override
-        public int taskResultSizeLimit() {
-            verifyStatusPermission();
-            return this.taskScheduler.taskResultSizeLimit();
         }
 
         @Override

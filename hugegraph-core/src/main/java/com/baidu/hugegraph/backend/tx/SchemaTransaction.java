@@ -270,6 +270,11 @@ public class SchemaTransaction extends IndexableTransaction {
         return this.getSchema(type, id) != null;
     }
 
+    private boolean syncDelete() {
+        return this.params().configuration()
+                   .get(CoreOptions.TASK_SYNC_DELETION);
+    }
+
     protected void updateSchema(SchemaElement schema) {
         this.addSchema(schema);
     }

@@ -45,7 +45,6 @@ import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.config.CoreOptions;
-import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.iterator.FilterIterator;
@@ -94,11 +93,7 @@ public class HugeTraverser {
     }
 
     protected int concurrentDepth() {
-        return this.config().get(CoreOptions.OLTP_CONCURRENT_DEPTH);
-    }
-
-    protected HugeConfig config() {
-        return ((HugeConfig) this.graph().hugegraph().configuration());
+        return this.graph.option(CoreOptions.OLTP_CONCURRENT_DEPTH);
     }
 
     protected Set<Id> adjacentVertices(Set<Id> vertices, Directions dir,

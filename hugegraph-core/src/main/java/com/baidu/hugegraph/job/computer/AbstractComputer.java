@@ -142,7 +142,7 @@ public abstract class AbstractComputer implements Computer {
 
     private void initializeConfig(ComputerJob job) throws Exception {
         // Load computer config file
-        String configPath = job.computerConfig();
+        String configPath = job.computerConfigPath();
         E.checkArgument(configPath.endsWith(".yaml"),
                         "Expect a yaml config file.");
 

@@ -26,6 +26,7 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
+import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.exception.ExistedException;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
@@ -95,7 +96,7 @@ public abstract class AbstractBuilder {
     }
 
     protected long taskWaitTimeout() {
-        return this.transaction.taskWaitTimeout();
+        return this.graph.option(CoreOptions.TASK_WAIT_TIMEOUT);
     }
 
     protected PropertyKey propertyKeyOrNull(String name) {
