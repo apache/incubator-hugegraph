@@ -196,7 +196,7 @@ public class StoreStateMachine extends StateMachineAdapter {
 
     @Override
     public void onSnapshotSave(SnapshotWriter writer, Closure done) {
-        LOG.debug("The node {} start snapshot save", this.node().nodeId());
+        LOG.info("The node {} start snapshot saving", this.node().nodeId());
         this.snapshotFile.save(writer, done, this.context.snapshotExecutor());
     }
 
@@ -206,6 +206,12 @@ public class StoreStateMachine extends StateMachineAdapter {
             LOG.warn("Leader is not supposed to load snapshot.");
             return false;
         }
+        /*
+         * Snapshot load occured in RaftNode constructor, specifically at step
+         * `this.node = this.initRaftNode()`, at this time the NodeImpl is null
+         * in RaftNode so we can't call `this.node().nodeId()`
+         */
+        LOG.info("The node {} start snapshot loading", this.context.endpoint());
         return this.snapshotFile.load(reader);
     }
 

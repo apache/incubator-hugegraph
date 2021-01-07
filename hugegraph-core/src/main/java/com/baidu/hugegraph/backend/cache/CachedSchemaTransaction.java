@@ -124,6 +124,8 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
                                                  schema.name());
                     this.nameCache.invalidate(prefixedName);
                 }
+                // Set the cache all flag of the schema type to false
+                this.cachedTypes().put(type, false);
                 return true;
             } else if (ACTION_CLEAR.equals(args[0])) {
                 this.clearCache();
