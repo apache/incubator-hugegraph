@@ -59,7 +59,8 @@ public abstract class OltpTraverser extends HugeTraverser
             if (executors != null) {
                 return;
             }
-            int workers = this.config().get(CoreOptions.OLTP_CONCURRENT_THREADS);
+            int workers = this.graph()
+                              .option(CoreOptions.OLTP_CONCURRENT_THREADS);
             if (workers > 0) {
                 executors = new Consumers.ExecutorPool(EXECUTOR_NAME, workers);
             }

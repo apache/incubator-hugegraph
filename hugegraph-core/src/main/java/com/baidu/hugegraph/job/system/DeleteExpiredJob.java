@@ -21,7 +21,7 @@ package com.baidu.hugegraph.job.system;
 
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.HugeGraphParams;
+import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.job.EphemeralJob;
 import com.baidu.hugegraph.job.EphemeralJobBuilder;
@@ -39,8 +39,7 @@ public abstract class DeleteExpiredJob<T> extends EphemeralJob<T> {
     private static final int MAX_JOBS = 1000;
     protected static final JobCounters JOB_COUNTERS = new JobCounters();
 
-    public static <V> void asyncDeleteExpiredObject(HugeGraphParams graph,
-                                                    V object) {
+    public static <V> void asyncDeleteExpiredObject(HugeGraph graph, V object) {
         E.checkArgumentNotNull(object, "The object can't be null");
         JobCounters.JobCounter jobCounter = JOB_COUNTERS.jobCounter(graph);
         if (!jobCounter.addAndTriggerDelete(object)) {
@@ -57,7 +56,7 @@ public abstract class DeleteExpiredJob<T> extends EphemeralJob<T> {
         jobCounter.clear(object);
         HugeTask<?> task;
         try {
-            task = EphemeralJobBuilder.<V>of(graph.graph())
+            task = EphemeralJobBuilder.<V>of(graph)
                                       .name("delete_expired_object")
                                       .job(job)
                                       .schedule();
@@ -74,7 +73,7 @@ public abstract class DeleteExpiredJob<T> extends EphemeralJob<T> {
          * If TASK_SYNC_DELETION is true, wait async thread done before
          * continue. This is used when running tests.
          */
-        if (graph.configuration().get(CoreOptions.TASK_SYNC_DELETION)) {
+        if (graph.option(CoreOptions.TASK_SYNC_DELETION)) {
             task.syncWait();
         }
     }

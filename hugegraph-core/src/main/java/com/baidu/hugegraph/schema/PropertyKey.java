@@ -227,7 +227,7 @@ public class PropertyKey extends SchemaElement implements Propfiable {
         return valid;
     }
 
-    public <V> Object serialValue(V value) {
+    public <V> Object serialValue(V value, boolean encodeNumber) {
         V validValue = this.validValue(value);
         E.checkArgument(validValue != null,
                         "Invalid property value '%s' for key '%s'",
@@ -235,7 +235,8 @@ public class PropertyKey extends SchemaElement implements Propfiable {
         E.checkArgument(this.cardinality.single(),
                         "The cardinality can't be '%s' for navigation key '%s'",
                         this.cardinality, this.name());
-        if (this.dataType.isNumber() || this.dataType.isDate()) {
+        if (encodeNumber &&
+            (this.dataType.isNumber() || this.dataType.isDate())) {
             return LongEncoding.encodeNumber(validValue);
         }
         return validValue;

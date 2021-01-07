@@ -37,6 +37,7 @@ import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
 import com.baidu.hugegraph.backend.store.raft.RaftGroupManager;
+import com.baidu.hugegraph.config.ConfigOption;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -158,6 +159,8 @@ public interface HugeGraph extends Graph {
     public boolean sameAs(HugeGraph graph);
 
     public long now();
+
+    public <V> V option(ConfigOption<V> option);
 
     public default List<String> mapPkId2Name(Collection<Id> ids) {
         List<String> names = new ArrayList<>(ids.size());

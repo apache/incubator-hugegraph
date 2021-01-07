@@ -806,7 +806,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
             HugeIndex removeIndex = index.clone();
             removeIndex.resetElementIds();
             removeIndex.elementIds(id.id(), id.expiredTime());
-            DeleteExpiredJob.asyncDeleteExpiredObject(this.params(),
+            DeleteExpiredJob.asyncDeleteExpiredObject(this.graph(),
                                                       removeIndex);
         }
     }

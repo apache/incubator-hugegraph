@@ -59,7 +59,7 @@ public class DeleteExpiredElementJob<V> extends DeleteExpiredJob<V> {
             LOG.warn("Failed to delete expired elements: {}", this.elements);
             throw e;
         } finally {
-            JOB_COUNTERS.jobCounter(graph).decrement();
+            JOB_COUNTERS.jobCounter(graph.graph()).decrement();
         }
         return null;
     }

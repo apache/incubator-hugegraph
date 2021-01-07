@@ -164,7 +164,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
             HugeProperty<?> property = this.getProperty(sk);
             E.checkState(property != null,
                          "The value of sort key '%s' can't be null", sk);
-            propValues.add(property.serialValue());
+            propValues.add(property.serialValue(true));
         }
         return propValues;
     }

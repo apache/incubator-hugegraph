@@ -22,6 +22,7 @@ package com.baidu.hugegraph;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -59,9 +60,11 @@ import com.baidu.hugegraph.backend.store.raft.RaftGroupManager;
 import com.baidu.hugegraph.backend.store.ram.RamTable;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
+import com.baidu.hugegraph.config.ConfigOption;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.event.EventHub;
+import com.baidu.hugegraph.exception.NotAllowException;
 import com.baidu.hugegraph.io.HugeGraphIoRegistry;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
@@ -86,6 +89,7 @@ import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.LockUtil;
 import com.baidu.hugegraph.util.Log;
 import com.baidu.hugegraph.variables.HugeVariables;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.RateLimiter;
 
 /**
@@ -101,6 +105,18 @@ public class StandardHugeGraph implements HugeGraph {
            StandardHugeGraph.Txs.class,
            StandardHugeGraph.SysTransaction.class
     };
+
+    public static final Set<ConfigOption> ALLOWED_CONFIGS = ImmutableSet.of(
+            CoreOptions.TASK_WAIT_TIMEOUT,
+            CoreOptions.TASK_SYNC_DELETION,
+            CoreOptions.TASK_TTL_DELETE_BATCH,
+            CoreOptions.TASK_INPUT_SIZE_LIMIT,
+            CoreOptions.TASK_RESULT_SIZE_LIMIT,
+            CoreOptions.OLTP_CONCURRENT_THREADS,
+            CoreOptions.OLTP_CONCURRENT_DEPTH,
+            CoreOptions.VERTEX_DEFAULT_LABEL,
+            CoreOptions.VERTEX_ENCODE_PK_NUMBER
+    );
 
     private static final Logger LOG = Log.logger(HugeGraph.class);
 
@@ -887,6 +903,16 @@ public class StandardHugeGraph implements HugeGraph {
     @Override
     public long now() {
         return ((TinkerPopTransaction) this.tx()).openedTime();
+    }
+
+    @Override
+    public <V> V option(ConfigOption<V> option) {
+        HugeConfig config = this.configuration();
+        if (!ALLOWED_CONFIGS.contains(option)) {
+            throw new NotAllowException("Not allowed to access config: %s",
+                                        option.name());
+        }
+        return config.get(option);
     }
 
     private void closeTx() {

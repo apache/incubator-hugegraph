@@ -183,7 +183,7 @@ public class SchemaTransaction extends IndexableTransaction {
         LOG.debug("SchemaTransaction remove vertex label '{}'", id);
         SchemaCallable callable = new VertexLabelRemoveCallable();
         VertexLabel schema = this.getVertexLabel(id);
-        return asyncRun(this.graph(), schema, this.syncDelete(), callable);
+        return asyncRun(this.graph(), schema, callable);
     }
 
     @Watched(prefix = "schema")
@@ -209,7 +209,7 @@ public class SchemaTransaction extends IndexableTransaction {
         LOG.debug("SchemaTransaction remove edge label '{}'", id);
         SchemaCallable callable = new EdgeLabelRemoveCallable();
         EdgeLabel schema = this.getEdgeLabel(id);
-        return asyncRun(this.graph(), schema, this.syncDelete(), callable);
+        return asyncRun(this.graph(), schema, callable);
     }
 
     @Watched(prefix = "schema")
@@ -242,7 +242,7 @@ public class SchemaTransaction extends IndexableTransaction {
         LOG.debug("SchemaTransaction remove index label '{}'", id);
         SchemaCallable callable = new IndexLabelRemoveCallable();
         IndexLabel schema = this.getIndexLabel(id);
-        return asyncRun(this.graph(), schema, this.syncDelete(), callable);
+        return asyncRun(this.graph(), schema, callable);
     }
 
     @Watched(prefix = "schema")
@@ -255,8 +255,7 @@ public class SchemaTransaction extends IndexableTransaction {
         LOG.debug("SchemaTransaction rebuild index for {} with id '{}'",
                   schema.type(), schema.id());
         SchemaCallable callable = new RebuildIndexCallable();
-        boolean sync = this.syncDelete();
-        return asyncRun(this.graph(), schema, sync, callable, dependencies);
+        return asyncRun(this.graph(), schema, callable, dependencies);
     }
 
     @Watched(prefix = "schema")
@@ -476,14 +475,13 @@ public class SchemaTransaction extends IndexableTransaction {
     }
 
     private static Id asyncRun(HugeGraph graph, SchemaElement schema,
-                               boolean sync, SchemaCallable callable) {
-        return asyncRun(graph, schema, sync, callable, ImmutableSet.of());
+                               SchemaCallable callable) {
+        return asyncRun(graph, schema, callable, ImmutableSet.of());
     }
 
     @Watched(prefix = "schema")
     private static Id asyncRun(HugeGraph graph, SchemaElement schema,
-                               boolean sync, SchemaCallable callable,
-                               Set<Id> dependencies) {
+                               SchemaCallable callable, Set<Id> dependencies) {
         E.checkArgument(schema != null, "Schema can't be null");
         String name = SchemaCallable.formatTaskName(schema.type(),
                                                     schema.id(),
@@ -496,7 +494,7 @@ public class SchemaTransaction extends IndexableTransaction {
 
         // If TASK_SYNC_DELETION is true, wait async thread done before
         // continue. This is used when running tests.
-        if (sync) {
+        if (graph.option(CoreOptions.TASK_SYNC_DELETION)) {
             task.syncWait();
         }
         return task.id();

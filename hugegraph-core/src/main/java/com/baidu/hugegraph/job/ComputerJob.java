@@ -40,7 +40,7 @@ public class ComputerJob extends SysJob<Object> {
         return true;
     }
 
-    public String computerConfig() {
+    public String computerConfigPath() {
         return this.params().configuration().get(CoreOptions.COMPUTER_CONFIG);
     }
 
