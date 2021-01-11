@@ -32,6 +32,7 @@ import com.baidu.hugegraph.unit.concurrent.RowLockTest;
 import com.baidu.hugegraph.unit.config.HugeConfigTest;
 import com.baidu.hugegraph.unit.config.OptionSpaceTest;
 import com.baidu.hugegraph.unit.date.SafeDateFormatTest;
+import com.baidu.hugegraph.unit.concurrent.BarrierEventTest;
 import com.baidu.hugegraph.unit.event.EventHubTest;
 import com.baidu.hugegraph.unit.iterator.BatchMapperIteratorTest;
 import com.baidu.hugegraph.unit.iterator.ExtendableIteratorTest;
@@ -73,6 +74,7 @@ import com.baidu.hugegraph.unit.version.VersionTest;
     HugeConfigTest.class,
     OptionSpaceTest.class,
     SafeDateFormatTest.class,
+    BarrierEventTest.class,
     EventHubTest.class,
     PerfUtilTest.class,
     RestClientTest.class,
