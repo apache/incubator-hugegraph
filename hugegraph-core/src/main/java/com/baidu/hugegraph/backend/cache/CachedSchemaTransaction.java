@@ -138,6 +138,11 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
         }
     }
 
+    private final void resetCachedAll(HugeType type) {
+        // Set the cache all flag of the schema type to false
+        this.cachedTypes().put(type, false);
+    }
+
     private void clearCache() {
         this.idCache.clear();
         this.nameCache.clear();
@@ -294,11 +299,6 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
             }
             return results;
         }
-    }
-
-    private final void resetCachedAll(HugeType type) {
-        // Set the cache all flag of the schema type to false
-        this.cachedTypes().put(type, false);
     }
 
     private static final class SchemaCaches<V extends SchemaElement> {
