@@ -48,11 +48,17 @@ public abstract class TaskCallable<V> implements Callable<V> {
     }
 
     protected void done() {
-        // Do nothing, subclasses may override this method
+        this.closeTx();
     }
 
     protected void cancelled() {
         // Do nothing, subclasses may override this method
+    }
+
+    protected void closeTx() {
+        if (this.graph().tx().isOpen()) {
+            this.graph().tx().close();
+        }
     }
 
     public void setMinSaveInterval(long seconds) {

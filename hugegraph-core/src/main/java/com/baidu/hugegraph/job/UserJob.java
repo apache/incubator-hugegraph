@@ -31,7 +31,11 @@ public abstract class UserJob<V> extends TaskCallable<V> implements Job<V> {
 
     @Override
     protected void done() {
-        this.save();
+        try {
+            this.save();
+        } finally {
+            super.done();
+        }
     }
 
     @Override
