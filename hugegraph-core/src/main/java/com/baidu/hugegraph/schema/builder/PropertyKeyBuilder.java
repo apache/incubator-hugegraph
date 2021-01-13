@@ -300,6 +300,18 @@ public class PropertyKeyBuilder extends AbstractBuilder
     }
 
     @Override
+    public PropertyKey.Builder calcSet() {
+        this.aggregateType = AggregateType.SET;
+        return this;
+    }
+
+    @Override
+    public PropertyKey.Builder calcList() {
+        this.aggregateType = AggregateType.LIST;
+        return this;
+    }
+
+    @Override
     public PropertyKey.Builder olap(boolean olap) {
         this.olap = olap;
         return this;
@@ -363,13 +375,29 @@ public class PropertyKeyBuilder extends AbstractBuilder
             return;
         }
 
-        if (this.cardinality != Cardinality.SINGLE) {
+        if (this.aggregateType.isSet() &&
+            this.cardinality == Cardinality.SET ||
+            this.aggregateType.isList() &&
+            this.cardinality == Cardinality.LIST) {
+            return;
+        }
+
+        if (this.cardinality != Cardinality.SINGLE ||
+            this.aggregateType.isUnion()) {
             throw new NotAllowException("Not allowed to set aggregate type " +
                                         "'%s' for property key '%s' with " +
                                         "cardinality '%s'",
                                         this.aggregateType, this.name,
                                         this.cardinality);
         }
+
+        if (this.aggregateType.isSum() && this.dataType.isDate()) {
+            throw new NotAllowException(
+                      "Not allowed to set aggregate type '%s' for " +
+                      "property key '%s' with data type '%s'",
+                      this.aggregateType, this.name, this.dataType);
+        }
+
 
         if (this.aggregateType.isNumber() &&
             !this.dataType.isNumber() && !this.dataType.isDate()) {

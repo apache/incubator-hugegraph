@@ -76,7 +76,12 @@ public enum HugeKeys {
     DIRECTION(205, "direction"),
     SORT_VALUES(206, "sort_values"),
     PRIMARY_VALUES(207, "primary_values"),
-    EXPIRED_TIME(208, "expired_time");
+    EXPIRED_TIME(208, "expired_time"),
+
+    PROPERTY_TYPE(249, "property_type"),
+    AGGREGATE_PROPERTIES(250, "aggregate_properties");
+
+    public static final long NORMAL_PROPERTY_ID = 0L;
 
     /* HugeKeys define */
     private byte code = 0;

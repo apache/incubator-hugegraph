@@ -190,6 +190,28 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
         Assert.assertEquals(Cardinality.SINGLE, oldProp.cardinality());
         Assert.assertEquals(AggregateType.OLD, oldProp.aggregateType());
 
+        PropertyKey setProp = schema.propertyKey("setProp")
+                                    .asLong().valueSet().calcSet()
+                                    .ifNotExist().create();
+        Assert.assertEquals(DataType.LONG, setProp.dataType());
+        Assert.assertEquals(Cardinality.SET, setProp.cardinality());
+        Assert.assertEquals(AggregateType.SET, setProp.aggregateType());
+        setProp = schema.getPropertyKey("setProp");
+        Assert.assertEquals(DataType.LONG, setProp.dataType());
+        Assert.assertEquals(Cardinality.SET, setProp.cardinality());
+        Assert.assertEquals(AggregateType.SET, setProp.aggregateType());
+
+        PropertyKey listProp = schema.propertyKey("listProp")
+                                     .asLong().valueList().calcList()
+                                     .ifNotExist().create();
+        Assert.assertEquals(DataType.LONG, listProp.dataType());
+        Assert.assertEquals(Cardinality.LIST, listProp.cardinality());
+        Assert.assertEquals(AggregateType.LIST, listProp.aggregateType());
+        listProp = schema.getPropertyKey("listProp");
+        Assert.assertEquals(DataType.LONG, listProp.dataType());
+        Assert.assertEquals(Cardinality.LIST, listProp.cardinality());
+        Assert.assertEquals(AggregateType.LIST, listProp.aggregateType());
+
         PropertyKey regular = schema.propertyKey("regular").create();
         Assert.assertEquals(DataType.TEXT, regular.dataType());
         Assert.assertEquals(Cardinality.SINGLE, regular.cardinality());
@@ -243,6 +265,26 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
         Assert.assertThrows(NotAllowException.class, () -> {
             schema.propertyKey("aggregateProperty")
                   .asDate().valueSet().calcOld().create();
+        });
+
+        Assert.assertThrows(NotAllowException.class, () -> {
+            schema.propertyKey("aggregateProperty")
+                  .asDate().valueSingle().calcSet().create();
+        });
+
+        Assert.assertThrows(NotAllowException.class, () -> {
+            schema.propertyKey("aggregateProperty")
+                  .asDate().valueSingle().calcList().create();
+        });
+
+        Assert.assertThrows(NotAllowException.class, () -> {
+            schema.propertyKey("aggregateProperty")
+                  .asDate().valueSet().calcList().create();
+        });
+
+        Assert.assertThrows(NotAllowException.class, () -> {
+            schema.propertyKey("aggregateProperty")
+                  .asDate().valueList().calcSet().create();
         });
 
         // Invalid data type
@@ -304,6 +346,11 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
         Assert.assertThrows(NotAllowException.class, () -> {
             schema.propertyKey("aggregateProperty")
                   .asUUID().valueSingle().calcSum().create();
+        });
+
+        Assert.assertThrows(NotAllowException.class, () -> {
+            schema.propertyKey("aggregateProperty")
+                  .asDate().valueSingle().calcSum().create();
         });
     }
 

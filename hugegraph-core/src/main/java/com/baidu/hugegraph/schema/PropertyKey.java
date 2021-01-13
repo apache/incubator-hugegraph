@@ -381,6 +381,10 @@ public class PropertyKey extends SchemaElement implements Propfiable {
 
         Builder calcOld();
 
+        Builder calcSet();
+
+        Builder calcList();
+
         Builder olap(boolean olap);
 
         Builder cardinality(Cardinality cardinality);
