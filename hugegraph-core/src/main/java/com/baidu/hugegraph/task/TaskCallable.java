@@ -22,6 +22,7 @@ package com.baidu.hugegraph.task;
 import java.util.Date;
 import java.util.concurrent.Callable;
 
+import org.apache.tinkerpop.gremlin.structure.Transaction;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
@@ -56,8 +57,9 @@ public abstract class TaskCallable<V> implements Callable<V> {
     }
 
     protected void closeTx() {
-        if (this.graph().tx().isOpen()) {
-            this.graph().tx().close();
+        Transaction tx = this.graph().tx();
+        if (tx.isOpen()) {
+            tx.close();
         }
     }
 
