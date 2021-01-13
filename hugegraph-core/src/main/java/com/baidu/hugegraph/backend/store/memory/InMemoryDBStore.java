@@ -461,5 +461,10 @@ public abstract class InMemoryDBStore
         public boolean supportsTtl() {
             return false;
         }
+
+        @Override
+        public boolean supportsOlapProperties() {
+            return false;
+        }
     };
 }

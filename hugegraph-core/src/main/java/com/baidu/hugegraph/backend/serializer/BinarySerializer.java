@@ -997,6 +997,7 @@ public class BinarySerializer extends AbstractSerializer {
             writeEnum(HugeKeys.DATA_TYPE, schema.dataType());
             writeEnum(HugeKeys.CARDINALITY, schema.cardinality());
             writeEnum(HugeKeys.AGGREGATE_TYPE, schema.aggregateType());
+            writeBool(HugeKeys.OLAP, schema.olap());
             writeIds(HugeKeys.PROPERTIES, schema.properties());
             writeEnum(HugeKeys.STATUS, schema.status());
             writeUserdata(schema);
@@ -1016,6 +1017,7 @@ public class BinarySerializer extends AbstractSerializer {
                                              Cardinality.class));
             propertyKey.aggregateType(readEnum(HugeKeys.AGGREGATE_TYPE,
                                                AggregateType.class));
+            propertyKey.olap(readBool(HugeKeys.OLAP));
             propertyKey.properties(readIds(HugeKeys.PROPERTIES));
             propertyKey.status(readEnum(HugeKeys.STATUS, SchemaStatus.class));
             readUserdata(propertyKey);

@@ -45,12 +45,14 @@ public class PropertyKey extends SchemaElement implements Propfiable {
     private DataType dataType;
     private Cardinality cardinality;
     private AggregateType aggregateType;
+    private boolean olap;
 
     public PropertyKey(final HugeGraph graph, Id id, String name) {
         super(graph, id, name);
         this.dataType = DataType.TEXT;
         this.cardinality = Cardinality.SINGLE;
         this.aggregateType = AggregateType.NONE;
+        this.olap = false;
     }
 
     @Override
@@ -82,6 +84,14 @@ public class PropertyKey extends SchemaElement implements Propfiable {
         this.aggregateType = aggregateType;
     }
 
+    public void olap(boolean olap) {
+        this.olap = olap;
+    }
+
+    public boolean olap() {
+        return this.olap;
+    }
+
     @Override
     public Set<Id> properties() {
         return Collections.emptySet();
@@ -108,7 +118,8 @@ public class PropertyKey extends SchemaElement implements Propfiable {
         return super.hasSameContent(other) &&
                this.dataType == other.dataType() &&
                this.cardinality == other.cardinality() &&
-               this.aggregateType == other.aggregateType();
+               this.aggregateType == other.aggregateType() &&
+               this.olap == other.olap();
     }
 
     public String clazz() {
@@ -369,6 +380,8 @@ public class PropertyKey extends SchemaElement implements Propfiable {
         Builder calcSum();
 
         Builder calcOld();
+
+        Builder olap(boolean olap);
 
         Builder cardinality(Cardinality cardinality);
 

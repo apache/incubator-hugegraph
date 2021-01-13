@@ -464,6 +464,7 @@ public abstract class TableSerializer extends AbstractSerializer {
         entry.column(HugeKeys.CARDINALITY, propertyKey.cardinality().code());
         entry.column(HugeKeys.AGGREGATE_TYPE,
                      propertyKey.aggregateType().code());
+        entry.column(HugeKeys.OLAP, propertyKey.olap());
         entry.column(HugeKeys.PROPERTIES,
                      this.toLongSet(propertyKey.properties()));
         this.writeUserdata(propertyKey, entry);
@@ -560,6 +561,7 @@ public abstract class TableSerializer extends AbstractSerializer {
         Number dataType = entry.column(HugeKeys.DATA_TYPE);
         Number cardinality = entry.column(HugeKeys.CARDINALITY);
         Number aggregateType = entry.column(HugeKeys.AGGREGATE_TYPE);
+        Boolean olap = entry.column(HugeKeys.OLAP);
         Object properties = entry.column(HugeKeys.PROPERTIES);
         Number status = entry.column(HugeKeys.STATUS);
 
@@ -571,6 +573,7 @@ public abstract class TableSerializer extends AbstractSerializer {
         propertyKey.aggregateType(SerialEnum.fromCode(
                                   AggregateType.class,
                                   aggregateType.byteValue()));
+        propertyKey.olap(olap);
         propertyKey.properties(this.toIdArray(properties));
 
         this.readUserdata(propertyKey, entry);

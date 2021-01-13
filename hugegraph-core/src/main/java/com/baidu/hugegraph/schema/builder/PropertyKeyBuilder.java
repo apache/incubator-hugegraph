@@ -28,6 +28,7 @@ import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.exception.ExistedException;
 import com.baidu.hugegraph.exception.NotAllowException;
 import com.baidu.hugegraph.exception.NotFoundException;
+import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.Userdata;
 import com.baidu.hugegraph.type.HugeType;
@@ -45,6 +46,7 @@ public class PropertyKeyBuilder extends AbstractBuilder
     private DataType dataType;
     private Cardinality cardinality;
     private AggregateType aggregateType;
+    private boolean olap;
     private boolean checkExist;
     private Userdata userdata;
 
@@ -57,6 +59,7 @@ public class PropertyKeyBuilder extends AbstractBuilder
         this.dataType = DataType.TEXT;
         this.cardinality = Cardinality.SINGLE;
         this.aggregateType = AggregateType.NONE;
+        this.olap = false;
         this.userdata = new Userdata();
         this.checkExist = true;
     }
@@ -70,6 +73,7 @@ public class PropertyKeyBuilder extends AbstractBuilder
         this.dataType = copy.dataType();
         this.cardinality = copy.cardinality();
         this.aggregateType = copy.aggregateType();
+        this.olap = copy.olap();
         this.userdata = new Userdata(copy.userdata());
         this.checkExist = false;
     }
@@ -82,6 +86,7 @@ public class PropertyKeyBuilder extends AbstractBuilder
         propertyKey.dataType(this.dataType);
         propertyKey.cardinality(this.cardinality);
         propertyKey.aggregateType(this.aggregateType);
+        propertyKey.olap(this.olap);
         propertyKey.userdata(this.userdata);
         return propertyKey;
     }
@@ -103,6 +108,7 @@ public class PropertyKeyBuilder extends AbstractBuilder
 
             Userdata.check(this.userdata, Action.INSERT);
             this.checkAggregateType();
+            this.checkOlap();
 
             propertyKey = this.build();
             assert propertyKey.name().equals(name);
@@ -132,6 +138,10 @@ public class PropertyKeyBuilder extends AbstractBuilder
 
         // aggregateType is enum
         if (this.aggregateType != propertyKey.aggregateType()) {
+            return false;
+        }
+
+        if (this.olap != propertyKey.olap()) {
             return false;
         }
 
@@ -290,6 +300,12 @@ public class PropertyKeyBuilder extends AbstractBuilder
     }
 
     @Override
+    public PropertyKey.Builder olap(boolean olap) {
+        this.olap = olap;
+        return this;
+    }
+
+    @Override
     public PropertyKeyBuilder userdata(String key, Object value) {
         this.userdata.put(key, value);
         return this;
@@ -361,6 +377,24 @@ public class PropertyKeyBuilder extends AbstractBuilder
                       "Not allowed to set aggregate type '%s' for " +
                       "property key '%s' with data type '%s'",
                       this.aggregateType, this.name, this.dataType);
+        }
+    }
+
+    private void checkOlap() {
+        if (!this.olap) {
+            return;
+        }
+
+        if (!this.graph().backendStoreFeatures().supportsOlapProperties()) {
+            throw new NotSupportException(
+                      "olap property key '%s' for backend '%s'",
+                      this.name, this.graph().backend());
+        }
+
+        if (!this.aggregateType.isNone()) {
+            throw new NotAllowException(
+                      "Not allow to set aggregate type '%s' for olap result " +
+                      "property key '%s'", this.aggregateType, this.name);
         }
     }
 }

@@ -182,6 +182,8 @@ public class PropertyKeyAPI extends API {
         public DataType dataType;
         @JsonProperty("aggregate_type")
         public AggregateType aggregateType;
+        @JsonProperty("olap")
+        public Boolean olap;
         @JsonProperty("properties")
         public String[] properties;
         @JsonProperty("user_data")
@@ -221,6 +223,9 @@ public class PropertyKeyAPI extends API {
             if (this.aggregateType != null) {
                 builder.aggregateType(this.aggregateType);
             }
+            if (this.olap != null) {
+                builder.olap(this.olap);
+            }
             if (this.userdata != null) {
                 builder.userdata(this.userdata);
             }
@@ -234,10 +239,10 @@ public class PropertyKeyAPI extends API {
         public String toString() {
             return String.format("JsonPropertyKey{name=%s, cardinality=%s, " +
                                  "dataType=%s, aggregateType=%s, " +
-                                 "properties=%s}",
+                                 "olap=%s, properties=%s}",
                                  this.name, this.cardinality,
                                  this.dataType, this.aggregateType,
-                                 this.properties);
+                                 this.olap, this.properties);
         }
     }
 }
