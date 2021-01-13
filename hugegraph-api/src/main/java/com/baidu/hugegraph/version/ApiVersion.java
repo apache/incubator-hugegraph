@@ -108,10 +108,11 @@ public final class ApiVersion {
      * [0.57] Issue-1105: Allow not rebuild index when create index label
      * [0.58] Issue-1173: Supports customized kout/kneighbor,
      *        multi-node-shortest-path, jaccard-similar and template-paths
+     * [0.59] Issue-1333: Support graph read mode for olap property
      */
 
     // The second parameter of Version.of() is for IDE running without JAR
-    public static final Version VERSION = Version.of(ApiVersion.class, "0.58");
+    public static final Version VERSION = Version.of(ApiVersion.class, "0.59");
 
     public static final void check() {
         // Check version of hugegraph-core. Firstly do check from version 0.3
