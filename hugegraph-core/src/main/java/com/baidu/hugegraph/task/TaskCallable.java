@@ -22,6 +22,7 @@ package com.baidu.hugegraph.task;
 import java.util.Date;
 import java.util.concurrent.Callable;
 
+import org.apache.tinkerpop.gremlin.structure.Transaction;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
@@ -48,11 +49,18 @@ public abstract class TaskCallable<V> implements Callable<V> {
     }
 
     protected void done() {
-        // Do nothing, subclasses may override this method
+        this.closeTx();
     }
 
     protected void cancelled() {
         // Do nothing, subclasses may override this method
+    }
+
+    protected void closeTx() {
+        Transaction tx = this.graph().tx();
+        if (tx.isOpen()) {
+            tx.close();
+        }
     }
 
     public void setMinSaveInterval(long seconds) {
