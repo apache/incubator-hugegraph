@@ -124,6 +124,7 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
                                                  schema.name());
                     this.nameCache.invalidate(prefixedName);
                 }
+                this.resetCachedAll(type);
                 return true;
             } else if (ACTION_CLEAR.equals(args[0])) {
                 this.clearCache();
@@ -135,6 +136,11 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
         if (!schemaEventHub.containsListener(Events.CACHE)) {
             schemaEventHub.listen(Events.CACHE, this.cacheEventListener);
         }
+    }
+
+    private final void resetCachedAll(HugeType type) {
+        // Set the cache all flag of the schema type to false
+        this.cachedTypes().put(type, false);
     }
 
     private void clearCache() {
