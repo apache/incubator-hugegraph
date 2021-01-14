@@ -35,8 +35,9 @@ public abstract class TaskCallable<V> implements Callable<V> {
 
     private static final Logger LOG = Log.logger(HugeTask.class);
 
-    private static final String ERROR_MAX_LEN = "Failed to commit changes: " +
-                                                "The max length of bytes is";
+    private static final String ERROR_COMMIT = "Failed to commit changes: ";
+    private static final String ERROR_MAX_LEN = "The max length of bytes is";
+    private static final String ERROR_TOO_LARGE_BATCH = "Batch too large";
 
     private HugeTask<V> task = null;
     private HugeGraph graph = null;
@@ -98,7 +99,15 @@ public abstract class TaskCallable<V> implements Callable<V> {
                  */
                 LOG.error("Failed to save task with error \"{}\": {}",
                           e, task.asMap(false));
-                if (e.getMessage().contains(ERROR_MAX_LEN)) {
+                String message = e.getMessage();
+                /*
+                 * ERROR_TOO_LARGE_BATCH occurs when using cassandra store
+                 * and result size is in
+                 * [batch_size_fail_threshold_in_kb, TASK_RESULT_SIZE_LIMIT)
+                 */
+                if (message.contains(ERROR_COMMIT) &&
+                    (message.contains(ERROR_MAX_LEN) ||
+                     message.contains(ERROR_TOO_LARGE_BATCH))) {
                     task.failSave(e);
                     this.graph().taskScheduler().save(task);
                     return;
