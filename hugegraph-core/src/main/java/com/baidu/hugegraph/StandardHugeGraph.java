@@ -83,6 +83,7 @@ import com.baidu.hugegraph.task.TaskManager;
 import com.baidu.hugegraph.task.TaskScheduler;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.GraphMode;
+import com.baidu.hugegraph.type.define.GraphReadMode;
 import com.baidu.hugegraph.type.define.NodeRole;
 import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.E;
@@ -123,6 +124,7 @@ public class StandardHugeGraph implements HugeGraph {
     private volatile boolean started;
     private volatile boolean closed;
     private volatile GraphMode mode;
+    private volatile GraphReadMode readMode;
     private volatile HugeVariables variables;
 
     private final String name;
@@ -179,6 +181,7 @@ public class StandardHugeGraph implements HugeGraph {
         this.started = false;
         this.closed = false;
         this.mode = GraphMode.NONE;
+        this.readMode = GraphReadMode.OLTP_ONLY;
 
         LockUtil.init(this.name);
 
@@ -263,6 +266,16 @@ public class StandardHugeGraph implements HugeGraph {
     public void mode(GraphMode mode) {
         LOG.info("Graph {} will work in {} mode", this, mode);
         this.mode = mode;
+    }
+
+    @Override
+    public GraphReadMode readMode() {
+        return this.readMode;
+    }
+
+    @Override
+    public void readMode(GraphReadMode readMode) {
+        this.readMode = readMode;
     }
 
     @Override
@@ -955,6 +968,11 @@ public class StandardHugeGraph implements HugeGraph {
         @Override
         public GraphMode mode() {
             return StandardHugeGraph.this.mode();
+        }
+
+        @Override
+        public GraphReadMode readMode() {
+            return StandardHugeGraph.this.readMode();
         }
 
         @Override

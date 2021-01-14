@@ -52,6 +52,7 @@ import com.baidu.hugegraph.traversal.optimize.HugeGraphStepStrategy;
 import com.baidu.hugegraph.traversal.optimize.HugeVertexStepStrategy;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.GraphMode;
+import com.baidu.hugegraph.type.define.GraphReadMode;
 import com.baidu.hugegraph.type.define.NodeRole;
 
 /**
@@ -135,6 +136,9 @@ public interface HugeGraph extends Graph {
 
     public GraphMode mode();
     public void mode(GraphMode mode);
+
+    public GraphReadMode readMode();
+    public void readMode(GraphReadMode readMode);
 
     public void waitStarted();
     public void serverStarted(Id serverId, NodeRole serverRole);

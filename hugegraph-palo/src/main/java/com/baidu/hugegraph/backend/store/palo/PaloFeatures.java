@@ -123,4 +123,9 @@ public class PaloFeatures implements BackendFeatures {
     public boolean supportsTtl() {
         return false;
     }
+
+    @Override
+    public boolean supportsOlapProperties() {
+        return false;
+    }
 }

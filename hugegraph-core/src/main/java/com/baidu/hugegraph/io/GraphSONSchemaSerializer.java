@@ -98,6 +98,7 @@ public class GraphSONSchemaSerializer {
         map.put(HugeKeys.DATA_TYPE, propertyKey.dataType());
         map.put(HugeKeys.CARDINALITY, propertyKey.cardinality());
         map.put(HugeKeys.AGGREGATE_TYPE, propertyKey.aggregateType());
+        map.put(HugeKeys.READ_FREQUENCY, propertyKey.readFrequency());
         map.put(HugeKeys.PROPERTIES,
                 graph.mapPkId2Name(propertyKey.properties()));
         map.put(HugeKeys.STATUS, propertyKey.status());

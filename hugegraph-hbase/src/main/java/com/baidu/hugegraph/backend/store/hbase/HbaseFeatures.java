@@ -125,4 +125,9 @@ public class HbaseFeatures implements BackendFeatures {
     public boolean supportsTtl() {
         return true;
     }
+
+    @Override
+    public boolean supportsOlapProperties() {
+        return false;
+    }
 }

@@ -62,4 +62,6 @@ public interface BackendFeatures {
     public boolean supportsAggregateProperty();
 
     public boolean supportsTtl();
+
+    public boolean supportsOlapProperties();
 }

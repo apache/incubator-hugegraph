@@ -49,6 +49,7 @@ import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.type.define.GraphMode;
+import com.baidu.hugegraph.type.define.GraphReadMode;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
@@ -166,5 +167,40 @@ public class GraphsAPI extends API {
 
         HugeGraph g = graph(manager, name);
         return ImmutableMap.of("mode", g.mode());
+    }
+
+    @PUT
+    @Timed
+    @Path("{name}/graph_read_mode")
+    @Consumes(APPLICATION_JSON)
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed("admin")
+    public Map<String, GraphReadMode> graphReadMode(
+                                      @Context GraphManager manager,
+                                      @PathParam("name") String name,
+                                      GraphReadMode readMode) {
+        LOG.debug("Set graph read mode to: '{}' of graph '{}'",
+                  readMode, name);
+
+        E.checkArgument(readMode != null,
+                        "Graph read mode can't be null");
+        HugeGraph g = graph(manager, name);
+        g.readMode(readMode);
+        return ImmutableMap.of("graph_read_mode", readMode);
+    }
+
+    @GET
+    @Timed
+    @Path("{name}/graph_read_mode")
+    @Consumes(APPLICATION_JSON)
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin", "$owner=$name"})
+    public Map<String, GraphReadMode> graphReadMode(
+                                      @Context GraphManager manager,
+                                      @PathParam("name") String name) {
+        LOG.debug("Get graph read mode of graph '{}'", name);
+
+        HugeGraph g = graph(manager, name);
+        return ImmutableMap.of("graph_read_mode", g.readMode());
     }
 }

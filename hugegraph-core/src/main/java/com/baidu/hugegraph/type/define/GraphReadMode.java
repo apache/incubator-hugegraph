@@ -19,30 +19,23 @@
 
 package com.baidu.hugegraph.type.define;
 
-public enum AggregateType implements SerialEnum {
+public enum GraphReadMode {
 
-    NONE(0, "none"),
-    MAX(1, "max"),
-    MIN(2, "min"),
-    SUM(3, "sum"),
-    OLD(4, "old"),
-    SET(5, "set"),
-    LIST(6, "list");
+    ALL(1, "all"),
+
+    OLTP_ONLY(2, "oltp_only"),
+
+    OLAP_ONLY(3, "olap_only");
 
     private final byte code;
     private final String name;
 
-    static {
-        SerialEnum.register(AggregateType.class);
-    }
-
-    AggregateType(int code, String name) {
+    private GraphReadMode(int code, String name) {
         assert code < 256;
         this.code = (byte) code;
         this.name = name;
     }
 
-    @Override
     public byte code() {
         return this.code;
     }
@@ -51,43 +44,7 @@ public enum AggregateType implements SerialEnum {
         return this.name;
     }
 
-    public boolean isNone() {
-        return this == NONE;
-    }
-
-    public boolean isMax() {
-        return this == MAX;
-    }
-
-    public boolean isMin() {
-        return this == MIN;
-    }
-
-    public boolean isSum() {
-        return this == SUM;
-    }
-
-    public boolean isNumber() {
-        return this.isMax() || this.isMin() || this.isSum();
-    }
-
-    public boolean isOld() {
-        return this == OLD;
-    }
-
-    public boolean isSet() {
-        return this == SET;
-    }
-
-    public boolean isList() {
-        return this == LIST;
-    }
-
-    public boolean isUnion() {
-        return this == SET || this == LIST;
-    }
-
-    public boolean isIndexable() {
-        return this == NONE || this == MAX || this == MIN || this == OLD;
+    public boolean showOlap() {
+        return this == ALL || this == OLAP_ONLY;
     }
 }
