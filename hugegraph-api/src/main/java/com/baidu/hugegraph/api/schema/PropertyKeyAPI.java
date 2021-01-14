@@ -49,6 +49,7 @@ import com.baidu.hugegraph.type.define.AggregateType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.type.define.GraphMode;
+import com.baidu.hugegraph.type.define.ReadFrequency;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
@@ -182,8 +183,8 @@ public class PropertyKeyAPI extends API {
         public DataType dataType;
         @JsonProperty("aggregate_type")
         public AggregateType aggregateType;
-        @JsonProperty("olap")
-        public Boolean olap;
+        @JsonProperty("read_frequency")
+        public ReadFrequency readFrequency;
         @JsonProperty("properties")
         public String[] properties;
         @JsonProperty("user_data")
@@ -223,8 +224,8 @@ public class PropertyKeyAPI extends API {
             if (this.aggregateType != null) {
                 builder.aggregateType(this.aggregateType);
             }
-            if (this.olap != null) {
-                builder.olap(this.olap);
+            if (this.readFrequency != null) {
+                builder.readFrequency(this.readFrequency);
             }
             if (this.userdata != null) {
                 builder.userdata(this.userdata);
@@ -239,10 +240,10 @@ public class PropertyKeyAPI extends API {
         public String toString() {
             return String.format("JsonPropertyKey{name=%s, cardinality=%s, " +
                                  "dataType=%s, aggregateType=%s, " +
-                                 "olap=%s, properties=%s}",
+                                 "readFrequency=%s, properties=%s}",
                                  this.name, this.cardinality,
                                  this.dataType, this.aggregateType,
-                                 this.olap, this.properties);
+                                 this.readFrequency, this.properties);
         }
     }
 }

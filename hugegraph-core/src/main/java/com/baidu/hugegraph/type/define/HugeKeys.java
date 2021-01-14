@@ -53,7 +53,7 @@ public enum HugeKeys {
     DATA_TYPE(120, "data_type"),
     CARDINALITY(121, "cardinality"),
     AGGREGATE_TYPE(122, "aggregate_type"),
-    OLAP(123, "olap"),
+    READ_FREQUENCY(123, "read_frequency"),
 
     /* Column names of schema type (IndexLabel) */
     BASE_TYPE(150, "base_type"),

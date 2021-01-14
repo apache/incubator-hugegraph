@@ -36,6 +36,7 @@ import com.baidu.hugegraph.type.define.Action;
 import com.baidu.hugegraph.type.define.AggregateType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
+import com.baidu.hugegraph.type.define.ReadFrequency;
 import com.baidu.hugegraph.util.E;
 
 public class PropertyKeyBuilder extends AbstractBuilder
@@ -46,7 +47,7 @@ public class PropertyKeyBuilder extends AbstractBuilder
     private DataType dataType;
     private Cardinality cardinality;
     private AggregateType aggregateType;
-    private boolean olap;
+    private ReadFrequency readFrequency;
     private boolean checkExist;
     private Userdata userdata;
 
@@ -59,7 +60,7 @@ public class PropertyKeyBuilder extends AbstractBuilder
         this.dataType = DataType.TEXT;
         this.cardinality = Cardinality.SINGLE;
         this.aggregateType = AggregateType.NONE;
-        this.olap = false;
+        this.readFrequency = ReadFrequency.OLTP;
         this.userdata = new Userdata();
         this.checkExist = true;
     }
@@ -73,7 +74,7 @@ public class PropertyKeyBuilder extends AbstractBuilder
         this.dataType = copy.dataType();
         this.cardinality = copy.cardinality();
         this.aggregateType = copy.aggregateType();
-        this.olap = copy.olap();
+        this.readFrequency = copy.readFrequency();
         this.userdata = new Userdata(copy.userdata());
         this.checkExist = false;
     }
@@ -86,7 +87,7 @@ public class PropertyKeyBuilder extends AbstractBuilder
         propertyKey.dataType(this.dataType);
         propertyKey.cardinality(this.cardinality);
         propertyKey.aggregateType(this.aggregateType);
-        propertyKey.olap(this.olap);
+        propertyKey.readFrequency(this.readFrequency);
         propertyKey.userdata(this.userdata);
         return propertyKey;
     }
@@ -141,7 +142,7 @@ public class PropertyKeyBuilder extends AbstractBuilder
             return false;
         }
 
-        if (this.olap != propertyKey.olap()) {
+        if (this.readFrequency != propertyKey.readFrequency()) {
             return false;
         }
 
@@ -312,8 +313,8 @@ public class PropertyKeyBuilder extends AbstractBuilder
     }
 
     @Override
-    public PropertyKey.Builder olap(boolean olap) {
-        this.olap = olap;
+    public PropertyKey.Builder readFrequency(ReadFrequency readFrequency) {
+        this.readFrequency = readFrequency;
         return this;
     }
 
@@ -409,7 +410,7 @@ public class PropertyKeyBuilder extends AbstractBuilder
     }
 
     private void checkOlap() {
-        if (!this.olap) {
+        if (this.readFrequency == ReadFrequency.OLTP) {
             return;
         }
 
@@ -421,7 +422,7 @@ public class PropertyKeyBuilder extends AbstractBuilder
 
         if (!this.aggregateType.isNone()) {
             throw new NotAllowException(
-                      "Not allow to set aggregate type '%s' for olap result " +
+                      "Not allow to set aggregate type '%s' for olap " +
                       "property key '%s'", this.aggregateType, this.name);
         }
     }

@@ -41,7 +41,7 @@ public interface HugeGraphParams {
     public HugeGraph graph();
     public String name();
     public GraphMode mode();
-    public GraphReadMode graphReadMode();
+    public GraphReadMode readMode();
 
     public SchemaTransaction schemaTransaction();
     public GraphTransaction systemTransaction();

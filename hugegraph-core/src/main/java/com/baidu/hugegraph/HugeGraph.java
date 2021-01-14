@@ -137,8 +137,8 @@ public interface HugeGraph extends Graph {
     public GraphMode mode();
     public void mode(GraphMode mode);
 
-    public GraphReadMode graphReadMode();
-    public void graphReadMode(GraphReadMode graphReadMode);
+    public GraphReadMode readMode();
+    public void readMode(GraphReadMode readMode);
 
     public void waitStarted();
     public void serverStarted(Id serverId, NodeRole serverRole);

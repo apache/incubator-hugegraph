@@ -98,7 +98,7 @@ public class JsonUtilTest extends BaseUnitTest {
                             "\"data_type\":\"TEXT\"," +
                             "\"cardinality\":\"SINGLE\"," +
                             "\"aggregate_type\":\"NONE\"," +
-                            "\"olap\":false," +
+                            "\"read_frequency\":\"OLTP\"," +
                             "\"properties\":[],\"status\":\"CREATED\"," +
                             "\"user_data\":{}}", json);
 
@@ -108,7 +108,8 @@ public class JsonUtilTest extends BaseUnitTest {
         json = JsonUtil.toJson(rate);
         Assert.assertEquals("{\"id\":2,\"name\":\"rate\"," +
                             "\"data_type\":\"INT\",\"cardinality\":\"LIST\"," +
-                            "\"aggregate_type\":\"NONE\",\"olap\":false," +
+                            "\"aggregate_type\":\"NONE\"," +
+                            "\"read_frequency\":\"OLTP\"," +
                             "\"properties\":[],\"status\":\"CREATED\"," +
                             "\"user_data\":{}}", json);
     }

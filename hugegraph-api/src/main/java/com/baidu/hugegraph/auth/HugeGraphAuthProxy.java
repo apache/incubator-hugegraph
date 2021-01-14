@@ -598,15 +598,15 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     @Override
-    public GraphReadMode graphReadMode() {
+    public GraphReadMode readMode() {
         this.verifyPermission(HugePermission.READ, ResourceType.STATUS);
-        return this.hugegraph.graphReadMode();
+        return this.hugegraph.readMode();
     }
 
     @Override
-    public void graphReadMode(GraphReadMode graphReadMode) {
+    public void readMode(GraphReadMode readMode) {
         this.verifyPermission(HugePermission.WRITE, ResourceType.STATUS);
-        this.hugegraph.graphReadMode(graphReadMode);
+        this.hugegraph.readMode(readMode);
     }
 
     @Override

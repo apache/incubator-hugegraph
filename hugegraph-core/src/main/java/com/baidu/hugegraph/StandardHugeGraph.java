@@ -124,7 +124,7 @@ public class StandardHugeGraph implements HugeGraph {
     private volatile boolean started;
     private volatile boolean closed;
     private volatile GraphMode mode;
-    private volatile GraphReadMode graphReadMode;
+    private volatile GraphReadMode readMode;
     private volatile HugeVariables variables;
 
     private final String name;
@@ -181,7 +181,7 @@ public class StandardHugeGraph implements HugeGraph {
         this.started = false;
         this.closed = false;
         this.mode = GraphMode.NONE;
-        this.graphReadMode = GraphReadMode.OLTP_ONLY;
+        this.readMode = GraphReadMode.OLTP_ONLY;
 
         LockUtil.init(this.name);
 
@@ -269,13 +269,13 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
-    public GraphReadMode graphReadMode() {
-        return this.graphReadMode;
+    public GraphReadMode readMode() {
+        return this.readMode;
     }
 
     @Override
-    public void graphReadMode(GraphReadMode graphReadMode) {
-        this.graphReadMode = graphReadMode;
+    public void readMode(GraphReadMode readMode) {
+        this.readMode = readMode;
     }
 
     @Override
@@ -971,8 +971,8 @@ public class StandardHugeGraph implements HugeGraph {
         }
 
         @Override
-        public GraphReadMode graphReadMode() {
-            return StandardHugeGraph.this.graphReadMode();
+        public GraphReadMode readMode() {
+            return StandardHugeGraph.this.readMode();
         }
 
         @Override

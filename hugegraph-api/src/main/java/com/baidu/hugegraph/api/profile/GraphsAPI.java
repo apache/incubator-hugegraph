@@ -178,15 +178,15 @@ public class GraphsAPI extends API {
     public Map<String, GraphReadMode> graphReadMode(
                                       @Context GraphManager manager,
                                       @PathParam("name") String name,
-                                      GraphReadMode graphReadMode) {
+                                      GraphReadMode readMode) {
         LOG.debug("Set graph read mode to: '{}' of graph '{}'",
-                  graphReadMode, name);
+                  readMode, name);
 
-        E.checkArgument(graphReadMode != null,
+        E.checkArgument(readMode != null,
                         "Graph read mode can't be null");
         HugeGraph g = graph(manager, name);
-        g.graphReadMode(graphReadMode);
-        return ImmutableMap.of("graph_read_mode", graphReadMode);
+        g.readMode(readMode);
+        return ImmutableMap.of("graph_read_mode", readMode);
     }
 
     @GET
@@ -201,6 +201,6 @@ public class GraphsAPI extends API {
         LOG.debug("Get graph read mode of graph '{}'", name);
 
         HugeGraph g = graph(manager, name);
-        return ImmutableMap.of("graph_read_mode", g.graphReadMode());
+        return ImmutableMap.of("graph_read_mode", g.readMode());
     }
 }

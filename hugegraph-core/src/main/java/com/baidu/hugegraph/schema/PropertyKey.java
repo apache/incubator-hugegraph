@@ -37,6 +37,7 @@ import com.baidu.hugegraph.type.Propfiable;
 import com.baidu.hugegraph.type.define.AggregateType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
+import com.baidu.hugegraph.type.define.ReadFrequency;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.LongEncoding;
 
@@ -45,14 +46,14 @@ public class PropertyKey extends SchemaElement implements Propfiable {
     private DataType dataType;
     private Cardinality cardinality;
     private AggregateType aggregateType;
-    private boolean olap;
+    private ReadFrequency readFrequency;
 
     public PropertyKey(final HugeGraph graph, Id id, String name) {
         super(graph, id, name);
         this.dataType = DataType.TEXT;
         this.cardinality = Cardinality.SINGLE;
         this.aggregateType = AggregateType.NONE;
-        this.olap = false;
+        this.readFrequency = ReadFrequency.OLTP;
     }
 
     @Override
@@ -84,12 +85,12 @@ public class PropertyKey extends SchemaElement implements Propfiable {
         this.aggregateType = aggregateType;
     }
 
-    public void olap(boolean olap) {
-        this.olap = olap;
+    public void readFrequency(ReadFrequency readFrequency) {
+        this.readFrequency = readFrequency;
     }
 
-    public boolean olap() {
-        return this.olap;
+    public ReadFrequency readFrequency() {
+        return this.readFrequency;
     }
 
     @Override
@@ -119,7 +120,7 @@ public class PropertyKey extends SchemaElement implements Propfiable {
                this.dataType == other.dataType() &&
                this.cardinality == other.cardinality() &&
                this.aggregateType == other.aggregateType() &&
-               this.olap == other.olap();
+               this.readFrequency == other.readFrequency();
     }
 
     public String clazz() {
@@ -385,7 +386,7 @@ public class PropertyKey extends SchemaElement implements Propfiable {
 
         Builder calcList();
 
-        Builder olap(boolean olap);
+        Builder readFrequency(ReadFrequency readFrequency);
 
         Builder cardinality(Cardinality cardinality);
 
