@@ -126,15 +126,6 @@ public abstract class TaskCallable<V> implements Callable<V> {
         }
     }
 
-    private static boolean needSaveWithEx(String message) {
-        for (String error : ERROR_MESSAGES) {
-            if (message.contains(error)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     protected void graph(HugeGraph graph) {
         this.graph = graph;
     }
@@ -163,6 +154,15 @@ public abstract class TaskCallable<V> implements Callable<V> {
         } catch (Exception e) {
             throw new HugeException("Failed to load task: %s", e, className);
         }
+    }
+
+    private static boolean needSaveWithEx(String message) {
+        for (String error : ERROR_MESSAGES) {
+            if (message.contains(error)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static <V> TaskCallable<V> empty(Exception e) {
