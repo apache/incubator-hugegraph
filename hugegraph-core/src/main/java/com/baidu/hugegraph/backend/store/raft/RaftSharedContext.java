@@ -72,7 +72,7 @@ public final class RaftSharedContext {
     public static final int BUSY_SLEEP_FACTOR = 3 * 1000;
     public static final int WAIT_RPC_TIMEOUT = 30 * 60 * 1000;
     // compress block size
-    public static final int BLOCK_SIZE = 4096;
+    public static final int BLOCK_SIZE = 8192;
 
     public static final String DEFAULT_GROUP = "default";
 

@@ -152,6 +152,11 @@
             <artifactId>lz4-java</artifactId>
             <version>1.7.1</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-compress</artifactId>
+            <version>1.20</version>
+        </dependency>
     </dependencies>
 
     <build>

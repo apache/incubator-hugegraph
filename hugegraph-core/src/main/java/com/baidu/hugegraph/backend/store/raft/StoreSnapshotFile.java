@@ -37,9 +37,9 @@ import com.alipay.sofa.jraft.error.RaftError;
 import com.alipay.sofa.jraft.storage.snapshot.SnapshotReader;
 import com.alipay.sofa.jraft.storage.snapshot.SnapshotWriter;
 import com.alipay.sofa.jraft.util.CRC64;
+import com.baidu.hugegraph.util.CompressUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
-import com.baidu.hugegraph.util.ZipUtil;
 
 public class StoreSnapshotFile {
 
@@ -133,7 +133,8 @@ public class StoreSnapshotFile {
         String outputFile = Paths.get(writerPath, SNAPSHOT_ARCHIVE).toString();
         try {
             Checksum checksum = new CRC64();
-            ZipUtil.compress(writerPath, SNAPSHOT_DIR, outputFile, checksum);
+            CompressUtil.tarCompress(writerPath, SNAPSHOT_DIR,
+                                     outputFile, checksum);
             metaBuilder.setChecksum(Long.toHexString(checksum.getValue()));
             if (writer.addFile(SNAPSHOT_ARCHIVE, metaBuilder.build())) {
                 done.run(Status.OK());
@@ -155,7 +156,7 @@ public class StoreSnapshotFile {
                                     throws IOException {
         String sourceFile = Paths.get(readerPath, SNAPSHOT_ARCHIVE).toString();
         Checksum checksum = new CRC64();
-        ZipUtil.decompress(sourceFile, readerPath, checksum);
+        CompressUtil.tarDecompress(sourceFile, readerPath, checksum);
         if (meta.hasChecksum()) {
             E.checkArgument(meta.getChecksum().equals(
                             Long.toHexString(checksum.getValue())),
