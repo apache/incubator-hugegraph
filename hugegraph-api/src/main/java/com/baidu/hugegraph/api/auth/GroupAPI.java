@@ -134,6 +134,8 @@ public class GroupAPI extends API {
                        @PathParam("id") String id) {
         LOG.debug("Graph [{}] delete group: {}", graph, id);
 
+        @SuppressWarnings("unused") // just check if the graph exists
+        HugeGraph g = graph(manager, graph);
         try {
             manager.userManager().deleteGroup(IdGenerator.of(id));
         } catch (NotFoundException e) {
