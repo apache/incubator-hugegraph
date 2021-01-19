@@ -56,6 +56,13 @@ public interface SerialEnum {
 
     public static void registerInternalEnums() {
         SerialEnum.register(Action.class);
+        SerialEnum.register(AggregateType.class);
+        SerialEnum.register(Cardinality.class);
+        SerialEnum.register(DataType.class);
+        SerialEnum.register(Directions.class);
         SerialEnum.register(HugeType.class);
+        SerialEnum.register(IdStrategy.class);
+        SerialEnum.register(IndexType.class);
+        SerialEnum.register(SchemaStatus.class);
     }
 }

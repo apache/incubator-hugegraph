@@ -1018,8 +1018,9 @@ public class BinarySerializer extends AbstractSerializer {
                                              Cardinality.class));
             propertyKey.aggregateType(readEnum(HugeKeys.AGGREGATE_TYPE,
                                                AggregateType.class));
-            propertyKey.readFrequency(readEnum(HugeKeys.READ_FREQUENCY,
-                                               ReadFrequency.class));
+            propertyKey.readFrequency(readEnumOrDefault(HugeKeys.READ_FREQUENCY,
+                                                        ReadFrequency.class,
+                                                        ReadFrequency.OLTP));
             propertyKey.properties(readIds(HugeKeys.PROPERTIES));
             propertyKey.status(readEnum(HugeKeys.STATUS, SchemaStatus.class));
             readUserdata(propertyKey);
@@ -1093,6 +1094,17 @@ public class BinarySerializer extends AbstractSerializer {
                          "The length of column '%s' must be 1, but is '%s'",
                          key, value.length);
             return SerialEnum.fromCode(clazz, value[0]);
+        }
+
+        private <T extends SerialEnum> T readEnumOrDefault(HugeKeys key,
+                                                           Class<T> clazz,
+                                                           T defaultValue) {
+            BackendColumn column = this.entry.column(formatColumnName(key));
+            if (column == null) {
+                return defaultValue;
+            }
+            E.checkNotNull(column.value, "column.value");
+            return SerialEnum.fromCode(clazz, column.value[0]);
         }
 
         private void writeLong(HugeKeys key, long value) {
