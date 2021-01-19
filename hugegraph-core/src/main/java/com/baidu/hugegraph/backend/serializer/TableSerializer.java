@@ -687,15 +687,17 @@ public abstract class TableSerializer extends AbstractSerializer {
         return value;
     }
 
-    private <T extends SerialEnum> T schemaEnum(TableBackendEntry entry,
-                                                HugeKeys key, Class<T> clazz) {
+    private static <T extends SerialEnum> T schemaEnum(TableBackendEntry entry,
+                                                       HugeKeys key,
+                                                       Class<T> clazz) {
         Number value = schemaColumn(entry, key);
         return SerialEnum.fromCode(clazz, value.byteValue());
     }
 
-    private <T extends SerialEnum> T schemaEnumOrDefault(
-                                     TableBackendEntry entry, HugeKeys key,
-                                     Class<T> clazz, T defaultValue) {
+    private static <T extends SerialEnum> T schemaEnumOrDefault(
+                                            TableBackendEntry entry,
+                                            HugeKeys key, Class<T> clazz,
+                                            T defaultValue) {
         assert entry.type().isSchema();
 
         Number value = entry.column(key);
