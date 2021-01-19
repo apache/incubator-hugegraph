@@ -63,8 +63,9 @@ public class PaloStoreProvider extends MysqlStoreProvider {
          * [1.7] #894: asStoredString() encoding is changed to signed B64
          *             instead of sortable B64
          * [1.8] #295: support ttl for vertex and edge
+         * [1.9] #1333: support read frequency for property key
          */
-        return "1.8";
+        return "1.9";
     }
 
     public static class PaloSchemaStore extends PaloStore {
