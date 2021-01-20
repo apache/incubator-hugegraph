@@ -60,6 +60,7 @@ public interface SerialEnum {
         SerialEnum.register(Cardinality.class);
         SerialEnum.register(DataType.class);
         SerialEnum.register(Directions.class);
+        SerialEnum.register(Frequency.class);
         SerialEnum.register(HugeType.class);
         SerialEnum.register(IdStrategy.class);
         SerialEnum.register(IndexType.class);
