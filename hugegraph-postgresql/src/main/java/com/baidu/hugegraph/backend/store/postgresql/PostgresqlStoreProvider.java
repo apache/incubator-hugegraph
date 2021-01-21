@@ -64,8 +64,9 @@ public class PostgresqlStoreProvider extends MysqlStoreProvider {
          * [1.6] #894: asStoredString() encoding is changed to signed B64
          *             instead of sortable B64
          * [1.7] #295: support ttl for vertex and edge
+         * [1.8] #1333: support read frequency for property key
          */
-        return "1.7";
+        return "1.8";
     }
 
     public static class PostgresqlSchemaStore extends PostgresqlStore {

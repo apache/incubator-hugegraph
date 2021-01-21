@@ -62,7 +62,8 @@ public class HbaseStoreProvider extends AbstractBackendStoreProvider {
          * [1.8] #820: store vertex properties in one column
          * [1.9] #894: encode label id in string index
          * [1.10] #295: support ttl for vertex and edge
+         * [1.11] #1333: support read frequency for property key
          */
-        return "1.10";
+        return "1.11";
     }
 }

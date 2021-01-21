@@ -483,30 +483,30 @@ public abstract class TableSerializer extends AbstractSerializer {
 
         TableBackendEntry entry = this.convertEntry(backendEntry);
 
-        Number id = entry.column(HugeKeys.ID);
-        String name = entry.column(HugeKeys.NAME);
-        Number idStrategy = entry.column(HugeKeys.ID_STRATEGY);
-        Object properties = entry.column(HugeKeys.PROPERTIES);
-        Object primaryKeys = entry.column(HugeKeys.PRIMARY_KEYS);
-        Object nullableKeys = entry.column(HugeKeys.NULLABLE_KEYS);
-        Object indexLabels = entry.column(HugeKeys.INDEX_LABELS);
-        Number status = entry.column(HugeKeys.STATUS);
-        Number ttl = entry.column(HugeKeys.TTL);
-        Number ttlStartTime = entry.column(HugeKeys.TTL_START_TIME);
+        Number id = schemaColumn(entry, HugeKeys.ID);
+        String name = schemaColumn(entry, HugeKeys.NAME);
+        IdStrategy idStrategy = schemaEnum(entry, HugeKeys.ID_STRATEGY,
+                                           IdStrategy.class);
+        Object properties = schemaColumn(entry, HugeKeys.PROPERTIES);
+        Object primaryKeys = schemaColumn(entry, HugeKeys.PRIMARY_KEYS);
+        Object nullableKeys = schemaColumn(entry, HugeKeys.NULLABLE_KEYS);
+        Object indexLabels = schemaColumn(entry, HugeKeys.INDEX_LABELS);
+        SchemaStatus status = schemaEnum(entry, HugeKeys.STATUS,
+                                         SchemaStatus.class);
+        Number ttl = schemaColumn(entry, HugeKeys.TTL);
+        Number ttlStartTime = schemaColumn(entry, HugeKeys.TTL_START_TIME);
 
         VertexLabel vertexLabel = new VertexLabel(graph, this.toId(id), name);
-        vertexLabel.idStrategy(SerialEnum.fromCode(IdStrategy.class,
-                                                   idStrategy.byteValue()));
+        vertexLabel.idStrategy(idStrategy);
         vertexLabel.properties(this.toIdArray(properties));
         vertexLabel.primaryKeys(this.toIdArray(primaryKeys));
         vertexLabel.nullableKeys(this.toIdArray(nullableKeys));
         vertexLabel.indexLabels(this.toIdArray(indexLabels));
-        this.readEnableLabelIndex(vertexLabel, entry);
-        this.readUserdata(vertexLabel, entry);
-        vertexLabel.status(SerialEnum.fromCode(SchemaStatus.class,
-                                               status.byteValue()));
+        vertexLabel.status(status);
         vertexLabel.ttl(ttl.longValue());
         vertexLabel.ttlStartTime(this.toId(ttlStartTime));
+        this.readEnableLabelIndex(vertexLabel, entry);
+        this.readUserdata(vertexLabel, entry);
         return vertexLabel;
     }
 
@@ -518,34 +518,34 @@ public abstract class TableSerializer extends AbstractSerializer {
 
         TableBackendEntry entry = this.convertEntry(backendEntry);
 
-        Number id = entry.column(HugeKeys.ID);
-        String name = entry.column(HugeKeys.NAME);
-        Number frequency = entry.column(HugeKeys.FREQUENCY);
-        Number sourceLabel = entry.column(HugeKeys.SOURCE_LABEL);
-        Number targetLabel = entry.column(HugeKeys.TARGET_LABEL);
-        Object sortKeys = entry.column(HugeKeys.SORT_KEYS);
-        Object nullableKeys = entry.column(HugeKeys.NULLABLE_KEYS);
-        Object properties = entry.column(HugeKeys.PROPERTIES);
-        Object indexLabels = entry.column(HugeKeys.INDEX_LABELS);
-        Number status = entry.column(HugeKeys.STATUS);
-        Number ttl = entry.column(HugeKeys.TTL);
-        Number ttlStartTime = entry.column(HugeKeys.TTL_START_TIME);
+        Number id = schemaColumn(entry, HugeKeys.ID);
+        String name = schemaColumn(entry, HugeKeys.NAME);
+        Frequency frequency = schemaEnum(entry, HugeKeys.FREQUENCY,
+                                         Frequency.class);
+        Number sourceLabel = schemaColumn(entry, HugeKeys.SOURCE_LABEL);
+        Number targetLabel = schemaColumn(entry, HugeKeys.TARGET_LABEL);
+        Object sortKeys = schemaColumn(entry, HugeKeys.SORT_KEYS);
+        Object nullableKeys = schemaColumn(entry, HugeKeys.NULLABLE_KEYS);
+        Object properties = schemaColumn(entry, HugeKeys.PROPERTIES);
+        Object indexLabels = schemaColumn(entry, HugeKeys.INDEX_LABELS);
+        SchemaStatus status = schemaEnum(entry, HugeKeys.STATUS,
+                                         SchemaStatus.class);
+        Number ttl = schemaColumn(entry, HugeKeys.TTL);
+        Number ttlStartTime = schemaColumn(entry, HugeKeys.TTL_START_TIME);
 
         EdgeLabel edgeLabel = new EdgeLabel(graph, this.toId(id), name);
-        edgeLabel.frequency(SerialEnum.fromCode(Frequency.class,
-                                                frequency.byteValue()));
+        edgeLabel.frequency(frequency);
         edgeLabel.sourceLabel(this.toId(sourceLabel));
         edgeLabel.targetLabel(this.toId(targetLabel));
         edgeLabel.properties(this.toIdArray(properties));
         edgeLabel.sortKeys(this.toIdArray(sortKeys));
         edgeLabel.nullableKeys(this.toIdArray(nullableKeys));
         edgeLabel.indexLabels(this.toIdArray(indexLabels));
-        this.readEnableLabelIndex(edgeLabel, entry);
-        this.readUserdata(edgeLabel, entry);
-        edgeLabel.status(SerialEnum.fromCode(SchemaStatus.class,
-                                             status.byteValue()));
+        edgeLabel.status(status);
         edgeLabel.ttl(ttl.longValue());
         edgeLabel.ttlStartTime(this.toId(ttlStartTime));
+        this.readEnableLabelIndex(edgeLabel, entry);
+        this.readUserdata(edgeLabel, entry);
         return edgeLabel;
     }
 
@@ -558,31 +558,29 @@ public abstract class TableSerializer extends AbstractSerializer {
 
         TableBackendEntry entry = this.convertEntry(backendEntry);
 
-        Number id = entry.column(HugeKeys.ID);
-        String name = entry.column(HugeKeys.NAME);
-        Number dataType = entry.column(HugeKeys.DATA_TYPE);
-        Number cardinality = entry.column(HugeKeys.CARDINALITY);
-        Number aggregateType = entry.column(HugeKeys.AGGREGATE_TYPE);
-        Number readFrequency = entry.column(HugeKeys.READ_FREQUENCY);
-        Object properties = entry.column(HugeKeys.PROPERTIES);
-        Number status = entry.column(HugeKeys.STATUS);
+        Number id = schemaColumn(entry, HugeKeys.ID);
+        String name = schemaColumn(entry, HugeKeys.NAME);
+        DataType dataType = schemaEnum(entry, HugeKeys.DATA_TYPE,
+                                       DataType.class);
+        Cardinality cardinality = schemaEnum(entry, HugeKeys.CARDINALITY,
+                                             Cardinality.class);
+        AggregateType aggregateType = schemaEnum(entry, HugeKeys.AGGREGATE_TYPE,
+                                                 AggregateType.class);
+        ReadFrequency readFrequency = schemaEnumOrDefault(
+                                      entry, HugeKeys.READ_FREQUENCY,
+                                      ReadFrequency.class, ReadFrequency.OLTP);
+        Object properties = schemaColumn(entry, HugeKeys.PROPERTIES);
+        SchemaStatus status = schemaEnum(entry, HugeKeys.STATUS,
+                                         SchemaStatus.class);
 
         PropertyKey propertyKey = new PropertyKey(graph, this.toId(id), name);
-        propertyKey.dataType(SerialEnum.fromCode(DataType.class,
-                                                 dataType.byteValue()));
-        propertyKey.cardinality(SerialEnum.fromCode(Cardinality.class,
-                                                    cardinality.byteValue()));
-        propertyKey.aggregateType(SerialEnum.fromCode(
-                                  AggregateType.class,
-                                  aggregateType.byteValue()));
-        propertyKey.readFrequency(SerialEnum.fromCode(
-                                  ReadFrequency.class,
-                                  readFrequency.byteValue()));
+        propertyKey.dataType(dataType);
+        propertyKey.cardinality(cardinality);
+        propertyKey.aggregateType(aggregateType);
+        propertyKey.readFrequency(readFrequency);
         propertyKey.properties(this.toIdArray(properties));
-
+        propertyKey.status(status);
         this.readUserdata(propertyKey, entry);
-        propertyKey.status(SerialEnum.fromCode(SchemaStatus.class,
-                                               status.byteValue()));
         return propertyKey;
     }
 
@@ -610,24 +608,24 @@ public abstract class TableSerializer extends AbstractSerializer {
 
         TableBackendEntry entry = this.convertEntry(backendEntry);
 
-        Number id = entry.column(HugeKeys.ID);
-        String name = entry.column(HugeKeys.NAME);
-        Number baseType = entry.column(HugeKeys.BASE_TYPE);
-        Number baseValueId = entry.column(HugeKeys.BASE_VALUE);
-        Number indexType = entry.column(HugeKeys.INDEX_TYPE);
-        Object indexFields = entry.column(HugeKeys.FIELDS);
-        Number status = entry.column(HugeKeys.STATUS);
+        Number id = schemaColumn(entry, HugeKeys.ID);
+        String name = schemaColumn(entry, HugeKeys.NAME);
+        HugeType baseType = schemaEnum(entry, HugeKeys.BASE_TYPE,
+                                       HugeType.class);
+        Number baseValueId = schemaColumn(entry, HugeKeys.BASE_VALUE);
+        IndexType indexType = schemaEnum(entry, HugeKeys.INDEX_TYPE,
+                                         IndexType.class);
+        Object indexFields = schemaColumn(entry, HugeKeys.FIELDS);
+        SchemaStatus status = schemaEnum(entry, HugeKeys.STATUS,
+                                         SchemaStatus.class);
 
         IndexLabel indexLabel = new IndexLabel(graph, this.toId(id), name);
-        indexLabel.baseType(SerialEnum.fromCode(HugeType.class,
-                                                baseType.byteValue()));
+        indexLabel.baseType(baseType);
         indexLabel.baseValue(this.toId(baseValueId));
-        indexLabel.indexType(SerialEnum.fromCode(IndexType.class,
-                                                 indexType.byteValue()));
+        indexLabel.indexType(indexType);
         indexLabel.indexFields(this.toIdArray(indexFields));
+        indexLabel.status(status);
         this.readUserdata(indexLabel, entry);
-        indexLabel.status(SerialEnum.fromCode(SchemaStatus.class,
-                                              status.byteValue()));
         return indexLabel;
     }
 
@@ -669,7 +667,8 @@ public abstract class TableSerializer extends AbstractSerializer {
 
     protected void readEnableLabelIndex(SchemaLabel schema,
                                         TableBackendEntry entry) {
-        Boolean enableLabelIndex = entry.column(HugeKeys.ENABLE_LABEL_INDEX);
+        Boolean enableLabelIndex = schemaColumn(entry,
+                                                HugeKeys.ENABLE_LABEL_INDEX);
         schema.enableLabelIndex(enableLabelIndex);
     }
 
@@ -678,4 +677,33 @@ public abstract class TableSerializer extends AbstractSerializer {
 
     protected abstract void readUserdata(SchemaElement schema,
                                          TableBackendEntry entry);
+
+    private static <T> T schemaColumn(TableBackendEntry entry, HugeKeys key) {
+        assert entry.type().isSchema();
+
+        T value = entry.column(key);
+        E.checkState(value != null,
+                     "Not found key '%s' from entry %s", key, entry);
+        return value;
+    }
+
+    private static <T extends SerialEnum> T schemaEnum(TableBackendEntry entry,
+                                                       HugeKeys key,
+                                                       Class<T> clazz) {
+        Number value = schemaColumn(entry, key);
+        return SerialEnum.fromCode(clazz, value.byteValue());
+    }
+
+    private static <T extends SerialEnum> T schemaEnumOrDefault(
+                                            TableBackendEntry entry,
+                                            HugeKeys key, Class<T> clazz,
+                                            T defaultValue) {
+        assert entry.type().isSchema();
+
+        Number value = entry.column(key);
+        if (value == null) {
+            return defaultValue;
+        }
+        return SerialEnum.fromCode(clazz, value.byteValue());
+    }
 }
