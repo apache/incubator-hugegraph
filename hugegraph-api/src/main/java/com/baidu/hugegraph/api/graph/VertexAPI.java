@@ -201,7 +201,7 @@ public class VertexAPI extends BatchAPI {
         boolean append = checkAndParseAction(action);
 
         HugeGraph g = graph(manager, graph);
-        HugeVertex vertex = (HugeVertex) g.vertices(id).next();
+        HugeVertex vertex = (HugeVertex) g.vertex(id);
         VertexLabel vertexLabel = vertex.schemaLabel();
 
         for (String key : jsonVertex.properties.keySet()) {
