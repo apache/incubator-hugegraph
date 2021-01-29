@@ -222,6 +222,71 @@ public class ServerOptions extends OptionHolder {
                     "hugegraph:9fd95c9c-711b-415b-b85f-d4df46ba5c31"
             );
 
+    public static final ConfigOption<String> AUTH_REMOTE_URL =
+            new ConfigOption<>(
+                    "auth.remote_url",
+                    "Auth server address",
+                    null,
+                    ""
+            );
+
+    public static final ConfigOption<Integer> RPC_SERVER_PORT =
+            new ConfigOption<>(
+                    "rpc.server.port",
+                    "Rpc server port",
+                    rangeInt(-1, Integer.MAX_VALUE),
+                    8099
+            );
+
+    public static final ConfigOption<String> RPC_SERVER_HOST =
+            new ConfigOption<>(
+                    "rpc.server.host",
+                    "Rpc server host",
+                    disallowEmpty(),
+                    "0.0.0.0"
+            );
+
+    public static final ConfigOption<Integer> RPC_SERVER_TIMEOUT =
+            new ConfigOption<>(
+                    "rpc.server.timeout",
+                    "Rpc server connction timeout",
+                    rangeInt(-1, Integer.MAX_VALUE),
+                    8000
+            );
+
+    public static final ConfigOption<Integer> RPC_SERVER_RETRIES =
+            new ConfigOption<>(
+                    "rpc.server.retries",
+                    "Rpc server failed and retries times",
+                    rangeInt(-1, Integer.MAX_VALUE),
+                    3
+            );
+
+    public static final ConfigOption<Integer> RPC_CONFIG_ORDER =
+            new ConfigOption<>(
+                    "rpc.config.order",
+                    "Sofa rpc loading order, the larger the more after " +
+                     "loading",
+                    rangeInt(-1, Integer.MAX_VALUE),
+                    999
+            );
+
+    public static final ConfigOption<String> RPC_LOGGER_IMPL =
+            new ConfigOption<>(
+                    "rpc.logger.impl",
+                    "Sofa rpc log implementation class",
+                    disallowEmpty(),
+                    "com.alipay.sofa.rpc.log.SLF4JLoggerImpl"
+            );
+
+    public static final ConfigOption<String> RPC_PROTOCOL =
+            new ConfigOption<>(
+                    "rpc.protocol",
+                    "Rpc communication protocol",
+                    disallowEmpty(),
+                    "bolt"
+            );
+
     public static final ConfigOption<String> SSL_KEYSTORE_FILE =
             new ConfigOption<>(
                     "ssl.keystore_file",

@@ -54,6 +54,7 @@ import com.baidu.hugegraph.metrics.ServerReporter;
 import com.baidu.hugegraph.serializer.JsonSerializer;
 import com.baidu.hugegraph.serializer.Serializer;
 import com.baidu.hugegraph.server.RestServer;
+import com.baidu.hugegraph.sofarpc.RpcServerProvider;
 import com.baidu.hugegraph.task.TaskManager;
 import com.baidu.hugegraph.type.define.NodeRole;
 import com.baidu.hugegraph.util.E;
@@ -65,6 +66,7 @@ public final class GraphManager {
 
     private final Map<String, Graph> graphs;
     private final HugeAuthenticator authenticator;
+    private RpcServerProvider rpcServerProvider;
 
     public GraphManager(HugeConfig conf) {
         this.graphs = new ConcurrentHashMap<>();
@@ -75,6 +77,7 @@ public final class GraphManager {
         // Raft will load snapshot firstly then launch election and replay log
         this.waitGraphsStarted();
         this.checkBackendVersionOrExit();
+        this.rpcServerStart(conf);
         this.serverStarted(conf);
         this.addMetrics(conf);
     }
@@ -157,6 +160,17 @@ public final class GraphManager {
 
     public UserManager userManager() {
         return this.authenticator().userManager();
+    }
+
+    private void rpcServerStart(HugeConfig conf) {
+        if (this.authenticator != null) {
+            this.rpcServerProvider = new RpcServerProvider(conf,
+                                     this.authenticator.userManager());
+        }
+    }
+
+    public void rpcDestory() {
+        this.rpcServerProvider.destroy();
     }
 
     private HugeAuthenticator authenticator() {

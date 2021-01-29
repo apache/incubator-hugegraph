@@ -24,11 +24,13 @@ import java.net.InetAddress;
 import java.util.Scanner;
 
 import org.apache.commons.lang.NotImplementedException;
+import org.apache.commons.lang.StringUtils;
 import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
+import com.baidu.hugegraph.sofarpc.RpcClientProvider;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.StringEncoding;
 
@@ -78,6 +80,12 @@ public class StandardAuthenticator implements HugeAuthenticator {
         E.checkArgument(graphPath != null,
                         "Invalid graph name '%s'", graphName);
         this.graph = (HugeGraph) GraphFactory.open(graphPath);
+
+        String remoteUrl = config.get(ServerOptions.AUTH_REMOTE_URL);
+        if (StringUtils.isNotEmpty(remoteUrl)) {
+            this.graph.swichUserManager(new RpcClientProvider(config).
+                                        getUserManagerService());
+        }
     }
 
     /**

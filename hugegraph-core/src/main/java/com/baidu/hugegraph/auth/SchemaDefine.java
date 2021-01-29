@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.auth;
 
+import java.io.Serializable;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
@@ -32,7 +33,6 @@ import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.auth.HugeTarget.P;
-import com.baidu.hugegraph.auth.ResourceType;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -116,7 +116,7 @@ public abstract class SchemaDefine {
         return Hidden.unHide(label) + "_" + key;
     }
 
-    public static abstract class UserElement {
+    public static abstract class UserElement implements Serializable {
 
         protected static final String CREATE = "create";
         protected static final String UPDATE = "update";

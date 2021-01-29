@@ -140,7 +140,7 @@ public class StandardHugeGraph implements HugeGraph {
     private final RateLimiter writeRateLimiter;
     private final RateLimiter readRateLimiter;
     private final TaskManager taskManager;
-    private final UserManager userManager;
+    private UserManager userManager;
 
     private final HugeFeatures features;
 
@@ -881,6 +881,11 @@ public class StandardHugeGraph implements HugeGraph {
     public UserManager userManager() {
         // this.userManager.initSchemaIfNeeded();
         return this.userManager;
+    }
+
+    @Override
+    public void swichUserManager(UserManager userManager) {
+        this.userManager = userManager;
     }
 
     @Override
