@@ -241,7 +241,7 @@ public class EdgeAPI extends BatchAPI {
         boolean append = checkAndParseAction(action);
 
         HugeGraph g = graph(manager, graph);
-        HugeEdge edge = (HugeEdge) g.edges(id).next();
+        HugeEdge edge = (HugeEdge) g.edge(id);
         EdgeLabel edgeLabel = edge.schemaLabel();
 
         for (String key : jsonEdge.properties.keySet()) {

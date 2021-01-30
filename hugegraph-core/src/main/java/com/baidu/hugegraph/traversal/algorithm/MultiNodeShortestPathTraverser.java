@@ -36,8 +36,6 @@ import com.baidu.hugegraph.traversal.algorithm.steps.EdgeStep;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
 
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.Path.EMPTY_PATH;
-
 public class MultiNodeShortestPathTraverser extends OltpTraverser {
 
     public MultiNodeShortestPathTraverser(HugeGraph graph) {
@@ -82,7 +80,7 @@ public class MultiNodeShortestPathTraverser extends OltpTraverser {
         this.traversePairs(pairs.iterator(), pair -> {
             Path path = traverser.shortestPath(pair.getLeft(), pair.getRight(),
                                                step, maxDepth, capacity);
-            if (!EMPTY_PATH.equals(path)) {
+            if (!Path.EMPTY_PATH.equals(path)) {
                 results.add(path);
             }
         });
@@ -99,7 +97,7 @@ public class MultiNodeShortestPathTraverser extends OltpTraverser {
         for (Pair<Id, Id> pair : pairs) {
             Path path = traverser.shortestPath(pair.getLeft(), pair.getRight(),
                                                step, maxDepth, capacity);
-            if (!EMPTY_PATH.equals(path)) {
+            if (!Path.EMPTY_PATH.equals(path)) {
                 results.add(path);
             }
         }
@@ -109,7 +107,7 @@ public class MultiNodeShortestPathTraverser extends OltpTraverser {
     private static <T> void cmn(List<T> all, int m, int n, int current,
                                 List<T> result, Consumer<List<T>> consumer) {
         assert m <= all.size();
-        assert current < all.size();
+        assert current <= all.size();
         if (result == null) {
             result = new ArrayList<>(n);
         }
