@@ -106,16 +106,16 @@ public class StandardHugeGraph implements HugeGraph {
            StandardHugeGraph.SysTransaction.class
     };
 
-    public static final Set<ConfigOption> ALLOWED_CONFIGS = ImmutableSet.of(
-            CoreOptions.TASK_WAIT_TIMEOUT,
-            CoreOptions.TASK_SYNC_DELETION,
-            CoreOptions.TASK_TTL_DELETE_BATCH,
-            CoreOptions.TASK_INPUT_SIZE_LIMIT,
-            CoreOptions.TASK_RESULT_SIZE_LIMIT,
-            CoreOptions.OLTP_CONCURRENT_THREADS,
-            CoreOptions.OLTP_CONCURRENT_DEPTH,
-            CoreOptions.VERTEX_DEFAULT_LABEL,
-            CoreOptions.VERTEX_ENCODE_PK_NUMBER
+    public static final Set<ConfigOption<?>> ALLOWED_CONFIGS = ImmutableSet.of(
+           CoreOptions.TASK_WAIT_TIMEOUT,
+           CoreOptions.TASK_SYNC_DELETION,
+           CoreOptions.TASK_TTL_DELETE_BATCH,
+           CoreOptions.TASK_INPUT_SIZE_LIMIT,
+           CoreOptions.TASK_RESULT_SIZE_LIMIT,
+           CoreOptions.OLTP_CONCURRENT_THREADS,
+           CoreOptions.OLTP_CONCURRENT_DEPTH,
+           CoreOptions.VERTEX_DEFAULT_LABEL,
+           CoreOptions.VERTEX_ENCODE_PK_NUMBER
     );
 
     private static final Logger LOG = Log.logger(HugeGraph.class);
