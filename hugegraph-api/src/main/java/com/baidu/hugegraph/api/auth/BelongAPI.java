@@ -148,6 +148,8 @@ public class BelongAPI extends API {
                        @PathParam("id") String id) {
         LOG.debug("Graph [{}] delete belong: {}", graph, id);
 
+        @SuppressWarnings("unused") // just check if the graph exists
+        HugeGraph g = graph(manager, graph);
         try {
             manager.userManager().deleteBelong(UserAPI.parseId(id));
         } catch (NotFoundException e) {

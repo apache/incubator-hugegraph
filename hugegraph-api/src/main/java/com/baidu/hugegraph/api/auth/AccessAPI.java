@@ -149,6 +149,8 @@ public class AccessAPI extends API {
                        @PathParam("id") String id) {
         LOG.debug("Graph [{}] delete access: {}", graph, id);
 
+        @SuppressWarnings("unused") // just check if the graph exists
+        HugeGraph g = graph(manager, graph);
         try {
             manager.userManager().deleteAccess(UserAPI.parseId(id));
         } catch (NotFoundException e) {
