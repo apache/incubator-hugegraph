@@ -134,6 +134,9 @@ public class TargetAPI extends API {
                        @PathParam("graph") String graph,
                        @PathParam("id") String id) {
         LOG.debug("Graph [{}] delete target: {}", graph, id);
+
+        @SuppressWarnings("unused") // just check if the graph exists
+        HugeGraph g = graph(manager, graph);
         try {
             manager.userManager().deleteTarget(UserAPI.parseId(id));
         } catch (NotFoundException e) {

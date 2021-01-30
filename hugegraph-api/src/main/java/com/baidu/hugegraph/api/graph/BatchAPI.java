@@ -148,7 +148,7 @@ public class BatchAPI extends API {
             } else if (oldElement.property(key).isPresent() &&
                        newElement.properties.get(key) == null) {
                 // If new property is null & old is present, use old property
-                newElement.properties.put(key, oldElement.property(key).value());
+                newElement.properties.put(key, oldElement.value(key));
             }
         }
     }

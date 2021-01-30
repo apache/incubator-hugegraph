@@ -136,6 +136,8 @@ public class UserAPI extends API {
                        @PathParam("id") String id) {
         LOG.debug("Graph [{}] get user role: {}", graph, id);
 
+        @SuppressWarnings("unused") // just check if the graph exists
+        HugeGraph g = graph(manager, graph);
         HugeUser user = manager.userManager().getUser(IdGenerator.of(id));
         return manager.userManager().rolePermission(user).toJson();
     }
@@ -149,6 +151,8 @@ public class UserAPI extends API {
                        @PathParam("id") String id) {
         LOG.debug("Graph [{}] delete user: {}", graph, id);
 
+        @SuppressWarnings("unused") // just check if the graph exists
+        HugeGraph g = graph(manager, graph);
         try {
             manager.userManager().deleteUser(IdGenerator.of(id));
         } catch (NotFoundException e) {
