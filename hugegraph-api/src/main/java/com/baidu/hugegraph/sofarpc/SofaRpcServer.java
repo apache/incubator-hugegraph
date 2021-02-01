@@ -28,10 +28,9 @@ import com.alipay.sofa.rpc.common.RpcOptions;
 import com.alipay.sofa.rpc.config.ProviderConfig;
 import com.alipay.sofa.rpc.config.ServerConfig;
 import com.alipay.sofa.rpc.context.RpcRuntimeContext;
-import com.alipay.sofa.rpc.core.exception.RpcErrorType;
-import com.alipay.sofa.rpc.core.exception.SofaRpcException;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
+import com.baidu.hugegraph.sofarpc.exception.RpcException;
 
 public class SofaRpcServer {
 
@@ -50,10 +49,6 @@ public class SofaRpcServer {
     }
 
     public SofaRpcServer(HugeConfig conf, RpcProviderConfig providerConfig) {
-        RpcConfigs.putValue("rpc.config.order",
-                            conf.get(ServerOptions.RPC_CONFIG_ORDER));
-        RpcConfigs.putValue("logger.impl",
-                            conf.get(ServerOptions.RPC_LOGGER_IMPL));
         this.serverConfig = new ServerConfig()
                             .setProtocol(conf.get(ServerOptions.RPC_PROTOCOL))
                             .setPort(conf.get(ServerOptions.RPC_SERVER_PORT))
@@ -64,8 +59,7 @@ public class SofaRpcServer {
 
     public void exportAll() {
         if (MapUtils.isEmpty(this.providerConfigMap)) {
-            throw new SofaRpcException(RpcErrorType.SERVER_UNDECLARED_ERROR,
-                                       "Provider config map is empty");
+            throw new RpcException("Server provider config map is empty");
         }
         for (ProviderConfig providerConfig : this.providerConfigMap.values()) {
             providerConfig.setServer(this.serverConfig);
@@ -79,9 +73,8 @@ public class SofaRpcServer {
 
     public void unExport(String serviceName) {
         if (!this.providerConfigMap.containsKey(serviceName)) {
-            throw new SofaRpcException(RpcErrorType.SERVER_UNDECLARED_ERROR,
-                                       "Service name is not exist, please " +
-                                       "change others");
+            throw new RpcException("Service name '%s' is not exist, please " +
+                                   "change others", serviceName);
         }
         this.providerConfigMap.get(serviceName).unExport();
     }

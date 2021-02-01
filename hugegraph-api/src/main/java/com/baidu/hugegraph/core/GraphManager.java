@@ -162,6 +162,10 @@ public final class GraphManager {
         return this.authenticator().userManager();
     }
 
+    public void close() {
+        this.destoryRpcServer();
+    }
+
     private void startRpcServer(HugeConfig conf) {
         if (this.authenticator != null) {
             this.rpcServerProvider = new RpcServerProvider(conf,
@@ -171,10 +175,6 @@ public final class GraphManager {
 
     private void destoryRpcServer() {
         this.rpcServerProvider.destroy();
-    }
-
-    public void close() {
-        this.destoryRpcServer();
     }
 
     private HugeAuthenticator authenticator() {

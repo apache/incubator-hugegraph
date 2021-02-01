@@ -21,6 +21,7 @@ package com.baidu.hugegraph.sofarpc;
 
 import org.slf4j.Logger;
 
+import com.alipay.sofa.rpc.common.RpcConfigs;
 import com.baidu.hugegraph.auth.UserManager;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
@@ -34,12 +35,20 @@ public class RpcServerProvider {
 
     public RpcServerProvider(HugeConfig conf, UserManager userManager) {
         LOG.info("rpcServer start {}", conf.get(ServerOptions.RPC_SERVER_PORT));
+        this.initRpcConfigs(conf);
         RpcProviderConfig rpcProviderConfig =
                 new RpcProviderConfig(UserManager.class, userManager);
         this.rpcServer = new SofaRpcServer(conf, rpcProviderConfig);
         this.rpcServer.exportAll();
         LOG.info("rpcServer start success, bind port is {}",
                  this.rpcServer.port());
+    }
+
+    private void initRpcConfigs(HugeConfig conf) {
+        RpcConfigs.putValue("rpc.config.order",
+                            conf.get(ServerOptions.RPC_CONFIG_ORDER));
+        RpcConfigs.putValue("logger.impl",
+                            conf.get(ServerOptions.RPC_LOGGER_IMPL));
     }
 
     public void unExport(String serviceName) {

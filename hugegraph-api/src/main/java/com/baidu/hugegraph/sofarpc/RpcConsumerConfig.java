@@ -22,15 +22,14 @@ package com.baidu.hugegraph.sofarpc;
 import java.util.Map;
 
 import com.alipay.sofa.rpc.config.ConsumerConfig;
-import com.alipay.sofa.rpc.core.exception.RpcErrorType;
-import com.alipay.sofa.rpc.core.exception.SofaRpcException;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
+import com.baidu.hugegraph.sofarpc.exception.RpcException;
 import com.google.common.collect.Maps;
 
 public class RpcConsumerConfig {
 
-    private final Map<String, ConsumerConfig> CONFIG =
+    private final Map<String, ConsumerConfig> config =
             Maps.newHashMap();
 
     public <T> RpcConsumerConfig(Class<T> clazz, HugeConfig conf) {
@@ -40,19 +39,19 @@ public class RpcConsumerConfig {
     public <T> void buildConsumerConfig(Class<T> clazz, HugeConfig conf) {
         ConsumerConfig<T> consumerConfig = new ConsumerConfig<T>()
                 .setInterfaceId(clazz.getName())
+                .setProtocol(conf.get(ServerOptions.RPC_PROTOCOL))
                 .setDirectUrl(conf.get(ServerOptions.AUTH_REMOTE_URL))
-                .setTimeout(conf.get(ServerOptions.RPC_READ_TIMEOUT))
-                .setConnectTimeout(conf.get(ServerOptions.RPC_CONNECTION_TIMEOUT))
-                .setRetries(conf.get(ServerOptions.RPC_RETRIES));
-        CONFIG.put(clazz.getName(), consumerConfig);
+                .setTimeout(conf.get(ServerOptions.RPC_CLIENT_READ_TIMEOUT))
+                .setConnectTimeout(conf.get(
+                                   ServerOptions.RPC_CLIENT_CONNECTION_TIMEOUT))
+                .setRetries(conf.get(ServerOptions.RPC_CLIENT_RETRIES));
+        config.put(clazz.getName(), consumerConfig);
     }
 
     public ConsumerConfig consumerConfig(String serverName) {
-        if (!CONFIG.containsKey(serverName)) {
-            throw new SofaRpcException(RpcErrorType.CLIENT_UNDECLARED_ERROR,
-                                       String.format("Invalid server name " +
-                                                     "%s", serverName));
+        if (!config.containsKey(serverName)) {
+            throw new RpcException("Invalid server name '%s'", serverName);
         }
-        return CONFIG.get(serverName);
+        return config.get(serverName);
     }
 }
