@@ -255,9 +255,9 @@ public class TaskCoreTest extends BaseCoreTest {
                 + "schema.propertyKey('lang').asText().ifNotExist().create();"
                 + "schema.propertyKey('date').asDate().ifNotExist().create();"
                 + "schema.propertyKey('price').asInt().ifNotExist().create();"
-                + "person1=schema.vertexLabel('person1').properties('name','age').ifNotExist().create();"
-                + "person2=schema.vertexLabel('person2').properties('name','age').ifNotExist().create();"
-                + "knows=schema.edgeLabel('knows').sourceLabel('person1').targetLabel('person2').properties('date').ifNotExist().create();"
+                + "schema.vertexLabel('person1').properties('name','age').ifNotExist().create();"
+                + "schema.vertexLabel('person2').properties('name','age').ifNotExist().create();"
+                + "schema.edgeLabel('knows').sourceLabel('person1').targetLabel('person2').properties('date').ifNotExist().create();"
                 + "for(int i = 0; i < 1000; i++) {"
                 + "  p1=graph.addVertex(T.label,'person1','name','p1-'+i,'age',29);"
                 + "  p2=graph.addVertex(T.label,'person2','name','p2-'+i,'age',27);"
@@ -300,6 +300,86 @@ public class TaskCoreTest extends BaseCoreTest {
         task = scheduler.waitUntilTaskCompleted(task.id(), 10);
         Assert.assertEquals(TaskStatus.SUCCESS, task.status());
         Assert.assertEquals("[1000]", task.result());
+    }
+
+    @Test
+    public void testGremlinJobWithSerializedResults() throws TimeoutException {
+        HugeGraph graph = graph();
+        TaskScheduler scheduler = graph.taskScheduler();
+
+        String script = "schema=graph.schema();"
+                + "schema.propertyKey('name').asText().ifNotExist().create();"
+                + "schema.vertexLabel('char').useCustomizeNumberId().properties('name').ifNotExist().create();"
+                + "schema.edgeLabel('next').sourceLabel('char').targetLabel('char').properties('name').ifNotExist().create();"
+                + "g.addV('char').property(id,1).property('name','A').as('a')"
+                + " .addV('char').property(id,2).property('name','B').as('b')"
+                + " .addV('char').property(id,3).property('name','C').as('c')"
+                + " .addV('char').property(id,4).property('name','D').as('d')"
+                + " .addV('char').property(id,5).property('name','E').as('e')"
+                + " .addV('char').property(id,6).property('name','F').as('f')"
+                + " .addE('next').from('a').to('b').property('name','ab')"
+                + " .addE('next').from('b').to('c').property('name','bc')"
+                + " .addE('next').from('b').to('d').property('name','bd')"
+                + " .addE('next').from('c').to('d').property('name','cd')"
+                + " .addE('next').from('c').to('e').property('name','ce')"
+                + " .addE('next').from('d').to('e').property('name','de')"
+                + " .addE('next').from('e').to('f').property('name','ef')"
+                + " .addE('next').from('f').to('d').property('name','fd')"
+                + " .iterate();"
+                + "g.tx().commit(); g.E().count();";
+
+        HugeTask<Object> task = runGremlinJob(script);
+        task = scheduler.waitUntilTaskCompleted(task.id(), 10);
+        Assert.assertEquals("test-gremlin-job", task.name());
+        Assert.assertEquals("gremlin", task.type());
+        Assert.assertEquals(TaskStatus.SUCCESS, task.status());
+        Assert.assertEquals("[8]", task.result());
+
+        script = "g.V(1).outE().inV().path()";
+        task = runGremlinJob(script);
+        task = scheduler.waitUntilTaskCompleted(task.id(), 10);
+        Assert.assertEquals(TaskStatus.SUCCESS, task.status());
+        String expected = "[{\"labels\":[[],[],[]],\"objects\":["
+                + "{\"id\":1,\"label\":\"char\",\"type\":\"vertex\",\"properties\":{\"name\":\"A\"}},"
+                + "{\"id\":\"L1>1>>L2\",\"label\":\"next\",\"type\":\"edge\",\"outV\":1,\"outVLabel\":\"char\",\"inV\":2,\"inVLabel\":\"char\",\"properties\":{\"name\":\"ab\"}},"
+                + "{\"id\":2,\"label\":\"char\",\"type\":\"vertex\",\"properties\":{\"name\":\"B\"}}"
+                + "]}]";
+        Assert.assertEquals(expected, task.result());
+
+        script = "g.V(1).out().out().path()";
+        task = runGremlinJob(script);
+        task = scheduler.waitUntilTaskCompleted(task.id(), 10);
+        Assert.assertEquals(TaskStatus.SUCCESS, task.status());
+        expected = "[{\"labels\":[[],[],[]],\"objects\":["
+                + "{\"id\":1,\"label\":\"char\",\"type\":\"vertex\",\"properties\":{\"name\":\"A\"}},"
+                + "{\"id\":2,\"label\":\"char\",\"type\":\"vertex\",\"properties\":{\"name\":\"B\"}},"
+                + "{\"id\":3,\"label\":\"char\",\"type\":\"vertex\",\"properties\":{\"name\":\"C\"}}]},"
+                + "{\"labels\":[[],[],[]],\"objects\":["
+                + "{\"id\":1,\"label\":\"char\",\"type\":\"vertex\",\"properties\":{\"name\":\"A\"}},"
+                + "{\"id\":2,\"label\":\"char\",\"type\":\"vertex\",\"properties\":{\"name\":\"B\"}},"
+                + "{\"id\":4,\"label\":\"char\",\"type\":\"vertex\",\"properties\":{\"name\":\"D\"}}]}]";
+        Assert.assertEquals(expected, task.result());
+
+        script = "g.V(1).outE().inV().tree()";
+        task = runGremlinJob(script);
+        task = scheduler.waitUntilTaskCompleted(task.id(), 10);
+        Assert.assertEquals(TaskStatus.SUCCESS, task.status());
+        expected = "[[{\"key\":{\"id\":1,\"label\":\"char\",\"type\":\"vertex\",\"properties\":{\"name\":\"A\"}},"
+                + "\"value\":["
+                + "{\"key\":{\"id\":\"L1>1>>L2\",\"label\":\"next\",\"type\":\"edge\",\"outV\":1,\"outVLabel\":\"char\",\"inV\":2,\"inVLabel\":\"char\",\"properties\":{\"name\":\"ab\"}},"
+                + "\"value\":[{\"key\":{\"id\":2,\"label\":\"char\",\"type\":\"vertex\",\"properties\":{\"name\":\"B\"}},\"value\":[]}]}]}]]";
+        Assert.assertEquals(expected, task.result());
+
+        script = "g.V(1).out().out().tree()";
+        task = runGremlinJob(script);
+        task = scheduler.waitUntilTaskCompleted(task.id(), 10);
+        Assert.assertEquals(TaskStatus.SUCCESS, task.status());
+        expected = "[[{\"key\":{\"id\":1,\"label\":\"char\",\"type\":\"vertex\",\"properties\":{\"name\":\"A\"}},"
+                + "\"value\":[{\"key\":{\"id\":2,\"label\":\"char\",\"type\":\"vertex\",\"properties\":{\"name\":\"B\"}},"
+                + "\"value\":["
+                + "{\"key\":{\"id\":3,\"label\":\"char\",\"type\":\"vertex\",\"properties\":{\"name\":\"C\"}},\"value\":[]},"
+                + "{\"key\":{\"id\":4,\"label\":\"char\",\"type\":\"vertex\",\"properties\":{\"name\":\"D\"}},\"value\":[]}]}]}]]";
+        Assert.assertEquals(expected, task.result());
     }
 
     @Test
