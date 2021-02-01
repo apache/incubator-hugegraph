@@ -50,9 +50,9 @@ public class CompressUtilTest {
             prepareFiles(rootDir, sourceDir);
 
             Checksum checksum = new CRC64();
-            CompressUtil.zipCompress(rootDir, sourceDir, zipFile, checksum);
+            CompressUtil.compressZip(rootDir, sourceDir, zipFile, checksum);
 
-            CompressUtil.zipDecompress(zipFile, output, checksum);
+            CompressUtil.decompressZip(zipFile, output, checksum);
             assertDirEquals(rootDir, output);
         } finally {
             FileUtils.deleteQuietly(new File(rootDir));
@@ -72,9 +72,9 @@ public class CompressUtilTest {
             prepareFiles(rootDir, sourceDir);
 
             Checksum checksum = new CRC64();
-            CompressUtil.tarCompress(rootDir, sourceDir, tarFile, checksum);
+            CompressUtil.compressTar(rootDir, sourceDir, tarFile, checksum);
 
-            CompressUtil.tarDecompress(tarFile, output, checksum);
+            CompressUtil.decompressTar(tarFile, output, checksum);
             assertDirEquals(rootDir, output);
         } finally {
             FileUtils.deleteQuietly(new File(rootDir));

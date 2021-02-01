@@ -133,7 +133,7 @@ public class StoreSnapshotFile {
         String outputFile = Paths.get(writerPath, SNAPSHOT_ARCHIVE).toString();
         try {
             Checksum checksum = new CRC64();
-            CompressUtil.tarCompress(writerPath, SNAPSHOT_DIR,
+            CompressUtil.compressTar(writerPath, SNAPSHOT_DIR,
                                      outputFile, checksum);
             metaBuilder.setChecksum(Long.toHexString(checksum.getValue()));
             if (writer.addFile(SNAPSHOT_ARCHIVE, metaBuilder.build())) {
@@ -156,7 +156,7 @@ public class StoreSnapshotFile {
                                     throws IOException {
         String sourceFile = Paths.get(readerPath, SNAPSHOT_ARCHIVE).toString();
         Checksum checksum = new CRC64();
-        CompressUtil.tarDecompress(sourceFile, readerPath, checksum);
+        CompressUtil.decompressTar(sourceFile, readerPath, checksum);
         if (meta.hasChecksum()) {
             E.checkArgument(meta.getChecksum().equals(
                             Long.toHexString(checksum.getValue())),

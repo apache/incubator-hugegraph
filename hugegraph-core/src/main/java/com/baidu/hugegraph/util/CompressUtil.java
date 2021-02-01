@@ -59,7 +59,7 @@ public final class CompressUtil {
     /**
      * Reference: https://mkyong.com/java/how-to-create-tar-gz-in-java/
      */
-    public static void tarCompress(String rootDir, String sourceDir,
+    public static void compressTar(String rootDir, String sourceDir,
                                    String outputFile, Checksum checksum)
                                    throws IOException {
         LZ4Factory factory = LZ4Factory.fastestInstance();
@@ -125,7 +125,7 @@ public final class CompressUtil {
                        .toString();
     }
 
-    public static void tarDecompress(String sourceFile, String outputDir,
+    public static void decompressTar(String sourceFile, String outputDir,
                                      Checksum checksum) throws IOException {
         Path source = Paths.get(sourceFile);
         Path target = Paths.get(outputDir);
@@ -178,30 +178,28 @@ public final class CompressUtil {
         return normalizePath;
     }
 
-    public static void zipCompress(String rootDir, String sourceDir,
+    public static void compressZip(String rootDir, String sourceDir,
                                    String outputFile, Checksum checksum)
                                    throws IOException {
         try (FileOutputStream fos = new FileOutputStream(outputFile);
              CheckedOutputStream cos = new CheckedOutputStream(fos, checksum);
              BufferedOutputStream bos = new BufferedOutputStream(cos);
              ZipOutputStream zos = new ZipOutputStream(bos)) {
-            CompressUtil.compressDirToZipFile(rootDir, sourceDir, zos);
+            CompressUtil.zipDir(rootDir, sourceDir, zos);
             zos.flush();
             fos.getFD().sync();
         }
     }
 
-    private static void compressDirToZipFile(String rootDir,
-                                             String sourceDir,
-                                             ZipOutputStream zos)
-                                             throws IOException {
+    private static void zipDir(String rootDir, String sourceDir,
+                               ZipOutputStream zos) throws IOException {
         String dir = Paths.get(rootDir, sourceDir).toString();
         File[] files = new File(dir).listFiles();
         E.checkNotNull(files, "files");
         for (File file : files) {
             String child = Paths.get(sourceDir, file.getName()).toString();
             if (file.isDirectory()) {
-                compressDirToZipFile(rootDir, child, zos);
+                zipDir(rootDir, child, zos);
             } else {
                 zos.putNextEntry(new ZipEntry(child));
                 try (FileInputStream fis = new FileInputStream(file);
@@ -212,7 +210,7 @@ public final class CompressUtil {
         }
     }
 
-    public static void zipDecompress(String sourceFile, String outputDir,
+    public static void decompressZip(String sourceFile, String outputDir,
                                      Checksum checksum) throws IOException {
         try (FileInputStream fis = new FileInputStream(sourceFile);
              CheckedInputStream cis = new CheckedInputStream(fis, checksum);
@@ -231,11 +229,12 @@ public final class CompressUtil {
                     fos.getFD().sync();
                 }
             }
-            // Continue to read all remaining bytes(extra metadata of ZipEntry)
-            // directly from the checked stream, Otherwise, the checksum value
-            // maybe unexpected.
-            //
-            // See https://coderanch.com/t/279175/java/ZipInputStream
+            /*
+             * Continue to read all remaining bytes(extra metadata of ZipEntry)
+             * directly from the checked stream, Otherwise, the checksum value
+             * maybe unexpected.
+             * See https://coderanch.com/t/279175/java/ZipInputStream
+             */
             IOUtils.copy(cis, NullOutputStream.NULL_OUTPUT_STREAM);
         }
     }
