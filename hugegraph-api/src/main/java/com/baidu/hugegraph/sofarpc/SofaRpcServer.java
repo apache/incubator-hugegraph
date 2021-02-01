@@ -55,11 +55,11 @@ public class SofaRpcServer {
         RpcConfigs.putValue("logger.impl",
                             conf.get(ServerOptions.RPC_LOGGER_IMPL));
         this.serverConfig = new ServerConfig()
-                .setProtocol(conf.get(ServerOptions.RPC_PROTOCOL))
-                .setPort(conf.get(ServerOptions.RPC_SERVER_PORT))
-                .setHost(conf.get(ServerOptions.RPC_SERVER_HOST))
-                .setDaemon(false);
-        this.providerConfigMap = providerConfig.getProviderConfigMap();
+                            .setProtocol(conf.get(ServerOptions.RPC_PROTOCOL))
+                            .setPort(conf.get(ServerOptions.RPC_SERVER_PORT))
+                            .setHost(conf.get(ServerOptions.RPC_SERVER_HOST))
+                            .setDaemon(false);
+        this.providerConfigMap = providerConfig.providerConfigMap();
     }
 
     public void exportAll() {
@@ -73,7 +73,7 @@ public class SofaRpcServer {
         }
     }
 
-    public int getBindPort() {
+    public int port() {
         return this.serverConfig.getPort();
     }
 

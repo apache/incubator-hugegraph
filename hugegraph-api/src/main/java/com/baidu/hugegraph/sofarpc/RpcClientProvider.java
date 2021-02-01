@@ -19,25 +19,24 @@
 
 package com.baidu.hugegraph.sofarpc;
 
+import com.alipay.sofa.rpc.config.ConsumerConfig;
 import com.baidu.hugegraph.auth.UserManager;
 import com.baidu.hugegraph.config.HugeConfig;
 
 public class RpcClientProvider {
 
-    public final SofaRpcClient rpcClient;
     public final RpcConsumerConfig rpcConsumerConfig;
 
     public RpcClientProvider(HugeConfig conf) {
         this.rpcConsumerConfig = new RpcConsumerConfig(UserManager.class, conf);
-        this.rpcClient = SofaRpcClient.getInstance();
     }
 
-    public UserManager getUserManagerService() {
-        return (UserManager)this.rpcClient.getServer(UserManager.class.getName(),
-                                                     this.rpcConsumerConfig);
+    public UserManager userManager() {
+        return (UserManager) this.serviceProxy(UserManager.class.getName());
     }
 
-    public Object getServer(String serviceName) {
-       return this.rpcClient.getServer(serviceName,this.rpcConsumerConfig);
+    public Object serviceProxy(String serviceName) {
+        ConsumerConfig config = rpcConsumerConfig.consumerConfig(serviceName);
+        return config.refer();
     }
 }

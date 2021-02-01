@@ -30,7 +30,7 @@ import com.google.common.collect.Maps;
 
 public class RpcConsumerConfig {
 
-    private final Map<String, ConsumerConfig> CONSUMER_CONFIG =
+    private final Map<String, ConsumerConfig> CONFIG =
             Maps.newHashMap();
 
     public <T> RpcConsumerConfig(Class<T> clazz, HugeConfig conf) {
@@ -41,17 +41,18 @@ public class RpcConsumerConfig {
         ConsumerConfig<T> consumerConfig = new ConsumerConfig<T>()
                 .setInterfaceId(clazz.getName())
                 .setDirectUrl(conf.get(ServerOptions.AUTH_REMOTE_URL))
-                .setTimeout(conf.get(ServerOptions.RPC_SERVER_TIMEOUT))
-                .setRetries(conf.get(ServerOptions.RPC_SERVER_RETRIES));
-        CONSUMER_CONFIG.put(clazz.getName(), consumerConfig);
+                .setTimeout(conf.get(ServerOptions.RPC_READ_TIMEOUT))
+                .setConnectTimeout(conf.get(ServerOptions.RPC_CONNECTION_TIMEOUT))
+                .setRetries(conf.get(ServerOptions.RPC_RETRIES));
+        CONFIG.put(clazz.getName(), consumerConfig);
     }
 
-    public ConsumerConfig getConsumerConfig(String serverName) {
-        if (!CONSUMER_CONFIG.containsKey(serverName)) {
+    public ConsumerConfig consumerConfig(String serverName) {
+        if (!CONFIG.containsKey(serverName)) {
             throw new SofaRpcException(RpcErrorType.CLIENT_UNDECLARED_ERROR,
                                        String.format("Invalid server name " +
                                                      "%s", serverName));
         }
-        return CONSUMER_CONFIG.get(serverName);
+        return CONFIG.get(serverName);
     }
 }

@@ -110,7 +110,7 @@ public class ApplicationConfig extends ResourceConfig {
                         manager = new GraphManager(conf);
                     } else if(event.getType() == this.EVENT_DESTROY) {
                         if (manager != null) {
-                            manager.rpcDestory();
+                            manager.close();
                         }
                     }
                 }

@@ -39,7 +39,7 @@ public class RpcServerProvider {
         this.rpcServer = new SofaRpcServer(conf, rpcProviderConfig);
         this.rpcServer.exportAll();
         LOG.info("rpcServer start success, bind port is {}",
-                 this.rpcServer.getBindPort());
+                 this.rpcServer.port());
     }
 
     public void unExport(String serviceName) {

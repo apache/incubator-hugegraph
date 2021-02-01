@@ -232,7 +232,7 @@ public class ServerOptions extends OptionHolder {
 
     public static final ConfigOption<Integer> RPC_SERVER_PORT =
             new ConfigOption<>(
-                    "rpc.server.port",
+                    "rpcserver.port",
                     "Rpc server port",
                     rangeInt(-1, Integer.MAX_VALUE),
                     8099
@@ -240,23 +240,31 @@ public class ServerOptions extends OptionHolder {
 
     public static final ConfigOption<String> RPC_SERVER_HOST =
             new ConfigOption<>(
-                    "rpc.server.host",
+                    "rpcserver.host",
                     "Rpc server host",
                     disallowEmpty(),
                     "0.0.0.0"
             );
 
-    public static final ConfigOption<Integer> RPC_SERVER_TIMEOUT =
+    public static final ConfigOption<Integer> RPC_CONNECTION_TIMEOUT =
             new ConfigOption<>(
-                    "rpc.server.timeout",
-                    "Rpc server connction timeout",
+                    "rpc.connection_timeout",
+                    "Rpc connection timeout",
                     rangeInt(-1, Integer.MAX_VALUE),
                     8000
             );
 
-    public static final ConfigOption<Integer> RPC_SERVER_RETRIES =
+    public static final ConfigOption<Integer> RPC_READ_TIMEOUT =
             new ConfigOption<>(
-                    "rpc.server.retries",
+                    "rpc.read_timeout",
+                    "Rpc read timeout",
+                    rangeInt(-1, Integer.MAX_VALUE),
+                    8000
+            );
+
+    public static final ConfigOption<Integer> RPC_RETRIES =
+            new ConfigOption<>(
+                    "rpc.retries",
                     "Rpc server failed and retries times",
                     rangeInt(-1, Integer.MAX_VALUE),
                     3

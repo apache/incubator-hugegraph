@@ -101,7 +101,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
     private final HugeGraph hugegraph;
     private final TaskScheduler taskScheduler;
-    private UserManager userManager;
+    private final UserManager userManager;
 
     public HugeGraphAuthProxy(HugeGraph hugegraph) {
         LOG.info("Wrap graph '{}' with HugeGraphAuthProxy", hugegraph.name());
@@ -654,7 +654,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
     @Override
     public void swichUserManager(UserManager userManager) {
-        verifyAdminPermission();
+        this.verifyAdminPermission();
         this.hugegraph.swichUserManager(userManager);
     }
 

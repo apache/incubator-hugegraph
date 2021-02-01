@@ -37,12 +37,12 @@ public class RpcProviderConfig {
     public <T, E extends T> void buildProviderConfig(Class<T> clazz,
                                                      E serviceImpl) {
         ProviderConfig<T> providerConfig = new ProviderConfig<T>()
-                .setInterfaceId(clazz.getName())
-                .setRef(serviceImpl);
+                                           .setInterfaceId(clazz.getName())
+                                           .setRef(serviceImpl);
         PROVIDER_CONFIG.put(clazz.getName(), providerConfig);
     }
 
-    public Map<String, ProviderConfig> getProviderConfigMap() {
+    public Map<String, ProviderConfig> providerConfigMap() {
         return PROVIDER_CONFIG;
     }
 }

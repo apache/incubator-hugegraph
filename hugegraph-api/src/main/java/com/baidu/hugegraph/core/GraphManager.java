@@ -77,7 +77,7 @@ public final class GraphManager {
         // Raft will load snapshot firstly then launch election and replay log
         this.waitGraphsStarted();
         this.checkBackendVersionOrExit();
-        this.rpcServerStart(conf);
+        this.startRpcServer(conf);
         this.serverStarted(conf);
         this.addMetrics(conf);
     }
@@ -162,15 +162,19 @@ public final class GraphManager {
         return this.authenticator().userManager();
     }
 
-    private void rpcServerStart(HugeConfig conf) {
+    private void startRpcServer(HugeConfig conf) {
         if (this.authenticator != null) {
             this.rpcServerProvider = new RpcServerProvider(conf,
                                      this.authenticator.userManager());
         }
     }
 
-    public void rpcDestory() {
+    private void destoryRpcServer() {
         this.rpcServerProvider.destroy();
+    }
+
+    public void close() {
+        this.destoryRpcServer();
     }
 
     private HugeAuthenticator authenticator() {
