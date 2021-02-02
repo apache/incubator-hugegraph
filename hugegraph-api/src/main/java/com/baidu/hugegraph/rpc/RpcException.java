@@ -17,27 +17,23 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.sofarpc;
+package com.baidu.hugegraph.rpc;
 
-import com.alipay.sofa.rpc.config.ConsumerConfig;
-import com.baidu.hugegraph.auth.UserManager;
-import com.baidu.hugegraph.config.HugeConfig;
+public class RpcException extends RuntimeException {
 
-public class RpcClientProvider {
-
-    public final RpcConsumerConfig rpcConsumerConfig;
-
-    public RpcClientProvider(HugeConfig conf) {
-        RpcCommonConfig.initRpcConfigs(conf);
-        this.rpcConsumerConfig = new RpcConsumerConfig(UserManager.class, conf);
+    public RpcException(String message) {
+        super(message);
     }
 
-    public UserManager userManager() {
-        return (UserManager) this.serviceProxy(UserManager.class.getName());
+    public RpcException(String message, Throwable cause) {
+        super(message, cause);
     }
 
-    public Object serviceProxy(String serviceName) {
-        ConsumerConfig config = rpcConsumerConfig.consumerConfig(serviceName);
-        return config.refer();
+    public RpcException(String message, Object... args) {
+        super(String.format(message, args));
+    }
+
+    public RpcException(String message, Throwable cause, Object... args) {
+        super(String.format(message, args), cause);
     }
 }

@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.sofarpc;
+package com.baidu.hugegraph.rpc;
 
 import org.slf4j.Logger;
 
@@ -33,13 +33,13 @@ public class RpcServerProvider {
     private final SofaRpcServer rpcServer;
 
     public RpcServerProvider(HugeConfig conf, UserManager userManager) {
-        LOG.info("rpcServer start {}", conf.get(ServerOptions.RPC_SERVER_PORT));
+        LOG.info("RpcServer start {}", conf.get(ServerOptions.RPC_SERVER_PORT));
         RpcCommonConfig.initRpcConfigs(conf);
         RpcProviderConfig rpcProviderConfig =
                 new RpcProviderConfig(UserManager.class, userManager);
         this.rpcServer = new SofaRpcServer(conf, rpcProviderConfig);
         this.rpcServer.exportAll();
-        LOG.info("rpcServer start success, bind port is {}",
+        LOG.info("RpcServer start success, bind port is {}",
                  this.rpcServer.port());
     }
 

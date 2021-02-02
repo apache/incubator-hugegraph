@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.sofarpc;
+package com.baidu.hugegraph.rpc;
 
 import java.util.Map;
 
@@ -30,7 +30,6 @@ import com.alipay.sofa.rpc.config.ServerConfig;
 import com.alipay.sofa.rpc.context.RpcRuntimeContext;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
-import com.baidu.hugegraph.sofarpc.exception.RpcException;
 
 public class SofaRpcServer {
 

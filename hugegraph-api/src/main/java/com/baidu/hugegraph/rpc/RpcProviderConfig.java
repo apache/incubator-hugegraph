@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.sofarpc;
+package com.baidu.hugegraph.rpc;
 
 import java.util.Map;
 

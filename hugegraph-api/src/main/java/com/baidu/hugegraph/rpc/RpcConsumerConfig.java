@@ -17,14 +17,13 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.sofarpc;
+package com.baidu.hugegraph.rpc;
 
 import java.util.Map;
 
 import com.alipay.sofa.rpc.config.ConsumerConfig;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
-import com.baidu.hugegraph.sofarpc.exception.RpcException;
 import com.google.common.collect.Maps;
 
 public class RpcConsumerConfig {

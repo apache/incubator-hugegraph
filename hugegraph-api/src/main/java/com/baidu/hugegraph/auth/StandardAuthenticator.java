@@ -30,7 +30,7 @@ import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
-import com.baidu.hugegraph.sofarpc.RpcClientProvider;
+import com.baidu.hugegraph.rpc.RpcClientProvider;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.StringEncoding;
 
