@@ -280,7 +280,7 @@ public class ServerOptions extends OptionHolder {
                     "rpc.protocol",
                     "Rpc communication protocol, client and server need to " +
                     "be specified at the same time, and can match.",
-                    disallowEmpty(),
+                    allowValues("bolt", "rest", "dubbo", "h2c", "http"),
                     "bolt"
             );
 

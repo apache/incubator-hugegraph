@@ -53,7 +53,7 @@ public class SofaRpcServer {
                             .setPort(conf.get(ServerOptions.RPC_SERVER_PORT))
                             .setHost(conf.get(ServerOptions.RPC_SERVER_HOST))
                             .setDaemon(false);
-        this.providerConfigMap = providerConfig.providerConfigMap();
+        this.providerConfigMap = providerConfig.providerConfigs();
     }
 
     public void exportAll() {

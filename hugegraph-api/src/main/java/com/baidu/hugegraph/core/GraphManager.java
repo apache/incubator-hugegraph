@@ -77,7 +77,7 @@ public final class GraphManager {
         // Raft will load snapshot firstly then launch election and replay log
         this.waitGraphsStarted();
         this.checkBackendVersionOrExit();
-        this.rpcServerProvider = startRpcServer(conf);
+        this.rpcServerProvider = this.startRpcServer(conf);
         this.serverStarted(conf);
         this.addMetrics(conf);
     }

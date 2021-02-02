@@ -28,14 +28,9 @@ import com.google.common.collect.Maps;
 
 public class RpcConsumerConfig {
 
-    private final Map<String, ConsumerConfig> config =
-            Maps.newHashMap();
+    private final Map<String, ConsumerConfig> configs = Maps.newHashMap();
 
-    public <T> RpcConsumerConfig(Class<T> clazz, HugeConfig conf) {
-        this.buildConsumerConfig(clazz, conf);
-    }
-
-    public <T> void buildConsumerConfig(Class<T> clazz, HugeConfig conf) {
+    public <T> void addConsumerConfig(Class<T> clazz, HugeConfig conf) {
         ConsumerConfig<T> consumerConfig = new ConsumerConfig<T>()
                 .setInterfaceId(clazz.getName())
                 .setProtocol(conf.get(ServerOptions.RPC_PROTOCOL))
@@ -44,13 +39,13 @@ public class RpcConsumerConfig {
                 .setConnectTimeout(conf.get(
                                    ServerOptions.RPC_CLIENT_CONNECTION_TIMEOUT))
                 .setRetries(conf.get(ServerOptions.RPC_CLIENT_RETRIES));
-        config.put(clazz.getName(), consumerConfig);
+        configs.put(clazz.getName(), consumerConfig);
     }
 
     public ConsumerConfig consumerConfig(String serverName) {
-        if (!config.containsKey(serverName)) {
+        if (!configs.containsKey(serverName)) {
             throw new RpcException("Invalid server name '%s'", serverName);
         }
-        return config.get(serverName);
+        return configs.get(serverName);
     }
 }

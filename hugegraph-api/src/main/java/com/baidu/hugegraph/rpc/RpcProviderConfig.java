@@ -26,23 +26,17 @@ import com.google.common.collect.Maps;
 
 public class RpcProviderConfig {
 
-    private final Map<String, ProviderConfig> PROVIDER_CONFIG =
-            Maps.newHashMap();
+    private final Map<String, ProviderConfig> configs = Maps.newHashMap();
 
-    public <T, E extends T> RpcProviderConfig(Class<T> clazz,
-                                              E serviceImpl) {
-        this.buildProviderConfig(clazz, serviceImpl);
-    }
-
-    public <T, E extends T> void buildProviderConfig(Class<T> clazz,
-                                                     E serviceImpl) {
+    public <T, E extends T> void addProviderConfig(Class<T> clazz,
+                                                   E serviceImpl) {
         ProviderConfig<T> providerConfig = new ProviderConfig<T>()
                                            .setInterfaceId(clazz.getName())
                                            .setRef(serviceImpl);
-        PROVIDER_CONFIG.put(clazz.getName(), providerConfig);
+        configs.put(clazz.getName(), providerConfig);
     }
 
-    public Map<String, ProviderConfig> providerConfigMap() {
-        return PROVIDER_CONFIG;
+    public Map<String, ProviderConfig> providerConfigs() {
+        return configs;
     }
 }

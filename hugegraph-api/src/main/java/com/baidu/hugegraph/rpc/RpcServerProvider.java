@@ -33,14 +33,15 @@ public class RpcServerProvider {
     private final SofaRpcServer rpcServer;
 
     public RpcServerProvider(HugeConfig conf, UserManager userManager) {
-        LOG.info("RpcServer start {}", conf.get(ServerOptions.RPC_SERVER_PORT));
+        LOG.debug("RpcServer starting on port {}",
+                  conf.get(ServerOptions.RPC_SERVER_PORT));
         RpcCommonConfig.initRpcConfigs(conf);
-        RpcProviderConfig rpcProviderConfig =
-                new RpcProviderConfig(UserManager.class, userManager);
+        RpcProviderConfig rpcProviderConfig = new RpcProviderConfig();
+        rpcProviderConfig.addProviderConfig(UserManager.class, userManager);
         this.rpcServer = new SofaRpcServer(conf, rpcProviderConfig);
         this.rpcServer.exportAll();
-        LOG.info("RpcServer start success, bind port is {}",
-                 this.rpcServer.port());
+        LOG.debug("RpcServer started success on port {}",
+                  this.rpcServer.port());
     }
 
     public void unExport(String serviceName) {

@@ -19,7 +19,11 @@
 
 package com.baidu.hugegraph.rpc;
 
-public class RpcException extends RuntimeException {
+import com.baidu.hugegraph.HugeException;
+
+public class RpcException extends HugeException {
+
+    private static final long serialVersionUID = -6067652498161184537L;
 
     public RpcException(String message) {
         super(message);
