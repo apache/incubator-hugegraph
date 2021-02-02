@@ -48,7 +48,7 @@ public class FusiformSimilarityAlgorithm extends AbstractAlgorithm {
     public static final int DEFAULT_MIN_NEIGHBORS = 10;
     public static final int DEFAULT_MIN_SIMILARS = 6;
     public static final int DEFAULT_TOP_SIMILARS = 0;
-    public static final int DEFAULT_MIN_GROUPS = 1;
+    public static final int DEFAULT_MIN_GROUPS = 0;
 
     @Override
     public String category() {
