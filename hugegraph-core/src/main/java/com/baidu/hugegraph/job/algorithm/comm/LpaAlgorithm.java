@@ -29,6 +29,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.tinkerpop.gremlin.process.traversal.Scope;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import com.baidu.hugegraph.backend.id.Id;
@@ -118,6 +119,7 @@ public class LpaAlgorithm extends AbstractCommAlgorithm {
             }
 
             Number communities = tryNext(this.graph().traversal().V()
+                                             .filter(__.properties(C_LABEL))
                                              .groupCount().by(C_LABEL)
                                              .count(Scope.local));
             return ImmutableMap.of("iteration_times", times,
