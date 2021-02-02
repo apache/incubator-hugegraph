@@ -225,9 +225,9 @@ public class ServerOptions extends OptionHolder {
     public static final ConfigOption<String> AUTH_REMOTE_URL =
             new ConfigOption<>(
                     "auth.remote_url",
-                    "Auth server address. If the address is empty, it is " +
-                    "only auth Service, otherwise it is auth server and auth " +
-                    "client.",
+                    "If the address is empty, it provide auth service, " +
+                    "otherwise it is auth client and also provide auth service " +
+                    "through rpc forwarding.",
                     null,
                     ""
             );
@@ -235,7 +235,7 @@ public class ServerOptions extends OptionHolder {
     public static final ConfigOption<Integer> RPC_SERVER_PORT =
             new ConfigOption<>(
                     "rpc.server_port",
-                    "The port of rpc server for rpc client call.",
+                    "The port of rpc server for rpc client calling.",
                     rangeInt(1, Integer.MAX_VALUE),
                     8099
             );
@@ -252,7 +252,8 @@ public class ServerOptions extends OptionHolder {
     public static final ConfigOption<Integer> RPC_CLIENT_CONNECTION_TIMEOUT =
             new ConfigOption<>(
                     "rpc.client_connection_timeout",
-                    "The rpc client connect rpc server timeout(seconds).",
+                    "The timeout(in seconds) of rpc client connect to rpc " +
+                    "server.",
                     rangeInt(1, Integer.MAX_VALUE),
                     8000
             );
@@ -260,7 +261,8 @@ public class ServerOptions extends OptionHolder {
     public static final ConfigOption<Integer> RPC_CLIENT_READ_TIMEOUT =
             new ConfigOption<>(
                     "rpc.client_read_timeout",
-                    "The rpc client read from rpc server timeout(seconds).",
+                    "The timeout(in seconds) of rpc client read from rpc " +
+                    "server.",
                     rangeInt(1, Integer.MAX_VALUE),
                     8000
             );

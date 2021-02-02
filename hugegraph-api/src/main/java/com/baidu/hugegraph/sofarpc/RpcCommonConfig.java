@@ -19,35 +19,28 @@
 
 package com.baidu.hugegraph.sofarpc;
 
-import org.slf4j.Logger;
+import java.util.Map;
 
-import com.baidu.hugegraph.auth.UserManager;
+import com.alipay.sofa.rpc.common.RpcConfigs;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
-import com.baidu.hugegraph.util.Log;
 
-public class RpcServerProvider {
+public class RpcCommonConfig {
 
-    private static final Logger LOG = Log.logger(RpcServerProvider.class);
-
-    private final SofaRpcServer rpcServer;
-
-    public RpcServerProvider(HugeConfig conf, UserManager userManager) {
-        LOG.info("rpcServer start {}", conf.get(ServerOptions.RPC_SERVER_PORT));
-        RpcCommonConfig.initRpcConfigs(conf);
-        RpcProviderConfig rpcProviderConfig =
-                new RpcProviderConfig(UserManager.class, userManager);
-        this.rpcServer = new SofaRpcServer(conf, rpcProviderConfig);
-        this.rpcServer.exportAll();
-        LOG.info("rpcServer start success, bind port is {}",
-                 this.rpcServer.port());
+    public static void initRpcConfigs(HugeConfig conf) {
+        RpcConfigs.putValue("rpc.config.order",
+                            conf.get(ServerOptions.RPC_CONFIG_ORDER));
+        RpcConfigs.putValue("logger.impl",
+                            conf.get(ServerOptions.RPC_LOGGER_IMPL));
     }
 
-    public void unExport(String serviceName) {
-        this.rpcServer.unExport(serviceName);
+    public static void initRpcConfigs(String key, Object value) {
+        RpcConfigs.putValue(key, value);
     }
 
-    public void destroy() {
-        this.rpcServer.destroy();
+    public static void initRpcConfigs(Map<String, Object> conf) {
+        for(Map.Entry<String, Object> entry : conf.entrySet()) {
+            RpcConfigs.putValue(entry.getKey(), entry.getValue());
+        }
     }
 }

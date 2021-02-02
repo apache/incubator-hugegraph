@@ -28,6 +28,7 @@ public class RpcClientProvider {
     public final RpcConsumerConfig rpcConsumerConfig;
 
     public RpcClientProvider(HugeConfig conf) {
+        RpcCommonConfig.initRpcConfigs(conf);
         this.rpcConsumerConfig = new RpcConsumerConfig(UserManager.class, conf);
     }
 
