@@ -184,7 +184,7 @@ public class KCoreAlgorithm extends AbstractCommAlgorithm {
             int minNeighbors = (int) Math.floor(1.0 / alpha * k);
             SimilarsMap map = fusiformSimilarity(vertices, direction, label,
                                                  minNeighbors, alpha, k - 1,
-                                                 0, null, 1, degree,
+                                                 0, null, 0, degree,
                                                  NO_LIMIT, NO_LIMIT, true);
             if (map.isEmpty()) {
                 return ImmutableSet.of();
