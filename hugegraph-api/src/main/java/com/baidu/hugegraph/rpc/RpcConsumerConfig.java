@@ -38,7 +38,9 @@ public class RpcConsumerConfig {
                 .setTimeout(conf.get(ServerOptions.RPC_CLIENT_READ_TIMEOUT))
                 .setConnectTimeout(conf.get(
                                    ServerOptions.RPC_CLIENT_CONNECTION_TIMEOUT))
-                .setRetries(conf.get(ServerOptions.RPC_CLIENT_RETRIES));
+                .setRetries(conf.get(ServerOptions.RPC_CLIENT_RETRIES))
+                .setLoadBalancer(conf.get(
+                                 ServerOptions.RPC_CLIENT_LOAD_BALANCER));
         configs.put(clazz.getName(), consumerConfig);
     }
 

@@ -33,7 +33,7 @@ import com.baidu.hugegraph.config.ServerOptions;
 
 public class SofaRpcServer {
 
-    private Map<String, ProviderConfig> providerConfigMap;
+    private Map<String, ProviderConfig> providerConfigs;
     private ServerConfig serverConfig;
 
     static {
@@ -53,29 +53,29 @@ public class SofaRpcServer {
                             .setPort(conf.get(ServerOptions.RPC_SERVER_PORT))
                             .setHost(conf.get(ServerOptions.RPC_SERVER_HOST))
                             .setDaemon(false);
-        this.providerConfigMap = providerConfig.providerConfigs();
+        this.providerConfigs = providerConfig.providerConfigs();
     }
 
     public void exportAll() {
-        if (MapUtils.isEmpty(this.providerConfigMap)) {
+        if (MapUtils.isEmpty(this.providerConfigs)) {
             throw new RpcException("Server provider config map is empty");
         }
-        for (ProviderConfig providerConfig : this.providerConfigMap.values()) {
+        for (ProviderConfig providerConfig : this.providerConfigs.values()) {
             providerConfig.setServer(this.serverConfig);
             providerConfig.export();
         }
     }
 
-    public int port() {
-        return this.serverConfig.getPort();
-    }
-
     public void unExport(String serviceName) {
-        if (!this.providerConfigMap.containsKey(serviceName)) {
+        if (!this.providerConfigs.containsKey(serviceName)) {
             throw new RpcException("Service name '%s' is not exist, please " +
                                    "change others", serviceName);
         }
-        this.providerConfigMap.get(serviceName).unExport();
+        this.providerConfigs.get(serviceName).unExport();
+    }
+
+    public int port() {
+        return this.serverConfig.getPort();
     }
 
     public void destroy() {

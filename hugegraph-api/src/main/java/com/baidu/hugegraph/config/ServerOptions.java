@@ -235,7 +235,7 @@ public class ServerOptions extends OptionHolder {
     public static final ConfigOption<Integer> RPC_SERVER_PORT =
             new ConfigOption<>(
                     "rpc.server_port",
-                    "The port of rpc server for rpc client calling.",
+                    "The port bound by rpc server to provide services.",
                     rangeInt(1, Integer.MAX_VALUE),
                     8099
             );
@@ -243,8 +243,8 @@ public class ServerOptions extends OptionHolder {
     public static final ConfigOption<String> RPC_SERVER_HOST =
             new ConfigOption<>(
                     "rpc.server_host",
-                    "The specified host of rpc server for rpc client " +
-                    "call.",
+                    "The multiple hosts/ips bound by rpc server to provide " +
+                    "services. Multiple hosts/ips link them with ',' together.",
                     disallowEmpty(),
                     "0.0.0.0"
             );
@@ -275,6 +275,17 @@ public class ServerOptions extends OptionHolder {
                     3
             );
 
+    public static final ConfigOption<String> RPC_CLIENT_LOAD_BALANCER =
+            new ConfigOption<>(
+                    "rpc.client_load_balancer",
+                    "The rpc client uses a load-balancing algorithm to " +
+                    "configure the addresses of multiple rpc servers. Default " +
+                    "value is 'consistentHash', means forwording by parameters.",
+                    allowValues("random", "localPref", "roundRobin",
+                                "consistentHash", "weightRoundRobin"),
+                    "consistentHash"
+            );
+
     public static final ConfigOption<String> RPC_PROTOCOL =
             new ConfigOption<>(
                     "rpc.protocol",
@@ -287,8 +298,8 @@ public class ServerOptions extends OptionHolder {
     public static final ConfigOption<Integer> RPC_CONFIG_ORDER =
             new ConfigOption<>(
                     "rpc.config_order",
-                    "Sofa rpc loading order, the larger the more after." +
-                     "loading",
+                    "Sofa rpc configuration file loading order, the larger " +
+                    "the more later loading",
                     rangeInt(1, Integer.MAX_VALUE),
                     999
             );
