@@ -26,6 +26,8 @@ import java.util.concurrent.ThreadFactory;
 
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 
+import com.baidu.hugegraph.concurrent.PausableScheduledThreadPool;
+
 public final class ExecutorUtil {
 
     public static ExecutorService newFixedThreadPool(String name) {
@@ -49,5 +51,18 @@ public final class ExecutorUtil {
                                                       .namingPattern(name)
                                                       .build();
         return Executors.newScheduledThreadPool(size, factory);
+    }
+
+    public static PausableScheduledThreadPool newPausableScheduledThreadPool(
+                                              String name) {
+        return newPausableScheduledThreadPool(1, name);
+    }
+
+    public static PausableScheduledThreadPool newPausableScheduledThreadPool(
+                                              int size, String name) {
+        ThreadFactory factory = new BasicThreadFactory.Builder()
+                                                      .namingPattern(name)
+                                                      .build();
+        return new PausableScheduledThreadPool(size, factory);
     }
 }
