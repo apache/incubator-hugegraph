@@ -59,6 +59,7 @@ import com.baidu.hugegraph.unit.serializer.SerializerFactoryTest;
 import com.baidu.hugegraph.unit.serializer.StoreSerializerTest;
 import com.baidu.hugegraph.unit.serializer.TableBackendEntryTest;
 import com.baidu.hugegraph.unit.serializer.TextBackendEntryTest;
+import com.baidu.hugegraph.unit.util.CompressUtilTest;
 import com.baidu.hugegraph.unit.util.JsonUtilTest;
 import com.baidu.hugegraph.unit.util.StringEncodingTest;
 import com.baidu.hugegraph.unit.util.VersionTest;
@@ -123,7 +124,8 @@ import com.baidu.hugegraph.unit.util.VersionTest;
     /* utils */
     VersionTest.class,
     JsonUtilTest.class,
-    StringEncodingTest.class
+    StringEncodingTest.class,
+    CompressUtilTest.class
 })
 public class UnitTestSuite {
 }
