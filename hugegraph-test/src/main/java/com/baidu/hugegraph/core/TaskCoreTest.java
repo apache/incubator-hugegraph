@@ -335,15 +335,17 @@ public class TaskCoreTest extends BaseCoreTest {
         Assert.assertEquals(TaskStatus.SUCCESS, task.status());
         Assert.assertEquals("[8]", task.result());
 
+        Id edgeLabelId = graph.schema().getEdgeLabel("next").id();
+
         script = "g.V(1).outE().inV().path()";
         task = runGremlinJob(script);
         task = scheduler.waitUntilTaskCompleted(task.id(), 10);
         Assert.assertEquals(TaskStatus.SUCCESS, task.status());
-        String expected = "[{\"labels\":[[],[],[]],\"objects\":["
+        String expected = String.format("[{\"labels\":[[],[],[]],\"objects\":["
                 + "{\"id\":1,\"label\":\"char\",\"type\":\"vertex\",\"properties\":{\"name\":\"A\"}},"
-                + "{\"id\":\"L1>1>>L2\",\"label\":\"next\",\"type\":\"edge\",\"outV\":1,\"outVLabel\":\"char\",\"inV\":2,\"inVLabel\":\"char\",\"properties\":{\"name\":\"ab\"}},"
+                + "{\"id\":\"L1>%s>>L2\",\"label\":\"next\",\"type\":\"edge\",\"outV\":1,\"outVLabel\":\"char\",\"inV\":2,\"inVLabel\":\"char\",\"properties\":{\"name\":\"ab\"}},"
                 + "{\"id\":2,\"label\":\"char\",\"type\":\"vertex\",\"properties\":{\"name\":\"B\"}}"
-                + "]}]";
+                + "]}]", edgeLabelId);
         Assert.assertEquals(expected, task.result());
 
         script = "g.V(1).out().out().path()";
@@ -364,10 +366,11 @@ public class TaskCoreTest extends BaseCoreTest {
         task = runGremlinJob(script);
         task = scheduler.waitUntilTaskCompleted(task.id(), 10);
         Assert.assertEquals(TaskStatus.SUCCESS, task.status());
-        expected = "[[{\"key\":{\"id\":1,\"label\":\"char\",\"type\":\"vertex\",\"properties\":{\"name\":\"A\"}},"
+        expected = String.format("[[{\"key\":{\"id\":1,\"label\":\"char\",\"type\":\"vertex\",\"properties\":{\"name\":\"A\"}},"
                 + "\"value\":["
-                + "{\"key\":{\"id\":\"L1>1>>L2\",\"label\":\"next\",\"type\":\"edge\",\"outV\":1,\"outVLabel\":\"char\",\"inV\":2,\"inVLabel\":\"char\",\"properties\":{\"name\":\"ab\"}},"
-                + "\"value\":[{\"key\":{\"id\":2,\"label\":\"char\",\"type\":\"vertex\",\"properties\":{\"name\":\"B\"}},\"value\":[]}]}]}]]";
+                + "{\"key\":{\"id\":\"L1>%s>>L2\",\"label\":\"next\",\"type\":\"edge\",\"outV\":1,\"outVLabel\":\"char\",\"inV\":2,\"inVLabel\":\"char\",\"properties\":{\"name\":\"ab\"}},"
+                + "\"value\":[{\"key\":{\"id\":2,\"label\":\"char\",\"type\":\"vertex\",\"properties\":{\"name\":\"B\"}},\"value\":[]}]}]}]]",
+                edgeLabelId);
         Assert.assertEquals(expected, task.result());
 
         script = "g.V(1).out().out().tree()";
