@@ -34,10 +34,10 @@ public class RpcException extends HugeException {
     }
 
     public RpcException(String message, Object... args) {
-        super(String.format(message, args));
+        super(message, args);
     }
 
     public RpcException(String message, Throwable cause, Object... args) {
-        super(String.format(message, args), cause);
+        super(message, cause, args);
     }
 }
