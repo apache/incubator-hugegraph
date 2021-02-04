@@ -227,7 +227,8 @@ public class ServerOptions extends OptionHolder {
                     "auth.remote_url",
                     "If the address is empty, it provide auth service, " +
                     "otherwise it is auth client and also provide auth service " +
-                    "through rpc forwarding.",
+                    "through rpc forwarding. The remote url can set multiple " +
+                    "addresses, which are linked by ','.",
                     null,
                     ""
             );
@@ -243,8 +244,8 @@ public class ServerOptions extends OptionHolder {
     public static final ConfigOption<String> RPC_SERVER_HOST =
             new ConfigOption<>(
                     "rpc.server_host",
-                    "The multiple hosts/ips bound by rpc server to provide " +
-                    "services. Multiple hosts/ips link them with ',' together.",
+                    "The hosts/ips bound by rpc server to provide " +
+                    "services.",
                     disallowEmpty(),
                     "0.0.0.0"
             );
@@ -280,7 +281,8 @@ public class ServerOptions extends OptionHolder {
                     "rpc.client_load_balancer",
                     "The rpc client uses a load-balancing algorithm to " +
                     "configure the addresses of multiple rpc servers. Default " +
-                    "value is 'consistentHash', means forwording by parameters.",
+                    "value is 'consistentHash', means forwording by request " +
+                    "parameters.",
                     allowValues("random", "localPref", "roundRobin",
                                 "consistentHash", "weightRoundRobin"),
                     "consistentHash"
