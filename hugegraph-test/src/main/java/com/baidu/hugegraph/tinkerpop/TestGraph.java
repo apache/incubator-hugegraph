@@ -44,6 +44,7 @@ import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.task.TaskScheduler;
+import com.baidu.hugegraph.testutil.Whitebox;
 import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.type.define.NodeRole;
 import com.google.common.collect.ImmutableSet;
@@ -251,7 +252,8 @@ public class TestGraph implements Graph {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
     public <I extends Io> I io(final Io.Builder<I> builder) {
-        HugeGraphSONModule.OPTIMIZE_SERIALIZE = false;
+        Whitebox.setInternalState(HugeGraphSONModule.class,
+                                  "OPTIMIZE_SERIALIZE", false);
         return (I) builder.graph(this).onMapper(mapper ->
             mapper.addRegistry(HugeGraphIoRegistry.instance())
         ).create();
