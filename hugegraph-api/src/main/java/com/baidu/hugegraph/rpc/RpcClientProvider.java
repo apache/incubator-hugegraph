@@ -38,7 +38,7 @@ public class RpcClientProvider {
     }
 
     public Object serviceProxy(String serviceName) {
-        ConsumerConfig config = rpcConsumerConfig.consumerConfig(serviceName);
+        ConsumerConfig config = this.rpcConsumerConfig.consumerConfig(serviceName);
         return config.refer();
     }
 }

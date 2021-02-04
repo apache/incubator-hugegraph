@@ -58,7 +58,8 @@ public class SofaRpcServer {
 
     public void exportAll() {
         if (MapUtils.isEmpty(this.providerConfigs)) {
-            throw new RpcException("Server provider config map is empty");
+            throw new RpcException("The server provider config map can't be " +
+                                   "empty");
         }
         for (ProviderConfig providerConfig : this.providerConfigs.values()) {
             providerConfig.setServer(this.serverConfig);
@@ -68,7 +69,7 @@ public class SofaRpcServer {
 
     public void unExport(String serviceName) {
         if (!this.providerConfigs.containsKey(serviceName)) {
-            throw new RpcException("Service name '%s' is not exist, please " +
+            throw new RpcException("The service name '%s' doesn't exist, please " +
                                    "change others", serviceName);
         }
         this.providerConfigs.get(serviceName).unExport();

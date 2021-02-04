@@ -33,10 +33,10 @@ public class RpcProviderConfig {
         ProviderConfig<T> providerConfig = new ProviderConfig<T>()
                                            .setInterfaceId(clazz.getName())
                                            .setRef(serviceImpl);
-        configs.put(clazz.getName(), providerConfig);
+        this.configs.put(clazz.getName(), providerConfig);
     }
 
     public Map<String, ProviderConfig> providerConfigs() {
-        return configs;
+        return this.configs;
     }
 }

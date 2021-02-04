@@ -41,13 +41,13 @@ public class RpcConsumerConfig {
                 .setRetries(conf.get(ServerOptions.RPC_CLIENT_RETRIES))
                 .setLoadBalancer(conf.get(
                                  ServerOptions.RPC_CLIENT_LOAD_BALANCER));
-        configs.put(clazz.getName(), consumerConfig);
+        this.configs.put(clazz.getName(), consumerConfig);
     }
 
     public ConsumerConfig consumerConfig(String serverName) {
-        if (!configs.containsKey(serverName)) {
+        if (!this.configs.containsKey(serverName)) {
             throw new RpcException("Invalid server name '%s'", serverName);
         }
-        return configs.get(serverName);
+        return this.configs.get(serverName);
     }
 }
