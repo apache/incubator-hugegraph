@@ -43,7 +43,7 @@ import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
-import com.baidu.hugegraph.auth.HugeAuthenticator.RoleAction;
+import com.baidu.hugegraph.auth.HugeAuthenticator.RequiredPerm;
 import com.baidu.hugegraph.auth.HugePermission;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.core.GraphManager;
@@ -73,7 +73,7 @@ public class GraphsAPI extends API {
         // Filter by user role
         Set<String> filterGraphs = new HashSet<>();
         for (String graph : graphs) {
-            String role = RoleAction.roleFor(graph, HugePermission.READ);
+            String role = RequiredPerm.roleFor(graph, HugePermission.READ);
             if (sc.isUserInRole(role)) {
                 try {
                     HugeGraph g = graph(manager, graph);
@@ -143,7 +143,7 @@ public class GraphsAPI extends API {
     @Path("{name}/mode")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed("admin")
+    @RolesAllowed({"admin", "$owner=$name"})
     public Map<String, GraphMode> mode(@Context GraphManager manager,
                                        @PathParam("name") String name,
                                        GraphMode mode) {

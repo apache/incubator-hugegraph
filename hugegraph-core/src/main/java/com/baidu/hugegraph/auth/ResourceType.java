@@ -59,6 +59,8 @@ public enum ResourceType {
 
     TARGET,
 
+    METRICS,
+
     ROOT;
 
     public boolean match(ResourceType type) {
