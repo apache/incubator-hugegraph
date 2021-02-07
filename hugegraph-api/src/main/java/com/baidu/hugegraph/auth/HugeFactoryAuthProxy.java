@@ -180,14 +180,6 @@ public final class HugeFactoryAuthProxy {
         Reflection.registerMethodsToFilter(com.baidu.hugegraph.auth.EntityManager.class, "toList", "graph", "tx", "commitOrRollback", "unhideLabel", "queryById", "queryEntity", "constructVertex", "save", "query");
         Reflection.registerFieldsToFilter(com.baidu.hugegraph.auth.RelationshipManager.class, "graph", "label", "deser", "NO_LIMIT", "$assertionsDisabled");
         Reflection.registerMethodsToFilter(com.baidu.hugegraph.auth.RelationshipManager.class, "lambda$0", "toList", "graph", "tx", "commitOrRollback", "unhideLabel", "queryById", "queryRelationship", "newVertex", "save");
-        Reflection.registerFieldsToFilter(com.baidu.hugegraph.auth.HugeUser.class, "name", "password", "phone", "email", "avatar", "role");
-        Reflection.registerMethodsToFilter(com.baidu.hugegraph.auth.HugeUser.class, "property", "asArray");
-        Reflection.registerFieldsToFilter(com.baidu.hugegraph.auth.SchemaDefine.UserElement.class, "CREATE", "UPDATE", "CREATOR", "id", "create", "update", "creator");
-        Reflection.registerMethodsToFilter(com.baidu.hugegraph.auth.SchemaDefine.UserElement.class, "property", "asMap", "asArray", "asArray");
-        Reflection.registerFieldsToFilter(com.baidu.hugegraph.auth.HugeResource.class, "CHECK_NAME_RESS", "type", "label", "properties", "$assertionsDisabled");
-        Reflection.registerMethodsToFilter(com.baidu.hugegraph.auth.HugeResource.class, "access$3", "access$4", "access$2", "access$5", "access$1", "access$0", "matchLabel", "matchProperties", "contains", "filter", "filter", "filter");
-        Reflection.registerFieldsToFilter(com.baidu.hugegraph.auth.RolePermission.class, "map");
-        Reflection.registerMethodsToFilter(com.baidu.hugegraph.auth.RolePermission.class, "access$0", "add", "add", "contains", "map");
         Reflection.registerFieldsToFilter(com.baidu.hugegraph.backend.cache.CacheManager.class, "LOG", "INSTANCE", "TIMER_TICK_PERIOD", "LOG_TICK_COST_TIME", "caches", "timer");
         Reflection.registerMethodsToFilter(com.baidu.hugegraph.backend.cache.CacheManager.class, "access$0", "scheduleTimer", "instance");
         Reflection.registerFieldsToFilter(com.baidu.hugegraph.concurrent.LockManager.class, "INSTANCE", "lockGroupMap");
@@ -261,9 +253,11 @@ public final class HugeFactoryAuthProxy {
         registerPrivateActions(SchemaDefine.class);
         registerPrivateActions(EntityManager.class);
         registerPrivateActions(RelationshipManager.class);
-        registerPrivateActions(HugeUser.class);
-        registerPrivateActions(HugeResource.class);
-        registerPrivateActions(RolePermission.class);
+
+        // Don't shield them because need to access by auth RPC
+        //registerPrivateActions(HugeUser.class);
+        //registerPrivateActions(RolePermission.class);
+        //registerPrivateActions(HugeResource.class);
 
         registerPrivateActions(CacheManager.class);
         registerPrivateActions(LockManager.class);
