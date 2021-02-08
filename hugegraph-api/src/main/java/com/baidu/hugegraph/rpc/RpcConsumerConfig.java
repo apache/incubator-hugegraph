@@ -35,9 +35,11 @@ public class RpcConsumerConfig {
                 .setInterfaceId(clazz.getName())
                 .setProtocol(conf.get(ServerOptions.RPC_PROTOCOL))
                 .setDirectUrl(conf.get(ServerOptions.AUTH_REMOTE_URL))
-                .setTimeout(conf.get(ServerOptions.RPC_CLIENT_READ_TIMEOUT))
+                .setTimeout(conf.get(ServerOptions.CLIENT_READ_TIMEOUT)*1000)
                 .setConnectTimeout(conf.get(
-                                   ServerOptions.RPC_CLIENT_CONNECTION_TIMEOUT))
+                                   ServerOptions.CLIENT_CONNECTION_TIMEOUT)*1000)
+                .setReconnectPeriod(conf.get(
+                                    ServerOptions.CLIENT_RECONNECTION_TIMEOUT) *1000)
                 .setRetries(conf.get(ServerOptions.RPC_CLIENT_RETRIES))
                 .setLoadBalancer(conf.get(
                                  ServerOptions.RPC_CLIENT_LOAD_BALANCER));

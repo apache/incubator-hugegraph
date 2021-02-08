@@ -35,6 +35,7 @@ public class SofaRpcServer {
 
     private Map<String, ProviderConfig> providerConfigs;
     private ServerConfig serverConfig;
+    private final int rpcServerTimeout;
 
     static {
         if (RpcConfigs.getOrDefaultValue(RpcOptions.JVM_SHUTDOWN_HOOK, true)) {
@@ -54,6 +55,7 @@ public class SofaRpcServer {
                             .setHost(conf.get(ServerOptions.RPC_SERVER_HOST))
                             .setDaemon(false);
         this.providerConfigs = providerConfig.providerConfigs();
+        this.rpcServerTimeout = conf.get(ServerOptions.RPC_SERVER_TIMEOUT)*1000;
     }
 
     public void exportAll() {
@@ -63,6 +65,7 @@ public class SofaRpcServer {
         }
         for (ProviderConfig providerConfig : this.providerConfigs.values()) {
             providerConfig.setServer(this.serverConfig);
+            providerConfig.setTimeout(this.rpcServerTimeout);
             providerConfig.export();
         }
     }

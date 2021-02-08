@@ -250,22 +250,39 @@ public class ServerOptions extends OptionHolder {
                     "0.0.0.0"
             );
 
-    public static final ConfigOption<Integer> RPC_CLIENT_CONNECTION_TIMEOUT =
+    public static final ConfigOption<Integer> RPC_SERVER_TIMEOUT =
+            new ConfigOption<>(
+                    "rpc.server_timeout",
+                    "The timeout(in seconds) of rpc server execution.",
+                    rangeInt(1, Integer.MAX_VALUE),
+                    30
+            );
+
+    public static final ConfigOption<Integer> CLIENT_CONNECTION_TIMEOUT =
             new ConfigOption<>(
                     "rpc.client_connection_timeout",
                     "The timeout(in seconds) of rpc client connect to rpc " +
                     "server.",
                     rangeInt(1, Integer.MAX_VALUE),
-                    8000
+                    20
             );
 
-    public static final ConfigOption<Integer> RPC_CLIENT_READ_TIMEOUT =
+    public static final ConfigOption<Integer> CLIENT_RECONNECTION_TIMEOUT =
+            new ConfigOption<>(
+                    "rpc.client_reconnection_timeout",
+                    "The timeout(in seconds) of rpc client reconnect to rpc " +
+                    "server.",
+                    rangeInt(1, Integer.MAX_VALUE),
+                    20
+            );
+
+    public static final ConfigOption<Integer> CLIENT_READ_TIMEOUT =
             new ConfigOption<>(
                     "rpc.client_read_timeout",
                     "The timeout(in seconds) of rpc client read from rpc " +
                     "server.",
                     rangeInt(1, Integer.MAX_VALUE),
-                    8000
+                    40
             );
 
     public static final ConfigOption<Integer> RPC_CLIENT_RETRIES =
