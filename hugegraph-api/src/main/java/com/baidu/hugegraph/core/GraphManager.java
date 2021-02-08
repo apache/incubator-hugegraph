@@ -174,7 +174,9 @@ public final class GraphManager {
     }
 
     private void destoryRpcServer() {
-        this.rpcServerProvider.destroy();
+        if (this.rpcServerProvider != null) {
+            this.rpcServerProvider.destroy();
+        }
     }
 
     private HugeAuthenticator authenticator() {

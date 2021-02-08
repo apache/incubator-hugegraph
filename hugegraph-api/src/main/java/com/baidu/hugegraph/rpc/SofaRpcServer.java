@@ -58,8 +58,8 @@ public class SofaRpcServer {
 
     public void exportAll() {
         if (MapUtils.isEmpty(this.providerConfigs)) {
-            throw new RpcException("The server provider config map can't be " +
-                                   "empty");
+            throw new RpcException(
+                      "The server provider config map can't be empty");
         }
         for (ProviderConfig providerConfig : this.providerConfigs.values()) {
             providerConfig.setServer(this.serverConfig);
