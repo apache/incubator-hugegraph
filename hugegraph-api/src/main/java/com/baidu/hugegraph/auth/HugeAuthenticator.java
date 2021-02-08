@@ -444,11 +444,11 @@ public interface HugeAuthenticator extends Authenticator {
                 /*
                  * In order to be compatible with the old permission mechanism,
                  * here is only to provide pre-control by extract the
-                 * ressource_action {vertex/edge/schema}_{read/write},
-                 * ressource_action like vertex_read.
+                 * resource_action {vertex/edge/schema}_{read/write},
+                 * resource_action like vertex_read.
                  */
-                String ressource = action.substring(0, offset - 1);
-                this.resource = ResourceType.valueOf(ressource.toUpperCase());
+                String resource = action.substring(0, offset - 1);
+                this.resource = ResourceType.valueOf(resource.toUpperCase());
                 action = action.substring(offset);
             }
             this.action = HugePermission.valueOf(action.toUpperCase());
