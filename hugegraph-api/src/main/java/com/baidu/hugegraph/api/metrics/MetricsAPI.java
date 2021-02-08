@@ -67,7 +67,7 @@ public class MetricsAPI extends API {
     @Timed
     @Path("system")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed("admin")
+    @RolesAllowed({"admin", "$owner= $action=metrics_read"})
     public String system() {
         return JsonUtil.toJson(this.systemMetrics.metrics());
     }
@@ -76,7 +76,7 @@ public class MetricsAPI extends API {
     @Timed
     @Path("backend")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed("admin")
+    @RolesAllowed({"admin", "$owner= $action=metrics_read"})
     public String backend(@Context GraphManager manager) {
         Map<String, Map<String, Object>> results = InsertionOrderUtil.newMap();
         for (String graph : manager.graphs()) {
@@ -97,7 +97,7 @@ public class MetricsAPI extends API {
     @GET
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed("admin")
+    @RolesAllowed({"admin", "$owner= $action=metrics_read"})
     public String all() {
         ServerReporter reporter = ServerReporter.instance();
         Map<String, Map<String, ? extends Metric>> result = new LinkedHashMap<>();
@@ -113,7 +113,7 @@ public class MetricsAPI extends API {
     @Timed
     @Path("gauges")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed("admin")
+    @RolesAllowed({"admin", "$owner= $action=metrics_read"})
     public String gauges() {
         ServerReporter reporter = ServerReporter.instance();
         return JsonUtil.toJson(reporter.gauges());
@@ -123,7 +123,7 @@ public class MetricsAPI extends API {
     @Timed
     @Path("counters")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed("admin")
+    @RolesAllowed({"admin", "$owner= $action=metrics_read"})
     public String counters() {
         ServerReporter reporter = ServerReporter.instance();
         return JsonUtil.toJson(reporter.counters());
@@ -133,7 +133,7 @@ public class MetricsAPI extends API {
     @Timed
     @Path("histograms")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed("admin")
+    @RolesAllowed({"admin", "$owner= $action=metrics_read"})
     public String histograms() {
         ServerReporter reporter = ServerReporter.instance();
         return JsonUtil.toJson(reporter.histograms());
@@ -143,7 +143,7 @@ public class MetricsAPI extends API {
     @Timed
     @Path("meters")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed("admin")
+    @RolesAllowed({"admin", "$owner= $action=metrics_read"})
     public String meters() {
         ServerReporter reporter = ServerReporter.instance();
         return JsonUtil.toJson(reporter.meters());
@@ -153,7 +153,7 @@ public class MetricsAPI extends API {
     @Timed
     @Path("timers")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed("admin")
+    @RolesAllowed({"admin", "$owner= $action=metrics_read"})
     public String timers() {
         ServerReporter reporter = ServerReporter.instance();
         return JsonUtil.toJson(reporter.timers());

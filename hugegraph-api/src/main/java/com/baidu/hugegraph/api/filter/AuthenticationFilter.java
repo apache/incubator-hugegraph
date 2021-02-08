@@ -43,7 +43,7 @@ import org.glassfish.grizzly.utils.Charsets;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.auth.HugeAuthenticator;
-import com.baidu.hugegraph.auth.HugeAuthenticator.RoleAction;
+import com.baidu.hugegraph.auth.HugeAuthenticator.RequiredPerm;
 import com.baidu.hugegraph.auth.HugeAuthenticator.RolePerm;
 import com.baidu.hugegraph.auth.HugeAuthenticator.User;
 import com.baidu.hugegraph.auth.RolePermission;
@@ -192,18 +192,18 @@ public class AuthenticationFilter implements ContainerRequestFilter {
             }
 
             // Permission format like: "$owner=$graph $action=vertex-write"
-            RoleAction roleAction = RoleAction.fromPermission(required);
+            RequiredPerm requiredPerm = RequiredPerm.fromPermission(required);
 
             // Replace owner value(may be variable) if needed
-            String owner = roleAction.owner();
+            String owner = requiredPerm.owner();
             if (owner.startsWith(HugeAuthenticator.VAR_PREFIX)) {
                 assert owner.length() > HugeAuthenticator.VAR_PREFIX.length();
                 owner = owner.substring(HugeAuthenticator.VAR_PREFIX.length());
                 owner = this.getPathParameter(owner);
-                roleAction.owner(owner);
+                requiredPerm.owner(owner);
             }
 
-            return RolePerm.match(this.role(), roleAction);
+            return RolePerm.match(this.role(), requiredPerm);
         }
 
         private String getPathParameter(String key) {
