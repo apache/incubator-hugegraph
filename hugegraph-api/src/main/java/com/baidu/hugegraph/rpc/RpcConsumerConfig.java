@@ -31,18 +31,24 @@ public class RpcConsumerConfig {
     private final Map<String, ConsumerConfig> configs = Maps.newHashMap();
 
     public <T> void addConsumerConfig(Class<T> clazz, HugeConfig conf) {
+        String protocol = conf.get(ServerOptions.RPC_PROTOCOL);
+        String directUrl = conf.get(ServerOptions.AUTH_REMOTE_URL);
+        int timeout = conf.get(ServerOptions.CLIENT_READ_TIMEOUT) * 1000;
+        int connectTimeout = conf.get(ServerOptions
+                                      .CLIENT_CONNECT_TIMEOUT) * 1000;
+        int reconnectPeriod = conf.get(ServerOptions
+                                       .CLIENT_RECONNECT_TIMEOUT) * 1000;
+        int retries = conf.get(ServerOptions.RPC_CLIENT_RETRIES);
+        String loadBalancer = conf.get(ServerOptions.RPC_CLIENT_LOAD_BALANCER);
         ConsumerConfig<T> consumerConfig = new ConsumerConfig<T>()
                 .setInterfaceId(clazz.getName())
-                .setProtocol(conf.get(ServerOptions.RPC_PROTOCOL))
-                .setDirectUrl(conf.get(ServerOptions.AUTH_REMOTE_URL))
-                .setTimeout(conf.get(ServerOptions.CLIENT_READ_TIMEOUT)*1000)
-                .setConnectTimeout(conf.get(
-                                   ServerOptions.CLIENT_CONNECTION_TIMEOUT)*1000)
-                .setReconnectPeriod(conf.get(
-                                    ServerOptions.CLIENT_RECONNECTION_TIMEOUT) *1000)
-                .setRetries(conf.get(ServerOptions.RPC_CLIENT_RETRIES))
-                .setLoadBalancer(conf.get(
-                                 ServerOptions.RPC_CLIENT_LOAD_BALANCER));
+                .setProtocol(protocol)
+                .setDirectUrl(directUrl)
+                .setTimeout(timeout)
+                .setConnectTimeout(connectTimeout)
+                .setReconnectPeriod(reconnectPeriod)
+                .setRetries(retries)
+                .setLoadBalancer(loadBalancer);
         this.configs.put(clazz.getName(), consumerConfig);
     }
 

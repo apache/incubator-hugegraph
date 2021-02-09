@@ -92,7 +92,7 @@
         <dependency>
             <groupId>com.lmax</groupId>
             <artifactId>disruptor</artifactId>
-            <version>3.4.2</version>
+            <version>3.3.7</version>
         </dependency>
         <dependency>
             <groupId>com.alipay.sofa</groupId>
@@ -107,12 +107,31 @@
                     <groupId>org.jboss.resteasy</groupId>
                     <artifactId>resteasy-client</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>com.alipay.sofa</groupId>
+                    <artifactId>bolt</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.httpcomponents</groupId>
+                    <artifactId>httpcore</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.httpcomponents</groupId>
+                    <artifactId>httpmime</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.alipay.sofa.common</groupId>
+                    <artifactId>sofa-common-tools</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.jboss.logging</groupId>
+                    <artifactId>jboss-logging</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.alipay.sofa</groupId>
+                    <artifactId>hessian</artifactId>
+                </exclusion>
             </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>io.netty</groupId>
-            <artifactId>netty-all</artifactId>
-            <version>4.1.56.Final</version>
         </dependency>
     </dependencies>
 

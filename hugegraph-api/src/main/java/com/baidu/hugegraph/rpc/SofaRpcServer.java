@@ -33,8 +33,8 @@ import com.baidu.hugegraph.config.ServerOptions;
 
 public class SofaRpcServer {
 
-    private Map<String, ProviderConfig> providerConfigs;
-    private ServerConfig serverConfig;
+    private final Map<String, ProviderConfig> providerConfigs;
+    private final ServerConfig serverConfig;
     private final int rpcServerTimeout;
 
     static {
@@ -55,7 +55,7 @@ public class SofaRpcServer {
                             .setHost(conf.get(ServerOptions.RPC_SERVER_HOST))
                             .setDaemon(false);
         this.providerConfigs = providerConfig.providerConfigs();
-        this.rpcServerTimeout = conf.get(ServerOptions.RPC_SERVER_TIMEOUT)*1000;
+        this.rpcServerTimeout = conf.get(ServerOptions.RPC_SERVER_TIMEOUT) * 1000;
     }
 
     public void exportAll() {
