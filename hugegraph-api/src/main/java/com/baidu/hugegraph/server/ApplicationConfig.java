@@ -108,7 +108,7 @@ public class ApplicationConfig extends ResourceConfig {
                 public void onEvent(ApplicationEvent event) {
                     if (event.getType() == this.EVENT_INITED) {
                         manager = new GraphManager(conf);
-                    } else if(event.getType() == this.EVENT_DESTROY) {
+                    } else if (event.getType() == this.EVENT_DESTROY) {
                         if (manager != null) {
                             manager.close();
                         }
