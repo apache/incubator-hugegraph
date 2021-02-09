@@ -35,9 +35,9 @@ public class RpcConsumerConfig {
         String directUrl = conf.get(ServerOptions.AUTH_REMOTE_URL);
         int timeout = conf.get(ServerOptions.CLIENT_READ_TIMEOUT) * 1000;
         int connectTimeout = conf.get(ServerOptions
-                                      .CLIENT_CONNECT_TIMEOUT) * 1000;
+                                      .RPC_CLIENT_CONNECT_TIMEOUT) * 1000;
         int reconnectPeriod = conf.get(ServerOptions
-                                       .CLIENT_RECONNECT_TIMEOUT) * 1000;
+                                       .CLIENT_RECONNECT_PERIOD) * 1000;
         int retries = conf.get(ServerOptions.RPC_CLIENT_RETRIES);
         String loadBalancer = conf.get(ServerOptions.RPC_CLIENT_LOAD_BALANCER);
         ConsumerConfig<T> consumerConfig = new ConsumerConfig<T>()

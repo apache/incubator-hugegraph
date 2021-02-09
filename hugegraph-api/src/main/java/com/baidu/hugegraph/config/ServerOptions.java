@@ -258,7 +258,7 @@ public class ServerOptions extends OptionHolder {
                     30
             );
 
-    public static final ConfigOption<Integer> CLIENT_CONNECT_TIMEOUT =
+    public static final ConfigOption<Integer> RPC_CLIENT_CONNECT_TIMEOUT =
             new ConfigOption<>(
                     "rpc.client_connect_timeout",
                     "The timeout(in seconds) of rpc client connect to rpc " +
@@ -267,7 +267,7 @@ public class ServerOptions extends OptionHolder {
                     20
             );
 
-    public static final ConfigOption<Integer> CLIENT_RECONNECT_TIMEOUT =
+    public static final ConfigOption<Integer> CLIENT_RECONNECT_PERIOD =
             new ConfigOption<>(
                     "rpc.client_reconnect_timeout",
                     "The timeout(in seconds) of rpc client reconnect to rpc " +
