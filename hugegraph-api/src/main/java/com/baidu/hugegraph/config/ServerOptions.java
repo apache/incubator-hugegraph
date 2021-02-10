@@ -247,7 +247,7 @@ public class ServerOptions extends OptionHolder {
                     "The hosts/ips bound by rpc server to provide " +
                     "services.",
                     disallowEmpty(),
-                    "0.0.0.0"
+                    "127.0.0.1"
             );
 
     public static final ConfigOption<Integer> RPC_SERVER_TIMEOUT =
@@ -309,7 +309,7 @@ public class ServerOptions extends OptionHolder {
             new ConfigOption<>(
                     "rpc.protocol",
                     "Rpc communication protocol, client and server need to " +
-                    "be specified the same value, and can match.",
+                    "be specified the same value.",
                     allowValues("bolt", "rest", "dubbo", "h2c", "http"),
                     "bolt"
             );
