@@ -100,8 +100,8 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     private static final Logger LOG = Log.logger(HugeGraphAuthProxy.class);
 
     private final HugeGraph hugegraph;
-    private final TaskScheduler taskScheduler;
-    private final UserManager userManager;
+    private final TaskSchedulerProxy taskScheduler;
+    private final UserManagerProxy userManager;
 
     public HugeGraphAuthProxy(HugeGraph hugegraph) {
         LOG.info("Wrap graph '{}' with HugeGraphAuthProxy", hugegraph.name());
@@ -653,6 +653,12 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     @Override
+    public void switchUserManager(UserManager userManager) {
+        this.verifyAdminPermission();
+        this.userManager.switchUserManager(userManager);
+    }
+
+    @Override
     public RaftGroupManager raftGroupManager(String group) {
         this.verifyAdminPermission();
         return this.hugegraph.raftGroupManager(group);
@@ -1044,7 +1050,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
     class UserManagerProxy implements UserManager {
 
-        private final UserManager userManager;
+        private UserManager userManager;
 
         public UserManagerProxy(UserManager origin) {
             this.userManager = origin;
@@ -1344,6 +1350,11 @@ public final class HugeGraphAuthProxy implements HugeGraph {
             } finally {
                 setContext(context);
             }
+        }
+
+        private void switchUserManager(UserManager userManager) {
+            this.userManager = userManager;
+            hugegraph.switchUserManager(userManager);
         }
     }
 

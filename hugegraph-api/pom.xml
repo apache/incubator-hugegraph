@@ -87,6 +87,52 @@
             <artifactId>grizzly-http-servlet</artifactId>
             <version>2.4.4</version>
         </dependency>
+
+        <!-- sofa rpc -->
+        <dependency>
+            <groupId>com.lmax</groupId>
+            <artifactId>disruptor</artifactId>
+            <version>3.3.7</version>
+        </dependency>
+        <dependency>
+            <groupId>com.alipay.sofa</groupId>
+            <artifactId>sofa-rpc-all</artifactId>
+            <version>5.7.6</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>io.netty</groupId>
+                    <artifactId>netty-all</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.jboss.resteasy</groupId>
+                    <artifactId>resteasy-client</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.alipay.sofa</groupId>
+                    <artifactId>bolt</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.httpcomponents</groupId>
+                    <artifactId>httpcore</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.httpcomponents</groupId>
+                    <artifactId>httpmime</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.alipay.sofa.common</groupId>
+                    <artifactId>sofa-common-tools</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.jboss.logging</groupId>
+                    <artifactId>jboss-logging</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.alipay.sofa</groupId>
+                    <artifactId>hessian</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
     </dependencies>
 
     <build>

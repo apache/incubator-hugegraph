@@ -222,6 +222,115 @@ public class ServerOptions extends OptionHolder {
                     "hugegraph:9fd95c9c-711b-415b-b85f-d4df46ba5c31"
             );
 
+    public static final ConfigOption<String> AUTH_REMOTE_URL =
+            new ConfigOption<>(
+                    "auth.remote_url",
+                    "If the address is empty, it provide auth service, " +
+                    "otherwise it is auth client and also provide auth service " +
+                    "through rpc forwarding. The remote url can be set to " +
+                    "multiple addresses, which are linked by ','.",
+                    null,
+                    ""
+            );
+
+    public static final ConfigOption<Integer> RPC_SERVER_PORT =
+            new ConfigOption<>(
+                    "rpc.server_port",
+                    "The port bound by rpc server to provide services.",
+                    rangeInt(1, Integer.MAX_VALUE),
+                    8099
+            );
+
+    public static final ConfigOption<String> RPC_SERVER_HOST =
+            new ConfigOption<>(
+                    "rpc.server_host",
+                    "The hosts/ips bound by rpc server to provide " +
+                    "services.",
+                    disallowEmpty(),
+                    "127.0.0.1"
+            );
+
+    public static final ConfigOption<Integer> RPC_SERVER_TIMEOUT =
+            new ConfigOption<>(
+                    "rpc.server_timeout",
+                    "The timeout(in seconds) of rpc server execution.",
+                    rangeInt(1, Integer.MAX_VALUE),
+                    30
+            );
+
+    public static final ConfigOption<Integer> RPC_CLIENT_CONNECT_TIMEOUT =
+            new ConfigOption<>(
+                    "rpc.client_connect_timeout",
+                    "The timeout(in seconds) of rpc client connect to rpc " +
+                    "server.",
+                    rangeInt(1, Integer.MAX_VALUE),
+                    20
+            );
+
+    public static final ConfigOption<Integer> RPC_CLIENT_RECONNECT_PERIOD =
+            new ConfigOption<>(
+                    "rpc.client_reconnect_period",
+                    "The period(in seconds) of rpc client reconnect to rpc " +
+                    "server.",
+                    rangeInt(1, Integer.MAX_VALUE),
+                    10
+            );
+
+    public static final ConfigOption<Integer> RPC_CLIENT_READ_TIMEOUT =
+            new ConfigOption<>(
+                    "rpc.client_read_timeout",
+                    "The timeout(in seconds) of rpc client read from rpc " +
+                    "server.",
+                    rangeInt(1, Integer.MAX_VALUE),
+                    40
+            );
+
+    public static final ConfigOption<Integer> RPC_CLIENT_RETRIES =
+            new ConfigOption<>(
+                    "rpc.client_retries",
+                    "Failed retry number of rpc client calls to rpc server.",
+                    rangeInt(0, Integer.MAX_VALUE),
+                    3
+            );
+
+    public static final ConfigOption<String> RPC_CLIENT_LOAD_BALANCER =
+            new ConfigOption<>(
+                    "rpc.client_load_balancer",
+                    "The rpc client uses a load-balancing algorithm to " +
+                    "access multiple rpc servers in one cluster. Default " +
+                    "value is 'consistentHash', means forwording by request " +
+                    "parameters.",
+                    allowValues("random", "localPref", "roundRobin",
+                                "consistentHash", "weightRoundRobin"),
+                    "consistentHash"
+            );
+
+    public static final ConfigOption<String> RPC_PROTOCOL =
+            new ConfigOption<>(
+                    "rpc.protocol",
+                    "Rpc communication protocol, client and server need to " +
+                    "be specified the same value.",
+                    allowValues("bolt", "rest", "dubbo", "h2c", "http"),
+                    "bolt"
+            );
+
+    public static final ConfigOption<Integer> RPC_CONFIG_ORDER =
+            new ConfigOption<>(
+                    "rpc.config_order",
+                    "Sofa rpc configuration file loading order, the larger " +
+                    "the more later loading.",
+                    rangeInt(1, Integer.MAX_VALUE),
+                    999
+            );
+
+    public static final ConfigOption<String> RPC_LOGGER_IMPL =
+            new ConfigOption<>(
+                    "rpc.logger_impl",
+                    "Sofa rpc log implementation class.",
+                    disallowEmpty(),
+                    "com.alipay.sofa.rpc.log.SLF4JLoggerImpl"
+            );
+
     public static final ConfigOption<String> SSL_KEYSTORE_FILE =
             new ConfigOption<>(
                     "ssl.keystore_file",
