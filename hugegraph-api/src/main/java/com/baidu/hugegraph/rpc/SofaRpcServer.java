@@ -22,6 +22,7 @@ package com.baidu.hugegraph.rpc;
 import java.util.Map;
 
 import org.apache.commons.collections.MapUtils;
+import org.slf4j.Logger;
 
 import com.alipay.sofa.rpc.common.RpcConfigs;
 import com.alipay.sofa.rpc.common.RpcOptions;
@@ -30,12 +31,15 @@ import com.alipay.sofa.rpc.config.ServerConfig;
 import com.alipay.sofa.rpc.context.RpcRuntimeContext;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
+import com.baidu.hugegraph.util.Log;
 
 public class SofaRpcServer {
 
-    private final Map<String, ProviderConfig> providerConfigs;
+    private static final Logger LOG = Log.logger(SofaRpcServer.class);
+
+    private final HugeConfig conf;
+    private final RpcProviderConfig configs;
     private final ServerConfig serverConfig;
-    private final int rpcServerTimeout;
 
     static {
         if (RpcConfigs.getOrDefaultValue(RpcOptions.JVM_SHUTDOWN_HOOK, true)) {
@@ -48,34 +52,44 @@ public class SofaRpcServer {
         }
     }
 
-    public SofaRpcServer(HugeConfig conf, RpcProviderConfig providerConfig) {
+    public SofaRpcServer(HugeConfig conf) {
+        RpcCommonConfig.initRpcConfigs(conf);
+        this.conf = conf;
         this.serverConfig = new ServerConfig()
                             .setProtocol(conf.get(ServerOptions.RPC_PROTOCOL))
                             .setPort(conf.get(ServerOptions.RPC_SERVER_PORT))
                             .setHost(conf.get(ServerOptions.RPC_SERVER_HOST))
                             .setDaemon(false);
-        this.providerConfigs = providerConfig.providerConfigs();
-        this.rpcServerTimeout = conf.get(ServerOptions.RPC_SERVER_TIMEOUT) * 1000;
+        this.configs = new RpcProviderConfig();
+    }
+
+    public RpcProviderConfig config() {
+        return this.configs;
     }
 
     public void exportAll() {
-        if (MapUtils.isEmpty(this.providerConfigs)) {
-            throw new RpcException(
-                      "The server provider config map can't be empty");
+        LOG.debug("RpcServer starting on port {}", this.port());
+        Map<String, ProviderConfig> configs = this.configs.configs();
+        if (MapUtils.isEmpty(configs)) {
+            LOG.info("RpcServer configs is empty, skip RpcServer starting");
+            return;
         }
-        for (ProviderConfig providerConfig : this.providerConfigs.values()) {
+        int timeout = this.conf.get(ServerOptions.RPC_SERVER_TIMEOUT) * 1000;
+        for (ProviderConfig providerConfig : configs.values()) {
             providerConfig.setServer(this.serverConfig);
-            providerConfig.setTimeout(this.rpcServerTimeout);
+            providerConfig.setTimeout(timeout);
             providerConfig.export();
         }
+        LOG.info("RpcServer started success on port {}", this.port());
     }
 
     public void unExport(String serviceName) {
-        if (!this.providerConfigs.containsKey(serviceName)) {
-            throw new RpcException("The service name '%s' doesn't exist, please " +
-                                   "change others", serviceName);
+        Map<String, ProviderConfig> configs = this.configs.configs();
+        if (!configs.containsKey(serviceName)) {
+            throw new RpcException("The service name '%s' doesn't exist, " +
+                                   "please change others", serviceName);
         }
-        this.providerConfigs.get(serviceName).unExport();
+        configs.get(serviceName).unExport();
     }
 
     public int port() {

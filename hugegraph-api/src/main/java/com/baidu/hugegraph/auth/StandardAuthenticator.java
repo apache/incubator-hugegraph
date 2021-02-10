@@ -84,7 +84,7 @@ public class StandardAuthenticator implements HugeAuthenticator {
         String remoteUrl = config.get(ServerOptions.AUTH_REMOTE_URL);
         if (StringUtils.isNotEmpty(remoteUrl)) {
             RpcClientProvider provider = new RpcClientProvider(config);
-            this.graph.swichUserManager(provider.userManager());
+            this.graph.switchUserManager(provider.userManager());
         }
     }
 

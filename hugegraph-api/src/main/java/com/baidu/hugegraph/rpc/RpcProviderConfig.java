@@ -28,15 +28,14 @@ public class RpcProviderConfig {
 
     private final Map<String, ProviderConfig> configs = Maps.newHashMap();
 
-    public <T, E extends T> void addProviderConfig(Class<T> clazz,
-                                                   E serviceImpl) {
+    public <T, E extends T> void addService(Class<T> clazz, E serviceImpl) {
         ProviderConfig<T> providerConfig = new ProviderConfig<T>()
                                            .setInterfaceId(clazz.getName())
                                            .setRef(serviceImpl);
         this.configs.put(clazz.getName(), providerConfig);
     }
 
-    public Map<String, ProviderConfig> providerConfigs() {
+    public Map<String, ProviderConfig> configs() {
         return this.configs;
     }
 }

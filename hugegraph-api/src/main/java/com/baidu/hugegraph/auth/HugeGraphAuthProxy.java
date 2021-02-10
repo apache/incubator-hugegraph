@@ -653,9 +653,9 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     @Override
-    public void swichUserManager(UserManager userManager) {
+    public void switchUserManager(UserManager userManager) {
         this.verifyAdminPermission();
-        this.userManager.swichUserManager(userManager);
+        this.userManager.switchUserManager(userManager);
     }
 
     @Override
@@ -1352,9 +1352,9 @@ public final class HugeGraphAuthProxy implements HugeGraph {
             }
         }
 
-        private void swichUserManager(UserManager userManager) {
+        private void switchUserManager(UserManager userManager) {
             this.userManager = userManager;
-            hugegraph.swichUserManager(userManager);
+            hugegraph.switchUserManager(userManager);
         }
     }
 

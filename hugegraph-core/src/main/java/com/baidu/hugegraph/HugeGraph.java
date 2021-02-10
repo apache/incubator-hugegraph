@@ -155,7 +155,7 @@ public interface HugeGraph extends Graph {
     public HugeFeatures features();
 
     public UserManager userManager();
-    public void swichUserManager(UserManager userManager);
+    public void switchUserManager(UserManager userManager);
     public TaskScheduler taskScheduler();
     public RaftGroupManager raftGroupManager(String group);
 

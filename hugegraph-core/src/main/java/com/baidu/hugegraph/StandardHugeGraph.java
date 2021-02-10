@@ -884,7 +884,7 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
-    public void swichUserManager(UserManager userManager) {
+    public void switchUserManager(UserManager userManager) {
         this.userManager = userManager;
     }
 

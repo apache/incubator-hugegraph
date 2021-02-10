@@ -51,10 +51,11 @@ import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.license.LicenseVerifier;
 import com.baidu.hugegraph.metrics.MetricsUtil;
 import com.baidu.hugegraph.metrics.ServerReporter;
+import com.baidu.hugegraph.rpc.RpcProviderConfig;
+import com.baidu.hugegraph.rpc.SofaRpcServer;
 import com.baidu.hugegraph.serializer.JsonSerializer;
 import com.baidu.hugegraph.serializer.Serializer;
 import com.baidu.hugegraph.server.RestServer;
-import com.baidu.hugegraph.rpc.RpcServerProvider;
 import com.baidu.hugegraph.task.TaskManager;
 import com.baidu.hugegraph.type.define.NodeRole;
 import com.baidu.hugegraph.util.E;
@@ -66,18 +67,19 @@ public final class GraphManager {
 
     private final Map<String, Graph> graphs;
     private final HugeAuthenticator authenticator;
-    private final RpcServerProvider rpcServerProvider;
+    private final SofaRpcServer rpcServer;
 
     public GraphManager(HugeConfig conf) {
         this.graphs = new ConcurrentHashMap<>();
         this.authenticator = HugeAuthenticator.loadAuthenticator(conf);
+        this.rpcServer = new SofaRpcServer(conf);
 
         this.loadGraphs(conf.getMap(ServerOptions.GRAPHS));
         // this.installLicense(conf, "");
         // Raft will load snapshot firstly then launch election and replay log
         this.waitGraphsStarted();
         this.checkBackendVersionOrExit();
-        this.rpcServerProvider = this.startRpcServer(conf);
+        this.startRpcServer();
         this.serverStarted(conf);
         this.addMetrics(conf);
     }
@@ -166,17 +168,17 @@ public final class GraphManager {
         this.destoryRpcServer();
     }
 
-    private RpcServerProvider startRpcServer(HugeConfig conf) {
+    private void startRpcServer() {
+        RpcProviderConfig config = this.rpcServer.config();
         if (this.authenticator != null) {
-            return new RpcServerProvider(conf, this.authenticator.userManager());
+            config.addService(UserManager.class,
+                              this.authenticator.userManager());
         }
-        return null;
+        this.rpcServer.exportAll();
     }
 
     private void destoryRpcServer() {
-        if (this.rpcServerProvider != null) {
-            this.rpcServerProvider.destroy();
-        }
+        this.rpcServer.destroy();
     }
 
     private HugeAuthenticator authenticator() {
