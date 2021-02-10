@@ -43,11 +43,8 @@ public class SofaRpcServer {
 
     static {
         if (RpcConfigs.getOrDefaultValue(RpcOptions.JVM_SHUTDOWN_HOOK, true)) {
-            Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    RpcRuntimeContext.destroy();
-                }
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                RpcRuntimeContext.destroy();
             }, "SOFA-RPC-ShutdownHook"));
         }
     }
@@ -71,7 +68,7 @@ public class SofaRpcServer {
         LOG.debug("RpcServer starting on port {}", this.port());
         Map<String, ProviderConfig> configs = this.configs.configs();
         if (MapUtils.isEmpty(configs)) {
-            LOG.info("RpcServer configs is empty, skip RpcServer starting");
+            LOG.info("RpcServer config is empty, skip starting RpcServer");
             return;
         }
         int timeout = this.conf.get(ServerOptions.RPC_SERVER_TIMEOUT) * 1000;
@@ -86,8 +83,8 @@ public class SofaRpcServer {
     public void unExport(String serviceName) {
         Map<String, ProviderConfig> configs = this.configs.configs();
         if (!configs.containsKey(serviceName)) {
-            throw new RpcException("The service name '%s' doesn't exist, " +
-                                   "please change others", serviceName);
+            throw new RpcException("The service name '%s' doesn't exist",
+                                   serviceName);
         }
         configs.get(serviceName).unExport();
     }
@@ -97,6 +94,7 @@ public class SofaRpcServer {
     }
 
     public void destroy() {
+        LOG.info("RpcServer stop on port {}", this.port());
         this.serverConfig.destroy();
     }
 }
