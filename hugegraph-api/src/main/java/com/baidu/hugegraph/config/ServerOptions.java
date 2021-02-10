@@ -269,11 +269,11 @@ public class ServerOptions extends OptionHolder {
 
     public static final ConfigOption<Integer> RPC_CLIENT_RECONNECT_PERIOD =
             new ConfigOption<>(
-                    "rpc.client_reconnect_timeout",
-                    "The timeout(in seconds) of rpc client reconnect to rpc " +
+                    "rpc.client_reconnect_period",
+                    "The period(in seconds) of rpc client reconnect to rpc " +
                     "server.",
                     rangeInt(1, Integer.MAX_VALUE),
-                    20
+                    10
             );
 
     public static final ConfigOption<Integer> RPC_CLIENT_READ_TIMEOUT =
@@ -288,8 +288,8 @@ public class ServerOptions extends OptionHolder {
     public static final ConfigOption<Integer> RPC_CLIENT_RETRIES =
             new ConfigOption<>(
                     "rpc.client_retries",
-                    "Failed retry number of rpc client calls to rpc Server.",
-                    rangeInt(1, Integer.MAX_VALUE),
+                    "Failed retry number of rpc client calls to rpc server.",
+                    rangeInt(0, Integer.MAX_VALUE),
                     3
             );
 
@@ -309,7 +309,7 @@ public class ServerOptions extends OptionHolder {
             new ConfigOption<>(
                     "rpc.protocol",
                     "Rpc communication protocol, client and server need to " +
-                    "be specified at the same time, and can match.",
+                    "be specified the same value, and can match.",
                     allowValues("bolt", "rest", "dubbo", "h2c", "http"),
                     "bolt"
             );
@@ -318,7 +318,7 @@ public class ServerOptions extends OptionHolder {
             new ConfigOption<>(
                     "rpc.config_order",
                     "Sofa rpc configuration file loading order, the larger " +
-                    "the more later loading",
+                    "the more later loading.",
                     rangeInt(1, Integer.MAX_VALUE),
                     999
             );
