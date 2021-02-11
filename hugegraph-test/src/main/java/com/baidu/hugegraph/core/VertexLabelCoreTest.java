@@ -1097,7 +1097,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
         Assert.assertTrue(vertexLabels.contains(book));
 
         // clear cache
-        params().schemaEventHub().call(Events.CACHE, "clear", null, null);
+        params().schemaEventHub().call(Events.CACHE, "clear", null);
 
         Assert.assertEquals(person, schema.getVertexLabel("person"));
 

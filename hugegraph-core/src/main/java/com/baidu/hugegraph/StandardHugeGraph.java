@@ -1356,62 +1356,6 @@ public class StandardHugeGraph implements HugeGraph {
         }
     }
 
-//    private final class HugeGraphCacheNotifier implements GraphCacheNotifier {
-//
-//        private final EventHub hub = StandardHugeGraph.this.graphEventHub;
-//        private final EventListener cacheEventListener;
-//
-//        public HugeGraphCacheNotifier(CacheNotifier proxy) {
-//            this.cacheEventListener = event -> {
-//                Object[] args = event.args();
-//                E.checkArgument(args.length > 0 && args[0] instanceof String,
-//                                "Expect event action argument");
-//                if (Cache.ACTION_INVALIDED.equals(args[0])) {
-//                    event.checkArgs(String.class, HugeType.class, Id[].class);
-//                    HugeType type = (HugeType) args[1];
-//                    Id[] ids = (Id[]) args[2];
-//                    // argument type mismatch: proxy.invalid2(type, Id[] ids)
-//                    proxy.invalid2(type, ids);
-//                    return true;
-//                } else if (Cache.ACTION_CLEARED.equals(args[0])) {
-//                    proxy.clear();
-//                    return true;
-//                }
-//                return false;
-//            };
-//            this.hub.listen(Events.CACHE, this.cacheEventListener);
-//        }
-//
-//        public void close() {
-//            this.hub.unlisten(Events.CACHE, this.cacheEventListener);
-//        }
-//
-//        @Override
-//        public void invalid(HugeType type, Id id) {
-//            this.hub.notify(Events.CACHE, Cache.ACTION_INVALID, type, id);
-//        }
-//
-//        @Override
-//        public void invalid2(HugeType type, Object[] ids) {
-//            for (Object id : ids) {
-//                E.checkArgument(id instanceof Id,
-//                                "Expect instance of Id , but got '%s'",
-//                                id.getClass());
-//                this.invalid(type, (Id) id);
-//            }
-//        }
-//
-//        @Override
-//        public void clear() {
-//            this.hub.notify(Events.CACHE, Cache.ACTION_CLEAR, null, null);
-//        }
-//
-//        @Override
-//        public void reload() {
-//            // pass
-//        }
-//    }
-
     private static class AbstractCacheNotifier implements CacheNotifier {
 
         private final EventHub hub;

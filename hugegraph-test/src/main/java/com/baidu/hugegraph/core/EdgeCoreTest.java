@@ -3139,8 +3139,7 @@ public class EdgeCoreTest extends BaseCoreTest {
         Assert.assertTrue(adjacent.schemaLabel().undefined());
         Assert.assertEquals("~undefined", adjacent.label());
 
-        params().graphEventHub().notify(Events.CACHE, "clear",
-                                        null, null).get();
+        params().graphEventHub().notify(Events.CACHE, "clear", null).get();
         vertices = graph.traversal().V(james.id()).outE().otherV().toList();
         Assert.assertEquals(1, vertices.size());
         adjacent = (HugeVertex) vertices.get(0);
@@ -3285,8 +3284,7 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         Whitebox.setInternalState(params().graphTransaction(),
                                   "checkCustomVertexExist", false);
-        params().graphEventHub().notify(Events.CACHE, "clear",
-                                        null, null).get();
+        params().graphEventHub().notify(Events.CACHE, "clear", null).get();
         try {
             // override vertex designer-456 wirh programmer-456
             graph.addVertex(T.label, "programmer", T.id, "456",

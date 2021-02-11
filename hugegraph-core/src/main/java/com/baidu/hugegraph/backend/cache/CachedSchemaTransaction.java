@@ -101,7 +101,7 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
 
         // Listen cache event: "cache"(invalid cache item)
         this.cacheEventListener = event -> {
-            LOG.info("Graph {} received schema cache event: {}",
+            LOG.debug("Graph {} received schema cache event: {}",
                       this.graph(), event);
             Object[] args = event.args();
             E.checkArgument(args.length > 0 && args[0] instanceof String,
