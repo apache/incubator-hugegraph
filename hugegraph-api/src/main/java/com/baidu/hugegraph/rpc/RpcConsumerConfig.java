@@ -26,13 +26,52 @@ import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.google.common.collect.Maps;
 
-public class RpcConsumerConfig {
+public class RpcConsumerConfig implements RpcServiceConfig4Client {
 
-    private final Map<String, ConsumerConfig> configs = Maps.newHashMap();
+    private final HugeConfig conf;
+    private final String remoteUrl;
+    private final Map<String, ConsumerConfig<?>> configs;
 
-    public <T> void addConsumerConfig(Class<T> clazz, HugeConfig conf) {
+    public RpcConsumerConfig(HugeConfig conf, String remoteUrl) {
+        RpcCommonConfig.initRpcConfigs(conf);
+        this.conf = conf;
+        this.remoteUrl = remoteUrl;
+        this.configs = Maps.newHashMap();
+    }
+
+    @Override
+    public <T> T serviceProxy(String graph, String interfaceId) {
+        ConsumerConfig<T> config = this.consumerConfig(graph, interfaceId);
+        return config.refer();
+    }
+
+    @Override
+    public <T> T serviceProxy(String interfaceId) {
+        ConsumerConfig<T> config = this.consumerConfig(null, interfaceId);
+        return config.refer();
+    }
+
+    private <T> ConsumerConfig<T> consumerConfig(String graph,
+                                                 String interfaceId) {
+        String serviceId;
+        if (graph != null) {
+            serviceId = interfaceId + ":" + graph;
+        } else {
+            serviceId = interfaceId;
+        }
+
+        @SuppressWarnings("unchecked")
+        ConsumerConfig<T> consumerConfig = (ConsumerConfig<T>)
+                                           this.configs.get(serviceId);
+        if (consumerConfig != null) {
+            return consumerConfig;
+        }
+
+        assert consumerConfig == null;
+        consumerConfig = new ConsumerConfig<>();
+
+        HugeConfig conf = this.conf;
         String protocol = conf.get(ServerOptions.RPC_PROTOCOL);
-        String directUrl = conf.get(ServerOptions.AUTH_REMOTE_URL);
         int timeout = conf.get(ServerOptions.RPC_CLIENT_READ_TIMEOUT) * 1000;
         int connectTimeout = conf.get(ServerOptions
                                       .RPC_CLIENT_CONNECT_TIMEOUT) * 1000;
@@ -40,22 +79,20 @@ public class RpcConsumerConfig {
                                        .RPC_CLIENT_RECONNECT_PERIOD) * 1000;
         int retries = conf.get(ServerOptions.RPC_CLIENT_RETRIES);
         String loadBalancer = conf.get(ServerOptions.RPC_CLIENT_LOAD_BALANCER);
-        ConsumerConfig<T> consumerConfig = new ConsumerConfig<T>()
-                .setInterfaceId(clazz.getName())
-                .setProtocol(protocol)
-                .setDirectUrl(directUrl)
-                .setTimeout(timeout)
-                .setConnectTimeout(connectTimeout)
-                .setReconnectPeriod(reconnectPeriod)
-                .setRetries(retries)
-                .setLoadBalancer(loadBalancer);
-        this.configs.put(clazz.getName(), consumerConfig);
-    }
 
-    public ConsumerConfig consumerConfig(String serverName) {
-        if (!this.configs.containsKey(serverName)) {
-            throw new RpcException("Invalid server name '%s'", serverName);
+        if (graph != null) {
+            consumerConfig.setId(serviceId).setUniqueId(graph);
         }
-        return this.configs.get(serverName);
+        consumerConfig.setInterfaceId(interfaceId)
+                      .setProtocol(protocol)
+                      .setDirectUrl(this.remoteUrl)
+                      .setTimeout(timeout)
+                      .setConnectTimeout(connectTimeout)
+                      .setReconnectPeriod(reconnectPeriod)
+                      .setRetries(retries)
+                      .setLoadBalancer(loadBalancer);
+
+        this.configs.put(serviceId, consumerConfig);
+        return consumerConfig;
     }
 }

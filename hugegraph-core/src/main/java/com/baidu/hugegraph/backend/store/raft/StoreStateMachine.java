@@ -19,8 +19,6 @@
 
 package com.baidu.hugegraph.backend.store.raft;
 
-import static com.baidu.hugegraph.backend.cache.AbstractCache.ACTION_INVALID;
-
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -36,6 +34,7 @@ import com.alipay.sofa.jraft.error.RaftException;
 import com.alipay.sofa.jraft.storage.snapshot.SnapshotReader;
 import com.alipay.sofa.jraft.storage.snapshot.SnapshotWriter;
 import com.baidu.hugegraph.backend.BackendException;
+import com.baidu.hugegraph.backend.cache.Cache;
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.baidu.hugegraph.backend.store.BackendAction;
 import com.baidu.hugegraph.backend.store.BackendEntry;
@@ -90,7 +89,8 @@ public class StoreStateMachine extends StateMachineAdapter {
             for (java.util.Iterator<BackendAction> it = mutation.mutation(type);
                  it.hasNext();) {
                 BackendEntry entry = it.next().entry();
-                this.context.notifyCache(ACTION_INVALID, type, entry.originId());
+                this.context.notifyCache(Cache.ACTION_INVALID, type,
+                                         entry.originId());
             }
         }
     }

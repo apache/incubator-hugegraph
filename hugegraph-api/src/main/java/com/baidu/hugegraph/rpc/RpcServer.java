@@ -33,9 +33,9 @@ import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.util.Log;
 
-public class SofaRpcServer {
+public class RpcServer {
 
-    private static final Logger LOG = Log.logger(SofaRpcServer.class);
+    private static final Logger LOG = Log.logger(RpcServer.class);
 
     private final HugeConfig conf;
     private final RpcProviderConfig configs;
@@ -49,7 +49,7 @@ public class SofaRpcServer {
         }
     }
 
-    public SofaRpcServer(HugeConfig conf) {
+    public RpcServer(HugeConfig conf) {
         RpcCommonConfig.initRpcConfigs(conf);
         this.conf = conf;
         this.serverConfig = new ServerConfig()
@@ -66,22 +66,22 @@ public class SofaRpcServer {
 
     public void exportAll() {
         LOG.debug("RpcServer starting on port {}", this.port());
-        Map<String, ProviderConfig> configs = this.configs.configs();
+        Map<String, ProviderConfig<?>> configs = this.configs.configs();
         if (MapUtils.isEmpty(configs)) {
             LOG.info("RpcServer config is empty, skip starting RpcServer");
             return;
         }
         int timeout = this.conf.get(ServerOptions.RPC_SERVER_TIMEOUT) * 1000;
-        for (ProviderConfig providerConfig : configs.values()) {
-            providerConfig.setServer(this.serverConfig);
-            providerConfig.setTimeout(timeout);
-            providerConfig.export();
+        for (ProviderConfig<?> providerConfig : configs.values()) {
+            providerConfig.setServer(this.serverConfig)
+                          .setTimeout(timeout)
+                          .export();
         }
         LOG.info("RpcServer started success on port {}", this.port());
     }
 
     public void unExport(String serviceName) {
-        Map<String, ProviderConfig> configs = this.configs.configs();
+        Map<String, ProviderConfig<?>> configs = this.configs.configs();
         if (!configs.containsKey(serviceName)) {
             throw new RpcException("The service name '%s' doesn't exist",
                                    serviceName);

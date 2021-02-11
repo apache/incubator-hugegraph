@@ -19,8 +19,6 @@
 
 package com.baidu.hugegraph.backend.store.raft;
 
-import static com.baidu.hugegraph.backend.cache.AbstractCache.ACTION_CLEAR;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
@@ -44,6 +42,7 @@ import com.alipay.sofa.jraft.util.NamedThreadFactory;
 import com.alipay.sofa.jraft.util.ThreadPoolUtil;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraphParams;
+import com.baidu.hugegraph.backend.cache.Cache;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.raft.rpc.ListPeersProcessor;
@@ -257,8 +256,8 @@ public final class RaftSharedContext {
 
     public void clearCache() {
         // Just choose two representatives used to represent schema and graph
-        this.notifyCache(ACTION_CLEAR, HugeType.VERTEX_LABEL, null);
-        this.notifyCache(ACTION_CLEAR, HugeType.VERTEX, null);
+        this.notifyCache(Cache.ACTION_CLEAR, HugeType.VERTEX_LABEL, null);
+        this.notifyCache(Cache.ACTION_CLEAR, HugeType.VERTEX, null);
     }
 
     public void notifyCache(String action, HugeType type, Id id) {

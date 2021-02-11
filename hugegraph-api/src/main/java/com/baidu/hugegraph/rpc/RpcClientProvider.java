@@ -19,26 +19,29 @@
 
 package com.baidu.hugegraph.rpc;
 
-import com.alipay.sofa.rpc.config.ConsumerConfig;
 import com.baidu.hugegraph.auth.UserManager;
 import com.baidu.hugegraph.config.HugeConfig;
+import com.baidu.hugegraph.config.ServerOptions;
 
 public class RpcClientProvider {
 
-    public final RpcConsumerConfig rpcConsumerConfig;
+    public final RpcConsumerConfig consumerConfig;
+    public final RpcConsumerConfig authConsumerConfig;
 
     public RpcClientProvider(HugeConfig conf) {
-        RpcCommonConfig.initRpcConfigs(conf);
-        this.rpcConsumerConfig = new RpcConsumerConfig();
-        this.rpcConsumerConfig.addConsumerConfig(UserManager.class, conf);
+        // TODO: fetch from registry server
+        String rpcUrl = conf.get(ServerOptions.RPC_REMOTE_URL);
+        this.consumerConfig = new RpcConsumerConfig(conf, rpcUrl);
+
+        String authUrl = conf.get(ServerOptions.AUTH_REMOTE_URL);
+        this.authConsumerConfig = new RpcConsumerConfig(conf, authUrl);
+    }
+
+    public RpcConsumerConfig config() {
+        return this.consumerConfig;
     }
 
     public UserManager userManager() {
-        return (UserManager) this.serviceProxy(UserManager.class.getName());
-    }
-
-    public Object serviceProxy(String serviceName) {
-        ConsumerConfig config = this.rpcConsumerConfig.consumerConfig(serviceName);
-        return config.refer();
+        return this.authConsumerConfig.serviceProxy(UserManager.class);
     }
 }

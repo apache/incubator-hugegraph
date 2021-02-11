@@ -24,6 +24,11 @@ import java.util.function.Function;
 
 public interface Cache<K, V> {
 
+    public static final String ACTION_INVALID = "invalid";
+    public static final String ACTION_CLEAR = "clear";
+    public static final String ACTION_INVALIDED = "invalided";
+    public static final String ACTION_CLEARED = "cleared";
+
     public Object get(K id);
 
     public Object getOrFetch(K id, Function<K, V> fetcher);

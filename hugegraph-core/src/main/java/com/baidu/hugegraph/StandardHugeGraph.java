@@ -43,6 +43,10 @@ import com.baidu.hugegraph.analyzer.AnalyzerFactory;
 import com.baidu.hugegraph.auth.StandardUserManager;
 import com.baidu.hugegraph.auth.UserManager;
 import com.baidu.hugegraph.backend.BackendException;
+import com.baidu.hugegraph.backend.cache.Cache;
+import com.baidu.hugegraph.backend.cache.CacheNotifier;
+import com.baidu.hugegraph.backend.cache.CacheNotifier.GraphCacheNotifier;
+import com.baidu.hugegraph.backend.cache.CacheNotifier.SchemaCacheNotifier;
 import com.baidu.hugegraph.backend.cache.CachedGraphTransaction;
 import com.baidu.hugegraph.backend.cache.CachedSchemaTransaction;
 import com.baidu.hugegraph.backend.id.Id;
@@ -64,8 +68,11 @@ import com.baidu.hugegraph.config.ConfigOption;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.event.EventHub;
+import com.baidu.hugegraph.event.EventListener;
 import com.baidu.hugegraph.exception.NotAllowException;
 import com.baidu.hugegraph.io.HugeGraphIoRegistry;
+import com.baidu.hugegraph.rpc.RpcServiceConfig4Client;
+import com.baidu.hugegraph.rpc.RpcServiceConfig4Server;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -87,6 +94,7 @@ import com.baidu.hugegraph.type.define.GraphReadMode;
 import com.baidu.hugegraph.type.define.NodeRole;
 import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.Events;
 import com.baidu.hugegraph.util.LockUtil;
 import com.baidu.hugegraph.util.Log;
 import com.baidu.hugegraph.variables.HugeVariables;
@@ -933,6 +941,21 @@ public class StandardHugeGraph implements HugeGraph {
         return config.get(option);
     }
 
+    @Override
+    public void registerRpcServices(RpcServiceConfig4Server serverConfig,
+                                    RpcServiceConfig4Client clientConfig) {
+        Class<GraphCacheNotifier> clazz1 = GraphCacheNotifier.class;
+        // The proxy is sometimes unavailable (issue #664)
+        CacheNotifier proxy = clientConfig.serviceProxy(this.name, clazz1);
+        serverConfig.addService(this.name, clazz1, new HugeGraphCacheNotifier(
+                                                   this.graphEventHub, proxy));
+
+        Class<SchemaCacheNotifier> clazz2 = SchemaCacheNotifier.class;
+        proxy = clientConfig.serviceProxy(this.name, clazz2);
+        serverConfig.addService(this.name, clazz2, new HugeSchemaCacheNotifier(
+                                                   this.schemaEventHub, proxy));
+    }
+
     private void closeTx() {
         try {
             if (this.tx.isOpen()) {
@@ -1330,6 +1353,145 @@ public class StandardHugeGraph implements HugeGraph {
         public SysTransaction(HugeGraphParams graph, BackendStore store) {
             super(graph, store);
             this.autoCommit(true);
+        }
+    }
+
+//    private final class HugeGraphCacheNotifier implements GraphCacheNotifier {
+//
+//        private final EventHub hub = StandardHugeGraph.this.graphEventHub;
+//        private final EventListener cacheEventListener;
+//
+//        public HugeGraphCacheNotifier(CacheNotifier proxy) {
+//            this.cacheEventListener = event -> {
+//                Object[] args = event.args();
+//                E.checkArgument(args.length > 0 && args[0] instanceof String,
+//                                "Expect event action argument");
+//                if (Cache.ACTION_INVALIDED.equals(args[0])) {
+//                    event.checkArgs(String.class, HugeType.class, Id[].class);
+//                    HugeType type = (HugeType) args[1];
+//                    Id[] ids = (Id[]) args[2];
+//                    // argument type mismatch: proxy.invalid2(type, Id[] ids)
+//                    proxy.invalid2(type, ids);
+//                    return true;
+//                } else if (Cache.ACTION_CLEARED.equals(args[0])) {
+//                    proxy.clear();
+//                    return true;
+//                }
+//                return false;
+//            };
+//            this.hub.listen(Events.CACHE, this.cacheEventListener);
+//        }
+//
+//        public void close() {
+//            this.hub.unlisten(Events.CACHE, this.cacheEventListener);
+//        }
+//
+//        @Override
+//        public void invalid(HugeType type, Id id) {
+//            this.hub.notify(Events.CACHE, Cache.ACTION_INVALID, type, id);
+//        }
+//
+//        @Override
+//        public void invalid2(HugeType type, Object[] ids) {
+//            for (Object id : ids) {
+//                E.checkArgument(id instanceof Id,
+//                                "Expect instance of Id , but got '%s'",
+//                                id.getClass());
+//                this.invalid(type, (Id) id);
+//            }
+//        }
+//
+//        @Override
+//        public void clear() {
+//            this.hub.notify(Events.CACHE, Cache.ACTION_CLEAR, null, null);
+//        }
+//
+//        @Override
+//        public void reload() {
+//            // pass
+//        }
+//    }
+
+    private static class AbstractCacheNotifier implements CacheNotifier {
+
+        private final EventHub hub;
+        private final EventListener cacheEventListener;
+
+        public AbstractCacheNotifier(EventHub hub, CacheNotifier proxy) {
+            this.hub = hub;
+            this.cacheEventListener = event -> {
+                Object[] args = event.args();
+                E.checkArgument(args.length > 0 && args[0] instanceof String,
+                                "Expect event action argument");
+                if (Cache.ACTION_INVALIDED.equals(args[0])) {
+                    event.checkArgs(String.class, HugeType.class, Object.class);
+                    HugeType type = (HugeType) args[1];
+                    Object ids = args[2];
+                    if (ids instanceof Id[]) {
+                        // argument type mismatch: proxy.invalid2(type,Id[]ids)
+                        proxy.invalid2(type, (Id[]) ids);
+                    } else if (ids instanceof Id) {
+                        proxy.invalid(type, (Id) ids);
+                    } else {
+                        E.checkArgument(false, "Unexpected argument: %s", ids);
+                    }
+                    return true;
+                } else if (Cache.ACTION_CLEARED.equals(args[0])) {
+                    event.checkArgs(String.class, HugeType.class);
+                    HugeType type = (HugeType) args[1];
+                    proxy.clear(type);
+                    return true;
+                }
+                return false;
+            };
+            this.hub.listen(Events.CACHE, this.cacheEventListener);
+        }
+
+        public void close() {
+            this.hub.unlisten(Events.CACHE, this.cacheEventListener);
+        }
+
+        @Override
+        public void invalid(HugeType type, Id id) {
+            this.hub.notify(Events.CACHE, Cache.ACTION_INVALID, type, id);
+        }
+
+        @Override
+        public void invalid2(HugeType type, Object[] ids) {
+            for (Object id : ids) {
+                E.checkArgument(id instanceof Id,
+                                "Expect instance of Id , but got '%s'",
+                                id.getClass());
+                this.invalid(type, (Id) id);
+            }
+        }
+
+        @Override
+        public void clear(HugeType type) {
+            this.hub.notify(Events.CACHE, Cache.ACTION_CLEAR, type, null);
+        }
+
+        @Override
+        public void reload() {
+            // pass
+        }
+    }
+
+    private static class HugeSchemaCacheNotifier
+                   extends AbstractCacheNotifier
+                   implements SchemaCacheNotifier {
+
+        public HugeSchemaCacheNotifier(EventHub hub, CacheNotifier proxy) {
+            super(hub, proxy);
+        }
+    }
+
+    private static class HugeGraphCacheNotifier
+                   extends AbstractCacheNotifier
+                   implements GraphCacheNotifier {
+
+        public HugeGraphCacheNotifier(EventHub hub, CacheNotifier proxy) {
+            super(hub, proxy);
         }
     }
 }

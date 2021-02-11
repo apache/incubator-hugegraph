@@ -67,6 +67,8 @@ import com.baidu.hugegraph.config.ConfigOption;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.iterator.FilterIterator;
+import com.baidu.hugegraph.rpc.RpcServiceConfig4Client;
+import com.baidu.hugegraph.rpc.RpcServiceConfig4Server;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -113,7 +115,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
     @Override
     public HugeGraph hugegraph() {
-        verifyAdminPermission();
+        this.verifyAdminPermission();
         return this.hugegraph;
     }
 
@@ -502,7 +504,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
     @Override
     public void close() throws Exception {
-        verifyAdminPermission();
+        this.verifyAdminPermission();
         this.hugegraph.close();
     }
 
@@ -575,7 +577,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
     @Override
     public BackendStoreSystemInfo backendStoreSystemInfo() {
-        verifyAdminPermission();
+        this.verifyAdminPermission();
         return this.hugegraph.backendStoreSystemInfo();
     }
 
@@ -617,19 +619,19 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
     @Override
     public void serverStarted(Id serverId, NodeRole serverRole) {
-        verifyAdminPermission();
+        this.verifyAdminPermission();
         this.hugegraph.serverStarted(serverId, serverRole);
     }
 
     @Override
     public boolean started() {
-        verifyAdminPermission();
+        this.verifyAdminPermission();
         return this.hugegraph.started();
     }
 
     @Override
     public boolean closed() {
-        verifyAdminPermission();
+        this.verifyAdminPermission();
         return this.hugegraph.closed();
     }
 
@@ -665,20 +667,27 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     @Override
+    public void registerRpcServices(RpcServiceConfig4Server serverConfig,
+                                    RpcServiceConfig4Client clientConfig) {
+        this.verifyAdminPermission();
+        this.hugegraph.registerRpcServices(serverConfig, clientConfig);
+    }
+
+    @Override
     public void initBackend() {
-        verifyAdminPermission();
+        this.verifyAdminPermission();
         this.hugegraph.initBackend();
     }
 
     @Override
     public void clearBackend() {
-        verifyAdminPermission();
+        this.verifyAdminPermission();
         this.hugegraph.clearBackend();
     }
 
     @Override
     public void truncateBackend() {
-        verifyAdminPermission();
+        this.verifyAdminPermission();
         HugeUser admin = this.hugegraph.userManager()
                              .findUser(HugeAuthenticator.USER_ADMIN);
         try {
@@ -1354,7 +1363,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
         private void switchUserManager(UserManager userManager) {
             this.userManager = userManager;
-            hugegraph.switchUserManager(userManager);
+            HugeGraphAuthProxy.this.hugegraph.switchUserManager(userManager);
         }
     }
 

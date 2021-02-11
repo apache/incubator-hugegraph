@@ -19,9 +19,6 @@
 
 package com.baidu.hugegraph.backend.cache;
 
-import static com.baidu.hugegraph.backend.cache.AbstractCache.ACTION_CLEAR;
-import static com.baidu.hugegraph.backend.cache.AbstractCache.ACTION_INVALID;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -50,6 +47,7 @@ import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Events;
 import com.google.common.collect.ImmutableSet;
 
@@ -127,8 +125,7 @@ public final class CachedGraphTransaction extends GraphTransaction {
             if (storeEvents.contains(event.name())) {
                 LOG.debug("Graph {} clear graph cache on event '{}'",
                           this.graph(), event.name());
-                this.verticesCache.clear();
-                this.edgesCache.clear();
+                this.clearCache(null, true);
                 return true;
             }
             return false;
@@ -139,9 +136,11 @@ public final class CachedGraphTransaction extends GraphTransaction {
         this.cacheEventListener = event -> {
             LOG.debug("Graph {} received graph cache event: {}",
                       this.graph(), event);
-            event.checkArgs(String.class, HugeType.class, Id.class);
             Object[] args = event.args();
-            if (ACTION_INVALID.equals(args[0])) {
+            E.checkArgument(args.length > 0 && args[0] instanceof String,
+                            "Expect event action argument");
+            if (Cache.ACTION_INVALID.equals(args[0])) {
+                event.checkArgs(String.class, HugeType.class, Id.class);
                 HugeType type = (HugeType) args[1];
                 Id id = (Id) args[2];
                 if (type.isVertex()) {
@@ -156,9 +155,10 @@ public final class CachedGraphTransaction extends GraphTransaction {
                     this.edgesCache.clear();
                 }
                 return true;
-            } else if (ACTION_CLEAR.equals(args[0])) {
-                this.verticesCache.clear();
-                this.edgesCache.clear();
+            } else if (Cache.ACTION_CLEAR.equals(args[0])) {
+                event.checkArgs(String.class, HugeType.class);
+                HugeType type = (HugeType) args[1];
+                this.clearCache(type, false);
                 return true;
             }
             return false;
@@ -176,6 +176,24 @@ public final class CachedGraphTransaction extends GraphTransaction {
         // Unlisten cache event
         EventHub graphEventHub = this.params().graphEventHub();
         graphEventHub.unlisten(Events.CACHE, this.cacheEventListener);
+    }
+
+    private void notifyChanges(String action, HugeType type, Id[] ids) {
+        EventHub graphEventHub = this.params().graphEventHub();
+        graphEventHub.notify(Events.CACHE, action, type, ids);
+    }
+
+    private void clearCache(HugeType type, boolean notify) {
+        if (type == null || type == HugeType.VERTEX) {
+            this.verticesCache.clear();
+        }
+        if (type == null || type == HugeType.EDGE) {
+            this.edgesCache.clear();
+        }
+
+        if (notify) {
+            this.notifyChanges(Cache.ACTION_CLEARED, null, null);
+        }
     }
 
     @Override
@@ -284,14 +302,18 @@ public final class CachedGraphTransaction extends GraphTransaction {
     @Override
     protected final void commitMutation2Backend(BackendMutation... mutations) {
         // Collect changes before commit
-        Collection<HugeVertex> changes = this.verticesInTxUpdated();
+        Collection<HugeVertex> updates = this.verticesInTxUpdated();
         Collection<HugeVertex> deletions = this.verticesInTxRemoved();
+        Id[] vertexIds = new Id[updates.size() + deletions.size()];
+        int vertexOffset = 0;
+
         int edgesInTxSize = this.edgesInTxSize();
 
         try {
             super.commitMutation2Backend(mutations);
             // Update vertex cache
-            for (HugeVertex vertex : changes) {
+            for (HugeVertex vertex : updates) {
+                vertexIds[vertexOffset++] = vertex.id();
                 if (vertex.sizeOfSubProperties() > MAX_CACHE_PROPS_PER_VERTEX) {
                     // Skip large vertex
                     this.verticesCache.invalidate(vertex.id());
@@ -302,13 +324,19 @@ public final class CachedGraphTransaction extends GraphTransaction {
         } finally {
             // Update removed vertex in cache whatever success or fail
             for (HugeVertex vertex : deletions) {
+                vertexIds[vertexOffset++] = vertex.id();
                 this.verticesCache.invalidate(vertex.id());
+            }
+            if (vertexOffset > 0) {
+                this.notifyChanges(Cache.ACTION_INVALIDED,
+                                   HugeType.VERTEX, vertexIds);
             }
 
             // Update edge cache if any edges change
             if (edgesInTxSize > 0) {
                 // TODO: Use a more precise strategy to update the edge cache
                 this.edgesCache.clear();
+                this.notifyChanges(Cache.ACTION_CLEARED, HugeType.EDGE, null);
             }
         }
     }
@@ -322,6 +350,7 @@ public final class CachedGraphTransaction extends GraphTransaction {
             if (indexLabel.baseType() == HugeType.EDGE_LABEL) {
                 // TODO: Use a more precise strategy to update the edge cache
                 this.edgesCache.clear();
+                this.notifyChanges(Cache.ACTION_CLEARED, HugeType.EDGE, null);
             }
         }
     }

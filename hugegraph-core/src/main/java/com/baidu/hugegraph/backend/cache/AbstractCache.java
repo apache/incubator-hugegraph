@@ -34,9 +34,6 @@ public abstract class AbstractCache<K, V> implements Cache<K, V> {
     public static final int DEFAULT_SIZE = 1 * MB;
     public static final int MAX_INIT_CAP = 100 * MB;
 
-    public static final String ACTION_INVALID = "invalid";
-    public static final String ACTION_CLEAR = "clear";
-
     protected static final Logger LOG = Log.logger(Cache.class);
 
     private volatile long hits = 0L;
