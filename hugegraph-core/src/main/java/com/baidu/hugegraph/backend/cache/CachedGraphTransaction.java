@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.backend.cache;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -140,12 +141,28 @@ public final class CachedGraphTransaction extends GraphTransaction {
             E.checkArgument(args.length > 0 && args[0] instanceof String,
                             "Expect event action argument");
             if (Cache.ACTION_INVALID.equals(args[0])) {
-                event.checkArgs(String.class, HugeType.class, Id.class);
+                event.checkArgs(String.class, HugeType.class, Object.class);
                 HugeType type = (HugeType) args[1];
-                Id id = (Id) args[2];
                 if (type.isVertex()) {
                     // Invalidate vertex cache
-                    this.verticesCache.invalidate(id);
+                    Object arg2 = args[2];
+                    if (arg2 instanceof Id) {
+                        Id id = (Id) arg2;
+                        this.verticesCache.invalidate(id);
+                    } else if (arg2 != null && arg2.getClass().isArray()) {
+                        int size = Array.getLength(arg2);
+                        for (int i = 0; i < size; i++) {
+                            Object id = Array.get(arg2, i);
+                            E.checkArgument(id instanceof Id,
+                                            "Expect instance of Id in array, " +
+                                            "but got '%s'", id.getClass());
+                            this.verticesCache.invalidate((Id) id);
+                        }
+                    } else {
+                        E.checkArgument(false,
+                                        "Expect Id or Id[], but got: %s",
+                                        arg2);
+                    }
                 } else if (type.isEdge()) {
                     /*
                      * Invalidate edge cache via clear instead of invalidate

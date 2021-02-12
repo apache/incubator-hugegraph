@@ -1403,12 +1403,7 @@ public class StandardHugeGraph implements HugeGraph {
 
         @Override
         public void invalid2(HugeType type, Object[] ids) {
-            for (Object id : ids) {
-                E.checkArgument(id instanceof Id,
-                                "Expect instance of Id , but got '%s'",
-                                id.getClass());
-                this.invalid(type, (Id) id);
-            }
+            this.hub.notify(Events.CACHE, Cache.ACTION_INVALID, type, ids);
         }
 
         @Override
