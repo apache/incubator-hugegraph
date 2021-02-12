@@ -1391,6 +1391,7 @@ public class StandardHugeGraph implements HugeGraph {
             this.hub.listen(Events.CACHE, this.cacheEventListener);
         }
 
+        @Override
         public void close() {
             this.hub.unlisten(Events.CACHE, this.cacheEventListener);
         }

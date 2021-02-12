@@ -24,11 +24,8 @@ import java.util.Map;
 import org.apache.commons.collections.MapUtils;
 import org.slf4j.Logger;
 
-import com.alipay.sofa.rpc.common.RpcConfigs;
-import com.alipay.sofa.rpc.common.RpcOptions;
 import com.alipay.sofa.rpc.config.ProviderConfig;
 import com.alipay.sofa.rpc.config.ServerConfig;
-import com.alipay.sofa.rpc.context.RpcRuntimeContext;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.util.Log;
@@ -41,22 +38,14 @@ public class RpcServer {
     private final RpcProviderConfig configs;
     private final ServerConfig serverConfig;
 
-    static {
-        if (RpcConfigs.getOrDefaultValue(RpcOptions.JVM_SHUTDOWN_HOOK, true)) {
-            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-                RpcRuntimeContext.destroy();
-            }, "SOFA-RPC-ShutdownHook"));
-        }
-    }
-
     public RpcServer(HugeConfig conf) {
         RpcCommonConfig.initRpcConfigs(conf);
         this.conf = conf;
-        this.serverConfig = new ServerConfig()
-                            .setProtocol(conf.get(ServerOptions.RPC_PROTOCOL))
-                            .setPort(conf.get(ServerOptions.RPC_SERVER_PORT))
-                            .setHost(conf.get(ServerOptions.RPC_SERVER_HOST))
-                            .setDaemon(false);
+        this.serverConfig = new ServerConfig();
+        this.serverConfig.setProtocol(conf.get(ServerOptions.RPC_PROTOCOL))
+                         .setPort(conf.get(ServerOptions.RPC_SERVER_PORT))
+                         .setHost(conf.get(ServerOptions.RPC_SERVER_HOST))
+                         .setDaemon(false);
         this.configs = new RpcProviderConfig();
     }
 
@@ -95,6 +84,16 @@ public class RpcServer {
 
     public void destroy() {
         LOG.info("RpcServer stop on port {}", this.port());
+        for (ProviderConfig<?> config : this.configs.configs().values()) {
+            Object service = config.getRef();
+            if (service instanceof AutoCloseable) {
+                try {
+                    ((AutoCloseable) service).close();
+                } catch (Exception e) {
+                    LOG.warn("Failed to close service {}", service, e);
+                }
+            }
+        }
         this.serverConfig.destroy();
     }
 }

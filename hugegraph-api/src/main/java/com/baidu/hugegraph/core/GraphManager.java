@@ -174,16 +174,19 @@ public final class GraphManager {
 
     private void startRpcServer() {
         RpcProviderConfig serverConfig = this.rpcServer.config();
-        RpcConsumerConfig clientConfig = this.rpcClient.config();
 
         if (this.authenticator != null) {
             serverConfig.addService(UserManager.class,
                                     this.authenticator.userManager());
         }
 
-        for (Graph graph : this.graphs.values()) {
-            HugeGraph hugegraph = (HugeGraph) graph;
-            hugegraph.registerRpcServices(serverConfig, clientConfig);
+        if (this.rpcClient.enabled()) {
+            RpcConsumerConfig clientConfig = this.rpcClient.config();
+
+            for (Graph graph : this.graphs.values()) {
+                HugeGraph hugegraph = (HugeGraph) graph;
+                hugegraph.registerRpcServices(serverConfig, clientConfig);
+            }
         }
 
         try {

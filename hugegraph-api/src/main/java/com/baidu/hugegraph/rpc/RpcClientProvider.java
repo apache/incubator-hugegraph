@@ -19,9 +19,15 @@
 
 package com.baidu.hugegraph.rpc;
 
+import java.util.Arrays;
+import java.util.LinkedHashSet;
+import java.util.Set;
+
+import com.alipay.sofa.rpc.common.utils.StringUtils;
 import com.baidu.hugegraph.auth.UserManager;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
+import com.baidu.hugegraph.util.E;
 
 public class RpcClientProvider {
 
@@ -31,17 +37,39 @@ public class RpcClientProvider {
     public RpcClientProvider(HugeConfig conf) {
         // TODO: fetch from registry server
         String rpcUrl = conf.get(ServerOptions.RPC_REMOTE_URL);
-        this.consumerConfig = new RpcConsumerConfig(conf, rpcUrl);
+        String selfUrl = conf.get(ServerOptions.RPC_SERVER_HOST) + ":" +
+                         conf.get(ServerOptions.RPC_SERVER_PORT);
+        rpcUrl = execludeSelfUrl(rpcUrl, selfUrl);
+        this.consumerConfig = StringUtils.isNotBlank(rpcUrl) ?
+                              new RpcConsumerConfig(conf, rpcUrl) : null;
 
         String authUrl = conf.get(ServerOptions.AUTH_REMOTE_URL);
-        this.authConsumerConfig = new RpcConsumerConfig(conf, authUrl);
+        this.authConsumerConfig = StringUtils.isNotBlank(authUrl) ?
+                                  new RpcConsumerConfig(conf, authUrl) : null;
+    }
+
+    public boolean enabled() {
+        return this.consumerConfig != null;
     }
 
     public RpcConsumerConfig config() {
+        E.checkArgument(this.consumerConfig != null,
+                        "RpcClient is not enabled, please config option '%s'",
+                        ServerOptions.RPC_REMOTE_URL.name());
         return this.consumerConfig;
     }
 
     public UserManager userManager() {
+        E.checkArgument(this.authConsumerConfig != null,
+                        "RpcClient is not enabled, please config option '%s'",
+                        ServerOptions.AUTH_REMOTE_URL.name());
         return this.authConsumerConfig.serviceProxy(UserManager.class);
+    }
+
+    private static String execludeSelfUrl(String rpcUrl, String selfUrl) {
+        String[] urls = StringUtils.splitWithCommaOrSemicolon(rpcUrl);
+        Set<String> urlsSet = new LinkedHashSet<>(Arrays.asList(urls));
+        urlsSet.remove(selfUrl);
+        return String.join(",", urlsSet);
     }
 }
