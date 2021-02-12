@@ -364,6 +364,11 @@ public abstract class InMemoryDBStore
         }
 
         @Override
+        public boolean supportsSharedStorage() {
+            return false;
+        }
+
+        @Override
         public boolean supportsScanToken() {
             return false;
         }

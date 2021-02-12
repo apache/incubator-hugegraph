@@ -25,6 +25,10 @@ public interface BackendFeatures {
         return true;
     }
 
+    public default boolean supportsSharedStorage() {
+        return true;
+    }
+
     public boolean supportsScanToken();
 
     public boolean supportsScanKeyPrefix();
