@@ -50,7 +50,7 @@ public class HugeFactory {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             LOG.info("HugeGraph is shutting down");
             HugeFactory.shutdown(30L);
-        }));
+        }, "hugegraph-shutdown"));
     }
 
     private static final String NAME_REGEX = "^[A-Za-z][A-Za-z0-9_]{0,47}$";
