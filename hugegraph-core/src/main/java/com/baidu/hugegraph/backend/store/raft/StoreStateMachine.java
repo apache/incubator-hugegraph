@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.backend.store.raft;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -35,6 +36,8 @@ import com.alipay.sofa.jraft.storage.snapshot.SnapshotReader;
 import com.alipay.sofa.jraft.storage.snapshot.SnapshotWriter;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.cache.Cache;
+import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.baidu.hugegraph.backend.store.BackendAction;
 import com.baidu.hugegraph.backend.store.BackendEntry;
@@ -83,14 +86,23 @@ public class StoreStateMachine extends StateMachineAdapter {
             return;
         }
         for (HugeType type : mutation.types()) {
-            if (!type.isGraph() && !type.isSchema()) {
-                continue;
-            }
-            for (java.util.Iterator<BackendAction> it = mutation.mutation(type);
-                 it.hasNext();) {
-                BackendEntry entry = it.next().entry();
+            if (type.isSchema()) {
+                java.util.Iterator<BackendAction> it = mutation.mutation(type);
+                while (it.hasNext()) {
+                    BackendEntry entry = it.next().entry();
+                    this.context.notifyCache(Cache.ACTION_INVALID, type,
+                                             entry.originId());
+                }
+            } else if (type.isGraph()) {
+                List<Id> ids = new ArrayList<>((int) Query.COMMIT_BATCH);
+                java.util.Iterator<BackendAction> it = mutation.mutation(type);
+                while (it.hasNext()) {
+                    ids.add(it.next().entry().originId());
+                }
                 this.context.notifyCache(Cache.ACTION_INVALID, type,
-                                         entry.originId());
+                                         ids.toArray());
+            } else {
+                // Ignore other types due to not cached
             }
         }
     }

@@ -43,7 +43,6 @@ import com.alipay.sofa.jraft.util.ThreadPoolUtil;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.cache.Cache;
-import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.raft.rpc.ListPeersProcessor;
 import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType;
@@ -260,7 +259,7 @@ public final class RaftSharedContext {
         this.notifyCache(Cache.ACTION_CLEAR, HugeType.VERTEX, null);
     }
 
-    public void notifyCache(String action, HugeType type, Id id) {
+    protected void notifyCache(String action, HugeType type, Object id) {
         EventHub eventHub;
         if (type.isGraph()) {
             eventHub = this.params.graphEventHub();
