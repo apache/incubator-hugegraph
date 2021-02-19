@@ -30,11 +30,11 @@ import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
 import com.google.common.collect.ImmutableList;
 
-public class MergeableQuery extends ConditionQuery {
+public class BatchQuery extends ConditionQuery {
 
     private Condition.Relation in = null;
 
-    public MergeableQuery(HugeType resultType) {
+    public BatchQuery(HugeType resultType) {
         super(resultType);
     }
 
@@ -47,6 +47,7 @@ public class MergeableQuery extends ConditionQuery {
             this.unsetCondition(key);
 
             List<Object> list = new LinkedList<>(ImmutableList.of(value));
+            // TODO: ensure not flatten BatchQuery
             this.in = (Condition.Relation) Condition.in(key, list);
             this.query(this.in);
         } else {

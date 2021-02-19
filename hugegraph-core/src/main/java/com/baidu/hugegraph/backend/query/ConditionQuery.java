@@ -50,7 +50,7 @@ import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
-public final class ConditionQuery extends IdQuery {
+public class ConditionQuery extends IdQuery {
 
     private static final Set<Condition> EMPTY_CONDITIONS = ImmutableSet.of();
 
@@ -216,8 +216,7 @@ public final class ConditionQuery extends IdQuery {
         for (Iterator<Condition> iter = this.conditions.iterator();
              iter.hasNext();) {
             Condition c = iter.next();
-            E.checkState(c.isRelation(), "Can't unset condition '%s'", c);
-            if (((Condition.Relation) c).key().equals(key)) {
+            if (c.isRelation() && ((Condition.Relation) c).key().equals(key)) {
                 iter.remove();
             }
         }

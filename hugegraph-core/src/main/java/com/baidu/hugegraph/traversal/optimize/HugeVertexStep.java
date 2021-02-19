@@ -83,19 +83,29 @@ public class HugeVertexStep<E extends Element>
     }
 
     private Iterator<Vertex> vertices(Traverser.Admin<Vertex> traverser) {
-        HugeGraph graph = TraversalUtil.getGraph(this);
-        Vertex vertex = traverser.get();
-
         Iterator<Edge> edges = this.edges(traverser);
-        Iterator<Vertex> vertices = graph.adjacentVertices(edges);
+        Iterator<Vertex> vertices = this.queryAdjacentVertices(edges);
 
+        Vertex vertex = traverser.get();
         if (LOG.isDebugEnabled()) {
             LOG.debug("HugeVertexStep.vertices(): is there adjacent " +
                       "vertices of {}: {}, has={}",
                       vertex.id(), vertices.hasNext(), this.hasContainers);
         }
 
-        if (this.hasContainers.isEmpty()) {
+        return vertices;
+    }
+
+    private Iterator<Edge> edges(Traverser.Admin<Vertex> traverser) {
+        Query query = this.constructEdgesQuery(traverser);
+        return this.queryEdges(query);
+    }
+
+    protected Iterator<Vertex> queryAdjacentVertices(Iterator<Edge> edges) {
+        HugeGraph graph = TraversalUtil.getGraph(this);
+        Iterator<Vertex> vertices = graph.adjacentVertices(edges);
+
+        if (!this.withVertexCondition()) {
             return vertices;
         }
 
@@ -103,15 +113,13 @@ public class HugeVertexStep<E extends Element>
         return TraversalUtil.filterResult(this.hasContainers, vertices);
     }
 
-    private Iterator<Edge> edges(Traverser.Admin<Vertex> traverser) {
+    protected Iterator<Edge> queryEdges(Query query) {
         HugeGraph graph = TraversalUtil.getGraph(this);
-
-        Query query = this.constructEdgesQuery(traverser);
 
         // Do query
         Iterator<Edge> edges = graph.edges(query);
 
-        if (!this.returnsEdge() || this.hasContainers.isEmpty()) {
+        if (!this.withEdgeCondition()) {
             return edges;
         }
 
@@ -122,11 +130,10 @@ public class HugeVertexStep<E extends Element>
     protected ConditionQuery constructEdgesQuery(
                              Traverser.Admin<Vertex> traverser) {
         HugeGraph graph = TraversalUtil.getGraph(this);
-        List<HasContainer> conditions = this.hasContainers;
 
         // Query for edge with conditions(else conditions for vertex)
-        boolean withEdgeCond = this.returnsEdge() && !conditions.isEmpty();
-        boolean withVertexCond = this.returnsVertex() && !conditions.isEmpty();
+        boolean withEdgeCond = this.withEdgeCondition();
+        boolean withVertexCond = this.withVertexCondition();
 
         Id vertex = (Id) traverser.get().id();
         Directions direction = Directions.convert(this.getDirection());
@@ -140,7 +147,7 @@ public class HugeVertexStep<E extends Element>
                                vertex, direction, edgeLabels);
         // Query by sort-keys
         if (withEdgeCond && edgeLabels.length > 0) {
-            TraversalUtil.fillConditionQuery(query, conditions, graph);
+            TraversalUtil.fillConditionQuery(query, this.hasContainers, graph);
             if (!GraphTransaction.matchPartialEdgeSortKeys(query, graph)) {
                 // Can't query by sysprop and by index (HugeGraph-749)
                 query.resetUserpropConditions();
@@ -178,6 +185,14 @@ public class HugeVertexStep<E extends Element>
         query = this.injectQueryInfo(query);
 
         return query;
+    }
+
+    protected boolean withVertexCondition() {
+        return this.returnsVertex() && !this.hasContainers.isEmpty();
+    }
+
+    protected boolean withEdgeCondition() {
+        return this.returnsEdge() && !this.hasContainers.isEmpty();
     }
 
     @Override

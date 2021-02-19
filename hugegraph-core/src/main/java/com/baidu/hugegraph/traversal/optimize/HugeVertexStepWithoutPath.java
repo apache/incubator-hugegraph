@@ -34,10 +34,9 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 import org.apache.tinkerpop.gremlin.util.iterator.EmptyIterator;
 
-import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
-import com.baidu.hugegraph.backend.query.MergeableQuery;
+import com.baidu.hugegraph.backend.query.BatchQuery;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.HugeType;
@@ -148,20 +147,15 @@ public class HugeVertexStepWithoutPath<E extends Element>
     private Iterator<Vertex> vertices(
                              List<Traverser.Admin<Vertex>> traversers) {
         assert traversers.size() > 0;
-        HugeGraph graph = (HugeGraph) traversers.get(0).get().graph();
 
         Iterator<Edge> edges = this.edges(traversers);
-        Iterator<Vertex> vertices = graph.adjacentVertices(edges);
-
-        // TODO: query by vertex index to optimize
-        return TraversalUtil.filterResult(this.getHasContainers(), vertices);
+        return this.queryAdjacentVertices(edges);
     }
 
     private Iterator<Edge> edges(List<Traverser.Admin<Vertex>> traversers) {
         assert traversers.size() > 0;
-        HugeGraph graph = (HugeGraph) traversers.get(0).get().graph();
 
-        MergeableQuery batchQuery = new MergeableQuery(HugeType.EDGE);
+        BatchQuery batchQuery = new BatchQuery(HugeType.EDGE);
 
         for (Traverser.Admin<Vertex> t : traversers) {
             ConditionQuery query = this.constructEdgesQuery(t);
@@ -169,7 +163,6 @@ public class HugeVertexStepWithoutPath<E extends Element>
             batchQuery.mergeWithIn(query, HugeKeys.OWNER_VERTEX);
         }
 
-        // Do query
-        return graph.edges(batchQuery);
+        return this.queryEdges(batchQuery);
     }
 }

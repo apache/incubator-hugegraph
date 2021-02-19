@@ -127,7 +127,7 @@ public class Example2 {
         assert paths.get(0).get(1).equals("lop");
 
         System.out.println(">>>> query with out() optimize: " +
-                graph.traversal().V("person:marko")
+                graph.traversal().V(markoId)
                 .out()
                 .out()
                 .values("name").toList());
@@ -237,6 +237,8 @@ public class Example2 {
               .range()
               .ifNotExist()
               .create();
+
+        graph.tx().close();
 
         graph.tx().open();
 
