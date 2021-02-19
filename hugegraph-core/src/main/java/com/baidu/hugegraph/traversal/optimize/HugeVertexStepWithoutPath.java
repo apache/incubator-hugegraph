@@ -161,16 +161,15 @@ public class HugeVertexStepWithoutPath<E extends Element>
         assert traversers.size() > 0;
         HugeGraph graph = (HugeGraph) traversers.get(0).get().graph();
 
-        MergeableQuery allquery = new MergeableQuery(HugeType.EDGE);
+        MergeableQuery batchQuery = new MergeableQuery(HugeType.EDGE);
 
         for (Traverser.Admin<Vertex> t : traversers) {
-            for (ConditionQuery query : constructEdgesQuery(t)) {
-                // Merge query
-                allquery.mergeWithIn(query, HugeKeys.OWNER_VERTEX);
-            }
+            ConditionQuery query = this.constructEdgesQuery(t);
+            // Merge each query into batch query
+            batchQuery.mergeWithIn(query, HugeKeys.OWNER_VERTEX);
         }
 
         // Do query
-        return graph.edges(allquery);
+        return graph.edges(batchQuery);
     }
 }

@@ -105,6 +105,23 @@ public class HugeVertexStep<E extends Element>
 
     private Iterator<Edge> edges(Traverser.Admin<Vertex> traverser) {
         HugeGraph graph = TraversalUtil.getGraph(this);
+
+        Query query = this.constructEdgesQuery(traverser);
+
+        // Do query
+        Iterator<Edge> edges = graph.edges(query);
+
+        if (!this.returnsEdge() || this.hasContainers.isEmpty()) {
+            return edges;
+        }
+
+        // Do filter by edge conditions
+        return TraversalUtil.filterResult(this.hasContainers, edges);
+    }
+
+    protected ConditionQuery constructEdgesQuery(
+                             Traverser.Admin<Vertex> traverser) {
+        HugeGraph graph = TraversalUtil.getGraph(this);
         List<HasContainer> conditions = this.hasContainers;
 
         // Query for edge with conditions(else conditions for vertex)
@@ -160,14 +177,7 @@ public class HugeVertexStep<E extends Element>
 
         query = this.injectQueryInfo(query);
 
-        // Do query
-        Iterator<Edge> edges = graph.edges(query);
-
-        // Do filter by edge conditions
-        if (withEdgeCond) {
-            return TraversalUtil.filterResult(conditions, edges);
-        }
-        return edges;
+        return query;
     }
 
     @Override
