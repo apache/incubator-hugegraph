@@ -456,8 +456,9 @@ public interface HugeAuthenticator extends Authenticator {
 
         public static String roleFor(String owner, HugePermission perm) {
             /*
-             * construct required permission such as:
-             *  $owner=graph1 $action=read (means require read one any resource)
+             * Construct required permission such as:
+             *  $owner=graph1 $action=read
+             *  (means required read permission of any one resource)
              * maybe also support:
              *  $owner=graph1 $action=vertex_read
              */
