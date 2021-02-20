@@ -83,8 +83,6 @@ public enum ResourceType {
         switch (required) {
             case NONE:
                 return this != NONE;
-            case STATUS:
-                return this.ordinal() >= required.ordinal();
             default:
                 break;
         }
