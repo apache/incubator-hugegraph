@@ -455,6 +455,12 @@ public interface HugeAuthenticator extends Authenticator {
         }
 
         public static String roleFor(String owner, HugePermission perm) {
+            /*
+             * construct required permission such as:
+             *  $owner=graph1 $action=read (means require read one any resource)
+             * maybe also support:
+             *  $owner=graph1 $action=vertex_read
+             */
             return String.format("%s=%s %s=%s", KEY_OWNER, owner,
                                  KEY_ACTION, perm.string());
         }

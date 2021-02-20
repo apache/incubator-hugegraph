@@ -63,12 +63,29 @@ public enum ResourceType {
 
     ROOT;
 
-    public boolean match(ResourceType type) {
-        if (this == type || this == ROOT ||
-            (this == ALL && type.ordinal() <= ALL.ordinal())) {
+    public boolean match(ResourceType required) {
+        if (this == required) {
             return true;
         }
-        return this == type;
+
+        switch (this) {
+            case ROOT:
+            case ALL:
+                return this.ordinal() >= required.ordinal();
+            default:
+                break;
+        }
+
+        switch (required) {
+            case NONE:
+                return this != NONE;
+            case STATUS:
+                return this.ordinal() >= required.ordinal();
+            default:
+                break;
+        }
+
+        return false;
     }
 
     public boolean isGraph() {
