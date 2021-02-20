@@ -71,7 +71,7 @@ public class TargetAPI extends API {
 
         HugeGraph g = graph(manager, graph);
         HugeTarget target = jsonTarget.build();
-        target.id(manager.userManager().createTarget(target));
+        target.id(manager.authManager().createTarget(target));
         return manager.serializer(g).writeUserElement(target);
     }
 
@@ -90,12 +90,12 @@ public class TargetAPI extends API {
         HugeGraph g = graph(manager, graph);
         HugeTarget target;
         try {
-            target = manager.userManager().getTarget(UserAPI.parseId(id));
+            target = manager.authManager().getTarget(UserAPI.parseId(id));
         } catch (NotFoundException e) {
             throw new IllegalArgumentException("Invalid target id: " + id);
         }
         target = jsonTarget.build(target);
-        manager.userManager().updateTarget(target);
+        manager.authManager().updateTarget(target);
         return manager.serializer(g).writeUserElement(target);
     }
 
@@ -108,7 +108,7 @@ public class TargetAPI extends API {
         LOG.debug("Graph [{}] list targets", graph);
 
         HugeGraph g = graph(manager, graph);
-        List<HugeTarget> targets = manager.userManager().listAllTargets(limit);
+        List<HugeTarget> targets = manager.authManager().listAllTargets(limit);
         return manager.serializer(g).writeUserElements("targets", targets);
     }
 
@@ -122,7 +122,7 @@ public class TargetAPI extends API {
         LOG.debug("Graph [{}] get target: {}", graph, id);
 
         HugeGraph g = graph(manager, graph);
-        HugeTarget target = manager.userManager().getTarget(UserAPI.parseId(id));
+        HugeTarget target = manager.authManager().getTarget(UserAPI.parseId(id));
         return manager.serializer(g).writeUserElement(target);
     }
 
@@ -138,7 +138,7 @@ public class TargetAPI extends API {
         @SuppressWarnings("unused") // just check if the graph exists
         HugeGraph g = graph(manager, graph);
         try {
-            manager.userManager().deleteTarget(UserAPI.parseId(id));
+            manager.authManager().deleteTarget(UserAPI.parseId(id));
         } catch (NotFoundException e) {
             throw new IllegalArgumentException("Invalid target id: " + id);
         }

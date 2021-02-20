@@ -70,7 +70,7 @@ public class BelongAPI extends API {
 
         HugeGraph g = graph(manager, graph);
         HugeBelong belong = jsonBelong.build();
-        belong.id(manager.userManager().createBelong(belong));
+        belong.id(manager.authManager().createBelong(belong));
         return manager.serializer(g).writeUserElement(belong);
     }
 
@@ -89,12 +89,12 @@ public class BelongAPI extends API {
         HugeGraph g = graph(manager, graph);
         HugeBelong belong;
         try {
-            belong = manager.userManager().getBelong(UserAPI.parseId(id));
+            belong = manager.authManager().getBelong(UserAPI.parseId(id));
         } catch (NotFoundException e) {
             throw new IllegalArgumentException("Invalid belong id: " + id);
         }
         belong = jsonBelong.build(belong);
-        manager.userManager().updateBelong(belong);
+        manager.authManager().updateBelong(belong);
         return manager.serializer(g).writeUserElement(belong);
     }
 
@@ -115,12 +115,12 @@ public class BelongAPI extends API {
         List<HugeBelong> belongs;
         if (user != null) {
             Id id = UserAPI.parseId(user);
-            belongs = manager.userManager().listBelongByUser(id, limit);
+            belongs = manager.authManager().listBelongByUser(id, limit);
         } else if (group != null) {
             Id id = UserAPI.parseId(group);
-            belongs = manager.userManager().listBelongByGroup(id, limit);
+            belongs = manager.authManager().listBelongByGroup(id, limit);
         } else {
-            belongs = manager.userManager().listAllBelong(limit);
+            belongs = manager.authManager().listAllBelong(limit);
         }
         return manager.serializer(g).writeUserElements("belongs", belongs);
     }
@@ -135,7 +135,7 @@ public class BelongAPI extends API {
         LOG.debug("Graph [{}] get belong: {}", graph, id);
 
         HugeGraph g = graph(manager, graph);
-        HugeBelong belong = manager.userManager().getBelong(UserAPI.parseId(id));
+        HugeBelong belong = manager.authManager().getBelong(UserAPI.parseId(id));
         return manager.serializer(g).writeUserElement(belong);
     }
 
@@ -151,7 +151,7 @@ public class BelongAPI extends API {
         @SuppressWarnings("unused") // just check if the graph exists
         HugeGraph g = graph(manager, graph);
         try {
-            manager.userManager().deleteBelong(UserAPI.parseId(id));
+            manager.authManager().deleteBelong(UserAPI.parseId(id));
         } catch (NotFoundException e) {
             throw new IllegalArgumentException("Invalid belong id: " + id);
         }

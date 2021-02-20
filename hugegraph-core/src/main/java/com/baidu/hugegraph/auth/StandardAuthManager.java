@@ -38,7 +38,7 @@ import com.baidu.hugegraph.util.Events;
 import com.baidu.hugegraph.util.StringEncoding;
 import com.google.common.collect.ImmutableSet;
 
-public class StandardUserManager implements UserManager {
+public class StandardAuthManager implements AuthManager {
 
     private static final long CACHE_EXPIRE = Duration.ofDays(1L).toMillis();
 
@@ -53,7 +53,7 @@ public class StandardUserManager implements UserManager {
     private final RelationshipManager<HugeBelong> belong;
     private final RelationshipManager<HugeAccess> access;
 
-    public StandardUserManager(HugeGraphParams graph) {
+    public StandardAuthManager(HugeGraphParams graph) {
         E.checkNotNull(graph, "graph");
 
         this.graph = graph;

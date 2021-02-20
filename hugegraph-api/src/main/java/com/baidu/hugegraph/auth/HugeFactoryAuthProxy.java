@@ -107,10 +107,10 @@ public final class HugeFactoryAuthProxy {
         Reflection.registerMethodsToFilter(com.baidu.hugegraph.auth.HugeFactoryAuthProxy.class, "genRegisterPrivateActions", "registerClass", "registerPrivateActions", "registerPrivateActions", "c");
         Reflection.registerFieldsToFilter(com.baidu.hugegraph.auth.HugeAuthenticator.User.class, "role", "client");
         Reflection.registerFieldsToFilter(org.apache.tinkerpop.gremlin.server.auth.AuthenticatedUser.class, "name");
-        Reflection.registerFieldsToFilter(com.baidu.hugegraph.auth.HugeGraphAuthProxy.class, "LOG", "hugegraph", "taskScheduler", "userManager", "contexts", "$assertionsDisabled");
+        Reflection.registerFieldsToFilter(com.baidu.hugegraph.auth.HugeGraphAuthProxy.class, "LOG", "hugegraph", "taskScheduler", "authManager", "contexts", "$assertionsDisabled");
         Reflection.registerMethodsToFilter(com.baidu.hugegraph.auth.HugeGraphAuthProxy.class, "lambda$0", "access$3", "access$4", "access$2", "access$5", "resetContext", "logUser", "verifyAdminPermission", "verifyStatusPermission", "verifyPermission", "verifySchemaPermission", "verifySchemaPermission", "verifySchemaPermission", "verifySchemaPermission", "verifyNamePermission", "verifyNameExistsPermission", "verifyElemPermission", "verifyElemPermission", "verifyElemPermission", "verifyElemPermission", "verifyResPermission", "verifyResPermission", "verifyUserPermission", "verifyUserPermission", "verifyUserPermission", "getContextString", "access$6", "access$7", "lambda$1", "lambda$2", "lambda$3", "lambda$4", "lambda$5", "lambda$6", "lambda$7", "lambda$8", "lambda$9", "lambda$10", "lambda$11", "lambda$12", "lambda$13", "lambda$14", "lambda$15", "lambda$16", "lambda$17", "lambda$18", "lambda$19", "lambda$20", "lambda$21", "lambda$22", "lambda$23", "lambda$24", "access$8", "access$9", "access$10", "setContext", "getContext");
-        Reflection.registerFieldsToFilter(com.baidu.hugegraph.auth.HugeGraphAuthProxy.UserManagerProxy.class, "userManager", "this$0");
-        Reflection.registerMethodsToFilter(com.baidu.hugegraph.auth.HugeGraphAuthProxy.UserManagerProxy.class, "currentUsername", "updateCreator");
+        Reflection.registerFieldsToFilter(com.baidu.hugegraph.auth.HugeGraphAuthProxy.AuthManagerProxy.class, "authManager", "this$0");
+        Reflection.registerMethodsToFilter(com.baidu.hugegraph.auth.HugeGraphAuthProxy.AuthManagerProxy.class, "currentUsername", "updateCreator");
         Reflection.registerFieldsToFilter(com.baidu.hugegraph.auth.HugeGraphAuthProxy.TaskSchedulerProxy.class, "taskScheduler", "this$0");
         Reflection.registerMethodsToFilter(com.baidu.hugegraph.auth.HugeGraphAuthProxy.TaskSchedulerProxy.class, "lambda$0", "lambda$1", "lambda$2", "verifyTaskPermission", "verifyTaskPermission", "verifyTaskPermission", "verifyTaskPermission", "hasTaskPermission");
         Reflection.registerFieldsToFilter(com.baidu.hugegraph.auth.HugeGraphAuthProxy.GraphTraversalSourceProxy.class, "this$0");
@@ -120,7 +120,7 @@ public final class HugeFactoryAuthProxy {
         Reflection.registerFieldsToFilter(com.baidu.hugegraph.auth.HugeGraphAuthProxy.VariablesProxy.class, "variables", "this$0");
         Reflection.registerFieldsToFilter(com.baidu.hugegraph.auth.HugeGraphAuthProxy.Context.class, "ADMIN", "user");
         Reflection.registerFieldsToFilter(com.baidu.hugegraph.auth.HugeGraphAuthProxy.ContextTask.class, "runner", "context");
-        Reflection.registerFieldsToFilter(com.baidu.hugegraph.StandardHugeGraph.class, "LOG", "started", "closed", "mode", "variables", "name", "params", "configuration", "schemaEventHub", "graphEventHub", "indexEventHub", "writeRateLimiter", "readRateLimiter", "taskManager", "userManager", "features", "storeProvider", "tx", "ramtable", "$assertionsDisabled");
+        Reflection.registerFieldsToFilter(com.baidu.hugegraph.StandardHugeGraph.class, "LOG", "started", "closed", "mode", "variables", "name", "params", "configuration", "schemaEventHub", "graphEventHub", "indexEventHub", "writeRateLimiter", "readRateLimiter", "taskManager", "authManager", "features", "storeProvider", "tx", "ramtable", "$assertionsDisabled");
         Reflection.registerMethodsToFilter(com.baidu.hugegraph.StandardHugeGraph.class, "lambda$0", "access$3", "access$4", "access$2", "access$5", "access$6", "access$7", "waitUntilAllTasksCompleted", "access$8", "loadStoreProvider", "graphTransaction", "schemaTransaction", "openSchemaTransaction", "checkGraphNotClosed", "openSystemTransaction", "openGraphTransaction", "systemTransaction", "access$9", "access$10", "access$11", "access$12", "access$13", "access$14", "access$15", "access$16", "access$17", "access$18", "serializer", "loadSchemaStore", "loadSystemStore", "loadGraphStore", "closeTx", "analyzer", "serverInfoManager", "reloadRamtable", "reloadRamtable", "access$19", "access$20", "access$21");
         Reflection.registerFieldsToFilter(c("com.baidu.hugegraph.StandardHugeGraph$StandardHugeGraphParams"), "graph", "this$0");
         Reflection.registerMethodsToFilter(c("com.baidu.hugegraph.StandardHugeGraph$StandardHugeGraphParams"), "access$1", "graph");
@@ -172,8 +172,8 @@ public final class HugeFactoryAuthProxy {
         Reflection.registerMethodsToFilter(com.baidu.hugegraph.task.TaskCallable.class, "graph", "closeTx", "cancelled", "done", "task", "save", "needSaveWithEx");
         Reflection.registerFieldsToFilter(com.baidu.hugegraph.task.TaskCallable.SysTaskCallable.class, "params");
         Reflection.registerMethodsToFilter(com.baidu.hugegraph.task.TaskCallable.SysTaskCallable.class, "params", "params");
-        Reflection.registerFieldsToFilter(com.baidu.hugegraph.auth.StandardUserManager.class, "CACHE_EXPIRE", "graph", "eventListener", "usersCache", "users", "groups", "targets", "belong", "access", "$assertionsDisabled");
-        Reflection.registerMethodsToFilter(com.baidu.hugegraph.auth.StandardUserManager.class, "lambda$0", "listenChanges", "unlistenChanges", "invalidCache", "initSchemaIfNeeded", "rolePermission", "rolePermission", "rolePermission", "cache");
+        Reflection.registerFieldsToFilter(com.baidu.hugegraph.auth.StandardAuthManager.class, "CACHE_EXPIRE", "graph", "eventListener", "usersCache", "users", "groups", "targets", "belong", "access", "$assertionsDisabled");
+        Reflection.registerMethodsToFilter(com.baidu.hugegraph.auth.StandardAuthManager.class, "lambda$0", "listenChanges", "unlistenChanges", "invalidCache", "initSchemaIfNeeded", "rolePermission", "rolePermission", "rolePermission", "cache");
         Reflection.registerFieldsToFilter(com.baidu.hugegraph.auth.SchemaDefine.class, "graph", "label");
         Reflection.registerMethodsToFilter(com.baidu.hugegraph.auth.SchemaDefine.class, "schema", "createPropertyKey", "createPropertyKey", "createPropertyKey", "existEdgeLabel", "createRangeIndex", "unhideField", "hideField", "existVertexLabel", "initProperties");
         Reflection.registerFieldsToFilter(com.baidu.hugegraph.auth.EntityManager.class, "graph", "label", "deser", "NO_LIMIT", "$assertionsDisabled");
@@ -215,7 +215,7 @@ public final class HugeFactoryAuthProxy {
         registerPrivateActions(HugeAuthenticator.User.class);
 
         registerPrivateActions(HugeGraphAuthProxy.class);
-        registerPrivateActions(HugeGraphAuthProxy.UserManagerProxy.class);
+        registerPrivateActions(HugeGraphAuthProxy.AuthManagerProxy.class);
         registerPrivateActions(HugeGraphAuthProxy.TaskSchedulerProxy.class);
         registerPrivateActions(HugeGraphAuthProxy.GraphTraversalSourceProxy.class);
         registerPrivateActions(HugeGraphAuthProxy.TraversalStrategiesProxy.class);
@@ -249,7 +249,7 @@ public final class HugeFactoryAuthProxy {
         registerPrivateActions(TaskCallable.class);
         registerPrivateActions(SysTaskCallable.class);
 
-        registerPrivateActions(StandardUserManager.class);
+        registerPrivateActions(StandardAuthManager.class);
         registerPrivateActions(SchemaDefine.class);
         registerPrivateActions(EntityManager.class);
         registerPrivateActions(RelationshipManager.class);

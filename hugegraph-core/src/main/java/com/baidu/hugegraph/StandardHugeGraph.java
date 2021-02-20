@@ -40,8 +40,8 @@ import org.slf4j.Logger;
 
 import com.baidu.hugegraph.analyzer.Analyzer;
 import com.baidu.hugegraph.analyzer.AnalyzerFactory;
-import com.baidu.hugegraph.auth.StandardUserManager;
-import com.baidu.hugegraph.auth.UserManager;
+import com.baidu.hugegraph.auth.StandardAuthManager;
+import com.baidu.hugegraph.auth.AuthManager;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.cache.CachedGraphTransaction;
 import com.baidu.hugegraph.backend.cache.CachedSchemaTransaction;
@@ -140,7 +140,7 @@ public class StandardHugeGraph implements HugeGraph {
     private final RateLimiter writeRateLimiter;
     private final RateLimiter readRateLimiter;
     private final TaskManager taskManager;
-    private UserManager userManager;
+    private AuthManager authManager;
 
     private final HugeFeatures features;
 
@@ -199,7 +199,7 @@ public class StandardHugeGraph implements HugeGraph {
         SnowflakeIdGenerator.init(this.params);
 
         this.taskManager.addScheduler(this.params);
-        this.userManager = new StandardUserManager(this.params);
+        this.authManager = new StandardAuthManager(this.params);
         this.variables = null;
     }
 
@@ -816,7 +816,7 @@ public class StandardHugeGraph implements HugeGraph {
         }
 
         LOG.info("Close graph {}", this);
-        this.userManager.close();
+        this.authManager.close();
         this.taskManager.closeScheduler(this.params);
         try {
             this.closeTx();
@@ -878,14 +878,14 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
-    public UserManager userManager() {
-        // this.userManager.initSchemaIfNeeded();
-        return this.userManager;
+    public AuthManager authManager() {
+        // this.authManager.initSchemaIfNeeded();
+        return this.authManager;
     }
 
     @Override
-    public void switchUserManager(UserManager userManager) {
-        this.userManager = userManager;
+    public void switchAuthManager(AuthManager authManager) {
+        this.authManager = authManager;
     }
 
     @Override

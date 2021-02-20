@@ -71,7 +71,7 @@ public class AccessAPI extends API {
 
         HugeGraph g = graph(manager, graph);
         HugeAccess access = jsonAccess.build();
-        access.id(manager.userManager().createAccess(access));
+        access.id(manager.authManager().createAccess(access));
         return manager.serializer(g).writeUserElement(access);
     }
 
@@ -90,12 +90,12 @@ public class AccessAPI extends API {
         HugeGraph g = graph(manager, graph);
         HugeAccess access;
         try {
-            access = manager.userManager().getAccess(UserAPI.parseId(id));
+            access = manager.authManager().getAccess(UserAPI.parseId(id));
         } catch (NotFoundException e) {
             throw new IllegalArgumentException("Invalid access id: " + id);
         }
         access = jsonAccess.build(access);
-        manager.userManager().updateAccess(access);
+        manager.authManager().updateAccess(access);
         return manager.serializer(g).writeUserElement(access);
     }
 
@@ -116,12 +116,12 @@ public class AccessAPI extends API {
         List<HugeAccess> belongs;
         if (group != null) {
             Id id = UserAPI.parseId(group);
-            belongs = manager.userManager().listAccessByGroup(id, limit);
+            belongs = manager.authManager().listAccessByGroup(id, limit);
         } else if (target != null) {
             Id id = UserAPI.parseId(target);
-            belongs = manager.userManager().listAccessByTarget(id, limit);
+            belongs = manager.authManager().listAccessByTarget(id, limit);
         } else {
-            belongs = manager.userManager().listAllAccess(limit);
+            belongs = manager.authManager().listAllAccess(limit);
         }
         return manager.serializer(g).writeUserElements("accesses", belongs);
     }
@@ -136,7 +136,7 @@ public class AccessAPI extends API {
         LOG.debug("Graph [{}] get access: {}", graph, id);
 
         HugeGraph g = graph(manager, graph);
-        HugeAccess access = manager.userManager().getAccess(UserAPI.parseId(id));
+        HugeAccess access = manager.authManager().getAccess(UserAPI.parseId(id));
         return manager.serializer(g).writeUserElement(access);
     }
 
@@ -152,7 +152,7 @@ public class AccessAPI extends API {
         @SuppressWarnings("unused") // just check if the graph exists
         HugeGraph g = graph(manager, graph);
         try {
-            manager.userManager().deleteAccess(UserAPI.parseId(id));
+            manager.authManager().deleteAccess(UserAPI.parseId(id));
         } catch (NotFoundException e) {
             throw new IllegalArgumentException("Invalid access id: " + id);
         }

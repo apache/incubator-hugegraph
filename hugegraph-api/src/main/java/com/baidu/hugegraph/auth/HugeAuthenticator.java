@@ -64,7 +64,7 @@ public interface HugeAuthenticator extends Authenticator {
     public void setup(HugeConfig config);
 
     public RolePermission authenticate(String username, String password);
-    public UserManager userManager();
+    public AuthManager authManager();
 
     @Override
     public default void setup(final Map<String, Object> config) {

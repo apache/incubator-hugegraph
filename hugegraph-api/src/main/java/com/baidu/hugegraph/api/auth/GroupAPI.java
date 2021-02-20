@@ -70,7 +70,7 @@ public class GroupAPI extends API {
 
         HugeGraph g = graph(manager, graph);
         HugeGroup group = jsonGroup.build();
-        group.id(manager.userManager().createGroup(group));
+        group.id(manager.authManager().createGroup(group));
         return manager.serializer(g).writeUserElement(group);
     }
 
@@ -89,12 +89,12 @@ public class GroupAPI extends API {
         HugeGraph g = graph(manager, graph);
         HugeGroup group;
         try {
-            group = manager.userManager().getGroup(UserAPI.parseId(id));
+            group = manager.authManager().getGroup(UserAPI.parseId(id));
         } catch (NotFoundException e) {
             throw new IllegalArgumentException("Invalid group id: " + id);
         }
         group = jsonGroup.build(group);
-        manager.userManager().updateGroup(group);
+        manager.authManager().updateGroup(group);
         return manager.serializer(g).writeUserElement(group);
     }
 
@@ -107,7 +107,7 @@ public class GroupAPI extends API {
         LOG.debug("Graph [{}] list groups", graph);
 
         HugeGraph g = graph(manager, graph);
-        List<HugeGroup> groups = manager.userManager().listAllGroups(limit);
+        List<HugeGroup> groups = manager.authManager().listAllGroups(limit);
         return manager.serializer(g).writeUserElements("groups", groups);
     }
 
@@ -121,7 +121,7 @@ public class GroupAPI extends API {
         LOG.debug("Graph [{}] get group: {}", graph, id);
 
         HugeGraph g = graph(manager, graph);
-        HugeGroup group = manager.userManager().getGroup(IdGenerator.of(id));
+        HugeGroup group = manager.authManager().getGroup(IdGenerator.of(id));
         return manager.serializer(g).writeUserElement(group);
     }
 
@@ -137,7 +137,7 @@ public class GroupAPI extends API {
         @SuppressWarnings("unused") // just check if the graph exists
         HugeGraph g = graph(manager, graph);
         try {
-            manager.userManager().deleteGroup(IdGenerator.of(id));
+            manager.authManager().deleteGroup(IdGenerator.of(id));
         } catch (NotFoundException e) {
             throw new IllegalArgumentException("Invalid group id: " + id);
         }

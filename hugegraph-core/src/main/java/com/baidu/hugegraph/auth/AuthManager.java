@@ -25,7 +25,7 @@ import com.baidu.hugegraph.auth.RolePermission;
 import com.baidu.hugegraph.auth.SchemaDefine.UserElement;
 import com.baidu.hugegraph.backend.id.Id;
 
-public interface UserManager {
+public interface AuthManager {
 
     public boolean close();
 

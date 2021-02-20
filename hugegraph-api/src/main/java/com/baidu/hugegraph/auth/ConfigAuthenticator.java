@@ -79,8 +79,8 @@ public class ConfigAuthenticator implements HugeAuthenticator {
     }
 
     @Override
-    public UserManager userManager() {
-        throw new NotImplementedException("UserManager is unsupported");
+    public AuthManager authManager() {
+        throw new NotImplementedException("AuthManager is unsupported");
     }
 
     @Override
