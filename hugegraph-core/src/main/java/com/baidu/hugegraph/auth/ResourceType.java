@@ -70,19 +70,19 @@ public enum ResourceType {
             return true;
         }
 
+        switch (required) {
+            case NONE:
+                return this != NONE;
+            default:
+                break;
+        }
+
         switch (this) {
             case ROOT:
             case ALL:
                 return this.ordinal() >= required.ordinal();
             case SCHEMA:
-                return this.isSchema();
-            default:
-                break;
-        }
-
-        switch (required) {
-            case NONE:
-                return this != NONE;
+                return required.isSchema();
             default:
                 break;
         }
@@ -97,7 +97,7 @@ public enum ResourceType {
 
     public boolean isSchema() {
         int ord = this.ordinal();
-        return PROPERTY_KEY.ordinal() <= ord && ord <= INDEX_LABEL.ordinal();
+        return PROPERTY_KEY.ordinal() <= ord && ord <= SCHEMA.ordinal();
     }
 
     public boolean isAuth() {
@@ -106,7 +106,7 @@ public enum ResourceType {
     }
 
     public boolean isGrantOrUser() {
-        return this == GRANT && this == USER_GROUP;
+        return this == GRANT || this == USER_GROUP;
     }
 
     public boolean isRepresentative() {

@@ -192,6 +192,7 @@ public class HugeResource {
         if (this.label == null || other == null) {
             return false;
         }
+        // It's ok if wildcard match or regular match
         if (!this.label.equals(ANY) && !other.matches(this.label)) {
             return false;
         }

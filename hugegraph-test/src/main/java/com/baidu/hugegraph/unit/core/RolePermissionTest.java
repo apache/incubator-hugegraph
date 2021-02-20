@@ -135,6 +135,132 @@ public class RolePermissionTest {
     }
 
     @Test
+    public void testResourceType() {
+        // ROOT
+        Assert.assertTrue(ResourceType.ROOT.match(ResourceType.NONE));
+        Assert.assertTrue(ResourceType.ROOT.match(ResourceType.STATUS));
+        Assert.assertTrue(ResourceType.ROOT.match(ResourceType.VERTEX));
+        Assert.assertTrue(ResourceType.ROOT.match(ResourceType.EDGE));
+        Assert.assertTrue(ResourceType.ROOT.match(ResourceType.VERTEX_LABEL));
+        Assert.assertTrue(ResourceType.ROOT.match(ResourceType.META));
+        Assert.assertTrue(ResourceType.ALL.match(ResourceType.ALL));;
+        Assert.assertTrue(ResourceType.ROOT.match(ResourceType.GRANT));
+        Assert.assertTrue(ResourceType.ROOT.match(ResourceType.USER_GROUP));
+        Assert.assertTrue(ResourceType.ROOT.match(ResourceType.TARGET));
+        Assert.assertTrue(ResourceType.ROOT.match(ResourceType.METRICS));
+        Assert.assertFalse(ResourceType.ALL.match(ResourceType.ROOT));
+
+        // ALL
+        Assert.assertTrue(ResourceType.ALL.match(ResourceType.NONE));
+        Assert.assertTrue(ResourceType.ALL.match(ResourceType.STATUS));
+        Assert.assertTrue(ResourceType.ALL.match(ResourceType.VERTEX));
+        Assert.assertTrue(ResourceType.ALL.match(ResourceType.EDGE));
+        Assert.assertTrue(ResourceType.ALL.match(ResourceType.VERTEX_LABEL));
+        Assert.assertTrue(ResourceType.ALL.match(ResourceType.META));
+        Assert.assertTrue(ResourceType.ALL.match(ResourceType.ALL));
+
+        Assert.assertFalse(ResourceType.ALL.match(ResourceType.GRANT));
+        Assert.assertFalse(ResourceType.ALL.match(ResourceType.USER_GROUP));
+        Assert.assertFalse(ResourceType.ALL.match(ResourceType.TARGET));
+        Assert.assertFalse(ResourceType.ALL.match(ResourceType.METRICS));
+        Assert.assertFalse(ResourceType.ALL.match(ResourceType.ROOT));
+
+        // SCHEMA
+        Assert.assertTrue(ResourceType.SCHEMA.match(ResourceType.NONE));
+        Assert.assertTrue(ResourceType.SCHEMA.match(ResourceType.PROPERTY_KEY));
+        Assert.assertTrue(ResourceType.SCHEMA.match(ResourceType.VERTEX_LABEL));
+        Assert.assertTrue(ResourceType.SCHEMA.match(ResourceType.EDGE_LABEL));
+        Assert.assertTrue(ResourceType.SCHEMA.match(ResourceType.INDEX_LABEL));
+        Assert.assertTrue(ResourceType.SCHEMA.match(ResourceType.SCHEMA));
+
+        Assert.assertFalse(ResourceType.SCHEMA.match(ResourceType.STATUS));
+        Assert.assertFalse(ResourceType.SCHEMA.match(ResourceType.VERTEX));
+        Assert.assertFalse(ResourceType.SCHEMA.match(ResourceType.EDGE));
+        Assert.assertFalse(ResourceType.SCHEMA.match(ResourceType.VERTEX_AGGR));
+        Assert.assertFalse(ResourceType.SCHEMA.match(ResourceType.EDGE_AGGR));
+        Assert.assertFalse(ResourceType.SCHEMA.match(ResourceType.VAR));
+        Assert.assertFalse(ResourceType.SCHEMA.match(ResourceType.GREMLIN));
+        Assert.assertFalse(ResourceType.SCHEMA.match(ResourceType.TASK));
+        Assert.assertFalse(ResourceType.SCHEMA.match(ResourceType.META));
+        Assert.assertFalse(ResourceType.SCHEMA.match(ResourceType.ALL));
+        Assert.assertFalse(ResourceType.SCHEMA.match(ResourceType.GRANT));
+        Assert.assertFalse(ResourceType.SCHEMA.match(ResourceType.USER_GROUP));
+        Assert.assertFalse(ResourceType.SCHEMA.match(ResourceType.TARGET));
+        Assert.assertFalse(ResourceType.SCHEMA.match(ResourceType.METRICS));
+        Assert.assertFalse(ResourceType.SCHEMA.match(ResourceType.ROOT));
+
+        // isRepresentative
+        Assert.assertTrue(ResourceType.ROOT.isRepresentative());
+        Assert.assertTrue(ResourceType.ALL.isRepresentative());
+        Assert.assertTrue(ResourceType.SCHEMA.isRepresentative());
+
+        Assert.assertFalse(ResourceType.NONE.isRepresentative());
+        Assert.assertFalse(ResourceType.VERTEX.isRepresentative());
+        Assert.assertFalse(ResourceType.META.isRepresentative());
+        Assert.assertFalse(ResourceType.METRICS.isRepresentative());
+
+        // isAuth
+        Assert.assertTrue(ResourceType.GRANT.isAuth());
+        Assert.assertTrue(ResourceType.USER_GROUP.isAuth());
+        Assert.assertTrue(ResourceType.TARGET.isAuth());
+
+        Assert.assertFalse(ResourceType.ROOT.isAuth());
+        Assert.assertFalse(ResourceType.ALL.isAuth());
+        Assert.assertFalse(ResourceType.SCHEMA.isAuth());
+        Assert.assertFalse(ResourceType.NONE.isAuth());
+        Assert.assertFalse(ResourceType.VERTEX.isAuth());
+        Assert.assertFalse(ResourceType.META.isAuth());
+        Assert.assertFalse(ResourceType.METRICS.isAuth());
+
+        // isGrantOrUser
+        Assert.assertTrue(ResourceType.GRANT.isGrantOrUser());
+        Assert.assertTrue(ResourceType.USER_GROUP.isGrantOrUser());
+        Assert.assertFalse(ResourceType.TARGET.isGrantOrUser());
+
+        Assert.assertFalse(ResourceType.ROOT.isGrantOrUser());
+        Assert.assertFalse(ResourceType.ALL.isGrantOrUser());
+        Assert.assertFalse(ResourceType.SCHEMA.isGrantOrUser());
+        Assert.assertFalse(ResourceType.NONE.isGrantOrUser());
+        Assert.assertFalse(ResourceType.VERTEX.isGrantOrUser());
+        Assert.assertFalse(ResourceType.META.isGrantOrUser());
+        Assert.assertFalse(ResourceType.METRICS.isGrantOrUser());
+
+        // isSchema
+        Assert.assertTrue(ResourceType.PROPERTY_KEY.isSchema());
+        Assert.assertTrue(ResourceType.VERTEX_LABEL.isSchema());
+        Assert.assertTrue(ResourceType.EDGE_LABEL.isSchema());
+        Assert.assertTrue(ResourceType.INDEX_LABEL.isSchema());
+        Assert.assertTrue(ResourceType.SCHEMA.isSchema());
+
+        Assert.assertFalse(ResourceType.ROOT.isSchema());
+        Assert.assertFalse(ResourceType.ALL.isSchema());
+        Assert.assertFalse(ResourceType.NONE.isSchema());
+        Assert.assertFalse(ResourceType.STATUS.isSchema());
+        Assert.assertFalse(ResourceType.VAR.isSchema());
+        Assert.assertFalse(ResourceType.GREMLIN.isSchema());
+        Assert.assertFalse(ResourceType.TASK.isSchema());
+        Assert.assertFalse(ResourceType.META.isSchema());
+        Assert.assertFalse(ResourceType.METRICS.isSchema());
+
+        // isGraph
+        Assert.assertTrue(ResourceType.VERTEX.isGraph());
+        Assert.assertTrue(ResourceType.EDGE.isGraph());
+
+        Assert.assertFalse(ResourceType.ROOT.isGraph());
+        Assert.assertFalse(ResourceType.ALL.isGraph());
+        Assert.assertFalse(ResourceType.SCHEMA.isGraph());
+        Assert.assertFalse(ResourceType.NONE.isGraph());
+        Assert.assertFalse(ResourceType.STATUS.isGraph());
+        Assert.assertFalse(ResourceType.VERTEX_AGGR.isGraph());
+        Assert.assertFalse(ResourceType.EDGE_AGGR.isGraph());
+        Assert.assertFalse(ResourceType.VAR.isGraph());
+        Assert.assertFalse(ResourceType.GREMLIN.isGraph());
+        Assert.assertFalse(ResourceType.TASK.isGraph());
+        Assert.assertFalse(ResourceType.META.isGraph());
+        Assert.assertFalse(ResourceType.METRICS.isGraph());
+    }
+
+    @Test
     public void testHugeResource() {
         HugeResource r = new HugeResource(ResourceType.VERTEX, "person",
                                           ImmutableMap.of("city", "Beijing"));
@@ -201,22 +327,25 @@ public class RolePermissionTest {
     @Test
     public void testHugeResourceFilterSchema() {
         HugeResource all = HugeResource.ALL;
+        HugeResource schema = new HugeResource(ResourceType.SCHEMA,
+                                               HugeResource.ANY, null);
 
-        // schema
-        HugeResource vlp = new HugeResource(ResourceType.VERTEX_LABEL,
-                                            "p-.*", null);
+        HugeResource vlPrefix = new HugeResource(ResourceType.VERTEX_LABEL,
+                                                 "p-.*", null);
 
         ResourceObject<?> r3 = ResourceObject.of("g1",
                                                  ResourceType.VERTEX_LABEL,
                                                  NameObject.of("test"));
         Assert.assertTrue(all.filter(r3));
-        Assert.assertFalse(vlp.filter(r3));
+        Assert.assertTrue(schema.filter(r3));
+        Assert.assertFalse(vlPrefix.filter(r3));
 
         ResourceObject<?> r4 = ResourceObject.of("g1",
                                                  ResourceType.VERTEX_LABEL,
                                                  NameObject.of("p-test"));
         Assert.assertTrue(all.filter(r4));
-        Assert.assertTrue(vlp.filter(r4));
+        Assert.assertTrue(schema.filter(r4));
+        Assert.assertTrue(vlPrefix.filter(r4));
 
         FakeObjects fo = new FakeObjects();
 
@@ -225,14 +354,16 @@ public class RolePermissionTest {
                                             IdGenerator.of("1"));
         ResourceObject<?> r5 = ResourceObject.of("g1", vl1);
         Assert.assertTrue(all.filter(r5));
-        Assert.assertFalse(vlp.filter(r5));
+        Assert.assertTrue(schema.filter(r5));
+        Assert.assertFalse(vlPrefix.filter(r5));
 
         VertexLabel vl2 = fo.newVertexLabel(IdGenerator.of("id1"), "p-person",
                                             IdStrategy.PRIMARY_KEY,
                                             IdGenerator.of("1"));
         ResourceObject<?> r6 = ResourceObject.of("g1", vl2);
         Assert.assertTrue(all.filter(r6));
-        Assert.assertTrue(vlp.filter(r6));
+        Assert.assertTrue(schema.filter(r6));
+        Assert.assertTrue(vlPrefix.filter(r6));
     }
 
     @Test
