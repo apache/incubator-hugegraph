@@ -55,7 +55,7 @@ public class ResourceObject<V> {
     @Override
     public String toString() {
         Object operated = this.operated;
-        if (this.type.isUsers()) {
+        if (this.type.isAuth()) {
             operated = ((UserElement) this.operated).idString();
         }
         return String.format("Resource{graph=%s,type=%s,operated=%s}",

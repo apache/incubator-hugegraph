@@ -49,6 +49,8 @@ public enum ResourceType {
 
     INDEX_LABEL, // include create/rebuild/delete index
 
+    SCHEMA,
+
     META,
 
     ALL,
@@ -72,6 +74,8 @@ public enum ResourceType {
             case ROOT:
             case ALL:
                 return this.ordinal() >= required.ordinal();
+            case SCHEMA:
+                return this.isSchema();
             default:
                 break;
         }
@@ -98,7 +102,7 @@ public enum ResourceType {
         return PROPERTY_KEY.ordinal() <= ord && ord <= INDEX_LABEL.ordinal();
     }
 
-    public boolean isUsers() {
+    public boolean isAuth() {
         int ord = this.ordinal();
         return GRANT.ordinal() <= ord && ord <= TARGET.ordinal();
     }
@@ -107,8 +111,8 @@ public enum ResourceType {
         return this == GRANT && this == USER_GROUP;
     }
 
-    public boolean isAny() {
-        return this == ALL || this == ROOT;
+    public boolean isRepresentative() {
+        return this == ROOT || this == ALL || this == SCHEMA;
     }
 
     public static ResourceType from(HugeType type) {
