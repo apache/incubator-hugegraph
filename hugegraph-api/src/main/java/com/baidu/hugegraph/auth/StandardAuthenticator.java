@@ -28,6 +28,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
 
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.rpc.RpcClientProvider;
@@ -79,7 +80,10 @@ public class StandardAuthenticator implements HugeAuthenticator {
         String graphPath = config.getMap(ServerOptions.GRAPHS).get(graphName);
         E.checkArgument(graphPath != null,
                         "Invalid graph name '%s'", graphName);
-        this.graph = (HugeGraph) GraphFactory.open(graphPath);
+        HugeConfig hugeConfig = new HugeConfig(graphName);
+        // Forced set to false when initializing backend
+        hugeConfig.setProperty(CoreOptions.RAFT_MODE.name(), "false");
+        this.graph = (HugeGraph) GraphFactory.open(hugeConfig);
 
         String remoteUrl = config.get(ServerOptions.AUTH_REMOTE_URL);
         if (StringUtils.isNotEmpty(remoteUrl)) {
