@@ -382,11 +382,12 @@ public class HugeTask<V> extends FutureTask<V> {
         if (this.dependencies == null || this.dependencies.isEmpty()) {
             return true;
         }
+        TaskScheduler scheduler = this.scheduler();
         for (Id dependency : this.dependencies) {
-            HugeTask<?> task = this.scheduler().task(dependency);
+            HugeTask<?> task = scheduler.task(dependency);
             if (!task.completed()) {
                 // Dependent task not completed, re-schedule self
-                this.scheduler().schedule(this);
+                scheduler.schedule(this);
                 return false;
             } else if (task.status() == TaskStatus.CANCELLED) {
                 this.result(TaskStatus.CANCELLED, String.format(
