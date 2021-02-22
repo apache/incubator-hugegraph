@@ -64,6 +64,11 @@
             <artifactId>hugegraph-postgresql</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.baidu.hugegraph</groupId>
+            <artifactId>hugegraph-tikv</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 
         <dependency>
             <groupId>org.apache.tinkerpop</groupId>

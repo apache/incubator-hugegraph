@@ -98,5 +98,8 @@
         <AsyncLogger name="com.baidu.hugegraph.api.filter.AuthenticationFilter" level="INFO" additivity="false">
             <appender-ref ref="audit"/>
         </AsyncLogger>
+        <AsyncLogger name="org.tikv.common.operation.KVErrorHandler" level="ERROR" additivity="false">
+            <appender-ref ref="file"/>
+        </AsyncLogger>
     </loggers>
 </configuration>

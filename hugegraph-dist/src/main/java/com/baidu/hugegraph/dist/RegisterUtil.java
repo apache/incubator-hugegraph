@@ -93,6 +93,9 @@ public class RegisterUtil {
             case "postgresql":
                 registerPostgresql();
                 break;
+            case "tikv":
+                registerTikv();
+                break;
             default:
                 throw new HugeException("Unsupported backend type '%s'",
                                         backend);
@@ -180,6 +183,15 @@ public class RegisterUtil {
         // Register backend
         BackendProviderFactory.register("postgresql",
                 "com.baidu.hugegraph.backend.store.postgresql.PostgresqlStoreProvider");
+    }
+
+    public static void registerTikv() {
+        // Register config
+        OptionSpace.register("tikv",
+                             "com.baidu.hugegraph.backend.store.tikv.TikvOptions");
+        // Register backend
+        BackendProviderFactory.register("tikv",
+                                        "com.baidu.hugegraph.backend.store.tikv.TikvStoreProvider");
     }
 
     public static void registerServer() {
