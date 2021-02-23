@@ -459,7 +459,8 @@ public interface HugeAuthenticator extends Authenticator {
              * Construct required permission such as:
              *  $owner=graph1 $action=read
              *  (means required read permission of any one resource)
-             * maybe also support:
+             *
+             * In the future maybe also support:
              *  $owner=graph1 $action=vertex_read
              */
             return String.format("%s=%s %s=%s", KEY_OWNER, owner,

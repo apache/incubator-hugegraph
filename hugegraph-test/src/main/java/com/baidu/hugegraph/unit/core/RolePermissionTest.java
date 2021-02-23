@@ -143,12 +143,12 @@ public class RolePermissionTest {
         Assert.assertTrue(ResourceType.ROOT.match(ResourceType.EDGE));
         Assert.assertTrue(ResourceType.ROOT.match(ResourceType.VERTEX_LABEL));
         Assert.assertTrue(ResourceType.ROOT.match(ResourceType.META));
-        Assert.assertTrue(ResourceType.ALL.match(ResourceType.ALL));;
+        Assert.assertTrue(ResourceType.ROOT.match(ResourceType.ALL));
         Assert.assertTrue(ResourceType.ROOT.match(ResourceType.GRANT));
         Assert.assertTrue(ResourceType.ROOT.match(ResourceType.USER_GROUP));
         Assert.assertTrue(ResourceType.ROOT.match(ResourceType.TARGET));
         Assert.assertTrue(ResourceType.ROOT.match(ResourceType.METRICS));
-        Assert.assertFalse(ResourceType.ALL.match(ResourceType.ROOT));
+        Assert.assertTrue(ResourceType.ROOT.match(ResourceType.ROOT));
 
         // ALL
         Assert.assertTrue(ResourceType.ALL.match(ResourceType.NONE));
