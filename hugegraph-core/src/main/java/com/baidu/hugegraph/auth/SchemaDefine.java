@@ -118,6 +118,8 @@ public abstract class SchemaDefine {
 
     public static abstract class UserElement implements Serializable {
 
+        private static final long serialVersionUID = 8746691160192814973L;
+
         protected static final String CREATE = "create";
         protected static final String UPDATE = "update";
         protected static final String CREATOR = "creator";
@@ -241,6 +243,8 @@ public abstract class SchemaDefine {
     public static abstract class Entity extends UserElement
                            implements com.baidu.hugegraph.type.Namifiable {
 
+        private static final long serialVersionUID = 4113319546914811762L;
+
         public static <T extends Entity> T fromVertex(Vertex vertex, T entity) {
             E.checkArgument(vertex.label().equals(entity.label()),
                             "Illegal vertex label '%s' for entity '%s'",
@@ -266,6 +270,8 @@ public abstract class SchemaDefine {
     }
 
     public static abstract class Relationship extends UserElement {
+
+        private static final long serialVersionUID = -1406157381685832493L;
 
         public abstract String sourceLabel();
         public abstract String targetLabel();

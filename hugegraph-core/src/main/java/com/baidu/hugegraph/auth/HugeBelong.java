@@ -29,12 +29,13 @@ import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
 import org.apache.tinkerpop.gremlin.structure.T;
 
 import com.baidu.hugegraph.HugeGraphParams;
-import com.baidu.hugegraph.auth.ResourceType;
 import com.baidu.hugegraph.auth.SchemaDefine.Relationship;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.schema.EdgeLabel;
 
 public class HugeBelong extends Relationship {
+
+    private static final long serialVersionUID = -7242751631755533423L;
 
     private final Id user;
     private final Id group;

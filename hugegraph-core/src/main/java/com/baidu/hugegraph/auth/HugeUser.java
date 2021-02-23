@@ -36,6 +36,8 @@ import com.baidu.hugegraph.util.E;
 
 public class HugeUser extends Entity {
 
+    private static final long serialVersionUID = -8951193710873772717L;
+
     private String name;
     private String password;
     private String phone;

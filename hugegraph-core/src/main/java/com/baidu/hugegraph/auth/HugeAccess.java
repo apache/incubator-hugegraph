@@ -37,6 +37,8 @@ import com.baidu.hugegraph.util.E;
 
 public class HugeAccess extends Relationship {
 
+    private static final long serialVersionUID = -7644007602408729385L;
+
     private final Id group;
     private final Id target;
     private HugePermission permission;
