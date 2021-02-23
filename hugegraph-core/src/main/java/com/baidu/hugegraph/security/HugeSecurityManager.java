@@ -66,6 +66,7 @@ public class HugeSecurityManager extends SecurityManager {
     private static final Set<String> WHITE_SYSTEM_PROPERTYS = ImmutableSet.of(
             "line.separator",
             "file.separator",
+            "java.specification.version", // Sofa
             "socksProxyHost", // MySQL
             "file.encoding" // PostgreSQL
     );
