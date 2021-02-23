@@ -39,6 +39,7 @@ import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.Namifiable;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.util.E;
@@ -241,7 +242,7 @@ public abstract class SchemaDefine {
     }
 
     public static abstract class Entity extends AuthElement
-                           implements com.baidu.hugegraph.type.Namifiable {
+                           implements Namifiable {
 
         private static final long serialVersionUID = 4113319546914811762L;
 

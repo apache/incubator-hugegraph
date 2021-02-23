@@ -198,8 +198,8 @@ public class ServerOptions extends OptionHolder {
     public static final ConfigOption<String> AUTH_GRAPH_STORE =
             new ConfigOption<>(
                     "auth.graph_store",
-                    "The graph name used to store users, " +
-                    "only for com.baidu.hugegraph.auth.StandardAuthenticator.",
+                    "The name of graph used to store authentication information, " +
+                    "like users, only for com.baidu.hugegraph.auth.StandardAuthenticator.",
                     disallowEmpty(),
                     "hugegraph"
             );
