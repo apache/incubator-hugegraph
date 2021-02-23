@@ -373,10 +373,20 @@ public abstract class TableSerializer extends AbstractSerializer {
                     r.serialValue(this.writeId((Id) value));
                 } else {
                     // Serialize label id
-                    r.serialValue(((Id) value).asObject());
+                    r.serialValue(this.serializeValue(value));
                 }
             } else if (value instanceof Directions) {
                 r.serialValue(((Directions) value).type().code());
+            } else if (value instanceof List &&
+                       r.relation() == Condition.RelationType.IN) {
+                assert r.key() == HugeKeys.OWNER_VERTEX;
+
+                List<?> values = (List<?>) r.value();
+                List<Object> serializedValues = new ArrayList<>(values.size());
+                for (Object v : values) {
+                    serializedValues.add(this.writeId((Id) v));
+                }
+                r.serialValue(serializedValues);
             }
         }
         return null;
@@ -388,7 +398,7 @@ public abstract class TableSerializer extends AbstractSerializer {
         // No user-prop when serialize
         assert result.allSysprop();
         for (Condition.Relation r : result.relations()) {
-            if (!(r.value().equals(r.serialValue()))) {
+            if (!r.value().equals(r.serialValue())) {
                 continue;
             }
             if (r.relation() == Condition.RelationType.IN) {
