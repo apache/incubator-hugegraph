@@ -55,7 +55,7 @@ public class HugeVertexStep<E extends Element>
     // Store limit/order-by
     private final Query queryInfo = new Query(null);
 
-    private Iterator<E> lastTimeResults = QueryResults.emptyIterator();
+    private Iterator<E> iterator = QueryResults.emptyIterator();
 
     public HugeVertexStep(final VertexStep<E> originVertexStep) {
         super(originVertexStep.getTraversal(),
@@ -68,18 +68,16 @@ public class HugeVertexStep<E extends Element>
     @SuppressWarnings("unchecked")
     @Override
     protected Iterator<E> flatMap(final Traverser.Admin<Vertex> traverser) {
-        Iterator<E> results;
         boolean queryVertex = this.returnsVertex();
         boolean queryEdge = this.returnsEdge();
         assert queryVertex || queryEdge;
         if (queryVertex) {
-            results = (Iterator<E>) this.vertices(traverser);
+            this.iterator = (Iterator<E>) this.vertices(traverser);
         } else {
             assert queryEdge;
-            results = (Iterator<E>) this.edges(traverser);
+            this.iterator = (Iterator<E>) this.edges(traverser);
         }
-        this.lastTimeResults = results;
-        return results;
+        return this.iterator;
     }
 
     private Iterator<Vertex> vertices(Traverser.Admin<Vertex> traverser) {
@@ -230,7 +228,7 @@ public class HugeVertexStep<E extends Element>
 
     @Override
     public Iterator<?> lastTimeResults() {
-        return this.lastTimeResults;
+        return this.iterator;
     }
 
     @Override

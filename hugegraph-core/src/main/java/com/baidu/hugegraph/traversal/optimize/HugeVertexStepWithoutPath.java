@@ -19,8 +19,8 @@
 
 package com.baidu.hugegraph.traversal.optimize;
 
+import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.NoSuchElementException;
 
@@ -35,8 +35,8 @@ import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 import org.apache.tinkerpop.gremlin.util.iterator.EmptyIterator;
 
 import com.baidu.hugegraph.backend.BackendException;
-import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.BatchQuery;
+import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.HugeType;
@@ -60,19 +60,20 @@ public class HugeVertexStepWithoutPath<E extends Element>
     protected Traverser.Admin<E> processNextStart() {
         /* Override super.processNextStart() */
         if (this.parents == null) {
-            Function<Object, Traverser.Admin<?>> next = null;
+            Function<Object, Traverser.Admin<Vertex>> nextFunc = null;
             Step<?, Vertex> prev = this.getPreviousStep();
             if (prev.getClass() == HugeVertexStepWithoutPath.class) {
-                next = (arg) ->
-                     ((HugeVertexStepWithoutPath<?>) prev).processNextStart();
+                nextFunc = arg -> ((HugeVertexStepWithoutPath<Vertex>) prev)
+                                  .processNextStart();
             } else {
-                next = (arg) -> this.starts.next();
+                nextFunc = arg -> this.starts.next();
             }
 
-            List<Traverser.Admin<Vertex>> vertexes = new LinkedList<>();
+            // TODO: use BatchMapperIterator
+            List<Traverser.Admin<Vertex>> vertexes = new ArrayList<>();
             while (true) {
                 try {
-                    vertexes.add((Traverser.Admin<Vertex>) next.apply(null));
+                    vertexes.add(nextFunc.apply(null));
                 } catch (NoSuchElementException e) {
                     break;
                 }
@@ -122,8 +123,13 @@ public class HugeVertexStepWithoutPath<E extends Element>
     public void reset() {
         this.parents = null;
         super.reset();
-        closeIterator();
+        this.closeIterator();
         this.iterator = EmptyIterator.instance();
+    }
+
+    @Override
+    public Iterator<?> lastTimeResults() {
+        return this.iterator;
     }
 
     @Override
@@ -133,15 +139,17 @@ public class HugeVertexStepWithoutPath<E extends Element>
 
     @SuppressWarnings("unchecked")
     private Iterator<E> flatMap(List<Traverser.Admin<Vertex>> traversers) {
-        boolean queryVertex = Vertex.class.isAssignableFrom(getReturnClass());
-        boolean queryEdge = Edge.class.isAssignableFrom(getReturnClass());
+        Iterator<E> results;
+        boolean queryVertex = this.returnsVertex();
+        boolean queryEdge = this.returnsEdge();
         assert queryVertex || queryEdge;
         if (queryVertex) {
-            return (Iterator<E>) this.vertices(traversers);
+            results = (Iterator<E>) this.vertices(traversers);
         } else {
             assert queryEdge;
-            return (Iterator<E>) this.edges(traversers);
+            results = (Iterator<E>) this.edges(traversers);
         }
+        return results;
     }
 
     private Iterator<Vertex> vertices(
@@ -163,6 +171,7 @@ public class HugeVertexStepWithoutPath<E extends Element>
             batchQuery.mergeWithIn(query, HugeKeys.OWNER_VERTEX);
         }
 
+        this.injectQueryInfo(batchQuery);
         return this.queryEdges(batchQuery);
     }
 }
