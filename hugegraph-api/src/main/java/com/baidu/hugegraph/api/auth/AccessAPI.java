@@ -72,7 +72,7 @@ public class AccessAPI extends API {
         HugeGraph g = graph(manager, graph);
         HugeAccess access = jsonAccess.build();
         access.id(manager.authManager().createAccess(access));
-        return manager.serializer(g).writeUserElement(access);
+        return manager.serializer(g).writeAuthElement(access);
     }
 
     @PUT
@@ -96,7 +96,7 @@ public class AccessAPI extends API {
         }
         access = jsonAccess.build(access);
         manager.authManager().updateAccess(access);
-        return manager.serializer(g).writeUserElement(access);
+        return manager.serializer(g).writeAuthElement(access);
     }
 
     @GET
@@ -123,7 +123,7 @@ public class AccessAPI extends API {
         } else {
             belongs = manager.authManager().listAllAccess(limit);
         }
-        return manager.serializer(g).writeUserElements("accesses", belongs);
+        return manager.serializer(g).writeAuthElements("accesses", belongs);
     }
 
     @GET
@@ -137,7 +137,7 @@ public class AccessAPI extends API {
 
         HugeGraph g = graph(manager, graph);
         HugeAccess access = manager.authManager().getAccess(UserAPI.parseId(id));
-        return manager.serializer(g).writeUserElement(access);
+        return manager.serializer(g).writeAuthElement(access);
     }
 
     @DELETE

@@ -71,7 +71,7 @@ public class GroupAPI extends API {
         HugeGraph g = graph(manager, graph);
         HugeGroup group = jsonGroup.build();
         group.id(manager.authManager().createGroup(group));
-        return manager.serializer(g).writeUserElement(group);
+        return manager.serializer(g).writeAuthElement(group);
     }
 
     @PUT
@@ -95,7 +95,7 @@ public class GroupAPI extends API {
         }
         group = jsonGroup.build(group);
         manager.authManager().updateGroup(group);
-        return manager.serializer(g).writeUserElement(group);
+        return manager.serializer(g).writeAuthElement(group);
     }
 
     @GET
@@ -108,7 +108,7 @@ public class GroupAPI extends API {
 
         HugeGraph g = graph(manager, graph);
         List<HugeGroup> groups = manager.authManager().listAllGroups(limit);
-        return manager.serializer(g).writeUserElements("groups", groups);
+        return manager.serializer(g).writeAuthElements("groups", groups);
     }
 
     @GET
@@ -122,7 +122,7 @@ public class GroupAPI extends API {
 
         HugeGraph g = graph(manager, graph);
         HugeGroup group = manager.authManager().getGroup(IdGenerator.of(id));
-        return manager.serializer(g).writeUserElement(group);
+        return manager.serializer(g).writeAuthElement(group);
     }
 
     @DELETE

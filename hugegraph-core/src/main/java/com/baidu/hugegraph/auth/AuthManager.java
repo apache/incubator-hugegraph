@@ -22,7 +22,7 @@ package com.baidu.hugegraph.auth;
 import java.util.List;
 
 import com.baidu.hugegraph.auth.RolePermission;
-import com.baidu.hugegraph.auth.SchemaDefine.UserElement;
+import com.baidu.hugegraph.auth.SchemaDefine.AuthElement;
 import com.baidu.hugegraph.backend.id.Id;
 
 public interface AuthManager {
@@ -70,7 +70,7 @@ public interface AuthManager {
     public List<HugeAccess> listAccessByTarget(Id target, long limit);
 
     public HugeUser matchUser(String name, String password);
-    public RolePermission rolePermission(UserElement element);
+    public RolePermission rolePermission(AuthElement element);
 
     public RolePermission loginUser(String username, String password);
 }

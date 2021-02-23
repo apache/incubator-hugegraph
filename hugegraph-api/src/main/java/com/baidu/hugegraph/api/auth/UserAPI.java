@@ -73,7 +73,7 @@ public class UserAPI extends API {
         HugeGraph g = graph(manager, graph);
         HugeUser user = jsonUser.build();
         user.id(manager.authManager().createUser(user));
-        return manager.serializer(g).writeUserElement(user);
+        return manager.serializer(g).writeAuthElement(user);
     }
 
     @PUT
@@ -97,7 +97,7 @@ public class UserAPI extends API {
         }
         user = jsonUser.build(user);
         manager.authManager().updateUser(user);
-        return manager.serializer(g).writeUserElement(user);
+        return manager.serializer(g).writeAuthElement(user);
     }
 
     @GET
@@ -110,7 +110,7 @@ public class UserAPI extends API {
 
         HugeGraph g = graph(manager, graph);
         List<HugeUser> users = manager.authManager().listAllUsers(limit);
-        return manager.serializer(g).writeUserElements("users", users);
+        return manager.serializer(g).writeAuthElements("users", users);
     }
 
     @GET
@@ -124,7 +124,7 @@ public class UserAPI extends API {
 
         HugeGraph g = graph(manager, graph);
         HugeUser user = manager.authManager().getUser(IdGenerator.of(id));
-        return manager.serializer(g).writeUserElement(user);
+        return manager.serializer(g).writeAuthElement(user);
     }
 
     @GET

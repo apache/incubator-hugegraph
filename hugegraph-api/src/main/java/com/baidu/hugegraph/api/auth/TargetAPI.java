@@ -72,7 +72,7 @@ public class TargetAPI extends API {
         HugeGraph g = graph(manager, graph);
         HugeTarget target = jsonTarget.build();
         target.id(manager.authManager().createTarget(target));
-        return manager.serializer(g).writeUserElement(target);
+        return manager.serializer(g).writeAuthElement(target);
     }
 
     @PUT
@@ -96,7 +96,7 @@ public class TargetAPI extends API {
         }
         target = jsonTarget.build(target);
         manager.authManager().updateTarget(target);
-        return manager.serializer(g).writeUserElement(target);
+        return manager.serializer(g).writeAuthElement(target);
     }
 
     @GET
@@ -109,7 +109,7 @@ public class TargetAPI extends API {
 
         HugeGraph g = graph(manager, graph);
         List<HugeTarget> targets = manager.authManager().listAllTargets(limit);
-        return manager.serializer(g).writeUserElements("targets", targets);
+        return manager.serializer(g).writeAuthElements("targets", targets);
     }
 
     @GET
@@ -123,7 +123,7 @@ public class TargetAPI extends API {
 
         HugeGraph g = graph(manager, graph);
         HugeTarget target = manager.authManager().getTarget(UserAPI.parseId(id));
-        return manager.serializer(g).writeUserElement(target);
+        return manager.serializer(g).writeAuthElement(target);
     }
 
     @DELETE

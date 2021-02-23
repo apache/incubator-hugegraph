@@ -88,11 +88,11 @@ public abstract class SchemaDefine {
 
     protected String[] initProperties(List<String> props) {
         String label = this.label;
-        props.add(createPropertyKey(hideField(label, UserElement.CREATE),
+        props.add(createPropertyKey(hideField(label, AuthElement.CREATE),
                                     DataType.DATE));
-        props.add(createPropertyKey(hideField(label, UserElement.UPDATE),
+        props.add(createPropertyKey(hideField(label, AuthElement.UPDATE),
                                     DataType.DATE));
-        props.add(createPropertyKey(hideField(label, UserElement.CREATOR)));
+        props.add(createPropertyKey(hideField(label, AuthElement.CREATOR)));
 
         return props.toArray(new String[0]);
     }
@@ -116,7 +116,7 @@ public abstract class SchemaDefine {
         return Hidden.unHide(label) + "_" + key;
     }
 
-    public static abstract class UserElement implements Serializable {
+    public static abstract class AuthElement implements Serializable {
 
         private static final long serialVersionUID = 8746691160192814973L;
 
@@ -129,7 +129,7 @@ public abstract class SchemaDefine {
         protected Date update;
         protected String creator;
 
-        public UserElement() {
+        public AuthElement() {
             this.create = new Date();
             this.update = this.create;
         }
@@ -240,7 +240,7 @@ public abstract class SchemaDefine {
         protected abstract Object[] asArray();
     }
 
-    public static abstract class Entity extends UserElement
+    public static abstract class Entity extends AuthElement
                            implements com.baidu.hugegraph.type.Namifiable {
 
         private static final long serialVersionUID = 4113319546914811762L;
@@ -269,7 +269,7 @@ public abstract class SchemaDefine {
         }
     }
 
-    public static abstract class Relationship extends UserElement {
+    public static abstract class Relationship extends AuthElement {
 
         private static final long serialVersionUID = -1406157381685832493L;
 

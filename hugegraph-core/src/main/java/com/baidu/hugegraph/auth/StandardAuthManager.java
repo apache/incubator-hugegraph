@@ -26,7 +26,7 @@ import java.util.Set;
 
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.auth.HugeUser.P;
-import com.baidu.hugegraph.auth.SchemaDefine.UserElement;
+import com.baidu.hugegraph.auth.SchemaDefine.AuthElement;
 import com.baidu.hugegraph.backend.cache.Cache;
 import com.baidu.hugegraph.backend.cache.CacheManager;
 import com.baidu.hugegraph.backend.id.Id;
@@ -349,7 +349,7 @@ public class StandardAuthManager implements AuthManager {
     }
 
     @Override
-    public RolePermission rolePermission(UserElement element) {
+    public RolePermission rolePermission(AuthElement element) {
         if (element instanceof HugeUser) {
             return this.rolePermission((HugeUser) element);
         } else if (element instanceof HugeTarget) {

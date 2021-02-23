@@ -71,7 +71,7 @@ public class BelongAPI extends API {
         HugeGraph g = graph(manager, graph);
         HugeBelong belong = jsonBelong.build();
         belong.id(manager.authManager().createBelong(belong));
-        return manager.serializer(g).writeUserElement(belong);
+        return manager.serializer(g).writeAuthElement(belong);
     }
 
     @PUT
@@ -95,7 +95,7 @@ public class BelongAPI extends API {
         }
         belong = jsonBelong.build(belong);
         manager.authManager().updateBelong(belong);
-        return manager.serializer(g).writeUserElement(belong);
+        return manager.serializer(g).writeAuthElement(belong);
     }
 
     @GET
@@ -122,7 +122,7 @@ public class BelongAPI extends API {
         } else {
             belongs = manager.authManager().listAllBelong(limit);
         }
-        return manager.serializer(g).writeUserElements("belongs", belongs);
+        return manager.serializer(g).writeAuthElements("belongs", belongs);
     }
 
     @GET
@@ -136,7 +136,7 @@ public class BelongAPI extends API {
 
         HugeGraph g = graph(manager, graph);
         HugeBelong belong = manager.authManager().getBelong(UserAPI.parseId(id));
-        return manager.serializer(g).writeUserElement(belong);
+        return manager.serializer(g).writeAuthElement(belong);
     }
 
     @DELETE

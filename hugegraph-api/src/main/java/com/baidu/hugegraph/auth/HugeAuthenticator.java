@@ -31,7 +31,7 @@ import org.apache.tinkerpop.shaded.jackson.annotation.JsonProperty;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.auth.HugeGraphAuthProxy.Context;
-import com.baidu.hugegraph.auth.SchemaDefine.UserElement;
+import com.baidu.hugegraph.auth.SchemaDefine.AuthElement;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.OptionSpace;
 import com.baidu.hugegraph.config.ServerOptions;
@@ -378,7 +378,7 @@ public interface HugeAuthenticator extends Authenticator {
             }
 
             if (resourceObject != null) {
-                UserElement element = (UserElement) resourceObject.operated();
+                AuthElement element = (AuthElement) resourceObject.operated();
                 if (element instanceof HugeUser &&
                     ((HugeUser) element).name().equals(USER_ADMIN)) {
                     // Can't access admin by other users

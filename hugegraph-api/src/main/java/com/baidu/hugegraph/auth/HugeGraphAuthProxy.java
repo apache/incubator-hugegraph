@@ -57,7 +57,7 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.auth.HugeAuthenticator.RolePerm;
 import com.baidu.hugegraph.auth.HugeAuthenticator.User;
-import com.baidu.hugegraph.auth.SchemaDefine.UserElement;
+import com.baidu.hugegraph.auth.SchemaDefine.AuthElement;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
@@ -713,13 +713,13 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         });
     }
 
-    private <V extends UserElement> V verifyUserPermission(
+    private <V extends AuthElement> V verifyUserPermission(
                                       HugePermission actionPerm,
                                       V elementFetcher) {
         return verifyUserPermission(actionPerm, true, () -> elementFetcher);
     }
 
-    private <V extends UserElement> List<V> verifyUserPermission(
+    private <V extends AuthElement> List<V> verifyUserPermission(
                                             HugePermission actionPerm,
                                             List<V> elems) {
         List<V> results = new ArrayList<>();
@@ -732,7 +732,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         return results;
     }
 
-    private <V extends UserElement> V verifyUserPermission(
+    private <V extends AuthElement> V verifyUserPermission(
                                       HugePermission actionPerm,
                                       boolean throwIfNoPerm,
                                       Supplier<V> elementFetcher) {
@@ -862,7 +862,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         }
         // verify permission for one access another, like: granted <= user role
         else if (ro.type().isGrantOrUser()) {
-            UserElement element = (UserElement) ro.operated();
+            AuthElement element = (AuthElement) ro.operated();
             RolePermission grant = this.hugegraph.authManager()
                                                  .rolePermission(element);
             if (!RolePerm.match(role, grant, ro)) {
@@ -1056,7 +1056,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
             this.authManager = origin;
         }
 
-        private UserElement updateCreator(UserElement elem) {
+        private AuthElement updateCreator(AuthElement elem) {
             String username = currentUsername();
             if (username != null && elem.creator() == null) {
                 elem.creator(username);
@@ -1329,7 +1329,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         }
 
         @Override
-        public RolePermission rolePermission(UserElement element) {
+        public RolePermission rolePermission(AuthElement element) {
             String username = currentUsername();
             if (!(element instanceof HugeUser) ||
                 !((HugeUser) element).name().equals(username)) {
