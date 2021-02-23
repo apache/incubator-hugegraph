@@ -402,7 +402,7 @@ public abstract class MysqlTable
             selections = ids;
         } else {
             ConditionQuery condQuery = (ConditionQuery) query;
-            if (condQuery.containsScanCondition()) {
+            if (condQuery.containsScanRelation()) {
                 assert ids.size() == 1;
                 return ImmutableList.of(queryByRange(condQuery, ids.get(0)));
             }

@@ -629,7 +629,7 @@ public abstract class Condition {
         }
 
         @Override
-        public Object key() {
+        public HugeKeys key() {
             return this.key;
         }
 
@@ -652,6 +652,18 @@ public abstract class Condition {
             clone.serialKey(this.serialKey);
             clone.serialValue(this.serialValue);
             return clone;
+        }
+    }
+
+    public static class FlattenSyspropRelation extends SyspropRelation {
+
+        public FlattenSyspropRelation(SyspropRelation relation) {
+            super(relation.key(), relation.relation(), relation.value());
+        }
+
+        @Override
+        public boolean isFlattened() {
+            return true;
         }
     }
 

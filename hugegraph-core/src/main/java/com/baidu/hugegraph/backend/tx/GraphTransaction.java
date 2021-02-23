@@ -1261,7 +1261,7 @@ public class GraphTransaction extends IndexableTransaction {
              */
             if (query.containsCondition(HugeKeys.LABEL) ||
                 query.containsCondition(HugeKeys.PROPERTIES) ||
-                query.containsScanCondition()) {
+                query.containsScanRelation()) {
                 return;
             }
         }
@@ -1293,7 +1293,7 @@ public class GraphTransaction extends IndexableTransaction {
              */
             if (query.containsCondition(HugeKeys.LABEL) ||
                 query.containsCondition(HugeKeys.PROPERTIES) ||
-                query.containsScanCondition()) {
+                query.containsScanRelation()) {
                 return;
             }
         }
@@ -1324,9 +1324,10 @@ public class GraphTransaction extends IndexableTransaction {
 
     private <R> QueryList<R> optimizeQueries(Query query,
                                              QueryResults.Fetcher<R> fetcher) {
+        boolean supportIn = this.storeFeatures().supportsQueryWithInCondition();
         QueryList<R> queries = new QueryList<>(query, fetcher);
         for (ConditionQuery cq: ConditionQueryFlatten.flatten(
-                                (ConditionQuery) query)) {
+                                (ConditionQuery) query, supportIn)) {
             // Optimize by sysprop
             Query q = this.optimizeQuery(cq);
             /*

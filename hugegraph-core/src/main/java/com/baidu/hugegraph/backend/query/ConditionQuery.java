@@ -197,7 +197,8 @@ public class ConditionQuery extends IdQuery {
         for (Condition c : this.conditions) {
             if (c.isRelation()) {
                 Condition.Relation r = (Condition.Relation) c;
-                if (r.key().equals(key) && r.relation() == RelationType.EQ) {
+                if (r.key().equals(key) && (r.relation() == RelationType.EQ ||
+                                            r.relation() == RelationType.IN)) {
                     values.add(r.value());
                 }
             }
@@ -234,8 +235,7 @@ public class ConditionQuery extends IdQuery {
         return false;
     }
 
-    public boolean containsCondition(HugeKeys key,
-                                     Condition.RelationType type) {
+    public boolean containsRelation(HugeKeys key, Condition.RelationType type) {
         for (Relation r : this.relations()) {
             if (r.key().equals(key) && r.relation().equals(type)) {
                 return true;
@@ -244,7 +244,7 @@ public class ConditionQuery extends IdQuery {
         return false;
     }
 
-    public boolean containsCondition(Condition.RelationType type) {
+    public boolean containsRelation(Condition.RelationType type) {
         for (Relation r : this.relations()) {
             if (r.relation().equals(type)) {
                 return true;
@@ -253,8 +253,8 @@ public class ConditionQuery extends IdQuery {
         return false;
     }
 
-    public boolean containsScanCondition() {
-        return this.containsCondition(Condition.RelationType.SCAN);
+    public boolean containsScanRelation() {
+        return this.containsRelation(Condition.RelationType.SCAN);
     }
 
     public boolean containsContainsCondition(Id key) {

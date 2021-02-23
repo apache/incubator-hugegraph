@@ -396,6 +396,11 @@ public abstract class InMemoryDBStore
         }
 
         @Override
+        public boolean supportsQueryWithInCondition() {
+            return false;
+        }
+
+        @Override
         public boolean supportsQueryWithRangeCondition() {
             return true;
         }

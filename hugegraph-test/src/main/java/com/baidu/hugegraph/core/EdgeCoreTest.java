@@ -2000,7 +2000,7 @@ public class EdgeCoreTest extends BaseCoreTest {
         Assert.assertEquals(james, edges.get(0).outVertex());
         Assert.assertEquals(james, edges.get(1).outVertex());
         Assert.assertEquals(james, edges.get(2).outVertex());
-        Assert.assertEquals(james, edges.get(2).outVertex());
+        Assert.assertEquals(james, edges.get(3).outVertex());
 
         edges = graph.traversal().V()
                      .hasLabel("person").has("name", "Louise")

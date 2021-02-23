@@ -232,7 +232,7 @@ public class HbaseTable extends BackendTable<Session, BackendEntry> {
     }
 
     protected <R> R queryByCond(HbaseSession<R> session, ConditionQuery query) {
-        if (query.containsScanCondition()) {
+        if (query.containsScanRelation()) {
             E.checkArgument(query.relations().size() == 1,
                             "Invalid scan with multi conditions: %s", query);
             Relation scan = query.relations().iterator().next();

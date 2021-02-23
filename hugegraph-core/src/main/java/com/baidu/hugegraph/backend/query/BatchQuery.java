@@ -42,7 +42,7 @@ public class BatchQuery extends ConditionQuery {
         Object value = query.condition(key);
 
         if (this.in == null) {
-            assert !this.containsCondition(RelationType.IN);
+            assert !this.containsRelation(RelationType.IN);
             this.resetConditions(new LinkedHashSet<>(query.conditions()));
             this.unsetCondition(key);
 

@@ -30,7 +30,9 @@ import java.util.stream.Collectors;
 
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Condition.Relation;
+import com.baidu.hugegraph.backend.query.Condition.SyspropRelation;
 import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.NumericUtil;
 import com.google.common.collect.ImmutableList;
@@ -43,6 +45,11 @@ public final class ConditionQueryFlatten {
     );
 
     public static List<ConditionQuery> flatten(ConditionQuery query) {
+        return flatten(query, false);
+    }
+
+    public static List<ConditionQuery> flatten(ConditionQuery query,
+                                               boolean supportIn) {
         if (query.isFlattened() && !query.mayHasDupKeys(SPECIAL_KEYS)) {
             return Arrays.asList(query);
         }
@@ -52,7 +59,7 @@ public final class ConditionQueryFlatten {
         // Flatten IN/NOT_IN if needed
         Set<Condition> conditions = InsertionOrderUtil.newSet();
         for (Condition condition : query.conditions()) {
-            Condition cond = flattenIn(condition);
+            Condition cond = flattenIn(condition, supportIn);
             if (cond == null) {
                 // Process 'XX in []'
                 return ImmutableList.of();
@@ -92,13 +99,18 @@ public final class ConditionQueryFlatten {
         return queries;
     }
 
-    private static Condition flattenIn(Condition condition) {
+    private static Condition flattenIn(Condition condition, boolean supportIn) {
         switch (condition.type()) {
             case RELATION:
                 Relation relation = (Relation) condition;
                 switch (relation.relation()) {
                     case IN:
                         // Flatten IN if needed
+                        if (supportIn && relation.isSysprop() &&
+                            relation.key() == HugeKeys.OWNER_VERTEX) {
+                            return new Condition.FlattenSyspropRelation(
+                                       (SyspropRelation) relation);
+                        }
                         return convIn2Or(relation);
                     case NOT_IN:
                         // Flatten NOT_IN if needed
@@ -111,12 +123,12 @@ public final class ConditionQueryFlatten {
                 }
             case AND:
                 Condition.And and = (Condition.And) condition;
-                return new Condition.And(flattenIn(and.left()),
-                                         flattenIn(and.right()));
+                return new Condition.And(flattenIn(and.left(), supportIn),
+                                         flattenIn(and.right(), supportIn));
             case OR:
                 Condition.Or or = (Condition.Or) condition;
-                return new Condition.Or(flattenIn(or.left()),
-                                        flattenIn(or.right()));
+                return new Condition.Or(flattenIn(or.left(), supportIn),
+                                        flattenIn(or.right(), supportIn));
             default:
                 throw new AssertionError(String.format(
                           "Wrong condition type: '%s'", condition.type()));
@@ -127,7 +139,9 @@ public final class ConditionQueryFlatten {
         assert relation.relation() == Condition.RelationType.IN;
         Object key = relation.key();
         @SuppressWarnings("unchecked")
-        List<Object>  values = (List<Object>) relation.value();
+        List<Object> values = (List<Object>) relation.value();
+        E.checkArgument(values.size() < 10000,
+                        "Too many conditions(%s) each query", values.size());
         Condition cond, conds = null;
         for (Object value : values) {
             if (key instanceof HugeKeys) {
