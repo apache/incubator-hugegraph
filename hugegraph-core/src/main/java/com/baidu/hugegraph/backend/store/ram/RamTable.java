@@ -49,7 +49,9 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
+import com.baidu.hugegraph.backend.query.ConditionQueryFlatten;
 import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.iterator.FlatMapperIterator;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.VertexLabel;
@@ -268,7 +270,7 @@ public final class RamTable {
         ConditionQuery cq = (ConditionQuery) query;
 
         int conditionsSize = cq.conditions().size();
-        Id owner = cq.condition(HugeKeys.OWNER_VERTEX);
+        Object owner = cq.condition(HugeKeys.OWNER_VERTEX);
         Directions direction = cq.condition(HugeKeys.DIRECTION);
         Id label = cq.condition(HugeKeys.LABEL);
 
@@ -300,14 +302,25 @@ public final class RamTable {
         assert this.matched(query);
         assert this.edgesSize() > 0;
 
-        ConditionQuery cq = (ConditionQuery) query;
-        Id owner = cq.condition(HugeKeys.OWNER_VERTEX);
+        List<ConditionQuery> cqs = ConditionQueryFlatten.flatten(
+                                   (ConditionQuery) query);
+        if (cqs.size() == 1) {
+            ConditionQuery cq = cqs.get(0);
+            return this.query(cq);
+        }
+        return new FlatMapperIterator<>(cqs.iterator(), cq -> {
+            return this.query(cq);
+        });
+    }
+
+    private Iterator<HugeEdge> query(ConditionQuery query) {
+        Id owner = query.condition(HugeKeys.OWNER_VERTEX);
         assert owner != null;
-        Directions dir = cq.condition(HugeKeys.DIRECTION);
+        Directions dir = query.condition(HugeKeys.DIRECTION);
         if (dir == null) {
             dir = Directions.BOTH;
         }
-        Id label = cq.condition(HugeKeys.LABEL);
+        Id label = query.condition(HugeKeys.LABEL);
         if (label == null) {
             label = IdGenerator.ZERO;
         }
