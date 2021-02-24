@@ -29,11 +29,11 @@ import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
 import com.google.common.collect.ImmutableList;
 
-public class BatchQuery extends ConditionQuery {
+public class BatchConditionQuery extends ConditionQuery {
 
     private Condition.Relation in = null;
 
-    public BatchQuery(HugeType resultType) {
+    public BatchConditionQuery(HugeType resultType) {
         super(resultType);
     }
 

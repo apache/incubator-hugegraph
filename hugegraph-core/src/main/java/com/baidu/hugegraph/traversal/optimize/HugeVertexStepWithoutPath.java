@@ -35,7 +35,7 @@ import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 import org.apache.tinkerpop.gremlin.util.iterator.EmptyIterator;
 
 import com.baidu.hugegraph.backend.BackendException;
-import com.baidu.hugegraph.backend.query.BatchQuery;
+import com.baidu.hugegraph.backend.query.BatchConditionQuery;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeVertex;
@@ -163,7 +163,7 @@ public class HugeVertexStepWithoutPath<E extends Element>
     private Iterator<Edge> edges(List<Traverser.Admin<Vertex>> traversers) {
         assert traversers.size() > 0;
 
-        BatchQuery batchQuery = new BatchQuery(HugeType.EDGE);
+        BatchConditionQuery batchQuery = new BatchConditionQuery(HugeType.EDGE);
 
         for (Traverser.Admin<Vertex> t : traversers) {
             ConditionQuery query = this.constructEdgesQuery(t);
