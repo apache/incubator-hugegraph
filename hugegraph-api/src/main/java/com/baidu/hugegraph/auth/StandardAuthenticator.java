@@ -37,6 +37,8 @@ import com.baidu.hugegraph.util.StringEncoding;
 
 public class StandardAuthenticator implements HugeAuthenticator {
 
+    private static final String INITING_STORE = "initing-store";
+
     private HugeGraph graph = null;
 
     private HugeGraph graph() {
@@ -52,7 +54,7 @@ public class StandardAuthenticator implements HugeAuthenticator {
         UserManager userManager = this.graph().hugegraph().userManager();
         if (userManager.findUser(HugeAuthenticator.USER_ADMIN) == null) {
             HugeUser admin = new HugeUser(HugeAuthenticator.USER_ADMIN);
-            admin.password(StringEncoding.hashPassword(inputPassword()));
+            admin.password(StringEncoding.hashPassword(this.inputPassword()));
             admin.creator(HugeAuthenticator.USER_SYSTEM);
             userManager.createUser(admin);
         }
@@ -80,9 +82,12 @@ public class StandardAuthenticator implements HugeAuthenticator {
         String graphPath = config.getMap(ServerOptions.GRAPHS).get(graphName);
         E.checkArgument(graphPath != null,
                         "Invalid graph name '%s'", graphName);
-        HugeConfig hugeConfig = new HugeConfig(graphName);
-        // Forced set to false when initializing backend
-        hugeConfig.setProperty(CoreOptions.RAFT_MODE.name(), "false");
+        HugeConfig hugeConfig = new HugeConfig(graphPath);
+        if (config.getProperty(INITING_STORE) != null &&
+            config.getBoolean(INITING_STORE)) {
+            // Forced set to false when initializing backend
+            hugeConfig.setProperty(CoreOptions.RAFT_MODE.name(), "false");
+        }
         this.graph = (HugeGraph) GraphFactory.open(hugeConfig);
 
         String remoteUrl = config.get(ServerOptions.AUTH_REMOTE_URL);
@@ -132,6 +137,7 @@ public class StandardAuthenticator implements HugeAuthenticator {
         if (authClass.isEmpty()) {
             return;
         }
+        config.addProperty(INITING_STORE, true);
         auth.setup(config);
         auth.initAdminUser();
     }
