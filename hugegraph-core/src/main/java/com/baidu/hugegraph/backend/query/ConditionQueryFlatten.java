@@ -138,13 +138,13 @@ public final class ConditionQueryFlatten {
                         "Expect list value for IN condition: %s", relation);
         @SuppressWarnings("unchecked")
         List<Object> values = (List<Object>) valueObject;
-        E.checkArgument(values.size() < 10000,
+        E.checkArgument(values.size() <= Query.QUERY_BATCH,
                         "Too many conditions(%s) each query", values.size());
 
         // Keep IN condition if supported and necessary
         if (supportIn && relation.isSysprop() && values.size() > 1 &&
             key == HugeKeys.OWNER_VERTEX || key == HugeKeys.ID) {
-            // Should not rely on HugeKeys here, improve key judgment
+            // TODO: Should not rely on HugeKeys here, improve key judgment
             // Just mark flatten
             return new Condition.FlattenSyspropRelation(
                        (SyspropRelation) relation);

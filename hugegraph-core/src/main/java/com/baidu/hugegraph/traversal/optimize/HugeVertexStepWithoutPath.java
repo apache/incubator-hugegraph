@@ -63,6 +63,7 @@ public class HugeVertexStepWithoutPath<E extends Element>
             Function<Object, Traverser.Admin<Vertex>> nextFunc = null;
             Step<?, Vertex> prev = this.getPreviousStep();
             if (prev.getClass() == HugeVertexStepWithoutPath.class) {
+                // Just optimize, it's ok to call this.starts.next()
                 nextFunc = arg -> ((HugeVertexStepWithoutPath<Vertex>) prev)
                                   .processNextStart();
             } else {
@@ -93,30 +94,6 @@ public class HugeVertexStepWithoutPath<E extends Element>
         }
 
         throw FastNoSuchElementException.instance();
-    }
-
-    @SuppressWarnings("unused")
-    private Traverser.Admin<Vertex> parent(E item) {
-        assert this.parents != null;
-        Vertex parent = null;
-        if (item instanceof HugeVertex) {
-            HugeVertex vertex = (HugeVertex) item;
-            // TODO: set the edge connected with the parent
-            assert vertex.getEdges().size() == 1;
-            parent = vertex.getEdges().iterator().next().otherVertex();
-        } else {
-            assert item instanceof HugeEdge;
-            parent = ((HugeEdge) item).otherVertex();
-        }
-
-        for (Traverser.Admin<Vertex> p : this.parents) {
-            if (p.equals(parent)) {
-                return p;
-            }
-        }
-
-        throw new BackendException(
-                  "Unexpected item(without parent): '%s'", item);
     }
 
     @Override
@@ -173,5 +150,29 @@ public class HugeVertexStepWithoutPath<E extends Element>
 
         this.injectQueryInfo(batchQuery);
         return this.queryEdges(batchQuery);
+    }
+
+    @SuppressWarnings("unused")
+    private Traverser.Admin<Vertex> parent(E item) {
+        assert this.parents != null;
+        Vertex parent = null;
+        if (item instanceof HugeVertex) {
+            HugeVertex vertex = (HugeVertex) item;
+            // TODO: set the edge connected with the parent
+            assert vertex.getEdges().size() == 1;
+            parent = vertex.getEdges().iterator().next().otherVertex();
+        } else {
+            assert item instanceof HugeEdge;
+            parent = ((HugeEdge) item).otherVertex();
+        }
+
+        for (Traverser.Admin<Vertex> p : this.parents) {
+            if (p.equals(parent)) {
+                return p;
+            }
+        }
+
+        throw new BackendException(
+                  "Unexpected item(without parent): '%s'", item);
     }
 }

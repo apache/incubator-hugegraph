@@ -84,8 +84,8 @@ public class HugeVertexStep<E extends Element>
         Iterator<Edge> edges = this.edges(traverser);
         Iterator<Vertex> vertices = this.queryAdjacentVertices(edges);
 
-        Vertex vertex = traverser.get();
         if (LOG.isDebugEnabled()) {
+            Vertex vertex = traverser.get();
             LOG.debug("HugeVertexStep.vertices(): is there adjacent " +
                       "vertices of {}: {}, has={}",
                       vertex.id(), vertices.hasNext(), this.hasContainers);
