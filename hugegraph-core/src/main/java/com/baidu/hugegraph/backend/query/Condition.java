@@ -611,6 +611,9 @@ public abstract class Condition {
         public abstract boolean isSysprop();
 
         public abstract Object key();
+
+        @Override
+        public abstract Relation copy();
     }
 
     public static class SyspropRelation extends Relation {
@@ -646,7 +649,7 @@ public abstract class Condition {
         }
 
         @Override
-        public Condition copy() {
+        public Relation copy() {
             Relation clone = new SyspropRelation(this.key, this.relation(),
                                                  this.value);
             clone.serialKey(this.serialKey);
@@ -711,7 +714,7 @@ public abstract class Condition {
         }
 
         @Override
-        public Condition copy() {
+        public Relation copy() {
             Relation clone = new UserpropRelation(this.key, this.relation(),
                                                   this.value);
             clone.serialKey(this.serialKey);

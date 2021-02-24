@@ -106,12 +106,7 @@ public final class ConditionQueryFlatten {
                 switch (relation.relation()) {
                     case IN:
                         // Flatten IN if needed
-                        if (supportIn && relation.isSysprop() &&
-                            relation.key() == HugeKeys.OWNER_VERTEX) {
-                            return new Condition.FlattenSyspropRelation(
-                                       (SyspropRelation) relation);
-                        }
-                        return convIn2Or(relation);
+                        return convIn2Or(relation, supportIn);
                     case NOT_IN:
                         // Flatten NOT_IN if needed
                         return convNotin2And(relation);
@@ -135,20 +130,37 @@ public final class ConditionQueryFlatten {
         }
     }
 
-    private static Condition convIn2Or(Relation relation) {
+    private static Condition convIn2Or(Relation relation, boolean supportIn) {
         assert relation.relation() == Condition.RelationType.IN;
         Object key = relation.key();
+        Object valueObject = relation.value();
+        E.checkArgument(valueObject instanceof List,
+                        "Expect list value for IN condition: %s", relation);
         @SuppressWarnings("unchecked")
-        List<Object> values = (List<Object>) relation.value();
+        List<Object> values = (List<Object>) valueObject;
         E.checkArgument(values.size() < 10000,
                         "Too many conditions(%s) each query", values.size());
-        Condition cond, conds = null;
+
+        // Keep IN condition if supported and necessary
+        if (supportIn && relation.isSysprop() && values.size() > 1 &&
+            key == HugeKeys.OWNER_VERTEX || key == HugeKeys.ID) {
+            // Should not rely on HugeKeys here, improve key judgment
+            // Just mark flatten
+            return new Condition.FlattenSyspropRelation(
+                       (SyspropRelation) relation);
+        }
+
+        // Do IN flatten, return null if values.size() == 0
+        Condition conds = null;
         for (Object value : values) {
+            Condition cond;
+            // Convert IN to EQ
             if (key instanceof HugeKeys) {
                 cond = Condition.eq((HugeKeys) key, value);
             } else {
                 cond = Condition.eq((Id) key, value);
             }
+            // Join EQ with OR
             conds = conds == null ? cond : Condition.or(conds, cond);
         }
         return conds;
