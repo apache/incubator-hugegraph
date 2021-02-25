@@ -53,13 +53,19 @@ public final class HugeVertexStepStrategy
 
         List<VertexStep> steps = TraversalHelper.getStepsOfClass(
                                  VertexStep.class, traversal);
-        boolean withoutPath = false;
+
+        boolean batchOptimize = false;
         if (!steps.isEmpty()) {
-            withoutPath = !HugeVertexStepStrategy.containsPath(traversal);
+            boolean withPath = HugeVertexStepStrategy.containsPath(traversal);
+            boolean supportIn = TraversalUtil.getGraph(steps.get(0))
+                                             .backendStoreFeatures()
+                                             .supportsQueryWithInCondition();
+            batchOptimize = !withPath && supportIn;
         }
+
         for (VertexStep originStep : steps) {
-            HugeVertexStep<?> newStep = withoutPath ?
-                              new HugeVertexStepWithoutPath<>(originStep) :
+            HugeVertexStep<?> newStep = batchOptimize ?
+                              new HugeVertexStepByBatch<>(originStep) :
                               new HugeVertexStep<>(originStep);
             TraversalHelper.replaceStep(originStep, newStep, traversal);
 

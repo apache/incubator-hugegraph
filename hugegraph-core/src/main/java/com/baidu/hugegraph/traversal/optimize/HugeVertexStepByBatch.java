@@ -37,7 +37,7 @@ import com.baidu.hugegraph.iterator.BatchMapperIterator;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 
-public class HugeVertexStepWithoutPath<E extends Element>
+public class HugeVertexStepByBatch<E extends Element>
        extends HugeVertexStep<E> {
 
     private static final long serialVersionUID = -3609787815053052222L;
@@ -48,7 +48,7 @@ public class HugeVertexStepWithoutPath<E extends Element>
     private Traverser.Admin<Vertex> head;
     private Iterator<E> iterator;
 
-    public HugeVertexStepWithoutPath(final VertexStep<E> originalVertexStep) {
+    public HugeVertexStepByBatch(final VertexStep<E> originalVertexStep) {
         super(originalVertexStep);
         this.batchIterator = null;
         this.head = null;
@@ -125,8 +125,8 @@ public class HugeVertexStepWithoutPath<E extends Element>
 
         BatchConditionQuery batchQuery = new BatchConditionQuery(HugeType.EDGE);
 
-        for (Traverser.Admin<Vertex> t : traversers) {
-            ConditionQuery query = this.constructEdgesQuery(t);
+        for (Traverser.Admin<Vertex> traverser : traversers) {
+            ConditionQuery query = this.constructEdgesQuery(traverser);
             // Merge each query into batch query
             batchQuery.mergeWithIn(query, HugeKeys.OWNER_VERTEX);
         }
