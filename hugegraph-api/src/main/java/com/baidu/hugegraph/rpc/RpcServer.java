@@ -43,8 +43,8 @@ public class RpcServer {
         this.conf = conf;
         this.serverConfig = new ServerConfig();
         this.serverConfig.setProtocol(conf.get(ServerOptions.RPC_PROTOCOL))
-                         .setPort(conf.get(ServerOptions.RPC_SERVER_PORT))
                          .setHost(conf.get(ServerOptions.RPC_SERVER_HOST))
+                         .setPort(conf.get(ServerOptions.RPC_SERVER_PORT))
                          .setDaemon(false);
         this.configs = new RpcProviderConfig();
     }

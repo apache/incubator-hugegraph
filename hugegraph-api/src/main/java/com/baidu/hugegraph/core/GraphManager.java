@@ -169,7 +169,7 @@ public final class GraphManager {
     }
 
     public void close() {
-        this.destoryRpcServer();
+        this.destroyRpcServer();
     }
 
     private void startRpcServer() {
@@ -197,7 +197,7 @@ public final class GraphManager {
         }
     }
 
-    private void destoryRpcServer() {
+    private void destroyRpcServer() {
         this.rpcServer.destroy();
     }
 

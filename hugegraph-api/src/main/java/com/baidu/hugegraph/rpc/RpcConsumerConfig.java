@@ -146,7 +146,10 @@ public class RpcConsumerConfig implements RpcServiceConfig4Client {
             }
 
             if (responses.size() > 0) {
-                // Just choose one
+                /*
+                 * Just choose the first one as result to return, ignore others
+                 * TODO: maybe more strategies should be provided
+                 */
                 return responses.get(0);
             } else if (excepts.size() > 0) {
                 throw excepts.get(0);
@@ -180,9 +183,8 @@ public class RpcConsumerConfig implements RpcServiceConfig4Client {
         }
 
         private static String methodName(SofaRequest request) {
-            String method = request.getInterfaceName() + "." +
-                            request.getMethodName() + "()";
-            return method;
+            return request.getInterfaceName() + "." +
+                   request.getMethodName() + "()";
         }
     }
 }

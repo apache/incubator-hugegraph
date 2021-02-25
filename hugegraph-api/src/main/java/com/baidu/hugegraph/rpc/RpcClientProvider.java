@@ -39,7 +39,7 @@ public class RpcClientProvider {
         String rpcUrl = conf.get(ServerOptions.RPC_REMOTE_URL);
         String selfUrl = conf.get(ServerOptions.RPC_SERVER_HOST) + ":" +
                          conf.get(ServerOptions.RPC_SERVER_PORT);
-        rpcUrl = execludeSelfUrl(rpcUrl, selfUrl);
+        rpcUrl = excludeSelfUrl(rpcUrl, selfUrl);
         this.consumerConfig = StringUtils.isNotBlank(rpcUrl) ?
                               new RpcConsumerConfig(conf, rpcUrl) : null;
 
@@ -66,7 +66,7 @@ public class RpcClientProvider {
         return this.authConsumerConfig.serviceProxy(UserManager.class);
     }
 
-    private static String execludeSelfUrl(String rpcUrl, String selfUrl) {
+    private static String excludeSelfUrl(String rpcUrl, String selfUrl) {
         String[] urls = StringUtils.splitWithCommaOrSemicolon(rpcUrl);
         Set<String> urlsSet = new LinkedHashSet<>(Arrays.asList(urls));
         urlsSet.remove(selfUrl);

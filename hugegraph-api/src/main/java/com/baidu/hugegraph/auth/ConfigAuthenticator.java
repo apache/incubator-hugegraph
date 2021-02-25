@@ -45,8 +45,9 @@ public class ConfigAuthenticator implements HugeAuthenticator {
 
     @Override
     public void setup(HugeConfig config) {
-        this.tokens.put(USER_ADMIN, config.get(ServerOptions.AUTH_ADMIN_TOKEN));
         this.tokens.putAll(config.getMap(ServerOptions.AUTH_USER_TOKENS));
+        assert !this.tokens.containsKey(USER_ADMIN);
+        this.tokens.put(USER_ADMIN, config.get(ServerOptions.AUTH_ADMIN_TOKEN));
     }
 
     /**
