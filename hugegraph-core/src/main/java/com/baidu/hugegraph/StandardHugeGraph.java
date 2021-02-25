@@ -195,20 +195,26 @@ public class StandardHugeGraph implements HugeGraph {
 
         try {
             this.storeProvider = this.loadStoreProvider();
-        } catch (BackendException e) {
+        } catch (Exception e) {
             LockUtil.destroy(this.name);
             String message = "Failed to load backend store provider";
             LOG.error("{}: {}", message, e.getMessage());
             throw new HugeException(message);
         }
 
-        this.tx = new TinkerPopTransaction(this);
+        try {
+            this.tx = new TinkerPopTransaction(this);
 
-        SnowflakeIdGenerator.init(this.params);
+            SnowflakeIdGenerator.init(this.params);
 
-        this.taskManager.addScheduler(this.params);
-        this.userManager = new StandardUserManager(this.params);
-        this.variables = null;
+            this.taskManager.addScheduler(this.params);
+            this.userManager = new StandardUserManager(this.params);
+            this.variables = null;
+        } catch (Exception e) {
+            this.storeProvider.close();
+            LockUtil.destroy(this.name);
+            throw e;
+        }
     }
 
     @Override

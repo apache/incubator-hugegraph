@@ -74,6 +74,12 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
                      "The RaftBackendStoreProvider has not been opened");
     }
 
+    private void checkNonSharedStore(BackendStore store) {
+        E.checkArgument(!store.features().supportsSharedStorage(),
+                        "Can't enable raft mode with %s backend",
+                        this.type());
+    }
+
     @Override
     public String type() {
         return this.provider.type();
@@ -94,6 +100,7 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
         if (this.schemaStore == null) {
             LOG.info("Init raft backend schema store");
             BackendStore store = this.provider.loadSchemaStore(name);
+            this.checkNonSharedStore(store);
             this.schemaStore = new RaftBackendStore(store, this.context);
             this.context.addStore(StoreType.SCHEMA, this.schemaStore);
         }
@@ -105,6 +112,7 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
         if (this.graphStore == null) {
             LOG.info("Init raft backend graph store");
             BackendStore store = this.provider.loadGraphStore(name);
+            this.checkNonSharedStore(store);
             this.graphStore = new RaftBackendStore(store, this.context);
             this.context.addStore(StoreType.GRAPH, this.graphStore);
         }
@@ -116,6 +124,7 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
         if (this.systemStore == null) {
             LOG.info("Init raft backend system store");
             BackendStore store = this.provider.loadSystemStore(name);
+            this.checkNonSharedStore(store);
             this.systemStore = new RaftBackendStore(store, this.context);
             this.context.addStore(StoreType.SYSTEM, this.systemStore);
         }
