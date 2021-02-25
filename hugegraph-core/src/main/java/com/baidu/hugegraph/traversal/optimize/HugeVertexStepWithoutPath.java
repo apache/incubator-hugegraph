@@ -19,12 +19,9 @@
 
 package com.baidu.hugegraph.traversal.optimize;
 
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.NoSuchElementException;
 
-import org.apache.tinkerpop.gremlin.process.traversal.Step;
 import org.apache.tinkerpop.gremlin.process.traversal.Traverser;
 import org.apache.tinkerpop.gremlin.process.traversal.step.map.VertexStep;
 import org.apache.tinkerpop.gremlin.process.traversal.util.FastNoSuchElementException;
@@ -32,65 +29,45 @@ import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
-import org.apache.tinkerpop.gremlin.util.iterator.EmptyIterator;
 
-import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.query.BatchConditionQuery;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
-import com.baidu.hugegraph.structure.HugeEdge;
-import com.baidu.hugegraph.structure.HugeVertex;
+import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.iterator.BatchMapperIterator;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
-import com.google.common.base.Function;
 
 public class HugeVertexStepWithoutPath<E extends Element>
        extends HugeVertexStep<E> {
 
     private static final long serialVersionUID = -3609787815053052222L;
 
-    private List<Traverser.Admin<Vertex>> parents = null;
-    private Iterator<E> iterator = EmptyIterator.instance();
+    private final int batchSize = (int) Query.QUERY_BATCH;
+
+    private BatchMapperIterator<Traverser.Admin<Vertex>, E> batchIterator;
+    private Traverser.Admin<Vertex> head;
+    private Iterator<E> iterator;
 
     public HugeVertexStepWithoutPath(final VertexStep<E> originalVertexStep) {
         super(originalVertexStep);
+        this.batchIterator = null;
+        this.head = null;
+        this.iterator = null;
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     protected Traverser.Admin<E> processNextStart() {
         /* Override super.processNextStart() */
-        if (this.parents == null) {
-            Function<Object, Traverser.Admin<Vertex>> nextFunc = null;
-            Step<?, Vertex> prev = this.getPreviousStep();
-            if (prev.getClass() == HugeVertexStepWithoutPath.class) {
-                // Just optimize, it's ok to call this.starts.next()
-                nextFunc = arg -> ((HugeVertexStepWithoutPath<Vertex>) prev)
-                                  .processNextStart();
-            } else {
-                nextFunc = arg -> this.starts.next();
-            }
-
-            // TODO: use BatchMapperIterator
-            List<Traverser.Admin<Vertex>> vertexes = new ArrayList<>();
-            while (true) {
-                try {
-                    vertexes.add(nextFunc.apply(null));
-                } catch (NoSuchElementException e) {
-                    break;
-                }
-            }
-
-            this.parents = vertexes;
-            if (!vertexes.isEmpty()) {
-                this.iterator = this.flatMap(vertexes);
-            }
+        if (this.batchIterator == null) {
+            this.batchIterator = new BatchMapperIterator<>(
+                                 this.batchSize, this.starts, this::flatMap);
         }
 
-        if (this.iterator.hasNext()) {
-            // TODO: use this.parent(item) instead
-            Traverser.Admin<Vertex> parent = this.parents.get(0);
-            E item = this.iterator.next();
-            return parent.split(item, this);
+        if (this.batchIterator.hasNext()) {
+            assert this.head != null;
+            E item = this.batchIterator.next();
+            // TODO: find the parent node accurately instead the head
+            return this.head.split(item, this);
         }
 
         throw FastNoSuchElementException.instance();
@@ -98,35 +75,41 @@ public class HugeVertexStepWithoutPath<E extends Element>
 
     @Override
     public void reset() {
-        this.parents = null;
         super.reset();
         this.closeIterator();
-        this.iterator = EmptyIterator.instance();
+        this.batchIterator = null;
+        this.head = null;
     }
 
     @Override
     public Iterator<?> lastTimeResults() {
+        /*
+         * NOTE: fetch page from this iterator， can only get page info of
+         * the lowest level, may lost info of upper levels.
+         */
         return this.iterator;
     }
 
     @Override
     protected void closeIterator() {
-        CloseableIterator.closeIterator(this.iterator);
+        CloseableIterator.closeIterator(this.batchIterator);
     }
 
     @SuppressWarnings("unchecked")
     private Iterator<E> flatMap(List<Traverser.Admin<Vertex>> traversers) {
-        Iterator<E> results;
+        if (this.head == null && traversers.size() > 0) {
+            this.head = traversers.get(0);
+        }
         boolean queryVertex = this.returnsVertex();
         boolean queryEdge = this.returnsEdge();
         assert queryVertex || queryEdge;
         if (queryVertex) {
-            results = (Iterator<E>) this.vertices(traversers);
+            this.iterator = (Iterator<E>) this.vertices(traversers);
         } else {
             assert queryEdge;
-            results = (Iterator<E>) this.edges(traversers);
+            this.iterator = (Iterator<E>) this.edges(traversers);
         }
-        return results;
+        return this.iterator;
     }
 
     private Iterator<Vertex> vertices(
@@ -150,29 +133,5 @@ public class HugeVertexStepWithoutPath<E extends Element>
 
         this.injectQueryInfo(batchQuery);
         return this.queryEdges(batchQuery);
-    }
-
-    @SuppressWarnings("unused")
-    private Traverser.Admin<Vertex> parent(E item) {
-        assert this.parents != null;
-        Vertex parent = null;
-        if (item instanceof HugeVertex) {
-            HugeVertex vertex = (HugeVertex) item;
-            // TODO: set the edge connected with the parent
-            assert vertex.getEdges().size() == 1;
-            parent = vertex.getEdges().iterator().next().otherVertex();
-        } else {
-            assert item instanceof HugeEdge;
-            parent = ((HugeEdge) item).otherVertex();
-        }
-
-        for (Traverser.Admin<Vertex> p : this.parents) {
-            if (p.equals(parent)) {
-                return p;
-            }
-        }
-
-        throw new BackendException(
-                  "Unexpected item(without parent): '%s'", item);
     }
 }
