@@ -44,9 +44,9 @@ public abstract class WrappedIterator<R> implements CIter<R> {
     public R next() {
         if (this.current == none()) {
             this.fetch();
-        }
-        if (this.current == none()) {
-            throw new NoSuchElementException();
+            if (this.current == none()) {
+                throw new NoSuchElementException();
+            }
         }
         R current = this.current;
         this.current = none();

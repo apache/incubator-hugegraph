@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 import org.junit.Test;
@@ -235,6 +236,42 @@ public class BatchMapperIteratorTest extends BaseUnitTest {
         });
         Assert.assertFalse(results.hasNext());
         Assert.assertFalse(results.hasNext());
+
+        AtomicInteger count1 = new AtomicInteger(0);
+        results = new BatchMapperIterator<>(1, DATA3.iterator(), batch -> {
+            if (count1.incrementAndGet() == 1) {
+                return null;
+            }
+            return batch.iterator();
+        });
+        Assert.assertTrue(results.hasNext());
+        Assert.assertEquals(5, results.next());
+        Assert.assertEquals(6, results.next());
+        Assert.assertFalse(results.hasNext());
+
+        AtomicInteger count2 = new AtomicInteger(0);
+        results = new BatchMapperIterator<>(1, DATA3.iterator(), batch -> {
+            if (count2.incrementAndGet() == 2) {
+                return null;
+            }
+            return batch.iterator();
+        });
+        Assert.assertTrue(results.hasNext());
+        Assert.assertEquals(4, results.next());
+        Assert.assertEquals(6, results.next());
+        Assert.assertFalse(results.hasNext());
+
+        AtomicInteger count3 = new AtomicInteger(0);
+        results = new BatchMapperIterator<>(1, DATA3.iterator(), batch -> {
+            if (count3.incrementAndGet() == 3) {
+                return null;
+            }
+            return batch.iterator();
+        });
+        Assert.assertTrue(results.hasNext());
+        Assert.assertEquals(4, results.next());
+        Assert.assertEquals(5, results.next());
+        Assert.assertFalse(results.hasNext());
     }
 
     @Test
@@ -250,6 +287,53 @@ public class BatchMapperIteratorTest extends BaseUnitTest {
         Assert.assertThrows(NoSuchElementException.class, () -> {
             results.next();
         });
+    }
+
+    @Test
+    public void testMapperReturnEmptyThenHasNext() {
+        Iterator<Integer> results;
+
+        results = new BatchMapperIterator<>(1, DATA3.iterator(), batch -> {
+            return Collections.emptyIterator();
+        });
+        Assert.assertFalse(results.hasNext());
+        Assert.assertFalse(results.hasNext());
+
+        AtomicInteger count1 = new AtomicInteger(0);
+        results = new BatchMapperIterator<>(1, DATA3.iterator(), batch -> {
+            if (count1.incrementAndGet() == 1) {
+                return Collections.emptyIterator();
+            }
+            return batch.iterator();
+        });
+        Assert.assertTrue(results.hasNext());
+        Assert.assertEquals(5, results.next());
+        Assert.assertEquals(6, results.next());
+        Assert.assertFalse(results.hasNext());
+
+        AtomicInteger count2 = new AtomicInteger(0);
+        results = new BatchMapperIterator<>(1, DATA3.iterator(), batch -> {
+            if (count2.incrementAndGet() == 2) {
+                return Collections.emptyIterator();
+            }
+            return batch.iterator();
+        });
+        Assert.assertTrue(results.hasNext());
+        Assert.assertEquals(4, results.next());
+        Assert.assertEquals(6, results.next());
+        Assert.assertFalse(results.hasNext());
+
+        AtomicInteger count3 = new AtomicInteger(0);
+        results = new BatchMapperIterator<>(1, DATA3.iterator(), batch -> {
+            if (count3.incrementAndGet() == 3) {
+                return Collections.emptyIterator();
+            }
+            return batch.iterator();
+        });
+        Assert.assertTrue(results.hasNext());
+        Assert.assertEquals(4, results.next());
+        Assert.assertEquals(5, results.next());
+        Assert.assertFalse(results.hasNext());
     }
 
     @Test
