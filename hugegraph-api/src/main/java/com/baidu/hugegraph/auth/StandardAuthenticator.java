@@ -82,13 +82,13 @@ public class StandardAuthenticator implements HugeAuthenticator {
         String graphPath = config.getMap(ServerOptions.GRAPHS).get(graphName);
         E.checkArgument(graphPath != null,
                         "Invalid graph name '%s'", graphName);
-        HugeConfig hugeConfig = new HugeConfig(graphPath);
+        HugeConfig graphConfig = new HugeConfig(graphPath);
         if (config.getProperty(INITING_STORE) != null &&
             config.getBoolean(INITING_STORE)) {
             // Forced set to false when initializing backend
-            hugeConfig.setProperty(CoreOptions.RAFT_MODE.name(), "false");
+            graphConfig.setProperty(CoreOptions.RAFT_MODE.name(), "false");
         }
-        this.graph = (HugeGraph) GraphFactory.open(hugeConfig);
+        this.graph = (HugeGraph) GraphFactory.open(graphConfig);
 
         String remoteUrl = config.get(ServerOptions.AUTH_REMOTE_URL);
         if (StringUtils.isNotEmpty(remoteUrl)) {
