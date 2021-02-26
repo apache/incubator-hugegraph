@@ -107,7 +107,7 @@ public class InitStore {
     private static void initGraph(String configPath) throws Exception {
         LOG.info("Init graph with config file: {}", configPath);
         HugeConfig config = new HugeConfig(configPath);
-        // Forced set to false when initializing backend
+        // Forced set RAFT_MODE to false when initializing backend
         config.setProperty(CoreOptions.RAFT_MODE.name(), "false");
         HugeGraph graph = (HugeGraph) GraphFactory.open(config);
 

@@ -85,7 +85,7 @@ public class StandardAuthenticator implements HugeAuthenticator {
         HugeConfig graphConfig = new HugeConfig(graphPath);
         if (config.getProperty(INITING_STORE) != null &&
             config.getBoolean(INITING_STORE)) {
-            // Forced set RAFT_MODE to false
+            // Forced set RAFT_MODE to false when initializing backend
             graphConfig.setProperty(CoreOptions.RAFT_MODE.name(), "false");
         }
         this.graph = (HugeGraph) GraphFactory.open(graphConfig);
