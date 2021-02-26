@@ -37,7 +37,7 @@ import com.baidu.hugegraph.util.StringEncoding;
 
 public class StandardAuthenticator implements HugeAuthenticator {
 
-    private static final String INITING_STORE = "initing-store";
+    private static final String INITING_STORE = "initing_store";
 
     private HugeGraph graph = null;
 
@@ -85,7 +85,7 @@ public class StandardAuthenticator implements HugeAuthenticator {
         HugeConfig graphConfig = new HugeConfig(graphPath);
         if (config.getProperty(INITING_STORE) != null &&
             config.getBoolean(INITING_STORE)) {
-            // Forced set to false when initializing backend
+            // Forced set RAFT_MODE to false
             graphConfig.setProperty(CoreOptions.RAFT_MODE.name(), "false");
         }
         this.graph = (HugeGraph) GraphFactory.open(graphConfig);
