@@ -20,11 +20,7 @@
 package com.baidu.hugegraph.unit.license;
 
 import java.io.IOException;
-import java.text.DateFormat;
 import java.text.ParseException;
-import java.time.ZoneId;
-import java.util.Arrays;
-import java.util.TimeZone;
 
 import org.junit.Test;
 

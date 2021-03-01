@@ -28,44 +28,44 @@ import java.util.function.Function;
 
 import org.junit.Test;
 
-import com.baidu.hugegraph.iterator.FilterIterator;
+import com.baidu.hugegraph.iterator.LimitIterator;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.unit.BaseUnitTest;
 import com.baidu.hugegraph.unit.iterator.ExtendableIteratorTest.CloseableItor;
 import com.google.common.collect.ImmutableList;
 
 @SuppressWarnings("resource")
-public class FilterIteratorTest extends BaseUnitTest {
+public class LimitIteratorTest extends BaseUnitTest {
 
     private static final List<Integer> DATA = ImmutableList.of(1, 2, 3, 4);
 
     @Test
-    public void testFilter() {
+    public void testLimit() {
         AtomicInteger callbackCount = new AtomicInteger(0);
 
         Iterator<Integer> values = DATA.iterator();
 
+        int limit = 2;
         Function<Integer, Boolean> filter = value -> {
-            callbackCount.incrementAndGet();
-            return (value % 2 == 0);
+            return callbackCount.incrementAndGet() > limit;
         };
 
-        Iterator<Integer> results = new FilterIterator<>(values, filter);
+        Iterator<Integer> results = new LimitIterator<>(values, filter);
 
         List<Integer> actual = new ArrayList<>();
         while (results.hasNext()) {
             actual.add(results.next());
         }
 
-        Assert.assertEquals(4, callbackCount.get());
-        Assert.assertEquals(ImmutableList.of(2, 4), actual);
+        Assert.assertEquals(3, callbackCount.get());
+        Assert.assertEquals(ImmutableList.of(1, 2), actual);
     }
 
     @Test
     public void testHasNext() {
         Iterator<Integer> vals = DATA.iterator();
 
-        Iterator<Integer> results = new FilterIterator<>(vals, val -> true);
+        Iterator<Integer> results = new LimitIterator<>(vals, val -> false);
         Assert.assertTrue(results.hasNext());
     }
 
@@ -73,7 +73,7 @@ public class FilterIteratorTest extends BaseUnitTest {
     public void testHasNextWithMultiTimesWithoutAnyResult() {
         Iterator<Integer> vals = DATA.iterator();
 
-        Iterator<Integer> results = new FilterIterator<>(vals, val -> false);
+        Iterator<Integer> results = new LimitIterator<>(vals, val -> true);
         Assert.assertFalse(results.hasNext());
         Assert.assertFalse(results.hasNext());
     }
@@ -82,7 +82,7 @@ public class FilterIteratorTest extends BaseUnitTest {
     public void testHasNextAndNextWithMultiTimes() {
         Iterator<Integer> vals = DATA.iterator();
 
-        Iterator<Integer> results = new FilterIterator<>(vals, val -> true);
+        Iterator<Integer> results = new LimitIterator<>(vals, val -> false);
 
         for (int i = 0; i < 5; i++) {
             Assert.assertTrue(results.hasNext());
@@ -101,13 +101,16 @@ public class FilterIteratorTest extends BaseUnitTest {
         Assert.assertThrows(NoSuchElementException.class, () -> {
             results.next();
         });
+
+        Iterator<Integer> results2 = new LimitIterator<>(vals, val -> false);
+        Assert.assertFalse(results2.hasNext());
     }
 
     @Test
     public void testNext() {
         Iterator<Integer> vals = DATA.iterator();
 
-        Iterator<Integer> results = new FilterIterator<>(vals, val -> true);
+        Iterator<Integer> results = new LimitIterator<>(vals, val -> false);
         // Call next() without testNext()
         results.next();
     }
@@ -116,7 +119,7 @@ public class FilterIteratorTest extends BaseUnitTest {
     public void testNextWithMultiTimes() {
         Iterator<Integer> vals = DATA.iterator();
 
-        Iterator<Integer> results = new FilterIterator<>(vals, val -> true);
+        Iterator<Integer> results = new LimitIterator<>(vals, val -> false);
         for (int i = 0; i < 4; i++) {
             results.next();
         }
@@ -129,7 +132,7 @@ public class FilterIteratorTest extends BaseUnitTest {
     public void testNextWithMultiTimesWithoutAnyResult() {
         Iterator<Integer> vals = DATA.iterator();
 
-        Iterator<Integer> results = new FilterIterator<>(vals, val -> false);
+        Iterator<Integer> results = new LimitIterator<>(vals, val -> true);
         Assert.assertThrows(NoSuchElementException.class, () -> {
             results.next();
         });
@@ -148,11 +151,10 @@ public class FilterIteratorTest extends BaseUnitTest {
 
         AtomicInteger callbackCount = new AtomicInteger(0);
 
-        Iterator<Integer> results = new FilterIterator<>(vals, val -> {
+        Iterator<Integer> results = new LimitIterator<>(vals, val -> {
             callbackCount.incrementAndGet();
-            return true;
+            return false;
         });
-
         Assert.assertTrue(results.hasNext());
         for (int i = 0; i < 2; i++) {
             results.next();
@@ -165,8 +167,8 @@ public class FilterIteratorTest extends BaseUnitTest {
     public void testRemove() {
         List<Integer> list = new ArrayList<>(DATA);
 
-        Iterator<Integer> results = new FilterIterator<>(list.iterator(),
-                                                         val -> true);
+        Iterator<Integer> results = new LimitIterator<>(list.iterator(),
+                                                        val -> false);
 
         Assert.assertEquals(ImmutableList.of(1, 2, 3, 4), list);
 
@@ -181,8 +183,8 @@ public class FilterIteratorTest extends BaseUnitTest {
     public void testClose() throws Exception {
         CloseableItor<Integer> vals = new CloseableItor<>(DATA.iterator());
 
-        FilterIterator<Integer> results = new FilterIterator<>(vals,
-                                                               val -> true);
+        LimitIterator<Integer> results = new LimitIterator<>(vals,
+                                                             val -> true);
 
         Assert.assertFalse(vals.closed());
         results.close();

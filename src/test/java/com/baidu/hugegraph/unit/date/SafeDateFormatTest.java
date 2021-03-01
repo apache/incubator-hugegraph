@@ -37,6 +37,7 @@ import com.google.common.collect.ImmutableList;
 public class SafeDateFormatTest {
 
     @Test
+    @SuppressWarnings("deprecation")
     public void testSafeDateFormatInConcurrency() throws Exception {
         SafeDateFormat format = new SafeDateFormat("yyyy-MM-dd");
         List<String> sources = ImmutableList.of(
