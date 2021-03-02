@@ -40,6 +40,7 @@ import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction;
 import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 
 public class RaftBackendStore implements BackendStore {
@@ -61,7 +62,9 @@ public class RaftBackendStore implements BackendStore {
     }
 
     private RaftNode node() {
-        return this.context.node();
+        RaftNode node = this.context.node();
+        E.checkState(node != null, "The raft node should be initialized first");
+        return node;
     }
 
     @Override
