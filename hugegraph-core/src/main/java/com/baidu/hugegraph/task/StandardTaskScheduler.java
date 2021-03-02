@@ -205,6 +205,15 @@ public class StandardTaskScheduler implements TaskScheduler {
     public <V> Future<?> schedule(HugeTask<V> task) {
         E.checkArgumentNotNull(task, "Task can't be null");
 
+        if (task.status() == TaskStatus.QUEUED) {
+            /*
+             * Just submit to queue if status=QUEUED (means re-schedule task)
+             * NOTE: schedule() method may be called multi times by
+             * HugeTask.checkDependenciesSuccess() method
+             */
+            return this.resubmitTask(task);
+        }
+
         if (task.callable() instanceof EphemeralJob) {
             /*
              * Due to EphemeralJob won't be serialized and deserialized through
@@ -249,6 +258,16 @@ public class StandardTaskScheduler implements TaskScheduler {
         this.initTaskCallable(task);
         assert !this.tasks.containsKey(task.id()) : task;
         this.tasks.put(task.id(), task);
+        return this.taskExecutor.submit(task);
+    }
+
+    private <V> Future<?> resubmitTask(HugeTask<V> task) {
+        E.checkArgument(task.status() == TaskStatus.QUEUED,
+                        "Can't resubmit task '%s' with status %s",
+                        task.id(), TaskStatus.QUEUED);
+        E.checkArgument(this.tasks.containsKey(task.id()),
+                        "Can't resubmit task '%s' not been submitted before",
+                        task.id());
         return this.taskExecutor.submit(task);
     }
 
