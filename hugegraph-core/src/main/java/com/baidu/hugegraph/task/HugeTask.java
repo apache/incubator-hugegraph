@@ -222,9 +222,13 @@ public class HugeTask<V> extends FutureTask<V> {
         return this.result;
     }
 
-    private void result(String result) {
+    private synchronized boolean result(TaskStatus status, String result) {
         checkPropertySize(result, P.RESULT);
-        this.result = result;
+        if (this.status(status)) {
+            this.result = result;
+            return true;
+        }
+        return false;
     }
 
     public void server(Id server) {
@@ -319,18 +323,17 @@ public class HugeTask<V> extends FutureTask<V> {
             LOG.warn("An exception occurred when running task: {}",
                      this.id(), e);
             // Update status to FAILED if exception occurred(not interrupted)
-            if (this.status(TaskStatus.FAILED)) {
-                this.result(e.toString());
+            if (this.result(TaskStatus.FAILED, e.toString())) {
                 return true;
             }
         }
         return false;
     }
 
-    public void failSave(Throwable e) {
+    public void failToSave(Throwable e) {
         if (!this.fail(e)) {
             // Can't update status, just set result to error message
-            this.result(e.toString());
+            this.result = e.toString();
         }
     }
 
@@ -352,9 +355,7 @@ public class HugeTask<V> extends FutureTask<V> {
     protected void set(V v) {
         String result = JsonUtil.toJson(v);
         checkPropertySize(result, P.RESULT);
-        if (this.status(TaskStatus.SUCCESS)) {
-            this.result = result;
-        } else {
+        if (!this.result(TaskStatus.SUCCESS, result)) {
             assert this.completed();
         }
         // Will call done() and may cause to save to store
@@ -381,22 +382,21 @@ public class HugeTask<V> extends FutureTask<V> {
         if (this.dependencies == null || this.dependencies.isEmpty()) {
             return true;
         }
+        TaskScheduler scheduler = this.scheduler();
         for (Id dependency : this.dependencies) {
-            HugeTask<?> task = this.scheduler().task(dependency);
+            HugeTask<?> task = scheduler.task(dependency);
             if (!task.completed()) {
                 // Dependent task not completed, re-schedule self
-                this.scheduler().schedule(this);
+                scheduler.schedule(this);
                 return false;
             } else if (task.status() == TaskStatus.CANCELLED) {
-                this.status(TaskStatus.CANCELLED);
-                this.result(String.format(
+                this.result(TaskStatus.CANCELLED, String.format(
                             "Cancelled due to dependent task '%s' cancelled",
                             dependency));
                 this.done();
                 return false;
             } else if (task.status() == TaskStatus.FAILED) {
-                this.status(TaskStatus.FAILED);
-                this.result(String.format(
+                this.result(TaskStatus.FAILED, String.format(
                             "Failed due to dependent task '%s' failed",
                             dependency));
                 this.done();
@@ -483,7 +483,7 @@ public class HugeTask<V> extends FutureTask<V> {
         }
     }
 
-    protected Object[] asArray() {
+    protected synchronized Object[] asArray() {
         E.checkState(this.type != null, "Task type can't be null");
         E.checkState(this.name != null, "Task name can't be null");
 
@@ -563,7 +563,7 @@ public class HugeTask<V> extends FutureTask<V> {
         return this.asMap(true);
     }
 
-    public Map<String, Object> asMap(boolean withDetails) {
+    public synchronized Map<String, Object> asMap(boolean withDetails) {
         E.checkState(this.type != null, "Task type can't be null");
         E.checkState(this.name != null, "Task name can't be null");
 

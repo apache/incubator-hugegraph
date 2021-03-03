@@ -39,7 +39,6 @@ import org.apache.tinkerpop.shaded.jackson.databind.module.SimpleModule;
 import org.apache.tinkerpop.shaded.jackson.databind.ser.std.StdSerializer;
 
 import com.baidu.hugegraph.HugeException;
-import com.baidu.hugegraph.auth.ResourceType;
 import com.baidu.hugegraph.auth.SchemaDefine.UserElement;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
@@ -108,7 +107,7 @@ public class HugeResource {
     }
 
     public boolean filter(ResourceObject<?> resourceObject) {
-        if (this.type == null || this.type == ResourceType.NONE) {
+        if (this.type == null) {
             return false;
         }
 
@@ -121,7 +120,7 @@ public class HugeResource {
             if (resType.isGraph()) {
                 return this.filter((HugeElement) resourceObject.operated());
             }
-            if (resType.isUsers()) {
+            if (resType.isAuth()) {
                 return this.filter((UserElement) resourceObject.operated());
             }
             if (resType.isSchema() || CHECK_NAME_RESS.contains(resType)) {
@@ -193,6 +192,7 @@ public class HugeResource {
         if (this.label == null || other == null) {
             return false;
         }
+        // It's ok if wildcard match or regular match
         if (!this.label.equals(ANY) && !other.matches(this.label)) {
             return false;
         }
@@ -220,7 +220,7 @@ public class HugeResource {
         if (this.equals(other)) {
             return true;
         }
-        if (this.type == null || this.type == ResourceType.NONE) {
+        if (this.type == null) {
             return false;
         }
         if (!this.type.match(other.type)) {

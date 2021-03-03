@@ -65,9 +65,9 @@ public class InitStore {
         E.checkArgument(args.length == 2,
                         "HugeGraph init-store can only accept two config files");
         E.checkArgument(args[0].endsWith(".yaml"),
-                        "Expect the 1st parameter is yaml config file.");
+                        "Expect the 1st parameter is yaml config file");
         E.checkArgument(args[1].endsWith(".properties"),
-                        "Expect the 2nd parameter is properties config file.");
+                        "Expect the 2nd parameter is properties config file");
 
         String gremlinConfFile = args[0];
         String restConfFile = args[1];
@@ -107,7 +107,7 @@ public class InitStore {
     private static void initGraph(String configPath) throws Exception {
         LOG.info("Init graph with config file: {}", configPath);
         HugeConfig config = new HugeConfig(configPath);
-        // Forced set to false when initializing backend
+        // Forced set RAFT_MODE to false when initializing backend
         config.setProperty(CoreOptions.RAFT_MODE.name(), "false");
         HugeGraph graph = (HugeGraph) GraphFactory.open(config);
 

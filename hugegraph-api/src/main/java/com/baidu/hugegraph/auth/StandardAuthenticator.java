@@ -28,6 +28,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
 
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.rpc.RpcClientProvider;
@@ -35,6 +36,8 @@ import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.StringEncoding;
 
 public class StandardAuthenticator implements HugeAuthenticator {
+
+    private static final String INITING_STORE = "initing_store";
 
     private HugeGraph graph = null;
 
@@ -51,7 +54,7 @@ public class StandardAuthenticator implements HugeAuthenticator {
         UserManager userManager = this.graph().hugegraph().userManager();
         if (userManager.findUser(HugeAuthenticator.USER_ADMIN) == null) {
             HugeUser admin = new HugeUser(HugeAuthenticator.USER_ADMIN);
-            admin.password(StringEncoding.hashPassword(inputPassword()));
+            admin.password(StringEncoding.hashPassword(this.inputPassword()));
             admin.creator(HugeAuthenticator.USER_SYSTEM);
             userManager.createUser(admin);
         }
@@ -79,7 +82,13 @@ public class StandardAuthenticator implements HugeAuthenticator {
         String graphPath = config.getMap(ServerOptions.GRAPHS).get(graphName);
         E.checkArgument(graphPath != null,
                         "Invalid graph name '%s'", graphName);
-        this.graph = (HugeGraph) GraphFactory.open(graphPath);
+        HugeConfig graphConfig = new HugeConfig(graphPath);
+        if (config.getProperty(INITING_STORE) != null &&
+            config.getBoolean(INITING_STORE)) {
+            // Forced set RAFT_MODE to false when initializing backend
+            graphConfig.setProperty(CoreOptions.RAFT_MODE.name(), "false");
+        }
+        this.graph = (HugeGraph) GraphFactory.open(graphConfig);
 
         String remoteUrl = config.get(ServerOptions.AUTH_REMOTE_URL);
         if (StringUtils.isNotEmpty(remoteUrl)) {
@@ -128,6 +137,7 @@ public class StandardAuthenticator implements HugeAuthenticator {
         if (authClass.isEmpty()) {
             return;
         }
+        config.addProperty(INITING_STORE, true);
         auth.setup(config);
         auth.initAdminUser();
     }

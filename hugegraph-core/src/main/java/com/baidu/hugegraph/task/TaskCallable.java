@@ -117,7 +117,7 @@ public abstract class TaskCallable<V> implements Callable<V> {
                           e, task.asMap(false));
                 String message = e.getMessage();
                 if (message.contains(ERROR_COMMIT) && needSaveWithEx(message)) {
-                    task.failSave(e);
+                    task.failToSave(e);
                     this.graph().taskScheduler().save(task);
                     return;
                 }
