@@ -20,7 +20,7 @@
 package com.baidu.hugegraph.rpc;
 
 import com.alipay.sofa.rpc.config.ConsumerConfig;
-import com.baidu.hugegraph.auth.UserManager;
+import com.baidu.hugegraph.auth.AuthManager;
 import com.baidu.hugegraph.config.HugeConfig;
 
 public class RpcClientProvider {
@@ -30,11 +30,11 @@ public class RpcClientProvider {
     public RpcClientProvider(HugeConfig conf) {
         RpcCommonConfig.initRpcConfigs(conf);
         this.rpcConsumerConfig = new RpcConsumerConfig();
-        this.rpcConsumerConfig.addConsumerConfig(UserManager.class, conf);
+        this.rpcConsumerConfig.addConsumerConfig(AuthManager.class, conf);
     }
 
-    public UserManager userManager() {
-        return (UserManager) this.serviceProxy(UserManager.class.getName());
+    public AuthManager authManager() {
+        return (AuthManager) this.serviceProxy(AuthManager.class.getName());
     }
 
     public Object serviceProxy(String serviceName) {

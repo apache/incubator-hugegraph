@@ -30,7 +30,6 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraphParams;
-import com.baidu.hugegraph.auth.ResourceType;
 import com.baidu.hugegraph.auth.SchemaDefine.Entity;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.schema.VertexLabel;
@@ -40,6 +39,8 @@ import com.baidu.hugegraph.util.JsonUtil;
 import jersey.repackaged.com.google.common.collect.ImmutableList;
 
 public class HugeTarget extends Entity {
+
+    private static final long serialVersionUID = -3361487778656878418L;
 
     private String name;
     private String graph;

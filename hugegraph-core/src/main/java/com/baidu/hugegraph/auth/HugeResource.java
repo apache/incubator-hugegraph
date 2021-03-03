@@ -39,7 +39,7 @@ import org.apache.tinkerpop.shaded.jackson.databind.module.SimpleModule;
 import org.apache.tinkerpop.shaded.jackson.databind.ser.std.StdSerializer;
 
 import com.baidu.hugegraph.HugeException;
-import com.baidu.hugegraph.auth.SchemaDefine.UserElement;
+import com.baidu.hugegraph.auth.SchemaDefine.AuthElement;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
 import com.baidu.hugegraph.type.Namifiable;
@@ -121,7 +121,7 @@ public class HugeResource {
                 return this.filter((HugeElement) resourceObject.operated());
             }
             if (resType.isAuth()) {
-                return this.filter((UserElement) resourceObject.operated());
+                return this.filter((AuthElement) resourceObject.operated());
             }
             if (resType.isSchema() || CHECK_NAME_RESS.contains(resType)) {
                 return this.filter((Namifiable) resourceObject.operated());
@@ -135,7 +135,7 @@ public class HugeResource {
         return true;
     }
 
-    private boolean filter(UserElement element) {
+    private boolean filter(AuthElement element) {
         assert this.type.match(element.type());
         if (element instanceof Namifiable) {
             if (!this.filter((Namifiable) element)) {
