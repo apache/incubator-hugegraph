@@ -679,14 +679,14 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     @Override
     public void truncateBackend() {
         verifyAdminPermission();
-        HugeUser admin = this.hugegraph.userManager()
-                             .findUser(HugeAuthenticator.USER_ADMIN);
+        UserManager userManager = this.hugegraph.userManager();
+        HugeUser admin = userManager.findUser(HugeAuthenticator.USER_ADMIN);
         try {
             this.hugegraph.truncateBackend();
         } finally {
-            if (admin != null) {
+            if (admin != null && userManager instanceof StandardUserManager) {
                 // Restore admin user to continue to do any operation
-                this.hugegraph.userManager().createUser(admin);
+                userManager.createUser(admin);
             }
         }
     }
