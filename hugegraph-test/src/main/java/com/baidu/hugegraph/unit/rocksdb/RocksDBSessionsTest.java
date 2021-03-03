@@ -285,7 +285,7 @@ public class RocksDBSessionsTest extends BaseRocksDBUnitTest {
         Assert.assertEquals("19", get("person:1gage"));
         Assert.assertEquals("Beijing", get("person:1gcity"));
 
-        this.rocks.session().remove(TABLE, b("person:1gage"));
+        this.rocks.session().delete(TABLE, b("person:1gage"));
         this.commit();
 
         Assert.assertEquals("James", get("person:1gname"));
@@ -303,7 +303,7 @@ public class RocksDBSessionsTest extends BaseRocksDBUnitTest {
         Assert.assertEquals("19", get("person:1gage"));
         Assert.assertEquals("Beijing", get("person:1gcity"));
 
-        this.rocks.session().remove(TABLE, b("person:1"));
+        this.rocks.session().delete(TABLE, b("person:1"));
         this.commit();
 
         Assert.assertEquals("James", get("person:1gname"));
@@ -325,7 +325,7 @@ public class RocksDBSessionsTest extends BaseRocksDBUnitTest {
         Assert.assertEquals("19", get("person:1gage"));
         Assert.assertEquals("Beijing", get("person:1gcity"));
 
-        this.rocks.session().delete(TABLE, b("person:1"));
+        this.rocks.session().deletePrefix(TABLE, b("person:1"));
         this.commit();
 
         Assert.assertEquals(null, get("person:1gname"));
@@ -353,7 +353,7 @@ public class RocksDBSessionsTest extends BaseRocksDBUnitTest {
         Assert.assertEquals("Lisa", get("person:2gname"));
         Assert.assertEquals("Hebe", get("person:3gname"));
 
-        this.rocks.session().delete(TABLE, b("person:1"), b("person:3"));
+        this.rocks.session().deleteRange(TABLE, b("person:1"), b("person:3"));
         this.commit();
 
         Assert.assertEquals(null, get("person:1gname"));
@@ -385,7 +385,7 @@ public class RocksDBSessionsTest extends BaseRocksDBUnitTest {
         byte[] value21 = b("value-2-1");
         session.put(TABLE, key21, value21);
 
-        session.delete(TABLE, key11, new byte[]{1, 3});
+        session.deleteRange(TABLE, key11, new byte[]{1, 3});
         this.commit();
 
         Assert.assertArrayEquals(null, session.get(TABLE, key11));
@@ -409,14 +409,14 @@ public class RocksDBSessionsTest extends BaseRocksDBUnitTest {
         byte[] value21 = b("value-2-1");
         session.put(TABLE, key21, value21);
 
-        session.delete(TABLE, new byte[]{1, -3}, new byte[]{1, 3});
+        session.deleteRange(TABLE, new byte[]{1, -3}, new byte[]{1, 3});
         this.commit();
 
         Assert.assertArrayEquals(value11, session.get(TABLE, key11));
         Assert.assertArrayEquals(value12, session.get(TABLE, key12));
         Assert.assertArrayEquals(value21, session.get(TABLE, key21));
 
-        session.delete(TABLE, new byte[]{1, 1}, new byte[]{1, -1});
+        session.deleteRange(TABLE, new byte[]{1, 1}, new byte[]{1, -1});
         this.commit();
 
         Assert.assertArrayEquals(null, session.get(TABLE, key11));
@@ -448,7 +448,8 @@ public class RocksDBSessionsTest extends BaseRocksDBUnitTest {
         byte[] value20 = b("value-2-0");
         session.put(TABLE, key20, value20);
 
-        session.delete(TABLE, new byte[]{1, 0}, new byte[]{1, (byte) 0xff});
+        session.deleteRange(TABLE,
+                            new byte[]{1, 0}, new byte[]{1, (byte) 0xff});
         this.commit();
 
         Assert.assertArrayEquals(null, session.get(TABLE, key11));
@@ -457,7 +458,8 @@ public class RocksDBSessionsTest extends BaseRocksDBUnitTest {
         Assert.assertArrayEquals(value14, session.get(TABLE, key14));
         Assert.assertArrayEquals(value20, session.get(TABLE, key20));
 
-        session.delete(TABLE, new byte[]{1, (byte) 0xff}, new byte[]{2, 0});
+        session.deleteRange(TABLE,
+                            new byte[]{1, (byte) 0xff}, new byte[]{2, 0});
         this.commit();
 
         Assert.assertArrayEquals(null, session.get(TABLE, key11));

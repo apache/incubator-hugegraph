@@ -79,9 +79,11 @@ public abstract class RocksDBSessions extends BackendSessionPool {
         public abstract void merge(String table, byte[] key, byte[] value);
         public abstract void increase(String table, byte[] key, byte[] value);
 
-        public abstract void remove(String table, byte[] key);
-        public abstract void delete(String table, byte[] keyFrom, byte[] keyTo);
         public abstract void delete(String table, byte[] key);
+        public abstract void deleteSingle(String table, byte[] key);
+        public abstract void deletePrefix(String table, byte[] key);
+        public abstract void deleteRange(String table,
+                                         byte[] keyFrom, byte[] keyTo);
 
         public abstract byte[] get(String table, byte[] key);
 
