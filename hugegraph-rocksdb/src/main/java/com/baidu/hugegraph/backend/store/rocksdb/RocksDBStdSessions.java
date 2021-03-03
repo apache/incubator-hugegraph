@@ -840,7 +840,20 @@ public class RocksDBStdSessions extends RocksDBSessions {
          * Delete a record by key from a table
          */
         @Override
-        public void remove(String table, byte[] key) {
+        public void delete(String table, byte[] key) {
+            try (CFHandle cf = cf(table)) {
+                this.batch.delete(cf.get(), key);
+            } catch (RocksDBException e) {
+                throw new BackendException(e);
+            }
+        }
+
+        /**
+         * Delete the only one version of a record by key from a table
+         * NOTE: requires that the key exists and was not overwritten.
+         */
+        @Override
+        public void deleteSingle(String table, byte[] key) {
             try (CFHandle cf = cf(table)) {
                 this.batch.singleDelete(cf.get(), key);
             } catch (RocksDBException e) {
@@ -852,7 +865,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
          * Delete a record by key(or prefix with key) from a table
          */
         @Override
-        public void delete(String table, byte[] key) {
+        public void deletePrefix(String table, byte[] key) {
             byte[] keyFrom = key;
             byte[] keyTo = Arrays.copyOf(key, key.length);
             keyTo = BinarySerializer.increaseOne(keyTo);
@@ -867,7 +880,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
          * Delete a range of keys from a table
          */
         @Override
-        public void delete(String table, byte[] keyFrom, byte[] keyTo) {
+        public void deleteRange(String table, byte[] keyFrom, byte[] keyTo) {
             try (CFHandle cf = cf(table)) {
                 this.batch.deleteRange(cf.get(), keyFrom, keyTo);
             } catch (RocksDBException e) {

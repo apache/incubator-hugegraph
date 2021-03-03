@@ -325,24 +325,33 @@ public class RocksDBSstSessions extends RocksDBSessions {
          * Delete a record by key from a table
          */
         @Override
-        public void remove(String table, byte[] key) {
-            throw new NotSupportException("RocksDBSstStore remove()");
+        public void delete(String table, byte[] key) {
+            throw new NotSupportException("RocksDBSstStore delete()");
+        }
+
+        /**
+         * Delete the only one version of a record by key from a table
+         * NOTE: requires that the key exists and was not overwritten.
+         */
+        @Override
+        public void deleteSingle(String table, byte[] key) {
+            throw new NotSupportException("RocksDBSstStore deleteSingle()");
         }
 
         /**
          * Delete a record by key(or prefix with key) from a table
          */
         @Override
-        public void delete(String table, byte[] key) {
-            throw new NotSupportException("RocksDBSstStore delete()");
+        public void deletePrefix(String table, byte[] key) {
+            throw new NotSupportException("RocksDBSstStore deletePrefix()");
         }
 
         /**
          * Delete a range of keys from a table
          */
         @Override
-        public void delete(String table, byte[] keyFrom, byte[] keyTo) {
-            throw new NotSupportException("RocksDBSstStore delete()");
+        public void deleteRange(String table, byte[] keyFrom, byte[] keyTo) {
+            throw new NotSupportException("RocksDBSstStore deleteRange()");
         }
 
         /**

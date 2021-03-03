@@ -75,7 +75,20 @@ public class RocksDBTables {
         }
     }
 
-    public static class VertexLabel extends RocksDBTable {
+    public static class SchemaTable extends RocksDBTable {
+
+        public SchemaTable(String database, String table) {
+            super(database, table);
+        }
+
+        @Override
+        public void delete(Session session, BackendEntry entry) {
+            assert entry.columns().isEmpty();
+            session.deletePrefix(this.table(), entry.id().asBytes());
+        }
+    }
+
+    public static class VertexLabel extends SchemaTable {
 
         public static final String TABLE = HugeType.VERTEX_LABEL.string();
 
@@ -84,7 +97,7 @@ public class RocksDBTables {
         }
     }
 
-    public static class EdgeLabel extends RocksDBTable {
+    public static class EdgeLabel extends SchemaTable {
 
         public static final String TABLE = HugeType.EDGE_LABEL.string();
 
@@ -93,7 +106,7 @@ public class RocksDBTables {
         }
     }
 
-    public static class PropertyKey extends RocksDBTable {
+    public static class PropertyKey extends SchemaTable {
 
         public static final String TABLE = HugeType.PROPERTY_KEY.string();
 
@@ -102,7 +115,7 @@ public class RocksDBTables {
         }
     }
 
-    public static class IndexLabel extends RocksDBTable {
+    public static class IndexLabel extends SchemaTable {
 
         public static final String TABLE = HugeType.INDEX_LABEL.string();
 
@@ -168,7 +181,7 @@ public class RocksDBTables {
              */
             for (BackendEntry.BackendColumn column : entry.columns()) {
                 // Don't assert entry.belongToMe(column), length-prefix is 1*
-                session.delete(this.table(), column.name);
+                session.deletePrefix(this.table(), column.name);
             }
         }
     }

@@ -77,7 +77,8 @@ public class BaseRocksDBUnitTest extends BaseUnitTest {
 
     protected void clearData() throws RocksDBException {
         for (String table : new ArrayList<>(this.rocks.openedTables())) {
-            this.rocks.session().delete(table, new byte[]{0}, new byte[]{-1});
+            this.rocks.session().deleteRange(table,
+                                             new byte[]{0}, new byte[]{-1});
         }
         this.commit();
     }
