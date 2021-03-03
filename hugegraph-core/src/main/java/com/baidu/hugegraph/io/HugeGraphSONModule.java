@@ -21,6 +21,8 @@ package com.baidu.hugegraph.io;
 
 import java.io.File;
 import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Map;
 import java.util.Optional;
@@ -58,7 +60,6 @@ import com.baidu.hugegraph.backend.id.IdGenerator.LongId;
 import com.baidu.hugegraph.backend.id.IdGenerator.StringId;
 import com.baidu.hugegraph.backend.id.IdGenerator.UuidId;
 import com.baidu.hugegraph.backend.store.Shard;
-import com.baidu.hugegraph.date.SafeDateFormat;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -85,8 +86,9 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
     private static final GraphSONSchemaSerializer schemaSerializer =
                          new GraphSONSchemaSerializer();
 
+    // NOTE: jackson will synchronize DateFormat
     private static final String DF = "yyyy-MM-dd HH:mm:ss.SSS";
-    private static final SafeDateFormat DATE_FORMAT = new SafeDateFormat(DF);
+    private static final DateFormat DATE_FORMAT = new SimpleDateFormat(DF);
 
     static {
         TYPE_DEFINITIONS = new ConcurrentHashMap<>();
