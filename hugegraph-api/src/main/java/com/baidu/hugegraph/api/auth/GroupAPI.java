@@ -70,8 +70,8 @@ public class GroupAPI extends API {
 
         HugeGraph g = graph(manager, graph);
         HugeGroup group = jsonGroup.build();
-        group.id(manager.userManager().createGroup(group));
-        return manager.serializer(g).writeUserElement(group);
+        group.id(manager.authManager().createGroup(group));
+        return manager.serializer(g).writeAuthElement(group);
     }
 
     @PUT
@@ -89,13 +89,13 @@ public class GroupAPI extends API {
         HugeGraph g = graph(manager, graph);
         HugeGroup group;
         try {
-            group = manager.userManager().getGroup(UserAPI.parseId(id));
+            group = manager.authManager().getGroup(UserAPI.parseId(id));
         } catch (NotFoundException e) {
             throw new IllegalArgumentException("Invalid group id: " + id);
         }
         group = jsonGroup.build(group);
-        manager.userManager().updateGroup(group);
-        return manager.serializer(g).writeUserElement(group);
+        manager.authManager().updateGroup(group);
+        return manager.serializer(g).writeAuthElement(group);
     }
 
     @GET
@@ -107,8 +107,8 @@ public class GroupAPI extends API {
         LOG.debug("Graph [{}] list groups", graph);
 
         HugeGraph g = graph(manager, graph);
-        List<HugeGroup> groups = manager.userManager().listAllGroups(limit);
-        return manager.serializer(g).writeUserElements("groups", groups);
+        List<HugeGroup> groups = manager.authManager().listAllGroups(limit);
+        return manager.serializer(g).writeAuthElements("groups", groups);
     }
 
     @GET
@@ -121,8 +121,8 @@ public class GroupAPI extends API {
         LOG.debug("Graph [{}] get group: {}", graph, id);
 
         HugeGraph g = graph(manager, graph);
-        HugeGroup group = manager.userManager().getGroup(IdGenerator.of(id));
-        return manager.serializer(g).writeUserElement(group);
+        HugeGroup group = manager.authManager().getGroup(IdGenerator.of(id));
+        return manager.serializer(g).writeAuthElement(group);
     }
 
     @DELETE
@@ -137,7 +137,7 @@ public class GroupAPI extends API {
         @SuppressWarnings("unused") // just check if the graph exists
         HugeGraph g = graph(manager, graph);
         try {
-            manager.userManager().deleteGroup(IdGenerator.of(id));
+            manager.authManager().deleteGroup(IdGenerator.of(id));
         } catch (NotFoundException e) {
             throw new IllegalArgumentException("Invalid group id: " + id);
         }

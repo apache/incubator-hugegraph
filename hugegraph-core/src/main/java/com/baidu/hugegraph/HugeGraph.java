@@ -31,7 +31,7 @@ import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 
-import com.baidu.hugegraph.auth.UserManager;
+import com.baidu.hugegraph.auth.AuthManager;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
@@ -156,8 +156,8 @@ public interface HugeGraph extends Graph {
     @Override
     public HugeFeatures features();
 
-    public UserManager userManager();
-    public void switchUserManager(UserManager userManager);
+    public AuthManager authManager();
+    public void switchAuthManager(AuthManager authManager);
     public TaskScheduler taskScheduler();
     public RaftGroupManager raftGroupManager(String group);
 

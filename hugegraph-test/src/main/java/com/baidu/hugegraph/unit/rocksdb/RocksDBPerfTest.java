@@ -141,7 +141,7 @@ public class RocksDBPerfTest extends BaseRocksDBUnitTest {
             for (int i = 0; i < n; i++) {
                 int value =  comms.get(i);
                 String old = String.format("index:%3d:%d", i, value);
-                session.remove(TABLE, b(old));
+                session.delete(TABLE, b(old));
 
                 value = r.nextInt(n); // TODO: aggregate
                 value =  i + 1;

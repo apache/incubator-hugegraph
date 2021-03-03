@@ -103,7 +103,7 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
         } else {
             for (BackendColumn col : entry.columns()) {
                 assert entry.belongToMe(col) : entry;
-                session.remove(this.table(), col.name);
+                session.delete(this.table(), col.name);
             }
         }
     }

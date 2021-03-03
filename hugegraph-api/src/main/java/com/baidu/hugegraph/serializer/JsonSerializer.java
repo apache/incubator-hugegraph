@@ -34,7 +34,7 @@ import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.api.API;
-import com.baidu.hugegraph.auth.SchemaDefine.UserElement;
+import com.baidu.hugegraph.auth.SchemaDefine.AuthElement;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.page.PageInfo;
 import com.baidu.hugegraph.iterator.Metadatable;
@@ -216,12 +216,12 @@ public class JsonSerializer implements Serializer {
     }
 
     @Override
-    public String writeUserElement(UserElement elem) {
+    public String writeAuthElement(AuthElement elem) {
         return this.writeMap(elem.asMap());
     }
 
     @Override
-    public <V extends UserElement> String writeUserElements(String label,
+    public <V extends AuthElement> String writeAuthElements(String label,
                                                             List<V> elems) {
         List<Object> list = new ArrayList<>(elems.size());
         for (V elem : elems) {

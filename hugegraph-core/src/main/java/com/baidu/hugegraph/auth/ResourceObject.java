@@ -19,7 +19,7 @@
 
 package com.baidu.hugegraph.auth;
 
-import com.baidu.hugegraph.auth.SchemaDefine.UserElement;
+import com.baidu.hugegraph.auth.SchemaDefine.AuthElement;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.type.Namifiable;
@@ -56,7 +56,7 @@ public class ResourceObject<V> {
     public String toString() {
         Object operated = this.operated;
         if (this.type.isAuth()) {
-            operated = ((UserElement) this.operated).idString();
+            operated = ((AuthElement) this.operated).idString();
         }
         return String.format("Resource{graph=%s,type=%s,operated=%s}",
                              this.graph, this.type, operated);
@@ -74,8 +74,8 @@ public class ResourceObject<V> {
         return new ResourceObject<>(graph, resType, elem);
     }
 
-    public static ResourceObject<UserElement> of(String graph,
-                                                 UserElement elem) {
+    public static ResourceObject<AuthElement> of(String graph,
+                                                 AuthElement elem) {
         return new ResourceObject<>(graph, elem.type(), elem);
     }
 

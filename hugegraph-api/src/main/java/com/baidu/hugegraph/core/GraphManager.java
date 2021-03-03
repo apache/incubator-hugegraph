@@ -39,7 +39,7 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.auth.HugeAuthenticator;
 import com.baidu.hugegraph.auth.HugeFactoryAuthProxy;
 import com.baidu.hugegraph.auth.HugeGraphAuthProxy;
-import com.baidu.hugegraph.auth.UserManager;
+import com.baidu.hugegraph.auth.AuthManager;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.cache.Cache;
 import com.baidu.hugegraph.backend.cache.CacheManager;
@@ -164,8 +164,8 @@ public final class GraphManager {
         return this.authenticator().authenticate(credentials);
     }
 
-    public UserManager userManager() {
-        return this.authenticator().userManager();
+    public AuthManager authManager() {
+        return this.authenticator().authManager();
     }
 
     public void close() {
@@ -176,8 +176,8 @@ public final class GraphManager {
         RpcProviderConfig serverConfig = this.rpcServer.config();
 
         if (this.authenticator != null) {
-            serverConfig.addService(UserManager.class,
-                                    this.authenticator.userManager());
+            serverConfig.addService(AuthManager.class,
+                                    this.authenticator.authManager());
         }
 
         if (this.rpcClient.enabled()) {

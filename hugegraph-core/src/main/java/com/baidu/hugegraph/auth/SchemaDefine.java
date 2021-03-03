@@ -39,6 +39,7 @@ import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.Namifiable;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.util.E;
@@ -88,11 +89,11 @@ public abstract class SchemaDefine {
 
     protected String[] initProperties(List<String> props) {
         String label = this.label;
-        props.add(createPropertyKey(hideField(label, UserElement.CREATE),
+        props.add(createPropertyKey(hideField(label, AuthElement.CREATE),
                                     DataType.DATE));
-        props.add(createPropertyKey(hideField(label, UserElement.UPDATE),
+        props.add(createPropertyKey(hideField(label, AuthElement.UPDATE),
                                     DataType.DATE));
-        props.add(createPropertyKey(hideField(label, UserElement.CREATOR)));
+        props.add(createPropertyKey(hideField(label, AuthElement.CREATOR)));
 
         return props.toArray(new String[0]);
     }
@@ -116,7 +117,9 @@ public abstract class SchemaDefine {
         return Hidden.unHide(label) + "_" + key;
     }
 
-    public static abstract class UserElement implements Serializable {
+    public static abstract class AuthElement implements Serializable {
+
+        private static final long serialVersionUID = 8746691160192814973L;
 
         protected static final String CREATE = "create";
         protected static final String UPDATE = "update";
@@ -127,7 +130,7 @@ public abstract class SchemaDefine {
         protected Date update;
         protected String creator;
 
-        public UserElement() {
+        public AuthElement() {
             this.create = new Date();
             this.update = this.create;
         }
@@ -238,8 +241,10 @@ public abstract class SchemaDefine {
         protected abstract Object[] asArray();
     }
 
-    public static abstract class Entity extends UserElement
-                           implements com.baidu.hugegraph.type.Namifiable {
+    public static abstract class Entity extends AuthElement
+                           implements Namifiable {
+
+        private static final long serialVersionUID = 4113319546914811762L;
 
         public static <T extends Entity> T fromVertex(Vertex vertex, T entity) {
             E.checkArgument(vertex.label().equals(entity.label()),
@@ -265,7 +270,9 @@ public abstract class SchemaDefine {
         }
     }
 
-    public static abstract class Relationship extends UserElement {
+    public static abstract class Relationship extends AuthElement {
+
+        private static final long serialVersionUID = -1406157381685832493L;
 
         public abstract String sourceLabel();
         public abstract String targetLabel();

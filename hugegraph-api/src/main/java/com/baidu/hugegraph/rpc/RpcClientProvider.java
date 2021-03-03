@@ -24,7 +24,7 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 import com.alipay.sofa.rpc.common.utils.StringUtils;
-import com.baidu.hugegraph.auth.UserManager;
+import com.baidu.hugegraph.auth.AuthManager;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.util.E;
@@ -59,11 +59,11 @@ public class RpcClientProvider {
         return this.consumerConfig;
     }
 
-    public UserManager userManager() {
+    public AuthManager authManager() {
         E.checkArgument(this.authConsumerConfig != null,
                         "RpcClient is not enabled, please config option '%s'",
                         ServerOptions.AUTH_REMOTE_URL.name());
-        return this.authConsumerConfig.serviceProxy(UserManager.class);
+        return this.authConsumerConfig.serviceProxy(AuthManager.class);
     }
 
     private static String excludeSelfUrl(String rpcUrl, String selfUrl) {
