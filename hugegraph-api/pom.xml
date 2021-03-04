@@ -153,7 +153,7 @@
                             </addDefaultSpecificationEntries>
                         </manifest>
                         <manifestEntries>
-                            <Implementation-Version>0.61.0.0</Implementation-Version>
+                            <Implementation-Version>0.62.0.0</Implementation-Version>
                         </manifestEntries>
                     </archive>
                 </configuration>
