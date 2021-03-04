@@ -26,6 +26,10 @@ public interface BackendMetrics {
     public String BACKEND = "backend";
 
     public String NODES = "nodes";
+    public String CLUSTER_ID = "cluster_id";
+    public String SERVERS = "servers";
+    public String SERVER_LOCAL = "local";
+    public String SERVER_CLUSTER = "cluster";
 
     // Memory related metrics
     public String MEM_USED = "mem_used";
@@ -38,5 +42,5 @@ public interface BackendMetrics {
 
     public String EXCEPTION = "exception";
 
-    public Map<String, Object> getMetrics();
+    public Map<String, Object> metrics();
 }

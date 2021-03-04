@@ -41,6 +41,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
@@ -114,13 +115,21 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
     }
 
     private void registerMetaHandlers() {
-        this.registerMetaHandler("metrics", (session, meta, args) -> {
+        Supplier<List<RocksDBSessions>> dbsGet = () -> {
             List<RocksDBSessions> dbs = new ArrayList<>();
             dbs.add(this.sessions);
             dbs.addAll(this.tableDBMapping().values());
+            return dbs;
+        };
 
-            RocksDBMetrics metrics = new RocksDBMetrics(dbs, session);
-            return metrics.getMetrics();
+        this.registerMetaHandler("metrics", (session, meta, args) -> {
+            RocksDBMetrics metrics = new RocksDBMetrics(dbsGet.get(), session);
+            return metrics.metrics();
+        });
+
+        this.registerMetaHandler("compact", (session, meta, args) -> {
+            RocksDBMetrics metrics = new RocksDBMetrics(dbsGet.get(), session);
+            return metrics.compact();
         });
     }
 

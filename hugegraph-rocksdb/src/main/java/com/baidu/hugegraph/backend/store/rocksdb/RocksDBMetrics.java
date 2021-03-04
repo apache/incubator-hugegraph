@@ -27,6 +27,7 @@ import org.apache.commons.io.FileUtils;
 import com.baidu.hugegraph.backend.store.BackendMetrics;
 import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
+import com.google.common.collect.ImmutableMap;
 
 public class RocksDBMetrics implements BackendMetrics {
 
@@ -49,20 +50,32 @@ public class RocksDBMetrics implements BackendMetrics {
     }
 
     @Override
-    public Map<String, Object> getMetrics() {
+    public Map<String, Object> metrics() {
+        Map<String, Object> results = InsertionOrderUtil.newMap();
+        results.put(NODES, 1);
+        results.put(CLUSTER_ID, SERVER_LOCAL);
+        try {
+            Map<String, Object> metrics = metricsInfo();
+            results.put(SERVERS, ImmutableMap.of(SERVER_LOCAL, metrics));
+        } catch (Throwable e) {
+            results.put(EXCEPTION, e.toString());
+        }
+        return results;
+    }
+
+    private Map<String, Object> metricsInfo() {
         Map<String, Object> metrics = InsertionOrderUtil.newMap();
-        metrics.put(NODES, 1);
         // NOTE: the unit of rocksdb mem property is bytes
         metrics.put(MEM_USED, this.getMemUsed() / Bytes.MB);
         metrics.put(MEM_UNIT, "MB");
 
-        putMetrics(metrics, BLOCK_CACHE);
-        putMetrics(metrics, BLOCK_CACHE_PINNED);
-        putMetrics(metrics, BLOCK_CACHE_CAPACITY);
-        putMetrics(metrics, INDEX_FILTER);
-        putMetrics(metrics, ALL_MEM_TABLE);
-        putMetrics(metrics, MEM_TABLE);
-        putMetrics(metrics, MEM_TABLE_FLUSH_PENDINF);
+        this.appendMetrics(metrics, BLOCK_CACHE);
+        this.appendMetrics(metrics, BLOCK_CACHE_PINNED);
+        this.appendMetrics(metrics, BLOCK_CACHE_CAPACITY);
+        this.appendMetrics(metrics, INDEX_FILTER);
+        this.appendMetrics(metrics, ALL_MEM_TABLE);
+        this.appendMetrics(metrics, MEM_TABLE);
+        this.appendMetrics(metrics, MEM_TABLE_FLUSH_PENDINF);
 
         String size = FileUtils.byteCountToDisplaySize(this.getDataSize());
         metrics.put(DATA_SIZE, size);
@@ -70,7 +83,7 @@ public class RocksDBMetrics implements BackendMetrics {
         return metrics;
     }
 
-    private void putMetrics(Map<String, Object> metrics, String key) {
+    private void appendMetrics(Map<String, Object> metrics, String key) {
         metrics.put(key, this.sum(this.session, key) / Bytes.MB);
     }
 
@@ -109,5 +122,23 @@ public class RocksDBMetrics implements BackendMetrics {
             }
         }
         return total;
+    }
+
+    public Map<String, Object> compact() {
+        Map<String, Object> results = InsertionOrderUtil.newMap();
+        results.put(NODES, 1);
+        results.put(CLUSTER_ID, SERVER_LOCAL);
+
+        try {
+            for (RocksDBSessions db : this.dbs) {
+                // NOTE: maybe cost long time
+                db.compactRange();
+            }
+            results.put(SERVERS, ImmutableMap.of(SERVER_LOCAL, "OK"));
+        } catch (Throwable e) {
+            results.put(EXCEPTION, e.toString());
+        }
+
+        return results;
     }
 }

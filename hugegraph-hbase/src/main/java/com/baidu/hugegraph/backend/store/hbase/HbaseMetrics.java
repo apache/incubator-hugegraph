@@ -28,12 +28,14 @@ import org.apache.hadoop.hbase.RegionMetrics;
 import org.apache.hadoop.hbase.ServerMetrics;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.Size;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Connection;
 
 import com.baidu.hugegraph.backend.store.BackendMetrics;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
+import com.google.common.collect.ImmutableMap;
 
 public class HbaseMetrics implements BackendMetrics {
 
@@ -45,18 +47,14 @@ public class HbaseMetrics implements BackendMetrics {
     }
 
     @Override
-    public Map<String, Object> getMetrics() {
-        Map<String, Object> results = InsertionOrderUtil.newMap();
+    public Map<String, Object> metrics() {
+        Map<String, Object> results = this.clusterInfo();
+        if (results.containsKey(EXCEPTION)) {
+            return results;
+        }
+
         try (Admin admin = this.hbase.getAdmin()) {
-            // Cluster info
             ClusterMetrics clusterMetrics = admin.getClusterMetrics();
-            results.put("cluster_id", clusterMetrics.getClusterId());
-            results.put("average_load", clusterMetrics.getAverageLoad());
-            results.put("hbase_version", clusterMetrics.getHBaseVersion());
-            results.put("region_count", clusterMetrics.getRegionCount());
-            // Region servers info
-            Collection<ServerName> servers = admin.getRegionServers();
-            results.put(NODES, servers.size());
             Map<ServerName, ServerMetrics> metrics =
                             clusterMetrics.getLiveServerMetrics();
             Map<String, Object> regionServers = InsertionOrderUtil.newMap();
@@ -67,9 +65,44 @@ public class HbaseMetrics implements BackendMetrics {
                 regionServers.put(server.getAddress().toString(),
                                   formatMetrics(serverMetrics, regions));
             }
-            results.put("region_servers", regionServers);
+            results.put(SERVERS, regionServers);
         } catch (Throwable e) {
-            results.put(EXCEPTION, e.getMessage());
+            results.put(EXCEPTION, e.toString());
+        }
+        return results;
+    }
+
+    public Map<String, Object> compact(List<String> tableNames) {
+        Map<String, Object> results = this.clusterInfo();
+        if (results.containsKey(EXCEPTION)) {
+            return results;
+        }
+
+        try (Admin admin = this.hbase.getAdmin()) {
+            for (String table : tableNames) {
+                admin.compact(TableName.valueOf(table));
+            }
+            results.put(SERVERS, ImmutableMap.of(SERVER_CLUSTER, "OK"));
+        } catch (Throwable e) {
+            results.put(EXCEPTION, e.toString());
+        }
+        return results;
+    }
+
+    private Map<String, Object> clusterInfo() {
+        Map<String, Object> results = InsertionOrderUtil.newMap();
+        try (Admin admin = this.hbase.getAdmin()) {
+            // Cluster info
+            ClusterMetrics clusterMetrics = admin.getClusterMetrics();
+            results.put(CLUSTER_ID, clusterMetrics.getClusterId());
+            results.put("average_load", clusterMetrics.getAverageLoad());
+            results.put("hbase_version", clusterMetrics.getHBaseVersion());
+            results.put("region_count", clusterMetrics.getRegionCount());
+            // Region servers info
+            Collection<ServerName> servers = admin.getRegionServers();
+            results.put(NODES, servers.size());
+        } catch (Throwable e) {
+            results.put(EXCEPTION, e.toString());
         }
         return results;
     }

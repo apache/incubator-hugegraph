@@ -23,8 +23,10 @@ import java.io.IOException;
 import java.lang.management.MemoryUsage;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
 import org.apache.cassandra.tools.NodeProbe;
+import org.apache.cassandra.tools.nodetool.Compact;
 
 import com.baidu.hugegraph.backend.store.BackendMetrics;
 import com.baidu.hugegraph.config.HugeConfig;
@@ -53,15 +55,8 @@ public class CassandraMetrics implements BackendMetrics {
     }
 
     @Override
-    public Map<String, Object> getMetrics() {
-        Map<String, Object> results = InsertionOrderUtil.newMap();
-        Set<Host> hosts = this.cluster.getMetadata().getAllHosts();
-        results.put(NODES, hosts.size());
-        for (Host host : hosts) {
-            String address = host.getAddress().getHostAddress();
-            results.put(address, this.getMetricsByHost(address));
-        }
-        return results;
+    public Map<String, Object> metrics() {
+        return this.executeAllHosts(this::getMetricsByHost);
     }
 
     private Map<String, Object> getMetricsByHost(String host) {
@@ -78,6 +73,37 @@ public class CassandraMetrics implements BackendMetrics {
             metrics.put(EXCEPTION, e.toString());
         }
         return metrics;
+    }
+
+    public Map<String, Object> compact() {
+        return this.executeAllHosts(this::compactHost);
+    }
+
+    public Object compactHost(String host) {
+        try (NodeProbe probe = this.newNodeProbe(host)) {
+            Compact compact = new Compact();
+            compact.execute(probe);
+            return "OK";
+        } catch (Throwable e) {
+            return e.toString();
+        }
+    }
+
+    private Map<String, Object> executeAllHosts(Function<String, Object> func) {
+        Set<Host> hosts = this.cluster.getMetadata().getAllHosts();
+
+        Map<String, Object> results = InsertionOrderUtil.newMap();
+        results.put(CLUSTER_ID, this.cluster.getClusterName());
+        results.put(NODES, hosts.size());
+
+        Map<String, Object> hostsResults = InsertionOrderUtil.newMap();
+        for (Host host : hosts) {
+            String address = host.getAddress().getHostAddress();
+            hostsResults.put(address, func.apply(address));
+        }
+        results.put(SERVERS, hostsResults);
+
+        return results;
     }
 
     private NodeProbe newNodeProbe(String host) throws IOException {

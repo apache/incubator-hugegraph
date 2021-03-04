@@ -138,6 +138,11 @@ public class RocksDBSstSessions extends RocksDBSessions {
     }
 
     @Override
+    public void compactRange() {
+        throw new NotSupportException("RocksDBSstStore compactRange()");
+    }
+
+    @Override
     public RocksDBSessions copy(HugeConfig config,
                                 String database, String store) {
         return new RocksDBSstSessions(config, database, store, this);
@@ -304,6 +309,11 @@ public class RocksDBSstSessions extends RocksDBSessions {
         @Override
         public Pair<byte[], byte[]> keyRange(String table) {
             return null;
+        }
+
+        @Override
+        public void compactRange(String table) {
+            throw new NotSupportException("RocksDBSstStore compactRange()");
         }
 
         /**

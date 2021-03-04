@@ -44,6 +44,7 @@ public abstract class RocksDBSessions extends BackendSessionPool {
     public abstract boolean existsTable(String table);
 
     public abstract List<String> property(String property);
+    public abstract void compactRange();
 
     public abstract RocksDBSessions copy(HugeConfig config,
                                          String database, String store);
@@ -82,6 +83,7 @@ public abstract class RocksDBSessions extends BackendSessionPool {
 
         public abstract String property(String table, String property);
         public abstract Pair<byte[], byte[]> keyRange(String table);
+        public abstract void compactRange(String table);
 
         public abstract void put(String table, byte[] key, byte[] value);
         public abstract void merge(String table, byte[] key, byte[] value);

@@ -80,7 +80,12 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
     private void registerMetaHandlers() {
         this.registerMetaHandler("metrics", (session, meta, args) -> {
             HbaseMetrics metrics = new HbaseMetrics(this.sessions);
-            return metrics.getMetrics();
+            return metrics.metrics();
+        });
+
+        this.registerMetaHandler("compact", (session, meta, args) -> {
+            HbaseMetrics metrics = new HbaseMetrics(this.sessions);
+            return metrics.compact(this.tableNames());
         });
     }
 
