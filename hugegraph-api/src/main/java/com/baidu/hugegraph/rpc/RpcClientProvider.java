@@ -68,8 +68,9 @@ public class RpcClientProvider {
 
     private static String excludeSelfUrl(String rpcUrl, String selfUrl) {
         String[] urls = StringUtils.splitWithCommaOrSemicolon(rpcUrl);
-        Set<String> urlsSet = new LinkedHashSet<>(Arrays.asList(urls));
-        urlsSet.remove(selfUrl);
-        return String.join(",", urlsSet);
+        // Keep urls order via LinkedHashSet
+        Set<String> urlSet = new LinkedHashSet<>(Arrays.asList(urls));
+        urlSet.remove(selfUrl);
+        return String.join(",", urlSet);
     }
 }
