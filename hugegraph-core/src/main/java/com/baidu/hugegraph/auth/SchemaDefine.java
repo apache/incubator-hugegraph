@@ -39,7 +39,6 @@ import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.HugeType;
-import com.baidu.hugegraph.type.Namifiable;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.util.E;
@@ -241,8 +240,9 @@ public abstract class SchemaDefine {
         protected abstract Object[] asArray();
     }
 
+    // NOTE: travis-ci fails if class Entity implements Namifiable
     public static abstract class Entity extends AuthElement
-                           implements Namifiable {
+                           implements com.baidu.hugegraph.type.Namifiable {
 
         private static final long serialVersionUID = 4113319546914811762L;
 
