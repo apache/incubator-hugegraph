@@ -74,28 +74,41 @@ public class MetricsApiTest extends BaseApiTest {
                 break;
             case "rocksdb":
                 Assert.assertEquals(1, nodes);
-                assertMapContains(graph, "mem_used");
-                assertMapContains(graph, "mem_unit");
-                assertMapContains(graph, "data_size");
+
+                String clusterId = assertMapContains(graph, "cluster_id");
+                Assert.assertEquals("local", clusterId);
+
+                Map<?, ?> servers = assertMapContains(graph, "servers");
+                Assert.assertEquals(1, servers.size());
+                Map.Entry<?, ?> server = servers.entrySet().iterator().next();
+                Assert.assertEquals("local", server.getKey());
+
+                Map<?, ?> host = (Map<?, ?>) server.getValue();
+                assertMapContains(host, "mem_used");
+                assertMapContains(host, "mem_unit");
+                assertMapContains(host, "disk_usage");
+                assertMapContains(host, "disk_unit");
                 break;
             case "cassandra":
             case "scylladb":
-                for (Map.Entry<?, ?> e : graph.entrySet()) {
+                assertMapContains(graph, "cluster_id");
+                assertMapContains(graph, "servers");
+
+                servers = (Map<?, ?>) graph.get("servers");
+                for (Map.Entry<?, ?> e : servers.entrySet()) {
                     String key = (String) e.getKey();
                     value = e.getValue();
-                    if ("backend".equals(key) || "nodes".equals(key)) {
-                        continue;
-                    }
                     Assert.assertTrue(String.format(
                                       "Expect map value for key %s but got %s",
                                       key, value),
                                       value instanceof Map);
-                    Map<?, ?> host = (Map<?, ?>) value;
+                    host = (Map<?, ?>) value;
                     assertMapContains(host, "mem_used");
                     assertMapContains(host, "mem_commited");
                     assertMapContains(host, "mem_max");
                     assertMapContains(host, "mem_unit");
-                    assertMapContains(host, "data_size");
+                    assertMapContains(host, "disk_usage");
+                    assertMapContains(host, "disk_unit");
                 }
                 break;
             case "hbase":
@@ -104,7 +117,8 @@ public class MetricsApiTest extends BaseApiTest {
                 assertMapContains(graph, "hbase_version");
                 assertMapContains(graph, "region_count");
                 assertMapContains(graph, "region_servers");
-                Map<?, ?> servers = (Map<?, ?>) graph.get("region_servers");
+                assertMapContains(graph, "servers");
+                servers = (Map<?, ?>) graph.get("servers");
                 for (Map.Entry<?, ?> e : servers.entrySet()) {
                     String key = (String) e.getKey();
                     value = e.getValue();
@@ -113,13 +127,20 @@ public class MetricsApiTest extends BaseApiTest {
                                       key, value),
                                       value instanceof Map);
                     Map<?, ?> regionServer = (Map<?, ?>) value;
-                    assertMapContains(regionServer, "max_heap_size");
-                    assertMapContains(regionServer, "used_heap_size");
-                    assertMapContains(regionServer, "heap_size_unit");
+                    assertMapContains(regionServer, "mem_used");
+                    assertMapContains(regionServer, "mem_max");
+                    assertMapContains(regionServer, "mem_unit");
                     assertMapContains(regionServer, "request_count");
-                    assertMapContains(regionServer,
-                                      "request_count_per_second");
-                    assertMapContains(regionServer, "regions");
+                    assertMapContains(regionServer, "request_count_per_second");
+
+                    Map<?, ?> regions = assertMapContains(regionServer,
+                                                          "regions");
+                    for (Map.Entry<?, ?> e2 : regions.entrySet()) {
+                        Map<?, ?> region = (Map<?, ?>) e2.getValue();
+                        assertMapContains(region, "mem_store_size");
+                        assertMapContains(region, "disk_usage");
+                        assertMapContains(region, "disk_unit");
+                    }
                 }
                 break;
             default:

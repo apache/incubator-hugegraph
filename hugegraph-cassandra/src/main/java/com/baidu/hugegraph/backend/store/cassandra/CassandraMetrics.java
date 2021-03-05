@@ -33,6 +33,7 @@ import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
+import com.baidu.hugegraph.util.UnitUtil;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Host;
 
@@ -64,11 +65,24 @@ public class CassandraMetrics implements BackendMetrics {
         // JMX client operations for Cassandra.
         try (NodeProbe probe = this.newNodeProbe(host)) {
             MemoryUsage heapUsage = probe.getHeapMemoryUsage();
+            metrics.put(MEM_UNIT, "MB");
+            metrics.put(DISK_UNIT, "GB");
             metrics.put(MEM_USED, heapUsage.getUsed() / Bytes.MB);
             metrics.put(MEM_COMMITED, heapUsage.getCommitted() / Bytes.MB);
             metrics.put(MEM_MAX, heapUsage.getMax() / Bytes.MB);
-            metrics.put(MEM_UNIT, "MB");
-            metrics.put(DATA_SIZE, probe.getLoadString());
+
+            String diskSize = probe.getLoadString();
+            metrics.put(DISK_USAGE, UnitUtil.bytesFromReadableString(diskSize));
+            metrics.put("disk_usage_readable", diskSize);
+            metrics.put("disk_usage_details", probe.getLoadMap());
+
+            metrics.put("uptime", probe.getUptime());
+            metrics.put("time_unit", "ms");
+            metrics.put("uptime_readable",
+                        UnitUtil.timestampToReadableString(probe.getUptime()));
+
+            metrics.put("live_nodes", probe.getLiveNodes());
+            metrics.put("leaving_nodes", probe.getLeavingNodes());
         } catch (Throwable e) {
             metrics.put(EXCEPTION, e.toString());
         }

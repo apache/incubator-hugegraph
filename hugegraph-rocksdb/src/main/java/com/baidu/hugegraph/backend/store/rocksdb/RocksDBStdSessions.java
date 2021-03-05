@@ -227,7 +227,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
     @Override
     public List<String> property(String property) {
         try {
-            if (property.equals(RocksDBMetrics.DISK_USAGE)) {
+            if (property.equals(RocksDBMetrics.KEY_DISK_USAGE)) {
                 long size = this.rocksdb.sstFileManager.getTotalSize();
                 return ImmutableList.of(String.valueOf(size));
             }

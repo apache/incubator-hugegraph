@@ -95,12 +95,15 @@ public class HbaseMetrics implements BackendMetrics {
             // Cluster info
             ClusterMetrics clusterMetrics = admin.getClusterMetrics();
             results.put(CLUSTER_ID, clusterMetrics.getClusterId());
+            results.put("master_name", clusterMetrics.getMasterName());
             results.put("average_load", clusterMetrics.getAverageLoad());
             results.put("hbase_version", clusterMetrics.getHBaseVersion());
             results.put("region_count", clusterMetrics.getRegionCount());
+            results.put("leaving_servers", clusterMetrics.getDeadServerNames());
             // Region servers info
-            Collection<ServerName> servers = admin.getRegionServers();
-            results.put(NODES, servers.size());
+            Collection<ServerName> regionServers = admin.getRegionServers();
+            results.put(NODES, regionServers.size());
+            results.put("region_servers", regionServers);
         } catch (Throwable e) {
             results.put(EXCEPTION, e.toString());
         }
@@ -111,34 +114,54 @@ public class HbaseMetrics implements BackendMetrics {
                                        ServerMetrics serverMetrics,
                                        List<RegionMetrics> regions) {
         Map<String, Object> metrics = InsertionOrderUtil.newMap();
-        metrics.put("max_heap_size",
+        metrics.put(MEM_MAX,
                     serverMetrics.getMaxHeapSize().get(Size.Unit.MEGABYTE));
-        metrics.put("used_heap_size",
+        metrics.put(MEM_USED,
                     serverMetrics.getUsedHeapSize().get(Size.Unit.MEGABYTE));
-        metrics.put("heap_size_unit", "MB");
+        metrics.put(MEM_UNIT, "MB");
         metrics.put("request_count", serverMetrics.getRequestCount());
         metrics.put("request_count_per_second",
                     serverMetrics.getRequestCountPerSecond());
-        metrics.put("regions", formatMetrics(regions));
+
+        metrics.put("regions", formatRegions(regions));
         return metrics;
     }
 
-    private static Map<String, Object> formatMetrics(
+    private static Map<String, Object> formatRegions(
                                        List<RegionMetrics> regions) {
         Map<String, Object> metrics = InsertionOrderUtil.newMap();
         for (RegionMetrics region : regions) {
-            metrics.put(region.getNameAsString(), formatMetrics(region));
+            metrics.put(region.getNameAsString(), formatRegion(region));
         }
         return metrics;
     }
 
-    private static Map<String, Object> formatMetrics(RegionMetrics region) {
+    private static Map<String, Object> formatRegion(RegionMetrics region) {
         Map<String, Object> metrics = InsertionOrderUtil.newMap();
+        metrics.put(DISK_USAGE,
+                    region.getStoreFileSize().get(Size.Unit.GIGABYTE));
+        metrics.put(DISK_UNIT, "GB");
+        metrics.put("index_store_size",
+                    region.getStoreFileIndexSize().get(Size.Unit.GIGABYTE));
+
         metrics.put("mem_store_size",
                     region.getMemStoreSize().get(Size.Unit.MEGABYTE));
-        metrics.put("file_store_size",
-                    region.getStoreFileSize().get(Size.Unit.MEGABYTE));
-        metrics.put("store_size_unit", "MB");
+        metrics.put("bloom_filter_size",
+                    region.getBloomFilterSize().get(Size.Unit.MEGABYTE));
+        metrics.put("store_count", region.getStoreCount());
+        metrics.put("store_file_count", region.getStoreFileCount());
+
+        metrics.put("request_count", region.getRequestCount());
+        metrics.put("write_request_count", region.getWriteRequestCount());
+        metrics.put("read_request_count", region.getReadRequestCount());
+        metrics.put("filterd_read_request_count",
+                    region.getFilteredReadRequestCount());
+
+        metrics.put("CompletedSequenceId", region.getCompletedSequenceId());
+        metrics.put("DataLocality", region.getDataLocality());
+        metrics.put("compacting_cell_count", region.getCompactedCellCount());
+        metrics.put("compacting_cell_count", region.getCompactingCellCount());
+
         return metrics;
     }
 }

@@ -38,7 +38,8 @@ public interface BackendMetrics {
     public String MEM_UNIT = "mem_unit";
 
     // Data load related metrics
-    public String DATA_SIZE = "data_size";
+    public String DISK_USAGE = "disk_usage";
+    public String DISK_UNIT = "disk_unit";
 
     public String EXCEPTION = "exception";
 
