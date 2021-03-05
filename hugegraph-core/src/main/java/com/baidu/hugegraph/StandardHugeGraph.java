@@ -40,8 +40,8 @@ import org.slf4j.Logger;
 
 import com.baidu.hugegraph.analyzer.Analyzer;
 import com.baidu.hugegraph.analyzer.AnalyzerFactory;
-import com.baidu.hugegraph.auth.StandardAuthManager;
 import com.baidu.hugegraph.auth.AuthManager;
+import com.baidu.hugegraph.auth.StandardAuthManager;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.cache.CachedGraphTransaction;
 import com.baidu.hugegraph.backend.cache.CachedSchemaTransaction;
@@ -816,7 +816,9 @@ public class StandardHugeGraph implements HugeGraph {
         }
 
         LOG.info("Close graph {}", this);
-        this.authManager.close();
+        if (StandardAuthManager.isLocal(this.authManager)) {
+            this.authManager.close();
+        }
         this.taskManager.closeScheduler(this.params);
         try {
             this.closeTx();

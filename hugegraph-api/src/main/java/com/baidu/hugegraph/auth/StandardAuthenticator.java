@@ -52,7 +52,9 @@ public class StandardAuthenticator implements HugeAuthenticator {
         E.checkState(caller.equals("main"), "Invalid caller '%s'", caller);
 
         AuthManager authManager = this.graph().hugegraph().authManager();
-        if (authManager.findUser(HugeAuthenticator.USER_ADMIN) == null) {
+        // Only init user when local mode and user has not been initialized
+        if (StandardAuthManager.isLocal(authManager) &&
+            authManager.findUser(HugeAuthenticator.USER_ADMIN) == null) {
             HugeUser admin = new HugeUser(HugeAuthenticator.USER_ADMIN);
             admin.password(StringEncoding.hashPassword(this.inputPassword()));
             admin.creator(HugeAuthenticator.USER_SYSTEM);
