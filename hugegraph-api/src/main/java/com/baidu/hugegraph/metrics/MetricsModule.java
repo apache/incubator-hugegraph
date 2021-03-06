@@ -43,7 +43,7 @@ import com.codahale.metrics.Timer;
  */
 public class MetricsModule extends Module {
 
-    private static final Version VERSION = new Version(1, 0, 0, "",
+    private static final Version VERSION = new Version(1, 1, 0, "",
                                                        "com.baidu.hugegraph",
                                                        "hugegraph-api");
 
@@ -105,9 +105,10 @@ public class MetricsModule extends Module {
             json.writeStartObject();
             final Snapshot snapshot = histogram.getSnapshot();
             json.writeNumberField("count", histogram.getCount());
-            json.writeNumberField("max", snapshot.getMax());
-            json.writeNumberField("mean", snapshot.getMean());
             json.writeNumberField("min", snapshot.getMin());
+            json.writeNumberField("mean", snapshot.getMean());
+            json.writeNumberField("max", snapshot.getMax());
+            json.writeNumberField("stddev", snapshot.getStdDev());
             json.writeNumberField("p50", snapshot.getMedian());
             json.writeNumberField("p75", snapshot.get75thPercentile());
             json.writeNumberField("p95", snapshot.get95thPercentile());
@@ -119,7 +120,6 @@ public class MetricsModule extends Module {
                 json.writeObjectField("values", snapshot.getValues());
             }
 
-            json.writeNumberField("stddev", snapshot.getStdDev());
             json.writeEndObject();
         }
     }
@@ -142,15 +142,15 @@ public class MetricsModule extends Module {
                               SerializerProvider provider) throws IOException {
             json.writeStartObject();
             json.writeNumberField("count", meter.getCount());
-            json.writeNumberField("m15_rate", meter.getFifteenMinuteRate() *
-                                              this.rateFactor);
-            json.writeNumberField("m1_rate", meter.getOneMinuteRate() *
-                                             this.rateFactor);
-            json.writeNumberField("m5_rate", meter.getFiveMinuteRate() *
-                                             this.rateFactor);
             json.writeNumberField("mean_rate", meter.getMeanRate() *
                                                this.rateFactor);
-            json.writeStringField("units", this.rateUnit);
+            json.writeNumberField("m15_rate", meter.getFifteenMinuteRate() *
+                                              this.rateFactor);
+            json.writeNumberField("m5_rate", meter.getFiveMinuteRate() *
+                                             this.rateFactor);
+            json.writeNumberField("m1_rate", meter.getOneMinuteRate() *
+                                             this.rateFactor);
+            json.writeStringField("rate_unit", this.rateUnit);
             json.writeEndObject();
         }
     }
@@ -181,12 +181,14 @@ public class MetricsModule extends Module {
             json.writeStartObject();
             final Snapshot snapshot = timer.getSnapshot();
             json.writeNumberField("count", timer.getCount());
-            json.writeNumberField("max", snapshot.getMax() *
+            json.writeNumberField("min", snapshot.getMin() *
                                          this.durationFactor);
             json.writeNumberField("mean", snapshot.getMean() *
                                           this.durationFactor);
-            json.writeNumberField("min", snapshot.getMin() *
+            json.writeNumberField("max", snapshot.getMax() *
                                          this.durationFactor);
+            json.writeNumberField("stddev", snapshot.getStdDev() *
+                                            this.durationFactor);
 
             json.writeNumberField("p50", snapshot.getMedian() *
                                          this.durationFactor);
@@ -200,6 +202,7 @@ public class MetricsModule extends Module {
                                          this.durationFactor);
             json.writeNumberField("p999", snapshot.get999thPercentile() *
                                           this.durationFactor);
+            json.writeStringField("duration_unit", this.durationUnit);
 
             if (this.showSamples) {
                 final long[] values = snapshot.getValues();
@@ -210,18 +213,15 @@ public class MetricsModule extends Module {
                 json.writeObjectField("values", scaledValues);
             }
 
-            json.writeNumberField("stddev", snapshot.getStdDev() *
-                                            this.durationFactor);
-            json.writeNumberField("m15_rate", timer.getFifteenMinuteRate() *
-                                              this.rateFactor);
-            json.writeNumberField("m1_rate", timer.getOneMinuteRate() *
-                                             this.rateFactor);
-            json.writeNumberField("m5_rate", timer.getFiveMinuteRate() *
-                                             this.rateFactor);
             json.writeNumberField("mean_rate", timer.getMeanRate() *
                                                this.rateFactor);
-            json.writeStringField("duration_units", this.durationUnit);
-            json.writeStringField("rate_units", this.rateUnit);
+            json.writeNumberField("m15_rate", timer.getFifteenMinuteRate() *
+                                              this.rateFactor);
+            json.writeNumberField("m5_rate", timer.getFiveMinuteRate() *
+                                             this.rateFactor);
+            json.writeNumberField("m1_rate", timer.getOneMinuteRate() *
+                                             this.rateFactor);
+            json.writeStringField("rate_unit", this.rateUnit);
             json.writeEndObject();
         }
     }

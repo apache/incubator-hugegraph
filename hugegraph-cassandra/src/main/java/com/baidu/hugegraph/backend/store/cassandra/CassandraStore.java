@@ -89,12 +89,14 @@ public abstract class CassandraStore
     private void registerMetaHandlers() {
         this.registerMetaHandler("metrics", (session, meta, args) -> {
             CassandraMetrics metrics = new CassandraMetrics(this.sessions,
+                                                            this.keyspace,
                                                             this.conf);
             return metrics.metrics();
         });
 
         this.registerMetaHandler("compact", (session, meta, args) -> {
             CassandraMetrics metrics = new CassandraMetrics(this.sessions,
+                                                            this.keyspace,
                                                             this.conf);
             return metrics.compact();
         });

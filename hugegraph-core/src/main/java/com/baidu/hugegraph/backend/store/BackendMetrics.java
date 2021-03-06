@@ -41,6 +41,8 @@ public interface BackendMetrics {
     public String DISK_USAGE = "disk_usage";
     public String DISK_UNIT = "disk_unit";
 
+    public String READABLE = "_readable";
+
     public String EXCEPTION = "exception";
 
     public Map<String, Object> metrics();

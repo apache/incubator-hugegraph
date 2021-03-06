@@ -25,6 +25,7 @@ import java.util.Map;
 import com.baidu.hugegraph.backend.store.BackendMetrics;
 import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
+import com.baidu.hugegraph.util.UnitUtil;
 import com.google.common.collect.ImmutableMap;
 
 public class RocksDBMetrics implements BackendMetrics {
@@ -117,10 +118,16 @@ public class RocksDBMetrics implements BackendMetrics {
         metrics.put(MEM_UNIT, "MB");
         metrics.put(DISK_UNIT, "GB");
 
-        // NOTE: the unit of rocksdb mem property is bytes
-        metrics.put(MEM_USED, this.getMemUsed() / Bytes.MB);
+        // NOTE: the unit of rocksdb memory property is bytes
+        long memUsed = (long) this.getMemUsed();
+        metrics.put(MEM_USED, UnitUtil.bytesToMB(memUsed));
+        metrics.put(MEM_USED + "_readable",
+                    UnitUtil.bytesToReadableString(memUsed));
 
-        metrics.put(DISK_USAGE, this.getDiskUsage() / Bytes.GB);
+        long diskUsage = (long) this.getDiskUsage();
+        metrics.put(DISK_USAGE, UnitUtil.bytesToMB(diskUsage));
+        metrics.put(DISK_USAGE + "_readable",
+                    UnitUtil.bytesToReadableString(diskUsage));
 
         // memory
         this.appendMetricsMemory(metrics, KEY_BLOCK_CACHE);
