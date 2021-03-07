@@ -22,7 +22,13 @@ package com.baidu.hugegraph.util;
 import java.math.BigDecimal;
 import java.time.Duration;
 
+// TODO: move to common module
 public final class UnitUtil {
+
+    // TODO: move to Bytes class
+    public static final long TB = Bytes.GB * Bytes.KB;
+    public static final long PB = Bytes.GB * Bytes.MB;
+    public static final long EB = Bytes.GB * Bytes.GB;
 
     public static double bytesToMB(long bytes) {
         return doubleWith2Scale(bytes / (double) Bytes.MB);
@@ -32,10 +38,15 @@ public final class UnitUtil {
         return doubleWith2Scale(bytes / (double) Bytes.GB);
     }
 
+    public static double doubleWith2Scale(double value) {
+        BigDecimal decimal = new BigDecimal(value);
+        return decimal.setScale(2, BigDecimal.ROUND_HALF_UP).doubleValue();
+    }
+
     public static String bytesToReadableString(long bytes) {
         // NOTE: FileUtils.byteCountToDisplaySize() lost decimal precision
         final String[] units = {"B", "KB", "MB", "GB", "TB", "PB", "EB"};
-        if (bytes <= 0) {
+        if (bytes <= 0L) {
             return "0 B";
         }
         int i = (int) (Math.log(bytes) / Math.log(1024));
@@ -43,12 +54,11 @@ public final class UnitUtil {
                         "The bytes parameter is out of %s unit: %s",
                         units[units.length - 1], bytes);
         double value = bytes / Math.pow(1024, i);
-        return doubleWith2Scale(value) + " " + units[i];
-    }
-
-    public static double doubleWith2Scale(double value) {
-        BigDecimal decimal = new BigDecimal(value);
-        return decimal.setScale(2, BigDecimal.ROUND_HALF_UP).doubleValue();
+        if (value % 1L == 0L) {
+            return ((long) value) + " " + units[i];
+        } else {
+            return doubleWith2Scale(value) + " " + units[i];
+        }
     }
 
     public static long bytesFromReadableString(String valueWithUnit) {
@@ -58,64 +68,121 @@ public final class UnitUtil {
                         "expect format like '10 MB'", valueWithUnit);
         String unit = valueWithUnit.substring(spacePos + 1);
 
-        long factor = 1L;
-        switch (unit) {
+        long factor = 0L;
+        switch (unit.trim().toUpperCase()) {
             case "B":
-            case "Byte":
-            case "Bytes":
+            case "BYTE":
+            case "BYTES":
                 factor = 1L;
                 break;
             case "KB":
-            case "KiB":
+            case "KIB":
                 factor = Bytes.KB;
                 break;
             case "MB":
-            case "MiB":
+            case "MIB":
                 factor = Bytes.MB;
                 break;
             case "GB":
-            case "GiB":
+            case "GIB":
                 factor = Bytes.GB;
                 break;
             case "TB":
-            case "TiB":
-                factor = Bytes.GB * Bytes.KB;
+            case "TIB":
+                factor = TB;
                 break;
             case "PB":
-            case "PiB":
-                factor = Bytes.GB * Bytes.MB;
+            case "PIB":
+                factor = PB;
                 break;
             case "EB":
-            case "EiB":
-                factor = Bytes.GB * Bytes.GB;
+            case "EIB":
+                factor = EB;
                 break;
             default:
                 throw new IllegalArgumentException("Unrecognized unit " + unit);
         }
 
-        double value = Double.parseDouble(valueWithUnit.substring(0, spacePos));
-        return (long) (value * factor);
+        double value;
+        try {
+            value = Double.parseDouble(valueWithUnit.substring(0, spacePos));
+        } catch (Exception e) {
+            throw new IllegalArgumentException(String.format(
+                      "Invalid parameter(not number): '%s'", valueWithUnit), e);
+        }
+        value = value * factor;
+        E.checkArgument(value <= Long.MAX_VALUE,
+                        "The value %s from parameter '%s' is out of range",
+                        value, valueWithUnit);
+        return (long) value;
     }
 
     public static String timestampToReadableString(long time) {
         Duration duration = Duration.ofMillis(time);
         long days = duration.toDays();
+        long hours = duration.toHours();
+        long minutes = duration.toMinutes();
+        long seconds = duration.getSeconds();
+
         if (days > 0) {
             return String.format("%dd%dh%dm%ds",
                                  days,
-                                 duration.toHours() % 24,
-                                 duration.toMinutes() % 60,
-                                 duration.getSeconds() % 60);
-        } else {
+                                 hours % 24,
+                                 minutes % 60,
+                                 seconds % 60);
+        } else if (hours > 0) {
             return String.format("%dh%dm%ds",
-                                 duration.toHours(),
-                                 duration.toMinutes() % 60,
-                                 duration.getSeconds() % 60);
+                                 hours,
+                                 minutes % 60,
+                                 seconds % 60);
+        } else if (minutes > 0) {
+            return String.format("%dm%ds",
+                                 minutes,
+                                 seconds % 60);
+        } else if (seconds > 0) {
+            long ms = duration.toMillis() % 1000L;
+            if (ms > 0L) {
+                return String.format("%ds%dms", seconds, ms);
+            } else {
+                return String.format("%ds", seconds);
+            }
+        } else {
+            return String.format("%dms", duration.toMillis());
         }
-
     }
 
     public static long timestampFromReadableString(String valueWithUnit) {
-        return 0;
+        long ms = 0L;
+        // Adapt format 'nDnHnMnS' to 'PnYnMnDTnHnMnS'
+        String formatDuration = valueWithUnit.toUpperCase();
+        if (formatDuration.indexOf('D') >= 0) {
+            // Contains days
+            assert !formatDuration.contains("MS");
+            formatDuration = "P" + formatDuration.replace("D", "DT");
+        } else {
+            // Not exists days
+            int msPos = formatDuration.indexOf("MS");
+            // If contains ms, rmove the ms part
+            if (msPos >= 0) {
+                int sPos = formatDuration.indexOf("S");
+                if (0 <= sPos && sPos < msPos) {
+                    // If contains second part
+                    sPos += 1;
+                    ms = Long.parseLong(formatDuration.substring(sPos, msPos));
+                    ms %= 1000L;
+                    formatDuration = formatDuration.substring(0, sPos);
+                } else {
+                    // Not contains second part, only exists ms
+                    ms = Long.parseLong(formatDuration.substring(0, msPos));
+                    return ms;
+                }
+            } else {
+                assert formatDuration.endsWith("S");
+            }
+            formatDuration = "PT" + formatDuration;
+        }
+
+        Duration duration = Duration.parse(formatDuration);
+        return duration.toMillis() + ms;
     }
 }
