@@ -56,7 +56,7 @@ public class ConfigListOption<T> extends ConfigOption<List<T>> {
     }
 
     @Override
-    protected List<T> parse(Object value) {
+    protected List<T> parse(String value) {
         return convert(value, part -> this.parse(part, this.elemClass));
     }
 

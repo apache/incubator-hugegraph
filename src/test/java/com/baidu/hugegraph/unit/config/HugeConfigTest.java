@@ -75,6 +75,8 @@ public class HugeConfigTest extends BaseUnitTest {
         Assert.assertEquals(Double.class, TestOptions.double1.dataType());
         Assert.assertEquals(Boolean.class, TestOptions.bool.dataType());
 
+        Assert.assertEquals(Class.class, TestOptions.clazz.dataType());
+
         Assert.assertEquals(List.class, TestOptions.list.dataType());
         Assert.assertEquals(List.class, TestOptions.map.dataType());
 
@@ -110,6 +112,8 @@ public class HugeConfigTest extends BaseUnitTest {
                             TestOptions.double1.toString());
         Assert.assertEquals("[Boolean]group1.bool=true",
                             TestOptions.bool.toString());
+        Assert.assertEquals("[Class]group1.class=class java.lang.Object",
+                            TestOptions.clazz.toString());
         Assert.assertEquals("[List]group1.list=[list-value1, list-value2]",
                             TestOptions.list.toString());
         Assert.assertEquals("[List]group1.map=[key1:value1, key2:value2]",
@@ -209,6 +213,15 @@ public class HugeConfigTest extends BaseUnitTest {
         });
 
         Assert.assertThrows(ConfigException.class, () -> {
+            new ConfigOption<>(
+                    "group1.class",
+                    "description of group1.class",
+                    input -> input != null && input.equals(Long.class),
+                    Integer.class
+            );
+        });
+
+        Assert.assertThrows(ConfigException.class, () -> {
             new ConfigListOption<>(
                     "group1.list",
                     "description of list with invalid default values",
@@ -265,6 +278,14 @@ public class HugeConfigTest extends BaseUnitTest {
 
         Assert.assertEquals(true, config.get(TestOptions.bool));
 
+        Assert.assertEquals(Object.class, config.get(TestOptions.clazz));
+        Assert.assertThrows(ConfigException.class, () -> {
+            config.setProperty(TestOptions.clazz.name(),
+                               "com.baidu.hugegraph.HugeGraph");
+        }, e -> {
+            Assert.assertTrue(e.getCause() instanceof ClassNotFoundException);
+        });
+
         Assert.assertEquals(Arrays.asList("list-value1", "list-value2"),
                             config.get(TestOptions.list));
 
@@ -298,6 +319,8 @@ public class HugeConfigTest extends BaseUnitTest {
         Assert.assertEquals(66.0f, config.get(TestOptions.double1), 0d);
 
         Assert.assertEquals(false, config.get(TestOptions.bool));
+
+        Assert.assertEquals(String.class, config.get(TestOptions.clazz));
 
         Assert.assertEquals(Arrays.asList("file-v1", "file-v2", "file-v3"),
                             config.get(TestOptions.list));
@@ -475,6 +498,14 @@ public class HugeConfigTest extends BaseUnitTest {
                         "description of group1.bool",
                         disallowEmpty(),
                         true
+                );
+
+        public static final ConfigOption<Class<?>> clazz =
+                new ConfigOption<>(
+                        "group1.class",
+                        "description of group1.class",
+                        disallowEmpty(),
+                        Object.class
                 );
 
         public static final ConfigConvOption<String, WeekDay> weekday =

@@ -60,7 +60,7 @@ public class ConfigListConvOption<T, R> extends TypedOption<List<T>, List<R>> {
     }
 
     @Override
-    protected List<T> parse(Object value) {
+    protected List<T> parse(String value) {
         return ConfigListOption.convert(value, part -> {
             return this.parse(part, this.elemClass);
         });

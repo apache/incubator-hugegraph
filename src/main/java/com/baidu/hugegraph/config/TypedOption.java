@@ -50,6 +50,7 @@ public class TypedOption<T, R> {
                 Double.class,
                 String.class,
                 String[].class,
+                Class.class,
                 List.class
         );
 
@@ -112,20 +113,27 @@ public class TypedOption<T, R> {
         return this.convert(this.defaultValue);
     }
 
-    public R parseConvert(Object value) {
+    public R parseConvert(String value) {
         T parsed = this.parse(value);
         this.check(parsed);
         return this.convert(parsed);
     }
 
     @SuppressWarnings("unchecked")
-    protected T parse(Object value) {
+    protected T parse(String value) {
         return (T) this.parse(value, this.dataType);
     }
 
-    protected Object parse(Object value, Class<?> dataType) {
+    protected Object parse(String value, Class<?> dataType) {
         if (dataType.equals(String.class)) {
             return value;
+        } else if (dataType.equals(Class.class)) {
+            try {
+                return Class.forName(value);
+            } catch (ClassNotFoundException e) {
+                throw new ConfigException(
+                          "Failed to parse Class from String '%s'", e, value);
+            }
         } else if (List.class.isAssignableFrom(dataType)) {
             E.checkState(this.forList(),
                          "List option can't be registered with class %s",

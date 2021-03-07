@@ -151,7 +151,7 @@ public class HugeConfig extends PropertiesConfiguration {
                         "Invalid value for key '%s': %s", key, value);
 
         TypedOption<?, ?> option = OptionSpace.get(key);
-        return option.parseConvert(value);
+        return option.parseConvert((String) value);
     }
 
     private void checkRequiredOptions() {
