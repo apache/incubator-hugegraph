@@ -168,9 +168,9 @@ public abstract class BackendTable<Session extends BackendSession, Entry> {
             long maxKey = this.maxKey();
             double each = maxKey / count;
 
-            long offset = 0L;
-            String last = this.position(offset);
             List<Shard> splits = new ArrayList<>((int) count);
+            String last = START;
+            long offset = 0L;
             while (offset < maxKey) {
                 offset += each;
                 if (offset > maxKey) {
