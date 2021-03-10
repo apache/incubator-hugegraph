@@ -38,7 +38,6 @@ import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
@@ -103,15 +102,13 @@ public class HugeVariables implements Graph.Variables {
     };
 
     private final HugeGraphParams params;
-    private final HugeGraph graph;
 
     public HugeVariables(HugeGraphParams params) {
         this.params = params;
-        this.graph = params.graph();
     }
 
     public synchronized void initSchemaIfNeeded() {
-        if (this.graph.existsVertexLabel(Hidden.hide(VARIABLES))) {
+        if (this.params.graph().existsVertexLabel(Hidden.hide(VARIABLES))) {
             // Ignore if exist
             return;
         }
@@ -167,7 +164,7 @@ public class HugeVariables implements Graph.Variables {
                                Hidden.hide(VARIABLE_TYPE)};
         properties = ArrayUtils.addAll(properties, TYPES);
 
-        SchemaManager schema = this.graph.schema();
+        SchemaManager schema = this.params.graph().schema();
         VertexLabel variables = schema.vertexLabel(Hidden.hide(VARIABLES))
                                       .properties(properties)
                                       .usePrimaryKeyId()
@@ -181,7 +178,7 @@ public class HugeVariables implements Graph.Variables {
 
     private void createPropertyKey(String name, DataType dataType,
                                    Cardinality cardinality) {
-        SchemaManager schema = this.graph.schema();
+        SchemaManager schema = this.params.graph().schema();
         PropertyKey propertyKey = schema.propertyKey(name)
                                         .dataType(dataType)
                                         .cardinality(cardinality)
@@ -332,7 +329,7 @@ public class HugeVariables implements Graph.Variables {
     }
 
     private void createVariableVertex(String key, Object value) {
-        VertexLabel vl = this.graph.vertexLabel(Hidden.hide(VARIABLES));
+        VertexLabel vl = this.variableVertexLabel();
         GraphTransaction tx = this.params.graphTransaction();
 
         HugeVertex vertex = HugeVertex.create(tx, null, vl);
@@ -353,23 +350,34 @@ public class HugeVariables implements Graph.Variables {
     }
 
     private HugeVertex queryVariableVertex(String key) {
-        ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
-        VertexLabel vl = this.graph.vertexLabel(Hidden.hide(VARIABLES));
-        query.eq(HugeKeys.LABEL, vl.id());
-
-        PropertyKey pkey = this.graph.propertyKey(Hidden.hide(VARIABLE_KEY));
-        query.query(Condition.eq(pkey.id(), key));
-        query.showHidden(true);
-        Iterator<Vertex> vertices = this.graph.vertices(query);
+        GraphTransaction tx = this.params.graphTransaction();
+        Query query = this.createVariableQuery(key);
+        Iterator<Vertex> vertices = tx.queryVertices(query);
         return (HugeVertex) QueryResults.one(vertices);
     }
 
     private Iterator<Vertex> queryAllVariableVertices() {
+        GraphTransaction tx = this.params.graphTransaction();
+        Query query = this.createVariableQuery(null);
+        Iterator<Vertex> vertices = tx.queryVertices(query);
+        return vertices;
+    }
+
+    private ConditionQuery createVariableQuery(String name) {
         ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
-        VertexLabel vl = this.graph.vertexLabel(Hidden.hide(VARIABLES));
+        VertexLabel vl = this.variableVertexLabel();
         query.eq(HugeKeys.LABEL, vl.id());
+        if (name != null) {
+            PropertyKey pkey = this.params.graph().propertyKey(
+                               Hidden.hide(VARIABLE_KEY));
+            query.query(Condition.eq(pkey.id(), name));
+        }
         query.showHidden(true);
-        return this.graph.vertices(query);
+        return query;
+    }
+
+    private VertexLabel variableVertexLabel() {
+        return this.params.graph().vertexLabel(Hidden.hide(VARIABLES));
     }
 
     private static Object extractSingleObject(Object value) {
