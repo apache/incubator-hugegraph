@@ -1271,15 +1271,15 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
         @Override
         public Id createAccess(HugeAccess access) {
-            verifyUserPermission(HugePermission.WRITE, access);
             this.updateCreator(access);
+            verifyUserPermission(HugePermission.WRITE, access);
             return this.authManager.createAccess(access);
         }
 
         @Override
         public Id updateAccess(HugeAccess access) {
-            verifyUserPermission(HugePermission.WRITE, access);
             this.updateCreator(access);
+            verifyUserPermission(HugePermission.WRITE, access);
             return this.authManager.updateAccess(access);
         }
 
