@@ -67,7 +67,7 @@ public class PropertyKeyAPI extends API {
     @Status(Status.CREATED)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=$graph $action=schema_write"})
+    @RolesAllowed({"admin", "$owner=$graph $action=property_key_write"})
     public String create(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          JsonPropertyKey jsonPropertyKey) {
@@ -86,7 +86,7 @@ public class PropertyKeyAPI extends API {
     @Path("{name}")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=$graph $action=schema_write"})
+    @RolesAllowed({"admin", "$owner=$graph $action=property_key_write"})
     public String update(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          @PathParam("name") String name,
@@ -112,7 +112,7 @@ public class PropertyKeyAPI extends API {
     @GET
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=$graph $action=schema_read"})
+    @RolesAllowed({"admin", "$owner=$graph $action=property_key_read"})
     public String list(@Context GraphManager manager,
                        @PathParam("graph") String graph,
                        @QueryParam("names") List<String> names) {
@@ -140,7 +140,7 @@ public class PropertyKeyAPI extends API {
     @Timed
     @Path("{name}")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=$graph $action=schema_read"})
+    @RolesAllowed({"admin", "$owner=$graph $action=property_key_read"})
     public String get(@Context GraphManager manager,
                       @PathParam("graph") String graph,
                       @PathParam("name") String name) {
@@ -155,7 +155,7 @@ public class PropertyKeyAPI extends API {
     @Timed
     @Path("{name}")
     @Consumes(APPLICATION_JSON)
-    @RolesAllowed({"admin", "$owner=$graph $action=schema_delete"})
+    @RolesAllowed({"admin", "$owner=$graph $action=property_key_delete"})
     public void delete(@Context GraphManager manager,
                        @PathParam("graph") String graph,
                        @PathParam("name") String name) {
