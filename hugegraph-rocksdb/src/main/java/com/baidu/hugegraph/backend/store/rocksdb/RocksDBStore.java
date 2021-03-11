@@ -548,7 +548,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
 
             this.clear(false);
             this.init();
-            // clear write batch
+            // Clear write-batch
             this.dbs.values().forEach(BackendSessionPool::forceResetSessions);
             LOG.debug("Store truncated: {}", this.store);
         } finally {
@@ -633,8 +633,8 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
                 // Like: parent_path/snapshot_rocksdb-data/*
                 Path snapshotPath = parentParentPath.resolve(snapshotPrefix +
                                                              "_" + pureDataPath);
-                LOG.debug("The origin data path: {}", originDataPath);
-                LOG.debug("The snapshot data path: {}", snapshotPath);
+                LOG.debug("Create snapshot '{}' for origin data path '{}'",
+                          snapshotPath, originDataPath);
                 RocksDBSessions sessions = entry.getValue();
                 sessions.createSnapshot(snapshotPath.toString());
 

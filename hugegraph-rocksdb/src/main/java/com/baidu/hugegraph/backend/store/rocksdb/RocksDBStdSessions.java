@@ -370,7 +370,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
             return;
         }
         RocksDBIngester ingester = new RocksDBIngester(this.rocksdb());
-        // Ingest all *.sst files in `directory`
+        // Ingest all *.sst files in each directory named cf name
         for (String cf : this.rocksdb.cfs()) {
             Path path = Paths.get(directory, cf);
             if (path.toFile().isDirectory()) {
@@ -450,8 +450,8 @@ public class RocksDBStdSessions extends RocksDBSessions {
     }
 
     private static void createCheckpoint(RocksDB rocksdb, String targetPath) {
-        Path parentPath = Paths.get(targetPath).getParent().getFileName();
-        assert parentPath.toString().startsWith("snapshot") : targetPath;
+        Path parentName = Paths.get(targetPath).getParent().getFileName();
+        assert parentName.toString().startsWith("snapshot") : targetPath;
         // https://github.com/facebook/rocksdb/wiki/Checkpoints
         try (Checkpoint checkpoint = Checkpoint.create(rocksdb)) {
             String tempPath = targetPath + "_temp";
