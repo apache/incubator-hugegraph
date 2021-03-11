@@ -24,6 +24,11 @@ import com.baidu.hugegraph.backend.store.BackendFeatures;
 public class RocksDBFeatures implements BackendFeatures {
 
     @Override
+    public boolean supportsSharedStorage() {
+        return false;
+    }
+
+    @Override
     public boolean supportsScanToken() {
         return false;
     }

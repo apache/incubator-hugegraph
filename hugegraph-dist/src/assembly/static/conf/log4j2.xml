@@ -30,6 +30,9 @@
         <logger name="com.datastax.driver" level="WARN" additivity="false">
             <appender-ref ref="file"/>
         </logger>
+        <logger name="com.alipay.sofa" level="WARN" additivity="false">
+            <appender-ref ref="file"/>
+        </logger>
         <logger name="io.netty" level="INFO" additivity="false">
             <appender-ref ref="file"/>
         </logger>

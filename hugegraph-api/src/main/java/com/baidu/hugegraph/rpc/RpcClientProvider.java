@@ -19,26 +19,58 @@
 
 package com.baidu.hugegraph.rpc;
 
-import com.alipay.sofa.rpc.config.ConsumerConfig;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
+import java.util.Set;
+
+import com.alipay.sofa.rpc.common.utils.StringUtils;
 import com.baidu.hugegraph.auth.AuthManager;
 import com.baidu.hugegraph.config.HugeConfig;
+import com.baidu.hugegraph.config.ServerOptions;
+import com.baidu.hugegraph.util.E;
 
 public class RpcClientProvider {
 
-    public final RpcConsumerConfig rpcConsumerConfig;
+    public final RpcConsumerConfig consumerConfig;
+    public final RpcConsumerConfig authConsumerConfig;
 
     public RpcClientProvider(HugeConfig conf) {
-        RpcCommonConfig.initRpcConfigs(conf);
-        this.rpcConsumerConfig = new RpcConsumerConfig();
-        this.rpcConsumerConfig.addConsumerConfig(AuthManager.class, conf);
+        // TODO: fetch from registry server
+        String rpcUrl = conf.get(ServerOptions.RPC_REMOTE_URL);
+        String selfUrl = conf.get(ServerOptions.RPC_SERVER_HOST) + ":" +
+                         conf.get(ServerOptions.RPC_SERVER_PORT);
+        rpcUrl = excludeSelfUrl(rpcUrl, selfUrl);
+        this.consumerConfig = StringUtils.isNotBlank(rpcUrl) ?
+                              new RpcConsumerConfig(conf, rpcUrl) : null;
+
+        String authUrl = conf.get(ServerOptions.AUTH_REMOTE_URL);
+        this.authConsumerConfig = StringUtils.isNotBlank(authUrl) ?
+                                  new RpcConsumerConfig(conf, authUrl) : null;
+    }
+
+    public boolean enabled() {
+        return this.consumerConfig != null;
+    }
+
+    public RpcConsumerConfig config() {
+        E.checkArgument(this.consumerConfig != null,
+                        "RpcClient is not enabled, please config option '%s'",
+                        ServerOptions.RPC_REMOTE_URL.name());
+        return this.consumerConfig;
     }
 
     public AuthManager authManager() {
-        return (AuthManager) this.serviceProxy(AuthManager.class.getName());
+        E.checkArgument(this.authConsumerConfig != null,
+                        "RpcClient is not enabled, please config option '%s'",
+                        ServerOptions.AUTH_REMOTE_URL.name());
+        return this.authConsumerConfig.serviceProxy(AuthManager.class);
     }
 
-    public Object serviceProxy(String serviceName) {
-        ConsumerConfig config = this.rpcConsumerConfig.consumerConfig(serviceName);
-        return config.refer();
+    private static String excludeSelfUrl(String rpcUrl, String selfUrl) {
+        String[] urls = StringUtils.splitWithCommaOrSemicolon(rpcUrl);
+        // Keep urls order via LinkedHashSet
+        Set<String> urlSet = new LinkedHashSet<>(Arrays.asList(urls));
+        urlSet.remove(selfUrl);
+        return String.join(",", urlSet);
     }
 }

@@ -1215,7 +1215,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
         Assert.assertTrue(edgeLabels.contains(write));
 
         // clear cache
-        params().schemaEventHub().call(Events.CACHE, "clear", null, null);
+        params().schemaEventHub().call(Events.CACHE, "clear", null);
 
         Assert.assertEquals(look, schema.getEdgeLabel("look"));
 

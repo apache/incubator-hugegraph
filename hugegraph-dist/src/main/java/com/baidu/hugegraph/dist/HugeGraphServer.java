@@ -102,6 +102,6 @@ public class HugeGraphServer {
             LOG.info("HugeGraphServer stopping");
             server.stop();
             LOG.info("HugeGraphServer stopped");
-        }));
+        }, "hugegraph-server-shutdown"));
     }
 }

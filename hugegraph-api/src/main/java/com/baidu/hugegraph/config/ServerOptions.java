@@ -204,7 +204,7 @@ public class ServerOptions extends OptionHolder {
                     "hugegraph"
             );
 
-    public static final ConfigOption<String> ADMIN_TOKEN =
+    public static final ConfigOption<String> AUTH_ADMIN_TOKEN =
             new ConfigOption<>(
                     "auth.admin_token",
                     "Token for administrator operations, " +
@@ -213,7 +213,7 @@ public class ServerOptions extends OptionHolder {
                     "162f7848-0b6d-4faf-b557-3a0797869c55"
             );
 
-    public static final ConfigListOption<String> USER_TOKENS =
+    public static final ConfigListOption<String> AUTH_USER_TOKENS =
             new ConfigListOption<>(
                     "auth.user_tokens",
                     "The map of user tokens with name and password, " +
@@ -228,7 +228,7 @@ public class ServerOptions extends OptionHolder {
                     "If the address is empty, it provide auth service, " +
                     "otherwise it is auth client and also provide auth service " +
                     "through rpc forwarding. The remote url can be set to " +
-                    "multiple addresses, which are linked by ','.",
+                    "multiple addresses, which are concat by ','.",
                     null,
                     ""
             );
@@ -238,7 +238,7 @@ public class ServerOptions extends OptionHolder {
                     "rpc.server_port",
                     "The port bound by rpc server to provide services.",
                     rangeInt(1, Integer.MAX_VALUE),
-                    8099
+                    8090
             );
 
     public static final ConfigOption<String> RPC_SERVER_HOST =
@@ -256,6 +256,15 @@ public class ServerOptions extends OptionHolder {
                     "The timeout(in seconds) of rpc server execution.",
                     rangeInt(1, Integer.MAX_VALUE),
                     30
+            );
+
+    public static final ConfigOption<String> RPC_REMOTE_URL =
+            new ConfigOption<>(
+                    "rpc.remote_url",
+                    "The remote urls of rpc peers, it can be set to " +
+                    "multiple addresses, which are concat by ','.",
+                    disallowEmpty(),
+                    "127.0.0.1:8090"
             );
 
     public static final ConfigOption<Integer> RPC_CLIENT_CONNECT_TIMEOUT =

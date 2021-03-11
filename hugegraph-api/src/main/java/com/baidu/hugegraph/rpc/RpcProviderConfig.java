@@ -24,18 +24,38 @@ import java.util.Map;
 import com.alipay.sofa.rpc.config.ProviderConfig;
 import com.google.common.collect.Maps;
 
-public class RpcProviderConfig {
+public class RpcProviderConfig implements RpcServiceConfig4Server {
 
-    private final Map<String, ProviderConfig> configs = Maps.newHashMap();
+    private final Map<String, ProviderConfig<?>> configs = Maps.newHashMap();
 
+    @Override
     public <T, E extends T> void addService(Class<T> clazz, E serviceImpl) {
-        ProviderConfig<T> providerConfig = new ProviderConfig<T>()
-                                           .setInterfaceId(clazz.getName())
-                                           .setRef(serviceImpl);
-        this.configs.put(clazz.getName(), providerConfig);
+        this.addService(null, clazz.getName(), serviceImpl);
     }
 
-    public Map<String, ProviderConfig> configs() {
+    @Override
+    public <T, E extends T> void addService(String graph, Class<T> clazz,
+                                            E serviceImpl) {
+        this.addService(graph, clazz.getName(), serviceImpl);
+    }
+
+    private <T, E extends T> void addService(String graph,
+                                             String interfaceId,
+                                             E serviceImpl) {
+        ProviderConfig<T> providerConfig = new ProviderConfig<>();
+        String serviceId;
+        if (graph != null) {
+            serviceId = interfaceId + ":" + graph;
+            providerConfig.setId(serviceId).setUniqueId(graph);
+        } else {
+            serviceId = interfaceId;
+        }
+        providerConfig.setInterfaceId(interfaceId)
+                      .setRef(serviceImpl);
+        this.configs.put(serviceId, providerConfig);
+    }
+
+    public Map<String, ProviderConfig<?>> configs() {
         return this.configs;
     }
 }

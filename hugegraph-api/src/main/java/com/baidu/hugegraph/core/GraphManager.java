@@ -51,8 +51,10 @@ import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.license.LicenseVerifier;
 import com.baidu.hugegraph.metrics.MetricsUtil;
 import com.baidu.hugegraph.metrics.ServerReporter;
+import com.baidu.hugegraph.rpc.RpcClientProvider;
+import com.baidu.hugegraph.rpc.RpcConsumerConfig;
 import com.baidu.hugegraph.rpc.RpcProviderConfig;
-import com.baidu.hugegraph.rpc.SofaRpcServer;
+import com.baidu.hugegraph.rpc.RpcServer;
 import com.baidu.hugegraph.serializer.JsonSerializer;
 import com.baidu.hugegraph.serializer.Serializer;
 import com.baidu.hugegraph.server.RestServer;
@@ -67,12 +69,14 @@ public final class GraphManager {
 
     private final Map<String, Graph> graphs;
     private final HugeAuthenticator authenticator;
-    private final SofaRpcServer rpcServer;
+    private final RpcServer rpcServer;
+    private final RpcClientProvider rpcClient;
 
     public GraphManager(HugeConfig conf) {
         this.graphs = new ConcurrentHashMap<>();
         this.authenticator = HugeAuthenticator.loadAuthenticator(conf);
-        this.rpcServer = new SofaRpcServer(conf);
+        this.rpcServer = new RpcServer(conf);
+        this.rpcClient = new RpcClientProvider(conf);
 
         this.loadGraphs(conf.getMap(ServerOptions.GRAPHS));
         // this.installLicense(conf, "");
@@ -165,19 +169,35 @@ public final class GraphManager {
     }
 
     public void close() {
-        this.destoryRpcServer();
+        this.destroyRpcServer();
     }
 
     private void startRpcServer() {
-        RpcProviderConfig config = this.rpcServer.config();
+        RpcProviderConfig serverConfig = this.rpcServer.config();
+
         if (this.authenticator != null) {
-            config.addService(AuthManager.class,
-                              this.authenticator.authManager());
+            serverConfig.addService(AuthManager.class,
+                                    this.authenticator.authManager());
         }
-        this.rpcServer.exportAll();
+
+        if (this.rpcClient.enabled()) {
+            RpcConsumerConfig clientConfig = this.rpcClient.config();
+
+            for (Graph graph : this.graphs.values()) {
+                HugeGraph hugegraph = (HugeGraph) graph;
+                hugegraph.registerRpcServices(serverConfig, clientConfig);
+            }
+        }
+
+        try {
+            this.rpcServer.exportAll();
+        } catch (Throwable e) {
+            this.rpcServer.destroy();
+            throw e;
+        }
     }
 
-    private void destoryRpcServer() {
+    private void destroyRpcServer() {
         this.rpcServer.destroy();
     }
 
