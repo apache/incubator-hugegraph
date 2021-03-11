@@ -327,7 +327,7 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
 
         @Override
         public byte[] position(String position) {
-            if (END.equals(position)) {
+            if (START.equals(position) || END.equals(position)) {
                 return null;
             }
             return StringEncoding.decodeBase64(position);
