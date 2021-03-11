@@ -420,4 +420,11 @@ public class StandardAuthManager implements AuthManager {
         }
         return this.rolePermission(user);
     }
+
+    /**
+     * Maybe can define an proxy class to choose forward or call local
+     */
+    public static boolean isLocal(AuthManager authManager) {
+        return authManager instanceof StandardAuthManager;
+    }
 }

@@ -684,7 +684,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         try {
             this.hugegraph.truncateBackend();
         } finally {
-            if (admin != null && userManager instanceof StandardAuthManager) {
+            if (admin != null && StandardAuthManager.isLocal(userManager)) {
                 // Restore admin user to continue to do any operation
                 userManager.createUser(admin);
             }
