@@ -324,36 +324,22 @@ public interface HugeAuthenticator extends Authenticator {
             return new RolePerm((Map) table.map());
         }
 
-        public static boolean match(Object role, Object requiredPerm) {
+        public static boolean match(Object role, RequiredPerm requiredPerm) {
             if (role == ROLE_ADMIN) {
                 return true;
             }
             if (role == ROLE_NONE) {
                 return false;
             }
+
             RolePerm rolePerm = RolePerm.fromJson(role);
 
-            RequiredPerm actionRequiredPerm;
-            if (requiredPerm instanceof RequiredPerm) {
-                actionRequiredPerm = (RequiredPerm) requiredPerm;
-            } else {
-                // The required like: $owner=graph1 $action=vertex-write
-                String required = (String) requiredPerm;
-                if (!required.startsWith(KEY_OWNER)) {
-                    /*
-                     * The required parameter means the owner if not started
-                     * with ROLE_OWNER, any action is OK if the owner matched.
-                     */
-                    return rolePerm.matchOwner(required);
-                }
-                actionRequiredPerm = RequiredPerm.fromPermission(required);
+            if (requiredPerm.action() == HugePermission.NONE) {
+                // None action means any action is OK if the owner matched
+                return rolePerm.matchOwner(requiredPerm.owner());
             }
-
-            if (actionRequiredPerm.action() == HugePermission.NONE) {
-                return rolePerm.matchOwner(actionRequiredPerm.owner());
-            }
-            return rolePerm.matchResource(actionRequiredPerm.action(),
-                                          actionRequiredPerm.resourceObject());
+            return rolePerm.matchResource(requiredPerm.action(),
+                                          requiredPerm.resourceObject());
         }
 
         public static boolean match(Object role, HugePermission required,
