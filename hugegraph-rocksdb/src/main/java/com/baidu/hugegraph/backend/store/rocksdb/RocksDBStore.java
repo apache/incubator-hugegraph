@@ -21,6 +21,7 @@ package com.baidu.hugegraph.backend.store.rocksdb;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -43,7 +44,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.tuple.Pair;
 import org.rocksdb.RocksDBException;
 import org.slf4j.Logger;
 
@@ -116,7 +116,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         this.registerMetaHandler("metrics", (session, meta, args) -> {
             List<RocksDBSessions> dbs = new ArrayList<>();
             dbs.add(this.sessions);
-            dbs.addAll(tableDBMapping().values());
+            dbs.addAll(this.tableDBMapping().values());
 
             RocksDBMetrics metrics = new RocksDBMetrics(dbs, session);
             return metrics.getMetrics();
@@ -200,7 +200,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
                 }));
             }
         }
-        waitOpenFinish(futures, openPool);
+        this.waitOpenFinish(futures, openPool);
     }
 
     private void waitOpenFinish(List<Future<?>> futures,
@@ -349,7 +349,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         Map<String, RocksDBSessions> tableDBMap = InsertionOrderUtil.newMap();
         for (Entry<HugeType, String> e : this.tableDiskMapping.entrySet()) {
             String table = this.table(e.getKey()).table();
-            RocksDBSessions db = db(e.getValue());
+            RocksDBSessions db = this.db(e.getValue());
             tableDBMap.put(table, db);
         }
         return tableDBMap;
@@ -539,7 +539,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
             this.clear(false);
             this.init();
             // clear write batch
-            dbs.values().forEach(BackendSessionPool::forceResetSessions);
+            this.dbs.values().forEach(BackendSessionPool::forceResetSessions);
             LOG.debug("Store truncated: {}", this.store);
         } finally {
             writeLock.unlock();
@@ -601,43 +601,72 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         // Optimized disk
         String disk = this.tableDiskMapping.get(tableType);
         if (disk != null) {
-            return db(disk).session();
+            return this.db(disk).session();
         }
 
         return this.sessions.session();
     }
 
     @Override
-    public void writeSnapshot(String parentPath) {
-        Lock writeLock = this.storeLock.writeLock();
-        writeLock.lock();
+    public Set<String> writeSnapshot(String snapshotPrefix) {
+        Lock readLock = this.storeLock.readLock();
+        readLock.lock();
         try {
+            Set<String> uniqueParents = new HashSet<>();
             // Every rocksdb instance should create an snapshot
-            for (RocksDBSessions sessions : this.sessions()) {
-                sessions.createSnapshot(parentPath);
+            for (Map.Entry<String, RocksDBSessions> entry : this.dbs.entrySet()) {
+                // Like: parent_path/rocksdb-data/m
+                //       parent_path/rocksdb-vertex/g
+                Path originDataPath = Paths.get(entry.getKey());
+                Path parentParentPath = originDataPath.getParent().getParent();
+                // Like: rocksdb-data/m
+                //       rocksdb-vertex/g
+                Path pureDataPath = parentParentPath.relativize(originDataPath);
+                // Like: parent_path/snapshot_rocksdb-data/m
+                //       parent_path/snapshot_rocksdb-vertex/g
+                Path snapshotPath = parentParentPath.resolve(snapshotPrefix +
+                                                             "_" + pureDataPath);
+                LOG.debug("The origin data path: {}", originDataPath);
+                LOG.debug("The snapshot data path: {}", snapshotPath);
+                RocksDBSessions sessions = entry.getValue();
+                sessions.createSnapshot(snapshotPath.toString());
+
+                uniqueParents.add(snapshotPath.getParent().toString());
             }
+            LOG.info("The store '{}' save snapshot successfully", this.store);
+            return uniqueParents;
         } finally {
-            writeLock.unlock();
+            readLock.unlock();
         }
     }
 
     @Override
-    public void readSnapshot(String parentPath) {
-        Lock writeLock = this.storeLock.writeLock();
-        writeLock.lock();
+    public void readSnapshot(String snapshotPrefix) {
+        Lock readLock = this.storeLock.readLock();
+        readLock.lock();
         try {
             if (!this.opened()) {
                 return;
             }
-
-            File[] snapshotFiles = new File(parentPath).listFiles();
-            E.checkNotNull(snapshotFiles, "snapshot files");
-            List<Pair<File, File>> fileRenamePairs = new ArrayList<>();
-            for (File snapshotFile : snapshotFiles) {
-                Session session = this.findMatchedSession(snapshotFile);
-                File dataFile = new File(session.dataPath());
-                fileRenamePairs.add(Pair.of(snapshotFile, dataFile));
+            Map<Path, Path> fileNameMaps = new HashMap<>();
+            for (Map.Entry<String, RocksDBSessions> entry : this.dbs.entrySet()) {
+                // Like: parent_path/rocksdb-data/m
+                //       parent_path/rocksdb-vertex/g
+                Path originDataPath = Paths.get(entry.getKey());
+                Path parentParentPath = originDataPath.getParent().getParent();
+                // Like: rocksdb-data/m
+                //       rocksdb-vertex/g
+                Path pureDataPath = parentParentPath.relativize(originDataPath);
+                // Like: parent_path/snapshot_rocksdb-data/m
+                //       parent_path/snapshot_rocksdb-vertex/g
+                Path snapshotPath = parentParentPath.resolve(snapshotPrefix +
+                                                             "_" + pureDataPath);
+                LOG.debug("The origin data path: {}", originDataPath);
+                LOG.debug("The snapshot data path: {}", snapshotPath);
+                fileNameMaps.put(originDataPath, snapshotPath);
             }
+            E.checkState(!fileNameMaps.isEmpty(),
+                         "The file name maps shouldn't be empty");
             /*
              * NOTE: must close rocksdb instance before deleting file directory,
              * if close after copying the snapshot directory to origin position,
@@ -646,30 +675,31 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
             for (RocksDBSessions sessions : this.sessions()) {
                 sessions.forceCloseRocksDB();
             }
-            // Copy snapshot file to dest file
-            for (Pair<File, File> pair : fileRenamePairs) {
-                File snapshotFile = pair.getLeft();
-                File dataFile = pair.getRight();
+            // Move snapshot file to origin data path
+            for (Map.Entry<Path, Path> entry : fileNameMaps.entrySet()) {
+                File originDataDir = entry.getKey().toFile();
+                File snapshotDir = entry.getValue().toFile();
                 try {
-                    if (dataFile.exists()) {
-                        LOG.warn("Delete origin data directory {}", dataFile);
-                        FileUtils.deleteDirectory(dataFile);
+                    if (originDataDir.exists()) {
+                        LOG.info("Delete origin data directory {}",
+                                 originDataDir);
+                        FileUtils.deleteDirectory(originDataDir);
                     }
-                    FileUtils.moveDirectory(snapshotFile, dataFile);
+                    FileUtils.moveDirectory(snapshotDir, originDataDir);
                 } catch (IOException e) {
                     throw new BackendException("Failed to move %s to %s",
-                                               e, snapshotFile, dataFile);
+                                               e, snapshotDir, originDataDir);
                 }
             }
             // Reload rocksdb instance
             for (RocksDBSessions sessions : this.sessions()) {
                 sessions.reload();
             }
-            LOG.info("The store {} load snapshot successfully", this.store);
+            LOG.info("The store '{}' load snapshot successfully", this.store);
         } catch (RocksDBException e) {
             throw new BackendException("Failed to reload rocksdb", e);
         } finally {
-            writeLock.unlock();
+            readLock.unlock();
         }
     }
 

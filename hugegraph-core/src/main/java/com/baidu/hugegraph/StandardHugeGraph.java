@@ -368,6 +368,16 @@ public class StandardHugeGraph implements HugeGraph {
         LOG.info("Graph '{}' has been truncated", this.name);
     }
 
+    public void writeSnapshot() {
+        LockUtil.lock(this.name, LockUtil.GRAPH_LOCK);
+        try {
+            this.storeProvider.writeSnapshot();
+        } finally {
+            LockUtil.unlock(this.name, LockUtil.GRAPH_LOCK);
+        }
+        LOG.info("Graph '{}' has writed snapshot", this.name);
+    }
+
     private SchemaTransaction openSchemaTransaction() throws HugeException {
         this.checkGraphNotClosed();
         try {

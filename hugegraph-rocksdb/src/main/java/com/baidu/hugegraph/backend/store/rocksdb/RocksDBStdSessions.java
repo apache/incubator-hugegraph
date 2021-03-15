@@ -59,6 +59,7 @@ import org.rocksdb.RocksIterator;
 import org.rocksdb.SstFileManager;
 import org.rocksdb.WriteBatch;
 import org.rocksdb.WriteOptions;
+import org.slf4j.Logger;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.serializer.BinarySerializer;
@@ -69,11 +70,13 @@ import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
-import com.baidu.hugegraph.util.GZipUtil;
+import com.baidu.hugegraph.util.Log;
 import com.baidu.hugegraph.util.StringEncoding;
 import com.google.common.collect.ImmutableList;
 
 public class RocksDBStdSessions extends RocksDBSessions {
+
+    private static final Logger LOG = Log.logger(RocksDBStdSessions.class);
 
     private final HugeConfig config;
     private final String dataPath;
@@ -321,19 +324,19 @@ public class RocksDBStdSessions extends RocksDBSessions {
     }
 
     @Override
-    public void createSnapshot(String parentPath) {
-        String md5 = GZipUtil.md5(this.dataPath);
-        String snapshotPath = Paths.get(parentPath, md5).toString();
+    public void createSnapshot(String snapshotPath) {
         // https://github.com/facebook/rocksdb/wiki/Checkpoints
         try (Checkpoint checkpoint = Checkpoint.create(this.rocksdb)) {
             String tempPath = snapshotPath + "_temp";
             File tempFile = new File(tempPath);
             FileUtils.deleteDirectory(tempFile);
+            LOG.debug("Deleted temp directory {}", tempFile);
 
             FileUtils.forceMkdir(tempFile.getParentFile());
             checkpoint.createCheckpoint(tempPath);
             File snapshotFile = new File(snapshotPath);
             FileUtils.deleteDirectory(snapshotFile);
+            LOG.debug("Deleted stale directory {}", snapshotFile);
             if (!tempFile.renameTo(snapshotFile)) {
                 throw new IOException(String.format("Failed to rename %s to %s",
                                                     tempFile, snapshotFile));

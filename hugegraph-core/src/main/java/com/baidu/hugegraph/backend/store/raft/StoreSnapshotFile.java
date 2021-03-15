@@ -24,11 +24,14 @@ import static com.alipay.sofa.jraft.entity.LocalFileMetaOutter.LocalFileMeta;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
-import java.util.concurrent.CompletableFuture;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.zip.Checksum;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 
 import com.alipay.sofa.jraft.Closure;
@@ -45,8 +48,10 @@ public class StoreSnapshotFile {
 
     private static final Logger LOG = Log.logger(StoreSnapshotFile.class);
 
-    private static final String SNAPSHOT_DIR = "ss";
-    private static final String SNAPSHOT_ARCHIVE = "ss.zip";
+    private static final String SNAPSHOT_DIR = "snapshot";
+    private static final String ARCHIVE_FORMAT = ".tar";
+    private static final String SNAPSHOT_ARCHIVE = SNAPSHOT_DIR + ARCHIVE_FORMAT;
+    private static final String MANIFEST = "manifest";
 
     private final RaftBackendStore[] stores;
 
@@ -56,27 +61,22 @@ public class StoreSnapshotFile {
 
     public void save(SnapshotWriter writer, Closure done,
                      ExecutorService executor) {
-        String writerPath = writer.getPath();
-        String snapshotPath = Paths.get(writerPath, SNAPSHOT_DIR).toString();
         try {
-            this.doSnapshotSave(snapshotPath).whenComplete((metaBuilder, t) -> {
-                if (t == null) {
-                    executor.execute(() -> compressSnapshot(writer, metaBuilder,
-                                                            done));
-                } else {
-                    LOG.error("Failed to save snapshot, path={}, files={}",
-                              writerPath, writer.listFiles(), t);
-                    done.run(new Status(RaftError.EIO,
-                             "Failed to save snapshot at %s, error is %s",
-                             writerPath, t.getMessage()));
-                }
+            // Write snapshot to real directory
+            Set<String> snapshotDirs = this.doSnapshotSave();
+            executor.execute(() -> {
+                Set<String> tarSnapshotFiles =
+                            this.compressSnapshotDir(snapshotDirs, done);
+                String jraftSnapshotPath =
+                            this.writeManifest(writer, tarSnapshotFiles, done);
+                this.deleteSnapshotDir(snapshotDirs, done);
+                this.compressJraftSnapshotDir(writer, jraftSnapshotPath, done);
             });
         } catch (Throwable t) {
-            LOG.error("Failed to save snapshot, path={}, files={}, {}.",
-                      writerPath, writer.listFiles(), t);
+            LOG.error("Failed to save snapshot", t);
             done.run(new Status(RaftError.EIO,
-                                "Failed to save snapshot at %s, error is %s",
-                                writerPath, t.getMessage()));
+                                "Failed to save snapshot, error is %s",
+                                t.getMessage()));
         }
     }
 
@@ -84,14 +84,19 @@ public class StoreSnapshotFile {
         LocalFileMeta meta = (LocalFileMeta) reader.getFileMeta(SNAPSHOT_ARCHIVE);
         String readerPath = reader.getPath();
         if (meta == null) {
-            LOG.error("Can't find snapshot archive file, path={}.", readerPath);
+            LOG.error("Can't find snapshot archive file, path={}", readerPath);
             return false;
         }
-        String snapshotPath = Paths.get(readerPath, SNAPSHOT_DIR).toString();
+        String jraftSnapshotPath = Paths.get(readerPath, SNAPSHOT_DIR)
+                                        .toString();
         try {
-            this.decompressSnapshot(readerPath, meta);
-            this.doSnapshotLoad(snapshotPath);
-            File tmp = new File(snapshotPath);
+            // decompress manifest and data directory
+            Set<String> snapshotDirs = this.decompressSnapshot(readerPath,
+                                                               jraftSnapshotPath,
+                                                               meta);
+            this.doSnapshotLoad();
+            this.deleteSnapshotDir(snapshotDirs);
+            File tmp = new File(jraftSnapshotPath);
             // Delete the decompressed temporary file. If the deletion fails
             // (although it is a small probability event), it may affect the
             // next snapshot decompression result. Therefore, the safest way
@@ -102,39 +107,93 @@ public class StoreSnapshotFile {
             }
             return true;
         } catch (Throwable t) {
-            LOG.error("Failed to load snapshot, path={}, file list={}, {}.",
-                      readerPath, reader.listFiles(), t);
+            LOG.error("Failed to load snapshot", t);
             return false;
         }
     }
 
-    private CompletableFuture<LocalFileMeta.Builder> doSnapshotSave(
-                                                     String snapshotPath) {
+    private Set<String> doSnapshotSave() {
+        Set<String> snapshotDirs = new HashSet<>();
         for (RaftBackendStore store : this.stores) {
-            String parentPath = Paths.get(snapshotPath, store.store())
-                                     .toString();
-            store.originStore().writeSnapshot(parentPath);
+            snapshotDirs.addAll(store.originStore().writeSnapshot(SNAPSHOT_DIR));
         }
-        return CompletableFuture.completedFuture(LocalFileMeta.newBuilder());
+        LOG.info("All snapshot dirs: {}", snapshotDirs);
+        return snapshotDirs;
     }
 
-    private void doSnapshotLoad(String snapshotPath) {
+    private void doSnapshotLoad() {
         for (RaftBackendStore store : this.stores) {
-            String parentPath = Paths.get(snapshotPath, store.store())
-                                     .toString();
-            store.originStore().readSnapshot(parentPath);
+            store.originStore().readSnapshot(SNAPSHOT_DIR);
         }
     }
 
-    private void compressSnapshot(SnapshotWriter writer,
-                                  LocalFileMeta.Builder metaBuilder,
-                                  Closure done) {
+    private Set<String> compressSnapshotDir(Set<String> snapshotDirs,
+                                            Closure done) {
+        // Compress all backend snapshot dir
+        Set<String> tarSnapshotFiles = new HashSet<>();
+        for (String snapshotDir : snapshotDirs) {
+            String outputFile = snapshotDir + ARCHIVE_FORMAT;
+            try {
+                CompressUtil.compressTar(snapshotDir, outputFile, new CRC64());
+            } catch (IOException e) {
+                done.run(new Status(RaftError.EIO,
+                                    "Failed to compress backend snapshot dir " +
+                                    snapshotDir));
+            }
+            tarSnapshotFiles.add(outputFile);
+        }
+        return tarSnapshotFiles;
+    }
+
+    private void deleteSnapshotDir(Set<String> snapshotDirs,
+                                   Closure done) {
+        // Delete all backend snapshot dir
+        for (String snapshotDir : snapshotDirs) {
+            try {
+                FileUtils.deleteDirectory(new File(snapshotDir));
+            } catch (IOException e) {
+                done.run(new Status(RaftError.EIO,
+                                    "Failed to delete backend snapshot dir " +
+                                    snapshotDir));
+            }
+        }
+    }
+
+    private void deleteSnapshotDir(Set<String> snapshotDirs)
+                                          throws IOException {
+        // Delete all backend snapshot dir
+        for (String snapshotDir : snapshotDirs) {
+            FileUtils.deleteDirectory(new File(snapshotDir));
+        }
+    }
+
+    private String writeManifest(SnapshotWriter writer,
+                                 Set<String> tarSnapshotFiles,
+                                 Closure done) {
+        String writerPath = writer.getPath();
+        // Write all backend compressed snapshot file path to manifest
+        String jraftSnapshotPath = Paths.get(writerPath, SNAPSHOT_DIR)
+                                        .toString();
+        File snapshotManifest = new File(jraftSnapshotPath, MANIFEST);
+        try {
+            FileUtils.writeLines(snapshotManifest, tarSnapshotFiles);
+        } catch (IOException e) {
+            done.run(new Status(RaftError.EIO,
+                                "Failed to write backend snapshot file path " +
+                                "to manifest"));
+        }
+        return jraftSnapshotPath;
+    }
+
+    private void compressJraftSnapshotDir(SnapshotWriter writer,
+                                          String jraftSnapshotPath,
+                                          Closure done) {
         String writerPath = writer.getPath();
         String outputFile = Paths.get(writerPath, SNAPSHOT_ARCHIVE).toString();
         try {
+            LocalFileMeta.Builder metaBuilder = LocalFileMeta.newBuilder();
             Checksum checksum = new CRC64();
-            CompressUtil.compressTar(writerPath, SNAPSHOT_DIR,
-                                     outputFile, checksum);
+            CompressUtil.compressTar(jraftSnapshotPath, outputFile, checksum);
             metaBuilder.setChecksum(Long.toHexString(checksum.getValue()));
             if (writer.addFile(SNAPSHOT_ARCHIVE, metaBuilder.build())) {
                 done.run(Status.OK());
@@ -152,15 +211,33 @@ public class StoreSnapshotFile {
         }
     }
 
-    private void decompressSnapshot(String readerPath, LocalFileMeta meta)
-                                    throws IOException {
-        String sourceFile = Paths.get(readerPath, SNAPSHOT_ARCHIVE).toString();
+    private Set<String> decompressSnapshot(String readerPath,
+                                           String jraftSnapshotPath,
+                                           LocalFileMeta meta)
+                                           throws IOException {
+        String archiveFile = Paths.get(readerPath, SNAPSHOT_ARCHIVE).toString();
         Checksum checksum = new CRC64();
-        CompressUtil.decompressTar(sourceFile, readerPath, checksum);
+        CompressUtil.decompressTar(archiveFile, readerPath, checksum);
         if (meta.hasChecksum()) {
             E.checkArgument(meta.getChecksum().equals(
                             Long.toHexString(checksum.getValue())),
                             "Snapshot checksum failed");
         }
+
+        File snapshotManifest = new File(jraftSnapshotPath, MANIFEST);
+        List<String> compressedSnapshotFiles = FileUtils.readLines(
+                                               snapshotManifest);
+        Set<String> snapshotDirs = new HashSet<>();
+        for (String compressedSnapshotFile : compressedSnapshotFiles) {
+            String targetDir = Paths.get(compressedSnapshotFile).getParent()
+                                    .toString();
+            CompressUtil.decompressTar(compressedSnapshotFile, targetDir,
+                                       new CRC64());
+
+            String snapshotDir = StringUtils.removeEnd(compressedSnapshotFile,
+                                                       ARCHIVE_FORMAT);
+            snapshotDirs.add(snapshotDir);
+        }
+        return snapshotDirs;
     }
 }

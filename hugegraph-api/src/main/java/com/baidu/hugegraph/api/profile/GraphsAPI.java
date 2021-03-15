@@ -138,6 +138,20 @@ public class GraphsAPI extends API {
         g.truncateBackend();
     }
 
+    @GET
+    @Timed
+    @Path("{name}/snapshot")
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed("admin")
+    public Object snapshot(@Context GraphManager manager,
+                           @PathParam("name") String name) {
+        LOG.debug("Generate snapshot for graph '{}'", name);
+
+        HugeGraph g = graph(manager, name);
+        g.writeSnapshot();
+        return ImmutableMap.of(name, "succeed");
+    }
+
     @PUT
     @Timed
     @Path("{name}/mode")

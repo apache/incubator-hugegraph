@@ -229,8 +229,8 @@ public class StoreStateMachine extends StateMachineAdapter {
 
     @Override
     public void onLeaderStart(long term) {
-        LOG.info("The node {} become to leader", this.node().nodeId());
-        this.node().onLeaderInfoChange(this.node().nodeId(), true);
+        LOG.info("The node {} become to leader", this.context.endpoint());
+        this.node().onLeaderInfoChange(this.context.endpoint(), true);
         super.onLeaderStart(term);
     }
 

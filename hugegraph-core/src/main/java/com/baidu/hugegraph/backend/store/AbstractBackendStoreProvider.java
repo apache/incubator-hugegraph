@@ -152,12 +152,15 @@ public abstract class AbstractBackendStoreProvider
 
     @Override
     public void writeSnapshot() {
-        // TODO: to be implemented
+        String snapshotPrefix = "snapshot";
+        for (BackendStore store : this.stores.values()) {
+            store.writeSnapshot(snapshotPrefix);
+        }
     }
 
     @Override
     public void readSnapshot() {
-        // TODO: to be implemented
+        throw new UnsupportedOperationException("readSnapshot");
     }
 
     @Override

@@ -62,6 +62,12 @@ public final class CompressUtil {
     public static void compressTar(String rootDir, String sourceDir,
                                    String outputFile, Checksum checksum)
                                    throws IOException {
+        Path source = Paths.get(rootDir, sourceDir);
+        compressTar(source.toString(), outputFile, checksum);
+    }
+
+    public static void compressTar(String inputDir, String outputFile,
+                                   Checksum checksum) throws IOException {
         LZ4Factory factory = LZ4Factory.fastestInstance();
         LZ4Compressor compressor = factory.fastCompressor();
         int blockSize = RaftSharedContext.BLOCK_SIZE;
@@ -72,7 +78,7 @@ public final class CompressUtil {
                                                                    blockSize,
                                                                    compressor);
              TarArchiveOutputStream tos = new TarArchiveOutputStream(lz4os)) {
-            Path source = Paths.get(rootDir, sourceDir);
+            Path source = Paths.get(inputDir);
             CompressUtil.tarDir(source, tos);
             tos.flush();
             fos.getFD().sync();
