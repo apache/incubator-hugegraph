@@ -122,13 +122,13 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     @Override
     public <C extends GraphComputer> C compute(Class<C> clazz)
                                                throws IllegalArgumentException {
-        this.verifyStatusPermission();
+        this.verifyAnyPermission();
         return this.hugegraph.compute(clazz);
     }
 
     @Override
     public GraphComputer compute() throws IllegalArgumentException {
-        this.verifyStatusPermission();
+        this.verifyAnyPermission();
         return this.hugegraph.compute();
     }
 
@@ -141,7 +141,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     @SuppressWarnings({ "rawtypes", "deprecation" })
     @Override
     public <I extends Io> I io(final Io.Builder<I> builder) {
-        this.verifyStatusPermission();
+        this.verifyAnyPermission();
         return this.hugegraph.io(builder);
     }
 
@@ -451,7 +451,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
     @Override
     public boolean checkAdjacentVertexExist() {
-        verifyStatusPermission();
+        verifyAnyPermission();
         return this.hugegraph.checkAdjacentVertexExist();
     }
 
@@ -511,7 +511,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     @Override
     public HugeFeatures features() {
         // Can't verifyPermission() here, will be called by rollbackAll()
-        //verifyPermission(HugePermission.READ, ResourceType.STATUS);
+        //verifyStatusPermission();
         return this.hugegraph.features();
     }
 
@@ -528,7 +528,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
     @Override
     public String toString() {
-        this.verifyStatusPermission();
+        this.verifyAnyPermission();
         return this.hugegraph.toString();
     }
 
@@ -553,25 +553,25 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
     @Override
     public <V> V option(ConfigOption<V> option) {
-        this.verifyStatusPermission();
+        this.verifyAnyPermission();
         return this.hugegraph.option(option);
     }
 
     @Override
     public String name() {
-        this.verifyStatusPermission();
+        this.verifyAnyPermission();
         return this.hugegraph.name();
     }
 
     @Override
     public String backend() {
-        this.verifyStatusPermission();
+        this.verifyAnyPermission();
         return this.hugegraph.backend();
     }
 
     @Override
     public String backendVersion() {
-        this.verifyStatusPermission();
+        this.verifyAnyPermission();
         return this.hugegraph.backendVersion();
     }
 
@@ -583,13 +583,13 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
     @Override
     public BackendFeatures backendStoreFeatures() {
-        this.verifyPermission(HugePermission.READ, ResourceType.STATUS);
+        this.verifyAnyPermission();
         return this.hugegraph.backendStoreFeatures();
     }
 
     @Override
     public GraphMode mode() {
-        this.verifyPermission(HugePermission.READ, ResourceType.STATUS);
+        this.verifyStatusPermission();
         return this.hugegraph.mode();
     }
 
@@ -601,7 +601,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
     @Override
     public GraphReadMode readMode() {
-        this.verifyPermission(HugePermission.READ, ResourceType.STATUS);
+        this.verifyStatusPermission();
         return this.hugegraph.readMode();
     }
 
@@ -613,7 +613,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
     @Override
     public void waitStarted() {
-        this.verifyPermission(HugePermission.READ, ResourceType.STATUS);
+        this.verifyAnyPermission();
         this.hugegraph.waitStarted();
     }
 
@@ -706,6 +706,10 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
     private void verifyStatusPermission() {
         verifyPermission(HugePermission.READ, ResourceType.STATUS);
+    }
+
+    private void verifyAnyPermission() {
+        verifyPermission(HugePermission.READ, ResourceType.NONE);
     }
 
     private void verifyPermission(HugePermission actionPerm,
@@ -860,8 +864,8 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         String action = actionPerm.string();
 
         if (LOG.isDebugEnabled()) {
-            LOG.debug("Verify permission '{}' for role '{}' with resource {}",
-                      action, role, ro);
+            LOG.debug("Verify permission {} {} for user '{}' with role {}",
+                      action, ro, username, role);
         }
 
         V result = ro.operated();
@@ -979,27 +983,27 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         @Override
         public <V> HugeTask<V> waitUntilTaskCompleted(Id id, long seconds)
                                                       throws TimeoutException {
-            verifyStatusPermission();
+            verifyAnyPermission();
             return this.taskScheduler.waitUntilTaskCompleted(id, seconds);
         }
 
         @Override
         public <V> HugeTask<V> waitUntilTaskCompleted(Id id)
                                                       throws TimeoutException {
-            verifyStatusPermission();
+            verifyAnyPermission();
             return this.taskScheduler.waitUntilTaskCompleted(id);
         }
 
         @Override
         public void waitUntilAllTasksCompleted(long seconds)
                                                throws TimeoutException {
-            verifyStatusPermission();
+            verifyAnyPermission();
             this.taskScheduler.waitUntilAllTasksCompleted(seconds);
         }
 
         @Override
         public void checkRequirement(String op) {
-            verifyStatusPermission();
+            verifyAnyPermission();
             this.taskScheduler.checkRequirement(op);
         }
 
