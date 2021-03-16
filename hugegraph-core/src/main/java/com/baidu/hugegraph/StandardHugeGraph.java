@@ -368,7 +368,7 @@ public class StandardHugeGraph implements HugeGraph {
         LOG.info("Graph '{}' has been truncated", this.name);
     }
 
-    public void writeSnapshot() {
+    public void createSnapshot() {
         LockUtil.lock(this.name, LockUtil.GRAPH_LOCK);
         try {
             this.storeProvider.writeSnapshot();
