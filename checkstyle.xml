@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE module PUBLIC
+        "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN"
+        "https://checkstyle.org/dtds/configuration_1_3.dtd">
+<!-- 参考：https://checkstyle.sourceforge.io/checks.html -->
+<module name="Checker">
+    <!--检查不通过时被判定的违规级别，必须修复后才能使build通过-->
+    <property name="severity" value="error"/>
+    <!--对java文件做检查-->
+    <property name="fileExtensions" value="java"/>
+    <!--对UTF-8编码的文件做检查-->
+    <property name="charset" value="UTF-8"/>
+    <!--文件中不允许包含制表符-->
+    <module name="FileTabCharacter">
+        <property name="eachLine" value="true"/>
+    </module>
+
+    <!--检查java源文件并定义一些适用于检查此类文件的一些属性-->
+    <module name="TreeWalker">
+        <!--检查行长度-->
+        <module name="LineLength">
+            <property name="max" value="80"/>
+            <!--可以忽略的行-->
+            <property name="ignorePattern"
+                      value="^package.*|^import.*|a href|href|http://|https://|ftp://"/>
+        </module>
+        <!--检查没有import语句使用*号-->
+        <module name="AvoidStarImport"/>
+        <!--检查是否存在多余的import语句，比如重复的，java自带的包，相同包下的其他类-->
+        <module name="RedundantImport"/>
+        <!--检查是否存在没有使用的import语句-->
+        <module name="UnusedImports"/>
+        <!--检查包名称是否遵守命名规约-->
+        <module name="PackageName">
+            <property name="format" value="^[a-z]+(\.[a-z][a-z0-9]*)*$"/>
+        </module>
+        <!--检查局部变量的名称是否遵守命名规约-->
+        <module name="LocalVariableName">
+            <property name="format" value="^[a-z][a-zA-Z0-9_]*$"/>
+        </module>
+        <!--检查成员变量（非静态字段）的名称是否遵守命名规约-->
+        <module name="MemberName">
+            <property name="format" value="^[a-z][a-zA-Z0-9]*$"/>
+        </module>
+        <!--检查方法名称是否遵守命名规约-->
+        <module name="MethodName">
+            <property name="format" value="^[a-z][a-zA-Z0-9]*$"/>
+        </module>
+        <!--检查参数名称是否遵守命名规约-->
+        <module name="ParameterName">
+            <property name="format" value="^[a-z][a-zA-Z0-9]*$"/>
+        </module>
+        <!--检查常量（用static final修饰的字段）的名称是否遵守命名规约-->
+        <module name="ConstantName">
+            <property name="format" value="^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$"/>
+        </module>
+        <!--检查数组是否属于java风格，方括号放在类型后面，而不是变量后面，比如：int[] nums（合法），int nums[]（不合法）-->
+        <module name="ArrayTypeStyle">
+            <property name="javaStyle" value="true"/>
+        </module>
+        <!--long类型的字面量如果要以"L"结尾，必须是大写的"L"，而非小写的"l"-->
+        <module name="UpperEll"/>
+        <!--代码换行时，运算符必须在当前行的末尾，比如：+、&&、?、: 等-->
+        <module name="OperatorWrap">
+            <property name="option" value="eol"/>
+        </module>
+        <!--检查指定标记的周围是否有空格，比如：if、for、while、synchoronized 等-->
+        <module name="WhitespaceAround"/>
+        <!--左圆括号之后和右圆括号之前是否需要有一个空格，不需要-->
+        <module name="ParenPad"/>
+        <!--检查修饰符是否符合Java建议，顺序是：public、protected、private、abstract、default、static、final、transient、volatile、synchronized、native、strictfp-->
+        <module name="ModifierOrder"/>
+        <!--检查代码块的左花括号的放置位置，必须在当前行的末尾-->
+        <module name="LeftCurly">
+            <property name="option" value="eol"/>
+            <property name="ignoreEnums" value="false"/>
+        </module>
+        <!--代码中不允许有空语句，也就是单独的;符号-->
+        <module name="EmptyStatement"/>
+        <!--覆盖equals()方法的类必须也覆盖了hashCode()方法-->
+        <module name="EqualsHashCode"/>
+        <!--switch语句必须含有default子句-->
+        <module name="MissingSwitchDefault"/>
+        <!--switch语句的default必须放在所有的case分支之后-->
+        <module name="DefaultComesLast"/>
+        <!--覆盖clone()方法时调用了super.clone()方法-->
+        <module name="SuperClone"/>
+    </module>
+</module>
