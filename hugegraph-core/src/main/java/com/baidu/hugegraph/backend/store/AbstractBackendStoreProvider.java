@@ -27,6 +27,7 @@ import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
+import com.baidu.hugegraph.backend.store.raft.StoreSnapshotFile;
 import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.event.EventListener;
 import com.baidu.hugegraph.util.E;
@@ -152,7 +153,7 @@ public abstract class AbstractBackendStoreProvider
 
     @Override
     public void writeSnapshot() {
-        String snapshotPrefix = "snapshot";
+        String snapshotPrefix = StoreSnapshotFile.SNAPSHOT_DIR;
         for (BackendStore store : this.stores.values()) {
             store.writeSnapshot(snapshotPrefix);
         }
@@ -160,7 +161,10 @@ public abstract class AbstractBackendStoreProvider
 
     @Override
     public void readSnapshot() {
-        throw new UnsupportedOperationException("readSnapshot");
+        String snapshotPrefix = StoreSnapshotFile.SNAPSHOT_DIR;
+        for (BackendStore store : this.stores.values()) {
+            store.readSnapshot(snapshotPrefix);
+        }
     }
 
     @Override

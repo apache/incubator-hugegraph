@@ -154,9 +154,7 @@ public interface HugeGraph extends Graph {
     public void truncateBackend();
 
     public void createSnapshot();
-    public default void resumeSnapshot() {
-        throw new UnsupportedOperationException("HugeGraph.resumeSnapshot");
-    }
+    public void resumeSnapshot();
 
     @Override
     public HugeFeatures features();

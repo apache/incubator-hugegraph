@@ -209,7 +209,8 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
 
     @Override
     public void readSnapshot() {
-        // How to read snapshot by jraft explicity?
+        // jraft doesn't expose API to load snapshot
+        throw new UnsupportedOperationException();
     }
 
     @Override

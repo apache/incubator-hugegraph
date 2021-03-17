@@ -686,6 +686,8 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
                         FileUtils.deleteDirectory(originDataDir);
                     }
                     FileUtils.moveDirectory(snapshotDir, originDataDir);
+                    LOG.info("Move snapshot directory {} to {}",
+                             snapshotDir, originDataDir);
                 } catch (IOException e) {
                     throw new BackendException("Failed to move %s to %s",
                                                e, snapshotDir, originDataDir);

@@ -48,7 +48,7 @@ public class StoreSnapshotFile {
 
     private static final Logger LOG = Log.logger(StoreSnapshotFile.class);
 
-    private static final String SNAPSHOT_DIR = "snapshot";
+    public static final String SNAPSHOT_DIR = "snapshot";
     private static final String ARCHIVE_FORMAT = ".tar";
     private static final String SNAPSHOT_ARCHIVE = SNAPSHOT_DIR + ARCHIVE_FORMAT;
     private static final String MANIFEST = "manifest";

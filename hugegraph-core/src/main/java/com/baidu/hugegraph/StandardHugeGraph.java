@@ -375,7 +375,18 @@ public class StandardHugeGraph implements HugeGraph {
         } finally {
             LockUtil.unlock(this.name, LockUtil.GRAPH_LOCK);
         }
-        LOG.info("Graph '{}' has writed snapshot", this.name);
+        LOG.info("Graph '{}' has created snapshot", this.name);
+    }
+
+    @Override
+    public void resumeSnapshot() {
+        LockUtil.lock(this.name, LockUtil.GRAPH_LOCK);
+        try {
+            this.storeProvider.readSnapshot();
+        } finally {
+            LockUtil.unlock(this.name, LockUtil.GRAPH_LOCK);
+        }
+        LOG.info("Graph '{}' has resumed from snapshot", this.name);
     }
 
     private SchemaTransaction openSchemaTransaction() throws HugeException {
