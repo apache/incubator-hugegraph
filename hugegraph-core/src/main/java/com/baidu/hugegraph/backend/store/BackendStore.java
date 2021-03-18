@@ -121,7 +121,7 @@ public interface BackendStore {
         throw new UnsupportedOperationException("writeSnapshot");
     }
 
-    public default void readSnapshot(String snapshotDir) {
+    public default Set<String> readSnapshot(String snapshotDir) {
         throw new UnsupportedOperationException("readSnapshot");
     }
 

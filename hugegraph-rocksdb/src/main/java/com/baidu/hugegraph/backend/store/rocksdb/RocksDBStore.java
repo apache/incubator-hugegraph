@@ -617,7 +617,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
             for (Map.Entry<String, RocksDBSessions> entry : this.dbs.entrySet()) {
                 // Like: parent_path/rocksdb-data/m
                 //       parent_path/rocksdb-vertex/g
-                Path originDataPath = Paths.get(entry.getKey());
+                Path originDataPath = Paths.get(entry.getKey()).toAbsolutePath();
                 Path parentParentPath = originDataPath.getParent().getParent();
                 // Like: rocksdb-data/m
                 //       rocksdb-vertex/g
@@ -641,18 +641,20 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
     }
 
     @Override
-    public void readSnapshot(String snapshotPrefix) {
+    public Set<String> readSnapshot(String snapshotPrefix) {
         Lock readLock = this.storeLock.readLock();
         readLock.lock();
         try {
+            Set<String> uniqueParents = new HashSet<>();
             if (!this.opened()) {
-                return;
+                return uniqueParents;
             }
+
             Map<Path, Path> fileNameMaps = new HashMap<>();
             for (Map.Entry<String, RocksDBSessions> entry : this.dbs.entrySet()) {
                 // Like: parent_path/rocksdb-data/m
                 //       parent_path/rocksdb-vertex/g
-                Path originDataPath = Paths.get(entry.getKey());
+                Path originDataPath = Paths.get(entry.getKey()).toAbsolutePath();
                 Path parentParentPath = originDataPath.getParent().getParent();
                 // Like: rocksdb-data/m
                 //       rocksdb-vertex/g
@@ -661,9 +663,13 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
                 //       parent_path/snapshot_rocksdb-vertex/g
                 Path snapshotPath = parentParentPath.resolve(snapshotPrefix +
                                                              "_" + pureDataPath);
+                E.checkState(snapshotPath.toFile().exists(),
+                             "The snapshot path '%s' doesn't exist");
                 LOG.debug("The origin data path: {}", originDataPath);
                 LOG.debug("The snapshot data path: {}", snapshotPath);
                 fileNameMaps.put(originDataPath, snapshotPath);
+
+                uniqueParents.add(snapshotPath.getParent().toString());
             }
             E.checkState(!fileNameMaps.isEmpty(),
                          "The file name maps shouldn't be empty");
@@ -698,6 +704,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
                 sessions.reload();
             }
             LOG.info("The store '{}' load snapshot successfully", this.store);
+            return uniqueParents;
         } catch (RocksDBException e) {
             throw new BackendException("Failed to reload rocksdb", e);
         } finally {

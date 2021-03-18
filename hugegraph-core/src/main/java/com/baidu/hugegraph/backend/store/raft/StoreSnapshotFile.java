@@ -31,7 +31,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.zip.Checksum;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 
 import com.alipay.sofa.jraft.Closure;
@@ -91,11 +90,8 @@ public class StoreSnapshotFile {
                                         .toString();
         try {
             // decompress manifest and data directory
-            Set<String> snapshotDirs = this.decompressSnapshot(readerPath,
-                                                               jraftSnapshotPath,
-                                                               meta);
+            this.decompressSnapshot(readerPath, jraftSnapshotPath, meta);
             this.doSnapshotLoad();
-            this.deleteSnapshotDir(snapshotDirs);
             File tmp = new File(jraftSnapshotPath);
             // Delete the decompressed temporary file. If the deletion fails
             // (although it is a small probability event), it may affect the
@@ -159,14 +155,6 @@ public class StoreSnapshotFile {
         }
     }
 
-    private void deleteSnapshotDir(Set<String> snapshotDirs)
-                                          throws IOException {
-        // Delete all backend snapshot dir
-        for (String snapshotDir : snapshotDirs) {
-            FileUtils.deleteDirectory(new File(snapshotDir));
-        }
-    }
-
     private String writeManifest(SnapshotWriter writer,
                                  Set<String> tarSnapshotFiles,
                                  Closure done) {
@@ -211,10 +199,9 @@ public class StoreSnapshotFile {
         }
     }
 
-    private Set<String> decompressSnapshot(String readerPath,
-                                           String jraftSnapshotPath,
-                                           LocalFileMeta meta)
-                                           throws IOException {
+    private void decompressSnapshot(String readerPath,
+                                    String jraftSnapshotPath,
+                                    LocalFileMeta meta) throws IOException {
         String archiveFile = Paths.get(readerPath, SNAPSHOT_ARCHIVE).toString();
         Checksum checksum = new CRC64();
         CompressUtil.decompressTar(archiveFile, readerPath, checksum);
@@ -227,17 +214,11 @@ public class StoreSnapshotFile {
         File snapshotManifest = new File(jraftSnapshotPath, MANIFEST);
         List<String> compressedSnapshotFiles = FileUtils.readLines(
                                                snapshotManifest);
-        Set<String> snapshotDirs = new HashSet<>();
         for (String compressedSnapshotFile : compressedSnapshotFiles) {
             String targetDir = Paths.get(compressedSnapshotFile).getParent()
                                     .toString();
             CompressUtil.decompressTar(compressedSnapshotFile, targetDir,
                                        new CRC64());
-
-            String snapshotDir = StringUtils.removeEnd(compressedSnapshotFile,
-                                                       ARCHIVE_FORMAT);
-            snapshotDirs.add(snapshotDir);
         }
-        return snapshotDirs;
     }
 }

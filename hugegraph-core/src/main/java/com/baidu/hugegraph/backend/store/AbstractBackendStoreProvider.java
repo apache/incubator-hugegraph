@@ -19,10 +19,15 @@
 
 package com.baidu.hugegraph.backend.store;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 
+import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
@@ -162,8 +167,17 @@ public abstract class AbstractBackendStoreProvider
     @Override
     public void readSnapshot() {
         String snapshotPrefix = StoreSnapshotFile.SNAPSHOT_DIR;
+        Set<String> snapshotDirs = new HashSet<>();
         for (BackendStore store : this.stores.values()) {
-            store.readSnapshot(snapshotPrefix);
+            snapshotDirs.addAll(store.readSnapshot(snapshotPrefix));
+        }
+        // Delete all snapshot parent directories
+        for (String snapshotDir : snapshotDirs) {
+            try {
+                FileUtils.deleteDirectory(new File(snapshotDir));
+            } catch (IOException e) {
+                LOG.warn("Failed to delete snapshot directory {}", snapshotDir);
+            }
         }
     }
 
