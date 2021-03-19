@@ -32,4 +32,6 @@ public interface RpcServiceConfig4Client {
     public default <T> T serviceProxy(String graph, Class<T> clazz) {
         return this.serviceProxy(graph, clazz.getName());
     }
+
+    public void removeAllServiceProxy();
 }

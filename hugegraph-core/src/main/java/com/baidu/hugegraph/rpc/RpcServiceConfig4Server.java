@@ -21,8 +21,12 @@ package com.baidu.hugegraph.rpc;
 
 public interface RpcServiceConfig4Server {
 
-    public <T, E extends T> void addService(Class<T> clazz, E serviceImpl);
+    public <T, S extends T> String addService(Class<T> clazz, S serviceImpl);
 
-    public <T, E extends T> void addService(String graph, Class<T> clazz,
-                                            E serviceImpl);
+    public <T, S extends T> String addService(String graph,
+                                              Class<T> clazz, S serviceImpl);
+
+    public void removeService(String serviceId);
+
+    public void removeAllService();
 }

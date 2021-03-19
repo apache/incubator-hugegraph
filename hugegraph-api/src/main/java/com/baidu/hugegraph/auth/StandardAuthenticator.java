@@ -31,7 +31,7 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
-import com.baidu.hugegraph.rpc.RpcClientProvider;
+import com.baidu.hugegraph.rpc.RpcClientProviderWithAuth;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.StringEncoding;
 
@@ -94,7 +94,8 @@ public class StandardAuthenticator implements HugeAuthenticator {
 
         String remoteUrl = config.get(ServerOptions.AUTH_REMOTE_URL);
         if (StringUtils.isNotEmpty(remoteUrl)) {
-            RpcClientProvider clientProvider = new RpcClientProvider(config);
+            RpcClientProviderWithAuth clientProvider =
+                                      new RpcClientProviderWithAuth(config);
             this.graph.switchAuthManager(clientProvider.authManager());
         }
     }
