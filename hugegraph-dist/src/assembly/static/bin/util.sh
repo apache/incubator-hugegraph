@@ -154,8 +154,10 @@ function free_memory() {
         free=`expr $mem_free + $mem_buffer + $mem_cached`
         free=`expr $free / 1024`
     elif [ "$os" == "Darwin" ]; then
-        free=`top -l 1 | head -n 10 | grep PhysMem | awk -F',' '{print $2}' \
-             | awk -F'M' '{print $1}' | tr -d " "`
+        local pages_free=`vm_stat | awk '/Pages free/{print $0}' | awk -F'[:.]+' '{print $2}' | tr -d " "`
+        local pages_inactive=`vm_stat | awk '/Pages inactive/{print $0}' | awk -F'[:.]+' '{print $2}' | tr -d " "`
+        local pages_available=`expr $pages_free + $pages_inactive`
+        free=`expr $pages_available \* 4096 / 1024 / 1024`
     else
         echo "Unsupported operating system $os"
         exit 1
