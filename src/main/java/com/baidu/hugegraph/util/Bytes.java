@@ -36,6 +36,9 @@ public final class Bytes {
     public static final long KB = BASE;
     public static final long MB = KB * BASE;
     public static final long GB = MB * BASE;
+    public static final long TB = GB * KB;
+    public static final long PB = GB * MB;
+    public static final long EB = GB * GB;
 
     private static final Comparator<byte[]> CMP =
                          UnsignedBytes.lexicographicalComparator();

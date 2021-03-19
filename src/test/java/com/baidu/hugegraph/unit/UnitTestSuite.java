@@ -29,6 +29,7 @@ import com.baidu.hugegraph.unit.concurrent.BarrierEventTest;
 import com.baidu.hugegraph.unit.concurrent.KeyLockTest;
 import com.baidu.hugegraph.unit.concurrent.LockGroupTest;
 import com.baidu.hugegraph.unit.concurrent.LockManagerTest;
+import com.baidu.hugegraph.unit.concurrent.PausableScheduledThreadPoolTest;
 import com.baidu.hugegraph.unit.concurrent.RowLockTest;
 import com.baidu.hugegraph.unit.config.HugeConfigTest;
 import com.baidu.hugegraph.unit.config.OptionSpaceTest;
@@ -50,7 +51,6 @@ import com.baidu.hugegraph.unit.license.MachineInfoTest;
 import com.baidu.hugegraph.unit.perf.PerfUtilTest;
 import com.baidu.hugegraph.unit.rest.RestClientTest;
 import com.baidu.hugegraph.unit.rest.RestResultTest;
-import com.baidu.hugegraph.unit.concurrent.PausableScheduledThreadPoolTest;
 import com.baidu.hugegraph.unit.util.BytesTest;
 import com.baidu.hugegraph.unit.util.CollectionUtilTest;
 import com.baidu.hugegraph.unit.util.DateUtilTest;
@@ -62,6 +62,7 @@ import com.baidu.hugegraph.unit.util.OrderLimitMapTest;
 import com.baidu.hugegraph.unit.util.ReflectionUtilTest;
 import com.baidu.hugegraph.unit.util.StringUtilTest;
 import com.baidu.hugegraph.unit.util.TimeUtilTest;
+import com.baidu.hugegraph.unit.util.UnitUtilTest;
 import com.baidu.hugegraph.unit.util.VersionUtilTest;
 import com.baidu.hugegraph.unit.version.VersionTest;
 
@@ -105,6 +106,7 @@ import com.baidu.hugegraph.unit.version.VersionTest;
     LongEncodingTest.class,
     OrderLimitMapTest.class,
     DateUtilTest.class,
+    UnitUtilTest.class,
 
     ExtraParamTest.class,
     LicenseCreateParamTest.class,
