@@ -36,13 +36,13 @@ public final class OptionSpace {
 
     private static final Logger LOG = Log.logger(OptionSpace.class);
 
-    private static final Map<String, Class<? extends OptionHolder>> holders;
-    private static final Map<String, TypedOption<?, ?>> options;
+    private static final Map<String, Class<? extends OptionHolder>> HOLDERS;
+    private static final Map<String, TypedOption<?, ?>> OPTIONS;
     private static final String INSTANCE_METHOD = "instance";
 
     static {
-        holders = new ConcurrentHashMap<>();
-        options = new ConcurrentHashMap<>();
+        HOLDERS = new ConcurrentHashMap<>();
+        OPTIONS = new ConcurrentHashMap<>();
     }
 
     public static void register(String module, String holder) {
@@ -98,26 +98,26 @@ public final class OptionSpace {
 
     public static void register(String module, OptionHolder holder) {
         // Check exists
-        if (holders.containsKey(module)) {
+        if (HOLDERS.containsKey(module)) {
             LOG.warn("Already registered option holder: {} ({})",
-                     module, holders.get(module));
+                     module, HOLDERS.get(module));
         }
         E.checkArgumentNotNull(holder, "OptionHolder can't be null");
-        holders.put(module, holder.getClass());
-        options.putAll(holder.options());
+        HOLDERS.put(module, holder.getClass());
+        OPTIONS.putAll(holder.options());
         LOG.debug("Registered options for OptionHolder: {}",
                   holder.getClass().getSimpleName());
     }
 
     public static Set<String> keys() {
-        return Collections.unmodifiableSet(options.keySet());
+        return Collections.unmodifiableSet(OPTIONS.keySet());
     }
 
     public static boolean containKey(String key) {
-        return options.containsKey(key);
+        return OPTIONS.containsKey(key);
     }
 
     public static TypedOption<?, ?> get(String key) {
-        return options.get(key);
+        return OPTIONS.get(key);
     }
 }

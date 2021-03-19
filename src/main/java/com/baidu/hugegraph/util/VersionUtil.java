@@ -23,6 +23,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URL;
+import java.util.Objects;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
 
@@ -121,7 +122,9 @@ public final class VersionUtil {
             if (isr != null) {
                 try {
                     isr.close();
-                } catch (Exception ignored) {}
+                } catch (Exception ignored) {
+                    // pass
+                }
             }
 
             // Destroy child process
@@ -203,6 +206,11 @@ public final class VersionUtil {
                 return false;
             }
             return this.compareTo((Version) that) == 0;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(this.version);
         }
 
         @Override

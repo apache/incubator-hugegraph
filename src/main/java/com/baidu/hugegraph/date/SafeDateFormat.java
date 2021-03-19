@@ -63,10 +63,4 @@ public class SafeDateFormat {
     public Object toPattern() {
         return this.pattern;
     }
-
-    @Override
-    public Object clone() {
-        // No need to clone due to itself is thread safe
-        return this;
-    }
 }

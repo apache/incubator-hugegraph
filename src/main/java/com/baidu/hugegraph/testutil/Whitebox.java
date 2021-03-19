@@ -169,7 +169,9 @@ public class Whitebox {
             if (superclass != null) {
                 try {
                     return method(superclass, methodName, argsClasses);
-                } catch (Exception ignored){}
+                } catch (Exception ignored) {
+                    // pass
+                }
             }
             throw new RuntimeException(String.format(
                       "Can't find method '%s' with args %s of class '%s'",

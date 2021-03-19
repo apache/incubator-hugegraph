@@ -33,7 +33,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class RestResult {
 
-    private static final ObjectMapper mapper = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final int status;
     private final MultivaluedMap<String, Object> headers;
@@ -59,7 +59,7 @@ public class RestResult {
 
     public <T> T readObject(Class<T> clazz) {
         try {
-            return mapper.readValue(this.content, clazz);
+            return MAPPER.readValue(this.content, clazz);
         } catch (Exception e) {
             throw new SerializeException(
                       "Failed to deserialize: %s", e, this.content);
@@ -69,16 +69,16 @@ public class RestResult {
     @SuppressWarnings("deprecation")
     public <T> List<T> readList(String key, Class<T> clazz) {
         try {
-            JsonNode root = mapper.readTree(this.content);
+            JsonNode root = MAPPER.readTree(this.content);
             JsonNode element = root.get(key);
             if (element == null) {
                 throw new SerializeException(
                           "Can't find value of the key: %s in json.", key);
             }
-            JavaType type = mapper.getTypeFactory()
+            JavaType type = MAPPER.getTypeFactory()
                                   .constructParametrizedType(ArrayList.class,
                                                              List.class, clazz);
-            return mapper.convertValue(element, type);
+            return MAPPER.convertValue(element, type);
         } catch (IOException e) {
             throw new SerializeException(
                       "Failed to deserialize %s", e, this.content);
@@ -87,11 +87,11 @@ public class RestResult {
 
     @SuppressWarnings("deprecation")
     public <T> List<T> readList(Class<T> clazz) {
-        JavaType type = mapper.getTypeFactory()
+        JavaType type = MAPPER.getTypeFactory()
                               .constructParametrizedType(ArrayList.class,
                                                          List.class, clazz);
         try {
-            return mapper.readValue(this.content, type);
+            return MAPPER.readValue(this.content, type);
         } catch (IOException e) {
             throw new SerializeException(
                       "Failed to deserialize %s", e, this.content);
@@ -105,6 +105,6 @@ public class RestResult {
     }
 
     public static void registerModule(Module module) {
-        mapper.registerModule(module);
+        MAPPER.registerModule(module);
     }
 }

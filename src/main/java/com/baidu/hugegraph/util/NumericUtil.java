@@ -216,7 +216,7 @@ public final class NumericUtil {
         E.checkArgumentNotNull(clazz, "The clazz can't be null");
 
         if (Long.class.isAssignableFrom(clazz) ||
-            Double.class.isAssignableFrom(clazz) ) {
+            Double.class.isAssignableFrom(clazz)) {
             return Long.MAX_VALUE;
         }
         if (Integer.class.isAssignableFrom(clazz) ||
