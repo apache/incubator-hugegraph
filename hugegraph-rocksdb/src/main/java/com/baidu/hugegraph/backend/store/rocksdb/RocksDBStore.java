@@ -608,7 +608,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
     }
 
     @Override
-    public Set<String> writeSnapshot(String snapshotPrefix) {
+    public Set<String> createSnapshot(String snapshotPrefix) {
         Lock readLock = this.storeLock.readLock();
         readLock.lock();
         try {
@@ -641,7 +641,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
     }
 
     @Override
-    public Set<String> readSnapshot(String snapshotPrefix) {
+    public Set<String> resumeSnapshot(String snapshotPrefix) {
         Lock readLock = this.storeLock.readLock();
         readLock.lock();
         try {

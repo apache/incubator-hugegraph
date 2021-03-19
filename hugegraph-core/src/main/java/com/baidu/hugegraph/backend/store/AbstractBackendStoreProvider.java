@@ -157,19 +157,23 @@ public abstract class AbstractBackendStoreProvider
     }
 
     @Override
-    public void writeSnapshot() {
+    public void createSnapshot() {
+        long begin = System.currentTimeMillis();
         String snapshotPrefix = StoreSnapshotFile.SNAPSHOT_DIR;
         for (BackendStore store : this.stores.values()) {
-            store.writeSnapshot(snapshotPrefix);
+            store.createSnapshot(snapshotPrefix);
         }
+
+        LOG.info("Create snapshot cost {}ms",
+                 System.currentTimeMillis() - begin);
     }
 
     @Override
-    public void readSnapshot() {
+    public void resumeSnapshot() {
         String snapshotPrefix = StoreSnapshotFile.SNAPSHOT_DIR;
         Set<String> snapshotDirs = new HashSet<>();
         for (BackendStore store : this.stores.values()) {
-            snapshotDirs.addAll(store.readSnapshot(snapshotPrefix));
+            snapshotDirs.addAll(store.resumeSnapshot(snapshotPrefix));
         }
         // Delete all snapshot parent directories
         for (String snapshotDir : snapshotDirs) {

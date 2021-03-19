@@ -117,11 +117,11 @@ public interface BackendStore {
     // Get current counter for a specific type
     public long getCounter(HugeType type);
 
-    public default Set<String> writeSnapshot(String snapshotDir) {
+    public default Set<String> createSnapshot(String snapshotDir) {
         throw new UnsupportedOperationException("writeSnapshot");
     }
 
-    public default Set<String> readSnapshot(String snapshotDir) {
+    public default Set<String> resumeSnapshot(String snapshotDir) {
         throw new UnsupportedOperationException("readSnapshot");
     }
 

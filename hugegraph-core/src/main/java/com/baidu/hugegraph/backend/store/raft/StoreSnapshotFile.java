@@ -64,12 +64,15 @@ public class StoreSnapshotFile {
             // Write snapshot to real directory
             Set<String> snapshotDirs = this.doSnapshotSave();
             executor.execute(() -> {
+                long begin = System.currentTimeMillis();
                 Set<String> tarSnapshotFiles =
                             this.compressSnapshotDir(snapshotDirs, done);
                 String jraftSnapshotPath =
                             this.writeManifest(writer, tarSnapshotFiles, done);
                 this.deleteSnapshotDir(snapshotDirs, done);
                 this.compressJraftSnapshotDir(writer, jraftSnapshotPath, done);
+                LOG.info("Compress snapshot cost {}ms",
+                         System.currentTimeMillis() - begin);
             });
         } catch (Throwable t) {
             LOG.error("Failed to save snapshot", t);
@@ -111,7 +114,7 @@ public class StoreSnapshotFile {
     private Set<String> doSnapshotSave() {
         Set<String> snapshotDirs = new HashSet<>();
         for (RaftBackendStore store : this.stores) {
-            snapshotDirs.addAll(store.originStore().writeSnapshot(SNAPSHOT_DIR));
+            snapshotDirs.addAll(store.originStore().createSnapshot(SNAPSHOT_DIR));
         }
         LOG.info("All snapshot dirs: {}", snapshotDirs);
         return snapshotDirs;
@@ -119,7 +122,7 @@ public class StoreSnapshotFile {
 
     private void doSnapshotLoad() {
         for (RaftBackendStore store : this.stores) {
-            store.originStore().readSnapshot(SNAPSHOT_DIR);
+            store.originStore().resumeSnapshot(SNAPSHOT_DIR);
         }
     }
 

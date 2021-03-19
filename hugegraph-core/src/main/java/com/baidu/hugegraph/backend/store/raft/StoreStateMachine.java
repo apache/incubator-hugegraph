@@ -40,7 +40,6 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.baidu.hugegraph.backend.store.BackendAction;
-import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.raft.RaftBackendStore.IncrCounter;
@@ -86,21 +85,13 @@ public class StoreStateMachine extends StateMachineAdapter {
             return;
         }
         for (HugeType type : mutation.types()) {
-            if (type.isSchema()) {
-                java.util.Iterator<BackendAction> it = mutation.mutation(type);
-                while (it.hasNext()) {
-                    BackendEntry entry = it.next().entry();
-                    this.context.notifyCache(Cache.ACTION_INVALID, type,
-                                             entry.originId());
-                }
-            } else if (type.isGraph()) {
-                List<Id> ids = new ArrayList<>((int) Query.COMMIT_BATCH);
+            List<Id> ids = new ArrayList<>((int) Query.COMMIT_BATCH);
+            if (type.isSchema() || type.isGraph()) {
                 java.util.Iterator<BackendAction> it = mutation.mutation(type);
                 while (it.hasNext()) {
                     ids.add(it.next().entry().originId());
                 }
-                this.context.notifyCache(Cache.ACTION_INVALID, type,
-                                         ids.toArray());
+                this.context.notifyCache(Cache.ACTION_INVALID, type, ids);
             } else {
                 // Ignore other types due to not cached
             }

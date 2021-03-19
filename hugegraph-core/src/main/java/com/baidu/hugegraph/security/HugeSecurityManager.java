@@ -103,6 +103,10 @@ public class HugeSecurityManager extends SecurityManager {
             "com.baidu.hugegraph.backend.store.hbase.HbaseSessions$RowIterator"
     );
 
+    private static final Set<String> ROCKSDB_CLASSES = ImmutableSet.of(
+            "com.baidu.hugegraph.backend.store.rocksdb.RocksDBStore"
+    );
+
     private static final Set<String> RAFT_CLASSES = ImmutableSet.of(
             "com.baidu.hugegraph.backend.store.raft.RaftNode",
             "com.baidu.hugegraph.backend.store.raft.StoreStateMachine",
@@ -110,7 +114,8 @@ public class HugeSecurityManager extends SecurityManager {
     );
 
     private static final Set<String> SOFA_RPC_CLASSES = ImmutableSet.of(
-            "com.alipay.sofa.rpc.tracer.sofatracer.RpcSofaTracer"
+            "com.alipay.sofa.rpc.tracer.sofatracer.RpcSofaTracer",
+            "com.alipay.sofa.rpc.client.AbstractCluster"
     );
 
     @Override
@@ -204,7 +209,8 @@ public class HugeSecurityManager extends SecurityManager {
     public void checkRead(String file) {
         if (callFromGremlin() && !callFromCaffeine() &&
             !readGroovyInCurrentDir(file) && !callFromBackendHbase() &&
-            !callFromRaft() && !callFromSofaRpc()) {
+            !callFromBackendRocksDB() && !callFromRaft() &&
+            !callFromSofaRpc()) {
             throw newSecurityException(
                   "Not allowed to read file via Gremlin: %s", file);
         }
@@ -231,7 +237,8 @@ public class HugeSecurityManager extends SecurityManager {
 
     @Override
     public void checkWrite(String file) {
-        if (callFromGremlin() && !callFromRaft() && !callFromSofaRpc()) {
+        if (callFromGremlin() && !callFromBackendRocksDB() &&
+            !callFromRaft() && !callFromSofaRpc()) {
             throw newSecurityException("Not allowed to write file via Gremlin");
         }
         super.checkWrite(file);
@@ -239,7 +246,7 @@ public class HugeSecurityManager extends SecurityManager {
 
     @Override
     public void checkDelete(String file) {
-        if (callFromGremlin()) {
+        if (callFromGremlin() && !callFromBackendRocksDB()) {
             throw newSecurityException(
                   "Not allowed to delete file via Gremlin");
         }
@@ -322,7 +329,8 @@ public class HugeSecurityManager extends SecurityManager {
     public void checkPropertyAccess(String key) {
         if (!callFromAcceptClassLoaders() && callFromGremlin() &&
             !WHITE_SYSTEM_PROPERTYS.contains(key) && !callFromBackendHbase() &&
-            !callFromRaft() && !callFromSofaRpc()) {
+            !callFromBackendRocksDB() && !callFromRaft() &&
+            !callFromSofaRpc()) {
             throw newSecurityException(
                   "Not allowed to access system property(%s) via Gremlin", key);
         }
@@ -440,6 +448,10 @@ public class HugeSecurityManager extends SecurityManager {
     private static boolean callFromBackendHbase() {
         // TODO: remove this unsafe entrance
         return callFromWorkerWithClass(HBASE_CLASSES);
+    }
+
+    private static boolean callFromBackendRocksDB() {
+        return callFromWorkerWithClass(ROCKSDB_CLASSES);
     }
 
     private static boolean callFromRaft() {
