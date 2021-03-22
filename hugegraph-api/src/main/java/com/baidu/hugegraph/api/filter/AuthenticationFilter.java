@@ -117,7 +117,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
         if (StringUtils.isEmpty(username) || StringUtils.isEmpty(password)) {
             throw new BadRequestException(
-                    "Invalid syntax for username and password");
+                      "Invalid syntax for username and password");
         }
 
         // Validate the extracted credentials

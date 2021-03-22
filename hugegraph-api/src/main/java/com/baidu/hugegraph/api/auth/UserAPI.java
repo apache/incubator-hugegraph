@@ -34,6 +34,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
@@ -208,15 +209,15 @@ public class UserAPI extends API {
 
         @Override
         public void checkCreate(boolean isBatch) {
-            E.checkArgumentNotNull(this.name,
-                                   "The name of user can't be null");
-            E.checkArgumentNotNull(this.password,
-                                   "The password of user can't be null");
+            E.checkArgument(!StringUtils.isEmpty(this.name),
+                            "The name of user can't be null");
+            E.checkArgument(!StringUtils.isEmpty(this.password),
+                            "The password of user can't be null");
         }
 
         @Override
         public void checkUpdate() {
-            E.checkArgument(this.password != null ||
+            E.checkArgument(!StringUtils.isEmpty(this.password) ||
                             this.phone != null ||
                             this.email != null ||
                             this.avatar != null,
