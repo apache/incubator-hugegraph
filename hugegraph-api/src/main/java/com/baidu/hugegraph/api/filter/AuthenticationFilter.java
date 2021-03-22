@@ -37,6 +37,7 @@ import javax.ws.rs.core.UriInfo;
 import javax.ws.rs.ext.Provider;
 import javax.xml.bind.DatatypeConverter;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.tinkerpop.gremlin.server.auth.AuthenticationException;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.utils.Charsets;
@@ -113,7 +114,11 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
         final String username = values[0];
         final String password = values[1];
-        assert username != null && password != null;
+
+        if (StringUtils.isEmpty(username) || StringUtils.isEmpty(password)) {
+            throw new BadRequestException(
+                      "Invalid syntax for username and password");
+        }
 
         // Validate the extracted credentials
         try {
