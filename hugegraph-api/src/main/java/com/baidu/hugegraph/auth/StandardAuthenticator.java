@@ -65,16 +65,24 @@ public class StandardAuthenticator implements HugeAuthenticator {
     }
 
     private String inputPassword() {
-        String prompt = "Please input the admin password:";
+        String inputPrompt = "Please input the admin password:";
+        String notEmptyPrompt = "The admin password can't be empty";
         Console console = System.console();
-        if (console != null) {
-            char[] chars = console.readPassword(prompt);
-            return new String(chars);
-        } else {
-            System.out.print(prompt);
-            @SuppressWarnings("resource") // just wrapper of System.in
-            Scanner scanner = new Scanner(System.in);
-            return scanner.nextLine();
+        while (true) {
+            String password = "";
+            if (console != null) {
+                char[] chars = console.readPassword(inputPrompt);
+                password = new String(chars);
+            } else {
+                System.out.print(inputPrompt);
+                @SuppressWarnings("resource") // just wrapper of System.in
+                Scanner scanner = new Scanner(System.in);
+                password = scanner.nextLine();
+            }
+            if (!password.isEmpty()) {
+                return password;
+            }
+            System.out.println(notEmptyPrompt);
         }
     }
 
