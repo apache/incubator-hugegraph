@@ -1,6 +1,6 @@
 # HugeGraph-RPC
 
-HugeGraph Database RPC component, currently it's a wrapper of [Sofa-RPC](https://github.com/sofastack/sofa-rpc)
+HugeGraph Database RPC component, currently it's based on [Sofa-RPC](https://github.com/sofastack/sofa-rpc)
 
 ## Features
 

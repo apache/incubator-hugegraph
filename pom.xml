@@ -42,6 +42,13 @@
     </properties>
 
     <dependencies>
+        <!-- hugegraph-common -->
+        <dependency>
+            <groupId>com.baidu.hugegraph</groupId>
+            <artifactId>hugegraph-common</artifactId>
+            <version>1.8.5</version>
+        </dependency>
+
         <!-- sofa rpc -->
         <dependency>
             <groupId>com.lmax</groupId>
@@ -54,16 +61,20 @@
             <version>5.7.6</version>
             <exclusions>
                 <exclusion>
-                    <groupId>io.netty</groupId>
-                    <artifactId>netty-all</artifactId>
-                </exclusion>
-                <exclusion>
                     <groupId>org.jboss.resteasy</groupId>
                     <artifactId>resteasy-client</artifactId>
                 </exclusion>
                 <exclusion>
-                    <groupId>com.alipay.sofa</groupId>
-                    <artifactId>bolt</artifactId>
+                    <groupId>org.jboss.resteasy</groupId>
+                    <artifactId>resteasy-netty4</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.jboss.resteasy</groupId>
+                    <artifactId>resteasy-jackson2-provider</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.httpcomponents</groupId>
+                    <artifactId>httpclient</artifactId>
                 </exclusion>
                 <exclusion>
                     <groupId>org.apache.httpcomponents</groupId>
@@ -74,16 +85,12 @@
                     <artifactId>httpmime</artifactId>
                 </exclusion>
                 <exclusion>
-                    <groupId>com.alipay.sofa.common</groupId>
-                    <artifactId>sofa-common-tools</artifactId>
-                </exclusion>
-                <exclusion>
                     <groupId>org.jboss.logging</groupId>
                     <artifactId>jboss-logging</artifactId>
                 </exclusion>
                 <exclusion>
-                    <groupId>com.alipay.sofa</groupId>
-                    <artifactId>hessian</artifactId>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-api</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
@@ -105,6 +112,7 @@
                     </compilerArgs>
                 </configuration>
             </plugin>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
@@ -127,6 +135,7 @@
                     </execution>
                 </executions>
             </plugin>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
@@ -142,6 +151,11 @@
                                 true
                             </addDefaultSpecificationEntries>
                         </manifest>
+                        <manifestEntries>
+                            <!-- Must be on one line, otherwise the automatic
+                                 upgrade script cannot replace the version number -->
+                            <Implementation-Version>1.0.0.0</Implementation-Version>
+                        </manifestEntries>
                     </archive>
                 </configuration>
             </plugin>
