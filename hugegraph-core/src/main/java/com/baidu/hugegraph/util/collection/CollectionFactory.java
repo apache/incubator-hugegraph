@@ -186,12 +186,4 @@ public class CollectionFactory {
     public static Set<Id> newIdSet(CollectionImplType type) {
         return new IdSet(type);
     }
-
-    public List<Id> newIdList() {
-        return newIdList(this.type);
-    }
-
-    public static List<Id> newIdList(CollectionImplType type) {
-        return new IdList(type);
-    }
 }

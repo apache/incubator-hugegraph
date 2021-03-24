@@ -47,7 +47,7 @@ public class CollectionPathsTraverser extends HugeTraverser {
         checkCapacity(capacity);
         checkLimit(limit);
 
-        List<Id> sourceList = newIdList();
+        List<Id> sourceList = newList();
         while (sources.hasNext()) {
             sourceList.add(((HugeVertex) sources.next()).id());
         }
@@ -55,7 +55,7 @@ public class CollectionPathsTraverser extends HugeTraverser {
         E.checkState(sourceSize >= 1 && sourceSize <= MAX_VERTICES,
                      "The number of source vertices must in [1, %s], " +
                      "but got: %s", MAX_VERTICES, sourceList.size());
-        List<Id> targetList = newIdList();
+        List<Id> targetList = newList();
         while (targets.hasNext()) {
             targetList.add(((HugeVertex) targets.next()).id());
         }
