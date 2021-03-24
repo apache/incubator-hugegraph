@@ -25,7 +25,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.zip.Checksum;
@@ -65,11 +64,8 @@ public class StoreSnapshotFile {
             Set<String> snapshotDirs = this.doSnapshotSave();
             executor.execute(() -> {
                 long begin = System.currentTimeMillis();
-                Set<String> tarSnapshotFiles =
-                            this.compressSnapshotDir(snapshotDirs, done);
                 String jraftSnapshotPath =
-                            this.writeManifest(writer, tarSnapshotFiles, done);
-                this.deleteSnapshotDir(snapshotDirs, done);
+                            this.writeManifest(writer, snapshotDirs, done);
                 this.compressJraftSnapshotDir(writer, jraftSnapshotPath, done);
                 LOG.info("Compress snapshot cost {}ms",
                          System.currentTimeMillis() - begin);
@@ -93,7 +89,7 @@ public class StoreSnapshotFile {
                                         .toString();
         try {
             // decompress manifest and data directory
-            this.decompressSnapshot(readerPath, jraftSnapshotPath, meta);
+            this.decompressSnapshot(readerPath, meta);
             this.doSnapshotLoad();
             File tmp = new File(jraftSnapshotPath);
             // Delete the decompressed temporary file. If the deletion fails
@@ -159,7 +155,7 @@ public class StoreSnapshotFile {
     }
 
     private String writeManifest(SnapshotWriter writer,
-                                 Set<String> tarSnapshotFiles,
+                                 Set<String> snapshotFiles,
                                  Closure done) {
         String writerPath = writer.getPath();
         // Write all backend compressed snapshot file path to manifest
@@ -167,7 +163,7 @@ public class StoreSnapshotFile {
                                         .toString();
         File snapshotManifest = new File(jraftSnapshotPath, MANIFEST);
         try {
-            FileUtils.writeLines(snapshotManifest, tarSnapshotFiles);
+            FileUtils.writeLines(snapshotManifest, snapshotFiles);
         } catch (IOException e) {
             done.run(new Status(RaftError.EIO,
                                 "Failed to write backend snapshot file path " +
@@ -202,9 +198,8 @@ public class StoreSnapshotFile {
         }
     }
 
-    private void decompressSnapshot(String readerPath,
-                                    String jraftSnapshotPath,
-                                    LocalFileMeta meta) throws IOException {
+    private void decompressSnapshot(String readerPath, LocalFileMeta meta)
+                                    throws IOException {
         String archiveFile = Paths.get(readerPath, SNAPSHOT_ARCHIVE).toString();
         Checksum checksum = new CRC64();
         CompressUtil.decompressTar(archiveFile, readerPath, checksum);
@@ -212,16 +207,6 @@ public class StoreSnapshotFile {
             E.checkArgument(meta.getChecksum().equals(
                             Long.toHexString(checksum.getValue())),
                             "Snapshot checksum failed");
-        }
-
-        File snapshotManifest = new File(jraftSnapshotPath, MANIFEST);
-        List<String> compressedSnapshotFiles = FileUtils.readLines(
-                                               snapshotManifest);
-        for (String compressedSnapshotFile : compressedSnapshotFiles) {
-            String targetDir = Paths.get(compressedSnapshotFile).getParent()
-                                    .toString();
-            CompressUtil.decompressTar(compressedSnapshotFile, targetDir,
-                                       new CRC64());
         }
     }
 }

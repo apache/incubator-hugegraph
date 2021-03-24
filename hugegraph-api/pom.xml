@@ -171,7 +171,7 @@
                             </addDefaultSpecificationEntries>
                         </manifest>
                         <manifestEntries>
-                            <Implementation-Version>0.59.0.0</Implementation-Version>
+                            <Implementation-Version>0.60.0.0</Implementation-Version>
                         </manifestEntries>
                     </archive>
                 </configuration>

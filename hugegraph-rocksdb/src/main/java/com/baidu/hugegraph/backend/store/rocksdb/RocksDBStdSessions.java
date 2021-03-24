@@ -20,8 +20,6 @@
 package com.baidu.hugegraph.backend.store.rocksdb;
 
 import java.io.Closeable;
-import java.io.File;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -35,11 +33,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.rocksdb.BlockBasedTableConfig;
 import org.rocksdb.BloomFilter;
-import org.rocksdb.Checkpoint;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.ColumnFamilyOptions;
@@ -324,27 +320,33 @@ public class RocksDBStdSessions extends RocksDBSessions {
     }
 
     @Override
-    public void createSnapshot(String snapshotPath) {
-        // https://github.com/facebook/rocksdb/wiki/Checkpoints
-        try (Checkpoint checkpoint = Checkpoint.create(this.rocksdb)) {
-            String tempPath = snapshotPath + "_temp";
-            File tempFile = new File(tempPath);
-            FileUtils.deleteDirectory(tempFile);
-            LOG.debug("Deleted temp directory {}", tempFile);
+    public RocksDB createSnapshotRocksDB(String snapshotPath)
+                                         throws RocksDBException {
+        // Init CFs options
+        Set<String> mergedCFs = this.mergeOldCFs(snapshotPath, new ArrayList<>(
+                                                 this.cfs.keySet()));
+        List<String> cfNames = ImmutableList.copyOf(mergedCFs);
 
-            FileUtils.forceMkdir(tempFile.getParentFile());
-            checkpoint.createCheckpoint(tempPath);
-            File snapshotFile = new File(snapshotPath);
-            FileUtils.deleteDirectory(snapshotFile);
-            LOG.debug("Deleted stale directory {}", snapshotFile);
-            if (!tempFile.renameTo(snapshotFile)) {
-                throw new IOException(String.format("Failed to rename %s to %s",
-                                                    tempFile, snapshotFile));
-            }
-        } catch (Exception e) {
-            throw new BackendException("Failed to write snapshot at path %s",
-                                       e, snapshotPath);
+        List<ColumnFamilyDescriptor> cfds = new ArrayList<>(cfNames.size());
+        for (String cf : cfNames) {
+            ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(encode(cf));
+            ColumnFamilyOptions options = cfd.getOptions();
+            RocksDBStdSessions.initOptions(this.config, null, null,
+                                           options, options);
+            cfds.add(cfd);
         }
+        List<ColumnFamilyHandle> cfhs = new ArrayList<>();
+
+        // Init DB options
+        DBOptions options = new DBOptions();
+        RocksDBStdSessions.initOptions(this.config, options, options,
+                                       null, null);
+        return RocksDB.open(options, snapshotPath, cfds, cfhs);
+    }
+
+    @Override
+    public void createSnapshot(String snapshotPath) {
+        RocksDBStore.createCheckpoint(this.rocksdb, snapshotPath);
     }
 
     @Override

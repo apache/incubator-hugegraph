@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.lang3.tuple.Pair;
+import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumnIterator;
@@ -46,6 +47,9 @@ public abstract class RocksDBSessions extends BackendSessionPool {
 
     public abstract RocksDBSessions copy(HugeConfig config,
                                          String database, String store);
+
+    public abstract RocksDB createSnapshotRocksDB(String snapshotPath)
+                                                  throws RocksDBException;
 
     public abstract void createSnapshot(String parentPath);
 

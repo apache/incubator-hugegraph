@@ -5489,11 +5489,7 @@ public class EdgeCoreTest extends BaseCoreTest {
         guido.remove();
 
         // Clear all
-        try {
-            graph.truncateBackend();
-        } catch (UnsupportedOperationException ignored) {
-            // pass
-        }
+        graph.truncateBackend();
     }
 
     @Test

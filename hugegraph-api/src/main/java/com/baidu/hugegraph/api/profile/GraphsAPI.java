@@ -140,7 +140,7 @@ public class GraphsAPI extends API {
 
     @PUT
     @Timed
-    @Path("{name}/create-snapshot")
+    @Path("{name}/snapshot_create")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin", "$owner=$name"})
     public Object createSnapshot(@Context GraphManager manager,
@@ -154,7 +154,7 @@ public class GraphsAPI extends API {
 
     @PUT
     @Timed
-    @Path("{name}/resume-snapshot")
+    @Path("{name}/snapshot_resume")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin", "$owner=$name"})
     public Object resumeSnapshot(@Context GraphManager manager,

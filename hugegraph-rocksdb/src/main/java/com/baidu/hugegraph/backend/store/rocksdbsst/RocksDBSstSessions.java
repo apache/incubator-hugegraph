@@ -33,6 +33,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.commons.lang3.tuple.Pair;
 import org.rocksdb.EnvOptions;
 import org.rocksdb.Options;
+import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.SstFileWriter;
 
@@ -134,13 +135,18 @@ public class RocksDBSstSessions extends RocksDBSessions {
 
     @Override
     public List<String> property(String property) {
-        throw new NotSupportException("RocksDBSstStore property()");
+        throw new UnsupportedOperationException("RocksDBSstStore property()");
     }
 
     @Override
     public RocksDBSessions copy(HugeConfig config,
                                 String database, String store) {
         return new RocksDBSstSessions(config, database, store, this);
+    }
+
+    @Override
+    public RocksDB createSnapshotRocksDB(String snapshotPath) {
+        throw new UnsupportedOperationException("createSnapshotRocksDB");
     }
 
     @Override

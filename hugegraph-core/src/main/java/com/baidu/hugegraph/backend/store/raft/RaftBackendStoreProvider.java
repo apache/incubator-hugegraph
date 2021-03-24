@@ -209,8 +209,8 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
 
     @Override
     public void resumeSnapshot() {
-        // jraft doesn't expose API to load snapshot
-        throw new UnsupportedOperationException();
+        // Jraft doesn't expose API to load snapshot
+        throw new UnsupportedOperationException("resumeSnapshot");
     }
 
     @Override

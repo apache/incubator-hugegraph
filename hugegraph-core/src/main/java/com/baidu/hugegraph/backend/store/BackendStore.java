@@ -118,11 +118,11 @@ public interface BackendStore {
     public long getCounter(HugeType type);
 
     public default Set<String> createSnapshot(String snapshotDir) {
-        throw new UnsupportedOperationException("writeSnapshot");
+        throw new UnsupportedOperationException("createSnapshot");
     }
 
     public default Set<String> resumeSnapshot(String snapshotDir) {
-        throw new UnsupportedOperationException("readSnapshot");
+        throw new UnsupportedOperationException("resumeSnapshot");
     }
 
     static enum TxState {

@@ -44,6 +44,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
+import org.rocksdb.Checkpoint;
+import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 import org.slf4j.Logger;
 
@@ -65,7 +67,6 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.Consumers;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.ExecutorUtil;
-import com.baidu.hugegraph.util.GZipUtil;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.Log;
 import com.google.common.collect.ImmutableList;
@@ -664,11 +665,19 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
                 Path snapshotPath = parentParentPath.resolve(snapshotPrefix +
                                                              "_" + pureDataPath);
                 E.checkState(snapshotPath.toFile().exists(),
-                             "The snapshot path '%s' doesn't exist");
+                             "The snapshot path '%s' doesn't exist",
+                             snapshotPath);
                 LOG.debug("The origin data path: {}", originDataPath);
                 LOG.debug("The snapshot data path: {}", snapshotPath);
-                fileNameMaps.put(originDataPath, snapshotPath);
 
+                RocksDBSessions sessions = entry.getValue();
+                RocksDB rocksdb = sessions.createSnapshotRocksDB(
+                                  snapshotPath.toString());
+                Path snapshotLinkPath = Paths.get(originDataPath + "_link");
+                createCheckpoint(rocksdb, snapshotLinkPath.toString());
+                rocksdb.close();
+
+                fileNameMaps.put(originDataPath, snapshotLinkPath);
                 uniqueParents.add(snapshotPath.getParent().toString());
             }
             E.checkState(!fileNameMaps.isEmpty(),
@@ -684,19 +693,19 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
             // Move snapshot file to origin data path
             for (Map.Entry<Path, Path> entry : fileNameMaps.entrySet()) {
                 File originDataDir = entry.getKey().toFile();
-                File snapshotDir = entry.getValue().toFile();
+                File snapshotLinkDir = entry.getValue().toFile();
                 try {
                     if (originDataDir.exists()) {
                         LOG.info("Delete origin data directory {}",
                                  originDataDir);
                         FileUtils.deleteDirectory(originDataDir);
                     }
-                    FileUtils.moveDirectory(snapshotDir, originDataDir);
+                    FileUtils.moveDirectory(snapshotLinkDir, originDataDir);
                     LOG.info("Move snapshot directory {} to {}",
-                             snapshotDir, originDataDir);
-                } catch (IOException e) {
-                    throw new BackendException("Failed to move %s to %s",
-                                               e, snapshotDir, originDataDir);
+                             snapshotLinkDir, originDataDir);
+                } catch (Exception e) {
+                    throw new BackendException("Failed to move %s to %s", e,
+                                               snapshotLinkDir, originDataDir);
                 }
             }
             // Reload rocksdb instance
@@ -729,18 +738,6 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
                 iter.remove();
             }
         }
-    }
-
-    private Session findMatchedSession(File snapshotFile) {
-        String fileName = snapshotFile.getName();
-        for (Session session : this.session()) {
-            String md5 = GZipUtil.md5(session.dataPath());
-            if (fileName.equals(md5)) {
-                return session;
-            }
-        }
-        throw new BackendException("Can't find matched session for " +
-                                   "snapshot file %s", snapshotFile);
     }
 
     private final List<Session> session() {
@@ -826,6 +823,29 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
             }
         }
         return false;
+    }
+
+    public static void createCheckpoint(RocksDB rocksdb, String targetPath) {
+        // https://github.com/facebook/rocksdb/wiki/Checkpoints
+        try (Checkpoint checkpoint = Checkpoint.create(rocksdb)) {
+            String tempPath = targetPath + "_temp";
+            File tempFile = new File(tempPath);
+            FileUtils.deleteDirectory(tempFile);
+            LOG.debug("Deleted temp directory {}", tempFile);
+
+            FileUtils.forceMkdir(tempFile.getParentFile());
+            checkpoint.createCheckpoint(tempPath);
+            File snapshotFile = new File(targetPath);
+            FileUtils.deleteDirectory(snapshotFile);
+            LOG.debug("Deleted stale directory {}", snapshotFile);
+            if (!tempFile.renameTo(snapshotFile)) {
+                throw new IOException(String.format("Failed to rename %s to %s",
+                                                    tempFile, snapshotFile));
+            }
+        } catch (Exception e) {
+            throw new BackendException("Failed to create checkpoint at path %s",
+                                       e, targetPath);
+        }
     }
 
     /***************************** Store defines *****************************/
