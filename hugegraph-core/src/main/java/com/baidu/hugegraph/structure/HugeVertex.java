@@ -66,6 +66,8 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
     private Id id;
     private VertexLabel label;
+    // Implemented as LinkedHashMap, is it necessary? Eclipse Collection does
+    // not have replacement for LinkedHashMap now.
     private Set<HugeEdge> edges;
 
     public HugeVertex(final HugeGraph graph, Id id, VertexLabel label) {

@@ -84,6 +84,7 @@ public class CrosspointsAPI extends API {
         HugeTraverser.PathSet paths = traverser.paths(sourceId, dir, targetId,
                                                       dir, edgeLabel, depth,
                                                       maxDegree, capacity, limit);
-        return manager.serializer(g).writePaths("crosspoints", paths, true);
+        return manager.serializer(g).writePaths("crosspoints",
+                                                paths.paths(),true);
     }
 }

@@ -64,6 +64,7 @@ public final class IntLongMap implements RamMap {
     @Override
     public void clear() {
         Arrays.fill(this.array, 0L);
+        this.size = 0;
     }
 
     @Override
@@ -90,5 +91,6 @@ public final class IntLongMap implements RamMap {
             long value = buffer.readLong();
             this.array[i] = value;
         }
+        this.size = size;
     }
 }

@@ -55,10 +55,10 @@ public class KoutTraverser extends OltpTraverser {
 
         Id labelId = this.getEdgeLabelId(label);
 
-        Set<Id> latest = newSet();
+        Set<Id> latest = newIdSet();
         latest.add(sourceV);
 
-        Set<Id> all = newSet();
+        Set<Id> all = newIdSet();
         all.add(sourceV);
 
         long remaining = capacity == NO_LIMIT ?

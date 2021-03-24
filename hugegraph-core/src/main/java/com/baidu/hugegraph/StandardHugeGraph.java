@@ -123,6 +123,7 @@ public class StandardHugeGraph implements HugeGraph {
            CoreOptions.TASK_RESULT_SIZE_LIMIT,
            CoreOptions.OLTP_CONCURRENT_THREADS,
            CoreOptions.OLTP_CONCURRENT_DEPTH,
+           CoreOptions.OLTP_COLLECTION_IMPL_TYPE,
            CoreOptions.VERTEX_DEFAULT_LABEL,
            CoreOptions.VERTEX_ENCODE_PK_NUMBER
     );

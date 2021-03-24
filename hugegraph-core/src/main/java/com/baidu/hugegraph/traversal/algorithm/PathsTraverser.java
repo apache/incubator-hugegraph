@@ -77,7 +77,7 @@ public class PathsTraverser extends HugeTraverser {
             }
             traverser.backward(targetDir);
         }
-        paths.addAll(traverser.paths());
+        paths.addAll(traverser.paths().paths());
         return paths;
     }
 

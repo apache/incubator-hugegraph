@@ -623,4 +623,13 @@ public class CoreOptions extends OptionHolder {
                     rangeInt(0, 65535),
                     10
             );
+
+    public static final ConfigOption<String> OLTP_COLLECTION_IMPL_TYPE =
+            new ConfigOption<>(
+                    "oltp.collection_impl_type",
+                    "The implementation type of collections " +
+                    "used in oltp algorithm.",
+                    allowValues("jcf", "ec"),
+                    "ec"
+            );
 }

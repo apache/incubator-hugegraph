@@ -19,9 +19,6 @@
 
 package com.baidu.hugegraph.traversal.algorithm;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -64,13 +61,13 @@ public class NeighborRankTraverser extends HugeTraverser {
         boolean sameLayerTransfer = true;
         long access = 0;
         // Results: ranks of each layer
-        List<Ranks> ranks = new ArrayList<>();
+        List<Ranks> ranks = newList();
         ranks.add(Ranks.of(source, 1.0));
 
         for (Step step : steps) {
             Ranks lastLayerRanks = ranks.get(ranks.size() - 1);
-            Map<Id, Double> sameLayerIncrRanks = new HashMap<>();
-            List<Adjacencies> adjacencies = new ArrayList<>();
+            Map<Id, Double> sameLayerIncrRanks = newMap();
+            List<Adjacencies> adjacencies = newList();
             MultivaluedMap<Id, Node> newVertices = newMultivalueMap();
             // Traversal vertices of previous level
             for (Map.Entry<Id, List<Node>> entry : sources.entrySet()) {
@@ -79,8 +76,8 @@ public class NeighborRankTraverser extends HugeTraverser {
                                                           step.edgeStep);
 
                 Adjacencies adjacenciesV = new Adjacencies(vertex);
-                Set<Id> sameLayerNodesV = new HashSet<>();
-                Map<Integer, Set<Id>> prevLayerNodesV = new HashMap<>();
+                Set<Id> sameLayerNodesV = newIdSet();
+                Map<Integer, Set<Id>> prevLayerNodesV = newMap();
                 while (edges.hasNext()) {
                     HugeEdge edge = (HugeEdge) edges.next();
                     Id target = edge.id().otherVertexId();
@@ -166,7 +163,8 @@ public class NeighborRankTraverser extends HugeTraverser {
         for (int i = ranks.size() - 2; i > 0; i--) {
             Ranks prevLayerRanks = ranks.get(i);
             if (prevLayerRanks.containsKey(target)) {
-                Set<Id> nodes = prevLayerNodes.computeIfAbsent(i, HashSet::new);
+                Set<Id> nodes = prevLayerNodes.computeIfAbsent(
+                                i, HugeTraverser::newSet);
                 nodes.add(target);
                 return true;
             }
@@ -220,7 +218,7 @@ public class NeighborRankTraverser extends HugeTraverser {
     private List<Map<Id, Double>> topRanks(List<Ranks> ranks,
                                            List<Step> steps) {
         assert ranks.size() > 0;
-        List<Map<Id, Double>> results = new ArrayList<>(ranks.size());
+        List<Map<Id, Double>> results = newList(ranks.size());
         // The first layer is root node so skip i=0
         results.add(ranks.get(0));
         for (int i = 1; i < ranks.size(); i++) {
@@ -264,7 +262,7 @@ public class NeighborRankTraverser extends HugeTraverser {
 
         public Adjacencies(Id source) {
             this.source = source;
-            this.nodes = new ArrayList<>();
+            this.nodes = newList();
             this.degree = -1L;
         }
 

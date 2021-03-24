@@ -19,7 +19,6 @@
 
 package com.baidu.hugegraph.traversal.algorithm;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -50,7 +49,7 @@ public class TemplatePathsTraverser extends HugeTraverser {
         checkCapacity(capacity);
         checkLimit(limit);
 
-        List<Id> sourceList = new ArrayList<>();
+        List<Id> sourceList = newIdList();
         while (sources.hasNext()) {
             sourceList.add(((HugeVertex) sources.next()).id());
         }
@@ -58,7 +57,7 @@ public class TemplatePathsTraverser extends HugeTraverser {
         E.checkState(sourceSize >= 1 && sourceSize <= MAX_VERTICES,
                      "The number of source vertices must in [1, %s], " +
                      "but got: %s", MAX_VERTICES, sourceList.size());
-        List<Id> targetList = new ArrayList<>();
+        List<Id> targetList = newIdList();
         while (targets.hasNext()) {
             targetList.add(((HugeVertex) targets.next()).id());
         }

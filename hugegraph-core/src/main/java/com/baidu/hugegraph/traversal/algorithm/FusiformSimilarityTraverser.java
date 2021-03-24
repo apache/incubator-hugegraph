@@ -19,8 +19,6 @@
 
 package com.baidu.hugegraph.traversal.algorithm;
 
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -106,9 +104,9 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
         // Get similar nodes and counts
         Iterator<Edge> edges = this.edgesOfVertex(vertex.id(), direction,
                                                   labelId, degree);
-        Map<Id, MutableInt> similars = new HashMap<>();
+        Map<Id, MutableInt> similars = newMap();
         MultivaluedMap<Id, Id> intermediaries = new MultivaluedHashMap<>();
-        Set<Id> neighbors = new HashSet<>();
+        Set<Id> neighbors = newIdSet();
         while (edges.hasNext()) {
             Id target = ((HugeEdge) edges.next()).id().otherVertexId();
             if (neighbors.contains(target)) {
@@ -120,7 +118,7 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
             Directions backDir = direction.opposite();
             Iterator<Edge> backEdges = this.edgesOfVertex(target, backDir,
                                                           labelId, degree);
-            Set<Id> currentSimilars = new HashSet<>();
+            Set<Id> currentSimilars = newIdSet();
             while (backEdges.hasNext()) {
                 Id node = ((HugeEdge) backEdges.next()).id().otherVertexId();
                 if (currentSimilars.contains(node)) {
@@ -149,7 +147,7 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
         }
         // Match alpha
         double neighborNum = neighbors.size();
-        Map<Id, Double> matchedAlpha = new HashMap<>();
+        Map<Id, Double> matchedAlpha = newMap();
         for (Map.Entry<Id, MutableInt> entry : similars.entrySet()) {
             double score = entry.getValue().intValue() / neighborNum;
             if (score >= alpha) {
@@ -169,7 +167,7 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
         }
         // Filter by groupCount by property
         if (groupProperty != null) {
-            Set<Object> values = new HashSet<>();
+            Set<Object> values = newSet();
             // Add groupProperty value of source vertex
             values.add(vertex.value(groupProperty));
             for (Id id : topN.keySet()) {
@@ -226,7 +224,7 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
             neighborCount = IteratorUtils.count(edges);
         } else {
             edges = this.edgesOfVertex(vertex.id(), direction, labelId, degree);
-            Set<Id> neighbors = new HashSet<>();
+            Set<Id> neighbors = newIdSet();
             while (edges.hasNext()) {
                 Id target = ((HugeEdge) edges.next()).id().otherVertexId();
                 neighbors.add(target);
@@ -252,8 +250,8 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
         public Similar(Id id, double score, List<Id> intermediaries) {
             this.id = id;
             this.score = score;
-            assert new HashSet<>(intermediaries).size() ==
-                   intermediaries.size() : "Invalid intermediaries";
+            assert newSet(intermediaries).size() == intermediaries.size() :
+                   "Invalid intermediaries";
             this.intermediaries = intermediaries;
         }
 
@@ -275,14 +273,20 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
         }
     }
 
-    public static class SimilarsMap extends HashMap<Id, Set<Similar>> {
+    public static class SimilarsMap {
 
         private static final long serialVersionUID = -1906770930513268291L;
 
+        private Map<Id, Set<Similar>> similars = newMap();
+
+        public void put(Id id, Set<Similar> similars) {
+            this.similars.put(id, similars);
+        }
+
         public Set<Id> vertices() {
-            Set<Id> vertices = new HashSet<>();
-            vertices.addAll(this.keySet());
-            for (Set<Similar> similars : this.values()) {
+            Set<Id> vertices = newIdSet();
+            vertices.addAll(this.similars.keySet());
+            for (Set<Similar> similars : this.similars.values()) {
                 for (Similar similar : similars) {
                     vertices.add(similar.id());
                     vertices.addAll(similar.intermediaries());
@@ -292,8 +296,8 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
         }
 
         public Map<Id, Set<Map<String, Object>>> toMap() {
-            Map<Id, Set<Map<String, Object>>> results = new HashMap<>();
-            for (Map.Entry<Id, Set<Similar>> entry : this.entrySet()) {
+            Map<Id, Set<Map<String, Object>>> results = newMap();
+            for (Map.Entry<Id, Set<Similar>> entry : this.similars.entrySet()) {
                 Id source = entry.getKey();
                 Set<Similar> similars = entry.getValue();
                 Set<Map<String, Object>> result = InsertionOrderUtil.newSet();

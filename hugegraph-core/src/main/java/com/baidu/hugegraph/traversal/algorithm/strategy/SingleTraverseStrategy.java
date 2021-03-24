@@ -55,7 +55,7 @@ public class SingleTraverseStrategy extends OltpTraverser
 
     @Override
     public Set<Path> newPathSet() {
-        return new HugeTraverser.PathSet();
+        return new HugeTraverser.PathSet().paths();
     }
 
     @Override

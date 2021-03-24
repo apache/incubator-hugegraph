@@ -19,9 +19,7 @@
 
 package com.baidu.hugegraph.traversal.algorithm;
 
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -60,7 +58,7 @@ public class ShortestPathTraverser extends HugeTraverser {
             return new Path(ImmutableList.of(sourceV));
         }
 
-        Map<Id, String> labelMap = new HashMap<>(labels.size());
+        Map<Id, String> labelMap = newMap(labels.size());
         for (String label : labels) {
             labelMap.put(this.getEdgeLabelId(label), label);
         }
@@ -91,7 +89,7 @@ public class ShortestPathTraverser extends HugeTraverser {
     public Path shortestPath(Id sourceV, Id targetV, EdgeStep step,
                              int depth, long capacity) {
         return this.shortestPath(sourceV, targetV, step.direction(),
-                                 new ArrayList<>(step.labels().values()),
+                                 newList(step.labels().values()),
                                  depth, step.degree(), step.skipDegree(),
                                  capacity);
     }
@@ -115,7 +113,7 @@ public class ShortestPathTraverser extends HugeTraverser {
             return paths;
         }
 
-        Map<Id, String> labelMap = new HashMap<>(labels.size());
+        Map<Id, String> labelMap = newMap(labels.size());
         for (String label : labels) {
             labelMap.put(this.getEdgeLabelId(label), label);
         }
@@ -131,7 +129,7 @@ public class ShortestPathTraverser extends HugeTraverser {
 
             if (!(paths = traverser.backward(true)).isEmpty() ||
                 --depth <= 0) {
-                for (Path path : paths) {
+                for (Path path : paths.paths()) {
                     Collections.reverse(path.vertices());
                 }
                 break;
