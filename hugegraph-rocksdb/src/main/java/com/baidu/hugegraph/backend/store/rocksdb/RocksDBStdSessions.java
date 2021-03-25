@@ -20,6 +20,8 @@
 package com.baidu.hugegraph.backend.store.rocksdb;
 
 import java.io.Closeable;
+import java.io.File;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -33,9 +35,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.rocksdb.BlockBasedTableConfig;
 import org.rocksdb.BloomFilter;
+import org.rocksdb.Checkpoint;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.ColumnFamilyOptions;
@@ -252,7 +256,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
     }
 
     @Override
-    public void reload() throws RocksDBException {
+    public void reloadRocksDB() throws RocksDBException {
         if (this.rocksdb.isOwningHandle()) {
             this.rocksdb.close();
         }
@@ -320,33 +324,72 @@ public class RocksDBStdSessions extends RocksDBSessions {
     }
 
     @Override
-    public RocksDB createSnapshotRocksDB(String snapshotPath)
-                                         throws RocksDBException {
-        // Init CFs options
-        Set<String> mergedCFs = this.mergeOldCFs(snapshotPath, new ArrayList<>(
-                                                 this.cfs.keySet()));
-        List<String> cfNames = ImmutableList.copyOf(mergedCFs);
-
-        List<ColumnFamilyDescriptor> cfds = new ArrayList<>(cfNames.size());
-        for (String cf : cfNames) {
-            ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(encode(cf));
-            ColumnFamilyOptions options = cfd.getOptions();
-            RocksDBStdSessions.initOptions(this.config, null, null,
-                                           options, options);
-            cfds.add(cfd);
+    public Path buildSnapshotPath(Path originDataPath, String snapshotPrefix,
+                                  boolean deleteSnapshot)
+                                  throws RocksDBException {
+        // originDataPath
+        // Like: parent_path/rocksdb-data/m
+        //       parent_path/rocksdb-vertex/g
+        Path parentParentPath = originDataPath.getParent().getParent();
+        // Like: rocksdb-data/m
+        //       rocksdb-vertex/g
+        Path pureDataPath = parentParentPath.relativize(originDataPath);
+        // Like: parent_path/snapshot_rocksdb-data/m
+        //       parent_path/snapshot_rocksdb-vertex/g
+        Path snapshotPath = parentParentPath.resolve(snapshotPrefix + "_" +
+                                                     pureDataPath);
+        E.checkState(snapshotPath.toFile().exists(),
+                     "The snapshot path '%s' doesn't exist",
+                     snapshotPath);
+        LOG.debug("The origin data path: {}", originDataPath);
+        if (deleteSnapshot) {
+            LOG.debug("The snapshot data path: {}", snapshotPath);
+            return snapshotPath;
         }
-        List<ColumnFamilyHandle> cfhs = new ArrayList<>();
 
-        // Init DB options
-        DBOptions options = new DBOptions();
-        RocksDBStdSessions.initOptions(this.config, options, options,
-                                       null, null);
-        return RocksDB.open(options, snapshotPath, cfds, cfhs);
+        RocksDB rocksdb = this.createSnapshotRocksDB(snapshotPath.toString());
+        Path snapshotLinkPath = Paths.get(originDataPath + "_link");
+        try {
+            createCheckpoint(rocksdb, snapshotLinkPath.toString());
+        } finally {
+            rocksdb.close();
+        }
+        LOG.debug("The snapshot data link path: {}", snapshotLinkPath);
+        return snapshotLinkPath;
     }
 
     @Override
     public void createSnapshot(String snapshotPath) {
-        RocksDBStore.createCheckpoint(this.rocksdb, snapshotPath);
+        createCheckpoint(this.rocksdb, snapshotPath);
+    }
+
+    @Override
+    public void resumeSnapshot(String snapshotPath) {
+        File originDataDir = new File(this.dataPath);
+        File snapshotDir = new File(snapshotPath);
+        try {
+            /*
+             * Close current instance first
+             * NOTE: must close rocksdb instance before deleting file directory,
+             * if close after copying the snapshot directory to origin position,
+             * it may produce dirty data.
+             */
+            this.forceCloseRocksDB();
+            // Delete origin data directory
+            if (originDataDir.exists()) {
+                LOG.info("Delete origin data directory {}", originDataDir);
+                FileUtils.deleteDirectory(originDataDir);
+            }
+            // Move snapshot directory to origin data directory
+            FileUtils.moveDirectory(snapshotDir, originDataDir);
+            LOG.info("Move snapshot directory {} to {}",
+                     snapshotDir, originDataDir);
+            // Reload rocksdb instance
+            this.reloadRocksDB();
+        } catch (Exception e) {
+            throw new BackendException("Failed to resume snapshot '%s' to' %s'",
+                                       e, snapshotDir, this.dataPath);
+        }
     }
 
     @Override
@@ -419,6 +462,30 @@ public class RocksDBStdSessions extends RocksDBSessions {
                 }
             }
         }
+    }
+
+    private RocksDB createSnapshotRocksDB(String snapshotPath)
+                                          throws RocksDBException {
+        // Init CFs options
+        Set<String> mergedCFs = this.mergeOldCFs(snapshotPath, new ArrayList<>(
+                                                 this.cfs.keySet()));
+        List<String> cfNames = ImmutableList.copyOf(mergedCFs);
+
+        List<ColumnFamilyDescriptor> cfds = new ArrayList<>(cfNames.size());
+        for (String cf : cfNames) {
+            ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(encode(cf));
+            ColumnFamilyOptions options = cfd.getOptions();
+            RocksDBStdSessions.initOptions(this.config, null, null,
+                                           options, options);
+            cfds.add(cfd);
+        }
+        List<ColumnFamilyHandle> cfhs = new ArrayList<>();
+
+        // Init DB options
+        DBOptions options = new DBOptions();
+        RocksDBStdSessions.initOptions(this.config, options, options,
+                                       null, null);
+        return RocksDB.open(options, snapshotPath, cfds, cfhs);
     }
 
     public static Set<String> listCFs(String path) throws RocksDBException {
@@ -624,6 +691,29 @@ public class RocksDBStdSessions extends RocksDBSessions {
 
     public static final String decode(byte[] bytes) {
         return StringEncoding.decode(bytes);
+    }
+
+    public static void createCheckpoint(RocksDB rocksdb, String targetPath) {
+        // https://github.com/facebook/rocksdb/wiki/Checkpoints
+        try (Checkpoint checkpoint = Checkpoint.create(rocksdb)) {
+            String tempPath = targetPath + "_temp";
+            File tempFile = new File(tempPath);
+            FileUtils.deleteDirectory(tempFile);
+            LOG.debug("Deleted temp directory {}", tempFile);
+
+            FileUtils.forceMkdir(tempFile.getParentFile());
+            checkpoint.createCheckpoint(tempPath);
+            File snapshotFile = new File(targetPath);
+            FileUtils.deleteDirectory(snapshotFile);
+            LOG.debug("Deleted stale directory {}", snapshotFile);
+            if (!tempFile.renameTo(snapshotFile)) {
+                throw new IOException(String.format("Failed to rename %s to %s",
+                                                    tempFile, snapshotFile));
+            }
+        } catch (Exception e) {
+            throw new BackendException("Failed to create checkpoint at path %s",
+                                       e, targetPath);
+        }
     }
 
     private class CFHandle implements Closeable {

@@ -111,7 +111,8 @@ public class GremlinApiTest extends BaseApiTest {
     @Test
     public void testTruncate() {
         String body = "{"
-                + "\"gremlin\":\"hugegraph.truncateBackend()\","
+                + "\"gremlin\":\"try {graph.truncateBackend()} "
+                + "catch (UnsupportedOperationException e) {}\","
                 + "\"bindings\":{},"
                 + "\"language\":\"gremlin-groovy\","
                 + "\"aliases\":{\"g\":\"__g_hugegraph\"}}";

@@ -33,7 +33,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.commons.lang3.tuple.Pair;
 import org.rocksdb.EnvOptions;
 import org.rocksdb.Options;
-import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.SstFileWriter;
 
@@ -145,17 +144,23 @@ public class RocksDBSstSessions extends RocksDBSessions {
     }
 
     @Override
-    public RocksDB createSnapshotRocksDB(String snapshotPath) {
-        throw new UnsupportedOperationException("createSnapshotRocksDB");
-    }
-
-    @Override
     public void createSnapshot(String snapshotPath) {
         throw new UnsupportedOperationException("createSnapshot");
     }
 
     @Override
-    public void reload() throws RocksDBException {
+    public void resumeSnapshot(String snapshotPath) {
+        throw new UnsupportedOperationException("resumeSnapshot");
+    }
+
+    @Override
+    public Path buildSnapshotPath(Path originDataPath, String snapshotPrefix,
+                                  boolean deleteSnapshot) {
+        throw new UnsupportedOperationException("hardLink");
+    }
+
+    @Override
+    public void reloadRocksDB() throws RocksDBException {
         throw new UnsupportedOperationException("reload");
     }
 

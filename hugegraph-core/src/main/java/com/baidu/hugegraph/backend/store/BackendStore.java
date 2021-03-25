@@ -121,7 +121,8 @@ public interface BackendStore {
         throw new UnsupportedOperationException("createSnapshot");
     }
 
-    public default Set<String> resumeSnapshot(String snapshotDir) {
+    public default void resumeSnapshot(String snapshotDir,
+                                       boolean deleteSnapshot) {
         throw new UnsupportedOperationException("resumeSnapshot");
     }
 
