@@ -350,7 +350,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
         RocksDB rocksdb = this.createSnapshotRocksDB(snapshotPath.toString());
         Path snapshotLinkPath = Paths.get(originDataPath + "_link");
         try {
-            createCheckpoint(rocksdb, snapshotLinkPath.toString());
+            this.createCheckpoint(rocksdb, snapshotLinkPath.toString());
         } finally {
             rocksdb.close();
         }
@@ -360,7 +360,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
 
     @Override
     public void createSnapshot(String snapshotPath) {
-        createCheckpoint(this.rocksdb, snapshotPath);
+        this.createCheckpoint(this.rocksdb, snapshotPath);
     }
 
     @Override
@@ -486,6 +486,29 @@ public class RocksDBStdSessions extends RocksDBSessions {
         RocksDBStdSessions.initOptions(this.config, options, options,
                                        null, null);
         return RocksDB.open(options, snapshotPath, cfds, cfhs);
+    }
+
+    private void createCheckpoint(RocksDB rocksdb, String targetPath) {
+        // https://github.com/facebook/rocksdb/wiki/Checkpoints
+        try (Checkpoint checkpoint = Checkpoint.create(rocksdb)) {
+            String tempPath = targetPath + "_temp";
+            File tempFile = new File(tempPath);
+            FileUtils.deleteDirectory(tempFile);
+            LOG.debug("Deleted temp directory {}", tempFile);
+
+            FileUtils.forceMkdir(tempFile.getParentFile());
+            checkpoint.createCheckpoint(tempPath);
+            File snapshotFile = new File(targetPath);
+            FileUtils.deleteDirectory(snapshotFile);
+            LOG.debug("Deleted stale directory {}", snapshotFile);
+            if (!tempFile.renameTo(snapshotFile)) {
+                throw new IOException(String.format("Failed to rename %s to %s",
+                                                    tempFile, snapshotFile));
+            }
+        } catch (Exception e) {
+            throw new BackendException("Failed to create checkpoint at path %s",
+                                       e, targetPath);
+        }
     }
 
     public static Set<String> listCFs(String path) throws RocksDBException {
@@ -691,29 +714,6 @@ public class RocksDBStdSessions extends RocksDBSessions {
 
     public static final String decode(byte[] bytes) {
         return StringEncoding.decode(bytes);
-    }
-
-    public static void createCheckpoint(RocksDB rocksdb, String targetPath) {
-        // https://github.com/facebook/rocksdb/wiki/Checkpoints
-        try (Checkpoint checkpoint = Checkpoint.create(rocksdb)) {
-            String tempPath = targetPath + "_temp";
-            File tempFile = new File(tempPath);
-            FileUtils.deleteDirectory(tempFile);
-            LOG.debug("Deleted temp directory {}", tempFile);
-
-            FileUtils.forceMkdir(tempFile.getParentFile());
-            checkpoint.createCheckpoint(tempPath);
-            File snapshotFile = new File(targetPath);
-            FileUtils.deleteDirectory(snapshotFile);
-            LOG.debug("Deleted stale directory {}", snapshotFile);
-            if (!tempFile.renameTo(snapshotFile)) {
-                throw new IOException(String.format("Failed to rename %s to %s",
-                                                    tempFile, snapshotFile));
-            }
-        } catch (Exception e) {
-            throw new BackendException("Failed to create checkpoint at path %s",
-                                       e, targetPath);
-        }
     }
 
     private class CFHandle implements Closeable {

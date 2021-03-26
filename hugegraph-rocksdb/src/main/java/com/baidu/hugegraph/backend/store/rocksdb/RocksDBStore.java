@@ -663,9 +663,12 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
                 RocksDBSessions sessions = entry.getValue();
                 sessions.resumeSnapshot(snapshotPath.toString());
 
-                Path parentPath = snapshotPath.getParent();
-                if (Files.list(parentPath).count() == 0) {
-                    FileUtils.deleteDirectory(parentPath.toFile());
+                if (deleteSnapshot) {
+                    // Delete empty snapshot parent directory
+                    Path parentPath = snapshotPath.getParent();
+                    if (Files.list(parentPath).count() == 0) {
+                        FileUtils.deleteDirectory(parentPath.toFile());
+                    }
                 }
             }
             LOG.info("The store '{}' resume snapshot successfully", this.store);

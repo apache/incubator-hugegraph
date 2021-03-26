@@ -5492,7 +5492,7 @@ public class EdgeCoreTest extends BaseCoreTest {
         try {
             graph.truncateBackend();
         } catch (UnsupportedOperationException e) {
-            LOG.warn("Failed to create snapshot", e);
+            LOG.warn("Failed to truncate backend", e);
         }
     }
 
