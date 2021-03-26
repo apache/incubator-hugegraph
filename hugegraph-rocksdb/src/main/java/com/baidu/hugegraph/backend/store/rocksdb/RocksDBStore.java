@@ -614,15 +614,12 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
             Set<String> uniqueParents = new HashSet<>();
             // Every rocksdb instance should create an snapshot
             for (Map.Entry<String, RocksDBSessions> entry : this.dbs.entrySet()) {
-                // Like: parent_path/rocksdb-data/m
-                //       parent_path/rocksdb-vertex/g
+                // Like: parent_path/rocksdb-data/*, * maybe g,m,s
                 Path originDataPath = Paths.get(entry.getKey()).toAbsolutePath();
                 Path parentParentPath = originDataPath.getParent().getParent();
-                // Like: rocksdb-data/m
-                //       rocksdb-vertex/g
+                // Like: rocksdb-data/*
                 Path pureDataPath = parentParentPath.relativize(originDataPath);
-                // Like: parent_path/snapshot_rocksdb-data/m
-                //       parent_path/snapshot_rocksdb-vertex/g
+                // Like: parent_path/snapshot_rocksdb-data/*
                 Path snapshotPath = parentParentPath.resolve(snapshotPrefix +
                                                              "_" + pureDataPath);
                 LOG.debug("The origin data path: {}", originDataPath);
@@ -647,25 +644,27 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
             if (!this.opened()) {
                 return;
             }
-            Map<Path, RocksDBSessions> snapshotPaths = new HashMap<>();
+            Map<String, RocksDBSessions> snapshotPaths = new HashMap<>();
             for (Map.Entry<String, RocksDBSessions> entry : this.dbs.entrySet()) {
-                Path originDataPath = Paths.get(entry.getKey()).toAbsolutePath();
                 RocksDBSessions sessions = entry.getValue();
-                Path snapshotPath = sessions.buildSnapshotPath(originDataPath,
-                                                               snapshotPrefix,
-                                                               deleteSnapshot);
+                String snapshotPath = sessions.buildSnapshotPath(snapshotPrefix);
+                LOG.debug("The origin data path: {}", entry.getKey());
+                if (!deleteSnapshot) {
+                    snapshotPath = sessions.hardLinkSnapshot(snapshotPath);
+                }
+                LOG.debug("The snapshot data path: {}", snapshotPath);
                 snapshotPaths.put(snapshotPath, sessions);
             }
 
-            for (Map.Entry<Path, RocksDBSessions> entry :
+            for (Map.Entry<String, RocksDBSessions> entry :
                  snapshotPaths.entrySet()) {
-                Path snapshotPath = entry.getKey();
+                String snapshotPath = entry.getKey();
                 RocksDBSessions sessions = entry.getValue();
-                sessions.resumeSnapshot(snapshotPath.toString());
+                sessions.resumeSnapshot(snapshotPath);
 
                 if (deleteSnapshot) {
                     // Delete empty snapshot parent directory
-                    Path parentPath = snapshotPath.getParent();
+                    Path parentPath = Paths.get(snapshotPath).getParent();
                     if (Files.list(parentPath).count() == 0) {
                         FileUtils.deleteDirectory(parentPath.toFile());
                     }

@@ -159,9 +159,9 @@ public class StoreSnapshotFile {
         // Write all backend compressed snapshot file path to manifest
         String jraftSnapshotPath = Paths.get(writerPath, SNAPSHOT_DIR)
                                         .toString();
-        File snapshotManifest = new File(jraftSnapshotPath, MANIFEST);
+        File snapshotManifestFile = new File(jraftSnapshotPath, MANIFEST);
         try {
-            FileUtils.writeLines(snapshotManifest, snapshotFiles);
+            FileUtils.writeLines(snapshotManifestFile, snapshotFiles);
         } catch (IOException e) {
             done.run(new Status(RaftError.EIO,
                                 "Failed to write backend snapshot file path " +

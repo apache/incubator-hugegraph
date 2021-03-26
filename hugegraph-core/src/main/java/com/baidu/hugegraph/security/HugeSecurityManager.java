@@ -95,16 +95,17 @@ public class HugeSecurityManager extends SecurityManager {
             ImmutableSet.of("execute")
     );
 
+    private static final Map<String, Set<String>> ROCKSDB_SNAPSHOT = ImmutableMap.of(
+            "com.baidu.hugegraph.backend.store.rocksdb.RocksDBStore",
+            ImmutableSet.of("createSnapshot", "resumeSnapshot")
+    );
+
     private static final Set<String> HBASE_CLASSES = ImmutableSet.of(
             // Fixed #758
             "com.baidu.hugegraph.backend.store.hbase.HbaseStore",
             "com.baidu.hugegraph.backend.store.hbase.HbaseStore$HbaseSchemaStore",
             "com.baidu.hugegraph.backend.store.hbase.HbaseStore$HbaseGraphStore",
             "com.baidu.hugegraph.backend.store.hbase.HbaseSessions$RowIterator"
-    );
-
-    private static final Set<String> ROCKSDB_CLASSES = ImmutableSet.of(
-            "com.baidu.hugegraph.backend.store.rocksdb.RocksDBStore"
     );
 
     private static final Set<String> RAFT_CLASSES = ImmutableSet.of(
@@ -451,7 +452,7 @@ public class HugeSecurityManager extends SecurityManager {
     }
 
     private static boolean callFromBackendRocksDB() {
-        return callFromWorkerWithClass(ROCKSDB_CLASSES);
+        return callFromMethods(ROCKSDB_SNAPSHOT);
     }
 
     private static boolean callFromRaft() {

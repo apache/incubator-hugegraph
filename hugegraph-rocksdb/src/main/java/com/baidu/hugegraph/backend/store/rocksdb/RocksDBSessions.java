@@ -19,13 +19,13 @@
 
 package com.baidu.hugegraph.backend.store.rocksdb;
 
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.rocksdb.RocksDBException;
 
+import com.alipay.sofa.jraft.storage.snapshot.remote.Session;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumnIterator;
 import com.baidu.hugegraph.backend.store.BackendSession.AbstractBackendSession;
 import com.baidu.hugegraph.backend.store.BackendSessionPool;
@@ -52,10 +52,10 @@ public abstract class RocksDBSessions extends BackendSessionPool {
 
     public abstract void resumeSnapshot(String snapshotPath);
 
-    public abstract Path buildSnapshotPath(Path originDataPath,
-                                           String snapshotPrefix,
-                                           boolean deleteSnapshot)
-                                           throws RocksDBException;
+    public abstract String buildSnapshotPath(String snapshotPrefix);
+
+    public abstract String hardLinkSnapshot(String snapshotPath)
+                                            throws RocksDBException;
 
     public abstract void reloadRocksDB() throws RocksDBException;
 

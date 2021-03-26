@@ -154,14 +154,19 @@ public class RocksDBSstSessions extends RocksDBSessions {
     }
 
     @Override
-    public Path buildSnapshotPath(Path originDataPath, String snapshotPrefix,
-                                  boolean deleteSnapshot) {
-        throw new UnsupportedOperationException("hardLink");
+    public String buildSnapshotPath(String snapshotPrefix) {
+        throw new UnsupportedOperationException("buildSnapshotPath");
+    }
+
+    @Override
+    public String hardLinkSnapshot(String snapshotPath)
+                                   throws RocksDBException {
+        throw new UnsupportedOperationException("hardLinkSnapshot");
     }
 
     @Override
     public void reloadRocksDB() throws RocksDBException {
-        throw new UnsupportedOperationException("reload");
+        throw new UnsupportedOperationException("reloadRocksDB");
     }
 
     @Override
