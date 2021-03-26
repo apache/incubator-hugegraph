@@ -33,6 +33,8 @@ import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.iterator.MapperIterator;
 import com.baidu.hugegraph.type.define.CollectionImplType;
 
+import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
+
 public class IdSet extends HashSet<Id> {
 
     private LongHashSet numberIds;
@@ -46,6 +48,9 @@ public class IdSet extends HashSet<Id> {
                 break;
             case EC:
                 this.nonNumberIds = new UnifiedSet<>();
+                break;
+            case FU:
+                this.nonNumberIds = new ObjectOpenHashSet<>();
                 break;
             default:
                 throw new AssertionError(

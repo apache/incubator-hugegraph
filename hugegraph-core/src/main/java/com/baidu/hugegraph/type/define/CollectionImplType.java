@@ -21,9 +21,14 @@ package com.baidu.hugegraph.type.define;
 
 public enum CollectionImplType implements SerialEnum {
 
+    // Java Collection Framework
     JCF(1, "jcf"),
 
-    EC(2, "ec");
+    // Eclipse Collection
+    EC(2, "ec"),
+
+    // FastUtil
+    FU(3, "fu");
 
     private final byte code;
     private final String name;

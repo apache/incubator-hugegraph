@@ -34,6 +34,10 @@ import org.eclipse.collections.impl.set.mutable.UnifiedSet;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.type.define.CollectionImplType;
 
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
+
 public class CollectionFactory {
 
     private CollectionImplType type;
@@ -64,6 +68,8 @@ public class CollectionFactory {
                 return new FastList<>();
             case JCF:
                 return new ArrayList<>();
+            case FU:
+                return new ObjectArrayList<>();
             default:
                 throw new AssertionError(
                           "Unsupported collection type: " + type);
@@ -77,6 +83,8 @@ public class CollectionFactory {
                 return new FastList<>(initialCapacity);
             case JCF:
                 return new ArrayList<>(initialCapacity);
+            case FU:
+                return new ObjectArrayList<>(initialCapacity);
             default:
                 throw new AssertionError(
                           "Unsupported collection type: " + type);
@@ -90,6 +98,8 @@ public class CollectionFactory {
                 return new FastList<>(collection);
             case JCF:
                 return new ArrayList<>(collection);
+            case FU:
+                return new ObjectArrayList<>(collection);
             default:
                 throw new AssertionError(
                           "Unsupported collection type: " + type);
@@ -114,6 +124,8 @@ public class CollectionFactory {
                 return new UnifiedSet<>();
             case JCF:
                 return new HashSet<>();
+            case FU:
+                return new ObjectOpenHashSet<>();
             default:
                 throw new AssertionError(
                           "Unsupported collection type: " + type);
@@ -127,6 +139,8 @@ public class CollectionFactory {
                 return new UnifiedSet<>(initialCapacity);
             case JCF:
                 return new HashSet<>(initialCapacity);
+            case FU:
+                return new ObjectOpenHashSet<>(initialCapacity);
             default:
                 throw new AssertionError(
                           "Unsupported collection type: " + type);
@@ -140,6 +154,8 @@ public class CollectionFactory {
                 return new UnifiedSet<>(collection);
             case JCF:
                 return new HashSet<>(collection);
+            case FU:
+                return new ObjectOpenHashSet<>(collection);
             default:
                 throw new AssertionError(
                           "Unsupported collection type: " + type);
@@ -160,6 +176,8 @@ public class CollectionFactory {
                 return new UnifiedMap<>();
             case JCF:
                 return new HashMap<>();
+            case FU:
+                return new Object2ObjectOpenHashMap<>();
             default:
                 throw new AssertionError(
                           "Unsupported collection type: " + type);
@@ -173,6 +191,8 @@ public class CollectionFactory {
                 return new UnifiedMap<>(initialCapacity);
             case JCF:
                 return new HashMap<>(initialCapacity);
+            case FU:
+                return new Object2ObjectOpenHashMap<>(initialCapacity);
             default:
                 throw new AssertionError(
                           "Unsupported collection type: " + type);
