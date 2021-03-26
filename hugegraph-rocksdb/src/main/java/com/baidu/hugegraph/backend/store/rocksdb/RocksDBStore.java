@@ -629,7 +629,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
 
                 uniqueParents.add(snapshotPath.getParent().toString());
             }
-            LOG.info("The store '{}' create snapshot successfully", this.store);
+            LOG.info("The store '{}' create snapshot successfully", this);
             return uniqueParents;
         } finally {
             readLock.unlock();
@@ -670,7 +670,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
                     }
                 }
             }
-            LOG.info("The store '{}' resume snapshot successfully", this.store);
+            LOG.info("The store '{}' resume snapshot successfully", this);
         } catch (RocksDBException | IOException e) {
             throw new BackendException("Failed to resume snapshot", e);
         } finally {

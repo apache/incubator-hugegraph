@@ -129,7 +129,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
 
     @Override
     protected boolean opened() {
-        return this.rocksdb != null && this.rocksdb.rocksdb.isOwningHandle();
+        return this.rocksdb != null && this.rocksdb.isOwningHandle();
     }
 
     @Override
@@ -293,15 +293,15 @@ public class RocksDBStdSessions extends RocksDBSessions {
         // Like: parent_path/snapshot_rocksdb-data/*
         Path snapshotPath = parentParentPath.resolve(snapshotPrefix + "_" +
                                                      pureDataPath);
-        E.checkState(snapshotPath.toFile().exists(),
-                     "The snapshot path '%s' doesn't exist",
-                     snapshotPath);
+        E.checkArgument(snapshotPath.toFile().exists(),
+                        "The snapshot path '%s' doesn't exist",
+                        snapshotPath);
         return snapshotPath.toString();
     }
 
     @Override
     public String hardLinkSnapshot(String snapshotPath) throws RocksDBException {
-        String snapshotLinkPath = this.dataPath + "_link";
+        String snapshotLinkPath = this.dataPath + "_temp";
         try (RocksDB rocksdb = openRocksDB(this.config, ImmutableList.of(),
                                            snapshotPath, null).rocksdb) {
             RocksDBStdSessions.createCheckpoint(rocksdb, snapshotLinkPath);

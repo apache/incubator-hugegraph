@@ -95,7 +95,7 @@ public class HugeSecurityManager extends SecurityManager {
             ImmutableSet.of("execute")
     );
 
-    private static final Map<String, Set<String>> ROCKSDB_SNAPSHOT = ImmutableMap.of(
+    private static final Map<String, Set<String>> BACKEND_SNAPSHOT = ImmutableMap.of(
             "com.baidu.hugegraph.backend.store.AbstractBackendStoreProvider",
             ImmutableSet.of("createSnapshot", "resumeSnapshot"),
             "com.baidu.hugegraph.backend.store.raft.RaftBackendStoreProvider",
@@ -212,7 +212,7 @@ public class HugeSecurityManager extends SecurityManager {
     public void checkRead(String file) {
         if (callFromGremlin() && !callFromCaffeine() &&
             !readGroovyInCurrentDir(file) && !callFromBackendHbase() &&
-            !callFromBackendRocksDB() && !callFromRaft() &&
+            !callFromSnapshot() && !callFromRaft() &&
             !callFromSofaRpc()) {
             throw newSecurityException(
                   "Not allowed to read file via Gremlin: %s", file);
@@ -240,7 +240,7 @@ public class HugeSecurityManager extends SecurityManager {
 
     @Override
     public void checkWrite(String file) {
-        if (callFromGremlin() && !callFromBackendRocksDB() &&
+        if (callFromGremlin() && !callFromSnapshot() &&
             !callFromRaft() && !callFromSofaRpc()) {
             throw newSecurityException("Not allowed to write file via Gremlin");
         }
@@ -249,7 +249,7 @@ public class HugeSecurityManager extends SecurityManager {
 
     @Override
     public void checkDelete(String file) {
-        if (callFromGremlin() && !callFromBackendRocksDB()) {
+        if (callFromGremlin() && !callFromSnapshot()) {
             throw newSecurityException(
                   "Not allowed to delete file via Gremlin");
         }
@@ -332,7 +332,7 @@ public class HugeSecurityManager extends SecurityManager {
     public void checkPropertyAccess(String key) {
         if (!callFromAcceptClassLoaders() && callFromGremlin() &&
             !WHITE_SYSTEM_PROPERTYS.contains(key) && !callFromBackendHbase() &&
-            !callFromBackendRocksDB() && !callFromRaft() &&
+            !callFromSnapshot() && !callFromRaft() &&
             !callFromSofaRpc()) {
             throw newSecurityException(
                   "Not allowed to access system property(%s) via Gremlin", key);
@@ -453,8 +453,8 @@ public class HugeSecurityManager extends SecurityManager {
         return callFromWorkerWithClass(HBASE_CLASSES);
     }
 
-    private static boolean callFromBackendRocksDB() {
-        return callFromMethods(ROCKSDB_SNAPSHOT);
+    private static boolean callFromSnapshot() {
+        return callFromMethods(BACKEND_SNAPSHOT);
     }
 
     private static boolean callFromRaft() {
