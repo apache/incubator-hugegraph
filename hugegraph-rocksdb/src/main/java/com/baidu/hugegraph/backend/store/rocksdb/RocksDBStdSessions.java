@@ -285,7 +285,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
 
     @Override
     public String buildSnapshotPath(String snapshotPrefix) {
-        // Like: parent_path/rocksdb-data/*, * maybe g,m,s
+        // Like: parent_path/rocksdb-data/*, * can be g,m,s
         Path originDataPath = Paths.get(this.dataPath);
         Path parentParentPath = originDataPath.getParent().getParent();
         // Like: rocksdb-data/*
@@ -306,7 +306,8 @@ public class RocksDBStdSessions extends RocksDBSessions {
                                            snapshotPath, null).rocksdb) {
             RocksDBStdSessions.createCheckpoint(rocksdb, snapshotLinkPath);
         }
-        LOG.debug("The snapshot data link path: {}", snapshotLinkPath);
+        LOG.debug("The snapshot {} has been hard linked to {}",
+                  snapshotPath, snapshotLinkPath);
         return snapshotLinkPath;
     }
 
@@ -438,6 +439,8 @@ public class RocksDBStdSessions extends RocksDBSessions {
     }
 
     private static void createCheckpoint(RocksDB rocksdb, String targetPath) {
+        Path parentPath = Paths.get(targetPath).getParent().getFileName();
+        assert parentPath.startsWith("snapshot") : targetPath;
         // https://github.com/facebook/rocksdb/wiki/Checkpoints
         try (Checkpoint checkpoint = Checkpoint.create(rocksdb)) {
             String tempPath = targetPath + "_temp";
@@ -1219,7 +1222,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
                  */
                 assert this.keyEnd != null;
                 if (this.match(Session.SCAN_LTE_END)) {
-                    // Just compare the prefix, maybe there are excess tail
+                    // Just compare the prefix, can be there are excess tail
                     key = Arrays.copyOfRange(key, 0, this.keyEnd.length);
                     return Bytes.compare(key, this.keyEnd) <= 0;
                 } else {

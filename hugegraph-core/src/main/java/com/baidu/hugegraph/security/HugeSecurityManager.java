@@ -96,7 +96,9 @@ public class HugeSecurityManager extends SecurityManager {
     );
 
     private static final Map<String, Set<String>> ROCKSDB_SNAPSHOT = ImmutableMap.of(
-            "com.baidu.hugegraph.backend.store.rocksdb.RocksDBStore",
+            "com.baidu.hugegraph.backend.store.AbstractBackendStoreProvider",
+            ImmutableSet.of("createSnapshot", "resumeSnapshot"),
+            "com.baidu.hugegraph.backend.store.raft.RaftBackendStoreProvider",
             ImmutableSet.of("createSnapshot", "resumeSnapshot")
     );
 
