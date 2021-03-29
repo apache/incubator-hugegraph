@@ -440,7 +440,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
 
     private static void createCheckpoint(RocksDB rocksdb, String targetPath) {
         Path parentPath = Paths.get(targetPath).getParent().getFileName();
-        assert parentPath.startsWith("snapshot") : targetPath;
+        assert parentPath.toString().startsWith("snapshot") : targetPath;
         // https://github.com/facebook/rocksdb/wiki/Checkpoints
         try (Checkpoint checkpoint = Checkpoint.create(rocksdb)) {
             String tempPath = targetPath + "_temp";
