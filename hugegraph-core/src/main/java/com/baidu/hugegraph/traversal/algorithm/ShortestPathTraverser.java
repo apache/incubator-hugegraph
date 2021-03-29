@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
@@ -144,6 +145,7 @@ public class ShortestPathTraverser extends HugeTraverser {
         // TODO: change Map to Set to reduce memory cost
         private Map<Id, Node> sources = newMap();
         private Map<Id, Node> targets = newMap();
+        private Set<Id> accessed = newIdSet();
 
         private final Directions direction;
         private final Map<Id, String> labels;
@@ -151,6 +153,8 @@ public class ShortestPathTraverser extends HugeTraverser {
         private final long skipDegree;
         private final long capacity;
         private long size;
+
+        private boolean foundPath = false;
 
         public Traverser(Id sourceV, Id targetV, Directions dir,
                          Map<Id, String> labels, long degree,
@@ -170,6 +174,7 @@ public class ShortestPathTraverser extends HugeTraverser {
          */
         public PathSet forward(boolean all) {
             PathSet paths = new PathSet();
+            this.accessed.addAll(this.sources.keySet());
             Map<Id, Node> newVertices = newMap();
             long degree = this.skipDegree > 0L ? this.skipDegree : this.degree;
             // Traversal vertices of previous level
@@ -189,6 +194,7 @@ public class ShortestPathTraverser extends HugeTraverser {
                         }
                         paths.add(new Path(
                                   v.joinPath(this.targets.get(target))));
+                        this.foundPath = true;
                         if (!all) {
                             return paths;
                         }
@@ -200,9 +206,8 @@ public class ShortestPathTraverser extends HugeTraverser {
                      * 1. not in sources and newVertices yet
                      * 2. path of node doesn't have loop
                      */
-                    if (!newVertices.containsKey(target) &&
-                        !this.sources.containsKey(target) &&
-                        !v.contains(target)) {
+                    if (!this.foundPath && !newVertices.containsKey(target) &&
+                        !this.accessed.contains(target)) {
                         newVertices.put(target, new Node(target, v));
                     }
                 }
@@ -220,6 +225,7 @@ public class ShortestPathTraverser extends HugeTraverser {
          */
         public PathSet backward(boolean all) {
             PathSet paths = new PathSet();
+            this.accessed.addAll(this.targets.keySet());
             Map<Id, Node> newVertices = newMap();
             long degree = this.skipDegree > 0L ? this.skipDegree : this.degree;
             Directions opposite = this.direction.opposite();
@@ -240,6 +246,7 @@ public class ShortestPathTraverser extends HugeTraverser {
                         }
                         paths.add(new Path(
                                   v.joinPath(this.sources.get(target))));
+                        this.foundPath = true;
                         if (!all) {
                             return paths;
                         }
@@ -251,9 +258,8 @@ public class ShortestPathTraverser extends HugeTraverser {
                      * 1. not in targets and newVertices yet
                      * 2. path of node doesn't have loop
                      */
-                    if (!newVertices.containsKey(target) &&
-                        !this.targets.containsKey(target) &&
-                        !v.contains(target)) {
+                    if (!this.foundPath && !newVertices.containsKey(target) &&
+                        !this.accessed.contains(target)) {
                         newVertices.put(target, new Node(target, v));
                     }
                 }
