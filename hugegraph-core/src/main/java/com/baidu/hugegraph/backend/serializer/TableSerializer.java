@@ -179,7 +179,7 @@ public abstract class TableSerializer extends AbstractSerializer {
 
         // Construct edge
         HugeEdge edge = HugeEdge.constructEdge(vertex, direction, edgeLabel,
-                                               sortValues, otherId);
+                                               sortValues, otherId, false);
 
         // Parse edge properties
         this.parseProperties(edge, row);

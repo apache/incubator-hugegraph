@@ -451,7 +451,7 @@ public final class RamTable {
 
             HugeEdge edge = HugeEdge.constructEdge(this.owner, direction,
                                                    edgeLabel, sortValues,
-                                                   otherVertexId);
+                                                   otherVertexId, false);
             edge.propNotLoaded();
             return edge;
         }

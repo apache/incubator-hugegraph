@@ -225,7 +225,7 @@ public class TextSerializer extends AbstractSerializer {
         Id otherVertexId = readEntryId(colParts[3]);
         // Construct edge
         HugeEdge edge = HugeEdge.constructEdge(vertex, direction, edgeLabel,
-                                               sortValues, otherVertexId);
+                                               sortValues, otherVertexId, false);
 
         String[] valParts = colValue.split(VALUE_SPLITOR);
         // Parse edge expired time

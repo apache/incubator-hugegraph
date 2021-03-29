@@ -25,7 +25,6 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.tinkerpop.gremlin.structure.Direction;
@@ -35,6 +34,7 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
+import org.eclipse.collections.impl.list.mutable.FastList;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
@@ -57,18 +57,17 @@ import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.util.E;
-import com.baidu.hugegraph.util.InsertionOrderUtil;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableList;
 
 public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
-    private static final Set<HugeEdge> EMPTY_SET = ImmutableSet.of();
+    private static final List<HugeEdge> EMPTY_LIST = ImmutableList.of();
 
     private Id id;
     private VertexLabel label;
     // Implemented as LinkedHashMap, is it necessary? Eclipse Collection does
     // not have replacement for LinkedHashMap now.
-    private Set<HugeEdge> edges;
+    private List<HugeEdge> edges;
 
     public HugeVertex(final HugeGraph graph, Id id, VertexLabel label) {
         super(graph);
@@ -77,7 +76,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         this.label = label;
 
         this.id = id;
-        this.edges = EMPTY_SET;
+        this.edges = EMPTY_LIST;
         if (this.id != null) {
             if (label.idStrategy() == IdStrategy.CUSTOMIZE_UUID) {
                 this.assignId(id);
@@ -219,12 +218,12 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         return this.edges.size() > 0;
     }
 
-    public Set<HugeEdge> getEdges() {
-        return Collections.unmodifiableSet(this.edges);
+    public Collection<HugeEdge> getEdges() {
+        return Collections.unmodifiableList(this.edges);
     }
 
     public void resetEdges() {
-        this.edges = InsertionOrderUtil.newSet();
+        this.edges = new FastList<>();
     }
 
     public void removeEdge(HugeEdge edge) {
@@ -232,8 +231,15 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     }
 
     public void addEdge(HugeEdge edge) {
-        if (this.edges == EMPTY_SET) {
-            this.edges = InsertionOrderUtil.newSet();
+        this.addEdge(edge, true);
+    }
+
+    public void addEdge(HugeEdge edge, boolean needDedup) {
+        if (this.edges == EMPTY_LIST) {
+            this.edges = new FastList<>();
+        }
+        if (needDedup && this.edges.contains(edge)) {
+            this.edges.remove(edge);
         }
         this.edges.add(edge);
     }
@@ -321,32 +327,39 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         return edge;
     }
 
+    public void addOutEdge(HugeEdge edge) {
+        this.addOutEdge(edge, true);
+    }
+
     /**
      * Add edge with direction OUT
      * @param edge the out edge
      */
-    public void addOutEdge(HugeEdge edge) {
+    public void addOutEdge(HugeEdge edge, boolean needDedup) {
         if (edge.ownerVertex() == null) {
             edge.sourceVertex(this);
         }
         E.checkState(edge.isDirection(Directions.OUT),
                      "The owner vertex('%s') of OUT edge '%s' should be '%s'",
                      edge.ownerVertex().id(), edge, this.id());
-        this.addEdge(edge);
+        this.addEdge(edge, needDedup);
     }
 
+    public void addInEdge(HugeEdge edge) {
+        this.addInEdge(edge, true);
+    }
     /**
      * Add edge with direction IN
      * @param edge the in edge
      */
-    public void addInEdge(HugeEdge edge) {
+    public void addInEdge(HugeEdge edge, boolean needDedup) {
         if (edge.ownerVertex() == null) {
             edge.targetVertex(this);
         }
         E.checkState(edge.isDirection(Directions.IN),
                      "The owner vertex('%s') of IN edge '%s' should be '%s'",
                      edge.ownerVertex().id(), edge, this.id());
-        this.addEdge(edge);
+        this.addEdge(edge, needDedup);
     }
 
     public Iterator<Edge> getEdges(Directions direction, String... edgeLabels) {

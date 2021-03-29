@@ -22,7 +22,6 @@ package com.baidu.hugegraph.backend.serializer;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.commons.lang.NotImplementedException;
 
@@ -267,7 +266,8 @@ public class BinarySerializer extends AbstractSerializer {
 
         // Construct edge
         HugeEdge edge = HugeEdge.constructEdge(vertex, direction, edgeLabel,
-                                               sortValues, otherVertexId);
+                                               sortValues, otherVertexId,
+                                               false);
 
         // Parse edge-id + edge-properties
         buffer = BytesBuffer.wrap(col.value);
@@ -459,7 +459,7 @@ public class BinarySerializer extends AbstractSerializer {
     @Override
     public HugeEdge readEdge(HugeGraph graph, BackendEntry bytesEntry) {
         HugeVertex vertex = this.readVertex(graph, bytesEntry);
-        Set<HugeEdge> edges = vertex.getEdges();
+        Collection<HugeEdge> edges = vertex.getEdges();
         E.checkState(edges.size() == 1,
                      "Expect one edge in vertex, but got %s", edges.size());
         return edges.iterator().next();
