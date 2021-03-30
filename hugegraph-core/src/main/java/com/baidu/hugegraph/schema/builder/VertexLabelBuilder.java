@@ -461,11 +461,15 @@ public class VertexLabelBuilder extends AbstractBuilder
                         "must belong to the origin/new properties: %s/%s",
                         this.nullableKeys, originProps, appendProps);
 
-        E.checkArgument(!CollectionUtil.hasIntersection(this.primaryKeys,
+        List<String> primaryKeys = vertexLabel == null ?
+                                   this.primaryKeys :
+                                   this.graph()
+                                       .mapPkId2Name(vertexLabel.primaryKeys());
+        E.checkArgument(!CollectionUtil.hasIntersection(primaryKeys,
                                                         this.nullableKeys),
                         "The nullableKeys: %s are not allowed to " +
                         "belong to primaryKeys: %s of vertex label '%s'",
-                        this.nullableKeys, this.primaryKeys, this.name);
+                        this.nullableKeys, primaryKeys, this.name);
 
         if (action == Action.APPEND) {
             Collection<String> newAddedProps = CollectionUtils.subtract(

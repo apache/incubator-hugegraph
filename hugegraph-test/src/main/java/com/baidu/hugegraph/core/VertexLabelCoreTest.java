@@ -738,6 +738,23 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
     }
 
     @Test
+    public void testAppendVertexLabelWithPkAsNullableProperties() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+
+        schema.vertexLabel("person")
+              .properties("name", "age")
+              .primaryKeys("name")
+              .create();
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.vertexLabel("person")
+                  .properties("name", "city")
+                  .nullableKeys("name", "city")
+                  .append();
+        });
+    }
+
+    @Test
     public void testRemoveVertexLabel() {
         super.initPropertyKeys();
         SchemaManager schema = graph().schema();
