@@ -52,9 +52,18 @@ public class CassandraEntryIterator extends BackendEntryIterator {
         this.skipOffset();
 
         if (query.paging()) {
-            E.checkState(this.remaining == query.limit() ||
-                         results.isFullyFetched(),
-                         "Unexpected fetched page size: %s", this.remaining);
+            assert query.offset() == 0L;
+            assert query.limit() >= 0L || query.noLimit() : query.limit();
+            // Check the number of available rows
+            if (results.isFullyFetched()) {
+                // All results fetched (maybe not enough for the entire page)
+                E.checkState(this.remaining <= query.limit(),
+                             "Unexpected fetched page size: %s",
+                             this.remaining);
+            } else {
+                // Not fetched the entire page (ScyllaDB may go here #1340)
+                this.remaining = query.limit();
+            }
         }
     }
 
@@ -73,6 +82,7 @@ public class CassandraEntryIterator extends BackendEntryIterator {
 
         while (this.remaining > 0 && this.rows.hasNext()) {
             if (this.query.paging()) {
+                // Limit page size(due to rows.hasNext() will fetch next page)
                 this.remaining--;
             }
             Row row = this.rows.next();
