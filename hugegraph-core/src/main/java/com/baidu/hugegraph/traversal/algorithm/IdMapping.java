@@ -19,34 +19,39 @@
 
 package com.baidu.hugegraph.traversal.algorithm;
 
-import org.eclipse.collections.impl.map.mutable.primitive.LongObjectHashMap;
-import org.eclipse.collections.impl.map.mutable.primitive.ObjectLongHashMap;
+import org.eclipse.collections.impl.map.mutable.primitive.IntObjectHashMap;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.id.Id;
 
 public class IdMapping {
 
-    private LongObjectHashMap long2IdMap;
-    private ObjectLongHashMap id2LongMap;
-    private long nextLong;
+    private static final int MAGIC = 1 << 16;
+    private IntObjectHashMap int2IdMap;
 
     public IdMapping() {
-        this.long2IdMap = new LongObjectHashMap();
-        this.id2LongMap = new ObjectLongHashMap();
-        this.nextLong = 0L;
+        this.int2IdMap = new IntObjectHashMap();
     }
 
-    public long getLong(Id id) {
-        if (this.id2LongMap.containsKey(id)) {
-            return this.id2LongMap.get(id);
+    public int getCode(Id id) {
+        int key = id.hashCode();
+        for (int i = 1; i > 0; i <<= 1) {
+            for (int j = 0; i >= MAGIC && j < 10; j++) {
+                Id existed = (Id) this.int2IdMap.get(key);
+                if (existed == null) {
+                    this.int2IdMap.put(key, id);
+                    return key;
+                }
+                if (existed.equals(id)) {
+                    return key;
+                }
+                key = key + i + j;
+            }
         }
-        this.nextLong++;
-        this.id2LongMap.put(id, this.nextLong);
-        this.long2IdMap.put(this.nextLong, id);
-        return this.nextLong;
+        throw new HugeException("Failed to get code for id: %s", id);
     }
 
-    public Id getId(long code) {
-        return (Id) this.long2IdMap.get(code);
+    public Id getId(int code) {
+        return (Id) this.int2IdMap.get(code);
     }
 }

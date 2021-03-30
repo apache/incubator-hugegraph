@@ -28,8 +28,8 @@ import java.util.Stack;
 
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
-import org.eclipse.collections.api.iterator.LongIterator;
-import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
+import org.eclipse.collections.api.iterator.IntIterator;
+import org.eclipse.collections.impl.map.mutable.primitive.IntIntHashMap;
 import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet;
 
 import com.baidu.hugegraph.HugeGraph;
@@ -142,8 +142,8 @@ public class ShortestPathTraverser extends HugeTraverser {
         // TODO: change Map to Set to reduce memory cost
         private IdMapping idMapping;
 
-        private Stack<LongLongHashMap> sourceLayers;
-        private Stack<LongLongHashMap> targetLayers;
+        private Stack<IntIntHashMap> sourceLayers;
+        private Stack<IntIntHashMap> targetLayers;
 
 
         private LongHashSet accessed = new LongHashSet();
@@ -161,12 +161,12 @@ public class ShortestPathTraverser extends HugeTraverser {
                          Map<Id, String> labels, long degree,
                          long skipDegree, long capacity) {
             this.idMapping = new IdMapping();
-            long sourceCode = this.code(sourceV);
-            long targetCode = this.code(targetV);
-            LongLongHashMap firstSourceLayer = new LongLongHashMap();
-            LongLongHashMap firstTargetLayer = new LongLongHashMap();
-            firstSourceLayer.put(sourceCode, 0L);
-            firstTargetLayer.put(targetCode, 0L);
+            int sourceCode = this.code(sourceV);
+            int targetCode = this.code(targetV);
+            IntIntHashMap firstSourceLayer = new IntIntHashMap();
+            IntIntHashMap firstTargetLayer = new IntIntHashMap();
+            firstSourceLayer.put(sourceCode, 0);
+            firstTargetLayer.put(targetCode, 0);
             this.sourceLayers = new Stack<>();
             this.targetLayers = new Stack<>();
             this.sourceLayers.push(firstSourceLayer);
@@ -188,17 +188,17 @@ public class ShortestPathTraverser extends HugeTraverser {
          */
         public PathSet forward(boolean all) {
             PathSet paths = new PathSet();
-            LongLongHashMap newLayer = new LongLongHashMap();
+            IntIntHashMap newLayer = new IntIntHashMap();
             long degree = this.skipDegree > 0L ? this.skipDegree : this.degree;
 
             assert !this.sourceLayers.isEmpty();
             assert !this.targetLayers.isEmpty();
-            LongLongHashMap sourceTopLayer = this.sourceLayers.peek();
-            LongLongHashMap targetTopLayer = this.targetLayers.peek();
+            IntIntHashMap sourceTopLayer = this.sourceLayers.peek();
+            IntIntHashMap targetTopLayer = this.targetLayers.peek();
 
-            LongIterator iterator = sourceTopLayer.keySet().longIterator();
+            IntIterator iterator = sourceTopLayer.keySet().intIterator();
             while (iterator.hasNext()) {
-                long sourceCode = iterator.next();
+                int sourceCode = iterator.next();
                 Iterator<Edge> edges = edgesOfVertex(this.id(sourceCode),
                                                      this.direction,
                                                      this.labels, degree);
@@ -207,7 +207,7 @@ public class ShortestPathTraverser extends HugeTraverser {
                 while (edges.hasNext()) {
                     HugeEdge edge = (HugeEdge) edges.next();
                     Id target = edge.id().otherVertexId();
-                    long targetCode = this.code(target);
+                    int targetCode = this.code(target);
 
                     // If cross point exists, shortest path found, concat them
                     if (targetTopLayer.containsKey(targetCode)) {
@@ -247,19 +247,19 @@ public class ShortestPathTraverser extends HugeTraverser {
          */
         public PathSet backward(boolean all) {
             PathSet paths = new PathSet();
-            LongLongHashMap newLayer = new LongLongHashMap();
+            IntIntHashMap newLayer = new IntIntHashMap();
             long degree = this.skipDegree > 0L ? this.skipDegree : this.degree;
 
             assert !this.sourceLayers.isEmpty();
             assert !this.targetLayers.isEmpty();
-            LongLongHashMap sourceTopLayer = this.targetLayers.peek();
-            LongLongHashMap targetTopLayer = this.sourceLayers.peek();
+            IntIntHashMap sourceTopLayer = this.targetLayers.peek();
+            IntIntHashMap targetTopLayer = this.sourceLayers.peek();
 
             Directions opposite = this.direction.opposite();
 
-            LongIterator iterator = sourceTopLayer.keySet().longIterator();
+            IntIterator iterator = sourceTopLayer.keySet().intIterator();
             while (iterator.hasNext()) {
-                long sourceCode = iterator.next();
+                int sourceCode = iterator.next();
                 Iterator<Edge> edges = edgesOfVertex(this.id(sourceCode),
                                                      opposite, this.labels,
                                                      degree);
@@ -268,7 +268,7 @@ public class ShortestPathTraverser extends HugeTraverser {
                 while (edges.hasNext()) {
                     HugeEdge edge = (HugeEdge) edges.next();
                     Id target = edge.id().otherVertexId();
-                    long targetCode = this.code(target);
+                    int targetCode = this.code(target);
 
                     // If cross point exists, shortest path found, concat them
                     if (targetTopLayer.containsKey(targetCode)) {
@@ -311,16 +311,16 @@ public class ShortestPathTraverser extends HugeTraverser {
             return IteratorUtils.count(edges) >= this.skipDegree;
         }
 
-        private Path getPath(long source, long target) {
+        private Path getPath(int source, int target) {
             int sourceLayerSize = this.sourceLayers.size();
             int targetLayerSize = this.targetLayers.size();
 
             List<Id> ids = new ArrayList<>(sourceLayerSize + targetLayerSize);
 
             ids.add(this.id(source));
-            long value = source;
+            int value = source;
             for (int i = sourceLayerSize - 1; i > 0 ; i--) {
-                LongLongHashMap layer = this.sourceLayers.elementAt(i);
+                IntIntHashMap layer = this.sourceLayers.elementAt(i);
                 value = layer.get(value);
                 ids.add(this.id(value));
             }
@@ -328,19 +328,19 @@ public class ShortestPathTraverser extends HugeTraverser {
             ids.add(this.id(target));
             value = target;
             for (int i = this.targetLayers.size() - 1; i > 0 ; i--) {
-                LongLongHashMap layer = this.targetLayers.elementAt(i);
+                IntIntHashMap layer = this.targetLayers.elementAt(i);
                 value = layer.get(value);
                 ids.add(this.id(value));
             }
             return new Path(ids);
         }
 
-        private Id id(long code) {
+        private Id id(int code) {
             return this.idMapping.getId(code);
         }
 
-        private long code(Id id) {
-            return this.idMapping.getLong(id);
+        private int code(Id id) {
+            return this.idMapping.getCode(id);
         }
     }
 }
