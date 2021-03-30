@@ -466,11 +466,15 @@ public class EdgeLabelBuilder extends AbstractBuilder
                         "must belong to the origin/new properties: %s/%s ",
                         this.nullableKeys, originProps, appendProps);
 
-        E.checkArgument(!CollectionUtil.hasIntersection(this.sortKeys,
+        List<String> sortKeys = edgeLabel == null ?
+                                this.sortKeys :
+                                this.graph()
+                                    .mapPkId2Name(edgeLabel.sortKeys());
+        E.checkArgument(!CollectionUtil.hasIntersection(sortKeys,
                                                         this.nullableKeys),
                         "The nullableKeys: %s are not allowed to " +
                         "belong to sortKeys: %s of edge label '%s'",
-                        this.nullableKeys, this.sortKeys, this.name);
+                        this.nullableKeys, sortKeys, this.name);
 
         if (action == Action.APPEND) {
             Collection<String> newAddedProps = CollectionUtils.subtract(
