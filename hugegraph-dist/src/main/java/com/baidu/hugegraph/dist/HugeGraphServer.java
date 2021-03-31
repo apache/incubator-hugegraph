@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.dist;
 
+import com.baidu.hugegraph.perf.PerfUtil;
 import org.apache.tinkerpop.gremlin.server.GremlinServer;
 import org.slf4j.Logger;
 
@@ -94,6 +95,12 @@ public class HugeGraphServer {
             LOG.error(msg);
             throw new HugeException(msg);
         }
+
+        //PerfUtil.instance().profilePackage("com.baidu.hugegraph.");
+        //PerfUtil.instance().profileClass("com.baidu.hugegraph.traversal" +
+        //                                 "algorithm.ShortestPathTraverser$Traverser");
+        //PerfUtil.instance().profileClass("com.baidu.hugegraph.backend.cache." +
+        //                                 "CachedSchemaTransaction$SchemaCaches");
 
         HugeRestServer.register();
 

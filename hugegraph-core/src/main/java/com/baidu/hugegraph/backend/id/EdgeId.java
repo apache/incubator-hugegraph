@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.backend.id;
 
 import com.baidu.hugegraph.exception.NotFoundException;
+import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Directions;
@@ -76,6 +77,7 @@ public class EdgeId implements Id {
         this.cache = null;
     }
 
+    @Watched
     public EdgeId switchDirection() {
         Directions direction = this.direction.opposite();
         return new EdgeId(this.otherVertexId, direction, this.edgeLabelId,

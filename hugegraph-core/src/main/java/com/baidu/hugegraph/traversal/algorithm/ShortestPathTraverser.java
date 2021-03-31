@@ -34,6 +34,7 @@ import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.traversal.algorithm.steps.EdgeStep;
 import com.baidu.hugegraph.type.define.Directions;
@@ -46,6 +47,7 @@ public class ShortestPathTraverser extends HugeTraverser {
         super(graph);
     }
 
+    @Watched
     public Path shortestPath(Id sourceV, Id targetV, Directions dir,
                              List<String> labels, int depth, long degree,
                              long skipDegree, long capacity) {
@@ -186,6 +188,7 @@ public class ShortestPathTraverser extends HugeTraverser {
         /**
          * Search forward from source
          */
+        @Watched
         public PathSet forward(boolean all) {
             PathSet paths = new PathSet();
             IntIntHashMap newLayer = new IntIntHashMap();
@@ -245,6 +248,7 @@ public class ShortestPathTraverser extends HugeTraverser {
         /**
          * Search backward from target
          */
+        @Watched
         public PathSet backward(boolean all) {
             PathSet paths = new PathSet();
             IntIntHashMap newLayer = new IntIntHashMap();
@@ -335,10 +339,12 @@ public class ShortestPathTraverser extends HugeTraverser {
             return new Path(ids);
         }
 
+        @Watched
         private Id id(int code) {
             return this.idMapping.getId(code);
         }
 
+        @Watched
         private int code(Id id) {
             return this.idMapping.getCode(id);
         }

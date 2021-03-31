@@ -23,6 +23,7 @@ import org.eclipse.collections.impl.map.mutable.primitive.IntObjectHashMap;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.perf.PerfUtil;
 
 public class IdMapping {
 
@@ -33,6 +34,7 @@ public class IdMapping {
         this.int2IdMap = new IntObjectHashMap();
     }
 
+    @PerfUtil.Watched
     public int getCode(Id id) {
         int key = id.hashCode();
         for (int i = 1; i > 0; i <<= 1) {
@@ -51,6 +53,7 @@ public class IdMapping {
         throw new HugeException("Failed to get code for id: %s", id);
     }
 
+    @PerfUtil.Watched
     public Id getId(int code) {
         return (Id) this.int2IdMap.get(code);
     }

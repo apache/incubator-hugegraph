@@ -25,12 +25,7 @@ import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPA
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEGREE;
 
 import javax.inject.Singleton;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
+import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 
 import org.slf4j.Logger;
@@ -76,7 +71,6 @@ public class ShortestPathAPI extends API {
                   "max degree '{}', skipped maxDegree '{}' and capacity '{}'",
                   graph, source, target, direction, edgeLabel, depth,
                   maxDegree, skipDegree, capacity);
-
         Id sourceId = VertexAPI.checkAndParseVertexId(source);
         Id targetId = VertexAPI.checkAndParseVertexId(target);
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));

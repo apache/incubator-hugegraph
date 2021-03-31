@@ -58,6 +58,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     private HugeVertex targetVertex;
     private boolean isOutEdge;
 
+    @Watched
     public HugeEdge(HugeVertex owner, Id id, EdgeLabel label,
                     HugeVertex other) {
         this(owner.graph(), id, label);
@@ -65,6 +66,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         this.vertices(owner, other);
     }
 
+    @Watched
     public HugeEdge(final HugeGraph graph, Id id, EdgeLabel label) {
         super(graph);
 
@@ -370,6 +372,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         }
     }
 
+    @Watched
     public HugeEdge switchOwner() {
         HugeEdge edge = this.clone();
         edge.isOutEdge = !edge.isOutEdge;
@@ -488,6 +491,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         return EdgeId.parse(id.asString(), returnNullIfError);
     }
 
+    @Watched
     public static HugeEdge constructEdge(HugeVertex ownerVertex,
                                          boolean isOutEdge,
                                          EdgeLabel edgeLabel,
@@ -498,6 +502,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
 
     }
 
+    @Watched
     public static HugeEdge constructEdge(HugeVertex ownerVertex,
                                          boolean isOutEdge,
                                          EdgeLabel edgeLabel,

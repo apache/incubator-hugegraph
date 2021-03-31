@@ -47,6 +47,7 @@ import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.config.CoreOptions;
+import com.baidu.hugegraph.perf.PerfUtil;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -69,6 +70,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     // not have replacement for LinkedHashMap now.
     private List<HugeEdge> edges;
 
+    @Watched
     public HugeVertex(final HugeGraph graph, Id id, VertexLabel label) {
         super(graph);
 
@@ -335,6 +337,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
      * Add edge with direction OUT
      * @param edge the out edge
      */
+    @Watched
     public void addOutEdge(HugeEdge edge, boolean needDedup) {
         if (edge.ownerVertex() == null) {
             edge.sourceVertex(this);
@@ -352,6 +355,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
      * Add edge with direction IN
      * @param edge the in edge
      */
+    @Watched
     public void addInEdge(HugeEdge edge, boolean needDedup) {
         if (edge.ownerVertex() == null) {
             edge.targetVertex(this);

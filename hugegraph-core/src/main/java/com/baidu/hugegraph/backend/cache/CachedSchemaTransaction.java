@@ -33,6 +33,7 @@ import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.event.EventListener;
+import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
@@ -348,6 +349,7 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
             }
         }
 
+        @Watched
         public V get(HugeType type, Id id) {
             assert id.number();
             long longId = id.asLong();

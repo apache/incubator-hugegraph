@@ -50,6 +50,7 @@ import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.perf.PerfUtil;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.structure.HugeEdge;
@@ -254,6 +255,7 @@ public final class RamTable {
         return this.edges.size() - 1L;
     }
 
+    @PerfUtil.Watched
     public boolean matched(Query query) {
         if (this.edgesSize() == 0L || this.loading) {
             return false;
@@ -293,6 +295,7 @@ public final class RamTable {
         return matchedConds == cq.conditions().size();
     }
 
+    @PerfUtil.Watched
     public Iterator<HugeEdge> query(Query query) {
         assert this.matched(query);
         assert this.edgesSize() > 0;
@@ -311,6 +314,7 @@ public final class RamTable {
         return this.query(owner.asLong(), dir, (int) label.asLong());
     }
 
+    @PerfUtil.Watched
     public Iterator<HugeEdge> query(long owner, Directions dir, int label) {
         if (this.loading) {
             // don't query when loading

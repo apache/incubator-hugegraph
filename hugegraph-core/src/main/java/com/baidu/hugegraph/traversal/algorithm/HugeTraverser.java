@@ -48,6 +48,7 @@ import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.iterator.FilterIterator;
 import com.baidu.hugegraph.iterator.LimitIterator;
 import com.baidu.hugegraph.iterator.MapperIterator;
+import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.SchemaLabel;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.traversal.algorithm.steps.EdgeStep;
@@ -58,8 +59,8 @@ import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
-import com.baidu.hugegraph.util.collection.CollectionFactory;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
+import com.baidu.hugegraph.util.collection.CollectionFactory;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -177,6 +178,7 @@ public class HugeTraverser {
         return neighbors;
     }
 
+    @Watched
     protected Iterator<Edge> edgesOfVertex(Id source, Directions dir,
                                            Id label, long limit) {
         Id[] labels = {};
@@ -191,6 +193,7 @@ public class HugeTraverser {
         return this.graph.edges(query);
     }
 
+    @Watched
     protected Iterator<Edge> edgesOfVertex(Id source, Directions dir,
                                            Map<Id, String> labels, long limit) {
         if (labels == null || labels.isEmpty()) {
