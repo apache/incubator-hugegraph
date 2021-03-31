@@ -86,7 +86,7 @@ public class StoreSnapshotFile {
         String jraftSnapshotPath = Paths.get(readerPath, SNAPSHOT_DIR)
                                         .toString();
         try {
-            // decompress manifest and data directory
+            // Decompress manifest and data directory
             this.decompressSnapshot(readerPath, meta);
             this.doSnapshotLoad();
             File tmp = new File(jraftSnapshotPath);

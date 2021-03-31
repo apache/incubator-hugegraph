@@ -149,7 +149,7 @@ public class GraphsAPI extends API {
 
         HugeGraph g = graph(manager, name);
         g.createSnapshot();
-        return ImmutableMap.of(name, "succeed");
+        return ImmutableMap.of(name, "snapshot_created");
     }
 
     @PUT
@@ -163,7 +163,7 @@ public class GraphsAPI extends API {
 
         HugeGraph g = graph(manager, name);
         g.resumeSnapshot();
-        return ImmutableMap.of(name, "succeed");
+        return ImmutableMap.of(name, "snapshot_resumed");
     }
 
     @PUT
