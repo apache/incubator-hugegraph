@@ -29,6 +29,10 @@ public interface BackendFeatures {
         return true;
     }
 
+    public default boolean supportsSnapshot() {
+        return false;
+    }
+
     public boolean supportsScanToken();
 
     public boolean supportsScanKeyPrefix();

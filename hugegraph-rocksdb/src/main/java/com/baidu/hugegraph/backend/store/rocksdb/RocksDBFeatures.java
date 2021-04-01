@@ -29,6 +29,11 @@ public class RocksDBFeatures implements BackendFeatures {
     }
 
     @Override
+    public boolean supportsSnapshot() {
+        return true;
+    }
+
+    @Override
     public boolean supportsScanToken() {
         return false;
     }

@@ -22,6 +22,7 @@ package com.baidu.hugegraph.backend.store.raft;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -43,6 +44,7 @@ import com.alipay.sofa.jraft.util.ThreadPoolUtil;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.cache.Cache;
+import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.raft.rpc.ListPeersProcessor;
 import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType;
@@ -259,7 +261,7 @@ public final class RaftSharedContext {
         this.notifyCache(Cache.ACTION_CLEAR, HugeType.VERTEX, null);
     }
 
-    protected void notifyCache(String action, HugeType type, Object id) {
+    protected void notifyCache(String action, HugeType type, List<Id> ids) {
         EventHub eventHub;
         if (type.isGraph()) {
             eventHub = this.params.graphEventHub();
@@ -270,7 +272,15 @@ public final class RaftSharedContext {
         }
         try {
             // How to avoid update cache from server info
-            eventHub.notify(Events.CACHE, action, type, id);
+            if (ids == null) {
+                eventHub.call(Events.CACHE, action, type);
+            } else {
+                if (ids.size() == 1) {
+                    eventHub.call(Events.CACHE, action, type, ids.get(0));
+                } else {
+                    eventHub.call(Events.CACHE, action, type, ids.toArray());
+                }
+            }
         } catch (RejectedExecutionException e) {
             LOG.warn("Can't update cache due to EventHub is too busy");
         }

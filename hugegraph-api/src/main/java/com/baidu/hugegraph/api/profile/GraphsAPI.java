@@ -140,6 +140,34 @@ public class GraphsAPI extends API {
 
     @PUT
     @Timed
+    @Path("{name}/snapshot_create")
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin", "$owner=$name"})
+    public Object createSnapshot(@Context GraphManager manager,
+                                 @PathParam("name") String name) {
+        LOG.debug("Create snapshot for graph '{}'", name);
+
+        HugeGraph g = graph(manager, name);
+        g.createSnapshot();
+        return ImmutableMap.of(name, "snapshot_created");
+    }
+
+    @PUT
+    @Timed
+    @Path("{name}/snapshot_resume")
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin", "$owner=$name"})
+    public Object resumeSnapshot(@Context GraphManager manager,
+                                 @PathParam("name") String name) {
+        LOG.debug("Resume snapshot for graph '{}'", name);
+
+        HugeGraph g = graph(manager, name);
+        g.resumeSnapshot();
+        return ImmutableMap.of(name, "snapshot_resumed");
+    }
+
+    @PUT
+    @Timed
     @Path("{name}/mode")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)

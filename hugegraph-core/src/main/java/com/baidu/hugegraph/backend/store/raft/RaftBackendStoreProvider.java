@@ -199,7 +199,7 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
     }
 
     @Override
-    public void writeSnapshot() {
+    public void createSnapshot() {
         StoreCommand command = new StoreCommand(StoreType.ALL,
                                                 StoreAction.SNAPSHOT, null);
         StoreClosure closure = new StoreClosure(command);
@@ -208,8 +208,9 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
     }
 
     @Override
-    public void readSnapshot() {
-        // How to read snapshot by jraft explicity?
+    public void resumeSnapshot() {
+        // Jraft doesn't expose API to load snapshot
+        throw new UnsupportedOperationException("resumeSnapshot");
     }
 
     @Override

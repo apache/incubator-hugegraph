@@ -360,12 +360,34 @@ public class StandardHugeGraph implements HugeGraph {
              * When restarting, load the snapshot first and then read backend,
              * will not encounter such an intermediate state.
              */
-            this.storeProvider.writeSnapshot();
+            this.storeProvider.createSnapshot();
         } finally {
             LockUtil.unlock(this.name, LockUtil.GRAPH_LOCK);
         }
 
         LOG.info("Graph '{}' has been truncated", this.name);
+    }
+
+    @Override
+    public void createSnapshot() {
+        LockUtil.lock(this.name, LockUtil.GRAPH_LOCK);
+        try {
+            this.storeProvider.createSnapshot();
+        } finally {
+            LockUtil.unlock(this.name, LockUtil.GRAPH_LOCK);
+        }
+        LOG.info("Graph '{}' has created snapshot", this.name);
+    }
+
+    @Override
+    public void resumeSnapshot() {
+        LockUtil.lock(this.name, LockUtil.GRAPH_LOCK);
+        try {
+            this.storeProvider.resumeSnapshot();
+        } finally {
+            LockUtil.unlock(this.name, LockUtil.GRAPH_LOCK);
+        }
+        LOG.info("Graph '{}' has resumed from snapshot", this.name);
     }
 
     private SchemaTransaction openSchemaTransaction() throws HugeException {
@@ -1424,7 +1446,7 @@ public class StandardHugeGraph implements HugeGraph {
 
         @Override
         public void clear(HugeType type) {
-            this.hub.notify(Events.CACHE, Cache.ACTION_CLEAR, type, null);
+            this.hub.notify(Events.CACHE, Cache.ACTION_CLEAR, type);
         }
 
         @Override

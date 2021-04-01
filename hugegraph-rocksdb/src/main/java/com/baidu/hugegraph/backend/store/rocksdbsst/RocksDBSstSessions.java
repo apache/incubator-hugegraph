@@ -134,7 +134,7 @@ public class RocksDBSstSessions extends RocksDBSessions {
 
     @Override
     public List<String> property(String property) {
-        throw new NotSupportException("RocksDBSstStore property()");
+        throw new UnsupportedOperationException("RocksDBSstStore property()");
     }
 
     @Override
@@ -149,8 +149,24 @@ public class RocksDBSstSessions extends RocksDBSessions {
     }
 
     @Override
-    public void reload() throws RocksDBException {
-        throw new UnsupportedOperationException("reload");
+    public void resumeSnapshot(String snapshotPath) {
+        throw new UnsupportedOperationException("resumeSnapshot");
+    }
+
+    @Override
+    public String buildSnapshotPath(String snapshotPrefix) {
+        throw new UnsupportedOperationException("buildSnapshotPath");
+    }
+
+    @Override
+    public String hardLinkSnapshot(String snapshotPath)
+                                   throws RocksDBException {
+        throw new UnsupportedOperationException("hardLinkSnapshot");
+    }
+
+    @Override
+    public void reloadRocksDB() throws RocksDBException {
+        throw new UnsupportedOperationException("reloadRocksDB");
     }
 
     @Override

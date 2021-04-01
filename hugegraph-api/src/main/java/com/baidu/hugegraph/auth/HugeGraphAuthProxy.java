@@ -700,6 +700,18 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         }
     }
 
+    @Override
+    public void createSnapshot() {
+        this.verifyPermission(HugePermission.WRITE, ResourceType.STATUS);
+        this.hugegraph.createSnapshot();
+    }
+
+    @Override
+    public void resumeSnapshot() {
+        this.verifyPermission(HugePermission.WRITE, ResourceType.STATUS);
+        this.hugegraph.resumeSnapshot();
+    }
+
     private void verifyAdminPermission() {
         verifyPermission(HugePermission.ANY, ResourceType.ROOT);
     }

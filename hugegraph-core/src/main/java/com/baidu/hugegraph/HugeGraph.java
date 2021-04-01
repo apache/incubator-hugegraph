@@ -153,6 +153,9 @@ public interface HugeGraph extends Graph {
     public void clearBackend();
     public void truncateBackend();
 
+    public void createSnapshot();
+    public void resumeSnapshot();
+
     @Override
     public HugeFeatures features();
 
