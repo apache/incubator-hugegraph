@@ -173,7 +173,7 @@ public class ServerOptions extends OptionHolder {
                     "batch.max_write_threads",
                     "The maximum threads for batch writing, " +
                     "if the value is 0, the actual value will be set to " +
-                    "batch.max_write_ratio * total-rest-threads.",
+                    "batch.max_write_ratio * restserver.max_worker_threads.",
                     nonNegativeInt(),
                     0);
 

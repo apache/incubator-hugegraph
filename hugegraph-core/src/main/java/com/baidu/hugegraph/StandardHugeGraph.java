@@ -280,6 +280,15 @@ public class StandardHugeGraph implements HugeGraph {
     public void mode(GraphMode mode) {
         LOG.info("Graph {} will work in {} mode", this, mode);
         this.mode = mode;
+        if (mode.loading()) {
+            /*
+             * NOTE: This may block tasks submit and lead the queue to be full,
+             * so don't submit gremlin job when loading data
+             */
+            this.taskManager.pauseScheduledThreadPool();
+        } else {
+            this.taskManager.resumeScheduledThreadPool();
+        }
     }
 
     @Override
