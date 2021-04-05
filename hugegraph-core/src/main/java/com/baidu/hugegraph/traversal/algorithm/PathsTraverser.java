@@ -85,21 +85,19 @@ public class PathsTraverser extends HugeTraverser {
 
         private MultivaluedMap<Id, Node> sources = newMultivalueMap();
         private MultivaluedMap<Id, Node> targets = newMultivalueMap();
-        private MultivaluedMap<Id, Node> sourcesAll = newMultivalueMap();
-        private MultivaluedMap<Id, Node> targetsAll = newMultivalueMap();
 
         private final Id label;
         private final long degree;
         private final long capacity;
         private final long limit;
         private PathSet paths;
+        private int accessed;
 
         public Traverser(Id sourceV, Id targetV, Id label,
                          long degree, long capacity, long limit) {
             this.sources.add(sourceV, new Node(sourceV));
             this.targets.add(targetV, new Node(targetV));
-            this.sourcesAll.putAll(this.sources);
-            this.targetsAll.putAll(this.targets);
+            this.accessed = 2;
             this.label = label;
             this.degree = degree;
             this.capacity = capacity;
@@ -129,8 +127,8 @@ public class PathsTraverser extends HugeTraverser {
                         }
 
                         // If cross point exists, path found, concat them
-                        if (this.targetsAll.containsKey(target)) {
-                            for (Node node : this.targetsAll.get(target)) {
+                        if (this.targets.containsKey(target)) {
+                            for (Node node : this.targets.get(target)) {
                                 List<Id> path = n.joinPath(node);
                                 if (!path.isEmpty()) {
                                     this.paths.add(new Path(target, path));
@@ -148,10 +146,7 @@ public class PathsTraverser extends HugeTraverser {
             }
             // Re-init sources
             this.sources = newVertices;
-            // Record all passed vertices
-            for (Map.Entry<Id, List<Node>> entry : newVertices.entrySet()) {
-                this.sourcesAll.addAll(entry.getKey(), entry.getValue());
-            }
+            this.accessed += this.sources.size();
         }
 
         /**
@@ -176,8 +171,8 @@ public class PathsTraverser extends HugeTraverser {
                         }
 
                         // If cross point exists, path found, concat them
-                        if (this.sourcesAll.containsKey(target)) {
-                            for (Node node : this.sourcesAll.get(target)) {
+                        if (this.sources.containsKey(target)) {
+                            for (Node node : this.sources.get(target)) {
                                 List<Id> path = n.joinPath(node);
                                 if (!path.isEmpty()) {
                                     Path newPath = new Path(target, path);
@@ -198,22 +193,15 @@ public class PathsTraverser extends HugeTraverser {
 
             // Re-init targets
             this.targets = newVertices;
-            // Record all passed vertices
-            for (Map.Entry<Id, List<Node>> entry : newVertices.entrySet()) {
-                this.targetsAll.addAll(entry.getKey(), entry.getValue());
-            }
+            this.accessed = this.targets.size();
         }
 
         public PathSet paths() {
             return this.paths;
         }
 
-        private int accessedNodes() {
-            return this.sourcesAll.size() + this.targetsAll.size();
-        }
-
         private boolean reachLimit() {
-            checkCapacity(this.capacity, this.accessedNodes(), "paths");
+            checkCapacity(this.capacity, this.accessed, "paths");
             if (this.limit == NO_LIMIT || this.paths.size() < this.limit) {
                 return false;
             }
