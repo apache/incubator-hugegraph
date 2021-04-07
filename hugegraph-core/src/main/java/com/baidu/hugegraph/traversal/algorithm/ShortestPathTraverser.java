@@ -45,6 +45,7 @@ public class ShortestPathTraverser extends HugeTraverser {
 
     public ShortestPathTraverser(HugeGraph graph) {
         super(graph);
+        this.idMapping = new IdMapping();
     }
 
     @Watched
@@ -141,12 +142,8 @@ public class ShortestPathTraverser extends HugeTraverser {
 
     private class Traverser {
 
-        // TODO: change Map to Set to reduce memory cost
-        private IdMapping idMapping;
-
         private Stack<IntIntHashMap> sourceLayers;
         private Stack<IntIntHashMap> targetLayers;
-
 
         private LongHashSet accessed = new LongHashSet();
 
@@ -162,7 +159,6 @@ public class ShortestPathTraverser extends HugeTraverser {
         public Traverser(Id sourceV, Id targetV, Directions dir,
                          Map<Id, String> labels, long degree,
                          long skipDegree, long capacity) {
-            this.idMapping = new IdMapping();
             int sourceCode = this.code(sourceV);
             int targetCode = this.code(targetV);
             IntIntHashMap firstSourceLayer = new IntIntHashMap();
@@ -339,14 +335,12 @@ public class ShortestPathTraverser extends HugeTraverser {
             return new Path(ids);
         }
 
-        @Watched
-        private Id id(int code) {
-            return this.idMapping.getId(code);
+        private int code(Id id) {
+            return ShortestPathTraverser.this.code(id);
         }
 
-        @Watched
-        private int code(Id id) {
-            return this.idMapping.getCode(id);
+        private Id id(int code) {
+            return ShortestPathTraverser.this.id(code);
         }
     }
 }

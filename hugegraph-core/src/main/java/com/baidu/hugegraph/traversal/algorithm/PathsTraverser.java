@@ -19,13 +19,16 @@
 
 package com.baidu.hugegraph.traversal.algorithm;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
+import java.util.Stack;
 
-import javax.ws.rs.core.MultivaluedMap;
-
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.eclipse.collections.api.iterator.IntIterator;
+import org.eclipse.collections.impl.map.mutable.primitive.IntObjectHashMap;
+import org.eclipse.collections.impl.set.mutable.primitive.IntHashSet;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
@@ -33,11 +36,13 @@ import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 public class PathsTraverser extends HugeTraverser {
 
     public PathsTraverser(HugeGraph graph) {
         super(graph);
+        this.idMapping = new IdMapping();
     }
 
     public PathSet paths(Id sourceV, Directions sourceDir,
@@ -83,8 +88,8 @@ public class PathsTraverser extends HugeTraverser {
 
     private class Traverser {
 
-        private MultivaluedMap<Id, Node> sources = newMultivalueMap();
-        private MultivaluedMap<Id, Node> targets = newMultivalueMap();
+        private Stack<IntObjectHashMap<IntHashSet>> sourceLayers;
+        private Stack<IntObjectHashMap<IntHashSet>> targetLayers;
 
         private final Id label;
         private final long degree;
@@ -95,105 +100,202 @@ public class PathsTraverser extends HugeTraverser {
 
         public Traverser(Id sourceV, Id targetV, Id label,
                          long degree, long capacity, long limit) {
-            this.sources.add(sourceV, new Node(sourceV));
-            this.targets.add(targetV, new Node(targetV));
             this.accessed = 2;
             this.label = label;
             this.degree = degree;
             this.capacity = capacity;
             this.limit = limit;
             this.paths = new PathSet();
+
+            int sourceCode = this.code(sourceV);
+            int targetCode = this.code(targetV);
+            IntObjectHashMap<IntHashSet> firstSourceLayer =
+                                         new IntObjectHashMap<>();
+            IntObjectHashMap<IntHashSet> firstTargetLayer =
+                                         new IntObjectHashMap<>();
+            firstSourceLayer.put(sourceCode, new IntHashSet());
+            firstTargetLayer.put(targetCode, new IntHashSet());
+            this.sourceLayers = new Stack<>();
+            this.targetLayers = new Stack<>();
+            this.sourceLayers.push(firstSourceLayer);
+            this.targetLayers.push(firstTargetLayer);
         }
 
         /**
          * Search forward from source
          */
         public void forward(Directions direction) {
-            MultivaluedMap<Id, Node> newVertices = newMultivalueMap();
-            Iterator<Edge> edges;
             // Traversal vertices of previous level
-            for (Map.Entry<Id, List<Node>> entry : this.sources.entrySet()) {
-                Id vid = entry.getKey();
+            assert !this.sourceLayers.isEmpty();
+            IntObjectHashMap<IntHashSet> sourceTopLayer =
+                                         this.sourceLayers.peek();
+            IntObjectHashMap<IntHashSet> newSourceLayer =
+                                         new IntObjectHashMap<>();
+            Iterator<Edge> edges;
+            IntIterator keys = sourceTopLayer.keySet().intIterator();
+            while (keys.hasNext()) {
+                int id = keys.next();
+                Id vid = this.id(id);
                 edges = edgesOfVertex(vid, direction, this.label, this.degree);
 
                 while (edges.hasNext()) {
                     HugeEdge edge = (HugeEdge) edges.next();
-                    Id target = edge.id().otherVertexId();
+                    Id targetId = edge.id().otherVertexId();
+                    int target = this.code(targetId);
 
-                    for (Node n : entry.getValue()) {
-                        // If have loop, skip target
-                        if (n.contains(target)) {
-                            continue;
-                        }
-
-                        // If cross point exists, path found, concat them
-                        if (this.targets.containsKey(target)) {
-                            for (Node node : this.targets.get(target)) {
-                                List<Id> path = n.joinPath(node);
-                                if (!path.isEmpty()) {
-                                    this.paths.add(new Path(target, path));
-                                    if (this.reachLimit()) {
-                                        return;
-                                    }
-                                }
+                    // If cross point exists, path found, concat them
+                    if (this.targetLayers.peek().containsKey(target)) {
+                        List<Path> paths = this.getPath(id, target, false);
+                        for (Path path : paths) {
+                            this.paths.add(path);
+                            if (this.reachLimit()) {
+                                return;
                             }
                         }
-
-                        // Add node to next start-nodes
-                        newVertices.add(target, new Node(target, n));
                     }
+                    this.add(newSourceLayer, target, id);
                 }
+
             }
-            // Re-init sources
-            this.sources = newVertices;
-            this.accessed += this.sources.size();
+            this.accessed += newSourceLayer.size();
+            this.sourceLayers.push(newSourceLayer);
         }
 
         /**
          * Search backward from target
          */
         public void backward(Directions direction) {
-            MultivaluedMap<Id, Node> newVertices = newMultivalueMap();
+            assert !this.targetLayers.isEmpty();
+            IntObjectHashMap<IntHashSet> targetTopLayer =
+                                         this.targetLayers.peek();
+            IntObjectHashMap<IntHashSet> newTargetLayer =
+                                         new IntObjectHashMap<>();
             Iterator<Edge> edges;
-            // Traversal vertices of previous level
-            for (Map.Entry<Id, List<Node>> entry : this.targets.entrySet()) {
-                Id vid = entry.getKey();
+            IntIterator keys = targetTopLayer.keySet().intIterator();
+            while (keys.hasNext()) {
+                int id = keys.next();
+                Id vid = this.id(id);
                 edges = edgesOfVertex(vid, direction, this.label, this.degree);
 
                 while (edges.hasNext()) {
                     HugeEdge edge = (HugeEdge) edges.next();
-                    Id target = edge.id().otherVertexId();
+                    Id targetId = edge.id().otherVertexId();
+                    int target = this.code(targetId);
 
-                    for (Node n : entry.getValue()) {
-                        // If have loop, skip target
-                        if (n.contains(target)) {
-                            continue;
-                        }
-
-                        // If cross point exists, path found, concat them
-                        if (this.sources.containsKey(target)) {
-                            for (Node node : this.sources.get(target)) {
-                                List<Id> path = n.joinPath(node);
-                                if (!path.isEmpty()) {
-                                    Path newPath = new Path(target, path);
-                                    newPath.reverse();
-                                    this.paths.add(newPath);
-                                    if (this.reachLimit()) {
-                                        return;
-                                    }
-                                }
+                    // If cross point exists, path found, concat them
+                    if (this.sourceLayers.peek().containsKey(target)) {
+                        List<Path> paths = this.getPath(target, id, false);
+                        for (Path path : paths) {
+                            this.paths.add(path);
+                            if (this.reachLimit()) {
+                                return;
                             }
                         }
-
-                        // Add node to next start-nodes
-                        newVertices.add(target, new Node(target, n));
                     }
+
+                    this.add(newTargetLayer, target, id);
                 }
             }
 
             // Re-init targets
-            this.targets = newVertices;
-            this.accessed = this.targets.size();
+            this.accessed += newTargetLayer.size();
+            this.targetLayers.push(newTargetLayer);
+        }
+
+        private boolean hasLoop(Stack<IntObjectHashMap<IntHashSet>> all,
+                                int current, int target) {
+
+            if (current == target) {
+                return true;
+            }
+            int layers = all.size();
+            IntHashSet keys = IntHashSet.newSetWith(current);
+            for (int i = layers - 1; i > 0 ; i--) {
+                IntObjectHashMap<IntHashSet> currentLayer =
+                                             this.sourceLayers.elementAt(i);
+                IntIterator iterator = keys.intIterator();
+                IntHashSet parents = null;
+                while (iterator.hasNext()) {
+                    int key = iterator.next();
+                    parents = currentLayer.get(key);
+                    if (!parents.isEmpty() && parents.contains(target)) {
+                        return true;
+                    }
+                }
+                keys = parents;
+            }
+            return false;
+        }
+
+        private List<Path> getPath(int source, int target, boolean ring) {
+            List<Path> results = new ArrayList<>();
+            List<Path> sources = this.getSourcePath(source);
+            List<Path> targets = this.getTargetPath(target);
+            for (Path tpath : targets) {
+                tpath.reverse();
+                for (Path spath : sources) {
+                    if (!ring) {
+                        // Avoid loop in path
+                        if (CollectionUtils.containsAny(spath.vertices(),
+                                                        tpath.vertices())) {
+                            continue;
+                        }
+                    }
+                    List<Id> ids = new ArrayList<>(spath.vertices());
+                    ids.addAll(tpath.vertices());
+                    results.add(new Path(ids));
+                }
+            }
+            return results;
+        }
+
+        private List<Path> getPath(Stack<IntObjectHashMap<IntHashSet>> all,
+                                   int id, int layerIndex) {
+            if (layerIndex == 0) {
+                Id sid = this.id(id);
+                return ImmutableList.of(new Path(Lists.newArrayList(sid)));
+            }
+
+            Id sid = this.id(id);
+            List<Path> results = new ArrayList<>();
+            IntObjectHashMap<IntHashSet> layer = all.elementAt(layerIndex);
+            IntHashSet parents = layer.get(id);
+            IntIterator iterator = parents.intIterator();
+            while (iterator.hasNext()) {
+                int parent = iterator.next();
+                List<Path> paths = this.getPath(all, parent, layerIndex - 1);
+                for (Iterator<Path> iter = paths.iterator(); iter.hasNext();) {
+                    Path path = iter.next();
+                    if (path.vertices().contains(sid)) {
+                        iter.remove();
+                        continue;
+                    }
+                    path.addToEnd(sid);
+                }
+
+                results.addAll(paths);
+            }
+            return results;
+        }
+
+        private List<Path> getSourcePath(int source) {
+            return this.getPath(this.sourceLayers, source,
+                                this.sourceLayers.size() - 1);
+        }
+
+        private List<Path> getTargetPath(int target) {
+            return this.getPath(this.targetLayers, target,
+                                this.targetLayers.size() - 1);
+        }
+
+        private void add(IntObjectHashMap<IntHashSet> layer,
+                         int current, int parent) {
+
+            if (layer.containsKey(current)) {
+                layer.get(current).add(parent);
+            } else {
+                layer.put(current, IntHashSet.newSetWith(parent));
+            }
         }
 
         public PathSet paths() {
@@ -206,6 +308,14 @@ public class PathsTraverser extends HugeTraverser {
                 return false;
             }
             return true;
+        }
+
+        private int code(Id id) {
+            return PathsTraverser.this.code(id);
+        }
+
+        private Id id(int code) {
+            return PathsTraverser.this.id(code);
         }
     }
 }
