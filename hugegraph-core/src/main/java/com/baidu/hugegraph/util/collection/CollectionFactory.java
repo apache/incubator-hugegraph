@@ -27,8 +27,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.eclipse.collections.api.map.primitive.IntObjectMap;
+import org.eclipse.collections.api.map.primitive.MutableIntObjectMap;
 import org.eclipse.collections.impl.list.mutable.FastList;
 import org.eclipse.collections.impl.map.mutable.UnifiedMap;
+import org.eclipse.collections.impl.map.mutable.primitive.IntObjectHashMap;
 import org.eclipse.collections.impl.set.mutable.UnifiedSet;
 
 import com.baidu.hugegraph.backend.id.Id;
@@ -197,6 +200,19 @@ public class CollectionFactory {
                 throw new AssertionError(
                           "Unsupported collection type: " + type);
         }
+    }
+
+    public static <V> MutableIntObjectMap<V> newIntObjectMap() {
+        return new IntObjectHashMap<>();
+    }
+
+    public static <V> MutableIntObjectMap<V> newIntObjectMap(int initialCapacity) {
+        return new IntObjectHashMap<>(initialCapacity);
+    }
+
+    public static <V> MutableIntObjectMap<V> newIntObjectMap(
+                                             IntObjectMap<? extends V> map) {
+        return new IntObjectHashMap<>(map);
     }
 
     public Set<Id> newIdSet() {

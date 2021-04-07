@@ -48,6 +48,7 @@ import com.baidu.hugegraph.api.graph.VertexAPI;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.core.GraphManager;
+import com.baidu.hugegraph.perf.PerfUtil;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.traversal.algorithm.CollectionPathsTraverser;
 import com.baidu.hugegraph.traversal.algorithm.steps.EdgeStep;
@@ -87,6 +88,10 @@ public class PathsAPI extends TraverserAPI {
                   graph, source, target, direction, edgeLabel, depth,
                   maxDegree, capacity, limit);
 
+        PerfUtil.instance().clear();
+        PerfUtil.instance().start("paths-get");
+        try {
+
         Id sourceId = VertexAPI.checkAndParseVertexId(source);
         Id targetId = VertexAPI.checkAndParseVertexId(target);
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
@@ -99,6 +104,11 @@ public class PathsAPI extends TraverserAPI {
                                                       limit);
         return manager.serializer(g).writePaths("paths", paths.paths(),
                                                 false);
+
+        } finally {
+            PerfUtil.instance().end("paths-get");
+            LOG.info("option = {}", PerfUtil.instance().toECharts());
+        }
     }
 
     @POST

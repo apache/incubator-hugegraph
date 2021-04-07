@@ -89,18 +89,18 @@ public class HugeGraphServer {
         }
     }
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) throws Throwable {
         if (args.length != 2) {
             String msg = "HugeGraphServer can only accept two config files";
             LOG.error(msg);
             throw new HugeException(msg);
         }
 
-        //PerfUtil.instance().profilePackage("com.baidu.hugegraph.");
-        //PerfUtil.instance().profileClass("com.baidu.hugegraph.traversal" +
-        //                                 "algorithm.ShortestPathTraverser$Traverser");
-        //PerfUtil.instance().profileClass("com.baidu.hugegraph.backend.cache." +
-        //                                 "CachedSchemaTransaction$SchemaCaches");
+        //PerfUtil.instance().profilePackage("com.baidu.hugegraph");
+        PerfUtil.instance().profilePackage("com.baidu.hugegraph.traversal.algorithm");
+        PerfUtil.instance().profilePackage("com.baidu.hugegraph.util.collection");
+        PerfUtil.instance().profileClass("com.baidu.hugegraph.structure.HugeEdge");
+        PerfUtil.useLocalTimer(true);
 
         HugeRestServer.register();
 

@@ -161,11 +161,6 @@ public abstract class IdGenerator {
         }
 
         @Override
-        public int asInt() {
-            return Integer.parseInt(this.id);
-        }
-
-        @Override
         public byte[] asBytes() {
             return StringEncoding.encode(this.id);
         }
@@ -236,11 +231,6 @@ public abstract class IdGenerator {
         @Override
         public long asLong() {
             return this.id;
-        }
-
-        @Override
-        public int asInt() {
-            return (int) this.id;
         }
 
         @Override
@@ -339,11 +329,6 @@ public abstract class IdGenerator {
         }
 
         @Override
-        public int asInt() {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
         public byte[] asBytes() {
             BytesBuffer buffer = BytesBuffer.allocate(16);
             buffer.writeLong(this.uuid.getMostSignificantBits());
@@ -422,11 +407,6 @@ public abstract class IdGenerator {
 
         @Override
         public long asLong() {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public int asInt() {
             throw new UnsupportedOperationException();
         }
 

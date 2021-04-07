@@ -226,12 +226,6 @@ public class CachedBackendStore implements BackendStore {
         }
 
         @Override
-        public int asInt() {
-            // TODO: improve
-            return 0;
-        }
-
-        @Override
         public byte[] asBytes() {
             return StringEncoding.encode(this.query);
         }

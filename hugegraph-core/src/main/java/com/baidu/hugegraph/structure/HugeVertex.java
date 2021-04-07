@@ -47,17 +47,18 @@ import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.config.CoreOptions;
-import com.baidu.hugegraph.perf.PerfUtil;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
+import com.baidu.hugegraph.type.define.CollectionImplType;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.collection.CollectionFactory;
 import com.google.common.collect.ImmutableList;
 
 public class HugeVertex extends HugeElement implements Vertex, Cloneable {
@@ -66,9 +67,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
     private Id id;
     private VertexLabel label;
-    // Implemented as LinkedHashMap, is it necessary? Eclipse Collection does
-    // not have replacement for LinkedHashMap now.
-    private List<HugeEdge> edges;
+    protected Collection<HugeEdge> edges;
 
     @Watched
     public HugeVertex(final HugeGraph graph, Id id, VertexLabel label) {
@@ -221,7 +220,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     }
 
     public Collection<HugeEdge> getEdges() {
-        return Collections.unmodifiableList(this.edges);
+        return Collections.unmodifiableCollection(this.edges);
     }
 
     public void resetEdges() {
@@ -233,15 +232,8 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     }
 
     public void addEdge(HugeEdge edge) {
-        this.addEdge(edge, true);
-    }
-
-    public void addEdge(HugeEdge edge, boolean needDedup) {
         if (this.edges == EMPTY_LIST) {
             this.edges = new FastList<>();
-        }
-        if (needDedup && this.edges.contains(edge)) {
-            this.edges.remove(edge);
         }
         this.edges.add(edge);
     }
@@ -329,41 +321,34 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         return edge;
     }
 
-    public void addOutEdge(HugeEdge edge) {
-        this.addOutEdge(edge, true);
-    }
-
     /**
      * Add edge with direction OUT
      * @param edge the out edge
      */
     @Watched
-    public void addOutEdge(HugeEdge edge, boolean needDedup) {
+    public void addOutEdge(HugeEdge edge) {
         if (edge.ownerVertex() == null) {
             edge.sourceVertex(this);
         }
         E.checkState(edge.isDirection(Directions.OUT),
                      "The owner vertex('%s') of OUT edge '%s' should be '%s'",
                      edge.ownerVertex().id(), edge, this.id());
-        this.addEdge(edge, needDedup);
+        this.addEdge(edge);
     }
 
-    public void addInEdge(HugeEdge edge) {
-        this.addInEdge(edge, true);
-    }
     /**
      * Add edge with direction IN
      * @param edge the in edge
      */
     @Watched
-    public void addInEdge(HugeEdge edge, boolean needDedup) {
+    public void addInEdge(HugeEdge edge) {
         if (edge.ownerVertex() == null) {
             edge.targetVertex(this);
         }
         E.checkState(edge.isDirection(Directions.IN),
                      "The owner vertex('%s') of IN edge '%s' should be '%s'",
                      edge.ownerVertex().id(), edge, this.id());
-        this.addEdge(edge, needDedup);
+        this.addEdge(edge);
     }
 
     public Iterator<Edge> getEdges(Directions direction, String... edgeLabels) {
@@ -665,8 +650,24 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         public HugeVertex4Insert(final GraphTransaction tx,
                                  Id id, VertexLabel label) {
             super(tx.graph(), id, label);
+            this.edges = CollectionFactory.newSet(CollectionImplType.EC);
             this.tx = tx;
             this.fresh(true);
+        }
+
+        public void resetEdges() {
+            this.edges = CollectionFactory.newSet(CollectionImplType.EC);;
+        }
+
+        public void removeEdge(HugeEdge edge) {
+            this.edges.remove(edge);
+        }
+
+        public void addEdge(HugeEdge edge) {
+            if (this.edges == EMPTY_LIST) {
+                this.edges = CollectionFactory.newSet(CollectionImplType.EC);
+            }
+            this.edges.add(edge);
         }
 
         @Override

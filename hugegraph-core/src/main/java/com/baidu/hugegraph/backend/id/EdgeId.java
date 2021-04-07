@@ -158,11 +158,6 @@ public class EdgeId implements Id {
     }
 
     @Override
-    public int asInt() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public byte[] asBytes() {
         return StringEncoding.encode(this.asString());
     }

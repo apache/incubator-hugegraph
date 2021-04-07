@@ -35,7 +35,7 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.query.Condition.Relation;
 import com.baidu.hugegraph.backend.query.Condition.RelationType;
-import com.baidu.hugegraph.perf.PerfUtil;
+import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
@@ -142,7 +142,7 @@ public final class ConditionQuery extends IdQuery {
         return relations;
     }
 
-    @PerfUtil.Watched
+    @Watched
     public <T> T condition(Object key) {
         List<Object> values = new ArrayList<>();
         for (Condition c : this.conditions) {

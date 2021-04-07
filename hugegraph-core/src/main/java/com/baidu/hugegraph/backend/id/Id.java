@@ -31,8 +31,6 @@ public interface Id extends Comparable<Id> {
 
     public long asLong();
 
-    public int asInt();
-
     public byte[] asBytes();
 
     public int length();

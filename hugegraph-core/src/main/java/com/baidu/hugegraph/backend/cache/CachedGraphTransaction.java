@@ -44,7 +44,7 @@ import com.baidu.hugegraph.event.EventListener;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.iterator.ListIterator;
-import com.baidu.hugegraph.perf.PerfUtil;
+import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeVertex;
@@ -265,7 +265,7 @@ public final class CachedGraphTransaction extends GraphTransaction {
     }
 
     @Override
-    @PerfUtil.Watched
+    @Watched
     protected final Iterator<HugeEdge> queryEdgesFromBackend(Query query) {
         RamTable ramtable = this.params().ramtable();
         if (ramtable != null && ramtable.matched(query)) {

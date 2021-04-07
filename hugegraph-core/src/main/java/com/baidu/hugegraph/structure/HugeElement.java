@@ -54,6 +54,7 @@ import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.collection.CollectionFactory;
 
 public abstract class HugeElement implements Element, GraphType, Idfiable {
 
@@ -100,7 +101,7 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
         this.defaultValueUpdated = true;
         // Set default value if needed
         for (Id pkeyId : this.schemaLabel().properties()) {
-            if (this.properties.containsKey(pkeyId.asInt())) {
+            if (this.properties.containsKey(intFromId(pkeyId))) {
                 continue;
             }
             PropertyKey pkey = this.graph().propertyKey(pkeyId);
@@ -237,12 +238,12 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
 
     @SuppressWarnings("unchecked")
     public <V> HugeProperty<V> getProperty(Id key) {
-        return (HugeProperty<V>) this.properties.get(key.asInt());
+        return (HugeProperty<V>) this.properties.get(intFromId(key));
     }
 
     @SuppressWarnings("unchecked")
     public <V> V getPropertyValue(Id key) {
-        HugeProperty<?> prop = this.properties.get(key.asInt());
+        HugeProperty<?> prop = this.properties.get(intFromId(key));
         if (prop == null) {
             return null;
         }
@@ -250,7 +251,7 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
     }
 
     public boolean hasProperty(Id key) {
-        return this.properties.containsKey(key.asInt());
+        return this.properties.containsKey(intFromId(key));
     }
 
     public boolean hasProperties() {
@@ -279,14 +280,15 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
             this.properties = new IntObjectHashMap<>();
         }
         PropertyKey pkey = prop.propertyKey();
-        E.checkArgument(this.properties.containsKey(pkey.id().asInt()) ||
+
+        E.checkArgument(this.properties.containsKey(intFromId(pkey.id())) ||
                         this.properties.size() < MAX_PROPERTIES,
                         "Exceeded the maximum number of properties");
-        return this.properties.put(pkey.id().asInt(), prop);
+        return this.properties.put(intFromId(pkey.id()), prop);
     }
 
     public <V> HugeProperty<?> removeProperty(Id key) {
-        return this.properties.remove(key.asInt());
+        return this.properties.remove(intFromId(key));
     }
 
     public <V> HugeProperty<V> addProperty(PropertyKey pkey, V value) {
@@ -363,7 +365,7 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
     }
 
     public void resetProperties() {
-        this.properties = new IntObjectHashMap<>();
+        this.properties = CollectionFactory.newIntObjectMap();
         this.propLoaded = false;
     }
 
@@ -371,7 +373,8 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
         if (element.properties == EMPTY_MAP) {
             this.properties = EMPTY_MAP;
         } else {
-            this.properties = new IntObjectHashMap<>(element.properties);
+            this.properties = CollectionFactory.newIntObjectMap(
+                              element.properties);
         }
         this.propLoaded = true;
     }
@@ -501,6 +504,12 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
             }
         }
         return labelValue;
+    }
+
+    public static int intFromId(Id id) {
+        E.checkArgument(id instanceof IdGenerator.LongId,
+                        "Can't get number from %s(%s)", id, id.getClass());
+        return ((IdGenerator.LongId) id).intValue();
     }
 
     public static final class ElementKeys {

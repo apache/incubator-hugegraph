@@ -32,9 +32,11 @@ import org.eclipse.collections.impl.set.mutable.primitive.IntHashSet;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.collection.ObjectIntMapping;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
@@ -42,9 +44,10 @@ public class PathsTraverser extends HugeTraverser {
 
     public PathsTraverser(HugeGraph graph) {
         super(graph);
-        this.idMapping = new IdMapping();
+        this.idMapping = new ObjectIntMapping();
     }
 
+    @Watched
     public PathSet paths(Id sourceV, Directions sourceDir,
                          Id targetV, Directions targetDir, String label,
                          int depth, long degree, long capacity, long limit) {
@@ -82,7 +85,7 @@ public class PathsTraverser extends HugeTraverser {
             }
             traverser.backward(targetDir);
         }
-        paths.addAll(traverser.paths().paths());
+        paths.addAll(traverser.paths());
         return paths;
     }
 
@@ -124,6 +127,7 @@ public class PathsTraverser extends HugeTraverser {
         /**
          * Search forward from source
          */
+        @Watched
         public void forward(Directions direction) {
             // Traversal vertices of previous level
             assert !this.sourceLayers.isEmpty();
@@ -164,6 +168,7 @@ public class PathsTraverser extends HugeTraverser {
         /**
          * Search backward from target
          */
+        @Watched
         public void backward(Directions direction) {
             assert !this.targetLayers.isEmpty();
             IntObjectHashMap<IntHashSet> targetTopLayer =
@@ -227,6 +232,7 @@ public class PathsTraverser extends HugeTraverser {
             return false;
         }
 
+        @Watched
         private List<Path> getPath(int source, int target, boolean ring) {
             List<Path> results = new ArrayList<>();
             List<Path> sources = this.getSourcePath(source);
@@ -278,16 +284,19 @@ public class PathsTraverser extends HugeTraverser {
             return results;
         }
 
+        @Watched
         private List<Path> getSourcePath(int source) {
             return this.getPath(this.sourceLayers, source,
                                 this.sourceLayers.size() - 1);
         }
 
+        @Watched
         private List<Path> getTargetPath(int target) {
             return this.getPath(this.targetLayers, target,
                                 this.targetLayers.size() - 1);
         }
 
+        @Watched
         private void add(IntObjectHashMap<IntHashSet> layer,
                          int current, int parent) {
 

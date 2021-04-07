@@ -17,25 +17,25 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.traversal.algorithm;
+package com.baidu.hugegraph.util.collection;
 
 import org.eclipse.collections.impl.map.mutable.primitive.IntObjectHashMap;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.perf.PerfUtil;
+import com.baidu.hugegraph.perf.PerfUtil.Watched;
 
-public class IdMapping {
+public final class ObjectIntMapping {
 
     private static final int MAGIC = 1 << 16;
-    private IntObjectHashMap int2IdMap;
+    private final IntObjectHashMap int2IdMap;
 
-    public IdMapping() {
+    public ObjectIntMapping() {
         this.int2IdMap = new IntObjectHashMap();
     }
 
-    @PerfUtil.Watched
-    public int getCode(Id id) {
+    @Watched
+    public int object2Code(Object id) {
         int key = id.hashCode();
         for (int i = 1; i > 0; i <<= 1) {
             for (int j = 0; i >= MAGIC && j < 10; j++) {
@@ -53,8 +53,8 @@ public class IdMapping {
         throw new HugeException("Failed to get code for id: %s", id);
     }
 
-    @PerfUtil.Watched
-    public Id getId(int code) {
-        return (Id) this.int2IdMap.get(code);
+    @Watched
+    public Object code2Object(int code) {
+        return this.int2IdMap.get(code);
     }
 }

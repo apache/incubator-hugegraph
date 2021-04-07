@@ -72,7 +72,7 @@ public class SubGraphTraverser extends HugeTraverser {
                                             sourceInRing);
         PathSet paths = new PathSet();
         while (true) {
-            paths.addAll(traverser.forward(dir).paths());
+            paths.addAll(traverser.forward(dir));
             if (--depth <= 0 || traverser.reachLimit() ||
                 traverser.finished()) {
                 break;

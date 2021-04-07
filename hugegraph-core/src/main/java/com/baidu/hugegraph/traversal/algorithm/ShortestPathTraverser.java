@@ -39,13 +39,14 @@ import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.traversal.algorithm.steps.EdgeStep;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.collection.ObjectIntMapping;
 import com.google.common.collect.ImmutableList;
 
 public class ShortestPathTraverser extends HugeTraverser {
 
     public ShortestPathTraverser(HugeGraph graph) {
         super(graph);
-        this.idMapping = new IdMapping();
+        this.idMapping = new ObjectIntMapping();
     }
 
     @Watched
@@ -142,10 +143,10 @@ public class ShortestPathTraverser extends HugeTraverser {
 
     private class Traverser {
 
-        private Stack<IntIntHashMap> sourceLayers;
-        private Stack<IntIntHashMap> targetLayers;
+        private final Stack<IntIntHashMap> sourceLayers;
+        private final Stack<IntIntHashMap> targetLayers;
 
-        private LongHashSet accessed = new LongHashSet();
+        private final LongHashSet accessed;
 
         private final Directions direction;
         private final Map<Id, String> labels;
@@ -170,6 +171,7 @@ public class ShortestPathTraverser extends HugeTraverser {
             this.sourceLayers.push(firstSourceLayer);
             this.targetLayers.push(firstTargetLayer);
 
+            this.accessed = new LongHashSet();
             this.accessed.add(sourceCode);
             this.accessed.add(targetCode);
 

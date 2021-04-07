@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.util.collection;
 
+import java.util.AbstractSet;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
@@ -30,12 +31,11 @@ import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
-import com.baidu.hugegraph.iterator.MapperIterator;
 import com.baidu.hugegraph.type.define.CollectionImplType;
 
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 
-public class IdSet extends HashSet<Id> {
+public class IdSet extends AbstractSet<Id> {
 
     private LongHashSet numberIds;
     private Set<Id> nonNumberIds;
@@ -79,11 +79,9 @@ public class IdSet extends HashSet<Id> {
 
     @Override
     public Iterator<Id> iterator() {
-        ExtendableIterator<Id> iterator = new ExtendableIterator<>();
-        iterator.extend(this.nonNumberIds.iterator());
-        EcLongIterator iter = new EcLongIterator(this.numberIds.longIterator());
-        iterator.extend(new MapperIterator<>(iter, IdGenerator::of));
-        return iterator;
+        return new ExtendableIterator<>(
+               this.nonNumberIds.iterator(),
+               new EcLongIterator(this.numberIds.longIterator()));
     }
 
     @Override
@@ -110,9 +108,9 @@ public class IdSet extends HashSet<Id> {
         this.nonNumberIds.clear();
     }
 
-    private static class EcLongIterator implements Iterator<Long> {
+    private static class EcLongIterator implements Iterator<Id> {
 
-        private MutableLongIterator iterator;
+        private final MutableLongIterator iterator;
 
         public EcLongIterator(MutableLongIterator iter) {
             this.iterator = iter;
@@ -124,8 +122,8 @@ public class IdSet extends HashSet<Id> {
         }
 
         @Override
-        public Long next() {
-            return this.iterator.next();
+        public Id next() {
+            return IdGenerator.of(this.iterator.next());
         }
 
         @Override

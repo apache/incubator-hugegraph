@@ -266,8 +266,7 @@ public class BinarySerializer extends AbstractSerializer {
 
         // Construct edge
         HugeEdge edge = HugeEdge.constructEdge(vertex, direction, edgeLabel,
-                                               sortValues, otherVertexId,
-                                               false);
+                                               sortValues, otherVertexId);
 
         // Parse edge-id + edge-properties
         buffer = BytesBuffer.wrap(col.value);

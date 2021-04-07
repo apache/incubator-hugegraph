@@ -497,28 +497,16 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
                                          EdgeLabel edgeLabel,
                                          String sortValues,
                                          Id otherVertexId) {
-        return constructEdge(ownerVertex, isOutEdge, edgeLabel,
-                             sortValues, otherVertexId, true);
-
-    }
-
-    @Watched
-    public static HugeEdge constructEdge(HugeVertex ownerVertex,
-                                         boolean isOutEdge,
-                                         EdgeLabel edgeLabel,
-                                         String sortValues,
-                                         Id otherVertexId,
-                                         boolean needDedup) {
         HugeGraph graph = ownerVertex.graph();
         VertexLabel srcLabel = graph.vertexLabelOrNone(edgeLabel.sourceLabel());
         VertexLabel tgtLabel = graph.vertexLabelOrNone(edgeLabel.targetLabel());
 
         VertexLabel otherVertexLabel;
         if (isOutEdge) {
-//            ownerVertex.correctVertexLabel(srcLabel);
+            ownerVertex.correctVertexLabel(srcLabel);
             otherVertexLabel = tgtLabel;
         } else {
-//            ownerVertex.correctVertexLabel(tgtLabel);
+            ownerVertex.correctVertexLabel(tgtLabel);
             otherVertexLabel = srcLabel;
         }
         HugeVertex otherVertex = new HugeVertex(graph, otherVertexId,
@@ -533,11 +521,11 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         edge.assignId();
 
         if (isOutEdge) {
-            ownerVertex.addOutEdge(edge, needDedup);
-            otherVertex.addInEdge(edge.switchOwner(), needDedup);
+            ownerVertex.addOutEdge(edge);
+            otherVertex.addInEdge(edge.switchOwner());
         } else {
-            ownerVertex.addInEdge(edge, needDedup);
-            otherVertex.addOutEdge(edge.switchOwner(), needDedup);
+            ownerVertex.addInEdge(edge);
+            otherVertex.addOutEdge(edge.switchOwner());
         }
 
         return edge;
