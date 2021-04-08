@@ -25,9 +25,9 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.RejectedExecutionHandler;
+import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 
 import org.apache.commons.io.FileUtils;
@@ -362,7 +362,7 @@ public final class RaftSharedContext {
     private static ExecutorService newPool(int coreThreads, int maxThreads,
                                            String name,
                                            RejectedExecutionHandler handler) {
-        BlockingQueue<Runnable> workQueue = new LinkedBlockingQueue<>();
+        BlockingQueue<Runnable> workQueue = new SynchronousQueue<>();
         return ThreadPoolUtil.newBuilder()
                              .poolName(name)
                              .enableMetric(false)

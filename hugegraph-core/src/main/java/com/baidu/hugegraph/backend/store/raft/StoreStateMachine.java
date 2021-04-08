@@ -21,6 +21,7 @@ package com.baidu.hugegraph.backend.store.raft;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Future;
 
 import org.slf4j.Logger;
 
@@ -103,6 +104,7 @@ public class StoreStateMachine extends StateMachineAdapter {
         LOG.debug("Node role: {}", this.node().selfIsLeader() ?
                                    "leader" : "follower");
         StoreClosure closure = null;
+        List<Future<?>> futures = new ArrayList<>();
         try {
             while (iter.hasNext()) {
                 closure = (StoreClosure) iter.done();
@@ -124,7 +126,7 @@ public class StoreStateMachine extends StateMachineAdapter {
                     byte[] bytes = iter.getData().array();
                     // Follower seems no way to wait future
                     // Let the backend thread do it directly
-                    this.context.backendExecutor().submit(() -> {
+                    futures.add(this.context.backendExecutor().submit(() -> {
                         BytesBuffer buffer = LZ4Util.decompress(bytes,
                                              RaftSharedContext.BLOCK_SIZE);
                         buffer.forReadWritten();
@@ -137,9 +139,13 @@ public class StoreStateMachine extends StateMachineAdapter {
                                       action, e);
                             throw new BackendException("Backend error", e);
                         }
-                    });
+                    }));
                 }
                 iter.next();
+            }
+            // Follower wait tasks finished
+            for (Future<?> future : futures) {
+                future.get();
             }
         } catch (Throwable e) {
             LOG.error("StateMachine occured critical error", e);
@@ -150,6 +156,7 @@ public class StoreStateMachine extends StateMachineAdapter {
                 closure.failure(status, e);
             }
             // Will cause current node inactive
+            // TODO: rollback to correct index
             iter.setErrorAndRollback(1L, status);
         }
     }
@@ -253,6 +260,7 @@ public class StoreStateMachine extends StateMachineAdapter {
 
     @Override
     public void onError(final RaftException e) {
+        // If busy, spin and wait a moment
         LOG.error("Raft error: {}", e.getMessage(), e);
     }
 }

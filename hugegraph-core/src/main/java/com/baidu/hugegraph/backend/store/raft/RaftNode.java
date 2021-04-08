@@ -285,6 +285,13 @@ public class RaftNode {
             }
         }
 
+        // NOTE: Jraft itself doesn't have this callback, it's added by us
+        // @Override
+        public void onBusy(PeerId peer, Status status) {
+            int count = RaftNode.this.busyCounter.incrementAndGet();
+            LOG.info("Increase busy counter: [{}]", count);
+        }
+
         private boolean isWriteBufferOverflow(Status status) {
             String expectMsg = "maybe write overflow";
             return RaftError.EINTERNAL == status.getRaftError() &&
