@@ -17,12 +17,12 @@ LOG_PATH=${HOME_PATH}/logs
 function print_usage() {
     echo "usage: raft-tools.sh [options]"
     echo "options: "
-    echo "  -l,--list-peers \${graph} \${group}                    list all peers' endpoints for graph, can be used on leader or follower node"
-    echo "  -g,--get-leader \${graph} \${group}                    get the leader endpoint for graph, can be used on leader or follower node"
-    echo "  -s,--set-leader \${graph} \${group} \${endpoint}        set the leader endpoint for graph, can be used on leader or follower node"
-    echo "  -t,--transfer-leader \${graph} \${group} \${endpoint}   transfer leader to specified endpoint for graph, can be used on leader node"
-    echo "  -a,--add-peer \${graph} \${group} \${endpoint}          add peer for graph, can be used on leader node"
-    echo "  -r,--remove-peer \${graph} \${group} \${endpoint}       remove peer for graph, can be used on leader node"
+    echo "  -l,--list_peers \${graph} \${group}                    list all peers' endpoints for graph, can be used on leader or follower node"
+    echo "  -g,--get_leader \${graph} \${group}                    get the leader endpoint for graph, can be used on leader or follower node"
+    echo "  -s,--set_leader \${graph} \${group} \${endpoint}        set the leader endpoint for graph, can be used on leader or follower node"
+    echo "  -t,--transfer_leader \${graph} \${group} \${endpoint}   transfer leader to specified endpoint for graph, can be used on leader node"
+    echo "  -a,--add_peer \${graph} \${group} \${endpoint}          add peer for graph, can be used on leader node"
+    echo "  -r,--remove_peer \${graph} \${group} \${endpoint}       remove peer for graph, can be used on leader node"
     echo "  -h,--help                                            display help information"
 }
 
@@ -37,7 +37,7 @@ fi
 function list_peers() {
     local graph=$1
     local rest_server_url=`read_property ${CONF_PATH}/rest-server.properties restserver.url`
-    local url=${rest_server_url}/graphs/${graph}/raft/list-peers
+    local url=${rest_server_url}/graphs/${graph}/raft/list_peers
 
     curl ${url}
 }
@@ -45,7 +45,7 @@ function list_peers() {
 function get_leader() {
     local graph=$1
     local rest_server_url=`read_property ${CONF_PATH}/rest-server.properties restserver.url`
-    local url=${rest_server_url}/graphs/${graph}/raft/get-leader
+    local url=${rest_server_url}/graphs/${graph}/raft/get_leader
 
     curl ${url}
 }
@@ -54,7 +54,7 @@ function set_leader() {
     local graph=$1
     local endpoint=$2
     local rest_server_url=`read_property ${CONF_PATH}/rest-server.properties restserver.url`
-    local url=${rest_server_url}/graphs/${graph}/raft/set-leader?endpoint=${endpoint}
+    local url=${rest_server_url}/graphs/${graph}/raft/set_leader?endpoint=${endpoint}
 
     curl -X POST ${url}
 }
@@ -63,7 +63,7 @@ function transfer_leader() {
     local graph=$1
     local endpoint=$2
     local rest_server_url=`read_property ${CONF_PATH}/rest-server.properties restserver.url`
-    local url=${rest_server_url}/graphs/${graph}/raft/transfer-leader?endpoint=${endpoint}
+    local url=${rest_server_url}/graphs/${graph}/raft/transfer_leader?endpoint=${endpoint}
 
     curl -X POST ${url}
 }
@@ -72,7 +72,7 @@ function add_peer() {
     local graph=$1
     local endpoint=$2
     local rest_server_url=`read_property ${CONF_PATH}/rest-server.properties restserver.url`
-    local url=${rest_server_url}/graphs/${graph}/raft/add-peer?endpoint=${endpoint}
+    local url=${rest_server_url}/graphs/${graph}/raft/add_peer?endpoint=${endpoint}
 
     curl -X POST ${url}
 }
@@ -81,51 +81,43 @@ function remove_peer() {
     local graph=$1
     local endpoint=$2
     local rest_server_url=`read_property ${CONF_PATH}/rest-server.properties restserver.url`
-    local url=${rest_server_url}/graphs/${graph}/raft/remove-peer?endpoint=${endpoint}
+    local url=${rest_server_url}/graphs/${graph}/raft/remove_peer?endpoint=${endpoint}
 
     curl -X POST ${url}
 }
 
-while [[ $# -gt 0 ]]; do
-    case $1 in
-        # help
-        --help|-h)
-        print_usage
-        shift
-        ;;
-        # list-peers
-        --list-peers|-l)
-        list_peers $2
-        shift 2
-        ;;
-        # get-leader
-        --get-leader|-g)
-        get_leader $2
-        shift 2
-        ;;
-        # set-leader
-        --set-leader|-s)
-        set_leader $2 $3
-        shift 3
-        ;;
-        # transfer-leader
-        --transfer-leader|-t)
-        transfer_leader $2 $3
-        shift 3
-        ;;
-        # add-peer
-        --add-peer|-a)
-        add_peer $2 $3
-        shift 3
-        ;;
-        # remove-peer
-        --remove-peer|-r)
-        remove_peer $2 $3
-        shift 3
-        ;;
-        *)
-        print_usage
-        exit 0
-        ;;
-    esac
-done
+case $1 in
+    # help
+    --help|-h)
+    print_usage
+    ;;
+    # list_peers
+    --list_peers|-l)
+    list_peers $2
+    ;;
+    # get_leader
+    --get_leader|-g)
+    get_leader $2
+    ;;
+    # set_leader
+    --set_leader|-s)
+    set_leader $2 $3
+    ;;
+    # transfer_leader
+    --transfer_leader|-t)
+    transfer_leader $2 $3
+    ;;
+    # add_peer
+    --add_peer|-a)
+    add_peer $2 $3
+    ;;
+    # remove_peer
+    --remove_peer|-r)
+    remove_peer $2 $3
+    ;;
+    *)
+    print_usage
+    exit 0
+    ;;
+esac
+echo ""
