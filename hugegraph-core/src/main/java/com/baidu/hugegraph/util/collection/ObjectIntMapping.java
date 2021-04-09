@@ -35,22 +35,22 @@ public final class ObjectIntMapping {
     }
 
     @Watched
-    public int object2Code(Object id) {
-        int key = id.hashCode();
+    public int object2Code(Object object) {
+        int key = object.hashCode();
         for (int i = 1; i > 0; i <<= 1) {
             for (int j = 0; i >= MAGIC && j < 10; j++) {
                 Id existed = (Id) this.int2IdMap.get(key);
                 if (existed == null) {
-                    this.int2IdMap.put(key, id);
+                    this.int2IdMap.put(key, object);
                     return key;
                 }
-                if (existed.equals(id)) {
+                if (existed.equals(object)) {
                     return key;
                 }
                 key = key + i + j;
             }
         }
-        throw new HugeException("Failed to get code for id: %s", id);
+        throw new HugeException("Failed to get code for id: %s", object);
     }
 
     @Watched

@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.tinkerpop.gremlin.structure.Direction;
@@ -69,7 +70,6 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     private VertexLabel label;
     protected Collection<HugeEdge> edges;
 
-    @Watched
     public HugeVertex(final HugeGraph graph, Id id, VertexLabel label) {
         super(graph);
 
@@ -650,13 +650,13 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         public HugeVertex4Insert(final GraphTransaction tx,
                                  Id id, VertexLabel label) {
             super(tx.graph(), id, label);
-            this.edges = CollectionFactory.newSet(CollectionImplType.EC);
+            this.edges = newSet();
             this.tx = tx;
             this.fresh(true);
         }
 
         public void resetEdges() {
-            this.edges = CollectionFactory.newSet(CollectionImplType.EC);;
+            this.edges = newSet();
         }
 
         public void removeEdge(HugeEdge edge) {
@@ -665,7 +665,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
         public void addEdge(HugeEdge edge) {
             if (this.edges == EMPTY_LIST) {
-                this.edges = CollectionFactory.newSet(CollectionImplType.EC);
+                this.edges = newSet();
             }
             this.edges.add(edge);
         }
@@ -683,6 +683,10 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
                 return this.tx;
             }
             return null;
+        }
+
+        private static <V> Set<V> newSet() {
+            return CollectionFactory.newSet(CollectionImplType.EC);
         }
     }
 }
