@@ -65,7 +65,6 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         this.vertices(owner, other);
     }
 
-    @Watched
     public HugeEdge(final HugeGraph graph, Id id, EdgeLabel label) {
         super(graph);
 
