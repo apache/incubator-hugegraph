@@ -27,6 +27,7 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.structure.HugeEdge;
+import com.baidu.hugegraph.traversal.algorithm.records.ArrayPathsRecord;
 import com.baidu.hugegraph.traversal.algorithm.records.PathsRecord;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
@@ -82,7 +83,7 @@ public class PathsTraverser extends HugeTraverser {
 
     private class Traverser {
 
-        private final PathsRecord record;
+        private final ArrayPathsRecord record;
 
         private final Id label;
         private final long degree;
@@ -93,7 +94,7 @@ public class PathsTraverser extends HugeTraverser {
 
         public Traverser(Id sourceV, Id targetV, Id label,
                          long degree, long capacity, long limit) {
-            this.record = new PathsRecord(sourceV, targetV);
+            this.record = new ArrayPathsRecord(sourceV, targetV);
 
             this.label = label;
             this.degree = degree;
