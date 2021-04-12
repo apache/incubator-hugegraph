@@ -290,6 +290,14 @@ public final class NumericUtil {
     }
 
     public static boolean isNumber(Class<?> clazz) {
+        if (clazz.isPrimitive()) {
+            if (clazz == int.class || clazz == long.class ||
+                clazz == float.class || clazz == double.class ||
+                clazz == short.class || clazz == byte.class) {
+                return true;
+            }
+            return false;
+        }
         return Number.class.isAssignableFrom(clazz);
     }
 
@@ -321,11 +329,21 @@ public final class NumericUtil {
      *          a negative int if first is numerically less than second;
      *          a positive int if first is numerically greater than second.
      */
-    @SuppressWarnings("unchecked")
     public static int compareNumber(Object first, Number second) {
+        if (first == null) {
+            E.checkArgument(first != null,
+                            "The first parameter can't be null");
+        }
+        if (second == null) {
+            E.checkArgument(second != null,
+                            "The second parameter can't be null");
+        }
+
         if (first instanceof Number && first instanceof Comparable &&
             first.getClass().equals(second.getClass())) {
-            return ((Comparable<Number>) first).compareTo(second);
+            @SuppressWarnings("unchecked")
+            Comparable<Number> cmpFirst = (Comparable<Number>) first;
+            return cmpFirst.compareTo(second);
         }
 
         Function<Object, BigDecimal> toBig = (number) -> {
@@ -333,7 +351,7 @@ public final class NumericUtil {
                 return new BigDecimal(number.toString());
             } catch (NumberFormatException e) {
                 throw new IllegalArgumentException(String.format(
-                          "Can't compare between %s and %s, " +
+                          "Can't compare between '%s' and '%s', " +
                           "they must be numbers", first, second));
             }
         };

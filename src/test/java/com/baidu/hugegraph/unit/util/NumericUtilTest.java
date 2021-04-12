@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.unit.util;
 
 import java.math.BigDecimal;
+import java.util.Date;
 
 import org.junit.Test;
 
@@ -382,10 +383,90 @@ public class NumericUtilTest extends BaseUnitTest {
                             NumericUtil.maxValueOf(Double.class));
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
-            NumericUtil.minValueOf(null);
+            NumericUtil.maxValueOf(null);
         });
         Assert.assertThrows(IllegalArgumentException.class, () -> {
-            NumericUtil.minValueOf(Character.class);
+            NumericUtil.maxValueOf(Character.class);
+        });
+    }
+
+    @Test
+    public void testIsNumber() {
+        Assert.assertEquals(true, NumericUtil.isNumber(byte.class));
+        Assert.assertEquals(true, NumericUtil.isNumber(Byte.class));
+        Assert.assertEquals(true, NumericUtil.isNumber(short.class));
+        Assert.assertEquals(true, NumericUtil.isNumber(Short.class));
+        Assert.assertEquals(true, NumericUtil.isNumber(int.class));
+        Assert.assertEquals(true, NumericUtil.isNumber(Integer.class));
+        Assert.assertEquals(true, NumericUtil.isNumber(long.class));
+        Assert.assertEquals(true, NumericUtil.isNumber(Long.class));
+        Assert.assertEquals(true, NumericUtil.isNumber(float.class));
+        Assert.assertEquals(true, NumericUtil.isNumber(Float.class));
+        Assert.assertEquals(true, NumericUtil.isNumber(double.class));
+        Assert.assertEquals(true, NumericUtil.isNumber(Double.class));
+
+        Assert.assertEquals(false, NumericUtil.isNumber(char.class));
+        Assert.assertEquals(false, NumericUtil.isNumber(Character.class));
+
+        Assert.assertEquals(true, NumericUtil.isNumber(1));
+        Assert.assertEquals(true, NumericUtil.isNumber(1L));
+        Assert.assertEquals(true, NumericUtil.isNumber(1.0f));
+        Assert.assertEquals(true, NumericUtil.isNumber(1.0d));
+        Assert.assertEquals(false, NumericUtil.isNumber('1'));
+        Assert.assertEquals(false, NumericUtil.isNumber((Object) null));
+    }
+
+    @Test
+    public void testConvertToNumber() {
+        Assert.assertEquals(1, NumericUtil.convertToNumber(1));
+        Assert.assertEquals(1.2, NumericUtil.convertToNumber(1.2));
+
+        Assert.assertEquals(new BigDecimal(1.25),
+                            NumericUtil.convertToNumber("1.25"));
+
+        Date date = new Date();
+        Assert.assertEquals(date.getTime(), NumericUtil.convertToNumber(date));
+
+        Assert.assertEquals(null, NumericUtil.convertToNumber(null));
+    }
+
+    @Test
+    public void testCompareNumber() {
+        Assert.assertEquals(0, NumericUtil.compareNumber(2, 2));
+        Assert.assertEquals(1, NumericUtil.compareNumber(10, 2));
+        Assert.assertEquals(-1, NumericUtil.compareNumber(1, 2));
+
+        Assert.assertEquals(-1, NumericUtil.compareNumber("1", 2));
+        Assert.assertEquals(0, NumericUtil.compareNumber("2.0", 2));
+        Assert.assertEquals(1, NumericUtil.compareNumber("2.00001", 2));
+        Assert.assertEquals(1, NumericUtil.compareNumber("3.8", 2));
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            NumericUtil.compareNumber(null, 1);
+        }, e -> {
+            Assert.assertContains("The first parameter can't be null",
+                                  e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            NumericUtil.compareNumber(2, null);
+        }, e -> {
+            Assert.assertContains("The second parameter can't be null",
+                                  e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            NumericUtil.compareNumber("2", null);
+        }, e -> {
+            Assert.assertContains("The second parameter can't be null",
+                                  e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            NumericUtil.compareNumber("f", 2);
+        }, e -> {
+            Assert.assertContains("Can't compare between 'f' and '2'",
+                                  e.getMessage());
         });
     }
 

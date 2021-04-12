@@ -19,7 +19,6 @@
 
 package com.baidu.hugegraph.util;
 
-import java.text.ParseException;
 import java.util.Date;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -46,13 +45,7 @@ public final class DateUtil {
     public static Date parse(String value) {
         for (Map.Entry<String, String> entry : VALID_DFS.entrySet()) {
             if (value.matches(entry.getKey())) {
-                try {
-                    return parse(value, entry.getValue());
-                } catch (ParseException e) {
-                    throw new IllegalArgumentException(String.format(
-                              "%s, expect format: %s",
-                              e.getMessage(), entry.getValue()));
-                }
+                return parse(value, entry.getValue());
             }
         }
         throw new IllegalArgumentException(String.format(
@@ -60,7 +53,7 @@ public final class DateUtil {
                   VALID_DFS.values(), value));
     }
 
-    public static Date parse(String value, String df) throws ParseException {
+    public static Date parse(String value, String df) {
         SafeDateFormat dateFormat = getDateFormat(df);
         return dateFormat.parse(value);
     }

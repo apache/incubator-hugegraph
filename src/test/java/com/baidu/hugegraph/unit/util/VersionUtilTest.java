@@ -19,6 +19,8 @@
 
 package com.baidu.hugegraph.unit.util;
 
+import java.net.MalformedURLException;
+
 import org.junit.Test;
 
 import com.baidu.hugegraph.testutil.Assert;
@@ -117,5 +119,54 @@ public class VersionUtilTest extends BaseUnitTest {
         Assert.assertThrows(IllegalStateException.class, () -> {
             VersionUtil.check(version, "0.7", "1.0", "test-component");
         });
+    }
+
+    @Test
+    public void testGetImplementationVersion() throws MalformedURLException {
+        // Can't mock Class: https://github.com/mockito/mockito/issues/1734
+        //Class<?> clazz = Mockito.mock(Class.class);
+        //Mockito.when(clazz.getSimpleName()).thenReturn("fake");
+        //Mockito.when(clazz.getResource("fake.class")).thenReturn(manifest);
+
+        String manifestPath = "file:./src/test/resources";
+        Assert.assertEquals("1.8.6.0",
+                            VersionUtil.getImplementationVersion(manifestPath));
+
+        manifestPath = "file:./src/test/resources2";
+        Assert.assertEquals(null,
+                            VersionUtil.getImplementationVersion(manifestPath));
+    }
+
+    @Test
+    public void testVersion() {
+        // Test equals
+        Version v1 = VersionUtil.Version.of("0.2.1");
+        Version v2 = VersionUtil.Version.of("0.2.1");
+        Assert.assertEquals(v1, v1);
+        Assert.assertEquals(v1, v2);
+
+        Version v3 = VersionUtil.Version.of("0.2.0");
+        Version v4 = VersionUtil.Version.of("0.2");
+        Assert.assertEquals(v3, v4);
+
+        Version v5 = VersionUtil.Version.of("0.2.3");
+        Version v6 = VersionUtil.Version.of("0.3.2");
+        Assert.assertNotEquals(v5, v6);
+        Assert.assertNotEquals(v5, null);
+        Assert.assertNotEquals(v5, "0.2.3");
+
+        // Test hashCode
+        Assert.assertEquals(1023, v1.hashCode());
+        Assert.assertEquals(1023, v2.hashCode());
+        Assert.assertEquals(62, v3.hashCode());
+        Assert.assertEquals(62, v4.hashCode());
+        Assert.assertEquals(2945, v5.hashCode());
+        Assert.assertEquals(2015, v6.hashCode());
+
+        // Test compareTo
+        Assert.assertEquals(0, v1.compareTo(v2));
+        Assert.assertEquals(1, v1.compareTo(v3));
+        Assert.assertEquals(-1, v1.compareTo(v5));
+        Assert.assertEquals(1, v1.compareTo(null));
     }
 }

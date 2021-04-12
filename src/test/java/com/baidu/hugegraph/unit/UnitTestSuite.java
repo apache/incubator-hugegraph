@@ -54,8 +54,10 @@ import com.baidu.hugegraph.unit.rest.RestResultTest;
 import com.baidu.hugegraph.unit.util.BytesTest;
 import com.baidu.hugegraph.unit.util.CollectionUtilTest;
 import com.baidu.hugegraph.unit.util.DateUtilTest;
+import com.baidu.hugegraph.unit.util.EcheckTest;
 import com.baidu.hugegraph.unit.util.HashUtilTest;
 import com.baidu.hugegraph.unit.util.InsertionOrderUtilTest;
+import com.baidu.hugegraph.unit.util.LogTest;
 import com.baidu.hugegraph.unit.util.LongEncodingTest;
 import com.baidu.hugegraph.unit.util.NumericUtilTest;
 import com.baidu.hugegraph.unit.util.OrderLimitMapTest;
@@ -96,8 +98,10 @@ import com.baidu.hugegraph.unit.version.VersionTest;
 
     BytesTest.class,
     CollectionUtilTest.class,
+    EcheckTest.class,
     HashUtilTest.class,
     InsertionOrderUtilTest.class,
+    LogTest.class,
     NumericUtilTest.class,
     ReflectionUtilTest.class,
     StringUtilTest.class,

@@ -23,7 +23,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URL;
-import java.util.Objects;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
 
@@ -85,11 +84,16 @@ public final class VersionUtil {
           // Class not from JAR
           return null;
         }
-        // Get manifest
         int offset = classPath.lastIndexOf("!");
         assert offset > 0;
-        String manifestPath = classPath.substring(0, offset + 1) +
-                              "/META-INF/MANIFEST.MF";
+        // Get manifest file path
+        String manifestPath = classPath.substring(0, offset + 1);
+        return getImplementationVersion(manifestPath);
+    }
+
+    public static String getImplementationVersion(String manifestPath) {
+        manifestPath += "/META-INF/MANIFEST.MF";
+
         Manifest manifest = null;
         try {
             manifest = new Manifest(new URL(manifestPath).openStream());
@@ -158,13 +162,24 @@ public final class VersionUtil {
 
         /************************** Version define **************************/
 
-        private String version;
+        private final String version;
+        private final int[] parts;
 
         public Version(String version) {
             E.checkArgumentNotNull(version, "The version is null");
             E.checkArgument(version.matches("[0-9]+(\\.[0-9]+)*"),
                             "Invalid version format: %s", version);
             this.version = version;
+            this.parts = parseVersion(version);
+        }
+
+        private static int[] parseVersion(String version) {
+            String[] parts = version.split("\\.");
+            int[] partsNumber = new int[parts.length];
+            for (int i = 0; i < parts.length; i++) {
+                partsNumber[i] = Integer.parseInt(parts[i]);
+            }
+            return partsNumber;
         }
 
         public final String get() {
@@ -176,14 +191,12 @@ public final class VersionUtil {
             if (that == null) {
                 return 1;
             }
-            String[] thisParts = this.get().split("\\.");
-            String[] thatParts = that.get().split("\\.");
+            int[] thisParts = this.parts;
+            int[] thatParts = that.parts;
             int length = Math.max(thisParts.length, thatParts.length);
             for (int i = 0; i < length; i++) {
-                int thisPart = i < thisParts.length ?
-                               Integer.parseInt(thisParts[i]) : 0;
-                int thatPart = i < thatParts.length ?
-                               Integer.parseInt(thatParts[i]) : 0;
+                int thisPart = i < thisParts.length ? thisParts[i] : 0;
+                int thatPart = i < thatParts.length ? thatParts[i] : 0;
                 if (thisPart < thatPart) {
                     return -1;
                 }
@@ -210,7 +223,15 @@ public final class VersionUtil {
 
         @Override
         public int hashCode() {
-            return Objects.hash(this.version);
+            int hash = 0;
+            for (int i = this.parts.length - 1; i >= 0; i--) {
+                int part = this.parts[i];
+                if (part == 0 && hash == 0) {
+                    continue;
+                }
+                hash = 31 * hash + Integer.hashCode(part);
+            }
+            return hash;
         }
 
         @Override

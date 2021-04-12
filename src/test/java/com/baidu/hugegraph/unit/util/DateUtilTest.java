@@ -19,7 +19,6 @@
 
 package com.baidu.hugegraph.unit.util;
 
-import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -38,13 +37,27 @@ public class DateUtilTest extends BaseUnitTest {
     public void testParse() {
         Date date1 = DateUtil.parse("2020-06-12 12:00:00");
         Date date2 = DateUtil.parse("2020-06-13");
+        Assert.assertNotEquals(date1, date2);
         Assert.assertTrue(date1.before(date2));
+
+        Date date3 = DateUtil.parse("2020-06-12");
+        Date date4 = DateUtil.parse("2020-06-12 00:00:00.00");
+        Assert.assertEquals(date3, date4);
+
+        Date date5 = DateUtil.parse("2020-06-12 00:00:00.001");
+        Assert.assertNotEquals(date3, date5);
+        Assert.assertTrue(date3.before(date5));
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             DateUtil.parse("2018-");
         }, e -> {
-            Assert.assertContains("Expected date format is:",
-                                  e.getMessage());
+            Assert.assertContains("Expected date format is:", e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            DateUtil.parse("2018-15-07 12:00:00.f");
+        }, e -> {
+            Assert.assertContains("Expected date format is:", e.getMessage());
         });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
@@ -81,8 +94,9 @@ public class DateUtilTest extends BaseUnitTest {
                     throw new RuntimeException(e);
                 }
                 try {
-                    DateUtil.parse("0", "yyyy");
-                } catch (ParseException e) {
+                    Assert.assertEquals(new Date(-62167248343000L),
+                                        DateUtil.parse("0", "yyyy"));
+                } catch (Exception e) {
                     errorCount.incrementAndGet();
                 }
             });

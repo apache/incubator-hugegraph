@@ -20,9 +20,11 @@
 package com.baidu.hugegraph.unit.util;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -103,6 +105,12 @@ public class CollectionUtilTest extends BaseUnitTest {
 
         List<Integer> list4 = ImmutableList.of(1, 2, 3, 4);
         Assert.assertFalse(CollectionUtil.prefixOf(list4, list));
+
+        List<Integer> list5 = ImmutableList.of(1, 2, 4);
+        Assert.assertFalse(CollectionUtil.prefixOf(list5, list));
+
+        List<Integer> list6 = Arrays.asList(1, 2, null);
+        Assert.assertFalse(CollectionUtil.prefixOf(list6, list));
     }
 
     @Test
@@ -158,6 +166,30 @@ public class CollectionUtilTest extends BaseUnitTest {
 
         subSet = CollectionUtil.subSet(originSet, 0, 5);
         Assert.assertEquals(ImmutableSet.of(1, 2, 3, 4, 5), subSet);
+
+        subSet = CollectionUtil.subSet(originSet, 2, -1);
+        Assert.assertEquals(ImmutableSet.of(3, 4, 5), subSet);
+
+        subSet = CollectionUtil.subSet(originSet, 2, -100);
+        Assert.assertEquals(ImmutableSet.of(3, 4, 5), subSet);
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            CollectionUtil.subSet(originSet, 2, 1);
+        }, e -> {
+            Assert.assertContains("Invalid to parameter ", e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            CollectionUtil.subSet(originSet, -1, 2);
+        }, e -> {
+            Assert.assertContains("Invalid from parameter ", e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            CollectionUtil.subSet(originSet, -10, 2);
+        }, e -> {
+            Assert.assertContains("Invalid from parameter ", e.getMessage());
+        });
     }
 
     @Test
@@ -182,9 +214,9 @@ public class CollectionUtilTest extends BaseUnitTest {
         first.add(3);
 
         List<Integer> second = new ArrayList<>();
-
         second.add(4);
         second.add(5);
+
         Collection<Integer> results = CollectionUtil.intersect(first, second);
         Assert.assertEquals(0, results.size());
         Assert.assertEquals(3, first.size());
@@ -199,6 +231,26 @@ public class CollectionUtilTest extends BaseUnitTest {
         results = CollectionUtil.intersect(first, second);
         Assert.assertEquals(3, results.size());
         Assert.assertEquals(3, first.size());
+
+        Set<Integer> set = new HashSet<>();
+        set.add(1);
+        set.add(3);
+        set.add(6);
+
+        results = CollectionUtil.intersect(set, second);
+        Assert.assertInstanceOf(HashSet.class, results);
+        Assert.assertEquals(2, results.size());
+        Assert.assertEquals(3, set.size());
+
+        set = new LinkedHashSet<>();
+        set.add(1);
+        set.add(2);
+        set.add(6);
+
+        results = CollectionUtil.intersect(set, second);
+        Assert.assertInstanceOf(LinkedHashSet.class, results);
+        Assert.assertEquals(2, results.size());
+        Assert.assertEquals(3, set.size());
     }
 
     @Test
@@ -247,6 +299,16 @@ public class CollectionUtilTest extends BaseUnitTest {
 
         second.add(1);
         Assert.assertTrue(CollectionUtil.hasIntersection(first, second));
+
+        second = new HashSet<>();
+        second.add(4);
+        second.add(5);
+        second.add(6);
+        second.add(7);
+        Assert.assertFalse(CollectionUtil.hasIntersection(first, second));
+
+        second.add(3);
+        Assert.assertTrue(CollectionUtil.hasIntersection(first, second));
     }
 
     @Test
@@ -263,6 +325,16 @@ public class CollectionUtilTest extends BaseUnitTest {
         Assert.assertFalse(CollectionUtil.hasIntersection(first, second));
 
         second.add(1);
+        Assert.assertTrue(CollectionUtil.hasIntersection(first, second));
+
+        second = new HashSet<>();
+        second.add(4);
+        second.add(5);
+        second.add(6);
+        second.add(7);
+        Assert.assertFalse(CollectionUtil.hasIntersection(first, second));
+
+        second.add(3);
         Assert.assertTrue(CollectionUtil.hasIntersection(first, second));
     }
 
