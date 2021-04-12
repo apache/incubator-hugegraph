@@ -277,7 +277,7 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
     @Watched(prefix = "element")
     public <V> HugeProperty<?> setProperty(HugeProperty<V> prop) {
         if (this.properties == EMPTY_MAP) {
-            this.properties = new IntObjectHashMap<>();
+            this.properties = CollectionFactory.newIntObjectMap();
         }
         PropertyKey pkey = prop.propertyKey();
 

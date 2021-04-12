@@ -24,15 +24,15 @@ import java.util.function.Function;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser.PathSet;
 
-public interface Record {
+public interface Records {
 
     public void startOneLayer(boolean forward);
 
     public void finishOneLayer();
 
-    public boolean hasNext();
+    public boolean hasNextKey();
 
-    public Id next();
+    public Id nextKey();
 
     public PathSet findPath(Id target, Function<Id, Boolean> filter,
                             boolean all, boolean ring);

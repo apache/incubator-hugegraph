@@ -34,7 +34,7 @@ import com.baidu.hugegraph.traversal.algorithm.HugeTraverser.PathSet;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser.Path;
 import com.baidu.hugegraph.util.collection.ObjectIntMapping;
 
-public class ShortestPathRecord implements Record {
+public class ShortestPathRecord implements Records {
 
     private ObjectIntMapping idMapping;
 
@@ -89,11 +89,11 @@ public class ShortestPathRecord implements Record {
         this.size += this.currentLayer.size();
     }
 
-    public boolean hasNext() {
+    public boolean hasNextKey() {
         return this.iterator.hasNext();
     }
 
-    public Id next() {
+    public Id nextKey() {
         this.current = this.iterator.next();
         return this.id(current);
     }

@@ -31,7 +31,7 @@ public final class ObjectIntMapping {
     private final IntObjectHashMap int2IdMap;
 
     public ObjectIntMapping() {
-        this.int2IdMap = new IntObjectHashMap();
+        this.int2IdMap = new IntObjectHashMap(1000000);
     }
 
     @Watched

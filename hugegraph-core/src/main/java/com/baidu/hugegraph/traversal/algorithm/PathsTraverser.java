@@ -27,8 +27,7 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.structure.HugeEdge;
-import com.baidu.hugegraph.traversal.algorithm.records.ArrayPathsRecord;
-import com.baidu.hugegraph.traversal.algorithm.records.PathsRecord;
+import com.baidu.hugegraph.traversal.algorithm.records.ArrayPathsRecords;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
 import com.google.common.collect.ImmutableList;
@@ -83,7 +82,7 @@ public class PathsTraverser extends HugeTraverser {
 
     private class Traverser {
 
-        private final ArrayPathsRecord record;
+        private final ArrayPathsRecords record;
 
         private final Id label;
         private final long degree;
@@ -94,7 +93,7 @@ public class PathsTraverser extends HugeTraverser {
 
         public Traverser(Id sourceV, Id targetV, Id label,
                          long degree, long capacity, long limit) {
-            this.record = new ArrayPathsRecord(sourceV, targetV);
+            this.record = new ArrayPathsRecords(sourceV, targetV);
 
             this.label = label;
             this.degree = degree;
@@ -112,8 +111,8 @@ public class PathsTraverser extends HugeTraverser {
             Iterator<Edge> edges;
 
             this.record.startOneLayer(true);
-            while (this.record.hasNext()) {
-                Id vid = this.record.next();
+            while (this.record.hasNextKey()) {
+                Id vid = this.record.nextKey();
 
                 edges = edgesOfVertex(vid, direction, this.label, this.degree);
 
@@ -142,8 +141,8 @@ public class PathsTraverser extends HugeTraverser {
             Iterator<Edge> edges;
 
             this.record.startOneLayer(false);
-            while (this.record.hasNext()) {
-                Id vid = this.record.next();
+            while (this.record.hasNextKey()) {
+                Id vid = this.record.nextKey();
                 edges = edgesOfVertex(vid, direction, this.label, this.degree);
 
                 while (edges.hasNext()) {

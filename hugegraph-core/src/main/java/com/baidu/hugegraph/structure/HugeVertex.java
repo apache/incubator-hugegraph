@@ -224,7 +224,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     }
 
     public void resetEdges() {
-        this.edges = new FastList<>();
+        this.edges = CollectionFactory.newList(CollectionImplType.EC);
     }
 
     public void removeEdge(HugeEdge edge) {
@@ -233,7 +233,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
     public void addEdge(HugeEdge edge) {
         if (this.edges == EMPTY_LIST) {
-            this.edges = new FastList<>();
+            this.edges = CollectionFactory.newList(CollectionImplType.EC);
         }
         this.edges.add(edge);
     }

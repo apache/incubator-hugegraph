@@ -169,8 +169,8 @@ public class ShortestPathTraverser extends HugeTraverser {
             long degree = this.skipDegree > 0L ? this.skipDegree : this.degree;
 
             this.record.startOneLayer(true);
-            while (this.record.hasNext()) {
-                Id source = this.record.next();
+            while (this.record.hasNextKey()) {
+                Id source = this.record.nextKey();
 
                 Iterator<Edge> edges = edgesOfVertex(source, this.direction,
                                                      this.labels, degree);
@@ -209,8 +209,8 @@ public class ShortestPathTraverser extends HugeTraverser {
             Directions opposite = this.direction.opposite();
 
             this.record.startOneLayer(false);
-            while (this.record.hasNext()) {
-                Id source = this.record.next();
+            while (this.record.hasNextKey()) {
+                Id source = this.record.nextKey();
 
                 Iterator<Edge> edges = edgesOfVertex(source, opposite,
                                                      this.labels, degree);

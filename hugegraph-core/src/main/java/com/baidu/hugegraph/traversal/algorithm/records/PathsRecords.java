@@ -37,21 +37,21 @@ import com.baidu.hugegraph.traversal.algorithm.HugeTraverser.Path;
 import com.baidu.hugegraph.util.collection.ObjectIntMapping;
 import com.google.common.collect.Lists;
 
-public class PathsRecord implements Record {
+public class PathsRecords implements Records {
 
-    private ObjectIntMapping idMapping;
+    private final ObjectIntMapping idMapping;
 
     private final Stack<IntObjectHashMap<IntHashSet>> sourceLayers;
     private final Stack<IntObjectHashMap<IntHashSet>> targetLayers;
 
     private IntObjectHashMap<IntHashSet> currentLayer;
-    private IntIterator iterator;
+    private IntIterator lastLayerKeys;
     private int current;
     private boolean forward;
 
     private int accessed;
 
-    public PathsRecord(Id sourceV, Id targetV) {
+    public PathsRecords(Id sourceV, Id targetV) {
 
         this.idMapping = new ObjectIntMapping();
 
@@ -72,7 +72,7 @@ public class PathsRecord implements Record {
     public void startOneLayer(boolean forward) {
         this.forward = forward;
         this.currentLayer = new IntObjectHashMap<>();
-        this.iterator = this.forward ?
+        this.lastLayerKeys = this.forward ?
                         this.sourceLayers.peek().keySet().intIterator() :
                         this.targetLayers.peek().keySet().intIterator();
     }
@@ -87,13 +87,13 @@ public class PathsRecord implements Record {
     }
 
     @Watched
-    public boolean hasNext() {
-        return this.iterator.hasNext();
+    public boolean hasNextKey() {
+        return this.lastLayerKeys.hasNext();
     }
 
     @Watched
-    public Id next() {
-        this.current = this.iterator.next();
+    public Id nextKey() {
+        this.current = this.lastLayerKeys.next();
         return this.id(current);
     }
 
@@ -106,10 +106,10 @@ public class PathsRecord implements Record {
         // If cross point exists, path found, concat them
         if (this.contains(targetCode)) {
             results = this.forward ?
-                      this.getPath(this.current, targetCode, ring) :
-                      this.getPath(targetCode, this.current, ring);
+                      this.concatPath(this.current, targetCode, ring) :
+                      this.concatPath(targetCode, this.current, ring);
         }
-        this.add(targetCode, this.current);
+        this.addPath(targetCode, this.current);
         return results;
     }
 
@@ -131,7 +131,7 @@ public class PathsRecord implements Record {
     }
 
     @Watched
-    private PathSet getPath(int source, int target, boolean ring) {
+    private PathSet concatPath(int source, int target, boolean ring) {
         PathSet results = new PathSet();
         PathSet sources = this.getSourcePath(source);
         PathSet targets = this.getTargetPath(target);
@@ -153,8 +153,8 @@ public class PathsRecord implements Record {
         return results;
     }
 
-    private PathSet getPath(Stack<IntObjectHashMap<IntHashSet>> all,
-                            int id, int layerIndex) {
+    private PathSet concatPath(Stack<IntObjectHashMap<IntHashSet>> all,
+                               int id, int layerIndex) {
         PathSet results = new PathSet();
         if (layerIndex == 0) {
             Id sid = this.id(id);
@@ -168,7 +168,7 @@ public class PathsRecord implements Record {
         IntIterator iterator = parents.intIterator();
         while (iterator.hasNext()) {
             int parent = iterator.next();
-            PathSet paths = this.getPath(all, parent, layerIndex - 1);
+            PathSet paths = this.concatPath(all, parent, layerIndex - 1);
             for (Iterator<Path> iter = paths.iterator(); iter.hasNext();) {
                 Path path = iter.next();
                 if (path.vertices().contains(sid)) {
@@ -184,17 +184,17 @@ public class PathsRecord implements Record {
     }
 
     private PathSet getSourcePath(int source) {
-        return this.getPath(this.sourceLayers, source,
-                            this.sourceLayers.size() - 1);
+        return this.concatPath(this.sourceLayers, source,
+                               this.sourceLayers.size() - 1);
     }
 
     private PathSet getTargetPath(int target) {
-        return this.getPath(this.targetLayers, target,
-                            this.targetLayers.size() - 1);
+        return this.concatPath(this.targetLayers, target,
+                               this.targetLayers.size() - 1);
     }
 
     @Watched
-    private void add(int current, int parent) {
+    private void addPath(int current, int parent) {
         if (this.currentLayer.containsKey(current)) {
             this.currentLayer.get(current).add(parent);
         } else {
