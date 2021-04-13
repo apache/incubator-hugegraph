@@ -124,7 +124,6 @@ public class StoreStateMachine extends StateMachineAdapter {
                 } else {
                     // Follower need readMutation data
                     byte[] bytes = iter.getData().array();
-                    // Follower seems no way to wait future
                     // Let the backend thread do it directly
                     futures.add(this.context.backendExecutor().submit(() -> {
                         BytesBuffer buffer = LZ4Util.decompress(bytes,
