@@ -287,6 +287,10 @@ public class RaftNode {
 
         // NOTE: Jraft itself doesn't have this callback, it's added by us
         public void onBusy(PeerId peer, Status status) {
+            /*
+             * If follower is busy then increase busy counter,
+             * it will lead to submit thread wait more time
+             */
             int count = RaftNode.this.busyCounter.incrementAndGet();
             LOG.info("Increase busy counter: [{}]", count);
         }

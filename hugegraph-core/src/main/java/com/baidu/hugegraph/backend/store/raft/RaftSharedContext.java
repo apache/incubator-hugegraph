@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
@@ -73,6 +74,7 @@ public final class RaftSharedContext {
     public static final int WAIT_RPC_TIMEOUT = 30 * 60 * 1000;
     // compress block size
     public static final int BLOCK_SIZE = 8192;
+    public static final int QUEUE_SIZE = 10;
 
     public static final String DEFAULT_GROUP = "default";
 
@@ -362,7 +364,7 @@ public final class RaftSharedContext {
     private static ExecutorService newPool(int coreThreads, int maxThreads,
                                            String name,
                                            RejectedExecutionHandler handler) {
-        BlockingQueue<Runnable> workQueue = new SynchronousQueue<>();
+        BlockingQueue<Runnable> workQueue = new ArrayBlockingQueue<>(QUEUE_SIZE);
         return ThreadPoolUtil.newBuilder()
                              .poolName(name)
                              .enableMetric(false)

@@ -259,7 +259,6 @@ public class StoreStateMachine extends StateMachineAdapter {
 
     @Override
     public void onError(final RaftException e) {
-        // If busy, spin and wait a moment
         LOG.error("Raft error: {}", e.getMessage(), e);
     }
 }
