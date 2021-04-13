@@ -17,22 +17,24 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.traversal.algorithm.records;
+package com.baidu.hugegraph.util.collection;
 
 import org.eclipse.collections.api.iterator.IntIterator;
 import org.eclipse.collections.impl.map.mutable.primitive.IntIntHashMap;
 
 public class Int2IntsMap {
 
-    private static final int INIT_KEY_CAPACITY = 1000000;
+    private static final int INIT_KEY_CAPACITY = 16;
     private static final int CHUNK_SIZE = 10;
-    private static final int POSITION_OFFSET = 0;
-    private static final int SIZE_OFFSET = 1;
-    private static final int FIRST_CHUNK_DATA_OFFSET = 2;
     private static final int EXPANSION_FACTOR = 2;
 
+    private static final int OFFSET_POSITION = 0;
+    private static final int OFFSET_SIZE = 1;
+    private static final int OFFSET_DATA_IN_FIRST_CHUNK = 2;
+
+
     /*
-     *  firstChunkMap         chunkTable
+     *  chunkMap         chunkTable
      *
      *   --------              ---------------
      *  | 1 | 0  |--------->0 |      33       | (nextPosition)
@@ -80,48 +82,48 @@ public class Int2IntsMap {
      *
      */
 
-    private IntIntHashMap firstChunkMap;
+    private IntIntHashMap chunkMap;
     private int[] chunkTable;
 
     private int nextChunk;
 
     public Int2IntsMap() {
-        this.firstChunkMap = new IntIntHashMap(INIT_KEY_CAPACITY);
+        this.chunkMap = new IntIntHashMap(INIT_KEY_CAPACITY);
         this.chunkTable = new int[INIT_KEY_CAPACITY * CHUNK_SIZE];
         this.nextChunk = 0;
     }
 
     public void add(int key, int value) {
-        if (this.firstChunkMap.containsKey(key)) {
-            int firstChunk = this.firstChunkMap.get(key);
-            int nextPosition = this.chunkTable[firstChunk + POSITION_OFFSET];
+        if (this.chunkMap.containsKey(key)) {
+            int firstChunk = this.chunkMap.get(key);
+            int nextPosition = this.chunkTable[firstChunk + OFFSET_POSITION];
             if (!this.endOfChunk(nextPosition)) {
                 chunkTable[nextPosition] = value;
-                this.chunkTable[firstChunk + POSITION_OFFSET]++;
+                this.chunkTable[firstChunk + OFFSET_POSITION]++;
             } else {
                 this.ensureCapacity();
 
                 this.chunkTable[nextPosition] = this.nextChunk;
 
                 this.chunkTable[this.nextChunk] = value;
-                this.chunkTable[firstChunk + POSITION_OFFSET] = this.nextChunk + 1;
+                this.chunkTable[firstChunk + OFFSET_POSITION] = this.nextChunk + 1;
 
                 // Update next block
                 this.nextChunk += CHUNK_SIZE;
             }
-            this.chunkTable[firstChunk + SIZE_OFFSET]++;
+            this.chunkTable[firstChunk + OFFSET_SIZE]++;
         } else {
             // New key, allocate 1st chunk and init
             this.ensureCapacity();
 
             // Allocate 1st chunk
-            this.firstChunkMap.put(key, this.nextChunk);
+            this.chunkMap.put(key, this.nextChunk);
 
             // Init first chunk
             this.chunkTable[this.nextChunk] = this.nextChunk +
-                                              FIRST_CHUNK_DATA_OFFSET + 1;
-            this.chunkTable[this.nextChunk + SIZE_OFFSET] = 1;
-            this.chunkTable[this.nextChunk + FIRST_CHUNK_DATA_OFFSET] = value;
+                    OFFSET_DATA_IN_FIRST_CHUNK + 1;
+            this.chunkTable[this.nextChunk + OFFSET_SIZE] = 1;
+            this.chunkTable[this.nextChunk + OFFSET_DATA_IN_FIRST_CHUNK] = value;
 
             // Update next block
             this.nextChunk += CHUNK_SIZE;
@@ -129,15 +131,15 @@ public class Int2IntsMap {
     }
 
     public boolean containsKey(int key) {
-        return this.firstChunkMap.containsKey(key);
+        return this.chunkMap.containsKey(key);
     }
 
     public int[] get(int key) {
-        int firstChunk = this.firstChunkMap.get(key);
-        int size = this.chunkTable[firstChunk + SIZE_OFFSET];
+        int firstChunk = this.chunkMap.get(key);
+        int size = this.chunkTable[firstChunk + OFFSET_SIZE];
         int[] values = new int[size];
         int i = 0;
-        int position = firstChunk + FIRST_CHUNK_DATA_OFFSET;
+        int position = firstChunk + OFFSET_DATA_IN_FIRST_CHUNK;
         while (i < size) {
             if (!this.endOfChunk(position)) {
                 values[i++] = this.chunkTable[position++];
@@ -149,11 +151,11 @@ public class Int2IntsMap {
     }
 
     public IntIterator keyIterator() {
-        return this.firstChunkMap.keySet().intIterator();
+        return this.chunkMap.keySet().intIterator();
     }
 
     public int size() {
-        return this.firstChunkMap.size();
+        return this.chunkMap.size();
     }
 
     private boolean endOfChunk(int position) {

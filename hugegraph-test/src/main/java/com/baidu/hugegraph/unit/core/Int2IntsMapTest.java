@@ -29,7 +29,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.baidu.hugegraph.testutil.Assert;
-import com.baidu.hugegraph.traversal.algorithm.records.Int2IntsMap;
+import com.baidu.hugegraph.util.collection.Int2IntsMap;
 
 public class Int2IntsMapTest {
 

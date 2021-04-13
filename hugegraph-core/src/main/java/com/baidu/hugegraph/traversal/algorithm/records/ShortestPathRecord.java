@@ -20,7 +20,6 @@
 package com.baidu.hugegraph.traversal.algorithm.records;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Stack;
 import java.util.function.Function;
@@ -36,13 +35,13 @@ import com.baidu.hugegraph.util.collection.ObjectIntMapping;
 
 public class ShortestPathRecord implements Records {
 
-    private ObjectIntMapping idMapping;
+    private final ObjectIntMapping idMapping;
 
     private final Stack<IntIntHashMap> sourceLayers;
     private final Stack<IntIntHashMap> targetLayers;
 
     private IntIntHashMap currentLayer;
-    private IntIterator iterator;
+    private IntIterator lastLayerKeys;
     private int current;
     private boolean forward;
 
@@ -74,10 +73,10 @@ public class ShortestPathRecord implements Records {
 
     public void startOneLayer(boolean forward) {
         this.forward = forward;
-        this.currentLayer = new IntIntHashMap();
-        this.iterator = this.forward ?
-                this.sourceLayers.peek().keySet().intIterator() :
-                this.targetLayers.peek().keySet().intIterator();
+        this.currentLayer = new IntIntHashMap(INIT_CAPACITY);
+        this.lastLayerKeys = this.forward ?
+                             this.sourceLayers.peek().keySet().intIterator() :
+                             this.targetLayers.peek().keySet().intIterator();
     }
 
     public void finishOneLayer() {
@@ -90,11 +89,11 @@ public class ShortestPathRecord implements Records {
     }
 
     public boolean hasNextKey() {
-        return this.iterator.hasNext();
+        return this.lastLayerKeys.hasNext();
     }
 
     public Id nextKey() {
-        this.current = this.iterator.next();
+        this.current = this.lastLayerKeys.next();
         return this.id(current);
     }
 
@@ -105,15 +104,14 @@ public class ShortestPathRecord implements Records {
         int targetCode = this.code(target);
         // If cross point exists, shortest path found, concat them
         if (this.contains(targetCode)) {
-            if (filter.apply(target)) {
+            if (!filter.apply(target)) {
                 return paths;
             }
 
-            Path path = this.forward ? this.getPath(this.current, targetCode) :
-                                       this.getPath(targetCode, this.current);
+            paths.add(this.forward ? this.linkPath(this.current, targetCode) :
+                                     this.linkPath(targetCode, this.current));
             this.foundPath = true;
             if (!all) {
-                paths.add(path);
                 return paths;
             }
         }
@@ -156,24 +154,30 @@ public class ShortestPathRecord implements Records {
         this.currentLayer.put(target, source);
     }
 
-    private Path getPath(int source, int target) {
-        int sourceLayerSize = this.sourceLayers.size();
-        int targetLayerSize = this.targetLayers.size();
+    private Path linkPath(int source, int target) {
+        Path sourcePath = this.linkSourcePath(source);
+        Path targetPath = this.linkTargetPath(target);
+        sourcePath.reverse();
+        List<Id> ids = new ArrayList<>(sourcePath.vertices());
+        ids.addAll(targetPath.vertices());
+        return new Path(ids);
+    }
 
-        List<Id> ids = new ArrayList<>(sourceLayerSize + targetLayerSize);
+    private Path linkSourcePath(int source) {
+        return this.linkPath(this.sourceLayers, source);
+    }
 
-        ids.add(this.id(source));
-        int value = source;
-        for (int i = sourceLayerSize - 1; i > 0 ; i--) {
-            IntIntHashMap layer = this.sourceLayers.elementAt(i);
-            value = layer.get(value);
-            ids.add(this.id(value));
-        }
-        Collections.reverse(ids);
-        ids.add(this.id(target));
-        value = target;
-        for (int i = this.targetLayers.size() - 1; i > 0 ; i--) {
-            IntIntHashMap layer = this.targetLayers.elementAt(i);
+    private Path linkTargetPath(int target) {
+        return this.linkPath(this.targetLayers, target);
+    }
+
+    private Path linkPath(Stack<IntIntHashMap> all, int node) {
+        int size = all.size();
+        List<Id> ids = new ArrayList<>(size);
+        ids.add(this.id(node));
+        int value = node;
+        for (int i = size - 1; i > 0 ; i--) {
+            IntIntHashMap layer = all.elementAt(i);
             value = layer.get(value);
             ids.add(this.id(value));
         }
