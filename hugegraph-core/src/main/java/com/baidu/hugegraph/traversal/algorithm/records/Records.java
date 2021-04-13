@@ -26,8 +26,6 @@ import com.baidu.hugegraph.traversal.algorithm.HugeTraverser.PathSet;
 
 public interface Records {
 
-    static final int INIT_CAPACITY = 16;
-
     public void startOneLayer(boolean forward);
 
     public void finishOneLayer();

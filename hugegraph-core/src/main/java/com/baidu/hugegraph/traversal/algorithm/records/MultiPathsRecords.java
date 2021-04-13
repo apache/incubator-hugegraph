@@ -38,58 +38,59 @@ import com.google.common.collect.Lists;
 public class MultiPathsRecords implements Records {
 
     private final ObjectIntMapping idMapping;
+    private final RecordType type;
 
-    private final Stack<Record> sourceLayers;
-    private final Stack<Record> targetLayers;
+    protected final Stack<Record> sourceRecords;
+    protected final Stack<Record> targetRecords;
 
-    private Record currentLayer;
-    private IntIterator lastLayerKeys;
-    private int current;
-    private boolean forward;
-
+    protected Record currentRecord;
+    private IntIterator lastRecordKeys;
+    protected int current;
+    protected boolean forward;
     private int accessed;
 
-    public MultiPathsRecords(Id sourceV, Id targetV) {
+    public MultiPathsRecords(Id sourceV, Id targetV, RecordType type) {
         this.idMapping = new ObjectIntMapping();
+        this.type = type;
 
         int sourceCode = this.code(sourceV);
         int targetCode = this.code(targetV);
-        Record firstSourceLayer = this.newLayer();
-        Record firstTargetLayer = this.newLayer();
-        firstSourceLayer.addPath(sourceCode, 0);
-        firstTargetLayer.addPath(targetCode, 0);
-        this.sourceLayers = new Stack<>();
-        this.targetLayers = new Stack<>();
-        this.sourceLayers.push(firstSourceLayer);
-        this.targetLayers.push(firstTargetLayer);
+        Record firstSourceRecord = this.newRecord();
+        Record firstTargetRecord = this.newRecord();
+        firstSourceRecord.addPath(sourceCode, 0);
+        firstTargetRecord.addPath(targetCode, 0);
+        this.sourceRecords = new Stack<>();
+        this.targetRecords = new Stack<>();
+        this.sourceRecords.push(firstSourceRecord);
+        this.targetRecords.push(firstTargetRecord);
 
         this.accessed = 2;
     }
 
     public void startOneLayer(boolean forward) {
         this.forward = forward;
-        this.currentLayer = newLayer();
-        this.lastLayerKeys = this.forward ? this.sourceLayers.peek().keys() :
-                                            this.targetLayers.peek().keys();
+        this.currentRecord = this.newRecord();
+        this.lastRecordKeys = this.forward ? this.sourceRecords.peek().keys() :
+                                             this.targetRecords.peek().keys();
     }
 
     public void finishOneLayer() {
         if (this.forward) {
-            this.sourceLayers.push(this.currentLayer);
+            this.sourceRecords.push(this.currentRecord);
         } else {
-            this.targetLayers.push(this.currentLayer);
+            this.targetRecords.push(this.currentRecord);
         }
-        this.accessed += this.currentLayer.size();
+        this.accessed += this.currentRecord.size();
     }
 
     @Watched
     public boolean hasNextKey() {
-        return this.lastLayerKeys.hasNext();
+        return this.lastRecordKeys.hasNext();
     }
 
     @Watched
     public Id nextKey() {
-        this.current = this.lastLayerKeys.next();
+        this.current = this.lastRecordKeys.next();
         return this.id(current);
     }
 
@@ -113,22 +114,21 @@ public class MultiPathsRecords implements Records {
         return this.accessed;
     }
 
-    private boolean contains(int node) {
+    protected boolean contains(int node) {
         return this.forward ? this.targetContains(node) :
                               this.sourceContains(node);
     }
 
     private boolean sourceContains(int node) {
-        return this.sourceLayers.peek().containsKey(node);
+        return this.sourceRecords.peek().containsKey(node);
     }
 
     private boolean targetContains(int node) {
-        return this.targetLayers.peek().containsKey(node);
+        return this.targetRecords.peek().containsKey(node);
     }
 
     @Watched
     private PathSet linkPath(int source, int target, boolean ring) {
-
         PathSet results = new PathSet();
         PathSet sources = this.linkSourcePath(source);
         PathSet targets = this.linkTargetPath(target);
@@ -151,13 +151,13 @@ public class MultiPathsRecords implements Records {
     }
 
     private PathSet linkSourcePath(int source) {
-        return this.linkPath(this.sourceLayers, source,
-                             this.sourceLayers.size() - 1);
+        return this.linkPath(this.sourceRecords, source,
+                             this.sourceRecords.size() - 1);
     }
 
     private PathSet linkTargetPath(int target) {
-        return this.linkPath(this.targetLayers, target,
-                             this.targetLayers.size() - 1);
+        return this.linkPath(this.targetRecords, target,
+                             this.targetRecords.size() - 1);
     }
 
     private PathSet linkPath(Stack<Record> all, int id, int layerIndex) {
@@ -189,21 +189,21 @@ public class MultiPathsRecords implements Records {
     }
 
     @Watched
-    private void addPath(int current, int parent) {
-        this.currentLayer.addPath(current, parent);
+    protected void addPath(int current, int parent) {
+        this.currentRecord.addPath(current, parent);
     }
 
     @Watched
-    private int code(Id id) {
+    protected int code(Id id) {
         return this.idMapping.object2Code(id);
     }
 
     @Watched
-    private Id id(int code) {
+    protected Id id(int code) {
         return (Id) this.idMapping.code2Object(code);
     }
 
-    public Record newLayer() {
-        return RecordFactory.newRecord();
+    private Record newRecord() {
+        return RecordFactory.newRecord(this.type);
     }
 }

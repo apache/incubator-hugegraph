@@ -30,18 +30,16 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.structure.HugeEdge;
-import com.baidu.hugegraph.traversal.algorithm.records.ShortestPathRecord;
+import com.baidu.hugegraph.traversal.algorithm.records.ShortestPathRecords;
 import com.baidu.hugegraph.traversal.algorithm.steps.EdgeStep;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
-import com.baidu.hugegraph.util.collection.ObjectIntMapping;
 import com.google.common.collect.ImmutableList;
 
 public class ShortestPathTraverser extends HugeTraverser {
 
     public ShortestPathTraverser(HugeGraph graph) {
         super(graph);
-        this.idMapping = new ObjectIntMapping();
     }
 
     @Watched
@@ -142,7 +140,7 @@ public class ShortestPathTraverser extends HugeTraverser {
 
     private class Traverser {
 
-        private ShortestPathRecord record;
+        private ShortestPathRecords record;
         private final Directions direction;
         private final Map<Id, String> labels;
         private final long degree;
@@ -152,7 +150,7 @@ public class ShortestPathTraverser extends HugeTraverser {
         public Traverser(Id sourceV, Id targetV, Directions dir,
                          Map<Id, String> labels, long degree,
                          long skipDegree, long capacity) {
-            this.record = new ShortestPathRecord(sourceV, targetV);
+            this.record = new ShortestPathRecords(sourceV, targetV);
             this.direction = dir;
             this.labels = labels;
             this.degree = degree;
@@ -221,7 +219,7 @@ public class ShortestPathTraverser extends HugeTraverser {
                     Id target = edge.id().otherVertexId();
 
                     PathSet paths = this.record.findPath(target,
-                                    t -> this.superNode(t, opposite),
+                                    t -> !this.superNode(t, opposite),
                                     all, false);
 
                     if (paths.isEmpty()) {

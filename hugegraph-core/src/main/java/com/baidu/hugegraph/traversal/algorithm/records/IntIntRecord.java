@@ -20,20 +20,19 @@
 package com.baidu.hugegraph.traversal.algorithm.records;
 
 import org.eclipse.collections.api.iterator.IntIterator;
+import org.eclipse.collections.impl.map.mutable.primitive.IntIntHashMap;
 
-import com.baidu.hugegraph.util.collection.Int2IntsMap;
+public class IntIntRecord implements Record {
 
-public class ArrayRecord implements Record {
+    private IntIntHashMap layer;
 
-    private Int2IntsMap layer;
-
-    public ArrayRecord() {
-        this.layer = new Int2IntsMap();
+    public IntIntRecord() {
+        this.layer = new IntIntHashMap();
     }
 
     @Override
     public IntIterator keys() {
-        return this.layer.keyIterator();
+        return this.layer.keySet().intIterator();
     }
 
     @Override
@@ -43,12 +42,12 @@ public class ArrayRecord implements Record {
 
     @Override
     public IntIterator get(int key) {
-        return new IntArrayIterator(this.layer.get(key));
+        return null;
     }
 
     @Override
     public void addPath(int node, int parent) {
-        this.layer.add(node, parent);
+        this.layer.put(node, parent);
     }
 
     @Override
@@ -56,24 +55,7 @@ public class ArrayRecord implements Record {
         return this.layer.size();
     }
 
-    public class IntArrayIterator implements IntIterator {
-
-        private int[] array;
-        private int index;
-
-        public IntArrayIterator(int[] array) {
-            this.array = array;
-            this.index = 0;
-        }
-
-        @Override
-        public int next() {
-            return this.array[index++];
-        }
-
-        @Override
-        public boolean hasNext() {
-            return this.index < this.array.length;
-        }
+    public IntIntHashMap layer() {
+        return this.layer;
     }
 }

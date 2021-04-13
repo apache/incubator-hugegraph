@@ -27,7 +27,9 @@ public enum  RecordType implements SerialEnum {
     ARRAY(1, "array"),
 
     // Eclipse Collection
-    SET(2, "set");
+    SET(2, "set"),
+
+    INT(3, "int");
 
     private final byte code;
     private final String name;

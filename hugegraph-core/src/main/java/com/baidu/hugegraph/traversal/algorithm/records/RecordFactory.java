@@ -21,16 +21,14 @@ package com.baidu.hugegraph.traversal.algorithm.records;
 
 public class RecordFactory {
 
-    public static Record newRecord() {
-        return new ArrayRecord();
-    }
-
     public static Record newRecord(RecordType type) {
         switch (type) {
             case ARRAY:
-                return new ArrayRecord();
+                return new IntArrayRecord();
             case SET:
                 return new IntSetRecord();
+            case INT:
+                return new IntIntRecord();
             default:
                 throw new AssertionError("Unsupported record type: " + type);
         }
