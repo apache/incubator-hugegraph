@@ -26,9 +26,9 @@ import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.RejectedExecutionHandler;
-import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 
 import org.apache.commons.io.FileUtils;
@@ -74,7 +74,7 @@ public final class RaftSharedContext {
     public static final int WAIT_RPC_TIMEOUT = 30 * 60 * 1000;
     // compress block size
     public static final int BLOCK_SIZE = 8192;
-    public static final int QUEUE_SIZE = 10;
+    public static final int QUEUE_SIZE = CoreOptions.CPUS;
 
     public static final String DEFAULT_GROUP = "default";
 
