@@ -33,6 +33,11 @@ public class Assert extends org.junit.Assert {
         void run() throws Throwable;
     }
 
+    @FunctionalInterface
+    public interface ThrowableConsumer<T> {
+        void accept(T t) throws Throwable;
+    }
+
     public static void assertThrows(Class<? extends Throwable> throwable,
                                     ThrowableRunnable runnable) {
         assertThrows(throwable, runnable, e -> {

@@ -49,6 +49,7 @@ import com.baidu.hugegraph.unit.license.LicenseManagerTest;
 import com.baidu.hugegraph.unit.license.LicenseVerifyParamTest;
 import com.baidu.hugegraph.unit.license.MachineInfoTest;
 import com.baidu.hugegraph.unit.perf.PerfUtilTest;
+import com.baidu.hugegraph.unit.perf.StopwatchTest;
 import com.baidu.hugegraph.unit.rest.RestClientTest;
 import com.baidu.hugegraph.unit.rest.RestResultTest;
 import com.baidu.hugegraph.unit.util.BytesTest;
@@ -83,6 +84,7 @@ import com.baidu.hugegraph.unit.version.VersionTest;
     BarrierEventTest.class,
     EventHubTest.class,
     PerfUtilTest.class,
+    StopwatchTest.class,
     RestClientTest.class,
     RestResultTest.class,
     VersionTest.class,

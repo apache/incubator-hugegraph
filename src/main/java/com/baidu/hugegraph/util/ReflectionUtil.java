@@ -98,13 +98,32 @@ public final class ReflectionUtil {
     public static List<String> superClasses(String clazz)
                                             throws NotFoundException {
         CtClass klass = ClassPool.getDefault().get(clazz);
-        klass = klass.getSuperclass();
+        CtClass parent = klass.getSuperclass();
 
         List<String> results = new LinkedList<>();
-        while (klass != null) {
-            results.add(klass.getName());
-            klass = klass.getSuperclass();
+        while (parent != null) {
+            results.add(parent.getName());
+            parent = parent.getSuperclass();
         }
         return Lists.reverse(results);
+    }
+
+    public static List<String> nestedClasses(String clazz)
+                                             throws NotFoundException {
+        CtClass klass = ClassPool.getDefault().get(clazz);
+
+        List<String> results = new LinkedList<>();
+        for (CtClass nested : klass.getNestedClasses()) {
+            results.add(nested.getName());
+        }
+        return results;
+    }
+
+    public static String packageName(String clazz) {
+        int offset = clazz.lastIndexOf(".");
+        if (offset > 0) {
+            return clazz.substring(0, offset);
+        }
+        return "";
     }
 }
