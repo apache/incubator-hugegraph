@@ -27,40 +27,37 @@ import java.util.function.Function;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.eclipse.collections.api.iterator.IntIterator;
-import org.eclipse.collections.impl.map.mutable.primitive.IntObjectHashMap;
-import org.eclipse.collections.impl.set.mutable.primitive.IntHashSet;
 
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
-import com.baidu.hugegraph.traversal.algorithm.HugeTraverser.PathSet;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser.Path;
+import com.baidu.hugegraph.traversal.algorithm.HugeTraverser.PathSet;
 import com.baidu.hugegraph.util.collection.ObjectIntMapping;
 import com.google.common.collect.Lists;
 
-public class MultiPathsBySetRecords implements Records {
+public class MultiPathsRecords implements Records {
 
     private final ObjectIntMapping idMapping;
 
-    private final Stack<IntObjectHashMap<IntHashSet>> sourceLayers;
-    private final Stack<IntObjectHashMap<IntHashSet>> targetLayers;
+    private final Stack<Record> sourceLayers;
+    private final Stack<Record> targetLayers;
 
-    private IntObjectHashMap<IntHashSet> currentLayer;
+    private Record currentLayer;
     private IntIterator lastLayerKeys;
     private int current;
     private boolean forward;
 
     private int accessed;
 
-    public MultiPathsBySetRecords(Id sourceV, Id targetV) {
-
+    public MultiPathsRecords(Id sourceV, Id targetV) {
         this.idMapping = new ObjectIntMapping();
 
         int sourceCode = this.code(sourceV);
         int targetCode = this.code(targetV);
-        IntObjectHashMap<IntHashSet> firstSourceLayer = new IntObjectHashMap<>();
-        IntObjectHashMap<IntHashSet> firstTargetLayer = new IntObjectHashMap<>();
-        firstSourceLayer.put(sourceCode, new IntHashSet());
-        firstTargetLayer.put(targetCode, new IntHashSet());
+        Record firstSourceLayer = this.newLayer();
+        Record firstTargetLayer = this.newLayer();
+        firstSourceLayer.addPath(sourceCode, 0);
+        firstTargetLayer.addPath(targetCode, 0);
         this.sourceLayers = new Stack<>();
         this.targetLayers = new Stack<>();
         this.sourceLayers.push(firstSourceLayer);
@@ -71,10 +68,9 @@ public class MultiPathsBySetRecords implements Records {
 
     public void startOneLayer(boolean forward) {
         this.forward = forward;
-        this.currentLayer = new IntObjectHashMap<>(INIT_CAPACITY);
-        this.lastLayerKeys = this.forward ?
-                             this.sourceLayers.peek().keySet().intIterator() :
-                             this.targetLayers.peek().keySet().intIterator();
+        this.currentLayer = newLayer();
+        this.lastLayerKeys = this.forward ? this.sourceLayers.peek().keys() :
+                                            this.targetLayers.peek().keys();
     }
 
     public void finishOneLayer() {
@@ -132,6 +128,7 @@ public class MultiPathsBySetRecords implements Records {
 
     @Watched
     private PathSet linkPath(int source, int target, boolean ring) {
+
         PathSet results = new PathSet();
         PathSet sources = this.linkSourcePath(source);
         PathSet targets = this.linkTargetPath(target);
@@ -163,8 +160,7 @@ public class MultiPathsBySetRecords implements Records {
                              this.targetLayers.size() - 1);
     }
 
-    private PathSet linkPath(Stack<IntObjectHashMap<IntHashSet>> all,
-                             int id, int layerIndex) {
+    private PathSet linkPath(Stack<Record> all, int id, int layerIndex) {
         PathSet results = new PathSet();
         if (layerIndex == 0) {
             Id sid = this.id(id);
@@ -173,9 +169,8 @@ public class MultiPathsBySetRecords implements Records {
         }
 
         Id sid = this.id(id);
-        IntObjectHashMap<IntHashSet> layer = all.elementAt(layerIndex);
-        IntHashSet parents = layer.get(id);
-        IntIterator iterator = parents.intIterator();
+        Record layer = all.elementAt(layerIndex);
+        IntIterator iterator = layer.get(id);
         while (iterator.hasNext()) {
             int parent = iterator.next();
             PathSet paths = this.linkPath(all, parent, layerIndex - 1);
@@ -195,11 +190,7 @@ public class MultiPathsBySetRecords implements Records {
 
     @Watched
     private void addPath(int current, int parent) {
-        if (this.currentLayer.containsKey(current)) {
-            this.currentLayer.get(current).add(parent);
-        } else {
-            this.currentLayer.put(current, IntHashSet.newSetWith(parent));
-        }
+        this.currentLayer.addPath(current, parent);
     }
 
     @Watched
@@ -210,5 +201,9 @@ public class MultiPathsBySetRecords implements Records {
     @Watched
     private Id id(int code) {
         return (Id) this.idMapping.code2Object(code);
+    }
+
+    public Record newLayer() {
+        return RecordFactory.newRecord();
     }
 }
