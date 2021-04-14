@@ -493,7 +493,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
 
             // Optimize RocksDB
             if (optimize) {
-                int processors = Runtime.getRuntime().availableProcessors();
+                int processors = CoreOptions.CPUS;
                 db.setIncreaseParallelism(Math.max(processors / 2, 1));
 
                 db.setAllowConcurrentMemtableWrite(true);

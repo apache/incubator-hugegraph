@@ -30,13 +30,13 @@ import com.baidu.hugegraph.util.Bytes;
 
 public class CoreOptions extends OptionHolder {
 
+    public static final int CPUS = Runtime.getRuntime().availableProcessors();
+
     private CoreOptions() {
         super();
     }
 
     private static volatile CoreOptions instance;
-
-    private static final int CPUS = Runtime.getRuntime().availableProcessors();
 
     public static synchronized CoreOptions instance() {
         if (instance == null) {

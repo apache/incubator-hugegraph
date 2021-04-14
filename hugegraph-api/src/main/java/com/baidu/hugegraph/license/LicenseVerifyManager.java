@@ -29,6 +29,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
+import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.core.GraphManager;
@@ -218,7 +219,7 @@ public class LicenseVerifyManager extends CommonLicenseManager {
         if (expectCpus == NO_LIMIT) {
             return;
         }
-        int actualCpus = Runtime.getRuntime().availableProcessors();
+        int actualCpus = CoreOptions.CPUS;
         if (actualCpus > expectCpus) {
             throw newLicenseException(
                   "The server's cpus '%s' exceeded the limit '%s'",

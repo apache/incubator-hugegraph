@@ -71,7 +71,7 @@ public class ServerOptions extends OptionHolder {
                     "restserver.max_worker_threads",
                     "The maxmium worker threads of rest server.",
                     rangeInt(2, Integer.MAX_VALUE),
-                    2 * Runtime.getRuntime().availableProcessors()
+                    2 * CoreOptions.CPUS
             );
 
     public static final ConfigOption<Integer> MIN_FREE_MEMORY =
@@ -132,7 +132,7 @@ public class ServerOptions extends OptionHolder {
                     "gremlinserver.max_route",
                     "The max route number for gremlin server.",
                     positiveInt(),
-                    2 * Runtime.getRuntime().availableProcessors()
+                    2 * CoreOptions.CPUS
             );
 
     public static final ConfigListOption<String> GRAPHS =

@@ -37,12 +37,12 @@ import java.util.function.Consumer;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
+import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.task.TaskManager.ContextCallable;
 
 public final class Consumers<V> {
 
-    public static final int CPUS = Runtime.getRuntime().availableProcessors();
-    public static final int THREADS = 4 + CPUS / 4;
+    public static final int THREADS = 4 + CoreOptions.CPUS / 4;
     public static final int QUEUE_WORKER_SIZE = 1000;
     public static final long CONSUMER_WAKE_PERIOD = 1;
 
@@ -240,8 +240,8 @@ public final class Consumers<V> {
             if (workers < 0) {
                 assert workers == -1;
                 workers = Consumers.THREADS;
-            } else if (workers > Consumers.CPUS * 2) {
-                workers = Consumers.CPUS * 2;
+            } else if (workers > CoreOptions.CPUS * 2) {
+                workers = CoreOptions.CPUS * 2;
             }
             String name = prefix + "-worker-%d";
             return ExecutorUtil.newFixedThreadPool(workers, name);
@@ -262,7 +262,7 @@ public final class Consumers<V> {
 
     public static class ExecutorPool {
 
-        private final static int POOL_CAPACITY = 2 * CPUS;
+        private final static int POOL_CAPACITY = 2 * CoreOptions.CPUS;
 
         private final String threadNamePrefix;
         private final int executorWorkers;
