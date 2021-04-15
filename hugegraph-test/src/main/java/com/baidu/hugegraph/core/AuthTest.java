@@ -109,8 +109,8 @@ public class AuthTest extends BaseCoreTest {
         HugeUser user = new HugeUser("james");
         user.password("pass2");
         user.phone("13812345678");
-        user.email("test@baidu.com");
-        user.avatar("http://image.baidu.com/image1");
+        user.email("test@hugegraph.com");
+        user.avatar("http://image.hugegraph.com/image1");
         user.creator("admin");
 
         Id id = authManager.createUser(user);
@@ -120,8 +120,8 @@ public class AuthTest extends BaseCoreTest {
         Assert.assertEquals("pass2", user.password());
         Assert.assertEquals(user.create(), user.update());
         Assert.assertEquals("13812345678", user.phone());
-        Assert.assertEquals("test@baidu.com", user.email());
-        Assert.assertEquals("http://image.baidu.com/image1", user.avatar());
+        Assert.assertEquals("test@hugegraph.com", user.email());
+        Assert.assertEquals("http://image.hugegraph.com/image1", user.avatar());
 
         Map<String, Object> expected = new HashMap<>();
         expected.put("user_name", "james");
