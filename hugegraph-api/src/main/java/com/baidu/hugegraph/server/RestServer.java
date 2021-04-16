@@ -203,7 +203,8 @@ public class RestServer {
         }
         LOG.info("The maximum batch writing threads is {} (total threads {})",
                  maxWriteThreads, maxWorkerThreads);
-        this.conf.addProperty(ServerOptions.MAX_WRITE_THREADS.name(),
+        // NOTE: addProperty will make exist option's value become List
+        this.conf.setProperty(ServerOptions.MAX_WRITE_THREADS.name(),
                               String.valueOf(maxWriteThreads));
     }
 
