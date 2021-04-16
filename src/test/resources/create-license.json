@@ -1,8 +1,8 @@
 {
   "subject": "hugegraph-evaluation",
   "private_alias": "privatekey",
-  "key_password": "private_password123456",
-  "store_password": "public_password123456",
+  "key_ticket": "a123456",
+  "store_ticket": "a123456",
   "privatekey_path": "src/test/resources/privateKeys.store",
   "license_path": "src/test/resources/hugegraph-evaluation.license",
   "issued_time": "2019-08-01 00:00:00",

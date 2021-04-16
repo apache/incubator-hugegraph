@@ -6,7 +6,7 @@
 
     <groupId>com.baidu.hugegraph</groupId>
     <artifactId>hugegraph-common</artifactId>
-    <version>1.8.6</version>
+    <version>1.8.7</version>
 
     <name>hugegraph-common</name>
     <url>https://github.com/hugegraph/hugegraph-common</url>
@@ -287,7 +287,7 @@
                         <manifestEntries>
                             <!-- Must be on one line, otherwise the automatic
                                  upgrade script cannot replace the version number -->
-                            <Implementation-Version>1.8.6.0</Implementation-Version>
+                            <Implementation-Version>1.8.7.0</Implementation-Version>
                         </manifestEntries>
                     </archive>
                 </configuration>

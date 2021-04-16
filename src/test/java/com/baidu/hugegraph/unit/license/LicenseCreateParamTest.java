@@ -37,8 +37,8 @@ public class LicenseCreateParamTest {
         String json = "{"
                 + "\"subject\":\"hugegraph-evaluation\","
                 + "\"private_alias\":\"privatekey\","
-                + "\"key_password\":\"123456\","
-                + "\"store_password\":\"123456\","
+                + "\"key_ticket\":\"a123456\","
+                + "\"store_ticket\":\"a123456\","
                 + "\"privatekey_path\":\"./privateKeys.store\","
                 + "\"license_path\":\"./hugegraph-evaluation.license\","
                 + "\"issued_time\":\"2019-08-10 00:00:00\","
@@ -85,8 +85,8 @@ public class LicenseCreateParamTest {
                                                     LicenseCreateParam.class);
         Assert.assertEquals("hugegraph-evaluation", param.subject());
         Assert.assertEquals("privatekey", param.privateAlias());
-        Assert.assertEquals("123456", param.keyPassword());
-        Assert.assertEquals("123456", param.storePassword());
+        Assert.assertEquals("a123456", param.keyPassword());
+        Assert.assertEquals("a123456", param.storePassword());
         Assert.assertEquals("./privateKeys.store", param.privateKeyPath());
         Assert.assertEquals("./hugegraph-evaluation.license",
                             param.licensePath());

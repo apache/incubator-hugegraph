@@ -34,7 +34,7 @@ public class LicenseVerifyParamTest {
         String json = "{"
                 + "\"subject\":\"hugegraph-evaluation\","
                 + "\"public_alias\":\"publiccert\","
-                + "\"store_password\":\"123456\","
+                + "\"store_ticket\":\"a123456\","
                 + "\"publickey_path\":\"./publicCerts.store\","
                 + "\"license_path\":\"./hugegraph-evaluation.license\""
                 + "}";
@@ -43,7 +43,7 @@ public class LicenseVerifyParamTest {
                                                     LicenseVerifyParam.class);
         Assert.assertEquals("hugegraph-evaluation", param.subject());
         Assert.assertEquals("publiccert", param.publicAlias());
-        Assert.assertEquals("123456", param.storePassword());
+        Assert.assertEquals("a123456", param.storePassword());
         Assert.assertEquals("./publicCerts.store", param.publicKeyPath());
         Assert.assertEquals("./hugegraph-evaluation.license",
                             param.licensePath());

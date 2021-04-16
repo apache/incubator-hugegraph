@@ -24,6 +24,7 @@ import java.util.List;
 
 import org.apache.commons.lang3.time.DateUtils;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -35,9 +36,11 @@ public class LicenseCreateParam {
     @JsonProperty("private_alias")
     private String privateAlias;
 
+    @JsonAlias("key_ticket")
     @JsonProperty("key_password")
     private String keyPassword;
 
+    @JsonAlias("store_ticket")
     @JsonProperty("store_password")
     private String storePassword;
 

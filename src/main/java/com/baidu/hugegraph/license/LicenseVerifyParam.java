@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.license;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class LicenseVerifyParam {
@@ -29,6 +30,7 @@ public class LicenseVerifyParam {
     @JsonProperty("public_alias")
     private String publicAlias;
 
+    @JsonAlias("store_ticket")
     @JsonProperty("store_password")
     private String storePassword;
 
