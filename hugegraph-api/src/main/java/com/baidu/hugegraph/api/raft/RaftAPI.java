@@ -54,7 +54,7 @@ public class RaftAPI extends API {
 
     @GET
     @Timed
-    @Path("list-peers")
+    @Path("list_peers")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin"})
@@ -66,14 +66,14 @@ public class RaftAPI extends API {
         LOG.debug("Graph [{}] prepare to get leader", graph);
 
         HugeGraph g = graph(manager, graph);
-        RaftGroupManager raftManager = raftGroupManager(g, group, "list-peers");
+        RaftGroupManager raftManager = raftGroupManager(g, group, "list_peers");
         List<String> peers = raftManager.listPeers();
         return ImmutableMap.of(raftManager.group(), peers);
     }
 
     @GET
     @Timed
-    @Path("get-leader")
+    @Path("get_leader")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin"})
@@ -85,7 +85,7 @@ public class RaftAPI extends API {
         LOG.debug("Graph [{}] prepare to get leader", graph);
 
         HugeGraph g = graph(manager, graph);
-        RaftGroupManager raftManager = raftGroupManager(g, group, "get-leader");
+        RaftGroupManager raftManager = raftGroupManager(g, group, "get_leader");
         String leaderId = raftManager.getLeader();
         return ImmutableMap.of(raftManager.group(), leaderId);
     }
@@ -93,7 +93,7 @@ public class RaftAPI extends API {
     @POST
     @Timed
     @Status(Status.OK)
-    @Path("transfer-leader")
+    @Path("transfer_leader")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin"})
@@ -109,7 +109,7 @@ public class RaftAPI extends API {
 
         HugeGraph g = graph(manager, graph);
         RaftGroupManager raftManager = raftGroupManager(g, group,
-                                                        "transfer-leader");
+                                                        "transfer_leader");
         String leaderId = raftManager.transferLeaderTo(endpoint);
         return ImmutableMap.of(raftManager.group(), leaderId);
     }
@@ -117,7 +117,7 @@ public class RaftAPI extends API {
     @POST
     @Timed
     @Status(Status.OK)
-    @Path("set-leader")
+    @Path("set_leader")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin"})
@@ -132,7 +132,7 @@ public class RaftAPI extends API {
                   graph, endpoint);
 
         HugeGraph g = graph(manager, graph);
-        RaftGroupManager raftManager = raftGroupManager(g, group, "set-leader");
+        RaftGroupManager raftManager = raftGroupManager(g, group, "set_leader");
         String leaderId = raftManager.setLeader(endpoint);
         return ImmutableMap.of(raftManager.group(), leaderId);
     }
@@ -140,7 +140,7 @@ public class RaftAPI extends API {
     @POST
     @Timed
     @Status(Status.OK)
-    @Path("add-peer")
+    @Path("add_peer")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin"})
@@ -154,7 +154,7 @@ public class RaftAPI extends API {
         LOG.debug("Graph [{}] prepare to add peer: {}", graph, endpoint);
 
         HugeGraph g = graph(manager, graph);
-        RaftGroupManager raftManager = raftGroupManager(g, group, "add-peer");
+        RaftGroupManager raftManager = raftGroupManager(g, group, "add_peer");
         String peerId = raftManager.addPeer(endpoint);
         return ImmutableMap.of(raftManager.group(), peerId);
     }
@@ -162,7 +162,7 @@ public class RaftAPI extends API {
     @POST
     @Timed
     @Status(Status.OK)
-    @Path("remove-peer")
+    @Path("remove_peer")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin"})
@@ -177,7 +177,7 @@ public class RaftAPI extends API {
 
         HugeGraph g = graph(manager, graph);
         RaftGroupManager raftManager = raftGroupManager(g, group,
-                                                        "remove-peer");
+                                                        "remove_peer");
         String peerId = raftManager.removePeer(endpoint);
         return ImmutableMap.of(raftManager.group(), peerId);
     }

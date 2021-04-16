@@ -121,7 +121,7 @@ public class RaftGroupManagerImpl implements RaftGroupManager {
     @Override
     public String addPeer(String endpoint) {
         E.checkArgument(this.raftNode.selfIsLeader(),
-                        "Operation add-peer can only be executed on leader");
+                        "Operation add_peer can only be executed on leader");
         PeerId peerId = PeerId.parsePeer(endpoint);
         RaftClosure<?> future = new RaftClosure<>();
         try {
@@ -136,7 +136,7 @@ public class RaftGroupManagerImpl implements RaftGroupManager {
     @Override
     public String removePeer(String endpoint) {
         E.checkArgument(this.raftNode.selfIsLeader(),
-                        "Operation add-peer can only be executed on leader");
+                        "Operation add_peer can only be executed on leader");
         PeerId peerId = PeerId.parsePeer(endpoint);
         RaftClosure<?> future = new RaftClosure<>();
         try {
