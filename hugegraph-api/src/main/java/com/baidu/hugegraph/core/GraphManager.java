@@ -36,10 +36,10 @@ import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.auth.AuthManager;
 import com.baidu.hugegraph.auth.HugeAuthenticator;
 import com.baidu.hugegraph.auth.HugeFactoryAuthProxy;
 import com.baidu.hugegraph.auth.HugeGraphAuthProxy;
-import com.baidu.hugegraph.auth.AuthManager;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.cache.Cache;
 import com.baidu.hugegraph.backend.cache.CacheManager;
@@ -173,13 +173,20 @@ public final class GraphManager {
     }
 
     private void startRpcServer() {
+        if (!this.rpcServer.enabled()) {
+            LOG.info("RpcServer is not enabled, skip starting rpc service");
+            return;
+        }
+
         RpcProviderConfig serverConfig = this.rpcServer.config();
 
+        // Start auth rpc service if authenticator enabled
         if (this.authenticator != null) {
             serverConfig.addService(AuthManager.class,
                                     this.authenticator.authManager());
         }
 
+        // Start graph rpc service if RPC_REMOTE_URL enabled
         if (this.rpcClient.enabled()) {
             RpcConsumerConfig clientConfig = this.rpcClient.config();
 
@@ -198,7 +205,11 @@ public final class GraphManager {
     }
 
     private void destroyRpcServer() {
-        this.rpcServer.destroy();
+        try {
+            this.rpcClient.destroy();
+        } finally {
+            this.rpcServer.destroy();
+        }
     }
 
     private HugeAuthenticator authenticator() {

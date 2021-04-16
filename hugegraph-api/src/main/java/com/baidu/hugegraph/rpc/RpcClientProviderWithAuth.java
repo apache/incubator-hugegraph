@@ -19,28 +19,28 @@
 
 package com.baidu.hugegraph.rpc;
 
-import java.util.Map;
-
-import com.alipay.sofa.rpc.common.RpcConfigs;
+import com.alipay.sofa.rpc.common.utils.StringUtils;
+import com.baidu.hugegraph.auth.AuthManager;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
+import com.baidu.hugegraph.util.E;
 
-public class RpcCommonConfig {
+public class RpcClientProviderWithAuth extends RpcClientProvider {
 
-    public static void initRpcConfigs(HugeConfig conf) {
-        RpcConfigs.putValue("rpc.config.order",
-                            conf.get(ServerOptions.RPC_CONFIG_ORDER));
-        RpcConfigs.putValue("logger.impl",
-                            conf.get(ServerOptions.RPC_LOGGER_IMPL));
+    private final RpcConsumerConfig authConsumerConfig;
+
+    public RpcClientProviderWithAuth(HugeConfig config) {
+        super(config);
+
+        String authUrl = config.get(ServerOptions.AUTH_REMOTE_URL);
+        this.authConsumerConfig = StringUtils.isNotBlank(authUrl) ?
+                                  new RpcConsumerConfig(config, authUrl) : null;
     }
 
-    public static void initRpcConfigs(String key, Object value) {
-        RpcConfigs.putValue(key, value);
-    }
-
-    public static void initRpcConfigs(Map<String, Object> conf) {
-        for(Map.Entry<String, Object> entry : conf.entrySet()) {
-            RpcConfigs.putValue(entry.getKey(), entry.getValue());
-        }
+    public AuthManager authManager() {
+        E.checkArgument(this.authConsumerConfig != null,
+                        "RpcClient is not enabled, please config option '%s'",
+                        ServerOptions.AUTH_REMOTE_URL.name());
+        return this.authConsumerConfig.serviceProxy(AuthManager.class);
     }
 }
