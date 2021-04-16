@@ -24,7 +24,6 @@ import java.util.Queue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -33,6 +32,7 @@ import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraphParams;
+import com.baidu.hugegraph.concurrent.PausableScheduledThreadPool;
 import com.baidu.hugegraph.util.Consumers;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.ExecutorUtil;
@@ -59,7 +59,7 @@ public final class TaskManager {
     private final ExecutorService taskExecutor;
     private final ExecutorService taskDbExecutor;
     private final ExecutorService serverInfoDbExecutor;
-    private final ScheduledExecutorService schedulerExecutor;
+    private final PausableScheduledThreadPool schedulerExecutor;
 
     public static TaskManager instance() {
         return MANAGER;
@@ -76,7 +76,7 @@ public final class TaskManager {
         this.serverInfoDbExecutor = ExecutorUtil.newFixedThreadPool(
                                     1, SERVER_INFO_DB_WORKER);
         // For schedule task to run, just one thread is ok
-        this.schedulerExecutor = ExecutorUtil.newScheduledThreadPool(
+        this.schedulerExecutor = ExecutorUtil.newPausableScheduledThreadPool(
                                  1, TASK_SCHEDULER);
         // Start after 10s waiting for HugeGraphServer startup
         this.schedulerExecutor.scheduleWithFixedDelay(this::scheduleOrExecuteJob,
@@ -153,6 +153,14 @@ public final class TaskManager {
         } catch (Exception e) {
             throw new HugeException("Exception when closing scheduler tx", e);
         }
+    }
+
+    public void pauseScheduledThreadPool() {
+        this.schedulerExecutor.pauseSchedule();
+    }
+
+    public void resumeScheduledThreadPool() {
+        this.schedulerExecutor.resumeSchedule();
     }
 
     public TaskScheduler getScheduler(HugeGraphParams graph) {
