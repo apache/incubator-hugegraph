@@ -17,12 +17,12 @@ LOG_PATH=${HOME_PATH}/logs
 function print_usage() {
     echo "usage: raft-tools.sh [options]"
     echo "options: "
-    echo "  -l,--list_peers \${graph} \${group}                    list all peers' endpoints for graph, can be used on leader or follower node"
-    echo "  -g,--get_leader \${graph} \${group}                    get the leader endpoint for graph, can be used on leader or follower node"
-    echo "  -s,--set_leader \${graph} \${group} \${endpoint}        set the leader endpoint for graph, can be used on leader or follower node"
-    echo "  -t,--transfer_leader \${graph} \${group} \${endpoint}   transfer leader to specified endpoint for graph, can be used on leader node"
-    echo "  -a,--add_peer \${graph} \${group} \${endpoint}          add peer for graph, can be used on leader node"
-    echo "  -r,--remove_peer \${graph} \${group} \${endpoint}       remove peer for graph, can be used on leader node"
+    echo "  -l,--list-peers \${graph} \${group}                    list all peers' endpoints for graph, can be used on leader or follower node"
+    echo "  -g,--get-leader \${graph} \${group}                    get the leader endpoint for graph, can be used on leader or follower node"
+    echo "  -s,--set-leader \${graph} \${group} \${endpoint}        set the leader endpoint for graph, can be used on leader or follower node"
+    echo "  -t,--transfer-leader \${graph} \${group} \${endpoint}   transfer leader to specified endpoint for graph, can be used on leader node"
+    echo "  -a,--add-peer \${graph} \${group} \${endpoint}          add peer for graph, can be used on leader node"
+    echo "  -r,--remove-peer \${graph} \${group} \${endpoint}       remove peer for graph, can be used on leader node"
     echo "  -h,--help                                            display help information"
 }
 
@@ -91,28 +91,28 @@ case $1 in
     --help|-h)
     print_usage
     ;;
-    # list_peers
-    --list_peers|-l)
+    # list-peers
+    --list-peers|-l)
     list_peers $2
     ;;
-    # get_leader
-    --get_leader|-g)
+    # get-leader
+    --get-leader|-g)
     get_leader $2
     ;;
-    # set_leader
-    --set_leader|-s)
+    # set-leader
+    --set-leader|-s)
     set_leader $2 $3
     ;;
-    # transfer_leader
-    --transfer_leader|-t)
+    # transfer-leader
+    --transfer-leader|-t)
     transfer_leader $2 $3
     ;;
-    # add_peer
-    --add_peer|-a)
+    # add-peer
+    --add-peer|-a)
     add_peer $2 $3
     ;;
-    # remove_peer
-    --remove_peer|-r)
+    # remove-peer
+    --remove-peer|-r)
     remove_peer $2 $3
     ;;
     *)
