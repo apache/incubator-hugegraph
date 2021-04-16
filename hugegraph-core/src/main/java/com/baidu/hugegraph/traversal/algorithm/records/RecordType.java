@@ -21,7 +21,7 @@ package com.baidu.hugegraph.traversal.algorithm.records;
 
 import com.baidu.hugegraph.type.define.SerialEnum;
 
-public enum  RecordType implements SerialEnum {
+public enum RecordType implements SerialEnum {
 
     // Java Collection Framework
     ARRAY(1, "array"),

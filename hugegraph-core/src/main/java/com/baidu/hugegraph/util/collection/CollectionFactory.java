@@ -36,6 +36,7 @@ import org.eclipse.collections.impl.set.mutable.UnifiedSet;
 
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.type.define.CollectionImplType;
+import com.baidu.hugegraph.util.E;
 
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
@@ -213,6 +214,42 @@ public class CollectionFactory {
     public static <V> MutableIntObjectMap<V> newIntObjectMap(
                                              IntObjectMap<? extends V> map) {
         return new IntObjectHashMap<>(map);
+    }
+
+    public static <V> MutableIntObjectMap<V> newIntObjectMap(
+                                             int key1, V value1) {
+        return IntObjectHashMap.newWithKeysValues(key1, value1);
+    }
+
+    public static <V> MutableIntObjectMap<V> newIntObjectMap(
+                                             int key1, V value1,
+                                             int key2, V value2) {
+        return IntObjectHashMap.newWithKeysValues(key1, value1, key2, value2);
+    }
+
+    public static <V> MutableIntObjectMap<V> newIntObjectMap(
+                                             int key1, V value1,
+                                             int key2, V value2,
+                                             int key3, V value3) {
+        return IntObjectHashMap.newWithKeysValues(key1, value1, key2, value2,
+                                                  key3, value3);
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <V> MutableIntObjectMap<V> newIntObjectMap(
+                                             int key1, V value1,
+                                             int key2, V value2,
+                                             int key3, V value3,
+                                             Object... objects) {
+        IntObjectHashMap<V> map = IntObjectHashMap.newWithKeysValues(
+                                  key1, value1, key2, value2, key3, value3);
+        E.checkArgument(objects.length % 2 == 0,
+                        "Must provide even arguments for " +
+                        "CollectionFactory.newIntObjectMap");
+        for (int i = 0; i < objects.length; i+=2) {
+            map.put((int) objects[i], (V) objects[i + 1]);
+        }
+        return map;
     }
 
     public Set<Id> newIdSet() {

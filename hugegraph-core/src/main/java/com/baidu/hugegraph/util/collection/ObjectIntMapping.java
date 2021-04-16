@@ -25,23 +25,25 @@ import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 
-public final class ObjectIntMapping {
+public final class ObjectIntMapping<V> {
 
     private static final int MAGIC = 1 << 16;
-    private final IntObjectHashMap int2IdMap;
+    private final IntObjectHashMap<V> int2IdMap;
 
     public ObjectIntMapping() {
-        this.int2IdMap = new IntObjectHashMap(1000000);
+        this.int2IdMap = new IntObjectHashMap<>(1000000);
     }
 
     @Watched
+    @SuppressWarnings("unchecked")
     public int object2Code(Object object) {
         int key = object.hashCode();
+        // TODO: improve hash algorithm
         for (int i = 1; i > 0; i <<= 1) {
             for (int j = 0; i >= MAGIC && j < 10; j++) {
                 Id existed = (Id) this.int2IdMap.get(key);
                 if (existed == null) {
-                    this.int2IdMap.put(key, object);
+                    this.int2IdMap.put(key, (V) object);
                     return key;
                 }
                 if (existed.equals(object)) {

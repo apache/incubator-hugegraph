@@ -71,7 +71,6 @@ public class HugeTraverser {
     private HugeGraph graph;
 
     private static CollectionFactory collectionFactory;
-    protected ObjectIntMapping idMapping;
 
     public static final String DEFAULT_CAPACITY = "10000000";
     public static final String DEFAULT_ELEMENTS_LIMIT = "10000000";
@@ -92,7 +91,9 @@ public class HugeTraverser {
 
     public HugeTraverser(HugeGraph graph) {
         this.graph = graph;
-        collectionFactory = new CollectionFactory(this.collectionImplType());
+        if (collectionFactory == null) {
+            collectionFactory = new CollectionFactory(this.collectionImplType());
+        }
     }
 
     public HugeGraph graph() {
@@ -507,16 +508,6 @@ public class HugeTraverser {
         return path;
     }
 
-    @Watched
-    protected Id id(int code) {
-        return (Id) this.idMapping.code2Object(code);
-    }
-
-    @Watched
-    protected int code(Id id) {
-        return this.idMapping.object2Code(id);
-    }
-
     public static class Node {
 
         private Id id;
@@ -716,10 +707,7 @@ public class HugeTraverser {
             this.paths.clear();
         }
 
-        public boolean addAll(PathSet paths) {
-            return this.paths.addAll(paths.paths);
-        }
-
+        @Override
         public boolean isEmpty() {
             return this.paths.isEmpty();
         }
@@ -729,14 +717,12 @@ public class HugeTraverser {
             return this.paths.contains(o);
         }
 
+        @Override
         public int size() {
             return this.paths.size();
         }
 
-        public Set<Path> paths() {
-            return this.paths;
-        }
-
+        @Override
         public Iterator<Path> iterator() {
             return this.paths.iterator();
         }
@@ -749,6 +735,10 @@ public class HugeTraverser {
         @Override
         public <T> T[] toArray(T[] a) {
             return this.paths.toArray(a);
+        }
+
+        public boolean addAll(PathSet paths) {
+            return this.paths.addAll(paths.paths);
         }
 
         public Set<Id> vertices() {

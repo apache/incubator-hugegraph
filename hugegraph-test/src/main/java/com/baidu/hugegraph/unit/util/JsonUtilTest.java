@@ -25,7 +25,6 @@ import java.util.UUID;
 
 import org.apache.tinkerpop.shaded.jackson.core.type.TypeReference;
 import org.eclipse.collections.api.map.primitive.MutableIntObjectMap;
-import org.eclipse.collections.impl.map.mutable.primitive.IntObjectHashMap;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -54,6 +53,7 @@ import com.baidu.hugegraph.type.define.IndexType;
 import com.baidu.hugegraph.unit.BaseUnitTest;
 import com.baidu.hugegraph.unit.FakeObjects;
 import com.baidu.hugegraph.util.JsonUtil;
+import com.baidu.hugegraph.util.collection.CollectionFactory;
 import com.google.common.collect.ImmutableList;
 
 public class JsonUtilTest extends BaseUnitTest {
@@ -235,7 +235,7 @@ public class JsonUtilTest extends BaseUnitTest {
         HugeVertex vertex = new HugeVertex(fakeObject.graph(), id, vl);
 
         MutableIntObjectMap<HugeProperty<?>> properties =
-                IntObjectHashMap.newWithKeysValues(
+                CollectionFactory.newIntObjectMap(
                 (int) name.id().asLong(),
                 new HugeVertexProperty<>(vertex, name, "marko"),
                 (int) age.id().asLong(),
@@ -287,7 +287,7 @@ public class JsonUtilTest extends BaseUnitTest {
         Whitebox.setInternalState(edge, "targetVertex", target);
 
         MutableIntObjectMap<HugeProperty<?>> properties =
-                IntObjectHashMap.newWithKeysValues(
+                CollectionFactory.newIntObjectMap(
                 (int) date.id().asLong(),
                 new HugeEdgeProperty<>(edge, date, Utils.date("2019-03-12")),
                 (int) weight.id().asLong(),

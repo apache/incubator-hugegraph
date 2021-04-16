@@ -89,7 +89,6 @@ public class AllShortestPathsAPI extends API {
         HugeTraverser.PathSet paths = traverser.allShortestPaths(
                                       sourceId, targetId, dir, edgeLabels,
                                       depth, maxDegree, skipDegree, capacity);
-        return manager.serializer(g).writePaths("paths", paths.paths(),
-                                                false);
+        return manager.serializer(g).writePaths("paths", paths, false);
     }
 }

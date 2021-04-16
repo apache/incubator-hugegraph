@@ -25,7 +25,7 @@ import com.baidu.hugegraph.util.collection.Int2IntsMap;
 
 public class IntArrayRecord implements Record {
 
-    private Int2IntsMap layer;
+    private final Int2IntsMap layer;
 
     public IntArrayRecord() {
         this.layer = new Int2IntsMap();
@@ -58,7 +58,7 @@ public class IntArrayRecord implements Record {
 
     public class IntArrayIterator implements IntIterator {
 
-        private int[] array;
+        private final int[] array;
         private int index;
 
         public IntArrayIterator(int[] array) {

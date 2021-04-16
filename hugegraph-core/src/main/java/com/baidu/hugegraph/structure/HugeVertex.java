@@ -35,7 +35,6 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
-import org.eclipse.collections.impl.list.mutable.FastList;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
@@ -657,10 +656,6 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
         public void resetEdges() {
             this.edges = newSet();
-        }
-
-        public void removeEdge(HugeEdge edge) {
-            this.edges.remove(edge);
         }
 
         public void addEdge(HugeEdge edge) {

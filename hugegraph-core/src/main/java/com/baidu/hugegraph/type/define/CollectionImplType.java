@@ -57,6 +57,8 @@ public enum CollectionImplType implements SerialEnum {
                 return JCF;
             case 2:
                 return EC;
+            case 3:
+                return FU;
             default:
                 throw new AssertionError(
                           "Unsupported collection code: " + code);

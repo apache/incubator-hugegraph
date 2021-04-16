@@ -24,7 +24,7 @@ import org.eclipse.collections.impl.map.mutable.primitive.IntIntHashMap;
 
 public class IntIntRecord implements Record {
 
-    private IntIntHashMap layer;
+    private final IntIntHashMap layer;
 
     public IntIntRecord() {
         this.layer = new IntIntHashMap();

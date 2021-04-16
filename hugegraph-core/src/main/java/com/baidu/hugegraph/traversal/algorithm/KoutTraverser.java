@@ -92,9 +92,9 @@ public class KoutTraverser extends OltpTraverser {
         return latest;
     }
 
-    public Set<Node> customizedKout(Id source, EdgeStep step, int maxDepth,
-                                    boolean nearest, long capacity,
-                                    long limit) {
+    public Set<Node> customizedKout(Id source, EdgeStep step,
+                                    int maxDepth, boolean nearest,
+                                    long capacity, long limit) {
         E.checkNotNull(source, "source vertex id");
         this.checkVertexExist(source, "source vertex");
         checkPositive(maxDepth, "k-out max_depth");
@@ -114,9 +114,9 @@ public class KoutTraverser extends OltpTraverser {
         return results;
     }
 
-    public Set<Node> customizedKout(Id source, EdgeStep step, int maxDepth,
-                                    boolean nearest, long capacity,
-                                    boolean single) {
+    public Set<Node> customizedKout(Id source, EdgeStep step,
+                                    int maxDepth, boolean nearest,
+                                    long capacity, boolean single) {
         Set<Node> latest = newSet(single);
         Set<Node> all = newSet(single);
 

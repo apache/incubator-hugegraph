@@ -97,8 +97,7 @@ public class PathsAPI extends TraverserAPI {
                                                       dir.opposite(), edgeLabel,
                                                       depth, maxDegree, capacity,
                                                       limit);
-        return manager.serializer(g).writePaths("paths", paths.paths(),
-                                                false);
+        return manager.serializer(g).writePaths("paths", paths, false);
     }
 
     @POST

@@ -25,7 +25,7 @@ import org.eclipse.collections.impl.set.mutable.primitive.IntHashSet;
 
 public class IntSetRecord implements Record {
 
-    private IntObjectHashMap<IntHashSet> layer;
+    private final IntObjectHashMap<IntHashSet> layer;
 
     public IntSetRecord() {
         this.layer = new IntObjectHashMap<>();

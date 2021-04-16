@@ -37,7 +37,7 @@ import com.google.common.collect.Lists;
 
 public class MultiPathsRecords implements Records {
 
-    private final ObjectIntMapping idMapping;
+    private final ObjectIntMapping<Id> idMapping;
     private final RecordType type;
 
     protected final Stack<Record> sourceRecords;
@@ -50,7 +50,7 @@ public class MultiPathsRecords implements Records {
     private int accessed;
 
     public MultiPathsRecords(Id sourceV, Id targetV, RecordType type) {
-        this.idMapping = new ObjectIntMapping();
+        this.idMapping = new ObjectIntMapping<>();
         this.type = type;
 
         int sourceCode = this.code(sourceV);

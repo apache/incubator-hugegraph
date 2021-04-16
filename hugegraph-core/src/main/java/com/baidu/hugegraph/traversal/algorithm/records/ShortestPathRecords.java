@@ -42,6 +42,7 @@ public class ShortestPathRecords extends MultiPathsRecords {
         this.accessedVertices = new IntHashSet();
         this.accessedVertices.add(this.code(sourceV));
         this.accessedVertices.add(this.code(targetV));
+        this.pathFound = false;
     }
 
     @Override
