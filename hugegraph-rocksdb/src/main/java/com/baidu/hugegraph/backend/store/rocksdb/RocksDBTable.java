@@ -271,7 +271,7 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
     }
 
     protected static final long sizeOfBackendEntry(BackendEntry entry) {
-        return BinaryEntryIterator.sizeOfBackendEntry(entry);
+        return BinaryEntryIterator.sizeOfEntry(entry);
     }
 
     private static class RocksDBShardSpliter extends ShardSpliter<Session> {
