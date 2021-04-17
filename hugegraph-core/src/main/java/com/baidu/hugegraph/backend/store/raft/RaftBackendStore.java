@@ -49,12 +49,12 @@ public class RaftBackendStore implements BackendStore {
 
     private final BackendStore store;
     private final RaftSharedContext context;
-    private final ThreadLocal<MutationBatch> threadLocalBatch;
+    private final ThreadLocal<MutationBatch> mutationBatch;
 
     public RaftBackendStore(BackendStore store, RaftSharedContext context) {
         this.store = store;
         this.context = context;
-        this.threadLocalBatch = new ThreadLocal<>();
+        this.mutationBatch = new ThreadLocal<>();
     }
 
     public BackendStore originStore() {
@@ -137,18 +137,18 @@ public class RaftBackendStore implements BackendStore {
     @Override
     @SuppressWarnings("unchecked")
     public Iterator<BackendEntry> query(Query query) {
-        return (Iterator<BackendEntry>) this.queryByRaft(
-                                        query, o -> store.query(query));
+        return (Iterator<BackendEntry>)
+               this.queryByRaft(query, o -> this.store.query(query));
     }
 
     @Override
     public Number queryNumber(Query query) {
-        return (Number) this.queryByRaft(query, o -> store.queryNumber(query));
+        return (Number) this.queryByRaft(query, o -> this.store.queryNumber(query));
     }
 
     @Override
     public void beginTx() {
-        // Don't write raft log, commitTx(in statemachine) will call beginTx
+        // Don't write raft log, commitTx(in StateMachine) will call beginTx
     }
 
     @Override
@@ -221,18 +221,28 @@ public class RaftBackendStore implements BackendStore {
         try {
             return future.waitFinished();
         } catch (Throwable e) {
-            LOG.warn("Failed to execute query {} with read-index: {}",
+            LOG.warn("Failed to execute query '{}' with read-index: {}",
                      query, future.status());
-            throw new BackendException("Failed to execute query", e);
+            throw new BackendException("Failed to execute query: %s", e, query);
         }
+    }
+
+    private MutationBatch getOrNewBatch() {
+        MutationBatch batch = this.mutationBatch.get();
+        if (batch == null) {
+            batch = new MutationBatch();
+            this.mutationBatch.set(batch);
+        }
+        return batch;
     }
 
     private static class MutationBatch {
 
-        private List<BackendMutation> mutations;
+        // This object will stay in memory for a long time
+        private final List<BackendMutation> mutations;
 
         public MutationBatch() {
-            this.mutations = new ArrayList<>();
+            this.mutations = new ArrayList<>((int) Query.COMMIT_BATCH);
         }
 
         public void add(BackendMutation mutation) {
@@ -240,20 +250,11 @@ public class RaftBackendStore implements BackendStore {
         }
 
         public void clear() {
-            this.mutations = new ArrayList<>();
+            this.mutations.clear();
         }
     }
 
-    private MutationBatch getOrNewBatch() {
-        MutationBatch batch = this.threadLocalBatch.get();
-        if (batch == null) {
-            batch = new MutationBatch();
-            this.threadLocalBatch.set(batch);
-        }
-        return batch;
-    }
-
-    public static class IncrCounter {
+    protected static final class IncrCounter {
 
         private HugeType type;
         private long increment;

@@ -19,8 +19,6 @@
 
 package com.baidu.hugegraph.backend.store.raft;
 
-import static com.baidu.hugegraph.backend.store.raft.RaftSharedContext.BUSY_SLEEP_FACTOR;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -74,6 +72,7 @@ public class RaftNode {
     }
 
     public Node node() {
+        assert this.node != null;
         return this.node;
     }
 
@@ -107,7 +106,7 @@ public class RaftNode {
             this.node().snapshot(future);
             future.waitFinished();
         } catch (Throwable e) {
-            throw new BackendException("Failed to generate snapshot", e);
+            throw new BackendException("Failed to create snapshot", e);
         }
     }
 
@@ -177,9 +176,8 @@ public class RaftNode {
             try {
                 Thread.sleep(RaftSharedContext.POLL_INTERVAL);
             } catch (InterruptedException e) {
-                throw new BackendException(
-                          "Waiting for raft group '%s' election is interrupted",
-                          e, group);
+                LOG.info("Waiting for raft group '{}' election is " +
+                         "interrupted: {}", group, e);
             }
             long consumedTime = System.currentTimeMillis() - beginTime;
             if (timeout > 0 && consumedTime >= timeout) {
@@ -212,8 +210,7 @@ public class RaftNode {
             try {
                 Thread.sleep(RaftSharedContext.POLL_INTERVAL);
             } catch (InterruptedException e) {
-                throw new BackendException("Try to sleep a while for waiting " +
-                                           "heartbeat is interrupted", e);
+                LOG.info("Waiting for heartbeat is interrupted: {}", e);
             }
             long consumedTime = System.currentTimeMillis() - beginTime;
             if (timeout > 0 && consumedTime >= timeout) {
@@ -232,13 +229,13 @@ public class RaftNode {
             return;
         }
         // It may lead many thread sleep, but this is exactly what I want
-        long time = counter * BUSY_SLEEP_FACTOR;
-        LOG.info("The node {} will sleep {} ms", this.node, time);
+        long time = counter * RaftSharedContext.BUSY_SLEEP_FACTOR;
+        LOG.info("The node {} will try to sleep {} ms", this.node, time);
         try {
             Thread.sleep(time);
         } catch (InterruptedException e) {
-            // throw busy exception
-            throw new BackendException("The raft backend store is busy");
+            // Throw busy exception if the request is timeout
+            throw new BackendException("The raft backend store is busy", e);
         } finally {
             if (this.busyCounter.get() > 0) {
                 synchronized (this) {
@@ -279,13 +276,14 @@ public class RaftNode {
                 this.lastPrintTime = now;
             }
             if (this.isWriteBufferOverflow(status)) {
-                // increment busy counter
+                // Increment busy counter
                 int count = RaftNode.this.busyCounter.incrementAndGet();
-                LOG.info("Increase busy counter: [{}]", count);
+                LOG.info("Increase busy counter due to overflow: [{}]", count);
             }
         }
 
         // NOTE: Jraft itself doesn't have this callback, it's added by us
+        @SuppressWarnings("unused")
         public void onBusy(PeerId peer, Status status) {
             /*
              * If follower is busy then increase busy counter,
@@ -315,7 +313,7 @@ public class RaftNode {
 
         @Override
         public void onDestroyed(PeerId peer) {
-            LOG.warn("Replicator {} prepare to offline", peer);
+            LOG.warn("Replicator '{}' is ready to go offline", peer);
         }
     }
 

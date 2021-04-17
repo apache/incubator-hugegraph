@@ -19,8 +19,6 @@
 
 package com.baidu.hugegraph.backend.store.raft;
 
-import static com.baidu.hugegraph.backend.store.raft.RaftSharedContext.WAIT_RAFT_LOG_TIMEOUT;
-
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -59,7 +57,8 @@ public class RaftClosure<T> implements Closure {
 
     private RaftResult<T> get() {
         try {
-            return this.future.get(WAIT_RAFT_LOG_TIMEOUT, TimeUnit.MILLISECONDS);
+            return this.future.get(RaftSharedContext.WAIT_RAFTLOG_TIMEOUT,
+                                   TimeUnit.MILLISECONDS);
         } catch (ExecutionException e) {
             throw new BackendException("ExecutionException", e);
         } catch (InterruptedException e) {
@@ -83,7 +82,7 @@ public class RaftClosure<T> implements Closure {
             this.complete(status, () -> null);
         } else {
             LOG.error("Failed to apply command: {}", status);
-            String msg = "Failed to apply command in raft node with error : " +
+            String msg = "Failed to apply command in raft node with error: " +
                          status.getErrorMsg();
             this.failure(status, new BackendException(msg));
         }

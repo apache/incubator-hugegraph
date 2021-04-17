@@ -140,6 +140,7 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
     public void waitStoreStarted() {
         this.context.initRaftNode();
         LOG.info("The raft node is initialized");
+
         this.context.waitRaftNodeStarted();
         LOG.info("The raft store is started");
     }

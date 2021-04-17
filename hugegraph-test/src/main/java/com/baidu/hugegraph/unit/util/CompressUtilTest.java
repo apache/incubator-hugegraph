@@ -47,7 +47,7 @@ public class CompressUtilTest {
         String zipFile = "output.zip";
         String output = "output";
         try {
-            prepareFiles(rootDir, sourceDir);
+            prepareFiles(Paths.get(rootDir, sourceDir).toString());
 
             Checksum checksum = new CRC64();
             CompressUtil.compressZip(rootDir, sourceDir, zipFile, checksum);
@@ -65,14 +65,15 @@ public class CompressUtilTest {
     public void testTarCompress() throws IOException {
         String rootDir = "temp";
         // temp/ss
-        String sourceDir = "ss";
+        String sourceDir = rootDir + "/ss";
         String tarFile = "output.tar";
         String output = "output";
+
         try {
-            prepareFiles(rootDir, sourceDir);
+            prepareFiles(sourceDir);
 
             Checksum checksum = new CRC64();
-            CompressUtil.compressTar(rootDir, sourceDir, tarFile, checksum);
+            CompressUtil.compressTar(sourceDir, tarFile, checksum);
 
             CompressUtil.decompressTar(tarFile, output, checksum);
             assertDirEquals(rootDir, output);
@@ -83,22 +84,21 @@ public class CompressUtilTest {
         }
     }
 
-    private static void prepareFiles(String rootDir, String sourceDir)
-                                     throws IOException {
+    private static void prepareFiles(String sourceDir) throws IOException {
         // temp/ss/g
-        String gDir = Paths.get(rootDir, sourceDir, "g").toString();
+        String gDir = Paths.get(sourceDir, "g").toString();
         File file1 = new File(gDir, "file-1");
         FileUtils.writeLines(file1, ImmutableList.of("g1-aaa", "g1-bbb"));
         File file2 = new File(gDir, "file-2");
         FileUtils.writeLines(file2, ImmutableList.of("g2-aaa", "g2-bbb"));
         // temp/ss/m
-        String mDir = Paths.get(rootDir, sourceDir, "m").toString();
+        String mDir = Paths.get(sourceDir, "m").toString();
         file1 = new File(mDir, "file-1");
         FileUtils.writeLines(file1, ImmutableList.of("m1-aaa", "m1-bbb"));
         file2 = new File(mDir, "file-2");
         FileUtils.writeLines(file2, ImmutableList.of("m2-aaa", "m2-bbb"));
         // temp/ss/s
-        String sDir = Paths.get(rootDir, sourceDir, "s").toString();
+        String sDir = Paths.get(sourceDir, "s").toString();
         file1 = new File(sDir, "file-1");
         FileUtils.writeLines(file1, ImmutableList.of("s1-aaa", "s1-bbb"));
         file2 = new File(sDir, "file-2");

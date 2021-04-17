@@ -86,7 +86,7 @@ public class StoreCommand {
 
     @Override
     public String toString() {
-        return String.format("StoreCommand{type=%s, action=%s",
+        return String.format("StoreCommand{type=%s,action=%s}",
                              this.type.name(), this.action.name());
     }
 }
