@@ -687,7 +687,7 @@ public class GraphTransaction extends IndexableTransaction {
         }
 
         return new BatchMapperIterator<>(this.batchSize, edges, batchEdges -> {
-            List<Id> vertexIds = new ArrayList<>();
+            List<Id> vertexIds = new ArrayList<>(Query.QUERY_BATCH_CAPACITY);
             for (Edge edge : batchEdges) {
                 vertexIds.add(((HugeEdge) edge).otherVertex().id());
             }

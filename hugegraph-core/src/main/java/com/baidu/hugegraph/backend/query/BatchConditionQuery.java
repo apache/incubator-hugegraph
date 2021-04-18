@@ -27,7 +27,6 @@ import com.baidu.hugegraph.backend.query.Condition.RelationType;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
-import com.google.common.collect.ImmutableList;
 
 public class BatchConditionQuery extends ConditionQuery {
 
@@ -37,7 +36,7 @@ public class BatchConditionQuery extends ConditionQuery {
         super(resultType);
     }
 
-    public void mergeWithIn(ConditionQuery query, HugeKeys key) {
+    public void mergeToIN(ConditionQuery query, HugeKeys key) {
         Object value = query.condition(key);
 
         if (this.in == null) {
@@ -45,7 +44,8 @@ public class BatchConditionQuery extends ConditionQuery {
             this.resetConditions(new LinkedHashSet<>(query.conditions()));
             this.unsetCondition(key);
 
-            List<Object> list = new ArrayList<>(ImmutableList.of(value));
+            List<Object> list = new ArrayList<>(Query.QUERY_BATCH_CAPACITY);
+            list.add(value);
             // TODO: ensure not flatten BatchQuery
             this.in = (Condition.Relation) Condition.in(key, list);
             this.query(this.in);

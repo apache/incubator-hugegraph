@@ -127,8 +127,11 @@ public class HugeVertexStepByBatch<E extends Element>
 
         for (Traverser.Admin<Vertex> traverser : traversers) {
             ConditionQuery query = this.constructEdgesQuery(traverser);
-            // Merge each query into batch query
-            batchQuery.mergeWithIn(query, HugeKeys.OWNER_VERTEX);
+            /*
+             * Merge each query into batch query through IN condition
+             * NOTE: duplicated results may be removed by backend store
+             */
+            batchQuery.mergeToIN(query, HugeKeys.OWNER_VERTEX);
         }
 
         this.injectQueryInfo(batchQuery);

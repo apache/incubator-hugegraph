@@ -143,7 +143,7 @@ public final class ConditionQueryFlatten {
 
         // Keep IN condition if supported and necessary
         if (supportIn && relation.isSysprop() && values.size() > 1 &&
-            key == HugeKeys.OWNER_VERTEX || key == HugeKeys.ID) {
+            (key == HugeKeys.OWNER_VERTEX || key == HugeKeys.ID)) {
             // TODO: Should not rely on HugeKeys here, improve key judgment
             // Just mark flatten
             return new Condition.FlattenSyspropRelation(
