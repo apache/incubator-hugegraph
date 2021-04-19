@@ -42,7 +42,7 @@ import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.util.LZ4Util;
 import com.baidu.hugegraph.util.Log;
 
-public class RaftNode {
+public final class RaftNode {
 
     private static final Logger LOG = Log.logger(RaftNode.class);
 
@@ -61,7 +61,7 @@ public class RaftNode {
         } catch (IOException e) {
             throw new BackendException("Failed to init raft node", e);
         }
-        this.node.addReplicatorStateListener(new RaftNodeStateListener());
+        this.node.addReplicatorStateListener(new RaftStateListener());
         this.leaderInfo = new AtomicReference<>(LeaderInfo.NO_LEADER);
         this.started = new AtomicBoolean(false);
         this.busyCounter = new AtomicInteger();
@@ -253,13 +253,11 @@ public class RaftNode {
         return String.format("[%s-%s]", this.context.group(), this.nodeId());
     }
 
-    private class RaftNodeStateListener implements ReplicatorStateListener {
+    protected final class RaftStateListener implements ReplicatorStateListener {
 
-        // unit is ms
-        private static final long ERROR_PRINT_INTERVAL = 60 * 1000;
         private volatile long lastPrintTime;
 
-        public RaftNodeStateListener() {
+        public RaftStateListener() {
             this.lastPrintTime = 0L;
         }
 
@@ -269,9 +267,15 @@ public class RaftNode {
         }
 
         @Override
+        public void onDestroyed(PeerId peer) {
+            LOG.warn("Replicator '{}' is ready to go offline", peer);
+        }
+
+        @Override
         public void onError(PeerId peer, Status status) {
             long now = System.currentTimeMillis();
-            if (now - this.lastPrintTime >= ERROR_PRINT_INTERVAL) {
+            long interval = now - this.lastPrintTime;
+            if (interval >= RaftSharedContext.LOG_WARN_INTERVAL) {
                 LOG.warn("Replicator meet error: {}", status);
                 this.lastPrintTime = now;
             }
@@ -283,7 +287,6 @@ public class RaftNode {
         }
 
         // NOTE: Jraft itself doesn't have this callback, it's added by us
-        @SuppressWarnings("unused")
         public void onBusy(PeerId peer, Status status) {
             /*
              * If follower is busy then increase busy counter,
@@ -309,11 +312,6 @@ public class RaftNode {
             return RaftError.EINTERNAL == status.getRaftError() &&
                    status.getErrorMsg() != null &&
                    status.getErrorMsg().contains(expectMsg);
-        }
-
-        @Override
-        public void onDestroyed(PeerId peer) {
-            LOG.warn("Replicator '{}' is ready to go offline", peer);
         }
     }
 
