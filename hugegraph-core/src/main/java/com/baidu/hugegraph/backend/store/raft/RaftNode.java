@@ -125,7 +125,7 @@ public final class RaftNode {
         return raftGroupService.start(false);
     }
 
-    private void submitCommand(StoreCommand command, StoreClosure closure) {
+    private void submitCommand(StoreCommand command, RaftStoreClosure closure) {
         // Wait leader elected
         LeaderInfo leaderInfo = this.waitLeaderElected(
                                 RaftSharedContext.NO_TIMEOUT);
@@ -151,7 +151,7 @@ public final class RaftNode {
         this.node.apply(task);
     }
 
-    public Object submitAndWait(StoreCommand command, StoreClosure future) {
+    public Object submitAndWait(StoreCommand command, RaftStoreClosure future) {
         this.submitCommand(command, future);
         try {
             /*

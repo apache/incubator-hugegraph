@@ -195,7 +195,7 @@ public class RaftBackendStore implements BackendStore {
     }
 
     private Object submitAndWait(StoreCommand command) {
-        StoreClosure closure = new StoreClosure(command);
+        RaftStoreClosure closure = new RaftStoreClosure(command);
         return this.node().submitAndWait(command, closure);
     }
 

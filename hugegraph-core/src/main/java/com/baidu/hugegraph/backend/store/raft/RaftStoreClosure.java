@@ -21,11 +21,11 @@ package com.baidu.hugegraph.backend.store.raft;
 
 import com.baidu.hugegraph.util.E;
 
-public class StoreClosure extends RaftClosure<Object> {
+public class RaftStoreClosure extends RaftClosure<Object> {
 
     private final StoreCommand command;
 
-    public StoreClosure(StoreCommand command) {
+    public RaftStoreClosure(StoreCommand command) {
         E.checkNotNull(command, "store command");
         this.command = command;
     }

@@ -51,7 +51,7 @@ import com.baidu.hugegraph.type.define.GraphMode;
 import com.baidu.hugegraph.util.LZ4Util;
 import com.baidu.hugegraph.util.Log;
 
-public class StoreStateMachine extends StateMachineAdapter {
+public final class StoreStateMachine extends StateMachineAdapter {
 
     private static final Logger LOG = Log.logger(StoreStateMachine.class);
 
@@ -103,11 +103,11 @@ public class StoreStateMachine extends StateMachineAdapter {
     public void onApply(Iterator iter) {
         LOG.debug("Node role: {}", this.node().selfIsLeader() ?
                                    "leader" : "follower");
-        StoreClosure closure = null;
+        RaftStoreClosure closure = null;
         List<Future<?>> futures = new ArrayList<>();
         try {
             while (iter.hasNext()) {
-                closure = (StoreClosure) iter.done();
+                closure = (RaftStoreClosure) iter.done();
                 if (closure != null) {
                     // Leader just take it out from the closure
                     StoreCommand command = closure.command();

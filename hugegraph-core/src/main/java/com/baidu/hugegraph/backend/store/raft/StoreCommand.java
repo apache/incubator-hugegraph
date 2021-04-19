@@ -23,7 +23,7 @@ import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction;
 import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType;
 
-public class StoreCommand {
+public final class StoreCommand {
 
     public static final int HEADER_SIZE = 2;
 

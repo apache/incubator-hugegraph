@@ -34,7 +34,7 @@ import com.baidu.hugegraph.util.Log;
 
 public class RaftClosure<T> implements Closure {
 
-    private static final Logger LOG = Log.logger(StoreClosure.class);
+    private static final Logger LOG = Log.logger(RaftStoreClosure.class);
 
     private final CompletableFuture<RaftResult<T>> future;
 

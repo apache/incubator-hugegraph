@@ -203,7 +203,7 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
     public void createSnapshot() {
         StoreCommand command = new StoreCommand(StoreType.ALL,
                                                 StoreAction.SNAPSHOT, null);
-        StoreClosure closure = new StoreClosure(command);
+        RaftStoreClosure closure = new RaftStoreClosure(command);
         this.context.node().submitAndWait(command, closure);
         LOG.debug("Graph '{}' has writed snapshot", this.graph());
     }
