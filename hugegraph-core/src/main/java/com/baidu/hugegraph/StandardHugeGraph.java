@@ -249,7 +249,8 @@ public class StandardHugeGraph implements HugeGraph {
 
     @Override
     public void serverStarted(Id serverId, NodeRole serverRole) {
-        LOG.info("Init server info for graph '{}'...", this.name);
+        LOG.info("Init server info [{}-{}] for graph '{}'...",
+                 serverId, serverRole, this.name);
         this.serverInfoManager().initServerInfo(serverId, serverRole);
 
         LOG.info("Restoring incomplete tasks for graph '{}'...", this.name);

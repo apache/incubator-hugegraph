@@ -444,10 +444,14 @@ public class StandardTaskScheduler implements TaskScheduler {
     protected void taskDone(HugeTask<?> task) {
         this.remove(task);
 
-        this.serverManager().decreaseLoad(task.load());
-
-        LOG.debug("Task '{}' done on server '{}'",
-                  task.id(), this.serverManager().selfServerId());
+        Id selfServerId = this.serverManager().selfServerId();
+        try {
+            this.serverManager().decreaseLoad(task.load());
+        } catch (Throwable e) {
+            LOG.error("Failed to decrease load for task '{}' on server '{}'",
+                      task.id(), selfServerId, e);
+        }
+        LOG.debug("Task '{}' done on server '{}'", task.id(), selfServerId);
     }
 
     protected void remove(HugeTask<?> task) {
