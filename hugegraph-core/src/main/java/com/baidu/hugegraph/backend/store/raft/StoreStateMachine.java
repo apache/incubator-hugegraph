@@ -51,7 +51,7 @@ import com.baidu.hugegraph.type.define.GraphMode;
 import com.baidu.hugegraph.util.LZ4Util;
 import com.baidu.hugegraph.util.Log;
 
-public class StoreStateMachine extends StateMachineAdapter {
+public final class StoreStateMachine extends StateMachineAdapter {
 
     private static final Logger LOG = Log.logger(StoreStateMachine.class);
 
@@ -94,7 +94,7 @@ public class StoreStateMachine extends StateMachineAdapter {
                 }
                 this.context.notifyCache(Cache.ACTION_INVALID, type, ids);
             } else {
-                // Ignore other types due to not cached
+                // Ignore other types due to not cached them
             }
         }
     }
@@ -103,11 +103,11 @@ public class StoreStateMachine extends StateMachineAdapter {
     public void onApply(Iterator iter) {
         LOG.debug("Node role: {}", this.node().selfIsLeader() ?
                                    "leader" : "follower");
-        StoreClosure closure = null;
+        RaftStoreClosure closure = null;
         List<Future<?>> futures = new ArrayList<>();
         try {
             while (iter.hasNext()) {
-                closure = (StoreClosure) iter.done();
+                closure = (RaftStoreClosure) iter.done();
                 if (closure != null) {
                     // Leader just take it out from the closure
                     StoreCommand command = closure.command();
@@ -134,9 +134,9 @@ public class StoreStateMachine extends StateMachineAdapter {
                         try {
                             this.applyCommand(type, action, buffer, false);
                         } catch (Throwable e) {
-                            LOG.error("Failed to execute backend command: {}",
-                                      action, e);
-                            throw new BackendException("Backend error", e);
+                            String title = "Failed to execute backend command";
+                            LOG.error("{}: {}", title, action, e);
+                            throw new BackendException(title, e);
                         }
                     }));
                 }
@@ -147,10 +147,10 @@ public class StoreStateMachine extends StateMachineAdapter {
                 future.get();
             }
         } catch (Throwable e) {
-            LOG.error("StateMachine occured critical error", e);
+            String title = "StateMachine occured critical error";
+            LOG.error("{}", title, e);
             Status status = new Status(RaftError.ESTATEMACHINE,
-                                       "StateMachine occured critical error: %s",
-                                       e.getMessage());
+                                       "%s: %s", title, e.getMessage());
             if (closure != null) {
                 closure.failure(status, e);
             }
@@ -181,10 +181,11 @@ public class StoreStateMachine extends StateMachineAdapter {
                 store.beginTx();
                 break;
             case COMMIT_TX:
-                List<BackendMutation> ms = StoreSerializer.readMutations(buffer);
+                List<BackendMutation> mutations = StoreSerializer.readMutations(
+                                                  buffer);
                 // RaftBackendStore doesn't write raft log for beginTx
                 store.beginTx();
-                for (BackendMutation mutation : ms) {
+                for (BackendMutation mutation : mutations) {
                     store.mutate(mutation);
                     this.updateCacheIfNeeded(mutation, forwarded);
                 }
@@ -193,8 +194,8 @@ public class StoreStateMachine extends StateMachineAdapter {
             case ROLLBACK_TX:
                 store.rollbackTx();
                 break;
-            // increase counter
             case INCR_COUNTER:
+                // Do increase counter
                 IncrCounter counter = StoreSerializer.readIncrCounter(buffer);
                 store.increaseCounter(counter.type(), counter.increment());
                 break;

@@ -74,7 +74,7 @@ public class RaftGroupManagerImpl implements RaftGroupManager {
     public String getLeader() {
         PeerId leaderId = this.raftNode.leaderId();
         E.checkState(leaderId != null,
-                     "There is no leader for raft group %s", this.group);
+                     "There is no leader for raft group '%s'", this.group);
         return leaderId.toString();
     }
 

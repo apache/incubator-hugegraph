@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -57,6 +56,7 @@ import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.GraphMode;
+import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Events;
 import com.baidu.hugegraph.util.Log;
@@ -68,13 +68,18 @@ public final class RaftSharedContext {
     // unit is ms
     public static final int NO_TIMEOUT = -1;
     public static final int POLL_INTERVAL = 3000;
-    public static final int WAIT_RAFT_LOG_TIMEOUT = 30 * 60 * 1000;
+    public static final int WAIT_RAFTLOG_TIMEOUT = 30 * 60 * 1000;
     public static final int WAIT_LEADER_TIMEOUT = 5 * 60 * 1000;
     public static final int BUSY_SLEEP_FACTOR = 3 * 1000;
     public static final int WAIT_RPC_TIMEOUT = 30 * 60 * 1000;
+    public static final int LOG_WARN_INTERVAL = 60 * 1000;
+
     // compress block size
-    public static final int BLOCK_SIZE = 8192;
+    public static final int BLOCK_SIZE = (int) (Bytes.KB * 8);
+
+    // work queue size
     public static final int QUEUE_SIZE = CoreOptions.CPUS;
+    public static final long KEEP_ALIVE_SEC = 300L;
 
     public static final String DEFAULT_GROUP = "default";
 
@@ -103,8 +108,8 @@ public final class RaftSharedContext {
         this.stores = new RaftBackendStore[StoreType.ALL.getNumber()];
         this.rpcServer = this.initAndStartRpcServer();
         if (config.get(CoreOptions.RAFT_SAFE_READ)) {
-            int readIndexThreads = config.get(CoreOptions.RAFT_READ_INDEX_THREADS);
-            this.readIndexExecutor = this.createReadIndexExecutor(readIndexThreads);
+            int threads = config.get(CoreOptions.RAFT_READ_INDEX_THREADS);
+            this.readIndexExecutor = this.createReadIndexExecutor(threads);
         } else {
             this.readIndexExecutor = null;
         }
@@ -356,22 +361,22 @@ public final class RaftSharedContext {
 
     private ExecutorService createBackendExecutor(int threads) {
         String name = "store-backend-executor";
-        RejectedExecutionHandler handler;
-        handler = new ThreadPoolExecutor.CallerRunsPolicy();
+        RejectedExecutionHandler handler =
+                                 new ThreadPoolExecutor.CallerRunsPolicy();
         return newPool(threads, threads, name, handler);
     }
 
     private static ExecutorService newPool(int coreThreads, int maxThreads,
                                            String name,
                                            RejectedExecutionHandler handler) {
-        BlockingQueue<Runnable> workQueue = new ArrayBlockingQueue<>(QUEUE_SIZE);
+        BlockingQueue<Runnable> queue = new ArrayBlockingQueue<>(QUEUE_SIZE);
         return ThreadPoolUtil.newBuilder()
                              .poolName(name)
                              .enableMetric(false)
                              .coreThreads(coreThreads)
                              .maximumThreads(maxThreads)
-                             .keepAliveSeconds(300L)
-                             .workQueue(workQueue)
+                             .keepAliveSeconds(KEEP_ALIVE_SEC)
+                             .workQueue(queue)
                              .threadFactory(new NamedThreadFactory(name, true))
                              .rejectedHandler(handler)
                              .build();

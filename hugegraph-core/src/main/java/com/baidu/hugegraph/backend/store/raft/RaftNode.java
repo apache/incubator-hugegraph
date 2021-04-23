@@ -19,8 +19,6 @@
 
 package com.baidu.hugegraph.backend.store.raft;
 
-import static com.baidu.hugegraph.backend.store.raft.RaftSharedContext.BUSY_SLEEP_FACTOR;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -44,7 +42,7 @@ import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.util.LZ4Util;
 import com.baidu.hugegraph.util.Log;
 
-public class RaftNode {
+public final class RaftNode {
 
     private static final Logger LOG = Log.logger(RaftNode.class);
 
@@ -63,7 +61,7 @@ public class RaftNode {
         } catch (IOException e) {
             throw new BackendException("Failed to init raft node", e);
         }
-        this.node.addReplicatorStateListener(new RaftNodeStateListener());
+        this.node.addReplicatorStateListener(new RaftStateListener());
         this.leaderInfo = new AtomicReference<>(LeaderInfo.NO_LEADER);
         this.started = new AtomicBoolean(false);
         this.busyCounter = new AtomicInteger();
@@ -74,6 +72,7 @@ public class RaftNode {
     }
 
     public Node node() {
+        assert this.node != null;
         return this.node;
     }
 
@@ -107,7 +106,7 @@ public class RaftNode {
             this.node().snapshot(future);
             future.waitFinished();
         } catch (Throwable e) {
-            throw new BackendException("Failed to generate snapshot", e);
+            throw new BackendException("Failed to create snapshot", e);
         }
     }
 
@@ -126,7 +125,7 @@ public class RaftNode {
         return raftGroupService.start(false);
     }
 
-    private void submitCommand(StoreCommand command, StoreClosure closure) {
+    private void submitCommand(StoreCommand command, RaftStoreClosure closure) {
         // Wait leader elected
         LeaderInfo leaderInfo = this.waitLeaderElected(
                                 RaftSharedContext.NO_TIMEOUT);
@@ -152,7 +151,7 @@ public class RaftNode {
         this.node.apply(task);
     }
 
-    public Object submitAndWait(StoreCommand command, StoreClosure future) {
+    public Object submitAndWait(StoreCommand command, RaftStoreClosure future) {
         this.submitCommand(command, future);
         try {
             /*
@@ -177,9 +176,8 @@ public class RaftNode {
             try {
                 Thread.sleep(RaftSharedContext.POLL_INTERVAL);
             } catch (InterruptedException e) {
-                throw new BackendException(
-                          "Waiting for raft group '%s' election is interrupted",
-                          e, group);
+                LOG.info("Waiting for raft group '{}' election is " +
+                         "interrupted: {}", group, e);
             }
             long consumedTime = System.currentTimeMillis() - beginTime;
             if (timeout > 0 && consumedTime >= timeout) {
@@ -212,8 +210,7 @@ public class RaftNode {
             try {
                 Thread.sleep(RaftSharedContext.POLL_INTERVAL);
             } catch (InterruptedException e) {
-                throw new BackendException("Try to sleep a while for waiting " +
-                                           "heartbeat is interrupted", e);
+                LOG.info("Waiting for heartbeat is interrupted: {}", e);
             }
             long consumedTime = System.currentTimeMillis() - beginTime;
             if (timeout > 0 && consumedTime >= timeout) {
@@ -232,13 +229,13 @@ public class RaftNode {
             return;
         }
         // It may lead many thread sleep, but this is exactly what I want
-        long time = counter * BUSY_SLEEP_FACTOR;
-        LOG.info("The node {} will sleep {} ms", this.node, time);
+        long time = counter * RaftSharedContext.BUSY_SLEEP_FACTOR;
+        LOG.info("The node {} will try to sleep {} ms", this.node, time);
         try {
             Thread.sleep(time);
         } catch (InterruptedException e) {
-            // throw busy exception
-            throw new BackendException("The raft backend store is busy");
+            // Throw busy exception if the request is timeout
+            throw new BackendException("The raft backend store is busy", e);
         } finally {
             if (this.busyCounter.get() > 0) {
                 synchronized (this) {
@@ -256,13 +253,11 @@ public class RaftNode {
         return String.format("[%s-%s]", this.context.group(), this.nodeId());
     }
 
-    private class RaftNodeStateListener implements ReplicatorStateListener {
+    protected final class RaftStateListener implements ReplicatorStateListener {
 
-        // unit is ms
-        private static final long ERROR_PRINT_INTERVAL = 60 * 1000;
         private volatile long lastPrintTime;
 
-        public RaftNodeStateListener() {
+        public RaftStateListener() {
             this.lastPrintTime = 0L;
         }
 
@@ -272,16 +267,22 @@ public class RaftNode {
         }
 
         @Override
+        public void onDestroyed(PeerId peer) {
+            LOG.warn("Replicator '{}' is ready to go offline", peer);
+        }
+
+        @Override
         public void onError(PeerId peer, Status status) {
             long now = System.currentTimeMillis();
-            if (now - this.lastPrintTime >= ERROR_PRINT_INTERVAL) {
+            long interval = now - this.lastPrintTime;
+            if (interval >= RaftSharedContext.LOG_WARN_INTERVAL) {
                 LOG.warn("Replicator meet error: {}", status);
                 this.lastPrintTime = now;
             }
             if (this.isWriteBufferOverflow(status)) {
-                // increment busy counter
+                // Increment busy counter
                 int count = RaftNode.this.busyCounter.incrementAndGet();
-                LOG.info("Increase busy counter: [{}]", count);
+                LOG.info("Increase busy counter due to overflow: [{}]", count);
             }
         }
 
@@ -311,11 +312,6 @@ public class RaftNode {
             return RaftError.EINTERNAL == status.getRaftError() &&
                    status.getErrorMsg() != null &&
                    status.getErrorMsg().contains(expectMsg);
-        }
-
-        @Override
-        public void onDestroyed(PeerId peer) {
-            LOG.warn("Replicator {} prepare to offline", peer);
         }
     }
 

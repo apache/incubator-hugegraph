@@ -140,6 +140,7 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
     public void waitStoreStarted() {
         this.context.initRaftNode();
         LOG.info("The raft node is initialized");
+
         this.context.waitRaftNodeStarted();
         LOG.info("The raft store is started");
     }
@@ -202,7 +203,7 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
     public void createSnapshot() {
         StoreCommand command = new StoreCommand(StoreType.ALL,
                                                 StoreAction.SNAPSHOT, null);
-        StoreClosure closure = new StoreClosure(command);
+        RaftStoreClosure closure = new RaftStoreClosure(command);
         this.context.node().submitAndWait(command, closure);
         LOG.debug("Graph '{}' has writed snapshot", this.graph());
     }

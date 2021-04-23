@@ -37,7 +37,7 @@ import com.baidu.hugegraph.type.define.Action;
 import com.baidu.hugegraph.type.define.SerialEnum;
 import com.baidu.hugegraph.util.Bytes;
 
-public class StoreSerializer {
+public final class StoreSerializer {
 
     private static final int MUTATION_SIZE = (int) (1 * Bytes.MB);
 
