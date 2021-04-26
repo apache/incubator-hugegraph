@@ -128,28 +128,47 @@ public abstract class BackendEntryIterator implements CIter<BackendEntry> {
         return this.count + ccount;
     }
 
+    protected final void skipPageOffset(String page) {
+        PageState pageState = PageState.fromString(page);
+        int pageOffset = pageState.offset();
+        if (pageOffset > 0) {
+            /*
+             * Don't update this.count even if skipped page offset,
+             * because the skipped records belongs to the last page.
+             */
+            this.skipOffset(pageOffset);
+        }
+    }
+
     protected void skipOffset() {
         long offset = this.query.offset() - this.query.actualOffset();
         if (offset <= 0L) {
             return;
         }
+        long skipped = this.skipOffset(offset);
+        this.count += skipped;
+        this.query.goOffset(skipped);
+    }
 
+    protected long skipOffset(long offset) {
+        assert offset >= 0L;
+        long skipped = 0L;
         // Skip offset
-        while (this.count < offset && this.fetch()) {
+        while (skipped < offset && this.fetch()) {
             assert this.current != null;
             final long size = this.sizeOf(this.current);
-            this.count += size;
-            if (this.count > offset) {
+            skipped += size;
+            if (skipped > offset) {
                 // Skip part of sub-items in an entry
-                final long skip = size - (this.count - offset);
-                this.count -= this.skip(this.current, skip);
-                assert this.count == offset;
+                final long skip = size - (skipped - offset);
+                skipped -= this.skip(this.current, skip);
+                assert skipped == offset;
             } else {
                 // Skip entry
                 this.current = null;
             }
         }
-        this.query.goOffset(this.count);
+        return skipped;
     }
 
     protected long sizeOf(BackendEntry entry) {

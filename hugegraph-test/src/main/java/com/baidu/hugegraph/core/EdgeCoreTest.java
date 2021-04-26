@@ -5112,9 +5112,15 @@ public class EdgeCoreTest extends BaseCoreTest {
         while (page != null) {
             GraphTraversal<?, ?> iterator = graph.traversal().V(james).bothE()
                                                  .has("~page", page).limit(1);
-            Assert.assertEquals(1, IteratorUtils.count(iterator));
+            long size = IteratorUtils.count(iterator);
+            if (size == 0L) {
+                // The last page is empty
+                Assert.assertEquals(6, count);
+            } else {
+                Assert.assertEquals(1, size);
+            }
             page = TraversalUtil.page(iterator);
-            count++;
+            count += size;
         }
         Assert.assertEquals(6, count);
     }
@@ -5132,9 +5138,15 @@ public class EdgeCoreTest extends BaseCoreTest {
         while (page != null) {
             GraphTraversal<?, ?> iterator = graph.traversal().V(james).outE()
                                                  .has("~page", page).limit(1);
-            Assert.assertEquals(1, IteratorUtils.count(iterator));
+            long size = IteratorUtils.count(iterator);
+            if (size == 0L) {
+                // The last page is empty
+                Assert.assertEquals(4, count);
+            } else {
+                Assert.assertEquals(1, size);
+            }
             page = TraversalUtil.page(iterator);
-            count++;
+            count += size;
         }
         Assert.assertEquals(4, count);
     }
@@ -5152,9 +5164,15 @@ public class EdgeCoreTest extends BaseCoreTest {
         while (page != null) {
             GraphTraversal<?, ?> iterator = graph.traversal().V(james).inE()
                                                  .has("~page", page).limit(1);
-            Assert.assertEquals(1, IteratorUtils.count(iterator));
+            long size = IteratorUtils.count(iterator);
+            if (size == 0L) {
+                // The last page is empty
+                Assert.assertEquals(2, count);
+            } else {
+                Assert.assertEquals(1, size);
+            }
             page = TraversalUtil.page(iterator);
-            count++;
+            count += size;
         }
         Assert.assertEquals(2, count);
     }
@@ -6873,7 +6891,48 @@ public class EdgeCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testQueryEdgeByPageResultsMatched() {
+    public void testQueryEdgeByPageResultsMatchedAll() {
+        Assume.assumeTrue("Not support paging",
+                          storeFeatures().supportsQueryByPage());
+
+        HugeGraph graph = graph();
+        init100LookEdges();
+
+        List<Edge> all = graph.traversal().E().toList();
+
+        GraphTraversal<Edge, Edge> iter;
+
+        String page = PageInfo.PAGE_NONE;
+        int size = 21;
+
+        Set<Edge> pageAll = new HashSet<>();
+        for (int i = 0; i < 100 / size; i++) {
+            iter = graph.traversal().E()
+                        .has("~page", page).limit(size);
+            @SuppressWarnings("unchecked")
+            List<Edge> edges = IteratorUtils.asList(iter);
+            Assert.assertEquals(size, edges.size());
+
+            pageAll.addAll(edges);
+
+            page = TraversalUtil.page(iter);
+        }
+
+        iter = graph.traversal().E()
+                    .has("~page", page).limit(size);
+        @SuppressWarnings("unchecked")
+        List<Edge> edges = IteratorUtils.asList(iter);
+        Assert.assertEquals(16, edges.size());
+        pageAll.addAll(edges);
+        page = TraversalUtil.page(iter);
+
+        Assert.assertEquals(100, pageAll.size());
+        Assert.assertTrue(all.containsAll(pageAll));
+        Assert.assertNull(page);
+    }
+
+    @Test
+    public void testQueryEdgeByPageResultsMatchedAllWithFullPage() {
         Assume.assumeTrue("Not support paging",
                           storeFeatures().supportsQueryByPage());
 
@@ -6901,6 +6960,15 @@ public class EdgeCoreTest extends BaseCoreTest {
         }
         Assert.assertEquals(100, pageAll.size());
         Assert.assertTrue(all.containsAll(pageAll));
+
+        if (page != null) {
+            iter = graph.traversal().E().has("~page", page);
+            long count = IteratorUtils.count(iter);
+            Assert.assertEquals(0L, count);
+
+            page = TraversalUtil.page(iter);
+            CloseableIterator.closeIterator(iter);
+        }
         Assert.assertNull(page);
     }
 
@@ -7107,9 +7175,10 @@ public class EdgeCoreTest extends BaseCoreTest {
         int count = 0;
         while (page != null) {
             GraphTraversal<?, ?> iterator = fetcher.apply(page);
-            Assert.assertEquals(1, IteratorUtils.count(iterator));
+            long size = IteratorUtils.count(iterator);
+            Assert.assertLte(1L, size);
             page = TraversalUtil.page(iterator);
-            count++;
+            count += size;
         }
         return count;
     }

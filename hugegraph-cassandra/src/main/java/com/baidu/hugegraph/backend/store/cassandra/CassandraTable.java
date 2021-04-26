@@ -204,18 +204,39 @@ public abstract class CassandraTable
     }
 
     protected void setPageState(Query query, List<Select> selects) {
-        if (query.noLimit()) {
+        if (query.noLimit() && !query.paging()) {
             return;
         }
         for (Select select : selects) {
-            long total = query.total();
+            int total = (int) query.total();
+            if (!query.noLimit()) {
+                E.checkArgument(total == query.total(),
+                                "Invalid query limit %s", query.limit());
+            } else {
+                assert total == -1 : total;
+            }
+
             String page = query.page();
             if (page == null) {
                 // Set limit
-                select.limit((int) total);
+                assert total > 0 : total;
+                select.limit(total);
             } else {
-                select.setFetchSize((int) total);
-                // It's the first time if page is empty
+                /*
+                 * NOTE: the `total` may be -1 when query.noLimit(),
+                 * setFetchSize(-1) means the default fetch size will be used.
+                 */
+                assert total > 0 || total == -1 : total;
+                select.setFetchSize(total);
+
+                /*
+                 * Can't set limit here `select.limit(total)`
+                 * due to it will cause can't get the next page-state.
+                 * Also can't set `select.limit(total + 1)` due to it will
+                 * cause error "Paging state mismatch" when setPagingState().
+                 */
+
+                // It's the first time if page is empty, skip setPagingState
                 if (!page.isEmpty()) {
                     byte[] position = PageState.fromString(page).position();
                     try {

@@ -46,10 +46,12 @@ public class BinaryEntryIterator<Elem> extends BackendEntryIterator {
         this.merger = m;
         this.next = null;
 
-        this.skipOffset();
-
         if (query.paging()) {
+            assert query.offset() == 0L;
+            assert PageState.fromString(query.page()).offset() == 0;
             this.skipPageOffset(query.page());
+        } else {
+            this.skipOffset();
         }
     }
 
@@ -98,22 +100,9 @@ public class BinaryEntryIterator<Elem> extends BackendEntryIterator {
         return this.current != null;
     }
 
-    public final static long sizeOfBackendEntry(BackendEntry entry) {
-        /*
-         * 3 cases:
-         *  1) one vertex per entry
-         *  2) one edge per column (one entry <==> a vertex),
-         *  3) one element id per column (one entry <==> an index)
-         */
-        if (entry.type().isEdge() || entry.type().isIndex()) {
-            return entry.columnsSize();
-        }
-        return 1L;
-    }
-
     @Override
     protected final long sizeOf(BackendEntry entry) {
-        return sizeOfBackendEntry(entry);
+        return sizeOfEntry(entry);
     }
 
     @Override
@@ -140,10 +129,16 @@ public class BinaryEntryIterator<Elem> extends BackendEntryIterator {
         ((BinaryBackendEntry) this.current).removeColumn(lastOne);
     }
 
-    private void skipPageOffset(String page) {
-        PageState pagestate = PageState.fromString(page);
-        if (pagestate.offset() > 0 && this.fetch()) {
-            this.skip(this.current, pagestate.offset());
+    public final static long sizeOfEntry(BackendEntry entry) {
+        /*
+         * 3 cases:
+         *  1) one vertex per entry
+         *  2) one edge per column (one entry <==> a vertex),
+         *  3) one element id per column (one entry <==> an index)
+         */
+        if (entry.type().isEdge() || entry.type().isIndex()) {
+            return entry.columnsSize();
         }
+        return 1L;
     }
 }
