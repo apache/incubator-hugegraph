@@ -22,7 +22,7 @@ package com.baidu.hugegraph.util;
 import java.math.BigDecimal;
 import java.time.Duration;
 
-// TODO: move to common module
+// TODO: move to common module(done) and import it after common 1.8.6 released
 public final class UnitUtil {
 
     // TODO: move to Bytes class
