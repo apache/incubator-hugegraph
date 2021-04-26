@@ -6456,7 +6456,49 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testQueryByPageResultsMatched() {
+    public void testQueryByPageResultsMatchedAll() {
+        Assume.assumeTrue("Not support paging",
+                          storeFeatures().supportsQueryByPage());
+
+        HugeGraph graph = graph();
+        init100Books();
+
+        List<Vertex> all = graph.traversal().V().toList();
+
+        GraphTraversal<Vertex, Vertex> iter;
+
+        String page = PageInfo.PAGE_NONE;
+        int size = 22;
+
+        Set<Vertex> pageAll = new HashSet<>();
+        for (int i = 0; i < 100 / size; i++) {
+            iter = graph.traversal().V()
+                        .has("~page", page).limit(size);
+            @SuppressWarnings("unchecked")
+            List<Vertex> vertices = IteratorUtils.asList(iter);
+            Assert.assertEquals(size, vertices.size());
+
+            pageAll.addAll(vertices);
+
+            page = TraversalUtil.page(iter);
+            CloseableIterator.closeIterator(iter);
+        }
+
+        iter = graph.traversal().V()
+                    .has("~page", page).limit(size);
+        @SuppressWarnings("unchecked")
+        List<Vertex> vertices = IteratorUtils.asList(iter);
+        Assert.assertEquals(12, vertices.size());
+        pageAll.addAll(vertices);
+        page = TraversalUtil.page(iter);
+
+        Assert.assertEquals(100, pageAll.size());
+        Assert.assertTrue(all.containsAll(pageAll));
+        Assert.assertNull(page);
+    }
+
+    @Test
+    public void testQueryByPageResultsMatchedAllWithFullPage() {
         Assume.assumeTrue("Not support paging",
                           storeFeatures().supportsQueryByPage());
 
@@ -6485,6 +6527,15 @@ public class VertexCoreTest extends BaseCoreTest {
         }
         Assert.assertEquals(100, pageAll.size());
         Assert.assertTrue(all.containsAll(pageAll));
+
+        if (page != null) {
+            iter = graph.traversal().V().has("~page", page);
+            long count = IteratorUtils.count(iter);
+            Assert.assertEquals(0L, count);
+
+            page = TraversalUtil.page(iter);
+            CloseableIterator.closeIterator(iter);
+        }
         Assert.assertNull(page);
     }
 
