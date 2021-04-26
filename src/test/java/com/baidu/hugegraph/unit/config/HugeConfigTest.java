@@ -30,11 +30,14 @@ import static com.baidu.hugegraph.config.OptionChecker.rangeInt;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.collections.IteratorUtils;
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.ConfigurationException;
+import org.apache.commons.configuration.MapConfiguration;
 import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.commons.io.FileUtils;
 import org.junit.BeforeClass;
@@ -407,6 +410,18 @@ public class HugeConfigTest extends BaseUnitTest {
         } finally {
             FileUtils.forceDelete(copiedFile);
         }
+    }
+
+    @Test
+    public void testFromMapConfigurationWithList() {
+        Map<String, String> options = new HashMap<>();
+        options.put(TestOptions.list.name(), "[a, b]");
+        MapConfiguration mapConfiguration = new MapConfiguration(options);
+        HugeConfig hugeConfig = new HugeConfig(mapConfiguration);
+        List<String> values = hugeConfig.get(TestOptions.list);
+        Assert.assertEquals(2, values.size());
+        Assert.assertTrue(values.contains("a"));
+        Assert.assertTrue(values.contains("b"));
     }
 
     public static class TestOptions extends OptionHolder {

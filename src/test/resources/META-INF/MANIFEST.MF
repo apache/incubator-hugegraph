@@ -1,9 +1,9 @@
 Manifest-Version: 1.0
-Implementation-Version: 1.8.7.0
+Implementation-Version: 1.8.8.0
 Archiver-Version: Plexus Archiver
 Built-By: jermy
 Specification-Title: hugegraph-common
 Created-By: Apache Maven 3.3.9
 Build-Jdk: 1.8.0_111
-Specification-Version: 1.8.7
+Specification-Version: 1.8.8
 

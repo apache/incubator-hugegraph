@@ -25,6 +25,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.configuration.AbstractConfiguration;
 import org.apache.commons.configuration.AbstractFileConfiguration;
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.ConfigurationException;
@@ -42,7 +43,6 @@ public class HugeConfig extends PropertiesConfiguration {
         if (config == null) {
             throw new ConfigException("The config object is null");
         }
-
         this.reloadIfNeed(config);
         this.setLayoutIfNeeded(config);
 
@@ -60,9 +60,12 @@ public class HugeConfig extends PropertiesConfiguration {
 
     private void reloadIfNeed(Configuration conf) {
         if (!(conf instanceof AbstractFileConfiguration)) {
+            if (conf instanceof AbstractConfiguration) {
+                AbstractConfiguration config = (AbstractConfiguration) conf;
+                config.setDelimiterParsingDisabled(true);
+            }
             return;
         }
-
         AbstractFileConfiguration fileConfig = (AbstractFileConfiguration) conf;
 
         File file = fileConfig.getFile();

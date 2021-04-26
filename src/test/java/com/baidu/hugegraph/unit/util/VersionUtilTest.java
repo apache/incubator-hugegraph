@@ -129,7 +129,7 @@ public class VersionUtilTest extends BaseUnitTest {
         //Mockito.when(clazz.getResource("fake.class")).thenReturn(manifest);
 
         String manifestPath = "file:./src/test/resources";
-        Assert.assertEquals("1.8.7.0",
+        Assert.assertEquals("1.8.8.0",
                             VersionUtil.getImplementationVersion(manifestPath));
 
         manifestPath = "file:./src/test/resources2";
