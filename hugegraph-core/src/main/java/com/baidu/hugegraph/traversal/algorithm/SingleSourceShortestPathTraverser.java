@@ -212,9 +212,17 @@ public class SingleSourceShortestPathTraverser extends HugeTraverser {
                 !edge.property(this.weight).isPresent()) {
                 edgeWeight = 1.0;
             } else {
-                edgeWeight = edge.value(this.weight);
+                edgeWeight = toDouble(edge.value(this.weight));
             }
             return edgeWeight;
+        }
+
+        private double toDouble(Object obj) {
+            if (obj instanceof Number) {
+                return ((Number) obj).doubleValue();
+            }
+
+            return (double) obj;
         }
 
         private Iterator<Edge> skipSuperNodeIfNeeded(Iterator<Edge> edges) {
