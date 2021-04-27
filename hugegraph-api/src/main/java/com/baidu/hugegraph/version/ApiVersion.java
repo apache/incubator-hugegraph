@@ -61,7 +61,7 @@ public final class ApiVersion {
      * [0.20] HugeGraph-1210: Add paths api to find paths between two nodes
      * [0.21] HugeGraph-1197: Expose scan api for hugegraph-spark
      * [0.22] HugeGraph-1162: Support authentication and permission control
-     * [0.23] HugeGraph-1176: Support degree and capacity for traverse api
+     * [0.23] HugeGraph-1176: Support maxDegree and capacity for traverse api
      * [0.24] HugeGraph-1261: Add param offset for vertex/edge list API
      * [0.25] HugeGraph-1272: Support set/clear restore status of graph
      * [0.26] HugeGraph-1273: Add some monitoring counters to integrate with
@@ -75,7 +75,7 @@ public final class ApiVersion {
      * [0.31] Issue-182: Support restore graph in restoring and merging mode
      *
      * version 0.9:
-     * [0.32] Issue-250: Keep depth and degree consistent for traverser api
+     * [0.32] Issue-250: Keep depth and maxDegree consistent for traverser api
      * [0.33] Issue-305: Implement customized paths and crosspoints RESTful API
      * [0.34] Issue-307: Let VertexAPI use simplified property serializer
      * [0.35] Issue-287: Support pagination when do index query

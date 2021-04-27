@@ -22,7 +22,7 @@ package com.baidu.hugegraph.api.traversers;
 import java.util.List;
 
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPACITY;
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEGREE;
 
 import javax.inject.Singleton;
 import javax.ws.rs.DefaultValue;
@@ -66,7 +66,7 @@ public class AllShortestPathsAPI extends API {
                       @QueryParam("label") String edgeLabel,
                       @QueryParam("max_depth") int depth,
                       @QueryParam("max_degree")
-                      @DefaultValue(DEFAULT_DEGREE) long degree,
+                      @DefaultValue(DEFAULT_MAX_DEGREE) long maxDegree,
                       @QueryParam("skip_degree")
                       @DefaultValue("0") long skipDegree,
                       @QueryParam("capacity")
@@ -75,7 +75,7 @@ public class AllShortestPathsAPI extends API {
                   "direction {}, edge label {}, max depth '{}', " +
                   "max degree '{}', skipped degree '{}' and capacity '{}'",
                   graph, source, target, direction, edgeLabel, depth,
-                  degree, skipDegree, capacity);
+                  maxDegree, skipDegree, capacity);
 
         Id sourceId = VertexAPI.checkAndParseVertexId(source);
         Id targetId = VertexAPI.checkAndParseVertexId(target);
@@ -88,7 +88,7 @@ public class AllShortestPathsAPI extends API {
                                   ImmutableList.of(edgeLabel);
         HugeTraverser.PathSet paths = traverser.allShortestPaths(
                                       sourceId, targetId, dir, edgeLabels,
-                                      depth, degree, skipDegree, capacity);
+                                      depth, maxDegree, skipDegree, capacity);
         return manager.serializer(g).writePaths("paths", paths, false);
     }
 }

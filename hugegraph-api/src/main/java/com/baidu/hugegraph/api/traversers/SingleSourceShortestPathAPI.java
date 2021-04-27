@@ -20,7 +20,7 @@
 package com.baidu.hugegraph.api.traversers;
 
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPACITY;
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEGREE;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PATHS_LIMIT;
 
 import java.util.Iterator;
@@ -67,7 +67,7 @@ public class SingleSourceShortestPathAPI extends API {
                       @QueryParam("label") String edgeLabel,
                       @QueryParam("weight") String weight,
                       @QueryParam("max_degree")
-                      @DefaultValue(DEFAULT_DEGREE) long degree,
+                      @DefaultValue(DEFAULT_MAX_DEGREE) long maxDegree,
                       @QueryParam("skip_degree")
                       @DefaultValue("0") long skipDegree,
                       @QueryParam("capacity")
@@ -79,7 +79,7 @@ public class SingleSourceShortestPathAPI extends API {
                   "with direction {}, edge label {}, weight property {}, " +
                   "max degree '{}', limit '{}' and with vertex '{}'",
                   graph, source, direction, edgeLabel,
-                  weight, degree, withVertex);
+                  weight, maxDegree, withVertex);
 
         Id sourceId = VertexAPI.checkAndParseVertexId(source);
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
@@ -89,7 +89,7 @@ public class SingleSourceShortestPathAPI extends API {
                 new SingleSourceShortestPathTraverser(g);
         WeightedPaths paths = traverser.singleSourceShortestPaths(
                               sourceId, dir, edgeLabel, weight,
-                              degree, skipDegree, capacity, limit);
+                              maxDegree, skipDegree, capacity, limit);
         Iterator<Vertex> iterator = QueryResults.emptyIterator();
         assert paths != null;
         if (!paths.isEmpty() && withVertex) {

@@ -43,7 +43,7 @@ import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEGREE;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_LIMIT;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEPTH;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.NO_LIMIT;
@@ -68,9 +68,9 @@ public class PersonalRankAPI extends API {
         E.checkArgument(request.alpha > 0 && request.alpha <= 1.0,
                         "The alpha of rank request must be in range (0, 1], " +
                         "but got '%s'", request.alpha);
-        E.checkArgument(request.degree > 0 || request.degree == NO_LIMIT,
-                        "The degree of rank request must be > 0, but got: %s",
-                        request.degree);
+        E.checkArgument(request.maxDegree > 0 || request.maxDegree == NO_LIMIT,
+                        "The maxDegree of rank request must be > 0, but got: %s",
+                        request.maxDegree);
         E.checkArgument(request.limit > 0 || request.limit == NO_LIMIT,
                         "The limit of rank request must be > 0, but got: %s",
                         request.limit);
@@ -81,16 +81,16 @@ public class PersonalRankAPI extends API {
                         DEFAULT_MAX_DEPTH, request.maxDepth);
 
         LOG.debug("Graph [{}] get personal rank from '{}' with " +
-                  "edge label '{}', alpha '{}', degree '{}', " +
+                  "edge label '{}', alpha '{}', maxDegree '{}', " +
                   "max depth '{}' and sorted '{}'",
                   graph, request.source, request.label, request.alpha,
-                  request.degree, request.maxDepth, request.sorted);
+                  request.maxDegree, request.maxDepth, request.sorted);
 
         Id sourceId = HugeVertex.getIdValue(request.source);
         HugeGraph g = graph(manager, graph);
 
         PersonalRankTraverser traverser;
-        traverser = new PersonalRankTraverser(g, request.alpha, request.degree,
+        traverser = new PersonalRankTraverser(g, request.alpha, request.maxDegree,
                                               request.maxDepth);
         Map<Id, Double> ranks = traverser.personalRank(sourceId, request.label,
                                                        request.withLabel);
@@ -106,8 +106,8 @@ public class PersonalRankAPI extends API {
         private String label;
         @JsonProperty("alpha")
         private double alpha;
-        @JsonProperty("degree")
-        private long degree = Long.valueOf(DEFAULT_DEGREE);
+        @JsonProperty("max_degree")
+        private long maxDegree = Long.valueOf(DEFAULT_MAX_DEGREE);
         @JsonProperty("limit")
         private long limit = Long.valueOf(DEFAULT_LIMIT);
         @JsonProperty("max_depth")
@@ -121,10 +121,10 @@ public class PersonalRankAPI extends API {
         @Override
         public String toString() {
             return String.format("RankRequest{source=%s,label=%s,alpha=%s," +
-                                 "degree=%s,limit=%s,maxDepth=%s," +
+                                 "maxDegree=%s,limit=%s,maxDepth=%s," +
                                  "withLabel=%s,sorted=%s}",
                                  this.source, this.label, this.alpha,
-                                 this.degree, this.limit, this.maxDepth,
+                                 this.maxDegree, this.limit, this.maxDepth,
                                  this.withLabel, this.sorted);
         }
     }

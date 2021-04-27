@@ -20,7 +20,7 @@
 package com.baidu.hugegraph.api.traversers;
 
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPACITY;
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEGREE;
 
 import java.util.Iterator;
 
@@ -68,7 +68,7 @@ public class WeightedShortestPathAPI extends API {
                       @QueryParam("label") String edgeLabel,
                       @QueryParam("weight") String weight,
                       @QueryParam("max_degree")
-                      @DefaultValue(DEFAULT_DEGREE) long degree,
+                      @DefaultValue(DEFAULT_MAX_DEGREE) long maxDegree,
                       @QueryParam("skip_degree")
                       @DefaultValue("0") long skipDegree,
                       @QueryParam("capacity")
@@ -78,8 +78,8 @@ public class WeightedShortestPathAPI extends API {
                   "'{}' with direction {}, edge label {}, weight property {}, " +
                   "max degree '{}', skip degree '{}', capacity '{}', " +
                   "and with vertex '{}'",
-                  graph, source, target, direction, edgeLabel, weight, degree,
-                  skipDegree, capacity, withVertex);
+                  graph, source, target, direction, edgeLabel, weight,
+                  maxDegree, skipDegree, capacity, withVertex);
 
         Id sourceId = VertexAPI.checkAndParseVertexId(source);
         Id targetId = VertexAPI.checkAndParseVertexId(target);
@@ -92,7 +92,7 @@ public class WeightedShortestPathAPI extends API {
 
         NodeWithWeight path = traverser.weightedShortestPath(
                               sourceId, targetId, dir, edgeLabel, weight,
-                              degree, skipDegree, capacity);
+                              maxDegree, skipDegree, capacity);
         Iterator<Vertex> iterator = QueryResults.emptyIterator();
         if (path != null && withVertex) {
             assert !path.node().path().isEmpty();

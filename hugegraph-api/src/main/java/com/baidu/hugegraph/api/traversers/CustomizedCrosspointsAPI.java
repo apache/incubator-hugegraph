@@ -20,7 +20,7 @@
 package com.baidu.hugegraph.api.traversers;
 
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPACITY;
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEGREE;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PATHS_LIMIT;
 
 import java.util.ArrayList;
@@ -173,24 +173,24 @@ public class CustomizedCrosspointsAPI extends API {
         public List<String> labels;
         @JsonProperty("properties")
         public Map<String, Object> properties;
-        @JsonProperty("degree")
-        public long degree = Long.valueOf(DEFAULT_DEGREE);
+        @JsonProperty("max_degree")
+        public long maxDegree = Long.valueOf(DEFAULT_MAX_DEGREE);
         @JsonProperty("skip_degree")
         public long skipDegree = 0L;
 
         @Override
         public String toString() {
             return String.format("Step{direction=%s,labels=%s,properties=%s," +
-                                 "degree=%s,skipDegree=%s}",
+                                 "maxDegree=%s,skipDegree=%s}",
                                  this.direction, this.labels, this.properties,
-                                 this.degree, this.skipDegree);
+                                 this.maxDegree, this.skipDegree);
         }
 
         private CustomizedCrosspointsTraverser.Step jsonToStep(HugeGraph g) {
             return new CustomizedCrosspointsTraverser.Step(g, this.direction,
                                                            this.labels,
                                                            this.properties,
-                                                           this.degree,
+                                                           this.maxDegree,
                                                            this.skipDegree);
         }
     }

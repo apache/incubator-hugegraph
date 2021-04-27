@@ -20,7 +20,7 @@
 package com.baidu.hugegraph.api.traversers;
 
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPACITY;
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEGREE;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEPTH;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PATHS_LIMIT;
 
@@ -123,8 +123,8 @@ public class NeighborRankAPI extends API {
         public Directions direction;
         @JsonProperty("labels")
         public List<String> labels;
-        @JsonProperty("degree")
-        public long degree = Long.parseLong(DEFAULT_DEGREE);
+        @JsonProperty("max_degree")
+        public long maxDegree = Long.parseLong(DEFAULT_MAX_DEGREE);
         @JsonProperty("skip_degree")
         public long skipDegree = 0L;
         @JsonProperty("top")
@@ -134,15 +134,15 @@ public class NeighborRankAPI extends API {
 
         @Override
         public String toString() {
-            return String.format("Step{direction=%s,labels=%s,degree=%s," +
+            return String.format("Step{direction=%s,labels=%s,maxDegree=%s," +
                                  "top=%s}", this.direction, this.labels,
-                                 this.degree, this.top);
+                                 this.maxDegree, this.top);
         }
 
         private NeighborRankTraverser.Step jsonToStep(HugeGraph g) {
             return new NeighborRankTraverser.Step(g, this.direction,
                                                   this.labels,
-                                                  this.degree,
+                                                  this.maxDegree,
                                                   this.skipDegree,
                                                   this.top,
                                                   DEFAULT_CAPACITY_PER_LAYER);
