@@ -212,7 +212,7 @@ public class SingleSourceShortestPathTraverser extends HugeTraverser {
                 !edge.property(this.weight).isPresent()) {
                 edgeWeight = 1.0;
             } else {
-                edgeWeight = toDouble(edge.value(this.weight));
+                edgeWeight = this.toDouble(edge.value(this.weight));
             }
             return edgeWeight;
         }
