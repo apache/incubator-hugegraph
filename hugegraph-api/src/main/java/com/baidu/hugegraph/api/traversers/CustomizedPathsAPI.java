@@ -136,9 +136,9 @@ public class CustomizedPathsAPI extends API {
         @JsonProperty("sort_by")
         public SortBy sortBy;
         @JsonProperty("capacity")
-        public long capacity = Long.valueOf(DEFAULT_CAPACITY);
+        public long capacity = Long.parseLong(DEFAULT_CAPACITY);
         @JsonProperty("limit")
-        public long limit = Long.valueOf(DEFAULT_PATHS_LIMIT);
+        public long limit = Long.parseLong(DEFAULT_PATHS_LIMIT);
         @JsonProperty("with_vertex")
         public boolean withVertex = false;
 
@@ -161,15 +161,15 @@ public class CustomizedPathsAPI extends API {
         @JsonProperty("properties")
         public Map<String, Object> properties;
         @JsonProperty("max_degree")
-        public long maxDegree = Long.valueOf(DEFAULT_MAX_DEGREE);
+        public long maxDegree = Long.parseLong(DEFAULT_MAX_DEGREE);
         @JsonProperty("skip_degree")
         public long skipDegree = 0L;
         @JsonProperty("weight_by")
         public String weightBy;
         @JsonProperty("default_weight")
-        public double defaultWeight = Double.valueOf(DEFAULT_WEIGHT);
+        public double defaultWeight = Double.parseDouble(DEFAULT_WEIGHT);
         @JsonProperty("sample")
-        public long sample = Long.valueOf(DEFAULT_SAMPLE);
+        public long sample = Long.parseLong(DEFAULT_SAMPLE);
 
         @Override
         public String toString() {

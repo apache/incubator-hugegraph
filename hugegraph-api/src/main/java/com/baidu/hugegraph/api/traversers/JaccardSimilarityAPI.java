@@ -132,9 +132,9 @@ public class JaccardSimilarityAPI extends TraverserAPI {
         @JsonProperty("step")
         public TraverserAPI.Step step;
         @JsonProperty("top")
-        public int top = Integer.valueOf(DEFAULT_LIMIT);
+        public int top = Integer.parseInt(DEFAULT_LIMIT);
         @JsonProperty("capacity")
-        public long capacity = Long.valueOf(DEFAULT_CAPACITY);
+        public long capacity = Long.parseLong(DEFAULT_CAPACITY);
 
         @Override
         public String toString() {

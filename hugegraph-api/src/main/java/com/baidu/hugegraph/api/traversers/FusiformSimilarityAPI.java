@@ -140,11 +140,11 @@ public class FusiformSimilarityAPI extends API {
         @JsonProperty("min_groups")
         public int minGroups;
         @JsonProperty("max_degree")
-        public long maxDegree = Long.valueOf(DEFAULT_MAX_DEGREE);
+        public long maxDegree = Long.parseLong(DEFAULT_MAX_DEGREE);
         @JsonProperty("capacity")
-        public long capacity = Long.valueOf(DEFAULT_CAPACITY);
+        public long capacity = Long.parseLong(DEFAULT_CAPACITY);
         @JsonProperty("limit")
-        public long limit = Long.valueOf(DEFAULT_PATHS_LIMIT);
+        public long limit = Long.parseLong(DEFAULT_PATHS_LIMIT);
         @JsonProperty("with_intermediary")
         public boolean withIntermediary = false;
         @JsonProperty("with_vertex")

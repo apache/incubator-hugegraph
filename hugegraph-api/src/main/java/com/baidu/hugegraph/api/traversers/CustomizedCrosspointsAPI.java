@@ -136,9 +136,9 @@ public class CustomizedCrosspointsAPI extends API {
         @JsonProperty("path_patterns")
         public List<PathPattern> pathPatterns;
         @JsonProperty("capacity")
-        public long capacity = Long.valueOf(DEFAULT_CAPACITY);
+        public long capacity = Long.parseLong(DEFAULT_CAPACITY);
         @JsonProperty("limit")
-        public long limit = Long.valueOf(DEFAULT_PATHS_LIMIT);
+        public long limit = Long.parseLong(DEFAULT_PATHS_LIMIT);
         @JsonProperty("with_path")
         public boolean withPath = false;
         @JsonProperty("with_vertex")
