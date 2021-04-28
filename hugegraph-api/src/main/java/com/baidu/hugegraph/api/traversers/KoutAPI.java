@@ -22,7 +22,6 @@ package com.baidu.hugegraph.api.traversers;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPACITY;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_ELEMENTS_LIMIT;
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PATHS_LIMIT;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -187,7 +186,7 @@ public class KoutAPI extends TraverserAPI {
         @JsonProperty("capacity")
         public long capacity = Long.valueOf(DEFAULT_CAPACITY);
         @JsonProperty("limit")
-        public long limit = Long.valueOf(DEFAULT_PATHS_LIMIT);
+        public long limit = Long.valueOf(DEFAULT_ELEMENTS_LIMIT);
         @JsonProperty("with_vertex")
         public boolean withVertex = false;
         @JsonProperty("with_path")
