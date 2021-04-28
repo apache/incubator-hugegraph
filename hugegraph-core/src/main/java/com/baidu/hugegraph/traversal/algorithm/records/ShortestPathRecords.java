@@ -30,8 +30,11 @@ import org.eclipse.collections.impl.set.mutable.primitive.IntHashSet;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser.PathSet;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser.Path;
+import com.baidu.hugegraph.traversal.algorithm.records.record.IntIntRecord;
+import com.baidu.hugegraph.traversal.algorithm.records.record.Record;
+import com.baidu.hugegraph.traversal.algorithm.records.record.RecordType;
 
-public class ShortestPathRecords extends MultiPathsRecords {
+public class ShortestPathRecords extends DoubleWayMultiPathsRecords {
 
     private final IntHashSet accessedVertices;
     private boolean pathFound;

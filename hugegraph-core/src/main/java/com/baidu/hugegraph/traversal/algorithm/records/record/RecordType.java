@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.traversal.algorithm.records;
+package com.baidu.hugegraph.traversal.algorithm.records.record;
 
 import com.baidu.hugegraph.type.define.SerialEnum;
 

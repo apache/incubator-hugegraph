@@ -501,10 +501,10 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
 
         VertexLabel otherVertexLabel;
         if (isOutEdge) {
-//            ownerVertex.correctVertexLabel(srcLabel);
+            ownerVertex.correctVertexLabel(srcLabel);
             otherVertexLabel = tgtLabel;
         } else {
-//            ownerVertex.correctVertexLabel(tgtLabel);
+            ownerVertex.correctVertexLabel(tgtLabel);
             otherVertexLabel = srcLabel;
         }
         HugeVertex otherVertex = new HugeVertex(graph, otherVertexId,

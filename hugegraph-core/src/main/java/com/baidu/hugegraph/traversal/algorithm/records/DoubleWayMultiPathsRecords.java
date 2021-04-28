@@ -26,19 +26,17 @@ import java.util.Stack;
 import java.util.function.Function;
 
 import org.apache.commons.collections.CollectionUtils;
-import org.eclipse.collections.api.iterator.IntIterator;
 
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser.Path;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser.PathSet;
-import com.baidu.hugegraph.util.collection.ObjectIntMapping;
+import com.baidu.hugegraph.traversal.algorithm.records.record.IntIterator;
+import com.baidu.hugegraph.traversal.algorithm.records.record.Record;
+import com.baidu.hugegraph.traversal.algorithm.records.record.RecordType;
 import com.google.common.collect.Lists;
 
-public class MultiPathsRecords implements Records {
-
-    private final ObjectIntMapping<Id> idMapping;
-    private final RecordType type;
+public class DoubleWayMultiPathsRecords extends AbstractRecords {
 
     protected final Stack<Record> sourceRecords;
     protected final Stack<Record> targetRecords;
@@ -49,9 +47,8 @@ public class MultiPathsRecords implements Records {
     protected boolean forward;
     private int accessed;
 
-    public MultiPathsRecords(Id sourceV, Id targetV, RecordType type) {
-        this.idMapping = new ObjectIntMapping<>();
-        this.type = type;
+    public DoubleWayMultiPathsRecords(Id sourceV, Id targetV, RecordType type) {
+        super(type);
 
         int sourceCode = this.code(sourceV);
         int targetCode = this.code(targetV);
@@ -144,7 +141,8 @@ public class MultiPathsRecords implements Records {
                 }
                 List<Id> ids = new ArrayList<>(spath.vertices());
                 ids.addAll(tpath.vertices());
-                results.add(new Path(ids));
+                Id crosspoint = this.id(this.forward ? target : source);
+                results.add(new Path(crosspoint, ids));
             }
         }
         return results;
@@ -191,19 +189,5 @@ public class MultiPathsRecords implements Records {
     @Watched
     protected void addPath(int current, int parent) {
         this.currentRecord.addPath(current, parent);
-    }
-
-    @Watched
-    protected int code(Id id) {
-        return this.idMapping.object2Code(id);
-    }
-
-    @Watched
-    protected Id id(int code) {
-        return (Id) this.idMapping.code2Object(code);
-    }
-
-    private Record newRecord() {
-        return RecordFactory.newRecord(this.type);
     }
 }

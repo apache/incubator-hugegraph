@@ -31,12 +31,12 @@ public final class ObjectIntMapping<V> {
     private final IntObjectHashMap<V> int2IdMap;
 
     public ObjectIntMapping() {
-        this.int2IdMap = new IntObjectHashMap<>(1000000);
+        this.int2IdMap = new IntObjectHashMap<>(10000000);
     }
 
     @Watched
     @SuppressWarnings("unchecked")
-    public int object2Code(Object object) {
+    public synchronized int object2Code(Object object) {
         int key = object.hashCode();
         // TODO: improve hash algorithm
         for (int i = 1; i > 0; i <<= 1) {
@@ -56,7 +56,7 @@ public final class ObjectIntMapping<V> {
     }
 
     @Watched
-    public Object code2Object(int code) {
+    public synchronized Object code2Object(int code) {
         return this.int2IdMap.get(code);
     }
 }

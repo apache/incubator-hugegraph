@@ -17,19 +17,40 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.traversal.algorithm.records;
+package com.baidu.hugegraph.traversal.algorithm.records.record;
 
-import org.eclipse.collections.api.iterator.IntIterator;
+import com.baidu.hugegraph.util.collection.Int2IntsMap;
 
-public interface Record {
+public class IntArrayRecord implements Record {
 
-    public abstract IntIterator keys();
+    private final Int2IntsMap layer;
 
-    public abstract boolean containsKey(int key);
+    public IntArrayRecord() {
+        this.layer = new Int2IntsMap();
+    }
 
-    public abstract IntIterator get(int key);
+    @Override
+    public IntIterator keys() {
+        return new IntIterator(this.layer.keyIterator());
+    }
 
-    public abstract void addPath(int node, int parent);
+    @Override
+    public boolean containsKey(int key) {
+        return this.layer.containsKey(key);
+    }
 
-    public abstract int size();
+    @Override
+    public IntIterator get(int key) {
+        return new IntIterator(this.layer.get(key));
+    }
+
+    @Override
+    public void addPath(int node, int parent) {
+        this.layer.add(node, parent);
+    }
+
+    @Override
+    public int size() {
+        return this.layer.size();
+    }
 }

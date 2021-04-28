@@ -27,8 +27,8 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.structure.HugeEdge;
-import com.baidu.hugegraph.traversal.algorithm.records.MultiPathsRecords;
-import com.baidu.hugegraph.traversal.algorithm.records.RecordType;
+import com.baidu.hugegraph.traversal.algorithm.records.DoubleWayMultiPathsRecords;
+import com.baidu.hugegraph.traversal.algorithm.records.record.RecordType;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
 import com.google.common.collect.ImmutableList;
@@ -83,7 +83,7 @@ public class PathsTraverser extends HugeTraverser {
 
     private class Traverser {
 
-        private final MultiPathsRecords record;
+        private final DoubleWayMultiPathsRecords record;
 
         private final Id label;
         private final long degree;
@@ -94,8 +94,8 @@ public class PathsTraverser extends HugeTraverser {
 
         public Traverser(Id sourceV, Id targetV, Id label,
                          long degree, long capacity, long limit) {
-            this.record = new MultiPathsRecords(sourceV, targetV,
-                                                RecordType.ARRAY);
+            this.record = new DoubleWayMultiPathsRecords(sourceV, targetV,
+                                                         RecordType.ARRAY);
             this.label = label;
             this.degree = degree;
             this.capacity = capacity;

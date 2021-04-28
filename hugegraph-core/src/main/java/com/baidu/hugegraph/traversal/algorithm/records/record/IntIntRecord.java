@@ -17,46 +17,44 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.traversal.algorithm.records;
+package com.baidu.hugegraph.traversal.algorithm.records.record;
 
-import org.eclipse.collections.api.iterator.IntIterator;
-import org.eclipse.collections.impl.map.mutable.primitive.IntObjectHashMap;
-import org.eclipse.collections.impl.set.mutable.primitive.IntHashSet;
+import org.eclipse.collections.impl.map.mutable.primitive.IntIntHashMap;
 
-public class IntSetRecord implements Record {
+public class IntIntRecord implements Record {
 
-    private final IntObjectHashMap<IntHashSet> layer;
+    private final IntIntHashMap layer;
 
-    public IntSetRecord() {
-        this.layer = new IntObjectHashMap<>();
+    public IntIntRecord() {
+        this.layer = new IntIntHashMap();
     }
 
     @Override
     public IntIterator keys() {
-        return this.layer.keySet().intIterator();
+        return new IntIterator(this.layer.keySet().intIterator());
     }
-
 
     @Override
     public boolean containsKey(int key) {
         return this.layer.containsKey(key);
     }
 
-    @Override public IntIterator get(int key) {
-        return this.layer.get(key).intIterator();
+    @Override
+    public IntIterator get(int key) {
+        return null;
     }
 
     @Override
     public void addPath(int node, int parent) {
-        if (this.layer.containsKey(node)) {
-            this.layer.get(node).add(parent);
-        } else {
-            this.layer.put(node, IntHashSet.newSetWith(parent));
-        }
+        this.layer.put(node, parent);
     }
 
     @Override
     public int size() {
         return this.layer.size();
+    }
+
+    public IntIntHashMap layer() {
+        return this.layer;
     }
 }

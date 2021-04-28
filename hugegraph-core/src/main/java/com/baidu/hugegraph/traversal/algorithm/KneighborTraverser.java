@@ -21,9 +21,15 @@ package com.baidu.hugegraph.traversal.algorithm;
 
 import java.util.Iterator;
 import java.util.Set;
+import java.util.function.Consumer;
+
+import org.apache.tinkerpop.gremlin.structure.Edge;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.structure.HugeEdge;
+import com.baidu.hugegraph.traversal.algorithm.records.KneighborRecords;
+import com.baidu.hugegraph.traversal.algorithm.records.record.RecordType;
 import com.baidu.hugegraph.traversal.algorithm.steps.EdgeStep;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
@@ -64,8 +70,8 @@ public class KneighborTraverser extends OltpTraverser {
         return all;
     }
 
-    public Set<Node> customizedKneighbor(Id source, EdgeStep step,
-                                         int maxDepth, long limit) {
+    public KneighborRecords customizedKneighbor(Id source, EdgeStep step,
+                                                int maxDepth, long limit) {
         E.checkNotNull(source, "source vertex id");
         this.checkVertexExist(source, "source vertex");
         checkPositive(maxDepth, "k-neighbor max_depth");
@@ -73,36 +79,59 @@ public class KneighborTraverser extends OltpTraverser {
 
         boolean single = maxDepth < this.concurrentDepth() ||
                          step.direction() != Directions.BOTH;
-        return this.customizedKneighbor(source, step, maxDepth,
-                                        limit, single);
+        Traverser traverser = new Traverser(source, step, maxDepth, limit,
+                                            single);
+        return traverser.customizedKneighbor();
     }
 
-    public Set<Node> customizedKneighbor(Id source, EdgeStep step, int maxDepth,
-                                         long limit, boolean single) {
-        Set<Node> latest = newSet(single);
-        Set<Node> all = newSet(single);
+    private class Traverser {
 
-        Node sourceV = new KNode(source, null);
+        private final KneighborRecords record;
 
-        latest.add(sourceV);
+        private final EdgeStep step;
+        private final long limit;
+        private final boolean single;
+        private int depth;
 
-        while (maxDepth-- > 0) {
-            long remaining = limit == NO_LIMIT ? NO_LIMIT : limit - all.size();
-            latest = this.adjacentVertices(source, latest, step, all,
-                                           remaining, single);
-            int size = all.size() + latest.size();
-            if (limit != NO_LIMIT && size >= limit) {
-                int subLength = (int) limit - all.size();
-                Iterator<Node> iterator = latest.iterator();
-                for (int i = 0; i < subLength && iterator.hasNext(); i++) {
-                    all.add(iterator.next());
-                }
-                break;
-            } else {
-                all.addAll(latest);
-            }
+        private boolean stop;
+
+        public Traverser(Id source, EdgeStep step, int maxDepth,
+                         long limit, boolean single) {
+            this.record = new KneighborRecords(source, RecordType.INT,
+                                               true, single);
+            this.step = step;
+            this.depth = maxDepth;
+            this.limit = limit;
+            this.single = single;
+            this.stop = false;
         }
 
-        return all;
+        public KneighborRecords customizedKneighbor() {
+            Consumer<Id> consumer = v -> {
+                Iterator<Edge> edges = edgesOfVertex(v, step);
+                while (edges.hasNext()) {
+                    Id target = ((HugeEdge) edges.next()).id().otherVertexId();
+                    this.record.addPath(v, target);
+                    this.checkLimit(this.limit, this.depth, this.record.size());
+                }
+            };
+
+            while (this.depth-- > 0) {
+                this.record.startOneLayer(true);
+                traverseIds(this.record.keys(), consumer,
+                            this.single, this.stop);
+                this.record.finishOneLayer();
+            }
+            return this.record;
+        }
+
+        private void checkLimit(long limit, long depth, int size) {
+            if (limit == NO_LIMIT || depth > 0) {
+                return;
+            }
+            if (size >= limit) {
+                this.stop = true;
+            }
+        }
     }
 }

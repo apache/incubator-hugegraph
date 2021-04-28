@@ -61,7 +61,6 @@ import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.collection.CollectionFactory;
-import com.baidu.hugegraph.util.collection.ObjectIntMapping;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -153,30 +152,6 @@ public class HugeTraverser {
         Iterator<Edge> edges = this.edgesOfVertex(source, step);
         while (edges.hasNext()) {
             neighbors.add(((HugeEdge) edges.next()).id().otherVertexId());
-        }
-        return neighbors;
-    }
-
-    protected Set<Node> adjacentVertices(Id start, Set<Node> vertices,
-                                         EdgeStep step, Set<Node> excluded,
-                                         long remaining) {
-        Set<Node> neighbors = newSet();
-        for (Node source : vertices) {
-            Iterator<Edge> edges = this.edgesOfVertex(source.id(), step);
-            while (edges.hasNext()) {
-                Id target = ((HugeEdge) edges.next()).id().otherVertexId();
-                KNode kNode = new KNode(target, (KNode) source);
-                boolean matchExcluded = (excluded != null &&
-                                         excluded.contains(kNode));
-                if (matchExcluded || neighbors.contains(kNode) ||
-                    start.equals(kNode.id())) {
-                    continue;
-                }
-                neighbors.add(kNode);
-                if (remaining != NO_LIMIT && --remaining <= 0L) {
-                    return neighbors;
-                }
-            }
         }
         return neighbors;
     }

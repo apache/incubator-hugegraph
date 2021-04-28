@@ -17,20 +17,33 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.traversal.algorithm.records;
+package com.baidu.hugegraph.traversal.algorithm.records.record;
 
 public class RecordFactory {
 
     public static Record newRecord(RecordType type) {
+        return newRecord(type, true);
+    }
+
+    public static Record newRecord(RecordType type, boolean single) {
+        Record record;
         switch (type) {
             case ARRAY:
-                return new IntArrayRecord();
+                record = new IntArrayRecord();
+                break;
             case SET:
-                return new IntSetRecord();
+                record = new IntSetRecord();
+                break;
             case INT:
-                return new IntIntRecord();
+                record = new IntIntRecord();
+                break;
             default:
                 throw new AssertionError("Unsupported record type: " + type);
         }
+        if (!single) {
+            record = new SyncRecord(record);
+        }
+
+        return record;
     }
 }

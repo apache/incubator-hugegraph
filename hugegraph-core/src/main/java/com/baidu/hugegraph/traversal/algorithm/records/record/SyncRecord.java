@@ -17,63 +17,57 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.traversal.algorithm.records;
+package com.baidu.hugegraph.traversal.algorithm.records.record;
 
-import org.eclipse.collections.api.iterator.IntIterator;
+public class SyncRecord implements Record {
 
-import com.baidu.hugegraph.util.collection.Int2IntsMap;
+    private final Object lock;
+    private final Record record;
 
-public class IntArrayRecord implements Record {
+    public SyncRecord(Record record) {
+        this(record, null);
+    }
 
-    private final Int2IntsMap layer;
-
-    public IntArrayRecord() {
-        this.layer = new Int2IntsMap();
+    public SyncRecord(Record record, Object newLock) {
+        if (record == null) {
+            throw new IllegalArgumentException(
+                      "Cannot create a SyncRecord on a null record");
+        } else {
+            this.record = record;
+            this.lock = newLock == null ? this : newLock;
+        }
     }
 
     @Override
     public IntIterator keys() {
-        return this.layer.keyIterator();
+        synchronized (this.lock) {
+            return this.record.keys();
+        }
     }
 
     @Override
     public boolean containsKey(int key) {
-        return this.layer.containsKey(key);
+        synchronized (this.lock) {
+            return this.record.containsKey(key);
+        }
     }
 
     @Override
     public IntIterator get(int key) {
-        return new IntArrayIterator(this.layer.get(key));
+        synchronized (this.lock) {
+            return this.record.get(key);
+        }
     }
 
     @Override
     public void addPath(int node, int parent) {
-        this.layer.add(node, parent);
+        synchronized (this.lock) {
+            this.record.addPath(node, parent);
+        }
     }
 
     @Override
     public int size() {
-        return this.layer.size();
-    }
-
-    public class IntArrayIterator implements IntIterator {
-
-        private final int[] array;
-        private int index;
-
-        public IntArrayIterator(int[] array) {
-            this.array = array;
-            this.index = 0;
-        }
-
-        @Override
-        public int next() {
-            return this.array[index++];
-        }
-
-        @Override
-        public boolean hasNext() {
-            return this.index < this.array.length;
-        }
+        return this.record.size();
     }
 }

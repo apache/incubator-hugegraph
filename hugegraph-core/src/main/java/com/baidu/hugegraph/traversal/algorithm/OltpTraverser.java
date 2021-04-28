@@ -93,6 +93,26 @@ public abstract class OltpTraverser extends HugeTraverser
     }
 
     protected Set<Node> adjacentVertices(Set<Node> vertices, EdgeStep step,
+                                         Set<Node> excluded, long remaining) {
+        Set<Node> neighbors = newSet();
+        for (Node source : vertices) {
+            Iterator<Edge> edges = this.edgesOfVertex(source.id(), step);
+            while (edges.hasNext()) {
+                Id target = ((HugeEdge) edges.next()).id().otherVertexId();
+                KNode kNode = new KNode(target, (KNode) source);
+                if (excluded != null && excluded.contains(kNode)) {
+                    continue;
+                }
+                neighbors.add(kNode);
+                if (remaining != NO_LIMIT && --remaining <= 0L) {
+                    return neighbors;
+                }
+            }
+        }
+        return neighbors;
+    }
+
+    protected Set<Node> adjacentVertices(Set<Node> vertices, EdgeStep step,
                                          Set<Node> excluded,
                                          AtomicLong remaining) {
         Set<Node> neighbors = ConcurrentHashMap.newKeySet();
@@ -115,21 +135,40 @@ public abstract class OltpTraverser extends HugeTraverser
 
     protected long traverseNodes(Iterator<Node> vertices,
                                  Consumer<Node> consumer) {
-        return this.traverse(vertices, consumer, "traverse-nodes");
+        return this.traverse(vertices, consumer, "traverse-nodes", false);
     }
 
     protected long traversePairs(Iterator<Pair<Id, Id>> pairs,
                                  Consumer<Pair<Id, Id>> consumer) {
-        return this.traverse(pairs, consumer, "traverse-pairs");
+        return this.traverse(pairs, consumer, "traverse-pairs", false);
+    }
+
+    protected long traverseIds(Iterator<Id> ids, Consumer<Id> consumer,
+                               boolean single, boolean stop) {
+        if (!single) {
+            return this.traverseIds(ids, consumer);
+        } else {
+            long count = 0L;
+            while (ids.hasNext()) {
+                count++;
+                consumer.accept(ids.next());
+            }
+            return count;
+        }
     }
 
     protected long traverseIds(Iterator<Id> ids, Consumer<Id> consumer) {
-        return this.traverse(ids, consumer, "traverse-ids");
+        return this.traverseIds(ids, consumer, false);
+    }
+
+    protected long traverseIds(Iterator<Id> ids, Consumer<Id> consumer,
+                               boolean stop) {
+        return this.traverse(ids, consumer, "traverse-ids", stop);
     }
 
     protected <K> long traverse(Iterator<K> iterator, Consumer<K> consumer,
-                                String name) {
-        if (!iterator.hasNext()) {
+                                String name, boolean stop) {
+        if (!iterator.hasNext() || stop) {
             return 0L;
         }
 
@@ -138,7 +177,7 @@ public abstract class OltpTraverser extends HugeTraverser
         consumers.start(name);
         long total = 0L;
         try {
-            while (iterator.hasNext()) {
+            while (!stop && iterator.hasNext()) {
                 total++;
                 K v = iterator.next();
                 consumers.provide(v);
