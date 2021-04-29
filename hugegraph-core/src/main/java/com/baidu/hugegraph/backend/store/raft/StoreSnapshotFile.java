@@ -65,6 +65,11 @@ public class StoreSnapshotFile {
                 String jraftSnapshotPath = this.writeManifest(writer,
                                                               snapshotDirs,
                                                               done);
+                /*
+                 * Compression must be performed, otherwise jraft will not
+                 * load the snapshot on restart, even if we don't need this
+                 * compressed file when actually loading the snapshot
+                 */
                 this.compressJraftSnapshotDir(writer, jraftSnapshotPath, done);
             });
         } catch (Throwable e) {
@@ -82,21 +87,13 @@ public class StoreSnapshotFile {
             LOG.error("Can't find snapshot archive file, path={}", readerPath);
             return false;
         }
-        String jraftSnapshotPath = Paths.get(readerPath, SNAPSHOT_DIR)
-                                        .toString();
         try {
-            // Decompress manifest and data directory
-            this.decompressSnapshot(readerPath, meta);
+            /*
+             * Don't perform decompression, it's possible to trigger the bug of
+             * IOUtils.skip() infinite loop. I don't know how this bug is
+             * generated yet.
+             */
             this.doSnapshotLoad();
-            File tmp = new File(jraftSnapshotPath);
-            // Delete the decompressed temporary file. If the deletion fails
-            // (although it is a small probability event), it may affect the
-            // next snapshot decompression result. Therefore, the safest way
-            // is to terminate the state machine immediately. Users can choose
-            // to manually delete and restart according to the log information.
-            if (tmp.exists()) {
-                FileUtils.forceDelete(tmp);
-            }
             return true;
         } catch (Throwable e) {
             LOG.error("Failed to load snapshot", e);
