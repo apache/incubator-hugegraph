@@ -8,12 +8,23 @@ if [ ! -d $HOME/downloads ]; then
     mkdir $HOME/downloads
 fi
 
-if [[ "$BACKEND" == "cassandra" || "$BACKEND" == "scylladb" ]]; then
-    $TRAVIS_DIR/install-cassandra.sh
-elif [[ "$BACKEND" == "hbase" ]]; then
-    $TRAVIS_DIR/install-hbase.sh
-elif [[ "$BACKEND" == "mysql" ]]; then
-    $TRAVIS_DIR/install-mysql.sh
-elif [[ "$BACKEND" == "postgresql" ]]; then
-    $TRAVIS_DIR/install-postgresql.sh
-fi
+case $BACKEND in
+    cassandra)
+        $TRAVIS_DIR/install-cassandra.sh
+        ;;
+    scylladb)
+        $TRAVIS_DIR/install-scylladb.sh
+        ;;
+    hbase)
+        $TRAVIS_DIR/install-hbase.sh
+        ;;
+    mysql)
+        $TRAVIS_DIR/install-mysql.sh
+        ;;
+    postgresql)
+        $TRAVIS_DIR/install-postgresql.sh
+        ;;
+    *)
+        # don't need to install for other backends
+        ;;
+esac

@@ -113,7 +113,7 @@ public class FusiformSimilarityAPI extends API {
         CloseableIterator.closeIterator(sources);
 
         Iterator<Vertex> iterator = QueryResults.emptyIterator();
-        if (request.withVertex) {
+        if (request.withVertex && !result.isEmpty()) {
             iterator = g.vertices(result.vertices().toArray());
         }
         return manager.serializer(g).writeSimilars(result, iterator);

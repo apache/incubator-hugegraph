@@ -73,9 +73,9 @@ public class MultiGraphsTest {
             graph.initBackend();
         }
         HugeGraph g1 = graphs.get(0);
-        g1.serverStarted(IdGenerator.of("server2"), NodeRole.MASTER);
+        g1.serverStarted(IdGenerator.of("server-g2"), NodeRole.MASTER);
         HugeGraph g2 = graphs.get(1);
-        g2.serverStarted(IdGenerator.of("server3"), NodeRole.MASTER);
+        g2.serverStarted(IdGenerator.of("server-g3"), NodeRole.MASTER);
 
         SchemaManager schema = g1.schema();
 
@@ -192,10 +192,11 @@ public class MultiGraphsTest {
         List<HugeGraph> graphs = openGraphs("schema_g1", "schema_g2");
         for (HugeGraph graph : graphs) {
             graph.initBackend();
-            graph.serverStarted(IdGenerator.of("server1"), NodeRole.MASTER);
         }
         HugeGraph g1 = graphs.get(0);
         HugeGraph g2 = graphs.get(1);
+        g1.serverStarted(IdGenerator.of("server-g1c"), NodeRole.MASTER);
+        g2.serverStarted(IdGenerator.of("server-g2c"), NodeRole.MASTER);
 
         g1.schema().propertyKey("id").asInt().create();
         g2.schema().propertyKey("id").asText().create();
@@ -392,6 +393,7 @@ public class MultiGraphsTest {
         String walPath = config.getString(RocksDBOptions.WAL_PATH.name());
         config.setProperty(RocksDBOptions.WAL_PATH.name(),
                            Paths.get(walPath, graphName).toString());
+
         return config;
     }
 }

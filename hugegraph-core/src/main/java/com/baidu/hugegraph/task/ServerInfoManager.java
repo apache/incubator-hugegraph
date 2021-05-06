@@ -163,6 +163,8 @@ public class ServerInfoManager {
         HugeServerInfo serverInfo = new HugeServerInfo(server, role);
         serverInfo.maxLoad(this.calcMaxLoad());
         this.save(serverInfo);
+
+        LOG.info("Init server info: {}", serverInfo);
     }
 
     public Id selfServerId() {
@@ -191,14 +193,11 @@ public class ServerInfoManager {
         this.save(serverInfo);
     }
 
-    public void decreaseLoad(int load) {
-        try {
-            HugeServerInfo serverInfo = this.selfServerInfo();
-            serverInfo.increaseLoad(-load);
-            this.save(serverInfo);
-        } catch (Throwable t) {
-            LOG.error("Exception occurred when decrease server load", t);
-        }
+    public synchronized void decreaseLoad(int load) {
+        assert load > 0 : load;
+        HugeServerInfo serverInfo = this.selfServerInfo();
+        serverInfo.increaseLoad(-load);
+        this.save(serverInfo);
     }
 
     public int calcMaxLoad() {
@@ -345,6 +344,7 @@ public class ServerInfoManager {
         if (server == null) {
             return null;
         }
+        LOG.info("Remove server info: {}", server);
         return this.call(() -> {
             Iterator<Vertex> vertices = this.tx().queryVertices(server);
             Vertex vertex = QueryResults.one(vertices);
@@ -356,11 +356,11 @@ public class ServerInfoManager {
         });
     }
 
-    public void updateServerInfos(Collection<HugeServerInfo> serverInfos) {
+    protected void updateServerInfos(Collection<HugeServerInfo> serverInfos) {
         this.save(serverInfos);
     }
 
-    public Collection<HugeServerInfo> allServerInfos() {
+    protected Collection<HugeServerInfo> allServerInfos() {
         Iterator<HugeServerInfo> infos = this.serverInfos(NO_LIMIT, null);
         try (ListIterator<HugeServerInfo> iter = new ListIterator<>(
                                                  MAX_SERVERS, infos)) {
@@ -370,11 +370,11 @@ public class ServerInfoManager {
         }
     }
 
-    public Iterator<HugeServerInfo> serverInfos(String page) {
+    protected Iterator<HugeServerInfo> serverInfos(String page) {
         return this.serverInfos(ImmutableMap.of(), PAGE_SIZE, page);
     }
 
-    public Iterator<HugeServerInfo> serverInfos(long limit, String page) {
+    protected Iterator<HugeServerInfo> serverInfos(long limit, String page) {
         return this.serverInfos(ImmutableMap.of(), limit, page);
     }
 
