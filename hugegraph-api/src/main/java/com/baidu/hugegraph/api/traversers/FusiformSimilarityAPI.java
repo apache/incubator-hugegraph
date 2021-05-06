@@ -75,8 +75,8 @@ public class FusiformSimilarityAPI extends API {
         E.checkArgument(request.minNeighbors > 0,
                         "The min neighbor count must be > 0, but got: %s",
                         request.minNeighbors);
-        E.checkArgument(request.maxDegree > 0 || request.maxDegree == NO_LIMIT,
-                        "The maxDegree of request must be > 0, but got: %s",
+        E.checkArgument(request.maxDegree > 0L || request.maxDegree == NO_LIMIT,
+                        "The max_degree of request must be > 0, but got: %s",
                         request.maxDegree);
         E.checkArgument(request.alpha > 0 && request.alpha <= 1.0,
                         "The alpha of request must be in range (0, 1], " +

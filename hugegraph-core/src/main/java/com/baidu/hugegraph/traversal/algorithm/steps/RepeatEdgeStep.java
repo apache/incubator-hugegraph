@@ -76,7 +76,7 @@ public class RepeatEdgeStep extends EdgeStep {
                           List<String> labels,
                           Map<String, Object> properties) {
         this(g, direction, labels, properties,
-             Long.valueOf(DEFAULT_MAX_DEGREE), 0L, 1);
+             Long.parseLong(DEFAULT_MAX_DEGREE), 0L, 1);
     }
 
     public RepeatEdgeStep(HugeGraph g, Directions direction,

@@ -124,9 +124,9 @@ public class CountAPI extends API {
         @JsonProperty("properties")
         public Map<String, Object> properties;
         @JsonProperty("max_degree")
-        public long maxDegree = Long.valueOf(DEFAULT_MAX_DEGREE);
+        public long maxDegree = Long.parseLong(DEFAULT_MAX_DEGREE);
         @JsonProperty("skip_degree")
-        public long skipDegree = Long.valueOf(DEFAULT_SKIP_DEGREE);
+        public long skipDegree = Long.parseLong(DEFAULT_SKIP_DEGREE);
 
         @Override
         public String toString() {

@@ -66,7 +66,7 @@ public class EdgeStep {
     public EdgeStep(HugeGraph g, Directions direction, List<String> labels,
                     Map<String, Object> properties) {
         this(g, direction, labels, properties,
-             Long.valueOf(DEFAULT_MAX_DEGREE), 0L);
+             Long.parseLong(DEFAULT_MAX_DEGREE), 0L);
     }
 
     public EdgeStep(HugeGraph g, Directions direction, List<String> labels,
