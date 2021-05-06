@@ -171,7 +171,7 @@ public class KneighborAPI extends TraverserAPI {
         @JsonProperty("max_depth")
         public int maxDepth;
         @JsonProperty("limit")
-        public long limit = Long.parseLong(DEFAULT_PATHS_LIMIT);
+        public long limit = Long.parseLong(DEFAULT_ELEMENTS_LIMIT);
         @JsonProperty("count_only")
         public boolean countOnly = false;
         @JsonProperty("with_vertex")
