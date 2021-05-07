@@ -73,7 +73,8 @@ public class PageState {
 
     public static PageState fromString(String page) {
         E.checkNotNull(page, "page");
-        return fromBytes(toBytes(page));
+        String originalPage = page.replace(' ', '+');
+        return fromBytes(toBytes(originalPage));
     }
 
     public static PageState fromBytes(byte[] bytes) {
