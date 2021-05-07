@@ -59,8 +59,8 @@ public class WeightedEdgeStep {
     public WeightedEdgeStep(HugeGraph g, Directions direction, List<String> labels,
                             Map<String, Object> properties) {
         this(g, direction, labels, properties,
-             Long.valueOf(DEFAULT_MAX_DEGREE), 0L, null, 0.0D,
-             Long.valueOf(DEFAULT_SAMPLE));
+             Long.parseLong(DEFAULT_MAX_DEGREE), 0L, null, 0.0D,
+             Long.parseLong(DEFAULT_SAMPLE));
     }
 
     public WeightedEdgeStep(HugeGraph g, Directions direction, List<String> labels,
