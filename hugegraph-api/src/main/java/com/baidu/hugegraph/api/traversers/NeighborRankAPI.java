@@ -48,6 +48,7 @@ import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Path("graphs/{graph}/traversers/neighborrank")
@@ -123,6 +124,7 @@ public class NeighborRankAPI extends API {
         public Directions direction;
         @JsonProperty("labels")
         public List<String> labels;
+        @JsonAlias("degree")
         @JsonProperty("max_degree")
         public long maxDegree = Long.parseLong(DEFAULT_MAX_DEGREE);
         @JsonProperty("skip_degree")

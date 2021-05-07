@@ -26,6 +26,7 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.traversal.algorithm.steps.EdgeStep;
 import com.baidu.hugegraph.type.define.Directions;
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEGREE;
@@ -45,6 +46,7 @@ public class TraverserAPI extends API {
         public List<String> labels;
         @JsonProperty("properties")
         public Map<String, Object> properties;
+        @JsonAlias("degree")
         @JsonProperty("max_degree")
         public long maxDegree = Long.parseLong(DEFAULT_MAX_DEGREE);
         @JsonProperty("skip_degree")
