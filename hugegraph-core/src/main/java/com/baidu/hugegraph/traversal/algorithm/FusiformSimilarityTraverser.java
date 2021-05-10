@@ -308,5 +308,9 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
             }
             return results;
         }
+
+        public boolean isEmpty() {
+            return this.similars.isEmpty();
+        }
     }
 }
