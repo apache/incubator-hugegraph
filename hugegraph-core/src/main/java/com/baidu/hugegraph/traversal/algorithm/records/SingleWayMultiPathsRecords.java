@@ -49,16 +49,16 @@ public class SingleWayMultiPathsRecords extends AbstractRecords {
     protected final Stack<Record> records;
 
     private final boolean nearest;
+    private final Set accessedVertices;
 
     protected Record currentRecord;
     protected IntIterator lastRecordKeys;
     protected int current;
     protected boolean forward;
-    private final Set accessedVertices;
 
     public SingleWayMultiPathsRecords(Id source, RecordType type,
-                                      boolean nearest, boolean single) {
-        super(type, single);
+                                      boolean nearest, boolean concurrent) {
+        super(type, concurrent);
 
         this.nearest = nearest;
 
@@ -68,8 +68,8 @@ public class SingleWayMultiPathsRecords extends AbstractRecords {
         this.records = new Stack<>();
         this.records.push(firstRecord);
 
-        this.accessedVertices = single ? new HashSet() :
-                                ConcurrentHashMap.newKeySet();
+        this.accessedVertices = concurrent ? ConcurrentHashMap.newKeySet() :
+                                new HashSet();
         this.accessedVertices.add(sourceCode);
     }
 

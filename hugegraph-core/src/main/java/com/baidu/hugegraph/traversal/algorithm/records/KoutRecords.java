@@ -34,8 +34,8 @@ public class KoutRecords extends SingleWayMultiPathsRecords {
 
     public KoutRecords(Id source,
                        RecordType type,
-                       boolean nearest, boolean single) {
-        super(source, type, nearest, single);
+                       boolean nearest, boolean concurrent) {
+        super(source, type, nearest, concurrent);
     }
 
     @Override

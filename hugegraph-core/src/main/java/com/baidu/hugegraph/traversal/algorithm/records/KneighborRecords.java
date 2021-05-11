@@ -34,11 +34,11 @@ import com.google.common.collect.ImmutableList;
 
 public class KneighborRecords extends SingleWayMultiPathsRecords {
 
-    private Id source;
+    private final Id source;
 
     public KneighborRecords(Id source, RecordType type,
-                            boolean nearest, boolean single) {
-        super(source, type, nearest, single);
+                            boolean nearest, boolean concurrent) {
+        super(source, type, nearest, concurrent);
         this.source = source;
     }
 

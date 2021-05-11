@@ -37,6 +37,9 @@ import com.baidu.hugegraph.util.E;
 
 public class KoutTraverser extends OltpTraverser {
 
+    private int depth;
+    private volatile boolean stop = false;
+
     public KoutTraverser(HugeGraph graph) {
         super(graph);
     }
@@ -51,6 +54,7 @@ public class KoutTraverser extends OltpTraverser {
         checkDegree(degree);
         checkCapacity(capacity);
         checkLimit(limit);
+        this.depth = depth;
         if (capacity != NO_LIMIT) {
             // Capacity must > limit because sourceV is counted in capacity
             E.checkArgument(capacity >= limit && limit != NO_LIMIT,
@@ -69,9 +73,9 @@ public class KoutTraverser extends OltpTraverser {
 
         long remaining = capacity == NO_LIMIT ?
                          NO_LIMIT : capacity - latest.size();
-        while (depth-- > 0) {
+        while (this.depth-- > 0) {
             // Just get limit nodes in last layer if limit < remaining capacity
-            if (depth == 0 && limit != NO_LIMIT &&
+            if (this.depth == 0 && limit != NO_LIMIT &&
                 (limit < remaining || remaining == NO_LIMIT)) {
                 remaining = limit;
             }
@@ -87,10 +91,10 @@ public class KoutTraverser extends OltpTraverser {
                 // Update 'remaining' value to record remaining capacity
                 remaining -= latest.size();
 
-                if (remaining <= 0 && depth > 0) {
+                if (remaining <= 0 && this.depth > 0) {
                     throw new HugeException(
                               "Reach capacity '%s' while remaining depth '%s'",
-                              capacity, depth);
+                              capacity, this.depth);
                 }
             }
         }
@@ -106,79 +110,51 @@ public class KoutTraverser extends OltpTraverser {
         checkPositive(maxDepth, "k-out max_depth");
         checkCapacity(capacity);
         checkLimit(limit);
+        this.depth = maxDepth;
+        boolean concurrent = maxDepth >= this.concurrentDepth() &&
+                             step.direction() == Directions.BOTH;
+        KoutRecords records = new KoutRecords(source, RecordType.INT,
+                                              nearest, concurrent);
 
-        boolean single = maxDepth < this.concurrentDepth() ||
-                         step.direction() != Directions.BOTH;
-        Traverser traverser = new Traverser(source, step, maxDepth, nearest,
-                                            capacity, limit, single);
-        return traverser.customizedKout();
+        Consumer<Id> consumer = v -> {
+            if (this.stop) {
+                return;
+            }
+            Iterator<Edge> edges = edgesOfVertex(v, step);
+            while (!this.stop && edges.hasNext()) {
+                Id target = ((HugeEdge) edges.next()).id().otherVertexId();
+                records.addPath(v, target);
+
+                this.checkCapacity(capacity, records.accessed(), this.depth);
+                this.checkLimit(limit, this.depth, records.size());
+            }
+        };
+
+        while (this.depth-- > 0) {
+            records.startOneLayer(true);
+            traverseIds(records.keys(), consumer, concurrent);
+            records.finishOneLayer();
+        }
+        return records;
     }
 
-    private class Traverser {
-
-        private final KoutRecords record;
-
-        private final EdgeStep step;
-        private final long capacity;
-        private final long limit;
-        private final boolean single;
-        private int depth;
-
-        private boolean stop;
-
-        public Traverser(Id source, EdgeStep step, int maxDepth,
-                         boolean nearest, long capacity, long limit,
-                         boolean single) {
-            this.record = new KoutRecords(source, RecordType.INT,
-                                          nearest, single);
-            this.step = step;
-            this.depth = maxDepth;
-            this.capacity = capacity;
-            this.limit = limit;
-            this.single = single;
-            this.stop = false;
+    private void checkCapacity(long capacity, long accessed, int depth) {
+        if (capacity == NO_LIMIT) {
+            return;
         }
-
-        public KoutRecords customizedKout() {
-            Consumer<Id> consumer = v -> {
-                Iterator<Edge> edges = edgesOfVertex(v, step);
-                while (edges.hasNext()) {
-                    Id target = ((HugeEdge) edges.next()).id().otherVertexId();
-                    this.record.addPath(v, target);
-
-                    this.checkCapacity(this.capacity, this.record.accessed(),
-                                       this.depth);
-                    this.checkLimit(this.limit, this.depth, this.record.size());
-                }
-            };
-
-            while (this.depth-- > 0) {
-                this.record.startOneLayer(true);
-                traverseIds(this.record.keys(), consumer,
-                            this.single, this.stop);
-                this.record.finishOneLayer();
-            }
-            return this.record;
+        if (accessed >= capacity && depth > 0) {
+            throw new HugeException(
+                      "Reach capacity '%s' while remaining depth '%s'",
+                      capacity, depth);
         }
+    }
 
-        private void checkCapacity(long capacity, long accessed, int depth) {
-            if (capacity == NO_LIMIT) {
-                return;
-            }
-            if (capacity <= accessed && depth > 0) {
-                throw new HugeException(
-                          "Reach capacity '%s' while remaining depth '%s'",
-                          capacity, depth);
-            }
+    private void checkLimit(long limit, long depth, int size) {
+        if (limit == NO_LIMIT || depth > 0) {
+            return;
         }
-
-        private void checkLimit(long limit, long depth, int size) {
-            if (limit == NO_LIMIT || depth > 0) {
-                return;
-            }
-            if (size >= limit) {
-                this.stop = true;
-            }
+        if (size >= limit) {
+            this.stop = true;
         }
     }
 }

@@ -24,24 +24,25 @@ import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.traversal.algorithm.records.record.Record;
 import com.baidu.hugegraph.traversal.algorithm.records.record.RecordFactory;
 import com.baidu.hugegraph.traversal.algorithm.records.record.RecordType;
-import com.baidu.hugegraph.util.collection.ObjectIntMapping;
+import com.baidu.hugegraph.util.collection.mapping.ObjectIntMapping;
+import com.baidu.hugegraph.util.collection.mapping.MappingFactory;
 
 public abstract class AbstractRecords implements Records {
 
     private final ObjectIntMapping<Id> idMapping;
-    protected final RecordType type;
-    private final boolean single;
+    private final RecordType type;
+    private final boolean concurrent;
 
-    public AbstractRecords(RecordType type, boolean single) {
-        this.idMapping = new ObjectIntMapping<>();
+    public AbstractRecords(RecordType type, boolean concurrent) {
         this.type = type;
-        this.single = single;
+        this.concurrent = concurrent;
+        this.idMapping = MappingFactory.newObjectIntMapping(this.concurrent);
     }
 
     public AbstractRecords(RecordType type) {
-        this.idMapping = new ObjectIntMapping<>();
         this.type = type;
-        this.single = true;
+        this.concurrent = false;
+        this.idMapping = MappingFactory.newObjectIntMapping();
     }
 
     @Watched
@@ -55,7 +56,6 @@ public abstract class AbstractRecords implements Records {
     }
 
     protected Record newRecord() {
-        return RecordFactory.newRecord(this.type, single);
+        return RecordFactory.newRecord(this.type, this.concurrent);
     }
 }
-

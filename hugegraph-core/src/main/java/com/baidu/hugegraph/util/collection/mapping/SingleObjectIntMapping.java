@@ -17,24 +17,24 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.util.collection;
+package com.baidu.hugegraph.util.collection.mapping;
 
 import org.eclipse.collections.impl.map.mutable.primitive.IntObjectHashMap;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.perf.PerfUtil.Watched;
+import com.baidu.hugegraph.perf.PerfUtil;
 
-public final class ObjectIntMapping<V> {
+public class SingleObjectIntMapping<V> implements ObjectIntMapping<V> {
 
     private static final int MAGIC = 1 << 16;
     private final IntObjectHashMap<V> int2IdMap;
 
-    public ObjectIntMapping() {
-        this.int2IdMap = new IntObjectHashMap<>(10000000);
+    public SingleObjectIntMapping() {
+        this.int2IdMap = new IntObjectHashMap<>();
     }
 
-    @Watched
+    @PerfUtil.Watched
     @SuppressWarnings("unchecked")
     public synchronized int object2Code(Object object) {
         int key = object.hashCode();
@@ -55,7 +55,7 @@ public final class ObjectIntMapping<V> {
         throw new HugeException("Failed to get code for id: %s", object);
     }
 
-    @Watched
+    @PerfUtil.Watched
     public synchronized Object code2Object(int code) {
         return this.int2IdMap.get(code);
     }

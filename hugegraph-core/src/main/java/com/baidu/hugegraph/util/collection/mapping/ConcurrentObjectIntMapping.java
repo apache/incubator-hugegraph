@@ -17,33 +17,26 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.traversal.algorithm.records.record;
+package com.baidu.hugegraph.util.collection.mapping;
 
-public class RecordFactory {
+import com.baidu.hugegraph.perf.PerfUtil;
 
-    public static Record newRecord(RecordType type) {
-        return newRecord(type, false);
+public class ConcurrentObjectIntMapping<V> implements ObjectIntMapping<V> {
+
+    private SingleObjectIntMapping<V> singleObjectIntMapping;
+
+    public ConcurrentObjectIntMapping() {
+        this.singleObjectIntMapping = new SingleObjectIntMapping<>();
     }
 
-    public static Record newRecord(RecordType type, boolean concurrent) {
-        Record record;
-        switch (type) {
-            case ARRAY:
-                record = new IntArrayRecord();
-                break;
-            case SET:
-                record = new IntSetRecord();
-                break;
-            case INT:
-                record = new IntIntRecord();
-                break;
-            default:
-                throw new AssertionError("Unsupported record type: " + type);
-        }
-        if (concurrent) {
-            record = new SyncRecord(record);
-        }
+    @PerfUtil.Watched
+    @SuppressWarnings("unchecked")
+    public synchronized int object2Code(Object object) {
+        return this.singleObjectIntMapping.object2Code(object);
+    }
 
-        return record;
+    @PerfUtil.Watched
+    public synchronized Object code2Object(int code) {
+        return this.singleObjectIntMapping.code2Object(code);
     }
 }

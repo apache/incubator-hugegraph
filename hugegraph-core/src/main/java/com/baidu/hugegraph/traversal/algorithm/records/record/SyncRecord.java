@@ -68,6 +68,8 @@ public class SyncRecord implements Record {
 
     @Override
     public int size() {
-        return this.record.size();
+        synchronized (this.lock) {
+            return this.record.size();
+        }
     }
 }

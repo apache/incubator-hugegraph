@@ -135,17 +135,17 @@ public abstract class OltpTraverser extends HugeTraverser
 
     protected long traverseNodes(Iterator<Node> vertices,
                                  Consumer<Node> consumer) {
-        return this.traverse(vertices, consumer, "traverse-nodes", false);
+        return this.traverse(vertices, consumer, "traverse-nodes");
     }
 
     protected long traversePairs(Iterator<Pair<Id, Id>> pairs,
                                  Consumer<Pair<Id, Id>> consumer) {
-        return this.traverse(pairs, consumer, "traverse-pairs", false);
+        return this.traverse(pairs, consumer, "traverse-pairs");
     }
 
     protected long traverseIds(Iterator<Id> ids, Consumer<Id> consumer,
-                               boolean single, boolean stop) {
-        if (!single) {
+                               boolean concurrent) {
+        if (concurrent) {
             return this.traverseIds(ids, consumer);
         } else {
             long count = 0L;
@@ -158,17 +158,12 @@ public abstract class OltpTraverser extends HugeTraverser
     }
 
     protected long traverseIds(Iterator<Id> ids, Consumer<Id> consumer) {
-        return this.traverseIds(ids, consumer, false);
-    }
-
-    protected long traverseIds(Iterator<Id> ids, Consumer<Id> consumer,
-                               boolean stop) {
-        return this.traverse(ids, consumer, "traverse-ids", stop);
+        return this.traverse(ids, consumer, "traverse-ids");
     }
 
     protected <K> long traverse(Iterator<K> iterator, Consumer<K> consumer,
-                                String name, boolean stop) {
-        if (!iterator.hasNext() || stop) {
+                                String name) {
+        if (!iterator.hasNext()) {
             return 0L;
         }
 
@@ -177,7 +172,7 @@ public abstract class OltpTraverser extends HugeTraverser
         consumers.start(name);
         long total = 0L;
         try {
-            while (!stop && iterator.hasNext()) {
+            while (iterator.hasNext()) {
                 total++;
                 K v = iterator.next();
                 consumers.provide(v);

@@ -36,6 +36,8 @@ import com.baidu.hugegraph.util.E;
 
 public class KneighborTraverser extends OltpTraverser {
 
+    private volatile boolean stop;
+
     public KneighborTraverser(HugeGraph graph) {
         super(graph);
     }
@@ -62,7 +64,7 @@ public class KneighborTraverser extends OltpTraverser {
             latest = this.adjacentVertices(sourceV, latest, dir, labelId,
                                            all, degree, remaining);
             all.addAll(latest);
-            if (limit != NO_LIMIT && all.size() >= limit) {
+            if (reachLimit(limit, all.size())) {
                 break;
             }
         }
@@ -77,61 +79,37 @@ public class KneighborTraverser extends OltpTraverser {
         checkPositive(maxDepth, "k-neighbor max_depth");
         checkLimit(limit);
 
-        boolean single = maxDepth < this.concurrentDepth() ||
-                         step.direction() != Directions.BOTH;
-        Traverser traverser = new Traverser(source, step, maxDepth, limit,
-                                            single);
-        return traverser.customizedKneighbor();
-    }
+        boolean concurrent = maxDepth >= this.concurrentDepth() &&
+                             step.direction() == Directions.BOTH;
 
-    private class Traverser {
+        KneighborRecords records = new KneighborRecords(source, RecordType.INT,
+                                                        true, concurrent);
 
-        private final KneighborRecords record;
-
-        private final EdgeStep step;
-        private final long limit;
-        private final boolean single;
-        private int depth;
-
-        private boolean stop;
-
-        public Traverser(Id source, EdgeStep step, int maxDepth,
-                         long limit, boolean single) {
-            this.record = new KneighborRecords(source, RecordType.INT,
-                                               true, single);
-            this.step = step;
-            this.depth = maxDepth;
-            this.limit = limit;
-            this.single = single;
-            this.stop = false;
-        }
-
-        public KneighborRecords customizedKneighbor() {
-            Consumer<Id> consumer = v -> {
-                Iterator<Edge> edges = edgesOfVertex(v, step);
-                while (edges.hasNext()) {
-                    Id target = ((HugeEdge) edges.next()).id().otherVertexId();
-                    this.record.addPath(v, target);
-                    this.checkLimit(this.limit, this.depth, this.record.size());
-                }
-            };
-
-            while (this.depth-- > 0) {
-                this.record.startOneLayer(true);
-                traverseIds(this.record.keys(), consumer,
-                            this.single, this.stop);
-                this.record.finishOneLayer();
-            }
-            return this.record;
-        }
-
-        private void checkLimit(long limit, long depth, int size) {
-            if (limit == NO_LIMIT || depth > 0) {
+        Consumer<Id> consumer = v -> {
+            if (this.stop) {
                 return;
             }
-            if (size >= limit) {
-                this.stop = true;
+            Iterator<Edge> edges = edgesOfVertex(v, step);
+            while (!this.stop && edges.hasNext()) {
+                Id target = ((HugeEdge) edges.next()).id().otherVertexId();
+                records.addPath(v, target);
+                this.reachLimit(limit, records.size());
             }
+        };
+
+        while (maxDepth-- > 0) {
+            records.startOneLayer(true);
+            traverseIds(records.keys(), consumer, concurrent);
+            records.finishOneLayer();
         }
+        return records;
+    }
+
+    private boolean reachLimit(long limit, int size) {
+        if (limit == NO_LIMIT || size < limit) {
+            return false;
+        }
+        this.stop = true;
+        return true;
     }
 }
