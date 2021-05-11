@@ -19,7 +19,7 @@
 
 package com.baidu.hugegraph.util.collection.mapping;
 
-import com.baidu.hugegraph.perf.PerfUtil;
+import com.baidu.hugegraph.perf.PerfUtil.Watched;
 
 public class ConcurrentObjectIntMapping<V> implements ObjectIntMapping<V> {
 
@@ -29,14 +29,18 @@ public class ConcurrentObjectIntMapping<V> implements ObjectIntMapping<V> {
         this.singleObjectIntMapping = new SingleObjectIntMapping<>();
     }
 
-    @PerfUtil.Watched
+    @Watched
     @SuppressWarnings("unchecked")
     public synchronized int object2Code(Object object) {
         return this.singleObjectIntMapping.object2Code(object);
     }
 
-    @PerfUtil.Watched
+    @Watched
     public synchronized Object code2Object(int code) {
         return this.singleObjectIntMapping.code2Object(code);
+    }
+
+    public synchronized void clear() {
+        this.singleObjectIntMapping.clear();
     }
 }

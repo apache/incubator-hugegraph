@@ -23,4 +23,5 @@ public interface ObjectIntMapping<V> {
 
     public int object2Code(Object object);
     public Object code2Object(int code);
+    public void clear();
 }

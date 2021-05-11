@@ -23,7 +23,7 @@ import org.eclipse.collections.impl.map.mutable.primitive.IntObjectHashMap;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.perf.PerfUtil;
+import com.baidu.hugegraph.perf.PerfUtil.Watched;
 
 public class SingleObjectIntMapping<V> implements ObjectIntMapping<V> {
 
@@ -34,7 +34,7 @@ public class SingleObjectIntMapping<V> implements ObjectIntMapping<V> {
         this.int2IdMap = new IntObjectHashMap<>();
     }
 
-    @PerfUtil.Watched
+    @Watched
     @SuppressWarnings("unchecked")
     public synchronized int object2Code(Object object) {
         int key = object.hashCode();
@@ -55,8 +55,12 @@ public class SingleObjectIntMapping<V> implements ObjectIntMapping<V> {
         throw new HugeException("Failed to get code for id: %s", object);
     }
 
-    @PerfUtil.Watched
+    @Watched
     public synchronized Object code2Object(int code) {
         return this.int2IdMap.get(code);
+    }
+
+    public void clear() {
+        this.int2IdMap.clear();
     }
 }
