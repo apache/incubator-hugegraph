@@ -233,8 +233,8 @@ public class EdgeAPI extends BatchAPI {
 
         if (jsonEdge.id != null) {
             E.checkArgument(id.equals(jsonEdge.id),
-                            "The ids are different between url('%s') and " +
-                            "request body('%s')", id, jsonEdge.id);
+                            "The ids are different between url and " +
+                            "request body ('%s' != '%s')", id, jsonEdge.id);
         }
 
         // Parse action param
@@ -458,8 +458,11 @@ public class EdgeAPI extends BatchAPI {
                                    HugeVertex.getIdValue(newEdge.target));
         if (newEdge.id != null) {
             E.checkArgument(edgeId.equals(newEdge.id),
-                            "The sort key values either be null " +
-                            "or equal to origin when specified edge id");
+                            "The ids are different between server and " +
+                            "request body ('%s' != '%s'). And note the sort " +
+                            "key values should either be null or equal to " +
+                            "the origin value when specified edge id",
+                            edgeId, newEdge.id);
         }
         return edgeId;
     }
