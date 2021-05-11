@@ -54,6 +54,7 @@ import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.id.SnowflakeIdGenerator;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.page.PageInfo;
+import com.baidu.hugegraph.backend.page.PageState;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
@@ -6665,6 +6666,37 @@ public class VertexCoreTest extends BaseCoreTest {
                  .has("~page", "abc123").limit(10)
                  .toList();
         });
+    }
+
+
+    @Test
+    public void testQueryByPageWithSpecialBase64CharacterPage() {
+        // TODO: Not ready for commit, lack valid page contains '+' or '/'
+        // Assert decode space succees first
+        final String pageWithPlus = "5p2+"; // 松
+        final String pageWithSlash = "c3ViamVjdHM/X2Q9MQ==";
+        final String pageWithSpace = "5p2 ";
+
+        // Throws 'java.nio.BufferUnderflowException' now (bad test case)
+        PageState.fromString(pageWithSlash);
+        Assert.assertEquals(PageState.fromString(pageWithPlus),
+                            PageState.fromString(pageWithSpace));
+
+        Assume.assumeTrue("Not support paging",
+                          storeFeatures().supportsQueryByPage());
+
+        HugeGraph graph = graph();
+        init100Books();
+
+        // Assert not throws exception when contains '+' or '/'
+        // Contains valid character '+'
+        graph.traversal().V().has("~page", pageWithPlus).limit(10);
+
+        // Contains valid character '/'
+        graph.traversal().V().has("~page", pageWithSlash).limit(10);
+
+        // Contains invalid base64 character ' ', will be replaced to '+'
+        graph.traversal().V().has("~page", pageWithSpace).limit(10);
     }
 
     @Test
