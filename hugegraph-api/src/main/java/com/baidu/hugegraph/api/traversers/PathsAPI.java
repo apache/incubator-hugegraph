@@ -25,7 +25,7 @@ import java.util.Iterator;
 import java.util.Set;
 
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPACITY;
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEGREE;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PATHS_LIMIT;
 
 import javax.inject.Singleton;
@@ -76,7 +76,7 @@ public class PathsAPI extends TraverserAPI {
                       @QueryParam("label") String edgeLabel,
                       @QueryParam("max_depth") int depth,
                       @QueryParam("max_degree")
-                      @DefaultValue(DEFAULT_DEGREE) long degree,
+                      @DefaultValue(DEFAULT_MAX_DEGREE) long maxDegree,
                       @QueryParam("capacity")
                       @DefaultValue(DEFAULT_CAPACITY) long capacity,
                       @QueryParam("limit")
@@ -85,7 +85,7 @@ public class PathsAPI extends TraverserAPI {
                   "direction {}, edge label {}, max depth '{}', " +
                   "max degree '{}', capacity '{}' and limit '{}'",
                   graph, source, target, direction, edgeLabel, depth,
-                  degree, capacity, limit);
+                  maxDegree, capacity, limit);
 
         Id sourceId = VertexAPI.checkAndParseVertexId(source);
         Id targetId = VertexAPI.checkAndParseVertexId(target);
@@ -95,7 +95,7 @@ public class PathsAPI extends TraverserAPI {
         PathsTraverser traverser = new PathsTraverser(g);
         HugeTraverser.PathSet paths = traverser.paths(sourceId, dir, targetId,
                                                       dir.opposite(), edgeLabel,
-                                                      depth, degree, capacity,
+                                                      depth, maxDegree, capacity,
                                                       limit);
         return manager.serializer(g).writePaths("paths", paths, false);
     }
@@ -164,9 +164,9 @@ public class PathsAPI extends TraverserAPI {
         @JsonProperty("nearest")
         public boolean nearest = false;
         @JsonProperty("capacity")
-        public long capacity = Long.valueOf(DEFAULT_CAPACITY);
+        public long capacity = Long.parseLong(DEFAULT_CAPACITY);
         @JsonProperty("limit")
-        public long limit = Long.valueOf(DEFAULT_PATHS_LIMIT);
+        public long limit = Long.parseLong(DEFAULT_PATHS_LIMIT);
         @JsonProperty("with_vertex")
         public boolean withVertex = false;
 

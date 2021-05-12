@@ -19,7 +19,7 @@
 
 package com.baidu.hugegraph.api.traversers;
 
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEGREE;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_ELEMENTS_LIMIT;
 
 import java.util.ArrayList;
@@ -75,14 +75,14 @@ public class KneighborAPI extends TraverserAPI {
                       @QueryParam("label") String edgeLabel,
                       @QueryParam("max_depth") int depth,
                       @QueryParam("max_degree")
-                      @DefaultValue(DEFAULT_DEGREE) long degree,
+                      @DefaultValue(DEFAULT_MAX_DEGREE) long maxDegree,
                       @QueryParam("limit")
                       @DefaultValue(DEFAULT_ELEMENTS_LIMIT) long limit) {
         LOG.debug("Graph [{}] get k-neighbor from '{}' with " +
                   "direction '{}', edge label '{}', max depth '{}', " +
                   "max degree '{}' and limit '{}'",
                   graph, sourceV, direction, edgeLabel, depth,
-                  degree, limit);
+                  maxDegree, limit);
 
         Id source = VertexAPI.checkAndParseVertexId(sourceV);
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
@@ -92,7 +92,7 @@ public class KneighborAPI extends TraverserAPI {
         Set<Id> ids;
         try (KneighborTraverser traverser = new KneighborTraverser(g)) {
             ids = traverser.kneighbor(source, dir, edgeLabel,
-                                      depth, degree, limit);
+                                      depth, maxDegree, limit);
         }
         return manager.serializer(g).writeList("vertices", ids);
     }
@@ -170,7 +170,7 @@ public class KneighborAPI extends TraverserAPI {
         @JsonProperty("max_depth")
         public int maxDepth;
         @JsonProperty("limit")
-        public long limit = Long.valueOf(DEFAULT_ELEMENTS_LIMIT);
+        public long limit = Long.parseLong(DEFAULT_ELEMENTS_LIMIT);
         @JsonProperty("count_only")
         public boolean countOnly = false;
         @JsonProperty("with_vertex")

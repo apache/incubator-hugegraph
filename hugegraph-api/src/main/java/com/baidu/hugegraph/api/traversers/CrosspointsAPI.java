@@ -20,7 +20,7 @@
 package com.baidu.hugegraph.api.traversers;
 
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPACITY;
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEGREE;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PATHS_LIMIT;
 
 import javax.inject.Singleton;
@@ -64,7 +64,7 @@ public class CrosspointsAPI extends API {
                       @QueryParam("label") String edgeLabel,
                       @QueryParam("max_depth") int depth,
                       @QueryParam("max_degree")
-                      @DefaultValue(DEFAULT_DEGREE) long degree,
+                      @DefaultValue(DEFAULT_MAX_DEGREE) long maxDegree,
                       @QueryParam("capacity")
                       @DefaultValue(DEFAULT_CAPACITY) long capacity,
                       @QueryParam("limit")
@@ -73,7 +73,7 @@ public class CrosspointsAPI extends API {
                   "with direction '{}', edge label '{}', max depth '{}', " +
                   "max degree '{}', capacity '{}' and limit '{}'",
                   graph, source, target, direction, edgeLabel,
-                  depth, degree, capacity, limit);
+                  depth, maxDegree, capacity, limit);
 
         Id sourceId = VertexAPI.checkAndParseVertexId(source);
         Id targetId = VertexAPI.checkAndParseVertexId(target);
@@ -83,7 +83,7 @@ public class CrosspointsAPI extends API {
         PathsTraverser traverser = new PathsTraverser(g);
         HugeTraverser.PathSet paths = traverser.paths(sourceId, dir, targetId,
                                                       dir, edgeLabel, depth,
-                                                      degree, capacity, limit);
+                                                      maxDegree, capacity, limit);
         return manager.serializer(g).writePaths("crosspoints", paths, true);
     }
 }

@@ -19,7 +19,7 @@
 
 package com.baidu.hugegraph.traversal.algorithm.steps;
 
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEGREE;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_SAMPLE;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.NO_LIMIT;
 
@@ -59,24 +59,24 @@ public class WeightedEdgeStep {
     public WeightedEdgeStep(HugeGraph g, Directions direction, List<String> labels,
                             Map<String, Object> properties) {
         this(g, direction, labels, properties,
-             Long.valueOf(DEFAULT_DEGREE), 0L, null, 0.0D,
-             Long.valueOf(DEFAULT_SAMPLE));
+             Long.parseLong(DEFAULT_MAX_DEGREE), 0L, null, 0.0D,
+             Long.parseLong(DEFAULT_SAMPLE));
     }
 
     public WeightedEdgeStep(HugeGraph g, Directions direction, List<String> labels,
                             Map<String, Object> properties,
-                            long degree, long skipDegree,
+                            long maxDegree, long skipDegree,
                             String weightBy, double defaultWeight, long sample) {
         E.checkArgument(sample > 0L || sample == NO_LIMIT,
                         "The sample must be > 0 or == -1, but got: %s",
                         sample);
-        E.checkArgument(degree == NO_LIMIT || degree >= sample,
-                        "Degree must be greater than or equal to sample," +
-                        " but got degree %s and sample %s",
-                        degree, sample);
+        E.checkArgument(maxDegree == NO_LIMIT || maxDegree >= sample,
+                        "The max_degree must be greater than or equal to " +
+                        "sample, but got max_degree %s and sample %s",
+                        maxDegree, sample);
 
         this.edgeStep = new EdgeStep(g, direction, labels, properties,
-                                     degree, skipDegree);
+                                     maxDegree, skipDegree);
         if (weightBy != null) {
             this.weightBy = g.propertyKey(weightBy);
         } else {

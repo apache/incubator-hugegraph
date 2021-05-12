@@ -117,7 +117,7 @@ public class TemplatePathsAPI extends TraverserAPI {
     private static RepeatEdgeStep repeatEdgeStep(HugeGraph graph,
                                                  TemplatePathStep step) {
         return new RepeatEdgeStep(graph, step.direction, step.labels,
-                                  step.properties, step.degree,
+                                  step.properties, step.maxDegree,
                                   step.skipDegree, step.maxTimes);
     }
 
@@ -132,9 +132,9 @@ public class TemplatePathsAPI extends TraverserAPI {
         @JsonProperty("with_ring")
         public boolean withRing = false;
         @JsonProperty("capacity")
-        public long capacity = Long.valueOf(DEFAULT_CAPACITY);
+        public long capacity = Long.parseLong(DEFAULT_CAPACITY);
         @JsonProperty("limit")
-        public long limit = Long.valueOf(DEFAULT_PATHS_LIMIT);
+        public long limit = Long.parseLong(DEFAULT_PATHS_LIMIT);
         @JsonProperty("with_vertex")
         public boolean withVertex = false;
 
@@ -157,10 +157,11 @@ public class TemplatePathsAPI extends TraverserAPI {
         @Override
         public String toString() {
             return String.format("TemplatePathStep{direction=%s,labels=%s," +
-                                 "properties=%s,degree=%s,skipDegree=%s," +
+                                 "properties=%s,maxDegree=%s,skipDegree=%s," +
                                  "maxTimes=%s}",
                                  this.direction, this.labels, this.properties,
-                                 this.degree, this.skipDegree, this.maxTimes);
+                                 this.maxDegree, this.skipDegree,
+                                 this.maxTimes);
         }
     }
 }

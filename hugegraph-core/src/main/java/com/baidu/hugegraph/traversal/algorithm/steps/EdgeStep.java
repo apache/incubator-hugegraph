@@ -19,7 +19,7 @@
 
 package com.baidu.hugegraph.traversal.algorithm.steps;
 
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEGREE;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.NO_LIMIT;
 
 import java.util.HashMap;
@@ -66,7 +66,7 @@ public class EdgeStep {
     public EdgeStep(HugeGraph g, Directions direction, List<String> labels,
                     Map<String, Object> properties) {
         this(g, direction, labels, properties,
-             Long.valueOf(DEFAULT_DEGREE), 0L);
+             Long.parseLong(DEFAULT_MAX_DEGREE), 0L);
     }
 
     public EdgeStep(HugeGraph g, Directions direction, List<String> labels,

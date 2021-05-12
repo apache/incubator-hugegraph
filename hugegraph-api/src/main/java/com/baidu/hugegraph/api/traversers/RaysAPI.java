@@ -20,7 +20,7 @@
 package com.baidu.hugegraph.api.traversers;
 
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPACITY;
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEGREE;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PATHS_LIMIT;
 
 import javax.inject.Singleton;
@@ -63,7 +63,7 @@ public class RaysAPI extends API {
                       @QueryParam("label") String edgeLabel,
                       @QueryParam("max_depth") int depth,
                       @QueryParam("max_degree")
-                      @DefaultValue(DEFAULT_DEGREE) long degree,
+                      @DefaultValue(DEFAULT_MAX_DEGREE) long maxDegree,
                       @QueryParam("capacity")
                       @DefaultValue(DEFAULT_CAPACITY) long capacity,
                       @QueryParam("limit")
@@ -71,7 +71,7 @@ public class RaysAPI extends API {
         LOG.debug("Graph [{}] get rays paths from '{}' with " +
                   "direction '{}', edge label '{}', max depth '{}', " +
                   "max degree '{}', capacity '{}' and limit '{}'",
-                  graph, sourceV, direction, edgeLabel, depth, degree,
+                  graph, sourceV, direction, edgeLabel, depth, maxDegree,
                   capacity, limit);
 
         Id source = VertexAPI.checkAndParseVertexId(sourceV);
@@ -81,7 +81,7 @@ public class RaysAPI extends API {
 
         SubGraphTraverser traverser = new SubGraphTraverser(g);
         HugeTraverser.PathSet paths = traverser.rays(source, dir, edgeLabel,
-                                                     depth, degree,
+                                                     depth, maxDegree,
                                                      capacity, limit);
         return manager.serializer(g).writePaths("rays", paths, false);
     }

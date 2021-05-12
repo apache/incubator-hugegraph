@@ -110,10 +110,11 @@ public final class ApiVersion {
      *        multi-node-shortest-path, jaccard-similar and template-paths
      * [0.59] Issue-1333: Support graph read mode for olap property
      * [0.60] Issue-1392: Support create and resume snapshot
+     * [0.61] Issue-1433: Unify naming of degree for oltp algorithms
      */
 
     // The second parameter of Version.of() is for IDE running without JAR
-    public static final Version VERSION = Version.of(ApiVersion.class, "0.60");
+    public static final Version VERSION = Version.of(ApiVersion.class, "0.61");
 
     public static final void check() {
         // Check version of hugegraph-core. Firstly do check from version 0.3

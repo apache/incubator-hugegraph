@@ -26,15 +26,16 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.traversal.algorithm.steps.EdgeStep;
 import com.baidu.hugegraph.type.define.Directions;
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEGREE;
 
 public class TraverserAPI extends API {
 
     protected static EdgeStep step(HugeGraph graph, Step step) {
         return new EdgeStep(graph, step.direction, step.labels, step.properties,
-                            step.degree, step.skipDegree);
+                            step.maxDegree, step.skipDegree);
     }
 
     protected static class Step {
@@ -45,17 +46,18 @@ public class TraverserAPI extends API {
         public List<String> labels;
         @JsonProperty("properties")
         public Map<String, Object> properties;
-        @JsonProperty("degree")
-        public long degree = Long.valueOf(DEFAULT_DEGREE);
+        @JsonAlias("degree")
+        @JsonProperty("max_degree")
+        public long maxDegree = Long.parseLong(DEFAULT_MAX_DEGREE);
         @JsonProperty("skip_degree")
         public long skipDegree = 0L;
 
         @Override
         public String toString() {
             return String.format("Step{direction=%s,labels=%s,properties=%s," +
-                                 "degree=%s,skipDegree=%s}",
+                                 "maxDegree=%s,skipDegree=%s}",
                                  this.direction, this.labels, this.properties,
-                                 this.degree, this.skipDegree);
+                                 this.maxDegree, this.skipDegree);
         }
     }
 }

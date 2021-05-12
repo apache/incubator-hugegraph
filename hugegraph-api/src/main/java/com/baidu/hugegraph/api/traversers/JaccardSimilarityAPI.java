@@ -20,7 +20,7 @@
 package com.baidu.hugegraph.api.traversers;
 
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPACITY;
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEGREE;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_LIMIT;
 
 import java.util.Map;
@@ -71,10 +71,10 @@ public class JaccardSimilarityAPI extends TraverserAPI {
                       @QueryParam("direction") String direction,
                       @QueryParam("label") String edgeLabel,
                       @QueryParam("max_degree")
-                      @DefaultValue(DEFAULT_DEGREE) long degree) {
+                      @DefaultValue(DEFAULT_MAX_DEGREE) long maxDegree) {
         LOG.debug("Graph [{}] get jaccard similarity between '{}' and '{}' " +
                   "with direction {}, edge label {} and max degree '{}'",
-                  graph, vertex, other, direction, edgeLabel, degree);
+                  graph, vertex, other, direction, edgeLabel, maxDegree);
 
         Id sourceId = VertexAPI.checkAndParseVertexId(vertex);
         Id targetId = VertexAPI.checkAndParseVertexId(other);
@@ -84,8 +84,8 @@ public class JaccardSimilarityAPI extends TraverserAPI {
         double similarity;
         try (JaccardSimilarTraverser traverser =
                                      new JaccardSimilarTraverser(g)) {
-             similarity = traverser.jaccardSimilarity(sourceId, targetId,
-                                                      dir, edgeLabel, degree);
+             similarity = traverser.jaccardSimilarity(sourceId, targetId, dir,
+                                                      edgeLabel, maxDegree);
         }
         return JsonUtil.toJson(ImmutableMap.of("jaccard_similarity",
                                                similarity));
@@ -132,9 +132,9 @@ public class JaccardSimilarityAPI extends TraverserAPI {
         @JsonProperty("step")
         public TraverserAPI.Step step;
         @JsonProperty("top")
-        public int top = Integer.valueOf(DEFAULT_LIMIT);
+        public int top = Integer.parseInt(DEFAULT_LIMIT);
         @JsonProperty("capacity")
-        public long capacity = Long.valueOf(DEFAULT_CAPACITY);
+        public long capacity = Long.parseLong(DEFAULT_CAPACITY);
 
         @Override
         public String toString() {

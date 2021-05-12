@@ -71,7 +71,7 @@ public class HugeTraverser {
     public static final String DEFAULT_ELEMENTS_LIMIT = "10000000";
     public static final String DEFAULT_PATHS_LIMIT = "10";
     public static final String DEFAULT_LIMIT = "100";
-    public static final String DEFAULT_DEGREE = "10000";
+    public static final String DEFAULT_MAX_DEGREE = "10000";
     public static final String DEFAULT_SKIP_DEGREE = "100000";
     public static final String DEFAULT_SAMPLE = "100";
     public static final String DEFAULT_MAX_DEPTH = "50";
