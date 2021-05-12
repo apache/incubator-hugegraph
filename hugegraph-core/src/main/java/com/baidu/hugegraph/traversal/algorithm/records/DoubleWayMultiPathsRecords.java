@@ -47,9 +47,9 @@ public class DoubleWayMultiPathsRecords extends AbstractRecords {
     protected boolean forward;
     private int accessed;
 
-    public DoubleWayMultiPathsRecords(Id sourceV, Id targetV, RecordType type) {
-        super(type);
-
+    public DoubleWayMultiPathsRecords(RecordType type, boolean concurrent,
+                                      Id sourceV, Id targetV) {
+        super(type, concurrent);
         int sourceCode = this.code(sourceV);
         int targetCode = this.code(targetV);
         Record firstSourceRecord = this.newRecord();

@@ -36,9 +36,9 @@ public class KneighborRecords extends SingleWayMultiPathsRecords {
 
     private final Id source;
 
-    public KneighborRecords(Id source, RecordType type,
-                            boolean nearest, boolean concurrent) {
-        super(source, type, nearest, concurrent);
+    public KneighborRecords(RecordType type, boolean concurrent,
+                            Id source, boolean nearest) {
+        super(type, concurrent, source, nearest);
         this.source = source;
     }
 

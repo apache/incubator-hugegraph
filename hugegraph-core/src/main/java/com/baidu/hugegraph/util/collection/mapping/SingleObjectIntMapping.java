@@ -60,6 +60,7 @@ public class SingleObjectIntMapping<V> implements ObjectIntMapping<V> {
         return this.int2IdMap.get(code);
     }
 
+    @Override
     public void clear() {
         this.int2IdMap.clear();
     }

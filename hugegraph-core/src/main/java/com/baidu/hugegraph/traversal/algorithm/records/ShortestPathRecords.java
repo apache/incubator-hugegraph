@@ -40,7 +40,7 @@ public class ShortestPathRecords extends DoubleWayMultiPathsRecords {
     private boolean pathFound;
 
     public ShortestPathRecords(Id sourceV, Id targetV) {
-        super(sourceV, targetV, RecordType.INT);
+        super(RecordType.INT, false, sourceV, targetV);
 
         this.accessedVertices = new IntHashSet();
         this.accessedVertices.add(this.code(sourceV));

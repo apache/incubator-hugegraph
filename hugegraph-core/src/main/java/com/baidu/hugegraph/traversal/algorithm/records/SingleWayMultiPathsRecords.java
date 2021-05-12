@@ -21,12 +21,9 @@ package com.baidu.hugegraph.traversal.algorithm.records;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 import java.util.Stack;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 import org.eclipse.collections.api.set.primitive.MutableIntSet;
@@ -49,15 +46,15 @@ public class SingleWayMultiPathsRecords extends AbstractRecords {
     protected final Stack<Record> records;
 
     private final boolean nearest;
-    private final Set accessedVertices;
+    private final MutableIntSet accessedVertices;
 
     protected Record currentRecord;
     protected IntIterator lastRecordKeys;
     protected int current;
     protected boolean forward;
 
-    public SingleWayMultiPathsRecords(Id source, RecordType type,
-                                      boolean nearest, boolean concurrent) {
+    public SingleWayMultiPathsRecords(RecordType type, boolean concurrent,
+                                      Id source, boolean nearest) {
         super(type, concurrent);
 
         this.nearest = nearest;
@@ -68,8 +65,8 @@ public class SingleWayMultiPathsRecords extends AbstractRecords {
         this.records = new Stack<>();
         this.records.push(firstRecord);
 
-        this.accessedVertices = concurrent ? ConcurrentHashMap.newKeySet() :
-                                new HashSet();
+        this.accessedVertices = concurrent ? new IntHashSet().asSynchronized() :
+                                new IntHashSet();
         this.accessedVertices.add(sourceCode);
     }
 

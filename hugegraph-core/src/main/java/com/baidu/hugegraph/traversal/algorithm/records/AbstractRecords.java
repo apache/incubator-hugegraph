@@ -39,12 +39,6 @@ public abstract class AbstractRecords implements Records {
         this.idMapping = MappingFactory.newObjectIntMapping(this.concurrent);
     }
 
-    public AbstractRecords(RecordType type) {
-        this.type = type;
-        this.concurrent = false;
-        this.idMapping = MappingFactory.newObjectIntMapping();
-    }
-
     @Watched
     protected int code(Id id) {
         return this.idMapping.object2Code(id);

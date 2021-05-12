@@ -32,10 +32,9 @@ import com.baidu.hugegraph.util.collection.CollectionFactory;
 
 public class KoutRecords extends SingleWayMultiPathsRecords {
 
-    public KoutRecords(Id source,
-                       RecordType type,
-                       boolean nearest, boolean concurrent) {
-        super(source, type, nearest, concurrent);
+    public KoutRecords(RecordType type, boolean concurrent,
+                       Id source, boolean nearest) {
+        super(type, concurrent, source, nearest);
     }
 
     @Override

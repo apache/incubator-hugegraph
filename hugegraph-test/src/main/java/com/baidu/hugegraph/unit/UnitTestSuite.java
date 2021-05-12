@@ -39,6 +39,7 @@ import com.baidu.hugegraph.unit.core.ExceptionTest;
 import com.baidu.hugegraph.unit.core.Int2IntsMapTest;
 import com.baidu.hugegraph.unit.core.LocksTableTest;
 import com.baidu.hugegraph.unit.core.PageStateTest;
+import com.baidu.hugegraph.unit.core.ObjectIntMappingTest;
 import com.baidu.hugegraph.unit.core.QueryTest;
 import com.baidu.hugegraph.unit.core.RangeTest;
 import com.baidu.hugegraph.unit.core.RolePermissionTest;
@@ -105,6 +106,7 @@ import com.baidu.hugegraph.unit.util.VersionTest;
     TraversalUtilTest.class,
     PageStateTest.class,
     Int2IntsMapTest.class,
+    ObjectIntMappingTest.class,
 
     /* serializer */
     BytesBufferTest.class,

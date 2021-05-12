@@ -82,8 +82,9 @@ public class KneighborTraverser extends OltpTraverser {
         boolean concurrent = maxDepth >= this.concurrentDepth() &&
                              step.direction() == Directions.BOTH;
 
-        KneighborRecords records = new KneighborRecords(source, RecordType.INT,
-                                                        true, concurrent);
+        KneighborRecords records = new KneighborRecords(RecordType.INT,
+                                                        concurrent,
+                                                        source, true);
 
         Consumer<Id> consumer = v -> {
             if (this.stop) {

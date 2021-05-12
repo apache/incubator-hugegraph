@@ -40,6 +40,7 @@ public class ConcurrentObjectIntMapping<V> implements ObjectIntMapping<V> {
         return this.singleObjectIntMapping.code2Object(code);
     }
 
+    @Override
     public synchronized void clear() {
         this.singleObjectIntMapping.clear();
     }

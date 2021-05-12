@@ -113,8 +113,8 @@ public class KoutTraverser extends OltpTraverser {
         this.depth = maxDepth;
         boolean concurrent = maxDepth >= this.concurrentDepth() &&
                              step.direction() == Directions.BOTH;
-        KoutRecords records = new KoutRecords(source, RecordType.INT,
-                                              nearest, concurrent);
+        KoutRecords records = new KoutRecords(RecordType.INT, concurrent,
+                                              source, nearest);
 
         Consumer<Id> consumer = v -> {
             if (this.stop) {
