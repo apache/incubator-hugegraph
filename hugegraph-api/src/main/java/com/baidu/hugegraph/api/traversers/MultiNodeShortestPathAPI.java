@@ -112,7 +112,7 @@ public class MultiNodeShortestPathAPI extends TraverserAPI {
         @JsonProperty("max_depth")
         public int maxDepth;
         @JsonProperty("capacity")
-        public long capacity = Long.valueOf(DEFAULT_CAPACITY);
+        public long capacity = Long.parseLong(DEFAULT_CAPACITY);
         @JsonProperty("with_vertex")
         public boolean withVertex = false;
 
