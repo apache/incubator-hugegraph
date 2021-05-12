@@ -21,6 +21,7 @@ package com.baidu.hugegraph.core;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
@@ -6668,33 +6669,33 @@ public class VertexCoreTest extends BaseCoreTest {
         });
     }
 
-
     @Test
     public void testQueryByPageWithSpecialBase64CharacterPage() {
-        // TODO: Not ready for commit, lack valid page contains '+' or '/'
-        // Assert decode space succees first
-        final String pageWithPlus = "5p2+"; // 松
-        final String pageWithSlash = "c3ViamVjdHM/X2Q9MQ==";
-        final String pageWithSpace = "5p2 ";
+        // Assert decode '+' and '/' and '=' and space successfully
+        final String pageWith3Base64Chars = "AAAAADsyABwAEAqI546LS6WW57unBgA" +
+                                            "EAAAAAPB////+8H////4alhxAZS8va6" +
+                                            "opcAKpklipAAQAAAAAAAAAAQ==";
 
-        // Throws 'java.nio.BufferUnderflowException' now (bad test case)
-        PageState.fromString(pageWithSlash);
-        Assert.assertEquals(PageState.fromString(pageWithPlus),
-                            PageState.fromString(pageWithSpace));
+        final String pageWithSpace = "AAAAADsyABwAEAqI546LS6WW57unBgAEAAAAAP" +
+                                     "B//// 8H////4alhxAZS8va6opcAKpklipAAQA" +
+                                     "AAAAAAAAAQ==";
+        Assert.assertNotNull(PageState.fromString(pageWith3Base64Chars));
 
+        byte[] decodePlus = PageState.fromString(pageWith3Base64Chars)
+                                     .position();
+        byte[] decodeSpace = PageState.fromString(pageWithSpace).position();
+
+        Assert.assertTrue(Arrays.equals(decodePlus, decodeSpace));
         Assume.assumeTrue("Not support paging",
                           storeFeatures().supportsQueryByPage());
 
         HugeGraph graph = graph();
         init100Books();
 
-        // Assert not throws exception when contains '+' or '/'
-        // Contains valid character '+'
-        graph.traversal().V().has("~page", pageWithPlus).limit(10);
-
-        // Contains valid character '/'
-        graph.traversal().V().has("~page", pageWithSlash).limit(10);
-
+        // Assert not throw exception when contains '+' or '/' or '=' or space
+        // Contains valid character '+' and '/' and '='
+        graph.traversal().V().has("~page", pageWith3Base64Chars)
+             .limit(10);
         // Contains invalid base64 character ' ', will be replaced to '+'
         graph.traversal().V().has("~page", pageWithSpace).limit(10);
     }

@@ -77,7 +77,7 @@ public class PageState {
         E.checkNotNull(page, "page");
         /*
          * URLDecoder will auto decode '+' to space in url due to the request
-         * of HTML4, so we choose to replace the space to '+' after get it
+         * of HTML4, so we choose to replace the space to '+' after getting it
          * More details refer to #1437
          */
         page = page.replace(SPACE, PLUS);
