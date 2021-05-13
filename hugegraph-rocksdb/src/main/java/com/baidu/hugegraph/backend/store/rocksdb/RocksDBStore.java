@@ -81,6 +81,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
     private final BackendStoreProvider provider;
     private final Map<HugeType, RocksDBTable> tables;
 
+    private String dataPath;
     private RocksDBSessions sessions;
     private final Map<HugeType, String> tableDiskMapping;
     // DataPath:RocksDB mapping
@@ -166,6 +167,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         LOG.debug("Store open: {}", this.store);
 
         E.checkNotNull(config, "config");
+        this.dataPath = config.get(RocksDBOptions.DATA_PATH);
 
         if (this.sessions != null && !this.sessions.closed()) {
             LOG.debug("Store {} has been opened before", this.store);
@@ -185,8 +187,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         Map<String, String> disks = config.getMap(RocksDBOptions.DATA_DISKS);
         Set<String> openedDisks = new HashSet<>();
         if (!disks.isEmpty()) {
-            String dataPath = config.get(RocksDBOptions.DATA_PATH);
-            this.parseTableDiskMapping(disks, dataPath);
+            this.parseTableDiskMapping(disks, this.dataPath);
             for (Entry<HugeType, String> e : this.tableDiskMapping.entrySet()) {
                 String table = this.table(e.getKey()).table();
                 String disk = e.getValue();
@@ -607,11 +608,11 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
     }
 
     @Override
-    public Set<String> createSnapshot(String snapshotPrefix) {
+    public Map<String, String> createSnapshot(String snapshotPrefix) {
         Lock readLock = this.storeLock.readLock();
         readLock.lock();
         try {
-            Set<String> uniqueParents = new HashSet<>();
+            Map<String, String> uniqueSnapshotDirMaps = new HashMap<>();
             // Every rocksdb instance should create an snapshot
             for (Map.Entry<String, RocksDBSessions> entry : this.dbs.entrySet()) {
                 // Like: parent_path/rocksdb-data/*, * maybe g,m,s
@@ -627,10 +628,13 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
                 RocksDBSessions sessions = entry.getValue();
                 sessions.createSnapshot(snapshotPath.toString());
 
-                uniqueParents.add(snapshotPath.getParent().toString());
+                String snapshotDir = snapshotPath.getParent().toString();
+                // Find correspond data HugeType key
+                String hugeTypeKey = this.findHugeTypeKey(entry.getKey());
+                uniqueSnapshotDirMaps.put(snapshotDir, hugeTypeKey);
             }
             LOG.info("The store '{}' create snapshot successfully", this);
-            return uniqueParents;
+            return uniqueSnapshotDirMaps;
         } finally {
             readLock.unlock();
         }
@@ -740,6 +744,28 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
                 this.tableDiskMapping.put(table, path);
             }
         }
+    }
+
+    private Map<String, String> reportDiskMapping() {
+        Map<String, String> diskMapping = new HashMap<>();
+        diskMapping.put("general", this.dataPath);
+        for (Map.Entry<HugeType, String> e : this.tableDiskMapping.entrySet()) {
+            String key = this.store + "/" + e.getKey().name();
+            String value = Paths.get(e.getValue()).getParent().toString();
+            diskMapping.put(key, value);
+        }
+        return diskMapping;
+    }
+
+    private String findHugeTypeKey(String diskPath) {
+        String hugeTypeKey = "general";
+        for (Map.Entry<HugeType, String> e : this.tableDiskMapping.entrySet()) {
+            if (diskPath.equals(e.getValue())) {
+                hugeTypeKey = this.store + "/" + e.getKey().name();
+                break;
+            }
+        }
+        return hugeTypeKey;
     }
 
     private final void checkDbOpened() {
