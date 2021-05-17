@@ -59,9 +59,10 @@ public class ResourceObject<V> {
             operated = ((AuthElement) this.operated).idString();
         }
 
-        StringBuilder sb = new StringBuilder("Resource{graph=");
-        return sb.append(this.graph).append(",type=").append(this.type)
-                 .append(",operated=").append(operated).append("}").toString();
+        StringBuilder sb = new StringBuilder(64);
+        return sb.append("Resource{graph=").append(this.graph).append(",type=")
+                 .append(this.type).append(",operated=").append(operated)
+                 .append("}").toString();
     }
 
     public static ResourceObject<SchemaElement> of(String graph,
