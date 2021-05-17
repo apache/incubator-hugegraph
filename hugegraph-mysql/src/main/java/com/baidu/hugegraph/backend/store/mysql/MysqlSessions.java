@@ -233,11 +233,7 @@ public class MysqlSessions extends BackendSessionPool {
         if (timeout != null) {
             builder.setParameter("socketTimeout", String.valueOf(timeout));
         }
-        
-        String finalUrl = builder.toString();
-        LOG.info("The jdbc prefix url = '%s', and the final jdbc url = '%s'",
-                 url, finalUrl);
-        return finalUrl;
+        return builder.toString();
     }
 
     protected String buildUrlPrefix(boolean withDB) {
@@ -258,6 +254,7 @@ public class MysqlSessions extends BackendSessionPool {
     }
 
     private Connection connect(String url) throws SQLException {
+        LOG.info("Connect to the jdbc url: '{}'", url);
         String driverName = this.config.get(MysqlOptions.JDBC_DRIVER);
         String username = this.config.get(MysqlOptions.JDBC_USERNAME);
         String password = this.config.get(MysqlOptions.JDBC_PASSWORD);
