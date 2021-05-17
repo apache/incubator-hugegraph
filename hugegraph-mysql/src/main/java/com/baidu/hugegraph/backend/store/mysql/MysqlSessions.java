@@ -233,7 +233,11 @@ public class MysqlSessions extends BackendSessionPool {
         if (timeout != null) {
             builder.setParameter("socketTimeout", String.valueOf(timeout));
         }
-        return builder.toString();
+        
+        String finalUrl = builder.toString();
+        LOG.info("The jdbc prefix url = '%s', and the final jdbc url = '%s'",
+                 url, finalUrl);
+        return finalUrl;
     }
 
     protected String buildUrlPrefix(boolean withDB) {
