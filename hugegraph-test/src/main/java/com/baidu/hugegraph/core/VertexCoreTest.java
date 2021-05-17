@@ -6670,8 +6670,7 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testQueryByPageWithSpecialBase64CharacterPage() {
-        // Assert decode '+' and '/' and '=' and space successfully
+    public void testQueryByPageWithSpecialBase64Chars() {
         final String pageWith3Base64Chars = "AAAAADsyABwAEAqI546LS6WW57unBgA" +
                                             "EAAAAAPB////+8H////4alhxAZS8va6" +
                                             "opcAKpklipAAQAAAAAAAAAAQ==";
@@ -6679,25 +6678,25 @@ public class VertexCoreTest extends BaseCoreTest {
         final String pageWithSpace = "AAAAADsyABwAEAqI546LS6WW57unBgAEAAAAAP" +
                                      "B//// 8H////4alhxAZS8va6opcAKpklipAAQA" +
                                      "AAAAAAAAAQ==";
-        Assert.assertNotNull(PageState.fromString(pageWith3Base64Chars));
 
-        byte[] decodePlus = PageState.fromString(pageWith3Base64Chars)
-                                     .position();
-        byte[] decodeSpace = PageState.fromString(pageWithSpace).position();
-
-        Assert.assertTrue(Arrays.equals(decodePlus, decodeSpace));
         Assume.assumeTrue("Not support paging",
                           storeFeatures().supportsQueryByPage());
 
         HugeGraph graph = graph();
         init100Books();
 
-        // Assert not throw exception when contains '+' or '/' or '=' or space
         // Contains valid character '+' and '/' and '='
-        graph.traversal().V().has("~page", pageWith3Base64Chars)
-             .limit(10);
+        GraphTraversal<Vertex, Vertex> traversal;
+        traversal = graph.traversal().V()
+                         .has("~page", pageWith3Base64Chars).limit(10);
+        Assert.assertNotNull(traversal);
+        CloseableIterator.closeIterator(traversal);
+
         // Contains invalid base64 character ' ', will be replaced to '+'
-        graph.traversal().V().has("~page", pageWithSpace).limit(10);
+        traversal = graph.traversal().V()
+                         .has("~page", pageWithSpace).limit(10);
+        Assert.assertNotNull(traversal);
+        CloseableIterator.closeIterator(traversal);
     }
 
     @Test

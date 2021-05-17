@@ -37,6 +37,7 @@ import com.baidu.hugegraph.unit.core.DataTypeTest;
 import com.baidu.hugegraph.unit.core.DirectionsTest;
 import com.baidu.hugegraph.unit.core.ExceptionTest;
 import com.baidu.hugegraph.unit.core.LocksTableTest;
+import com.baidu.hugegraph.unit.core.PageStateTest;
 import com.baidu.hugegraph.unit.core.QueryTest;
 import com.baidu.hugegraph.unit.core.RangeTest;
 import com.baidu.hugegraph.unit.core.RolePermissionTest;
@@ -99,6 +100,7 @@ import com.baidu.hugegraph.unit.util.VersionTest;
     ExceptionTest.class,
     BackendStoreSystemInfoTest.class,
     TraversalUtilTest.class,
+    PageStateTest.class,
 
     /* serializer */
     BytesBufferTest.class,
