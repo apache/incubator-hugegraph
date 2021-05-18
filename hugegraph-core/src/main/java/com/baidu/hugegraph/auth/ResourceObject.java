@@ -58,8 +58,17 @@ public class ResourceObject<V> {
         if (this.type.isAuth()) {
             operated = ((AuthElement) this.operated).idString();
         }
-        return String.format("Resource{graph=%s,type=%s,operated=%s}",
-                             this.graph, this.type, operated);
+
+        String typeStr = this.type.toString();
+        String operatedStr = operated.toString();
+        int capacity = this.graph.length() + typeStr.length() +
+                       operatedStr.length() + 36;
+
+        StringBuilder sb = new StringBuilder(capacity);
+        return sb.append("Resource{graph=").append(this.graph)
+                 .append(",type=").append(typeStr)
+                 .append(",operated=").append(operatedStr)
+                 .append("}").toString();
     }
 
     public static ResourceObject<SchemaElement> of(String graph,
