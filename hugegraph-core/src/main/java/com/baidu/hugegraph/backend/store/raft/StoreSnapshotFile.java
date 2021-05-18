@@ -79,9 +79,16 @@ public class StoreSnapshotFile {
             // Write snapshot to real directory
             Map<String, String> snapshotDirMaps = this.doSnapshotSave();
             executor.execute(() -> {
-                this.compressSnapshotDir(writer, snapshotDirMaps, done);
-                this.deleteSnapshotDirs(snapshotDirMaps.keySet());
-                done.run(Status.OK());
+                try {
+                    this.compressSnapshotDir(writer, snapshotDirMaps);
+                    this.deleteSnapshotDirs(snapshotDirMaps.keySet());
+                    done.run(Status.OK());
+                } catch (Throwable e) {
+                    LOG.error("Failed to compress snapshot", e);
+                    done.run(new Status(RaftError.EIO,
+                                        "Failed to compress snapshot, " +
+                                        "error is %s", e.getMessage()));
+                }
             });
         } catch (Throwable e) {
             LOG.error("Failed to save snapshot", e);
@@ -133,37 +140,34 @@ public class StoreSnapshotFile {
     }
 
     private void compressSnapshotDir(SnapshotWriter writer,
-                                     Map<String, String> snapshotDirMaps,
-                                     Closure done) {
+                                     Map<String, String> snapshotDirMaps) {
         String writerPath = writer.getPath();
         for (Map.Entry<String, String> entry : snapshotDirMaps.entrySet()) {
             String snapshotDir = entry.getKey();
-            String hugeTypeKey = entry.getValue();
+            String diskTableKey = entry.getValue();
             String snapshotDirTar = Paths.get(snapshotDir).getFileName()
                                          .toString() + TAR;
             String outputFile = Paths.get(writerPath, snapshotDirTar)
                                      .toString();
+            Checksum checksum = new CRC64();
             try {
-                LocalFileMeta.Builder metaBuilder = LocalFileMeta.newBuilder();
-                Checksum checksum = new CRC64();
                 CompressUtil.compressTar(snapshotDir, outputFile, checksum);
-                metaBuilder.setChecksum(Long.toHexString(checksum.getValue()));
-                /*
-                 * snapshot_rocksdb-data.tar -> general
-                 * snapshot_rocksdb-vertex.tar -> g/VERTEX
-                 */
-                metaBuilder.setUserMeta(ByteString.copyFromUtf8(hugeTypeKey));
-                if (!writer.addFile(snapshotDirTar, metaBuilder.build())) {
-                    done.run(new Status(RaftError.EIO,
-                                        "Failed to add snapshot file: '%s'",
-                                        writerPath));
-                }
             } catch (Throwable e) {
-                LOG.error("Failed to compress snapshot, path={}, files={}, {}.",
-                          writerPath, writer.listFiles(), e);
-                done.run(new Status(RaftError.EIO,
-                                    "Failed to compress snapshot '%s' due to: %s",
-                                    writerPath, e.getMessage()));
+                throw new RaftException(
+                          "Failed to compress snapshot, path=%s, files=%s",
+                          e, writerPath, snapshotDirMaps.keySet());
+            }
+
+            LocalFileMeta.Builder metaBuilder = LocalFileMeta.newBuilder();
+            metaBuilder.setChecksum(Long.toHexString(checksum.getValue()));
+            /*
+             * snapshot_rocksdb-data.tar -> general
+             * snapshot_rocksdb-vertex.tar -> g/VERTEX
+             */
+            metaBuilder.setUserMeta(ByteString.copyFromUtf8(diskTableKey));
+            if (!writer.addFile(snapshotDirTar, metaBuilder.build())) {
+                throw new RaftException("Failed to add snapshot file: '%s'",
+                                        snapshotDirTar);
             }
         }
     }
@@ -177,10 +181,10 @@ public class StoreSnapshotFile {
                                   snapshotDirTar);
         }
 
-        String hugeTypeKey = meta.getUserMeta().toStringUtf8();
-        E.checkArgument(this.dataDisks.containsKey(hugeTypeKey),
-                        "The data path for '%s' should be exist", hugeTypeKey);
-        String dataPath = this.dataDisks.get(hugeTypeKey);
+        String diskTableKey = meta.getUserMeta().toStringUtf8();
+        E.checkArgument(this.dataDisks.containsKey(diskTableKey),
+                        "The data path for '%s' should be exist", diskTableKey);
+        String dataPath = this.dataDisks.get(diskTableKey);
         String parentPath = Paths.get(dataPath).getParent().toString();
         String snapshotDir = Paths.get(parentPath,
                                        StringUtils.removeEnd(snapshotDirTar, TAR))

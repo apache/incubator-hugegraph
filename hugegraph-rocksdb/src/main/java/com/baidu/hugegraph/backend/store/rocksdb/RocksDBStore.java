@@ -88,6 +88,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
     private final ConcurrentMap<String, RocksDBSessions> dbs;
     private final ReadWriteLock storeLock;
 
+    private static final String TABLE_GENERAL_KEY = "general";
     private static final String DB_OPEN = "db-open-%s";
     private static final long OPEN_TIMEOUT = 600L;
     /*
@@ -630,8 +631,9 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
 
                 String snapshotDir = snapshotPath.getParent().toString();
                 // Find correspond data HugeType key
-                String hugeTypeKey = this.findHugeTypeKey(entry.getKey());
-                uniqueSnapshotDirMaps.put(snapshotDir, hugeTypeKey);
+                String diskTableKey = this.findDiskTableKeyByPath(
+                                      entry.getKey());
+                uniqueSnapshotDirMaps.put(snapshotDir, diskTableKey);
             }
             LOG.info("The store '{}' create snapshot successfully", this);
             return uniqueSnapshotDirMaps;
@@ -748,7 +750,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
 
     private Map<String, String> reportDiskMapping() {
         Map<String, String> diskMapping = new HashMap<>();
-        diskMapping.put("general", this.dataPath);
+        diskMapping.put(TABLE_GENERAL_KEY, this.dataPath);
         for (Map.Entry<HugeType, String> e : this.tableDiskMapping.entrySet()) {
             String key = this.store + "/" + e.getKey().name();
             String value = Paths.get(e.getValue()).getParent().toString();
@@ -757,15 +759,15 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         return diskMapping;
     }
 
-    private String findHugeTypeKey(String diskPath) {
-        String hugeTypeKey = "general";
+    private String findDiskTableKeyByPath(String diskPath) {
+        String diskTableKey = TABLE_GENERAL_KEY;
         for (Map.Entry<HugeType, String> e : this.tableDiskMapping.entrySet()) {
             if (diskPath.equals(e.getValue())) {
-                hugeTypeKey = this.store + "/" + e.getKey().name();
+                diskTableKey = this.store + "/" + e.getKey().name();
                 break;
             }
         }
-        return hugeTypeKey;
+        return diskTableKey;
     }
 
     private final void checkDbOpened() {
