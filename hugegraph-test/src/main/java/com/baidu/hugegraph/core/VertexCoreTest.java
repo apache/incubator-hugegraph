@@ -6671,6 +6671,8 @@ public class VertexCoreTest extends BaseCoreTest {
 
     @Test
     public void testQueryByPageWithSpecialBase64Chars() {
+        Assume.assumeTrue("Not support paging",
+                          storeFeatures().supportsQueryByPage());
         final String pageWith3Base64Chars = "AAAAADsyABwAEAqI546LS6WW57unBgA" +
                                             "EAAAAAPB////+8H////4alhxAZS8va6" +
                                             "opcAKpklipAAQAAAAAAAAAAQ==";
@@ -6678,9 +6680,6 @@ public class VertexCoreTest extends BaseCoreTest {
         final String pageWithSpace = "AAAAADsyABwAEAqI546LS6WW57unBgAEAAAAAP" +
                                      "B//// 8H////4alhxAZS8va6opcAKpklipAAQA" +
                                      "AAAAAAAAAQ==";
-
-        Assume.assumeTrue("Not support paging",
-                          storeFeatures().supportsQueryByPage());
 
         HugeGraph graph = graph();
         init100Books();
