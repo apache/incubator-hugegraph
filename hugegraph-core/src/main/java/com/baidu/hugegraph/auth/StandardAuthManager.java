@@ -45,6 +45,7 @@ public class StandardAuthManager implements AuthManager {
     private final HugeGraphParams graph;
     private final EventListener eventListener;
     private final Cache<Id, HugeUser> usersCache;
+    private final Cache<Id, String> validateCache;
 
     private final EntityManager<HugeUser> users;
     private final EntityManager<HugeGroup> groups;
@@ -59,6 +60,8 @@ public class StandardAuthManager implements AuthManager {
         this.graph = graph;
         this.eventListener = this.listenChanges();
         this.usersCache = this.cache("users");
+        this.validateCache = CacheManager.instance().cache("validate_pwd");
+        this.validateCache.expire(CACHE_EXPIRE);
 
         this.users = new EntityManager<>(this.graph, HugeUser.P.USER,
                                          HugeUser::fromVertex);
@@ -120,6 +123,7 @@ public class StandardAuthManager implements AuthManager {
 
     private void invalidCache() {
         this.usersCache.clear();
+        this.validateCache.clear();
     }
 
     @Override
@@ -341,8 +345,17 @@ public class StandardAuthManager implements AuthManager {
         E.checkArgumentNotNull(name, "User name can't be null");
         E.checkArgumentNotNull(password, "User password can't be null");
         HugeUser user = this.findUser(name);
-        if (user != null &&
-            StringEncoding.checkPassword(password, user.password())) {
+        if (user == null) {
+            return null;
+        }
+
+        Id id = IdGenerator.of(name);
+        if (password.equals(validateCache.get(id))) {
+            return user;
+        }
+
+        if (StringEncoding.checkPassword(password, user.password())) {
+            validateCache.update(id, password);
             return user;
         }
         return null;
