@@ -36,14 +36,13 @@ import com.google.common.collect.ImmutableMap;
 public class UserApiTest extends BaseApiTest {
 
     private static final String path = "graphs/hugegraph/auth/users";
-    private static final Map<String, Object> NO_LIMIT = ImmutableMap.of("limit",
-                                                                        -1);
+    private static final int NO_LIMIT = -1;
 
     @After
     public void teardown() throws Exception {
         super.teardown();
         Response r = this.client().get(path,
-                                       ImmutableMap.of("limit", -1));
+                                       ImmutableMap.of("limit", NO_LIMIT));
         String result = r.readEntity(String.class);
         Map<String, List<Map<String, Object>>> resultMap =
                 JsonUtil.fromJson(result,
@@ -170,7 +169,8 @@ public class UserApiTest extends BaseApiTest {
     }
 
     protected List<Map<String, Object>> listUsers() {
-        Response r = this.client().get(path, NO_LIMIT);
+        Response r = this.client().get(path, ImmutableMap.of("limit",
+                                                             NO_LIMIT));
         String result = assertResponseStatus(200, r);
         Map<String, List<Map<String, Object>>> resultMap =
                 JsonUtil.fromJson(result, new TypeReference<Map<String,
