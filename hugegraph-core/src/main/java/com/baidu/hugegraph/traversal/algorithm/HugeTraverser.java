@@ -190,11 +190,9 @@ public class HugeTraverser {
             return results;
         }
 
-        Query query = new Query(HugeType.EDGE);
-        query.limit(limit);
+        long[] count = new long[1];
         return new LimitIterator<>(results, e -> {
-            long count = query.goOffset(1L);
-            return query.reachLimit(count - 1L);
+            return count[0]++ >= limit;
         });
     }
 
