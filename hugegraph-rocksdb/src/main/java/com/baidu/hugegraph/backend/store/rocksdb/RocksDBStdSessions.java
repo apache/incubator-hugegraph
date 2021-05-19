@@ -306,8 +306,8 @@ public class RocksDBStdSessions extends RocksDBSessions {
                                            snapshotPath, null).rocksdb) {
             RocksDBStdSessions.createCheckpoint(rocksdb, snapshotLinkPath);
         }
-        LOG.debug("The snapshot {} has been hard linked to {}",
-                  snapshotPath, snapshotLinkPath);
+        LOG.info("The snapshot {} has been hard linked to {}",
+                 snapshotPath, snapshotLinkPath);
         return snapshotLinkPath;
     }
 

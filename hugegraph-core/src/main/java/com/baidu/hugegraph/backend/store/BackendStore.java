@@ -20,7 +20,7 @@
 package com.baidu.hugegraph.backend.store;
 
 import java.util.Iterator;
-import java.util.Set;
+import java.util.Map;
 
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
@@ -117,7 +117,7 @@ public interface BackendStore {
     // Get current counter for a specific type
     public long getCounter(HugeType type);
 
-    public default Set<String> createSnapshot(String snapshotDir) {
+    public default Map<String, String> createSnapshot(String snapshotDir) {
         throw new UnsupportedOperationException("createSnapshot");
     }
 

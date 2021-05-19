@@ -48,6 +48,7 @@ import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction;
 import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.GraphMode;
+import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.LZ4Util;
 import com.baidu.hugegraph.util.Log;
 
@@ -162,7 +163,9 @@ public final class StoreStateMachine extends StateMachineAdapter {
 
     private void applyCommand(StoreType type, StoreAction action,
                               BytesBuffer buffer, boolean forwarded) {
-        BackendStore store = type != StoreType.ALL ? this.store(type) : null;
+        E.checkState(type != StoreType.ALL,
+                     "Can't apply command for all store at one time");
+        BackendStore store = this.store(type);
         switch (action) {
             case CLEAR:
                 boolean clearSpace = buffer.read() > 0;
