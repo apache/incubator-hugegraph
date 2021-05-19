@@ -36,9 +36,12 @@ import com.google.common.collect.ImmutableMap;
 public class UserApiTest extends BaseApiTest {
 
     private static final String path = "graphs/hugegraph/auth/users";
+    private static final Map<String, Object> NO_LIMIT = ImmutableMap.of("limit",
+                                                                        -1);
 
     @After
-    public void clearUser() {
+    public void teardown() throws Exception {
+        super.teardown();
         Response r = this.client().get(path,
                                        ImmutableMap.of("limit", -1));
         String result = r.readEntity(String.class);
@@ -86,7 +89,6 @@ public class UserApiTest extends BaseApiTest {
         Response r3 = client().post(path, "{}");
         assertResponseStatus(400, r3);
 
-
         String user3 = "{\"user_name\":\"user1\",\"user_password\":\"p1\"," +
                        "\"user_email\":\"user1@baidu.com\"," +
                        "\"user_phone\":\"123456789\",\"user_avatar\":\"image1" +
@@ -94,8 +96,8 @@ public class UserApiTest extends BaseApiTest {
         Response r4 = client().post(path, user3);
         String result4 = assertResponseStatus(400, r4);
         String message = assertJsonContains(result4, "message");
-        Assert.assertThat(message, CoreMatchers.containsString(
-                "that already exists"));
+        Assert.assertThat(message,
+                          CoreMatchers.containsString("that already exists"));
     }
 
     @Test
@@ -103,7 +105,7 @@ public class UserApiTest extends BaseApiTest {
         createUser("test1");
         createUser("test2");
         createUser("test3");
-        List<Map<String, Object>> users = getList();
+        List<Map<String, Object>> users = listUsers();
         Assert.assertEquals(4, users.size());
     }
 
@@ -111,7 +113,7 @@ public class UserApiTest extends BaseApiTest {
     public void testGetUser() {
         createUser("test1");
         createUser("test2");
-        List<Map<String, Object>> users = getList();
+        List<Map<String, Object>> users = listUsers();
         for (Map<String, Object> user : users) {
             Response r = client().get(path, (String) user.get("id"));
             String result = assertResponseStatus(200, r);
@@ -123,7 +125,7 @@ public class UserApiTest extends BaseApiTest {
     public void testUpdate() {
         createUser("test1");
         createUser("test2");
-        List<Map<String, Object>> users = getList();
+        List<Map<String, Object>> users = listUsers();
         for (Map<String, Object> user : users) {
             if (user.get("user_name").equals("admin")) {
                 continue;
@@ -137,7 +139,6 @@ public class UserApiTest extends BaseApiTest {
                                       ImmutableMap.of());
             assertResponseStatus(200, r);
         }
-
     }
 
     @Test
@@ -146,7 +147,7 @@ public class UserApiTest extends BaseApiTest {
         createUser("test2");
         createUser("test3");
 
-        List<Map<String, Object>> users = getList();
+        List<Map<String, Object>> users = listUsers();
         for (Map<String, Object> user : users) {
             if (user.get("user_name").equals("admin")) {
                 continue;
@@ -156,8 +157,8 @@ public class UserApiTest extends BaseApiTest {
         Response r = client().delete(path, "test1");
         String result = assertResponseStatus(400, r);
         String message = assertJsonContains(result, "message");
-        Assert.assertThat(message, CoreMatchers.containsString(
-                "Invalid user id:"));
+        Assert.assertThat(message,
+                          CoreMatchers.containsString("Invalid user id:"));
     }
 
     protected void createUser(String name) {
@@ -168,14 +169,12 @@ public class UserApiTest extends BaseApiTest {
         this.client().post(path, user);
     }
 
-    protected List<Map<String, Object>> getList() {
-        Response r = this.client().get(path,
-                                       ImmutableMap.of("limit", -1));
+    protected List<Map<String, Object>> listUsers() {
+        Response r = this.client().get(path, NO_LIMIT);
         String result = assertResponseStatus(200, r);
-        Map<String, List<Map<String, Object>>> resultMap = JsonUtil.fromJson(
-                result,
-                new TypeReference<Map<String, List<Map<String, Object>>>>() {
-                });
+        Map<String, List<Map<String, Object>>> resultMap =
+                JsonUtil.fromJson(result, new TypeReference<Map<String,
+                                  List<Map<String, Object>>>>() {});
         return resultMap.get("users");
     }
 }
