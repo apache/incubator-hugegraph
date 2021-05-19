@@ -34,6 +34,7 @@ import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.Response;
 
+import org.glassfish.jersey.client.authentication.HttpAuthenticationFeature;
 import org.glassfish.jersey.client.filter.EncodingFilter;
 import org.glassfish.jersey.message.GZipEncoder;
 import org.junit.After;
@@ -52,6 +53,8 @@ public class BaseApiTest {
 
     private static String BASE_URL = "http://127.0.0.1:8080";
     private static String GRAPH = "hugegraph";
+    protected static final String USERNAME = "admin";
+    protected static final String PASSWORD = "pa";
 
     private static final String URL_PREFIX = "graphs/" + GRAPH;
     private static final String SCHEMA_PKS = "/schema/propertykeys";
@@ -98,6 +101,8 @@ public class BaseApiTest {
             this.client = ClientBuilder.newClient();
             this.client.register(EncodingFilter.class);
             this.client.register(GZipEncoder.class);
+            this.client.register(HttpAuthenticationFeature.basic(USERNAME,
+                                                                 PASSWORD));
             this.target = this.client.target(url);
         }
 
