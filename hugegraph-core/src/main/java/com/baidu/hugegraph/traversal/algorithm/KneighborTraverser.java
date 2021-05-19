@@ -86,7 +86,6 @@ public class KneighborTraverser extends OltpTraverser {
         Node sourceV = new KNode(source, null);
 
         latest.add(sourceV);
-        all.add(sourceV);
 
         while (maxDepth-- > 0) {
             long remaining = limit == NO_LIMIT ? NO_LIMIT : limit - all.size();
