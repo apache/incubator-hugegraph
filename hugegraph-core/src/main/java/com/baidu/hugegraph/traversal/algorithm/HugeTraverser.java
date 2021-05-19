@@ -48,6 +48,7 @@ import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.iterator.FilterIterator;
+import com.baidu.hugegraph.iterator.LimitIterator;
 import com.baidu.hugegraph.iterator.MapperIterator;
 import com.baidu.hugegraph.schema.SchemaLabel;
 import com.baidu.hugegraph.structure.HugeEdge;
@@ -182,10 +183,19 @@ public class HugeTraverser {
         ExtendableIterator<Edge> results = new ExtendableIterator<>();
         for (Id label : labels.keySet()) {
             E.checkNotNull(label, "edge label");
-            // TODO: limit should be applied to all labels
             results.extend(this.edgesOfVertex(source, dir, label, limit));
         }
-        return results;
+
+        if (limit == NO_LIMIT) {
+            return results;
+        }
+
+        Query query = new Query(HugeType.EDGE);
+        query.limit(limit);
+        return new LimitIterator<>(results, e -> {
+            long count = query.goOffset(1L);
+            return query.reachLimit(count - 1L);
+        });
     }
 
     protected Iterator<Edge> edgesOfVertex(Id source, EdgeStep edgeStep) {
