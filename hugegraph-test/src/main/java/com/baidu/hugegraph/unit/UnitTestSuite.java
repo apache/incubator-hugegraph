@@ -47,6 +47,7 @@ import com.baidu.hugegraph.unit.core.TraversalUtilTest;
 import com.baidu.hugegraph.unit.id.EdgeIdTest;
 import com.baidu.hugegraph.unit.id.IdTest;
 import com.baidu.hugegraph.unit.id.IdUtilTest;
+import com.baidu.hugegraph.unit.id.SplicingIdGeneratorTest;
 import com.baidu.hugegraph.unit.mysql.MysqlUtilTest;
 import com.baidu.hugegraph.unit.mysql.WhereBuilderTest;
 import com.baidu.hugegraph.unit.rocksdb.RocksDBCountersTest;
@@ -84,6 +85,7 @@ import com.baidu.hugegraph.unit.util.VersionTest;
     IdTest.class,
     EdgeIdTest.class,
     IdUtilTest.class,
+    SplicingIdGeneratorTest.class,
 
     /* core */
     LocksTableTest.class,
