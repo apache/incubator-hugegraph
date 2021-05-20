@@ -38,7 +38,6 @@ public class BatchConditionQuery extends ConditionQuery {
 
     public void mergeToIN(ConditionQuery query, HugeKeys key) {
         Object value = query.condition(key);
-
         if (this.in == null) {
             assert !this.containsRelation(RelationType.IN);
             this.resetConditions(new LinkedHashSet<>(query.conditions()));
@@ -52,7 +51,7 @@ public class BatchConditionQuery extends ConditionQuery {
         } else {
             E.checkArgument(this.in.key().equals(key),
                             "Invalid key '%s'", key);
-            E.checkArgument(keysEquals(query),
+            E.checkArgument(this.sameQueryExceptKeyIN(query),
                             "Can't merge query with different keys");
 
             @SuppressWarnings("unchecked")
@@ -61,14 +60,10 @@ public class BatchConditionQuery extends ConditionQuery {
         }
     }
 
-    protected boolean keysEquals(ConditionQuery query) {
+    protected boolean sameQueryExceptKeyIN(ConditionQuery query) {
         List<Condition.Relation> relations = query.relations();
         if (relations.size() != this.relations().size()) {
             return false;
-        }
-        List<Object> keys = new ArrayList<>(relations.size());
-        for (Condition.Relation r : this.relations()) {
-            keys.add(r.key());
         }
 
         for (Condition.Relation r : this.relations()) {
@@ -76,9 +71,6 @@ public class BatchConditionQuery extends ConditionQuery {
                 continue;
             }
             Object key = r.key();
-            if (!keys.contains(key)) {
-                return false;
-            }
             if (!this.condition(key).equals(query.condition(key))) {
                 return false;
             }
