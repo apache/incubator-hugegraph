@@ -180,9 +180,6 @@ public abstract class AbstractCache<K, V> implements Cache<K, V> {
         long current = now();
         for (Iterator<CacheNode<K, V>> it = this.nodes(); it.hasNext();) {
             CacheNode<K, V> node = it.next();
-            LOG.info("expireTime: {}, current: {}, node.time(): {}, " +
-                     "current-node.time(): {}, node: {}",
-                     expireTime, current, node.time(), current - node.time(), node);
             if (current - node.time() > expireTime) {
                 // Remove item while iterating map (it must be ConcurrentMap)
                 this.remove(node.key());
@@ -191,7 +188,7 @@ public abstract class AbstractCache<K, V> implements Cache<K, V> {
         }
 
         if (expireItems > 0) {
-            LOG.info("Cache expired {} items cost {}ms (size {}, expire {}ms)",
+            LOG.debug("Cache expired {} items cost {}ms (size {}, expire {}ms)",
                       expireItems, now() - current, this.size(), expireTime);
         }
         return expireItems;
