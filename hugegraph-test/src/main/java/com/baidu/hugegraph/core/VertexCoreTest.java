@@ -21,6 +21,7 @@ package com.baidu.hugegraph.core;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
@@ -54,6 +55,7 @@ import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.id.SnowflakeIdGenerator;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.page.PageInfo;
+import com.baidu.hugegraph.backend.page.PageState;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
@@ -6665,6 +6667,35 @@ public class VertexCoreTest extends BaseCoreTest {
                  .has("~page", "abc123").limit(10)
                  .toList();
         });
+    }
+
+    @Test
+    public void testQueryByPageWithSpecialBase64Chars() {
+        Assume.assumeTrue("Not support paging",
+                          storeFeatures().supportsQueryByPage());
+        final String pageWith3Base64Chars = "AAAAADsyABwAEAqI546LS6WW57unBgA" +
+                                            "EAAAAAPB////+8H////4alhxAZS8va6" +
+                                            "opcAKpklipAAQAAAAAAAAAAQ==";
+
+        final String pageWithSpace = "AAAAADsyABwAEAqI546LS6WW57unBgAEAAAAAP" +
+                                     "B//// 8H////4alhxAZS8va6opcAKpklipAAQA" +
+                                     "AAAAAAAAAQ==";
+
+        HugeGraph graph = graph();
+        init100Books();
+
+        // Contains valid character '+' and '/' and '='
+        GraphTraversal<Vertex, Vertex> traversal;
+        traversal = graph.traversal().V()
+                         .has("~page", pageWith3Base64Chars).limit(10);
+        Assert.assertNotNull(traversal);
+        CloseableIterator.closeIterator(traversal);
+
+        // Contains invalid base64 character ' ', will be replaced to '+'
+        traversal = graph.traversal().V()
+                         .has("~page", pageWithSpace).limit(10);
+        Assert.assertNotNull(traversal);
+        CloseableIterator.closeIterator(traversal);
     }
 
     @Test
