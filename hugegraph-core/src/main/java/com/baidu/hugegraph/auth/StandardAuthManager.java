@@ -45,7 +45,7 @@ public class StandardAuthManager implements AuthManager {
     private final HugeGraphParams graph;
     private final EventListener eventListener;
     private final Cache<Id, HugeUser> usersCache;
-    private final Cache<Id, String> validateCache;
+    private final Cache<Id, String> pwdCache;
 
     private final EntityManager<HugeUser> users;
     private final EntityManager<HugeGroup> groups;
@@ -60,8 +60,7 @@ public class StandardAuthManager implements AuthManager {
         this.graph = graph;
         this.eventListener = this.listenChanges();
         this.usersCache = this.cache("users");
-        this.validateCache = CacheManager.instance().cache("validate_pwd");
-        this.validateCache.expire(CACHE_EXPIRE);
+        this.pwdCache = this.cache("users_pwd");
 
         this.users = new EntityManager<>(this.graph, HugeUser.P.USER,
                                          HugeUser::fromVertex);
@@ -76,9 +75,9 @@ public class StandardAuthManager implements AuthManager {
                                                 HugeAccess::fromEdge);
     }
 
-    private Cache<Id, HugeUser> cache(String prefix) {
+    private <V> Cache<Id, V> cache(String prefix) {
         String name = prefix + "-" + this.graph.name();
-        Cache<Id, HugeUser> cache = CacheManager.instance().cache(name);
+        Cache<Id, V> cache = CacheManager.instance().cache(name);
         cache.expire(CACHE_EXPIRE);
         return cache;
     }
@@ -123,7 +122,7 @@ public class StandardAuthManager implements AuthManager {
 
     private void invalidCache() {
         this.usersCache.clear();
-        this.validateCache.clear();
+        this.pwdCache.clear();
     }
 
     @Override
@@ -349,13 +348,13 @@ public class StandardAuthManager implements AuthManager {
             return null;
         }
 
-        Id id = IdGenerator.of(name);
-        if (password.equals(validateCache.get(id))) {
+        Id id = IdGenerator.of(user.id());
+        if (password.equals(pwdCache.get(id))) {
             return user;
         }
 
         if (StringEncoding.checkPassword(password, user.password())) {
-            validateCache.update(id, password);
+            pwdCache.update(id, password);
             return user;
         }
         return null;
