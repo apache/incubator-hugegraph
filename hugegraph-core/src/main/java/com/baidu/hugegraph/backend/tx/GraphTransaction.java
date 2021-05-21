@@ -70,6 +70,7 @@ import com.baidu.hugegraph.iterator.BatchMapperIterator;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.iterator.FilterIterator;
 import com.baidu.hugegraph.iterator.FlatMapperIterator;
+import com.baidu.hugegraph.iterator.LimitIterator;
 import com.baidu.hugegraph.iterator.ListIterator;
 import com.baidu.hugegraph.iterator.MapperIterator;
 import com.baidu.hugegraph.iterator.WrappedIterator;
@@ -1985,49 +1986,6 @@ public class GraphTransaction extends IndexableTransaction {
                     CloseableIterator.closeIterator(iter);
                 }
             } while (page != null);
-        }
-    }
-
-    // TODO: move to common module
-    public static class LimitIterator<T> extends WrappedIterator<T> {
-
-        private final Iterator<T> originIterator;
-        private final Function<T, Boolean> filterCallback;
-
-        public LimitIterator(Iterator<T> origin, Function<T, Boolean> filter) {
-            this.originIterator = origin;
-            this.filterCallback = filter;
-        }
-
-        @Override
-        protected Iterator<T> originIterator() {
-            return this.originIterator;
-        }
-
-        @Override
-        protected final boolean fetch() {
-            while (this.originIterator.hasNext()) {
-                T next = this.originIterator.next();
-                // Do filter
-                boolean reachLimit = this.filterCallback.apply(next);
-                if (reachLimit) {
-                    this.closeOriginIterator();
-                    return false;
-                }
-                if (next != null) {
-                    assert this.current == none();
-                    this.current = next;
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        protected final void closeOriginIterator() {
-            if (this.originIterator == null) {
-                return;
-            }
-            close(this.originIterator);
         }
     }
 }
