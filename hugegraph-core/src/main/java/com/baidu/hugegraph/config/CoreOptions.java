@@ -26,6 +26,7 @@ import static com.baidu.hugegraph.config.OptionChecker.positiveInt;
 import static com.baidu.hugegraph.config.OptionChecker.rangeInt;
 
 import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.type.define.CollectionType;
 import com.baidu.hugegraph.util.Bytes;
 
 public class CoreOptions extends OptionHolder {
@@ -624,12 +625,13 @@ public class CoreOptions extends OptionHolder {
                     10
             );
 
-    public static final ConfigOption<String> OLTP_COLLECTION_IMPL_TYPE =
-            new ConfigOption<>(
+    public static final ConfigConvOption<String, CollectionType> OLTP_COLLECTION_IMPL_TYPE =
+            new ConfigConvOption<>(
                     "oltp.collection_impl_type",
                     "The implementation type of collections " +
                     "used in oltp algorithm.",
                     allowValues("jcf", "ec", "fu"),
+                    CollectionType::valueOf,
                     "ec"
             );
 }

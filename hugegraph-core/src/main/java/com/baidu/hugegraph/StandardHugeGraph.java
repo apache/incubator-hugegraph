@@ -67,6 +67,7 @@ import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.config.ConfigOption;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
+import com.baidu.hugegraph.config.TypedOption;
 import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.event.EventListener;
 import com.baidu.hugegraph.exception.NotAllowException;
@@ -116,7 +117,7 @@ public class StandardHugeGraph implements HugeGraph {
            StandardHugeGraph.SysTransaction.class
     };
 
-    public static final Set<ConfigOption<?>> ALLOWED_CONFIGS = ImmutableSet.of(
+    public static final Set<TypedOption<?, ?>> ALLOWED_CONFIGS = ImmutableSet.of(
            CoreOptions.TASK_WAIT_TIMEOUT,
            CoreOptions.TASK_SYNC_DELETION,
            CoreOptions.TASK_TTL_DELETE_BATCH,
@@ -978,7 +979,7 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
-    public <V> V option(ConfigOption<V> option) {
+    public <K, V> V option(TypedOption<K, V> option) {
         HugeConfig config = this.configuration();
         if (!ALLOWED_CONFIGS.contains(option)) {
             throw new NotAllowException("Not allowed to access config: %s",

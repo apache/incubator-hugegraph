@@ -31,7 +31,7 @@ import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
-import com.baidu.hugegraph.type.define.CollectionImplType;
+import com.baidu.hugegraph.type.define.CollectionType;
 
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 
@@ -40,7 +40,7 @@ public class IdSet extends AbstractSet<Id> {
     private LongHashSet numberIds;
     private Set<Id> nonNumberIds;
 
-    public IdSet(CollectionImplType type) {
+    public IdSet(CollectionType type) {
         this.numberIds = new LongHashSet();
         switch (type) {
             case JCF:

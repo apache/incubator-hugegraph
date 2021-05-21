@@ -178,7 +178,7 @@ public class DoubleWayMultiPathsRecords extends AbstractRecords {
                     iter.remove();
                     continue;
                 }
-                path.addToEnd(sid);
+                path.addToLast(sid);
             }
 
             results.addAll(paths);

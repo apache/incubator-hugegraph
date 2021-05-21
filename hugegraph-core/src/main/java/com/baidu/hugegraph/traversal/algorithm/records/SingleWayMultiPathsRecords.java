@@ -41,7 +41,7 @@ import com.baidu.hugegraph.traversal.algorithm.records.record.IntIterator;
 import com.baidu.hugegraph.traversal.algorithm.records.record.Record;
 import com.baidu.hugegraph.traversal.algorithm.records.record.RecordType;
 
-public class SingleWayMultiPathsRecords extends AbstractRecords {
+public abstract class SingleWayMultiPathsRecords extends AbstractRecords {
 
     protected final Stack<Record> records;
 
@@ -127,9 +127,7 @@ public class SingleWayMultiPathsRecords extends AbstractRecords {
         this.accessedVertices.add(targetCode);
     }
 
-    public int size() {
-        return 0;
-    }
+    public abstract int size();
 
     public Path getPath(int target) {
         List<Id> ids = new ArrayList<>();

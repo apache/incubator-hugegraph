@@ -53,7 +53,7 @@ import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
-import com.baidu.hugegraph.type.define.CollectionImplType;
+import com.baidu.hugegraph.type.define.CollectionType;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IdStrategy;
@@ -223,7 +223,11 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     }
 
     public void resetEdges() {
-        this.edges = CollectionFactory.newList(CollectionImplType.EC);
+        /*
+         * Use list to hold edges for vertices to reduce memory usage and
+         * add operation time.
+         */
+        this.edges = newList();
     }
 
     public void removeEdge(HugeEdge edge) {
@@ -232,7 +236,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
     public void addEdge(HugeEdge edge) {
         if (this.edges == EMPTY_LIST) {
-            this.edges = CollectionFactory.newList(CollectionImplType.EC);
+            this.edges = CollectionFactory.newList(CollectionType.EC);
         }
         this.edges.add(edge);
     }
@@ -642,6 +646,14 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         return new HugeVertex4Insert(tx, id, label);
     }
 
+    private static <V> Set<V> newSet() {
+        return CollectionFactory.newSet(CollectionType.EC);
+    }
+
+    private static <V> List<V> newList() {
+        return CollectionFactory.newList(CollectionType.EC);
+    }
+
     private static final class HugeVertex4Insert extends HugeVertex {
 
         private GraphTransaction tx;
@@ -649,6 +661,10 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         public HugeVertex4Insert(final GraphTransaction tx,
                                  Id id, VertexLabel label) {
             super(tx.graph(), id, label);
+            /*
+             * Use set to hold edges for inserted vertex
+             * to avoid duplicated edges
+             */
             this.edges = newSet();
             this.tx = tx;
             this.fresh(true);
@@ -678,10 +694,6 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
                 return this.tx;
             }
             return null;
-        }
-
-        private static <V> Set<V> newSet() {
-            return CollectionFactory.newSet(CollectionImplType.EC);
         }
     }
 }

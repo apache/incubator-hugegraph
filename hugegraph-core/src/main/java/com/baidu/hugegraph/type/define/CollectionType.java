@@ -19,7 +19,7 @@
 
 package com.baidu.hugegraph.type.define;
 
-public enum CollectionImplType implements SerialEnum {
+public enum CollectionType implements SerialEnum {
 
     // Java Collection Framework
     JCF(1, "jcf"),
@@ -34,10 +34,10 @@ public enum CollectionImplType implements SerialEnum {
     private final String name;
 
     static {
-        SerialEnum.register(CollectionImplType.class);
+        SerialEnum.register(CollectionType.class);
     }
 
-    CollectionImplType(int code, String name) {
+    CollectionType(int code, String name) {
         assert code < 256;
         this.code = (byte) code;
         this.name = name;
@@ -51,7 +51,7 @@ public enum CollectionImplType implements SerialEnum {
         return this.name;
     }
 
-    public static CollectionImplType fromCode(byte code) {
+    public static CollectionType fromCode(byte code) {
         switch (code) {
             case 1:
                 return JCF;

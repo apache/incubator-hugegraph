@@ -24,34 +24,29 @@ import static com.baidu.hugegraph.backend.query.Query.NO_LIMIT;
 import java.util.Set;
 
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser.PathSet;
 import com.baidu.hugegraph.traversal.algorithm.records.record.IntIterator;
 import com.baidu.hugegraph.traversal.algorithm.records.record.RecordType;
-import com.baidu.hugegraph.type.define.CollectionImplType;
+import com.baidu.hugegraph.type.define.CollectionType;
 import com.baidu.hugegraph.util.collection.CollectionFactory;
-import com.google.common.collect.ImmutableList;
 
 public class KneighborRecords extends SingleWayMultiPathsRecords {
-
-    private final Id source;
 
     public KneighborRecords(RecordType type, boolean concurrent,
                             Id source, boolean nearest) {
         super(type, concurrent, source, nearest);
-        this.source = source;
     }
 
+    @Override
     public int size() {
         return (int) this.accessed();
     }
 
     public Set<Id> ids(long limit) {
-        Set<Id> ids = CollectionFactory.newIdSet(CollectionImplType.EC);
-        ids.add(this.source);
+        Set<Id> ids = CollectionFactory.newIdSet(CollectionType.EC);
         for (int i = 1; i < this.records.size(); i++) {
             IntIterator iterator = this.records.get(i).keys();
-            while ((limit == NO_LIMIT || limit > 1L) && iterator.hasNext()) {
+            while ((limit == NO_LIMIT || limit > 0L) && iterator.hasNext()) {
                 ids.add(this.id(iterator.next()));
                 limit--;
             }
@@ -61,10 +56,9 @@ public class KneighborRecords extends SingleWayMultiPathsRecords {
 
     public PathSet paths(long limit) {
         PathSet paths = new PathSet();
-        paths.add(new HugeTraverser.Path(ImmutableList.of(this.source)));
         for (int i = 1; i < this.records.size(); i++) {
             IntIterator iterator = this.records.get(i).keys();
-            while ((limit == NO_LIMIT || limit > 1L) && iterator.hasNext()) {
+            while ((limit == NO_LIMIT || limit > 0L) && iterator.hasNext()) {
                 paths.add(this.getPath(i, iterator.next()));
                 limit--;
             }

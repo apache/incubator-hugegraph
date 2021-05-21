@@ -38,7 +38,6 @@ import com.baidu.hugegraph.util.E;
 public class KoutTraverser extends OltpTraverser {
 
     private int depth;
-    private volatile boolean stop = false;
 
     public KoutTraverser(HugeGraph graph) {
         super(graph);
@@ -117,16 +116,15 @@ public class KoutTraverser extends OltpTraverser {
                                               source, nearest);
 
         Consumer<Id> consumer = v -> {
-            if (this.stop) {
+            if (this.reachLimit(limit, this.depth, records.size())) {
                 return;
             }
             Iterator<Edge> edges = edgesOfVertex(v, step);
-            while (!this.stop && edges.hasNext()) {
+            while (!this.reachLimit(limit, this.depth, records.size()) &&
+                   edges.hasNext()) {
                 Id target = ((HugeEdge) edges.next()).id().otherVertexId();
                 records.addPath(v, target);
-
                 this.checkCapacity(capacity, records.accessed(), this.depth);
-                this.checkLimit(limit, this.depth, records.size());
             }
         };
 
@@ -149,12 +147,7 @@ public class KoutTraverser extends OltpTraverser {
         }
     }
 
-    private void checkLimit(long limit, long depth, int size) {
-        if (limit == NO_LIMIT || depth > 0) {
-            return;
-        }
-        if (size >= limit) {
-            this.stop = true;
-        }
+    private boolean reachLimit(long limit, long depth, int size) {
+        return limit != NO_LIMIT && depth <= 0 && size >= limit;
     }
 }

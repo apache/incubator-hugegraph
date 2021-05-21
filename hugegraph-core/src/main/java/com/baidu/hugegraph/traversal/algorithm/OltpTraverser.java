@@ -21,14 +21,11 @@ package com.baidu.hugegraph.traversal.algorithm;
 
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
@@ -38,8 +35,6 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.iterator.FilterIterator;
-import com.baidu.hugegraph.structure.HugeEdge;
-import com.baidu.hugegraph.traversal.algorithm.steps.EdgeStep;
 import com.baidu.hugegraph.util.Consumers;
 
 import jersey.repackaged.com.google.common.base.Objects;
@@ -79,63 +74,6 @@ public abstract class OltpTraverser extends HugeTraverser
                 executors = null;
             }
         }
-    }
-
-    protected Set<Node> adjacentVertices(Id source, Set<Node> latest,
-                                         EdgeStep step, Set<Node> all,
-                                         long remaining, boolean single) {
-        if (single) {
-            return this.adjacentVertices(source, latest, step, all, remaining);
-        } else {
-            AtomicLong remain = new AtomicLong(remaining);
-            return this.adjacentVertices(latest, step, all, remain);
-        }
-    }
-
-    protected Set<Node> adjacentVertices(Set<Node> vertices, EdgeStep step,
-                                         Set<Node> excluded, long remaining) {
-        Set<Node> neighbors = newSet();
-        for (Node source : vertices) {
-            Iterator<Edge> edges = this.edgesOfVertex(source.id(), step);
-            while (edges.hasNext()) {
-                Id target = ((HugeEdge) edges.next()).id().otherVertexId();
-                KNode kNode = new KNode(target, (KNode) source);
-                if (excluded != null && excluded.contains(kNode)) {
-                    continue;
-                }
-                neighbors.add(kNode);
-                if (remaining != NO_LIMIT && --remaining <= 0L) {
-                    return neighbors;
-                }
-            }
-        }
-        return neighbors;
-    }
-
-    protected Set<Node> adjacentVertices(Set<Node> vertices, EdgeStep step,
-                                         Set<Node> excluded,
-                                         AtomicLong remaining) {
-        Set<Node> neighbors = ConcurrentHashMap.newKeySet();
-        this.traverseNodes(vertices.iterator(), v -> {
-            Iterator<Edge> edges = this.edgesOfVertex(v.id(), step);
-            while (edges.hasNext()) {
-                Id target = ((HugeEdge) edges.next()).id().otherVertexId();
-                KNode kNode = new KNode(target, (KNode) v);
-                if (excluded != null && excluded.contains(kNode)) {
-                    continue;
-                }
-                neighbors.add(kNode);
-                if (remaining.decrementAndGet() <= 0L) {
-                    return;
-                }
-            }
-        });
-        return neighbors;
-    }
-
-    protected long traverseNodes(Iterator<Node> vertices,
-                                 Consumer<Node> consumer) {
-        return this.traverse(vertices, consumer, "traverse-nodes");
     }
 
     protected long traversePairs(Iterator<Pair<Id, Id>> pairs,

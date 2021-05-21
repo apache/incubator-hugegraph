@@ -65,6 +65,7 @@ import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
 import com.baidu.hugegraph.backend.store.raft.RaftGroupManager;
 import com.baidu.hugegraph.config.ConfigOption;
 import com.baidu.hugegraph.config.HugeConfig;
+import com.baidu.hugegraph.config.TypedOption;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.iterator.FilterIterator;
 import com.baidu.hugegraph.rpc.RpcServiceConfig4Client;
@@ -552,7 +553,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     @Override
-    public <V> V option(ConfigOption<V> option) {
+    public <K, V> V option(TypedOption<K, V> option) {
         this.verifyAnyPermission();
         return this.hugegraph.option(option);
     }

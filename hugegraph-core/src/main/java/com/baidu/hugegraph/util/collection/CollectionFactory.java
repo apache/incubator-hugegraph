@@ -35,7 +35,7 @@ import org.eclipse.collections.impl.map.mutable.primitive.IntObjectHashMap;
 import org.eclipse.collections.impl.set.mutable.UnifiedSet;
 
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.type.define.CollectionImplType;
+import com.baidu.hugegraph.type.define.CollectionType;
 import com.baidu.hugegraph.util.E;
 
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
@@ -44,13 +44,13 @@ import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 
 public class CollectionFactory {
 
-    private CollectionImplType type;
+    private CollectionType type;
 
     public CollectionFactory() {
-        this.type = CollectionImplType.EC;
+        this.type = CollectionType.EC;
     }
 
-    public CollectionFactory(CollectionImplType type) {
+    public CollectionFactory(CollectionType type) {
         this.type = type;
     }
 
@@ -66,7 +66,7 @@ public class CollectionFactory {
         return newList(this.type, collection);
     }
 
-    public static <V> List<V> newList(CollectionImplType type) {
+    public static <V> List<V> newList(CollectionType type) {
         switch (type) {
             case EC:
                 return new FastList<>();
@@ -80,7 +80,7 @@ public class CollectionFactory {
         }
     }
 
-    public static <V> List<V> newList(CollectionImplType type,
+    public static <V> List<V> newList(CollectionType type,
                                       int initialCapacity) {
         switch (type) {
             case EC:
@@ -95,7 +95,7 @@ public class CollectionFactory {
         }
     }
 
-    public static <V> List<V> newList(CollectionImplType type,
+    public static <V> List<V> newList(CollectionType type,
                                       Collection<V> collection) {
         switch (type) {
             case EC:
@@ -122,7 +122,7 @@ public class CollectionFactory {
         return newSet(this.type, collection);
     }
 
-    public static <V> Set<V> newSet(CollectionImplType type) {
+    public static <V> Set<V> newSet(CollectionType type) {
         switch (type) {
             case EC:
                 return new UnifiedSet<>();
@@ -136,7 +136,7 @@ public class CollectionFactory {
         }
     }
 
-    public static <V> Set<V> newSet(CollectionImplType type,
+    public static <V> Set<V> newSet(CollectionType type,
                                     int initialCapacity) {
         switch (type) {
             case EC:
@@ -151,7 +151,7 @@ public class CollectionFactory {
         }
     }
 
-    public static <V> Set<V> newSet(CollectionImplType type,
+    public static <V> Set<V> newSet(CollectionType type,
                                     Collection<V> collection) {
         switch (type) {
             case EC:
@@ -174,7 +174,11 @@ public class CollectionFactory {
         return newMap(this.type, initialCapacity);
     }
 
-    public static <K, V> Map<K, V> newMap(CollectionImplType type) {
+    public static <K, V> Map<K, V> newMap(CollectionType type) {
+        /*
+         * EC is faster 10%-20% than JCF, and it's more stable & less
+         * memory cost(size is bigger, EC is better).
+         */
         switch (type) {
             case EC:
                 return new UnifiedMap<>();
@@ -188,7 +192,7 @@ public class CollectionFactory {
         }
     }
 
-    public static <K, V> Map<K, V> newMap(CollectionImplType type,
+    public static <K, V> Map<K, V> newMap(CollectionType type,
                                           int initialCapacity) {
         switch (type) {
             case EC:
@@ -256,7 +260,7 @@ public class CollectionFactory {
         return newIdSet(this.type);
     }
 
-    public static Set<Id> newIdSet(CollectionImplType type) {
+    public static Set<Id> newIdSet(CollectionType type) {
         return new IdSet(type);
     }
 }

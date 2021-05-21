@@ -36,8 +36,6 @@ import com.baidu.hugegraph.util.E;
 
 public class KneighborTraverser extends OltpTraverser {
 
-    private volatile boolean stop;
-
     public KneighborTraverser(HugeGraph graph) {
         super(graph);
     }
@@ -87,14 +85,13 @@ public class KneighborTraverser extends OltpTraverser {
                                                         source, true);
 
         Consumer<Id> consumer = v -> {
-            if (this.stop) {
+            if (this.reachLimit(limit, records.size())) {
                 return;
             }
             Iterator<Edge> edges = edgesOfVertex(v, step);
-            while (!this.stop && edges.hasNext()) {
+            while (!this.reachLimit(limit, records.size()) && edges.hasNext()) {
                 Id target = ((HugeEdge) edges.next()).id().otherVertexId();
                 records.addPath(v, target);
-                this.reachLimit(limit, records.size());
             }
         };
 
@@ -107,10 +104,6 @@ public class KneighborTraverser extends OltpTraverser {
     }
 
     private boolean reachLimit(long limit, int size) {
-        if (limit == NO_LIMIT || size < limit) {
-            return false;
-        }
-        this.stop = true;
-        return true;
+        return limit != NO_LIMIT && size >= limit;
     }
 }

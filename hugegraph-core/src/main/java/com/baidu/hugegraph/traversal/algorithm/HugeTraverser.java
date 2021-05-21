@@ -54,7 +54,7 @@ import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.traversal.algorithm.steps.EdgeStep;
 import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
 import com.baidu.hugegraph.type.HugeType;
-import com.baidu.hugegraph.type.define.CollectionImplType;
+import com.baidu.hugegraph.type.define.CollectionType;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.CollectionUtil;
@@ -103,9 +103,8 @@ public class HugeTraverser {
         return this.graph.option(CoreOptions.OLTP_CONCURRENT_DEPTH);
     }
 
-    private CollectionImplType collectionImplType() {
-        return CollectionImplType.valueOf(this.graph.option(
-               CoreOptions.OLTP_COLLECTION_IMPL_TYPE).toUpperCase());
+    private CollectionType collectionImplType() {
+        return this.graph.option(CoreOptions.OLTP_COLLECTION_IMPL_TYPE);
     }
 
     protected Set<Id> adjacentVertices(Id sourceV, Set<Id> vertices,
@@ -553,22 +552,6 @@ public class HugeTraverser {
         }
     }
 
-    public static class KNode extends Node {
-
-        public KNode(Id id, KNode parent) {
-            super(id, parent);
-        }
-
-        @Override
-        public boolean equals(Object object) {
-            if (!(object instanceof KNode)) {
-                return false;
-            }
-            KNode other = (KNode) object;
-            return Objects.equals(this.id(), other.id());
-        }
-    }
-
     public static class Path {
 
         public static final Path EMPTY_PATH = new Path(ImmutableList.of());
@@ -589,7 +572,7 @@ public class HugeTraverser {
             return this.crosspoint;
         }
 
-        public void addToEnd(Id id) {
+        public void addToLast(Id id) {
             this.vertices.add(id);
         }
 
