@@ -149,7 +149,8 @@ public class HugeTraverser {
             while (edges.hasNext()) {
                 Id target = ((HugeEdge) edges.next()).id().otherVertexId();
                 KNode kNode = new KNode(target, (KNode) source);
-                if (excluded != null && excluded.contains(kNode)) {
+                if ((excluded != null && excluded.contains(kNode)) ||
+                    neighbors.contains(kNode)) {
                     continue;
                 }
                 neighbors.add(kNode);
