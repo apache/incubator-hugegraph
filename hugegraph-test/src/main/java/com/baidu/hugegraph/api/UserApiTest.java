@@ -162,10 +162,11 @@ public class UserApiTest extends BaseApiTest {
 
     protected void createUser(String name) {
         String user = "{\"user_name\":\"" + name + "\",\"user_password\":\"p1" +
-                      "\", \"user_email\":\"user1@baidu.com\", " +
-                      "\"user_phone\"123456789\", \"user_avatar\":\"image1" +
+                      "\", \"user_email\":\"user1@baidu.com\"," +
+                      "\"user_phone\":123456789,\"user_avatar\":\"image1" +
                       ".jpg\"}";
-        this.client().post(path, user);
+        Response r = this.client().post(path, user);
+        assertResponseStatus(201, r);
     }
 
     protected List<Map<String, Object>> listUsers() {
@@ -173,8 +174,8 @@ public class UserApiTest extends BaseApiTest {
                                                              NO_LIMIT));
         String result = assertResponseStatus(200, r);
         Map<String, List<Map<String, Object>>> resultMap =
-                JsonUtil.fromJson(result, new TypeReference<Map<String,
-                                  List<Map<String, Object>>>>() {});
+        JsonUtil.fromJson(result, new TypeReference<Map<String,
+                                      List<Map<String, Object>>>>() {});
         return resultMap.get("users");
     }
 }
