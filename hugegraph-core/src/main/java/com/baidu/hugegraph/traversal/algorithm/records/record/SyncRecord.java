@@ -40,6 +40,11 @@ public class SyncRecord implements Record {
 
     @Override
     public IntIterator keys() {
+        /*
+         * Another threads call addPath() will change IntIterator inner array,
+         * but in kout/kneighbor scenario it's ok because keys() and addPath()
+         * won't be called simultaneously on same Record.
+         */
         synchronized (this.lock) {
             return this.record.keys();
         }

@@ -101,12 +101,19 @@ public class Int2IntsMap {
                 chunkTable[nextPosition] = value;
                 this.chunkTable[firstChunk + OFFSET_POSITION]++;
             } else {
+                /*
+                 * nextPosition points to last entry of current chunk, should
+                 * acquire a new chunk and make last entry of current chunk
+                 * points new chunk
+                 */
                 this.ensureCapacity();
 
-                this.chunkTable[nextPosition] = this.nextChunk;
+                int lastEntryOfChunk = nextPosition;
+                this.chunkTable[lastEntryOfChunk] = this.nextChunk;
 
-                this.chunkTable[this.nextChunk] = value;
-                this.chunkTable[firstChunk + OFFSET_POSITION] = this.nextChunk + 1;
+                nextPosition = this.nextChunk;
+                this.chunkTable[nextPosition] = value;
+                this.chunkTable[firstChunk + OFFSET_POSITION] = nextPosition + 1;
 
                 // Update next block
                 this.nextChunk += CHUNK_SIZE;
@@ -120,10 +127,11 @@ public class Int2IntsMap {
             this.chunkMap.put(key, this.nextChunk);
 
             // Init first chunk
-            this.chunkTable[this.nextChunk] = this.nextChunk +
-                    OFFSET_DATA_IN_FIRST_CHUNK + 1;
-            this.chunkTable[this.nextChunk + OFFSET_SIZE] = 1;
-            this.chunkTable[this.nextChunk + OFFSET_DATA_IN_FIRST_CHUNK] = value;
+            int firstChunk = this.nextChunk;
+            int nextPosition = firstChunk + OFFSET_DATA_IN_FIRST_CHUNK;
+            this.chunkTable[firstChunk + OFFSET_POSITION] = nextPosition + 1;
+            this.chunkTable[firstChunk + OFFSET_SIZE] = 1;
+            this.chunkTable[nextPosition] = value;
 
             // Update next block
             this.nextChunk += CHUNK_SIZE;
@@ -138,8 +146,8 @@ public class Int2IntsMap {
         int firstChunk = this.chunkMap.get(key);
         int size = this.chunkTable[firstChunk + OFFSET_SIZE];
         int[] values = new int[size];
-        int i = 0;
         int position = firstChunk + OFFSET_DATA_IN_FIRST_CHUNK;
+        int i = 0;
         while (i < size) {
             if (!this.endOfChunk(position)) {
                 values[i++] = this.chunkTable[position++];

@@ -236,7 +236,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
     public void addEdge(HugeEdge edge) {
         if (this.edges == EMPTY_LIST) {
-            this.edges = CollectionFactory.newList(CollectionType.EC);
+            this.edges = newList();
         }
         this.edges.add(edge);
     }

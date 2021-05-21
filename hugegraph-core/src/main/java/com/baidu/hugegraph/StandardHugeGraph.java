@@ -64,7 +64,6 @@ import com.baidu.hugegraph.backend.store.raft.RaftGroupManager;
 import com.baidu.hugegraph.backend.store.ram.RamTable;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
-import com.baidu.hugegraph.config.ConfigOption;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.TypedOption;
@@ -125,7 +124,7 @@ public class StandardHugeGraph implements HugeGraph {
            CoreOptions.TASK_RESULT_SIZE_LIMIT,
            CoreOptions.OLTP_CONCURRENT_THREADS,
            CoreOptions.OLTP_CONCURRENT_DEPTH,
-           CoreOptions.OLTP_COLLECTION_IMPL_TYPE,
+           CoreOptions.OLTP_COLLECTION_TYPE,
            CoreOptions.VERTEX_DEFAULT_LABEL,
            CoreOptions.VERTEX_ENCODE_PK_NUMBER
     );

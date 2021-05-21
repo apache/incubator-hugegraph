@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.unit.util;
 
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
@@ -236,12 +237,9 @@ public class JsonUtilTest extends BaseUnitTest {
 
         MutableIntObjectMap<HugeProperty<?>> properties =
                 CollectionFactory.newIntObjectMap(
-                (int) name.id().asLong(),
-                new HugeVertexProperty<>(vertex, name, "marko"),
-                (int) age.id().asLong(),
-                new HugeVertexProperty<>(vertex, age, 29),
-                (int) city.id().asLong(),
-                new HugeVertexProperty<>(vertex, city, "Beijing")
+                name.id(), new HugeVertexProperty<>(vertex, name, "marko"),
+                age.id(), new HugeVertexProperty<>(vertex, age, 29),
+                city.id(), new HugeVertexProperty<>(vertex, city, "Beijing")
         );
         Whitebox.setInternalState(vertex, "properties", properties);
 
@@ -286,12 +284,11 @@ public class JsonUtilTest extends BaseUnitTest {
         Whitebox.setInternalState(edge, "sourceVertex", source);
         Whitebox.setInternalState(edge, "targetVertex", target);
 
+        Date dateValue = Utils.date("2019-03-12");
         MutableIntObjectMap<HugeProperty<?>> properties =
                 CollectionFactory.newIntObjectMap(
-                (int) date.id().asLong(),
-                new HugeEdgeProperty<>(edge, date, Utils.date("2019-03-12")),
-                (int) weight.id().asLong(),
-                new HugeEdgeProperty<>(edge, weight, 0.8)
+                date.id(), new HugeEdgeProperty<>(edge, date, dateValue),
+                weight.id(), new HugeEdgeProperty<>(edge, weight, 0.8)
         );
         Whitebox.setInternalState(edge, "properties", properties);
 

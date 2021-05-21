@@ -625,9 +625,9 @@ public class CoreOptions extends OptionHolder {
                     10
             );
 
-    public static final ConfigConvOption<String, CollectionType> OLTP_COLLECTION_IMPL_TYPE =
+    public static final ConfigConvOption<String, CollectionType> OLTP_COLLECTION_TYPE =
             new ConfigConvOption<>(
-                    "oltp.collection_impl_type",
+                    "oltp.collection_type",
                     "The implementation type of collections " +
                     "used in oltp algorithm.",
                     allowValues("jcf", "ec", "fu"),

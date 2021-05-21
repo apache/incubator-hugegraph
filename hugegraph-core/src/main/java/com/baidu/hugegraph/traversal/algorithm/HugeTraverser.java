@@ -91,7 +91,7 @@ public class HugeTraverser {
     public HugeTraverser(HugeGraph graph) {
         this.graph = graph;
         if (collectionFactory == null) {
-            collectionFactory = new CollectionFactory(this.collectionImplType());
+            collectionFactory = new CollectionFactory(this.collectionType());
         }
     }
 
@@ -103,8 +103,8 @@ public class HugeTraverser {
         return this.graph.option(CoreOptions.OLTP_CONCURRENT_DEPTH);
     }
 
-    private CollectionType collectionImplType() {
-        return this.graph.option(CoreOptions.OLTP_COLLECTION_IMPL_TYPE);
+    private CollectionType collectionType() {
+        return this.graph.option(CoreOptions.OLTP_COLLECTION_TYPE);
     }
 
     protected Set<Id> adjacentVertices(Id sourceV, Set<Id> vertices,

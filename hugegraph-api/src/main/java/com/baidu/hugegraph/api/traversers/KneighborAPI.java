@@ -51,7 +51,6 @@ import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.traversal.algorithm.records.KneighborRecords;
 import com.baidu.hugegraph.traversal.algorithm.steps.EdgeStep;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
-import com.baidu.hugegraph.traversal.algorithm.HugeTraverser.PathSet;
 import com.baidu.hugegraph.traversal.algorithm.KneighborTraverser;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
@@ -134,7 +133,7 @@ public class KneighborAPI extends TraverserAPI {
 
         Set<Id> neighbors = results.ids(request.limit);
 
-        PathSet paths = new PathSet();
+        HugeTraverser.PathSet paths = new HugeTraverser.PathSet();
         if (request.withPath) {
             paths.addAll(results.paths(request.limit));
         }
