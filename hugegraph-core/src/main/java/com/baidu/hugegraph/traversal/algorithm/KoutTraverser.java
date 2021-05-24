@@ -121,9 +121,7 @@ public class KoutTraverser extends OltpTraverser {
         Set<Node> all = newSet(single);
 
         Node sourceV = new KNode(source, null);
-
         latest.add(sourceV);
-        all.add(sourceV);
 
         int depth = maxDepth;
         long remaining = capacity == NO_LIMIT ?
