@@ -163,7 +163,7 @@ public class UserApiTest extends BaseApiTest {
     protected void createUser(String name) {
         String user = "{\"user_name\":\"" + name + "\",\"user_password\":\"p1" +
                       "\", \"user_email\":\"user1@baidu.com\"," +
-                      "\"user_phone\":123456789,\"user_avatar\":\"image1" +
+                      "\"user_phone\":\"123456789\",\"user_avatar\":\"image1" +
                       ".jpg\"}";
         Response r = this.client().post(path, user);
         assertResponseStatus(201, r);
