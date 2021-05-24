@@ -46,7 +46,7 @@ public abstract class SingleWayMultiPathsRecords extends AbstractRecords {
     protected final Stack<Record> records;
 
     private final boolean nearest;
-    private final MutableIntSet accessedVertices;
+    protected final MutableIntSet accessedVertices;
 
     protected Record currentRecord;
     protected IntIterator lastRecordKeys;
@@ -67,7 +67,6 @@ public abstract class SingleWayMultiPathsRecords extends AbstractRecords {
 
         this.accessedVertices = concurrent ? new IntHashSet().asSynchronized() :
                                 new IntHashSet();
-        this.accessedVertices.add(sourceCode);
     }
 
     @Override

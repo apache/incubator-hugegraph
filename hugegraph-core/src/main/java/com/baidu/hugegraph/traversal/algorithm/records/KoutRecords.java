@@ -35,6 +35,7 @@ public class KoutRecords extends SingleWayMultiPathsRecords {
     public KoutRecords(RecordType type, boolean concurrent,
                        Id source, boolean nearest) {
         super(type, concurrent, source, nearest);
+        this.accessedVertices.add(this.code(source));
     }
 
     @Override

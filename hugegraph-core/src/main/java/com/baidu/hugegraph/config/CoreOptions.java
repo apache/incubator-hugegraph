@@ -630,8 +630,8 @@ public class CoreOptions extends OptionHolder {
                     "oltp.collection_type",
                     "The implementation type of collections " +
                     "used in oltp algorithm.",
-                    allowValues("jcf", "ec", "fu"),
+                    allowValues("JCF", "EC", "FU"),
                     CollectionType::valueOf,
-                    "ec"
+                    "EC"
             );
 }
