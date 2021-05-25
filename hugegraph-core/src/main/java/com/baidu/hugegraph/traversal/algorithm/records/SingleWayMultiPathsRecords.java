@@ -43,16 +43,13 @@ import com.baidu.hugegraph.traversal.algorithm.records.record.RecordType;
 
 public abstract class SingleWayMultiPathsRecords extends AbstractRecords {
 
-    protected final Stack<Record> records;
+    private final Stack<Record> records;
 
     private final int sourceCode;
     private final boolean nearest;
     private final MutableIntSet accessedVertices;
 
-    protected Record currentRecord;
-    protected IntIterator lastRecordKeys;
-    protected int current;
-    protected boolean forward;
+    private IntIterator lastRecordKeys;
 
     public SingleWayMultiPathsRecords(RecordType type, boolean concurrent,
                                       Id source, boolean nearest) {
@@ -72,13 +69,13 @@ public abstract class SingleWayMultiPathsRecords extends AbstractRecords {
 
     @Override
     public void startOneLayer(boolean forward) {
-        this.currentRecord = this.newRecord();
+        this.currentRecord(this.newRecord());
         this.lastRecordKeys = this.records.peek().keys();
     }
 
     @Override
     public void finishOneLayer() {
-        this.records.push(this.currentRecord);
+        this.records.push(this.currentRecord());
     }
 
     @Override
@@ -88,8 +85,7 @@ public abstract class SingleWayMultiPathsRecords extends AbstractRecords {
 
     @Override
     public Id nextKey() {
-        this.current = this.lastRecordKeys.next();
-        return this.id(current);
+        return this.id(this.lastRecordKeys.next());
     }
 
     @Override
@@ -119,11 +115,11 @@ public abstract class SingleWayMultiPathsRecords extends AbstractRecords {
         int sourceCode = this.code(source);
         int targetCode = this.code(target);
         if (this.nearest && this.accessedVertices.contains(targetCode) ||
-            !this.nearest && this.currentRecord.containsKey(targetCode) ||
+            !this.nearest && this.currentRecord().containsKey(targetCode) ||
             targetCode == this.sourceCode) {
             return;
         }
-        this.currentRecord.addPath(targetCode, sourceCode);
+        this.currentRecord().addPath(targetCode, sourceCode);
 
         this.accessedVertices.add(targetCode);
     }
@@ -172,5 +168,9 @@ public abstract class SingleWayMultiPathsRecords extends AbstractRecords {
         }
         Collections.reverse(ids);
         return new Path(ids);
+    }
+
+    public Stack<Record> records() {
+        return this.records;
     }
 }

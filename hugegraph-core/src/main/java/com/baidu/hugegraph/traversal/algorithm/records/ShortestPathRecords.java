@@ -59,8 +59,9 @@ public class ShortestPathRecords extends DoubleWayMultiPathsRecords {
             if (!filter.apply(target)) {
                 return paths;
             }
-            paths.add(this.forward ? this.linkPath(this.current, targetCode) :
-                                     this.linkPath(targetCode, this.current));
+            paths.add(this.forward() ?
+                      this.linkPath(this.current(), targetCode) :
+                      this.linkPath(targetCode, this.current()));
             this.pathFound = true;
             if (!all) {
                 return paths;
@@ -73,13 +74,13 @@ public class ShortestPathRecords extends DoubleWayMultiPathsRecords {
          * 2. path of node doesn't have loop
          */
         if (!this.pathFound && this.isNew(targetCode)) {
-            this.addPath(targetCode, this.current);
+            this.addPath(targetCode, this.current());
         }
         return paths;
     }
 
     private boolean isNew(int node) {
-        return !this.currentRecord.containsKey(node) &&
+        return !this.currentRecord().containsKey(node) &&
                !this.accessedVertices.contains(node);
     }
 
@@ -93,11 +94,11 @@ public class ShortestPathRecords extends DoubleWayMultiPathsRecords {
     }
 
     private Path linkSourcePath(int source) {
-        return this.linkPath(this.sourceRecords, source);
+        return this.linkPath(this.sourceRecords(), source);
     }
 
     private Path linkTargetPath(int target) {
-        return this.linkPath(this.targetRecords, target);
+        return this.linkPath(this.targetRecords(), target);
     }
 
     private Path linkPath(Stack<Record> all, int node) {

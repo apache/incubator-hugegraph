@@ -220,63 +220,6 @@ public class CollectionFactory {
         return new IntObjectHashMap<>(map);
     }
 
-    public static <V> MutableIntObjectMap<V> newIntObjectMap(
-                                             int key1, V value1) {
-        return IntObjectHashMap.newWithKeysValues(key1, value1);
-    }
-
-    public static <V> MutableIntObjectMap<V> newIntObjectMap(
-                                             int key1, V value1,
-                                             int key2, V value2) {
-        return IntObjectHashMap.newWithKeysValues(key1, value1, key2, value2);
-    }
-
-    public static <V> MutableIntObjectMap<V> newIntObjectMap(
-                                             int key1, V value1,
-                                             int key2, V value2,
-                                             int key3, V value3) {
-        return IntObjectHashMap.newWithKeysValues(key1, value1, key2, value2,
-                                                  key3, value3);
-    }
-
-    @SuppressWarnings("unchecked")
-    public static <V> MutableIntObjectMap<V> newIntObjectMap(
-                                             int key1, V value1,
-                                             int key2, V value2,
-                                             int key3, V value3,
-                                             Object... objects) {
-        IntObjectHashMap<V> map = IntObjectHashMap.newWithKeysValues(
-                                  key1, value1, key2, value2, key3, value3);
-        E.checkArgument(objects.length % 2 == 0,
-                        "Must provide even arguments for " +
-                        "CollectionFactory.newIntObjectMap");
-        for (int i = 0; i < objects.length; i += 2) {
-            map.put((int) objects[i], (V) objects[i + 1]);
-        }
-        return map;
-    }
-
-    public static <V> MutableIntObjectMap<V> newIntObjectMap(Id key1,
-                                                             V value1) {
-        return IntObjectHashMap.newWithKeysValues((int) key1.asLong(), value1);
-    }
-
-    public static <V> MutableIntObjectMap<V> newIntObjectMap(
-                                             Id key1, V value1,
-                                             Id key2, V value2) {
-        return IntObjectHashMap.newWithKeysValues((int) key1.asLong(), value1,
-                                                  (int) key2.asLong(), value2);
-    }
-
-    public static <V> MutableIntObjectMap<V> newIntObjectMap(
-                                             Id key1, V value1,
-                                             Id key2, V value2,
-                                             Id key3, V value3) {
-        return IntObjectHashMap.newWithKeysValues((int) key1.asLong(), value1,
-                                                  (int) key2.asLong(), value2,
-                                                  (int) key3.asLong(), value3);
-    }
-
     @SuppressWarnings("unchecked")
     public static <V> MutableIntObjectMap<V> newIntObjectMap(
                                              Object... objects) {
@@ -284,8 +227,10 @@ public class CollectionFactory {
         E.checkArgument(objects.length % 2 == 0,
                         "Must provide even arguments for " +
                         "CollectionFactory.newIntObjectMap");
-        for (int i = 0; i < objects.length; i+=2) {
-            map.put((int) ((Id) objects[i]).asLong(), (V) objects[i + 1]);
+        for (int i = 0; i < objects.length; i += 2) {
+            int key = objects[i] instanceof Id ?
+                      (int) ((Id) objects[i]).asLong() : (int) objects[i];
+            map.put(key, (V) objects[i + 1]);
         }
         return map;
     }

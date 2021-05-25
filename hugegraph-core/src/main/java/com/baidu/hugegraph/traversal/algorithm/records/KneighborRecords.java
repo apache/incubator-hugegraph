@@ -22,10 +22,12 @@ package com.baidu.hugegraph.traversal.algorithm.records;
 import static com.baidu.hugegraph.backend.query.Query.NO_LIMIT;
 
 import java.util.Set;
+import java.util.Stack;
 
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser.PathSet;
 import com.baidu.hugegraph.traversal.algorithm.records.record.IntIterator;
+import com.baidu.hugegraph.traversal.algorithm.records.record.Record;
 import com.baidu.hugegraph.traversal.algorithm.records.record.RecordType;
 import com.baidu.hugegraph.type.define.CollectionType;
 import com.baidu.hugegraph.util.collection.CollectionFactory;
@@ -44,8 +46,9 @@ public class KneighborRecords extends SingleWayMultiPathsRecords {
 
     public Set<Id> ids(long limit) {
         Set<Id> ids = CollectionFactory.newIdSet(CollectionType.EC);
-        for (int i = 1; i < this.records.size(); i++) {
-            IntIterator iterator = this.records.get(i).keys();
+        Stack<Record> records = this.records();
+        for (int i = 1; i < records.size(); i++) {
+            IntIterator iterator = records.get(i).keys();
             while ((limit == NO_LIMIT || limit > 0L) && iterator.hasNext()) {
                 ids.add(this.id(iterator.next()));
                 limit--;
@@ -56,8 +59,9 @@ public class KneighborRecords extends SingleWayMultiPathsRecords {
 
     public PathSet paths(long limit) {
         PathSet paths = new PathSet();
-        for (int i = 1; i < this.records.size(); i++) {
-            IntIterator iterator = this.records.get(i).keys();
+        Stack<Record> records = this.records();
+        for (int i = 1; i < records.size(); i++) {
+            IntIterator iterator = records.get(i).keys();
             while ((limit == NO_LIMIT || limit > 0L) && iterator.hasNext()) {
                 paths.add(this.getPath(i, iterator.next()));
                 limit--;

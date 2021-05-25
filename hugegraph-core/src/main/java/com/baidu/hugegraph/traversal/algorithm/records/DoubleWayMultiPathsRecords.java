@@ -38,13 +38,12 @@ import com.google.common.collect.Lists;
 
 public abstract class DoubleWayMultiPathsRecords extends AbstractRecords {
 
-    protected final Stack<Record> sourceRecords;
-    protected final Stack<Record> targetRecords;
+    private final Stack<Record> sourceRecords;
+    private final Stack<Record> targetRecords;
 
-    protected Record currentRecord;
     private IntIterator lastRecordKeys;
-    protected int current;
-    protected boolean forward;
+    private int current;
+    private boolean forward;
     private int accessed;
 
     public DoubleWayMultiPathsRecords(RecordType type, boolean concurrent,
@@ -67,19 +66,20 @@ public abstract class DoubleWayMultiPathsRecords extends AbstractRecords {
     @Override
     public void startOneLayer(boolean forward) {
         this.forward = forward;
-        this.currentRecord = this.newRecord();
+        this.currentRecord(this.newRecord());
         this.lastRecordKeys = this.forward ? this.sourceRecords.peek().keys() :
                                              this.targetRecords.peek().keys();
     }
 
     @Override
     public void finishOneLayer() {
+        Record record = this.currentRecord();
         if (this.forward) {
-            this.sourceRecords.push(this.currentRecord);
+            this.sourceRecords.push(record);
         } else {
-            this.targetRecords.push(this.currentRecord);
+            this.targetRecords.push(record);
         }
-        this.accessed += this.currentRecord.size();
+        this.accessed += record.size();
     }
 
     @Watched
@@ -92,7 +92,7 @@ public abstract class DoubleWayMultiPathsRecords extends AbstractRecords {
     @Override
     public Id nextKey() {
         this.current = this.lastRecordKeys.next();
-        return this.id(current);
+        return this.id(this.current);
     }
 
     @Watched
@@ -193,6 +193,22 @@ public abstract class DoubleWayMultiPathsRecords extends AbstractRecords {
 
     @Watched
     protected void addPath(int current, int parent) {
-        this.currentRecord.addPath(current, parent);
+        this.currentRecord().addPath(current, parent);
+    }
+
+    protected Stack<Record> sourceRecords() {
+        return this.sourceRecords;
+    }
+
+    protected Stack<Record> targetRecords() {
+        return this.targetRecords;
+    }
+
+    protected boolean forward() {
+        return this.forward;
+    }
+
+    protected int current() {
+        return this.current;
     }
 }

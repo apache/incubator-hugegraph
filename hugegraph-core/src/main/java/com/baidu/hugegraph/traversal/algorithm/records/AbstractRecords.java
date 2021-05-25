@@ -32,6 +32,7 @@ public abstract class AbstractRecords implements Records {
     private final ObjectIntMapping<Id> idMapping;
     private final RecordType type;
     private final boolean concurrent;
+    private Record currentRecord;
 
     public AbstractRecords(RecordType type, boolean concurrent) {
         this.type = type;
@@ -51,5 +52,13 @@ public abstract class AbstractRecords implements Records {
 
     protected Record newRecord() {
         return RecordFactory.newRecord(this.type, this.concurrent);
+    }
+
+    protected Record currentRecord() {
+        return this.currentRecord;
+    }
+
+    protected void currentRecord(Record record) {
+        this.currentRecord = record;
     }
 }
