@@ -224,8 +224,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
     public void resetEdges() {
         /*
-         * Use list to hold edges for vertices to reduce memory usage and
-         * add operation time.
+         * Use List to hold edges to reduce memory usage and operation time.
          */
         this.edges = newList();
     }
@@ -662,7 +661,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
                                  Id id, VertexLabel label) {
             super(tx.graph(), id, label);
             /*
-             * Use set to hold edges for inserted vertex
+             * Use Set to hold edges inserted into vertex
              * to avoid duplicated edges
              */
             this.edges = newSet();

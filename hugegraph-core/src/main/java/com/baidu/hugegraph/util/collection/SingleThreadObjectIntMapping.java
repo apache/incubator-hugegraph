@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.util.collection.mapping;
+package com.baidu.hugegraph.util.collection;
 
 import org.eclipse.collections.impl.map.mutable.primitive.IntObjectHashMap;
 
@@ -25,18 +25,18 @@ import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 
-public class SingleObjectIntMapping<V> implements ObjectIntMapping<V> {
+public class SingleThreadObjectIntMapping<V> implements ObjectIntMapping<V> {
 
     private static final int MAGIC = 1 << 16;
     private final IntObjectHashMap<V> int2IdMap;
 
-    public SingleObjectIntMapping() {
+    public SingleThreadObjectIntMapping() {
         this.int2IdMap = new IntObjectHashMap<>();
     }
 
     @Watched
     @SuppressWarnings("unchecked")
-    public synchronized int object2Code(Object object) {
+    public int object2Code(Object object) {
         int key = object.hashCode();
         // TODO: improve hash algorithm
         for (int i = 1; i > 0; i <<= 1) {
@@ -56,7 +56,7 @@ public class SingleObjectIntMapping<V> implements ObjectIntMapping<V> {
     }
 
     @Watched
-    public synchronized Object code2Object(int code) {
+    public V code2Object(int code) {
         return this.int2IdMap.get(code);
     }
 

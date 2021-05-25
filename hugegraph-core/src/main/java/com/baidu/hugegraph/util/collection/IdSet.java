@@ -20,12 +20,10 @@
 package com.baidu.hugegraph.util.collection;
 
 import java.util.AbstractSet;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
 import org.eclipse.collections.api.iterator.MutableLongIterator;
-import org.eclipse.collections.impl.set.mutable.UnifiedSet;
 import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet;
 
 import com.baidu.hugegraph.backend.id.Id;
@@ -33,29 +31,14 @@ import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.type.define.CollectionType;
 
-import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
-
 public class IdSet extends AbstractSet<Id> {
 
-    private LongHashSet numberIds;
-    private Set<Id> nonNumberIds;
+    private final LongHashSet numberIds;
+    private final Set<Id> nonNumberIds;
 
     public IdSet(CollectionType type) {
         this.numberIds = new LongHashSet();
-        switch (type) {
-            case JCF:
-                this.nonNumberIds = new HashSet<>();
-                break;
-            case EC:
-                this.nonNumberIds = new UnifiedSet<>();
-                break;
-            case FU:
-                this.nonNumberIds = new ObjectOpenHashSet<>();
-                break;
-            default:
-                throw new AssertionError(
-                          "Unsupported collection type: " + type);
-        }
+        this.nonNumberIds = CollectionFactory.newSet(type);
     }
 
     @Override
@@ -68,12 +51,11 @@ public class IdSet extends AbstractSet<Id> {
         return this.numberIds.isEmpty() && this.nonNumberIds.isEmpty();
     }
 
-    @Override
-    public boolean contains(Object o) {
-        if (o instanceof IdGenerator.LongId) {
-            return this.numberIds.contains(((IdGenerator.LongId) o).longValue());
+    public boolean contains(Id id) {
+        if (id.type() == Id.IdType.LONG) {
+            return this.numberIds.contains(id.asLong());
         } else {
-            return this.nonNumberIds.contains(o);
+            return this.nonNumberIds.contains(id);
         }
     }
 
@@ -81,24 +63,23 @@ public class IdSet extends AbstractSet<Id> {
     public Iterator<Id> iterator() {
         return new ExtendableIterator<>(
                this.nonNumberIds.iterator(),
-               new EcLongIterator(this.numberIds.longIterator()));
+               new EcIdIterator(this.numberIds.longIterator()));
     }
 
     @Override
     public boolean add(Id id) {
-        if (id instanceof IdGenerator.LongId) {
-            return this.numberIds.add(((IdGenerator.LongId) id).longValue());
+        if (id.type() == Id.IdType.LONG) {
+            return this.numberIds.add(id.asLong());
         } else {
             return this.nonNumberIds.add(id);
         }
     }
 
-    @Override
-    public boolean remove(Object o) {
-        if (o instanceof IdGenerator.LongId) {
-            return this.numberIds.remove(((IdGenerator.LongId) o).longValue());
+    public boolean remove(Id id) {
+        if (id.type() == Id.IdType.LONG) {
+            return this.numberIds.remove(id.asLong());
         } else {
-            return this.nonNumberIds.remove(o);
+            return this.nonNumberIds.remove(id);
         }
     }
 
@@ -108,11 +89,11 @@ public class IdSet extends AbstractSet<Id> {
         this.nonNumberIds.clear();
     }
 
-    private static class EcLongIterator implements Iterator<Id> {
+    private static class EcIdIterator implements Iterator<Id> {
 
         private final MutableLongIterator iterator;
 
-        public EcLongIterator(MutableLongIterator iter) {
+        public EcIdIterator(MutableLongIterator iter) {
             this.iterator = iter;
         }
 

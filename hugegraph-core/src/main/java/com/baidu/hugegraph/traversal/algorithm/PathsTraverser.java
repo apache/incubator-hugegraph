@@ -27,8 +27,7 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.structure.HugeEdge;
-import com.baidu.hugegraph.traversal.algorithm.records.DoubleWayMultiPathsRecords;
-import com.baidu.hugegraph.traversal.algorithm.records.record.RecordType;
+import com.baidu.hugegraph.traversal.algorithm.records.PathsRecords;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
 
@@ -82,7 +81,7 @@ public class PathsTraverser extends HugeTraverser {
 
     private class Traverser {
 
-        private final DoubleWayMultiPathsRecords record;
+        private final PathsRecords record;
 
         private final Id label;
         private final long degree;
@@ -93,9 +92,7 @@ public class PathsTraverser extends HugeTraverser {
 
         public Traverser(Id sourceV, Id targetV, Id label,
                          long degree, long capacity, long limit) {
-            this.record = new DoubleWayMultiPathsRecords(RecordType.ARRAY,
-                                                         false,
-                                                         sourceV, targetV);
+            this.record = new PathsRecords(false, sourceV, targetV);
             this.label = label;
             this.degree = degree;
             this.capacity = capacity;
@@ -170,10 +167,7 @@ public class PathsTraverser extends HugeTraverser {
 
         private boolean reachLimit() {
             checkCapacity(this.capacity, this.record.accessed(), "paths");
-            if (this.limit == NO_LIMIT || this.paths.size() < this.limit) {
-                return false;
-            }
-            return true;
+            return this.limit != NO_LIMIT && this.paths.size() >= this.limit;
         }
     }
 }

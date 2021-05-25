@@ -67,6 +67,7 @@ import com.baidu.hugegraph.unit.util.CompressUtilTest;
 import com.baidu.hugegraph.unit.util.JsonUtilTest;
 import com.baidu.hugegraph.unit.util.StringEncodingTest;
 import com.baidu.hugegraph.unit.util.VersionTest;
+import com.baidu.hugegraph.util.collection.IdSet;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
@@ -107,6 +108,7 @@ import com.baidu.hugegraph.unit.util.VersionTest;
     PageStateTest.class,
     Int2IntsMapTest.class,
     ObjectIntMappingTest.class,
+    IdSet.class,
 
     /* serializer */
     BytesBufferTest.class,

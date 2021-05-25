@@ -30,7 +30,7 @@ import org.eclipse.collections.impl.set.mutable.primitive.IntHashSet;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser.PathSet;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser.Path;
-import com.baidu.hugegraph.traversal.algorithm.records.record.IntIntRecord;
+import com.baidu.hugegraph.traversal.algorithm.records.record.Int2IntRecord;
 import com.baidu.hugegraph.traversal.algorithm.records.record.Record;
 import com.baidu.hugegraph.traversal.algorithm.records.record.RecordType;
 
@@ -106,7 +106,7 @@ public class ShortestPathRecords extends DoubleWayMultiPathsRecords {
         ids.add(this.id(node));
         int value = node;
         for (int i = size - 1; i > 0 ; i--) {
-            IntIntHashMap layer = ((IntIntRecord) all.elementAt(i)).layer();
+            IntIntHashMap layer = ((Int2IntRecord) all.elementAt(i)).layer();
             value = layer.get(value);
             ids.add(this.id(value));
         }

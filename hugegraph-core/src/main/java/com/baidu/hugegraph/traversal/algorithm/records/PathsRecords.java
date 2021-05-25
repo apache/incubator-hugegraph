@@ -20,36 +20,11 @@
 package com.baidu.hugegraph.traversal.algorithm.records;
 
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.perf.PerfUtil.Watched;
-import com.baidu.hugegraph.traversal.algorithm.records.record.Record;
-import com.baidu.hugegraph.traversal.algorithm.records.record.RecordFactory;
 import com.baidu.hugegraph.traversal.algorithm.records.record.RecordType;
-import com.baidu.hugegraph.util.collection.ObjectIntMapping;
-import com.baidu.hugegraph.util.collection.MappingFactory;
 
-public abstract class AbstractRecords implements Records {
+public class PathsRecords extends DoubleWayMultiPathsRecords {
 
-    private final ObjectIntMapping<Id> idMapping;
-    private final RecordType type;
-    private final boolean concurrent;
-
-    public AbstractRecords(RecordType type, boolean concurrent) {
-        this.type = type;
-        this.concurrent = concurrent;
-        this.idMapping = MappingFactory.newObjectIntMapping(this.concurrent);
-    }
-
-    @Watched
-    protected int code(Id id) {
-        return this.idMapping.object2Code(id);
-    }
-
-    @Watched
-    protected Id id(int code) {
-        return this.idMapping.code2Object(code);
-    }
-
-    protected Record newRecord() {
-        return RecordFactory.newRecord(this.type, this.concurrent);
+    public PathsRecords(boolean concurrent, Id sourceV, Id targetV) {
+        super(RecordType.ARRAY, concurrent, sourceV, targetV);
     }
 }

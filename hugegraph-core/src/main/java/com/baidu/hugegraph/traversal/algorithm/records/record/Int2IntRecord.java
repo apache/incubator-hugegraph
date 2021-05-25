@@ -17,17 +17,44 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.util.collection.mapping;
+package com.baidu.hugegraph.traversal.algorithm.records.record;
 
-public class MappingFactory {
+import org.eclipse.collections.impl.map.mutable.primitive.IntIntHashMap;
 
-    public static <V> ObjectIntMapping<V> newObjectIntMapping() {
-        return newObjectIntMapping(false);
+public class Int2IntRecord implements Record {
+
+    private final IntIntHashMap layer;
+
+    public Int2IntRecord() {
+        this.layer = new IntIntHashMap();
     }
 
-    public static <V> ObjectIntMapping<V> newObjectIntMapping(
-                                          boolean concurrent) {
-        return concurrent ? new ConcurrentObjectIntMapping<>() :
-                            new SingleObjectIntMapping<>();
+    @Override
+    public IntIterator keys() {
+        return new IntIterator(this.layer.keySet().intIterator());
+    }
+
+    @Override
+    public boolean containsKey(int key) {
+        return this.layer.containsKey(key);
+    }
+
+    @Override
+    public IntIterator get(int key) {
+        return null;
+    }
+
+    @Override
+    public void addPath(int node, int parent) {
+        this.layer.put(node, parent);
+    }
+
+    @Override
+    public int size() {
+        return this.layer.size();
+    }
+
+    public IntIntHashMap layer() {
+        return this.layer;
     }
 }

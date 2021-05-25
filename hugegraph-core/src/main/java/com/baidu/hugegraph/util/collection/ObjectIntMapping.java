@@ -17,31 +17,13 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.util.collection.mapping;
+package com.baidu.hugegraph.util.collection;
 
-import com.baidu.hugegraph.perf.PerfUtil.Watched;
+public interface ObjectIntMapping<V> {
 
-public class ConcurrentObjectIntMapping<V> implements ObjectIntMapping<V> {
+    public int object2Code(Object object);
 
-    private SingleObjectIntMapping<V> singleObjectIntMapping;
+    public V code2Object(int code);
 
-    public ConcurrentObjectIntMapping() {
-        this.singleObjectIntMapping = new SingleObjectIntMapping<>();
-    }
-
-    @Watched
-    @SuppressWarnings("unchecked")
-    public synchronized int object2Code(Object object) {
-        return this.singleObjectIntMapping.object2Code(object);
-    }
-
-    @Watched
-    public synchronized Object code2Object(int code) {
-        return this.singleObjectIntMapping.code2Object(code);
-    }
-
-    @Override
-    public synchronized void clear() {
-        this.singleObjectIntMapping.clear();
-    }
+    public void clear();
 }

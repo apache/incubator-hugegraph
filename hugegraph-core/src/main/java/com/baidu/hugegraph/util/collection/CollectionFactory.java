@@ -44,7 +44,7 @@ import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 
 public class CollectionFactory {
 
-    private CollectionType type;
+    private final CollectionType type;
 
     public CollectionFactory() {
         this.type = CollectionType.EC;
@@ -250,7 +250,7 @@ public class CollectionFactory {
         E.checkArgument(objects.length % 2 == 0,
                         "Must provide even arguments for " +
                         "CollectionFactory.newIntObjectMap");
-        for (int i = 0; i < objects.length; i+=2) {
+        for (int i = 0; i < objects.length; i += 2) {
             map.put((int) objects[i], (V) objects[i + 1]);
         }
         return map;
@@ -279,14 +279,8 @@ public class CollectionFactory {
 
     @SuppressWarnings("unchecked")
     public static <V> MutableIntObjectMap<V> newIntObjectMap(
-                                             Id key1, V value1,
-                                             Id key2, V value2,
-                                             Id key3, V value3,
                                              Object... objects) {
-        IntObjectHashMap<V> map = IntObjectHashMap.newWithKeysValues(
-                (int) key1.asLong(), value1,
-                (int) key2.asLong(), value2,
-                (int) key3.asLong(), value3);
+        IntObjectHashMap<V> map = IntObjectHashMap.newMap();
         E.checkArgument(objects.length % 2 == 0,
                         "Must provide even arguments for " +
                         "CollectionFactory.newIntObjectMap");

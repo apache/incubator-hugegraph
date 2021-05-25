@@ -19,19 +19,20 @@
 
 package com.baidu.hugegraph.traversal.algorithm.records.record;
 
-import com.baidu.hugegraph.util.collection.Int2IntsMap;
+import org.eclipse.collections.impl.map.mutable.primitive.IntObjectHashMap;
+import org.eclipse.collections.impl.set.mutable.primitive.IntHashSet;
 
-public class IntArrayRecord implements Record {
+public class Int2SetRecord implements Record {
 
-    private final Int2IntsMap layer;
+    private final IntObjectHashMap<IntHashSet> layer;
 
-    public IntArrayRecord() {
-        this.layer = new Int2IntsMap();
+    public Int2SetRecord() {
+        this.layer = new IntObjectHashMap<>();
     }
 
     @Override
     public IntIterator keys() {
-        return new IntIterator(this.layer.keyIterator());
+        return new IntIterator(this.layer.keySet().intIterator());
     }
 
     @Override
@@ -41,12 +42,16 @@ public class IntArrayRecord implements Record {
 
     @Override
     public IntIterator get(int key) {
-        return new IntIterator(this.layer.get(key));
+        return new IntIterator(this.layer.get(key).intIterator());
     }
 
     @Override
     public void addPath(int node, int parent) {
-        this.layer.add(node, parent);
+        if (this.layer.containsKey(node)) {
+            this.layer.get(node).add(parent);
+        } else {
+            this.layer.put(node, IntHashSet.newSetWith(parent));
+        }
     }
 
     @Override

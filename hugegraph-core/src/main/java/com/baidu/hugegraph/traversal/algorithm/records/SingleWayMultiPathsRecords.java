@@ -36,7 +36,7 @@ import com.baidu.hugegraph.iterator.MapperIterator;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser.Path;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser.PathSet;
-import com.baidu.hugegraph.traversal.algorithm.records.record.IntIntRecord;
+import com.baidu.hugegraph.traversal.algorithm.records.record.Int2IntRecord;
 import com.baidu.hugegraph.traversal.algorithm.records.record.IntIterator;
 import com.baidu.hugegraph.traversal.algorithm.records.record.Record;
 import com.baidu.hugegraph.traversal.algorithm.records.record.RecordType;
@@ -45,8 +45,9 @@ public abstract class SingleWayMultiPathsRecords extends AbstractRecords {
 
     protected final Stack<Record> records;
 
+    private final int sourceCode;
     private final boolean nearest;
-    protected final MutableIntSet accessedVertices;
+    private final MutableIntSet accessedVertices;
 
     protected Record currentRecord;
     protected IntIterator lastRecordKeys;
@@ -59,9 +60,9 @@ public abstract class SingleWayMultiPathsRecords extends AbstractRecords {
 
         this.nearest = nearest;
 
-        int sourceCode = this.code(source);
+        this.sourceCode = this.code(source);
         Record firstRecord = this.newRecord();
-        firstRecord.addPath(sourceCode, 0);
+        firstRecord.addPath(this.sourceCode, 0);
         this.records = new Stack<>();
         this.records.push(firstRecord);
 
@@ -118,7 +119,8 @@ public abstract class SingleWayMultiPathsRecords extends AbstractRecords {
         int sourceCode = this.code(source);
         int targetCode = this.code(target);
         if (this.nearest && this.accessedVertices.contains(targetCode) ||
-            !this.nearest && this.currentRecord.containsKey(targetCode)) {
+            !this.nearest && this.currentRecord.containsKey(targetCode) ||
+            targetCode == this.sourceCode) {
             return;
         }
         this.currentRecord.addPath(targetCode, sourceCode);
@@ -131,7 +133,7 @@ public abstract class SingleWayMultiPathsRecords extends AbstractRecords {
     public Path getPath(int target) {
         List<Id> ids = new ArrayList<>();
         for (int i = 0; i < this.records.size(); i++) {
-            IntIntHashMap layer = ((IntIntRecord) this.records
+            IntIntHashMap layer = ((Int2IntRecord) this.records
                                   .elementAt(i)).layer();
             if (!layer.containsKey(target)) {
                 continue;
@@ -142,7 +144,7 @@ public abstract class SingleWayMultiPathsRecords extends AbstractRecords {
             ids.add(this.id(parent));
             i--;
             for (; i > 0; i--) {
-                layer = ((IntIntRecord) this.records.elementAt(i)).layer();
+                layer = ((Int2IntRecord) this.records.elementAt(i)).layer();
                 parent = layer.get(parent);
                 ids.add(this.id(parent));
             }
@@ -153,7 +155,7 @@ public abstract class SingleWayMultiPathsRecords extends AbstractRecords {
 
     public Path getPath(int layerIndex, int target) {
         List<Id> ids = new ArrayList<>();
-        IntIntHashMap layer = ((IntIntRecord) this.records
+        IntIntHashMap layer = ((Int2IntRecord) this.records
                               .elementAt(layerIndex)).layer();
         if (!layer.containsKey(target)) {
             throw new HugeException("Failed to get path for %s",
@@ -164,7 +166,7 @@ public abstract class SingleWayMultiPathsRecords extends AbstractRecords {
         ids.add(this.id(parent));
         layerIndex--;
         for (; layerIndex > 0; layerIndex--) {
-            layer = ((IntIntRecord) this.records.elementAt(layerIndex)).layer();
+            layer = ((Int2IntRecord) this.records.elementAt(layerIndex)).layer();
             parent = layer.get(parent);
             ids.add(this.id(parent));
         }

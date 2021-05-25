@@ -31,11 +31,12 @@ import org.junit.Test;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.testutil.Assert;
-import com.baidu.hugegraph.util.collection.mapping.MappingFactory;
-import com.baidu.hugegraph.util.collection.mapping.ObjectIntMapping;
+import com.baidu.hugegraph.util.collection.MappingFactory;
+import com.baidu.hugegraph.util.collection.ObjectIntMapping;
 
 public class ObjectIntMappingTest {
 
+    private static final int OBJECT_NUMBER = 1000000;
     private static ObjectIntMapping<Id> mapping =
                                         MappingFactory.newObjectIntMapping();
 
@@ -47,10 +48,10 @@ public class ObjectIntMappingTest {
     @Test
     public void testNumberIdMapping() {
         Set<Integer> codes = new LinkedHashSet<>();
-        for (int i = 0; i < 1000000; i++) {
+        for (int i = 0; i < OBJECT_NUMBER; i++) {
             codes.add(mapping.object2Code(IdGenerator.of(i)));
         }
-        Assert.assertEquals(1000000, codes.size());
+        Assert.assertEquals(OBJECT_NUMBER, codes.size());
 
         int j = 0;
         for (Integer code : codes) {
@@ -62,7 +63,7 @@ public class ObjectIntMappingTest {
     public void testStringIdMapping() {
         Set<String> strings = new LinkedHashSet<>();
         Set<Integer> codes = new LinkedHashSet<>();
-        for (int i = 0; i < 1000000; i++) {
+        for (int i = 0; i < OBJECT_NUMBER; i++) {
             String string = RandomStringUtils.randomAlphanumeric(10);
             strings.add(string);
             codes.add(mapping.object2Code(IdGenerator.of(string)));
@@ -84,7 +85,7 @@ public class ObjectIntMappingTest {
     public void testUUIDIdMapping() {
         Set<UUID> uuids = new LinkedHashSet<>();
         Set<Integer> codes = new LinkedHashSet<>();
-        for (int i = 0; i < 1000000; i++) {
+        for (int i = 0; i < OBJECT_NUMBER; i++) {
             UUID uuid = UUID.randomUUID();
             uuids.add(uuid);
             codes.add(mapping.object2Code(IdGenerator.of(uuid)));
@@ -108,20 +109,20 @@ public class ObjectIntMappingTest {
         Set<Object> objects = new LinkedHashSet<>();
         Object object;
 
-        for (int i = 0; i < 1000000; i++) {
+        for (int i = 0; i < OBJECT_NUMBER; i++) {
             object = IdGenerator.of(i);
             objects.add(object);
             codes.add(mapping.object2Code(object));
         }
 
-        for (int i = 0; i < 1000000; i++) {
+        for (int i = 0; i < OBJECT_NUMBER; i++) {
             String string = RandomStringUtils.randomAlphanumeric(10);
             object = IdGenerator.of(string);
             objects.add(object);
             codes.add(mapping.object2Code(object));
         }
 
-        for (int i = 0; i < 1000000; i++) {
+        for (int i = 0; i < OBJECT_NUMBER; i++) {
             UUID uuid = UUID.randomUUID();
             object = IdGenerator.of(uuid);
             objects.add(object);

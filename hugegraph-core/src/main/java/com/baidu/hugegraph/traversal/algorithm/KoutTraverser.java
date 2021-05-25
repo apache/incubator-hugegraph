@@ -37,8 +37,6 @@ import com.baidu.hugegraph.util.E;
 
 public class KoutTraverser extends OltpTraverser {
 
-    private int depth;
-
     public KoutTraverser(HugeGraph graph) {
         super(graph);
     }
@@ -53,7 +51,6 @@ public class KoutTraverser extends OltpTraverser {
         checkDegree(degree);
         checkCapacity(capacity);
         checkLimit(limit);
-        this.depth = depth;
         if (capacity != NO_LIMIT) {
             // Capacity must > limit because sourceV is counted in capacity
             E.checkArgument(capacity >= limit && limit != NO_LIMIT,
@@ -72,9 +69,9 @@ public class KoutTraverser extends OltpTraverser {
 
         long remaining = capacity == NO_LIMIT ?
                          NO_LIMIT : capacity - latest.size();
-        while (this.depth-- > 0) {
+        while (depth-- > 0) {
             // Just get limit nodes in last layer if limit < remaining capacity
-            if (this.depth == 0 && limit != NO_LIMIT &&
+            if (depth == 0 && limit != NO_LIMIT &&
                 (limit < remaining || remaining == NO_LIMIT)) {
                 remaining = limit;
             }
@@ -90,10 +87,10 @@ public class KoutTraverser extends OltpTraverser {
                 // Update 'remaining' value to record remaining capacity
                 remaining -= latest.size();
 
-                if (remaining <= 0 && this.depth > 0) {
+                if (remaining <= 0 && depth > 0) {
                     throw new HugeException(
                               "Reach capacity '%s' while remaining depth '%s'",
-                              capacity, this.depth);
+                              capacity, depth);
                 }
             }
         }
@@ -109,26 +106,27 @@ public class KoutTraverser extends OltpTraverser {
         checkPositive(maxDepth, "k-out max_depth");
         checkCapacity(capacity);
         checkLimit(limit);
-        this.depth = maxDepth;
+        long[] depth = new long[1];
+        depth[0] = maxDepth;
         boolean concurrent = maxDepth >= this.concurrentDepth() &&
                              step.direction() == Directions.BOTH;
         KoutRecords records = new KoutRecords(RecordType.INT, concurrent,
                                               source, nearest);
 
         Consumer<Id> consumer = v -> {
-            if (this.reachLimit(limit, this.depth, records.size())) {
+            if (this.reachLimit(limit, depth[0], records.size())) {
                 return;
             }
             Iterator<Edge> edges = edgesOfVertex(v, step);
-            while (!this.reachLimit(limit, this.depth, records.size()) &&
+            while (!this.reachLimit(limit, depth[0], records.size()) &&
                    edges.hasNext()) {
                 Id target = ((HugeEdge) edges.next()).id().otherVertexId();
                 records.addPath(v, target);
-                this.checkCapacity(capacity, records.accessed(), this.depth);
+                this.checkCapacity(capacity, records.accessed(), depth[0]);
             }
         };
 
-        while (this.depth-- > 0) {
+        while (depth[0]-- > 0) {
             records.startOneLayer(true);
             traverseIds(records.keys(), consumer, concurrent);
             records.finishOneLayer();
@@ -136,7 +134,7 @@ public class KoutTraverser extends OltpTraverser {
         return records;
     }
 
-    private void checkCapacity(long capacity, long accessed, int depth) {
+    private void checkCapacity(long capacity, long accessed, long depth) {
         if (capacity == NO_LIMIT) {
             return;
         }

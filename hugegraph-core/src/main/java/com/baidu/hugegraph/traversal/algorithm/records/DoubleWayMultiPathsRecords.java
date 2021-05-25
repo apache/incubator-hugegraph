@@ -36,7 +36,7 @@ import com.baidu.hugegraph.traversal.algorithm.records.record.Record;
 import com.baidu.hugegraph.traversal.algorithm.records.record.RecordType;
 import com.google.common.collect.Lists;
 
-public class DoubleWayMultiPathsRecords extends AbstractRecords {
+public abstract class DoubleWayMultiPathsRecords extends AbstractRecords {
 
     protected final Stack<Record> sourceRecords;
     protected final Stack<Record> targetRecords;
@@ -64,6 +64,7 @@ public class DoubleWayMultiPathsRecords extends AbstractRecords {
         this.accessed = 2;
     }
 
+    @Override
     public void startOneLayer(boolean forward) {
         this.forward = forward;
         this.currentRecord = this.newRecord();
@@ -71,6 +72,7 @@ public class DoubleWayMultiPathsRecords extends AbstractRecords {
                                              this.targetRecords.peek().keys();
     }
 
+    @Override
     public void finishOneLayer() {
         if (this.forward) {
             this.sourceRecords.push(this.currentRecord);
@@ -81,11 +83,13 @@ public class DoubleWayMultiPathsRecords extends AbstractRecords {
     }
 
     @Watched
+    @Override
     public boolean hasNextKey() {
         return this.lastRecordKeys.hasNext();
     }
 
     @Watched
+    @Override
     public Id nextKey() {
         this.current = this.lastRecordKeys.next();
         return this.id(current);
@@ -107,6 +111,7 @@ public class DoubleWayMultiPathsRecords extends AbstractRecords {
         return results;
     }
 
+    @Override
     public long accessed() {
         return this.accessed;
     }

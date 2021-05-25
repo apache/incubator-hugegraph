@@ -107,7 +107,7 @@ public class Int2IntsMapTest {
                                290, 291,292,293,294,295,296,297,298,299};
 
         for (int ii = 0; ii < 5; ii++) {
-            int[] result = map.get(ii + 1);
+            int[] result = map.getValues(ii + 1);
             Assert.assertTrue(Arrays.equals(results[ii], result));
         }
     }
@@ -121,13 +121,13 @@ public class Int2IntsMapTest {
             map.add(Math.abs(random.nextInt()) % 5, i);
         }
 
-        Set<Integer> results = new HashSet<>();
+        Set<Integer> all = new HashSet<>();
         for (int i = 0; i < 5; i++) {
-            int[] result = map.get(i);
-            for (int j : result) {
-                results.add(j);
+            int[] values = map.getValues(i);
+            for (int j : values) {
+                all.add(j);
             }
         }
-        Assert.assertEquals(1000, results.size());
+        Assert.assertEquals(1000, all.size());
     }
 }
