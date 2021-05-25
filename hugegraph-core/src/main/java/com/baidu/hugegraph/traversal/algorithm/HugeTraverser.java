@@ -150,8 +150,9 @@ public class HugeTraverser {
             while (edges.hasNext()) {
                 Id target = ((HugeEdge) edges.next()).id().otherVertexId();
                 KNode kNode = new KNode(target, (KNode) source);
-                boolean exist = (excluded != null && excluded.contains(kNode));
-                if (exist || neighbors.contains(kNode) ||
+                boolean matchExcluded = (excluded != null &&
+                                         excluded.contains(kNode));
+                if (matchExcluded || neighbors.contains(kNode) ||
                     start.equals(kNode.id())) {
                     continue;
                 }
