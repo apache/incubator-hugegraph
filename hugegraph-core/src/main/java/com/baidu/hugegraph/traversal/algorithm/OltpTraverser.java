@@ -81,11 +81,11 @@ public abstract class OltpTraverser extends HugeTraverser
         }
     }
 
-    protected Set<Node> adjacentVertices(Set<Node> latest, EdgeStep step,
-                                         Set<Node> all, long remaining,
-                                         boolean single) {
+    protected Set<Node> adjacentVertices(Id source, Set<Node> latest,
+                                         EdgeStep step, Set<Node> all,
+                                         long remaining, boolean single) {
         if (single) {
-            return this.adjacentVertices(latest, step, all, remaining);
+            return this.adjacentVertices(source, latest, step, all, remaining);
         } else {
             AtomicLong remain = new AtomicLong(remaining);
             return this.adjacentVertices(latest, step, all, remain);

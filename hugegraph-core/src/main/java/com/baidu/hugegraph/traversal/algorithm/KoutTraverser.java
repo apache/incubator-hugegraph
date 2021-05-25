@@ -121,18 +121,20 @@ public class KoutTraverser extends OltpTraverser {
         Set<Node> all = newSet(single);
 
         Node sourceV = new KNode(source, null);
+
         latest.add(sourceV);
+        all.add(sourceV);
 
         int depth = maxDepth;
         long remaining = capacity == NO_LIMIT ?
                          NO_LIMIT : capacity - latest.size();
         while (depth-- > 0) {
             if (nearest) {
-                latest = this.adjacentVertices(latest, step, all,
+                latest = this.adjacentVertices(source, latest, step, all,
                                                remaining, single);
                 all.addAll(latest);
             } else {
-                latest = this.adjacentVertices(latest, step, null,
+                latest = this.adjacentVertices(source, latest, step, null,
                                                remaining, single);
             }
             if (capacity != NO_LIMIT) {
