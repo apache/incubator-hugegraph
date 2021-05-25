@@ -93,7 +93,13 @@ public class GremlinApiTest extends BaseApiTest {
         assertResponseStatus(200, client().post(path, body));
 
         body = "{"
-                + "\"gremlin\":\"hugegraph.initBackend()\","
+                + "\"gremlin\":\"import com.baidu.hugegraph.auth.HugeUser;"
+                + "import com.baidu.hugegraph.util.StringEncoding;"
+                + "hugegraph.initBackend();"
+                + "HugeUser admin = new HugeUser('admin');"
+                + "admin.password(StringEncoding.hashPassword('pa'));"
+                + "admin.creator('system');"
+                + "hugegraph.hugegraph().authManager().createUser(admin);\","
                 + "\"bindings\":{},"
                 + "\"language\":\"gremlin-groovy\","
                 + "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
