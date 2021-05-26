@@ -33,6 +33,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.util.Strings;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
@@ -227,6 +228,12 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 E.checkState(propValues.size() == 1,
                              "Expect only one property in search index");
                 value = propValues.get(0);
+
+                // for
+                if(value instanceof Collection){
+                    value = StringUtils.join(value);
+                }
+
                 Set<String> words = this.segmentWords(value.toString());
                 for (String word : words) {
                     this.updateIndex(indexLabel, word, element.id(),
@@ -237,10 +244,21 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 // Secondary index maybe include multi prefix index
                 for (int i = 0, n = propValues.size(); i < n; i++) {
                     List<Object> prefixValues = propValues.subList(0, i + 1);
-                    value = ConditionQuery.concatValues(prefixValues);
-                    value = escapeIndexValueIfNeeded((String) value);
-                    this.updateIndex(indexLabel, value, element.id(),
-                                     expiredTime, removed);
+                    // prefixValues is list or set , should create index for
+                    // each item
+                    if(prefixValues.get(0) instanceof Collection) {
+                        Collection values = (Collection) prefixValues.get(0);
+                        for (Object propValue : values) {
+                            value = escapeIndexValueIfNeeded(propValue.toString());
+                            this.updateIndex(indexLabel, value, element.id(),
+                                             expiredTime, removed);
+                        }
+                    }else {
+                        value = ConditionQuery.concatValues(prefixValues);
+                        value = escapeIndexValueIfNeeded((String) value);
+                        this.updateIndex(indexLabel, value, element.id(),
+                                         expiredTime, removed);
+                    }
                 }
                 break;
             case SHARD:

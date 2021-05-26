@@ -196,12 +196,12 @@ public class PropertyKey extends SchemaElement implements Propfiable {
                 valid = this.checkDataType(value);
                 break;
             case SET:
-                valid = value instanceof Set;
-                valid = valid && this.checkDataType((Set<?>) value);
+                valid = value instanceof Set && this.checkDataType((Set<?>) value);
+                valid = valid || this.checkDataType(value);
                 break;
             case LIST:
-                valid = value instanceof List;
-                valid = valid && this.checkDataType((List<?>) value);
+                valid = value instanceof List && this.checkDataType((List<?>) value);
+                valid = valid || this.checkDataType(value);
                 break;
             default:
                 throw new AssertionError(String.format(

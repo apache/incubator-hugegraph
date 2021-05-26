@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.core;
 
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
@@ -530,14 +531,38 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
     }
 
     @Test
+    public void testAddSetIndex() {
+        super.initPropertyKeys();
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
+        schema.vertexLabel("soft").properties("name", "tags")
+              .primaryKeys("name").create();
+        graph.addVertex(T.label, "soft", "name", "hugegraph",
+                        "tags", Arrays.asList("graphdb", "gremlin"));
+        graph.addVertex(T.label, "soft", "name", "neo4j",
+                        "tags", Arrays.asList("graphdb", "cypher"));
+        graph.tx().commit();
+
+        schema.indexLabel("softByTag").onV("soft").secondary()
+              .by("tags").create();
+
+        List<Vertex> vertices;
+        vertices = graph.traversal().V().has("soft", "tags", "graphdb").toList();
+        Assert.assertEquals(2, vertices.size());
+        vertices = graph.traversal().V().has("soft", "tags", "gremlin").toList();
+        Assert.assertEquals(1, vertices.size());
+    }
+
+    @Test
     public void testAddIndexLabelSecondaryPrefixWithExistedSecondary() {
         super.initPropertyKeys();
         HugeGraph graph = graph();
         SchemaManager schema = graph.schema();
-        schema.vertexLabel("person").properties("name", "age", "city")
+        schema.vertexLabel("person").properties("name", "age", "city","tags")
               .primaryKeys("name").create();
         graph.addVertex(T.label, "person", "name", "Baby",
-                        "city", "Hongkong", "age", 3);
+                        "city", "Hongkong", "age", 3,
+                        "tags", Arrays.asList("tag1","tag2"));
         graph.tx().commit();
 
         schema.indexLabel("personByCity").onV("person").secondary()

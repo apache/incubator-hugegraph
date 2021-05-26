@@ -153,6 +153,9 @@ public abstract class Condition {
                 return compare(first, second) == 0;
             } else if (second.getClass().isArray()) {
                 return ArrayUtils.isEquals(first, second);
+            } else if (first instanceof Collection && !(second instanceof Collection)) {
+                // collection (List,Set) check contains
+                return ((Collection)(first)).contains(second);
             }
 
             return Objects.equals(first, second);
