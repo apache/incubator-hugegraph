@@ -20,7 +20,7 @@
 package com.baidu.hugegraph.api.traversers;
 
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPACITY;
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEGREE;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PATHS_LIMIT;
 
 import javax.inject.Singleton;
@@ -65,7 +65,7 @@ public class RingsAPI extends API {
                       @QueryParam("source_in_ring")
                       @DefaultValue("true") boolean sourceInRing,
                       @QueryParam("max_degree")
-                      @DefaultValue(DEFAULT_DEGREE) long degree,
+                      @DefaultValue(DEFAULT_MAX_DEGREE) long maxDegree,
                       @QueryParam("capacity")
                       @DefaultValue(DEFAULT_CAPACITY) long capacity,
                       @QueryParam("limit")
@@ -75,7 +75,7 @@ public class RingsAPI extends API {
                   "source in ring '{}', max degree '{}', capacity '{}' " +
                   "and limit '{}'",
                   graph, sourceV, direction, edgeLabel, depth, sourceInRing,
-                  degree, capacity, limit);
+                  maxDegree, capacity, limit);
 
         Id source = VertexAPI.checkAndParseVertexId(sourceV);
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
@@ -85,7 +85,7 @@ public class RingsAPI extends API {
         SubGraphTraverser traverser = new SubGraphTraverser(g);
         HugeTraverser.PathSet paths = traverser.rings(source, dir, edgeLabel,
                                                       depth, sourceInRing,
-                                                      degree, capacity, limit);
+                                                      maxDegree, capacity, limit);
         return manager.serializer(g).writePaths("rings", paths, false);
     }
 }

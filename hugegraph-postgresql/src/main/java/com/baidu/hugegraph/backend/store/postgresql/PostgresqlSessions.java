@@ -117,6 +117,11 @@ public class PostgresqlSessions extends MysqlSessions {
         return new URIBuilder().addParameter("loggerLevel", "OFF");
     }
 
+    @Override
+    protected String connectDatabase() {
+        return this.config().get(PostgresqlOptions.POSTGRESQL_CONNECT_DATABASE);
+    }
+
     public static String escapeAndWrapString(String value) {
         StringBuilder builder = new StringBuilder(8 + value.length());
         builder.append('\'');

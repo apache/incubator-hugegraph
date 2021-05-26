@@ -20,6 +20,8 @@
 package com.baidu.hugegraph.core;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
@@ -27,6 +29,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -52,6 +55,7 @@ import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.id.SnowflakeIdGenerator;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.page.PageInfo;
+import com.baidu.hugegraph.backend.page.PageState;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
@@ -5426,16 +5430,24 @@ public class VertexCoreTest extends BaseCoreTest {
         schema.propertyKey("testNum")
               .asInt().valueSingle().calcSum()
               .ifNotExist().create();
+        schema.propertyKey("rank")
+              .asInt().valueSet().calcSet()
+              .ifNotExist().create();
+        schema.propertyKey("reword")
+              .asInt().valueList().calcList()
+              .ifNotExist().create();
 
         schema.vertexLabel("student")
-              .properties("name", "worstScore", "bestScore", "testNum")
+              .properties("name", "worstScore", "bestScore",
+                          "testNum", "rank", "reword")
               .primaryKeys("name")
-              .nullableKeys("worstScore", "bestScore", "testNum")
+              .nullableKeys("worstScore", "bestScore",
+                            "testNum", "rank", "reword")
               .ifNotExist()
               .create();
 
         graph.addVertex(T.label, "student", "name", "Tom", "worstScore", 55,
-                        "bestScore", 96, "testNum", 1);
+                        "bestScore", 96, "testNum", 1, "rank", 8, "reword", 8);
         graph.tx().commit();
 
         Vertex tom = graph.traversal().V().hasLabel("student")
@@ -5443,10 +5455,14 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertEquals(55, tom.value("worstScore"));
         Assert.assertEquals(96, tom.value("bestScore"));
         Assert.assertEquals(1, tom.value("testNum"));
+        Assert.assertEquals(ImmutableSet.of(8), tom.value("rank"));
+        Assert.assertEquals(ImmutableList.of(8), tom.value("reword"));
 
         tom.property("worstScore", 45);
         tom.property("bestScore", 98);
         tom.property("testNum", 1);
+        tom.property("rank", 12);
+        tom.property("reword", 12);
         graph.tx().commit();
 
         tom = graph.traversal().V().hasLabel("student")
@@ -5454,10 +5470,14 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertEquals(45, tom.value("worstScore"));
         Assert.assertEquals(98, tom.value("bestScore"));
         Assert.assertEquals(2, tom.value("testNum"));
+        Assert.assertEquals(ImmutableSet.of(8, 12), tom.value("rank"));
+        Assert.assertEquals(ImmutableList.of(8, 12), tom.value("reword"));
 
         tom.property("worstScore", 65);
         tom.property("bestScore", 99);
         tom.property("testNum", 1);
+        tom.property("rank", 8);
+        tom.property("reword", 8);
         graph.tx().commit();
 
         tom = graph.traversal().V().hasLabel("student")
@@ -5465,10 +5485,15 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertEquals(45, tom.value("worstScore"));
         Assert.assertEquals(99, tom.value("bestScore"));
         Assert.assertEquals(3, tom.value("testNum"));
+        Assert.assertEquals(ImmutableSet.of(8, 12), tom.value("rank"));
+        Assert.assertEquals(ImmutableList.of(8, 12, 8),
+                            tom.value("reword"));
 
         tom.property("worstScore", 75);
         tom.property("bestScore", 100);
         tom.property("testNum", 1);
+        tom.property("rank", 1);
+        tom.property("reword", 1);
         graph.tx().commit();
 
         tom = graph.traversal().V().hasLabel("student")
@@ -5476,6 +5501,10 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertEquals(45, tom.value("worstScore"));
         Assert.assertEquals(100, tom.value("bestScore"));
         Assert.assertEquals(4, tom.value("testNum"));
+        Assert.assertEquals(ImmutableSet.of(1, 8, 12),
+                            tom.value("rank"));
+        Assert.assertEquals(ImmutableList.of(8, 12, 8, 1),
+                            tom.value("reword"));
     }
 
     @Test
@@ -5495,26 +5524,38 @@ public class VertexCoreTest extends BaseCoreTest {
         schema.propertyKey("testNum")
               .asInt().valueSingle().calcSum()
               .ifNotExist().create();
+        schema.propertyKey("rank")
+              .asInt().valueSet().calcSet()
+              .ifNotExist().create();
+        schema.propertyKey("reword")
+              .asInt().valueList().calcList()
+              .ifNotExist().create();
 
         schema.vertexLabel("student")
-              .properties("name", "worstScore", "bestScore", "testNum")
+              .properties("name", "worstScore", "bestScore",
+                          "testNum", "rank", "reword")
               .primaryKeys("name")
-              .nullableKeys("worstScore", "bestScore", "testNum")
+              .nullableKeys("worstScore", "bestScore",
+                            "testNum", "rank", "reword")
               .ifNotExist()
               .create();
 
         Vertex tom = graph.addVertex(T.label, "student", "name", "Tom",
                                      "worstScore", 55, "bestScore", 96,
-                                     "testNum", 1);
+                                     "testNum", 1, "rank", 8, "reword", 8);
         tom.property("worstScore", 65);
         tom.property("bestScore", 94);
         tom.property("testNum", 2);
+        tom.property("rank", 12);
+        tom.property("reword", 12);
 
         Vertex result = graph.traversal().V().hasLabel("student")
                              .has("name", "Tom").next();
         Assert.assertEquals(65, result.value("worstScore"));
         Assert.assertEquals(94, result.value("bestScore"));
         Assert.assertEquals(2, result.value("testNum"));
+        Assert.assertEquals(ImmutableSet.of(8, 12), result.value("rank"));
+        Assert.assertEquals(ImmutableList.of(8, 12), result.value("reword"));
 
         graph.tx().commit();
 
@@ -5523,27 +5564,44 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertEquals(65, result.value("worstScore"));
         Assert.assertEquals(94, result.value("bestScore"));
         Assert.assertEquals(2, result.value("testNum"));
+        Assert.assertEquals(ImmutableSet.of(8, 12), result.value("rank"));
+        Assert.assertEquals(ImmutableList.of(8, 12), result.value("reword"));
 
         tom = graph.addVertex(T.label, "student", "name", "Tom",
                               "worstScore", 55, "bestScore", 96,
-                              "testNum", 1);
+                              "testNum", 1, "rank", 2, "reword", 2);
         tom.property("worstScore", 75);
         tom.property("bestScore", 92);
         tom.property("testNum", 2);
+        tom.property("rank", 1);
+        tom.property("reword", 1);
 
-        Assert.assertEquals(65, tom.value("worstScore"));
-        Assert.assertEquals(94, tom.value("bestScore"));
-        Assert.assertEquals(4, tom.value("testNum"));
+        Assert.assertEquals(75, tom.value("worstScore"));
+        Assert.assertEquals(92, tom.value("bestScore"));
+        Assert.assertEquals(2, tom.value("testNum"));
+        Assert.assertEquals(ImmutableSet.of(1, 2),
+                            tom.value("rank"));
+        Assert.assertEquals(ImmutableList.of(2, 1),
+                            tom.value("reword"));
 
-        Assert.assertEquals(65, tom.property("worstScore").value());
-        Assert.assertEquals(94, tom.property("bestScore").value());
-        Assert.assertEquals(4, tom.property("testNum").value());
+        Assert.assertEquals(75, tom.property("worstScore").value());
+        Assert.assertEquals(92, tom.property("bestScore").value());
+        Assert.assertEquals(2, tom.property("testNum").value());
+        Assert.assertEquals(ImmutableSet.of(1, 2),
+                            tom.property("rank").value());
+        Assert.assertEquals(ImmutableList.of(2, 1),
+                            tom.value("reword"));
 
+        graph.tx().commit();
         result = graph.traversal().V().hasLabel("student")
                       .has("name", "Tom").next();
         Assert.assertEquals(65, result.value("worstScore"));
         Assert.assertEquals(94, result.value("bestScore"));
         Assert.assertEquals(4, result.value("testNum"));
+        Assert.assertEquals(ImmutableSet.of(1, 2, 8, 12),
+                            result.value("rank"));
+        Assert.assertEquals(ImmutableList.of(8, 12, 2, 1),
+                            result.value("reword"));
     }
 
     @Test
@@ -5566,11 +5624,19 @@ public class VertexCoreTest extends BaseCoreTest {
         schema.propertyKey("no")
               .asText().valueSingle().calcOld()
               .ifNotExist().create();
+        schema.propertyKey("rank")
+              .asInt().valueSet().calcSet()
+              .ifNotExist().create();
+        schema.propertyKey("reword")
+              .asInt().valueList().calcList()
+              .ifNotExist().create();
 
         schema.vertexLabel("student")
-              .properties("name", "worstScore", "bestScore", "testNum", "no")
+              .properties("name", "worstScore", "bestScore",
+                          "testNum", "no", "rank", "reword")
               .primaryKeys("name")
-              .nullableKeys("worstScore", "bestScore", "testNum", "no")
+              .nullableKeys("worstScore", "bestScore",
+                            "testNum", "no", "rank", "reword")
               .ifNotExist()
               .create();
 
@@ -5587,6 +5653,21 @@ public class VertexCoreTest extends BaseCoreTest {
         });
         schema.indexLabel("studentByNo")
               .onV("student").by("no").secondary().ifNotExist().create();
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("studentByRank")
+                  .onV("student").by("rank").secondary().ifNotExist().create();
+        }, e -> {
+            Assert.assertTrue(e.getMessage(), e.getMessage().contains(
+                              "The aggregate type SET is not indexable"));
+        });
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("studentByReword")
+                  .onV("student").by("reword").secondary().ifNotExist()
+                  .create();
+        }, e -> {
+            Assert.assertTrue(e.getMessage(), e.getMessage().contains(
+                              "The aggregate type LIST is not indexable"));
+        });
 
         graph.addVertex(T.label, "student", "name", "Tom", "worstScore", 55,
                         "bestScore", 96, "testNum", 1, "no", "001");
@@ -5806,11 +5887,19 @@ public class VertexCoreTest extends BaseCoreTest {
         schema.propertyKey("no")
               .asText().valueSingle().calcOld()
               .ifNotExist().create();
+        schema.propertyKey("rank")
+              .asInt().valueSet().calcSet()
+              .ifNotExist().create();
+        schema.propertyKey("reword")
+              .asInt().valueList().calcList()
+              .ifNotExist().create();
 
         schema.vertexLabel("student")
-              .properties("name", "worstScore", "bestScore", "testNum", "no")
+              .properties("name", "worstScore", "bestScore",
+                          "testNum", "no", "rank", "reword")
               .primaryKeys("name")
-              .nullableKeys("worstScore", "bestScore", "testNum", "no")
+              .nullableKeys("worstScore", "bestScore",
+                            "testNum", "no", "rank", "reword")
               .ifNotExist()
               .create();
 
@@ -5829,7 +5918,8 @@ public class VertexCoreTest extends BaseCoreTest {
               .onV("student").by("no").secondary().ifNotExist().create();
 
         graph.addVertex(T.label, "student", "name", "Tom", "worstScore", 55,
-                        "bestScore", 96, "testNum", 1, "no", "001");
+                        "bestScore", 96, "testNum", 1, "no", "001",
+                        "rank", 1, "reword", 1);
         graph.tx().commit();
 
         List<Vertex> vertices = graph.traversal().V().hasLabel("student")
@@ -5840,12 +5930,27 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertEquals(96, tom.value("bestScore"));
         Assert.assertEquals(1, tom.value("testNum"));
         Assert.assertEquals("001", tom.value("no"));
+        Assert.assertEquals(ImmutableSet.of(1), tom.value("rank"));
+        Assert.assertEquals(ImmutableList.of(1), tom.value("reword"));
 
+        Set<Integer> ranks = new HashSet<>();
+        List<Integer> rewords = new ArrayList<>();
+        int rank;
+        int reword;
+        ranks.add(1);
+        rewords.add(1);
+        Random random = new Random();
         for (int i = 0; i < 100; i++) {
             tom.property("worstScore", 65);
             tom.property("bestScore", 94);
             tom.property("testNum", 1);
             tom.property("no", "002");
+            rank = random.nextInt();
+            ranks.add(rank);
+            tom.property("rank", rank);
+            reword = random.nextInt();
+            rewords.add(reword);
+            tom.property("reword", reword);
             graph.tx().commit();
 
             tom = graph.traversal().V().hasLabel("student")
@@ -5855,6 +5960,8 @@ public class VertexCoreTest extends BaseCoreTest {
             Assert.assertEquals(96, tom.value("bestScore"));
             Assert.assertEquals(i + 2, tom.value("testNum"));
             Assert.assertEquals("001", tom.value("no"));
+            Assert.assertEquals(ranks, tom.value("rank"));
+            Assert.assertEquals(rewords, tom.value("reword"));
         }
     }
 
@@ -6456,7 +6563,49 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testQueryByPageResultsMatched() {
+    public void testQueryByPageResultsMatchedAll() {
+        Assume.assumeTrue("Not support paging",
+                          storeFeatures().supportsQueryByPage());
+
+        HugeGraph graph = graph();
+        init100Books();
+
+        List<Vertex> all = graph.traversal().V().toList();
+
+        GraphTraversal<Vertex, Vertex> iter;
+
+        String page = PageInfo.PAGE_NONE;
+        int size = 22;
+
+        Set<Vertex> pageAll = new HashSet<>();
+        for (int i = 0; i < 100 / size; i++) {
+            iter = graph.traversal().V()
+                        .has("~page", page).limit(size);
+            @SuppressWarnings("unchecked")
+            List<Vertex> vertices = IteratorUtils.asList(iter);
+            Assert.assertEquals(size, vertices.size());
+
+            pageAll.addAll(vertices);
+
+            page = TraversalUtil.page(iter);
+            CloseableIterator.closeIterator(iter);
+        }
+
+        iter = graph.traversal().V()
+                    .has("~page", page).limit(size);
+        @SuppressWarnings("unchecked")
+        List<Vertex> vertices = IteratorUtils.asList(iter);
+        Assert.assertEquals(12, vertices.size());
+        pageAll.addAll(vertices);
+        page = TraversalUtil.page(iter);
+
+        Assert.assertEquals(100, pageAll.size());
+        Assert.assertTrue(all.containsAll(pageAll));
+        Assert.assertNull(page);
+    }
+
+    @Test
+    public void testQueryByPageResultsMatchedAllWithFullPage() {
         Assume.assumeTrue("Not support paging",
                           storeFeatures().supportsQueryByPage());
 
@@ -6485,6 +6634,15 @@ public class VertexCoreTest extends BaseCoreTest {
         }
         Assert.assertEquals(100, pageAll.size());
         Assert.assertTrue(all.containsAll(pageAll));
+
+        if (page != null) {
+            iter = graph.traversal().V().has("~page", page);
+            long count = IteratorUtils.count(iter);
+            Assert.assertEquals(0L, count);
+
+            page = TraversalUtil.page(iter);
+            CloseableIterator.closeIterator(iter);
+        }
         Assert.assertNull(page);
     }
 
@@ -6509,6 +6667,35 @@ public class VertexCoreTest extends BaseCoreTest {
                  .has("~page", "abc123").limit(10)
                  .toList();
         });
+    }
+
+    @Test
+    public void testQueryByPageWithSpecialBase64Chars() {
+        Assume.assumeTrue("Not support paging",
+                          storeFeatures().supportsQueryByPage());
+        final String pageWith3Base64Chars = "AAAAADsyABwAEAqI546LS6WW57unBgA" +
+                                            "EAAAAAPB////+8H////4alhxAZS8va6" +
+                                            "opcAKpklipAAQAAAAAAAAAAQ==";
+
+        final String pageWithSpace = "AAAAADsyABwAEAqI546LS6WW57unBgAEAAAAAP" +
+                                     "B//// 8H////4alhxAZS8va6opcAKpklipAAQA" +
+                                     "AAAAAAAAAQ==";
+
+        HugeGraph graph = graph();
+        init100Books();
+
+        // Contains valid character '+' and '/' and '='
+        GraphTraversal<Vertex, Vertex> traversal;
+        traversal = graph.traversal().V()
+                         .has("~page", pageWith3Base64Chars).limit(10);
+        Assert.assertNotNull(traversal);
+        CloseableIterator.closeIterator(traversal);
+
+        // Contains invalid base64 character ' ', will be replaced to '+'
+        traversal = graph.traversal().V()
+                         .has("~page", pageWithSpace).limit(10);
+        Assert.assertNotNull(traversal);
+        CloseableIterator.closeIterator(traversal);
     }
 
     @Test

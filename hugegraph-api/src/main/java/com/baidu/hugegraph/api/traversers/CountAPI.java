@@ -19,7 +19,7 @@
 
 package com.baidu.hugegraph.api.traversers;
 
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEGREE;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_SKIP_DEGREE;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.NO_LIMIT;
 
@@ -43,10 +43,12 @@ import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.traversal.algorithm.CountTraverser;
+import com.baidu.hugegraph.traversal.algorithm.steps.EdgeStep;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
 
@@ -77,7 +79,7 @@ public class CountAPI extends API {
                                request.dedupSize);
 
         HugeGraph g = graph(manager, graph);
-        List<CountTraverser.Step> steps = steps(g, request);
+        List<EdgeStep> steps = steps(g, request);
         CountTraverser traverser = new CountTraverser(g);
         long count = traverser.count(sourceId, steps, request.containsTraversed,
                                      request.dedupSize);
@@ -85,10 +87,9 @@ public class CountAPI extends API {
         return manager.serializer(g).writeMap(ImmutableMap.of("count", count));
     }
 
-    private static List<CountTraverser.Step> steps(HugeGraph graph,
-                                                   CountRequest request) {
+    private static List<EdgeStep> steps(HugeGraph graph, CountRequest request) {
         int stepSize = request.steps.size();
-        List<CountTraverser.Step> steps = new ArrayList<>(stepSize);
+        List<EdgeStep> steps = new ArrayList<>(stepSize);
         for (Step step : request.steps) {
             steps.add(step.jsonToStep(graph));
         }
@@ -109,7 +110,7 @@ public class CountAPI extends API {
         @Override
         public String toString() {
             return String.format("CountRequest{source=%s,steps=%s," +
-                                 "contains_traversed=%s,dedupSize=%s}",
+                                 "containsTraversed=%s,dedupSize=%s}",
                                  this.source, this.steps,
                                  this.containsTraversed, this.dedupSize);
         }
@@ -123,23 +124,23 @@ public class CountAPI extends API {
         public List<String> labels;
         @JsonProperty("properties")
         public Map<String, Object> properties;
-        @JsonProperty("degree")
-        public long degree = Long.valueOf(DEFAULT_DEGREE);
+        @JsonAlias("degree")
+        @JsonProperty("max_degree")
+        public long maxDegree = Long.parseLong(DEFAULT_MAX_DEGREE);
         @JsonProperty("skip_degree")
-        public long skipDegree = Long.valueOf(DEFAULT_SKIP_DEGREE);
+        public long skipDegree = Long.parseLong(DEFAULT_SKIP_DEGREE);
 
         @Override
         public String toString() {
             return String.format("Step{direction=%s,labels=%s,properties=%s" +
-                                 "degree=%s,skipDegree=%s}",
+                                 "maxDegree=%s,skipDegree=%s}",
                                  this.direction, this.labels, this.properties,
-                                 this.degree, this.skipDegree);
+                                 this.maxDegree, this.skipDegree);
         }
 
-        private CountTraverser.Step jsonToStep(HugeGraph graph) {
-            return new CountTraverser.Step(graph, this.direction, this.labels,
-                                           this.properties, this.degree,
-                                           this.skipDegree);
+        private EdgeStep jsonToStep(HugeGraph graph) {
+            return new EdgeStep(graph, this.direction, this.labels,
+                                this.properties, this.maxDegree, this.skipDegree);
         }
     }
 }

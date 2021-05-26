@@ -63,7 +63,7 @@ public class DeleteExpiredIndexJob<V> extends DeleteExpiredJob<V> {
             LOG.warn("Failed to delete expired indexes: {}", this.indexes);
             throw e;
         } finally {
-            JOB_COUNTERS.jobCounter(graph).decrement();
+            JOB_COUNTERS.jobCounter(graph.graph()).decrement();
         }
         return null;
     }

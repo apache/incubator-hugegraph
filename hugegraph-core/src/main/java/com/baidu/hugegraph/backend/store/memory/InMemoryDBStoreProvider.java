@@ -93,7 +93,8 @@ public class InMemoryDBStoreProvider extends AbstractBackendStoreProvider {
          * [1.4] #746: support userdata for indexlabel
          * [1.5] #820: store vertex properties in one column
          * [1.6] #894: encode label id in string index
+         * [1.7] #1333: support read frequency for property key
          */
-        return "1.5";
+        return "1.7";
     }
 }

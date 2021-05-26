@@ -31,6 +31,7 @@ import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.traversal.algorithm.steps.EdgeStep;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
@@ -64,6 +65,9 @@ public class JaccardSimilarTraverser extends OltpTraverser {
     public double jaccardSimilarity(Set<Id> set1, Set<Id> set2) {
         int interNum = CollectionUtil.intersect(set1, set2).size();
         int unionNum = CollectionUtil.union(set1, set2).size();
+        if (unionNum == 0) {
+            return 0.0D;
+        }
         return (double) interNum / unionNum;
     }
 
@@ -75,7 +79,7 @@ public class JaccardSimilarTraverser extends OltpTraverser {
 
         Map<Id, Double> results;
         if (3 >= this.concurrentDepth() &&
-            step.direction == Directions.BOTH) {
+            step.direction() == Directions.BOTH) {
             results = this.jaccardSimilarsConcurrent(source, step, capacity);
         } else {
             results = this.jaccardSimilarsSingle(source, step, capacity);

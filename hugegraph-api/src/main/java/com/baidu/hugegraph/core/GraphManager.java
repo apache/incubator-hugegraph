@@ -36,10 +36,10 @@ import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.auth.AuthManager;
 import com.baidu.hugegraph.auth.HugeAuthenticator;
 import com.baidu.hugegraph.auth.HugeFactoryAuthProxy;
 import com.baidu.hugegraph.auth.HugeGraphAuthProxy;
-import com.baidu.hugegraph.auth.UserManager;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.cache.Cache;
 import com.baidu.hugegraph.backend.cache.CacheManager;
@@ -51,6 +51,10 @@ import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.license.LicenseVerifier;
 import com.baidu.hugegraph.metrics.MetricsUtil;
 import com.baidu.hugegraph.metrics.ServerReporter;
+import com.baidu.hugegraph.rpc.RpcClientProvider;
+import com.baidu.hugegraph.rpc.RpcConsumerConfig;
+import com.baidu.hugegraph.rpc.RpcProviderConfig;
+import com.baidu.hugegraph.rpc.RpcServer;
 import com.baidu.hugegraph.serializer.JsonSerializer;
 import com.baidu.hugegraph.serializer.Serializer;
 import com.baidu.hugegraph.server.RestServer;
@@ -65,15 +69,21 @@ public final class GraphManager {
 
     private final Map<String, Graph> graphs;
     private final HugeAuthenticator authenticator;
+    private final RpcServer rpcServer;
+    private final RpcClientProvider rpcClient;
 
     public GraphManager(HugeConfig conf) {
         this.graphs = new ConcurrentHashMap<>();
         this.authenticator = HugeAuthenticator.loadAuthenticator(conf);
+        this.rpcServer = new RpcServer(conf);
+        this.rpcClient = new RpcClientProvider(conf);
 
         this.loadGraphs(conf.getMap(ServerOptions.GRAPHS));
         // this.installLicense(conf, "");
+        // Raft will load snapshot firstly then launch election and replay log
         this.waitGraphsStarted();
         this.checkBackendVersionOrExit();
+        this.startRpcServer();
         this.serverStarted(conf);
         this.addMetrics(conf);
     }
@@ -154,8 +164,52 @@ public final class GraphManager {
         return this.authenticator().authenticate(credentials);
     }
 
-    public UserManager userManager() {
-        return this.authenticator().userManager();
+    public AuthManager authManager() {
+        return this.authenticator().authManager();
+    }
+
+    public void close() {
+        this.destroyRpcServer();
+    }
+
+    private void startRpcServer() {
+        if (!this.rpcServer.enabled()) {
+            LOG.info("RpcServer is not enabled, skip starting rpc service");
+            return;
+        }
+
+        RpcProviderConfig serverConfig = this.rpcServer.config();
+
+        // Start auth rpc service if authenticator enabled
+        if (this.authenticator != null) {
+            serverConfig.addService(AuthManager.class,
+                                    this.authenticator.authManager());
+        }
+
+        // Start graph rpc service if RPC_REMOTE_URL enabled
+        if (this.rpcClient.enabled()) {
+            RpcConsumerConfig clientConfig = this.rpcClient.config();
+
+            for (Graph graph : this.graphs.values()) {
+                HugeGraph hugegraph = (HugeGraph) graph;
+                hugegraph.registerRpcServices(serverConfig, clientConfig);
+            }
+        }
+
+        try {
+            this.rpcServer.exportAll();
+        } catch (Throwable e) {
+            this.rpcServer.destroy();
+            throw e;
+        }
+    }
+
+    private void destroyRpcServer() {
+        try {
+            this.rpcClient.destroy();
+        } finally {
+            this.rpcServer.destroy();
+        }
     }
 
     private HugeAuthenticator authenticator() {

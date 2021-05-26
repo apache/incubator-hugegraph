@@ -94,10 +94,6 @@ public abstract class AbstractBuilder {
         }
     }
 
-    protected long taskWaitTimeout() {
-        return this.transaction.taskWaitTimeout();
-    }
-
     protected PropertyKey propertyKeyOrNull(String name) {
         return this.transaction.getPropertyKey(name);
     }

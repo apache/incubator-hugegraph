@@ -54,6 +54,10 @@ public interface BackendStoreProvider {
 
     public void initSystemInfo(HugeGraph graph);
 
+    public void createSnapshot();
+
+    public void resumeSnapshot();
+
     public void listen(EventListener listener);
 
     public void unlisten(EventListener listener);

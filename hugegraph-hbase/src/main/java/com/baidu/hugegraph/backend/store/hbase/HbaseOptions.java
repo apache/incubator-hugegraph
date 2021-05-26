@@ -114,6 +114,14 @@ public class HbaseOptions extends OptionHolder {
                     "/etc/krb5.conf"
             );
 
+    public static final ConfigOption<String> HBASE_HBASE_SITE =
+            new ConfigOption<>(
+                    "hbase.hbase_site",
+                    "The HBase's configuration file",
+                    null,
+                    "/etc/hbase/conf/hbase-site.xml"
+            );
+
     public static final ConfigOption<String> HBASE_KERBEROS_PRINCIPAL =
             new ConfigOption<>(
                     "hbase.kerberos_principal",

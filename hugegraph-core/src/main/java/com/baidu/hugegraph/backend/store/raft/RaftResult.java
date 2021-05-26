@@ -24,7 +24,7 @@ import java.util.function.Supplier;
 import com.alipay.sofa.jraft.Status;
 import com.baidu.hugegraph.util.E;
 
-public class RaftResult<T> {
+public final class RaftResult<T> {
 
     private final Status status;
     private final Supplier<T> callback;

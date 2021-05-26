@@ -20,7 +20,7 @@
 package com.baidu.hugegraph.api.traversers;
 
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPACITY;
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEGREE;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PATHS_LIMIT;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_SAMPLE;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_WEIGHT;
@@ -51,10 +51,12 @@ import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.traversal.algorithm.CustomizePathsTraverser;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
+import com.baidu.hugegraph.traversal.algorithm.steps.WeightedEdgeStep;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Path("graphs/{graph}/traversers/customizedpaths")
@@ -87,7 +89,7 @@ public class CustomizedPathsAPI extends API {
 
         HugeGraph g = graph(manager, graph);
         Iterator<Vertex> sources = request.sources.vertices(g);
-        List<CustomizePathsTraverser.Step> steps = step(g, request);
+        List<WeightedEdgeStep> steps = step(g, request);
         boolean sorted = request.sortBy != SortBy.NONE;
 
         CustomizePathsTraverser traverser = new CustomizePathsTraverser(g);
@@ -116,10 +118,10 @@ public class CustomizedPathsAPI extends API {
         return manager.serializer(g).writePaths("paths", paths, false, iter);
     }
 
-    private static List<CustomizePathsTraverser.Step> step(HugeGraph graph,
-                                                           PathRequest req) {
+    private static List<WeightedEdgeStep> step(HugeGraph graph,
+                                               PathRequest req) {
         int stepSize = req.steps.size();
-        List<CustomizePathsTraverser.Step> steps = new ArrayList<>(stepSize);
+        List<WeightedEdgeStep> steps = new ArrayList<>(stepSize);
         for (Step step : req.steps) {
             steps.add(step.jsonToStep(graph));
         }
@@ -135,9 +137,9 @@ public class CustomizedPathsAPI extends API {
         @JsonProperty("sort_by")
         public SortBy sortBy;
         @JsonProperty("capacity")
-        public long capacity = Long.valueOf(DEFAULT_CAPACITY);
+        public long capacity = Long.parseLong(DEFAULT_CAPACITY);
         @JsonProperty("limit")
-        public long limit = Long.valueOf(DEFAULT_PATHS_LIMIT);
+        public long limit = Long.parseLong(DEFAULT_PATHS_LIMIT);
         @JsonProperty("with_vertex")
         public boolean withVertex = false;
 
@@ -159,37 +161,34 @@ public class CustomizedPathsAPI extends API {
         public List<String> labels;
         @JsonProperty("properties")
         public Map<String, Object> properties;
-        @JsonProperty("degree")
-        public long degree = Long.valueOf(DEFAULT_DEGREE);
+        @JsonAlias("degree")
+        @JsonProperty("max_degree")
+        public long maxDegree = Long.parseLong(DEFAULT_MAX_DEGREE);
         @JsonProperty("skip_degree")
         public long skipDegree = 0L;
         @JsonProperty("weight_by")
         public String weightBy;
         @JsonProperty("default_weight")
-        public double defaultWeight = Double.valueOf(DEFAULT_WEIGHT);
+        public double defaultWeight = Double.parseDouble(DEFAULT_WEIGHT);
         @JsonProperty("sample")
-        public long sample = Long.valueOf(DEFAULT_SAMPLE);
+        public long sample = Long.parseLong(DEFAULT_SAMPLE);
 
         @Override
         public String toString() {
             return String.format("Step{direction=%s,labels=%s,properties=%s," +
-                                 "degree=%s,skipDegree=%s," +
+                                 "maxDegree=%s,skipDegree=%s," +
                                  "weightBy=%s,defaultWeight=%s,sample=%s}",
                                  this.direction, this.labels, this.properties,
-                                 this.degree, this.skipDegree,
+                                 this.maxDegree, this.skipDegree,
                                  this.weightBy, this.defaultWeight,
                                  this.sample);
         }
 
-        private CustomizePathsTraverser.Step jsonToStep(HugeGraph g) {
-            return new CustomizePathsTraverser.Step(g, this.direction,
-                                                    this.labels,
-                                                    this.properties,
-                                                    this.degree,
-                                                    this.skipDegree,
-                                                    this.weightBy,
-                                                    this.defaultWeight,
-                                                    this.sample);
+        private WeightedEdgeStep jsonToStep(HugeGraph g) {
+            return new WeightedEdgeStep(g, this.direction, this.labels,
+                                        this.properties, this.maxDegree,
+                                        this.skipDegree, this.weightBy,
+                                        this.defaultWeight, this.sample);
         }
     }
 

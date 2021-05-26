@@ -62,6 +62,7 @@ import com.baidu.hugegraph.type.define.Frequency;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.type.define.IndexType;
+import com.baidu.hugegraph.type.define.ReadFrequency;
 import com.baidu.hugegraph.type.define.SchemaStatus;
 import com.baidu.hugegraph.type.define.SerialEnum;
 import com.baidu.hugegraph.util.Bytes;
@@ -997,6 +998,7 @@ public class BinarySerializer extends AbstractSerializer {
             writeEnum(HugeKeys.DATA_TYPE, schema.dataType());
             writeEnum(HugeKeys.CARDINALITY, schema.cardinality());
             writeEnum(HugeKeys.AGGREGATE_TYPE, schema.aggregateType());
+            writeEnum(HugeKeys.READ_FREQUENCY, schema.readFrequency());
             writeIds(HugeKeys.PROPERTIES, schema.properties());
             writeEnum(HugeKeys.STATUS, schema.status());
             writeUserdata(schema);
@@ -1016,6 +1018,9 @@ public class BinarySerializer extends AbstractSerializer {
                                              Cardinality.class));
             propertyKey.aggregateType(readEnum(HugeKeys.AGGREGATE_TYPE,
                                                AggregateType.class));
+            propertyKey.readFrequency(readEnumOrDefault(HugeKeys.READ_FREQUENCY,
+                                                        ReadFrequency.class,
+                                                        ReadFrequency.OLTP));
             propertyKey.properties(readIds(HugeKeys.PROPERTIES));
             propertyKey.status(readEnum(HugeKeys.STATUS, SchemaStatus.class));
             readUserdata(propertyKey);
@@ -1089,6 +1094,17 @@ public class BinarySerializer extends AbstractSerializer {
                          "The length of column '%s' must be 1, but is '%s'",
                          key, value.length);
             return SerialEnum.fromCode(clazz, value[0]);
+        }
+
+        private <T extends SerialEnum> T readEnumOrDefault(HugeKeys key,
+                                                           Class<T> clazz,
+                                                           T defaultValue) {
+            BackendColumn column = this.entry.column(formatColumnName(key));
+            if (column == null) {
+                return defaultValue;
+            }
+            E.checkNotNull(column.value, "column.value");
+            return SerialEnum.fromCode(clazz, column.value[0]);
         }
 
         private void writeLong(HugeKeys key, long value) {

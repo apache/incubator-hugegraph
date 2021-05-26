@@ -37,6 +37,7 @@ import com.baidu.hugegraph.type.Propfiable;
 import com.baidu.hugegraph.type.define.AggregateType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
+import com.baidu.hugegraph.type.define.ReadFrequency;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.LongEncoding;
 
@@ -45,12 +46,14 @@ public class PropertyKey extends SchemaElement implements Propfiable {
     private DataType dataType;
     private Cardinality cardinality;
     private AggregateType aggregateType;
+    private ReadFrequency readFrequency;
 
     public PropertyKey(final HugeGraph graph, Id id, String name) {
         super(graph, id, name);
         this.dataType = DataType.TEXT;
         this.cardinality = Cardinality.SINGLE;
         this.aggregateType = AggregateType.NONE;
+        this.readFrequency = ReadFrequency.OLTP;
     }
 
     @Override
@@ -82,6 +85,14 @@ public class PropertyKey extends SchemaElement implements Propfiable {
         this.aggregateType = aggregateType;
     }
 
+    public void readFrequency(ReadFrequency readFrequency) {
+        this.readFrequency = readFrequency;
+    }
+
+    public ReadFrequency readFrequency() {
+        return this.readFrequency;
+    }
+
     @Override
     public Set<Id> properties() {
         return Collections.emptySet();
@@ -108,7 +119,8 @@ public class PropertyKey extends SchemaElement implements Propfiable {
         return super.hasSameContent(other) &&
                this.dataType == other.dataType() &&
                this.cardinality == other.cardinality() &&
-               this.aggregateType == other.aggregateType();
+               this.aggregateType == other.aggregateType() &&
+               this.readFrequency == other.readFrequency();
     }
 
     public String clazz() {
@@ -227,7 +239,7 @@ public class PropertyKey extends SchemaElement implements Propfiable {
         return valid;
     }
 
-    public <V> Object serialValue(V value) {
+    public <V> Object serialValue(V value, boolean encodeNumber) {
         V validValue = this.validValue(value);
         E.checkArgument(validValue != null,
                         "Invalid property value '%s' for key '%s'",
@@ -235,7 +247,8 @@ public class PropertyKey extends SchemaElement implements Propfiable {
         E.checkArgument(this.cardinality.single(),
                         "The cardinality can't be '%s' for navigation key '%s'",
                         this.cardinality, this.name());
-        if (this.dataType.isNumber() || this.dataType.isDate()) {
+        if (encodeNumber &&
+            (this.dataType.isNumber() || this.dataType.isDate())) {
             return LongEncoding.encodeNumber(validValue);
         }
         return validValue;
@@ -368,6 +381,12 @@ public class PropertyKey extends SchemaElement implements Propfiable {
         Builder calcSum();
 
         Builder calcOld();
+
+        Builder calcSet();
+
+        Builder calcList();
+
+        Builder readFrequency(ReadFrequency readFrequency);
 
         Builder cardinality(Cardinality cardinality);
 

@@ -20,7 +20,7 @@
 package com.baidu.hugegraph.api.traversers;
 
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPACITY;
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEGREE;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PATHS_LIMIT;
 
 import java.util.ArrayList;
@@ -53,6 +53,7 @@ import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Path("graphs/{graph}/traversers/customizedcrosspoints")
@@ -136,9 +137,9 @@ public class CustomizedCrosspointsAPI extends API {
         @JsonProperty("path_patterns")
         public List<PathPattern> pathPatterns;
         @JsonProperty("capacity")
-        public long capacity = Long.valueOf(DEFAULT_CAPACITY);
+        public long capacity = Long.parseLong(DEFAULT_CAPACITY);
         @JsonProperty("limit")
-        public long limit = Long.valueOf(DEFAULT_PATHS_LIMIT);
+        public long limit = Long.parseLong(DEFAULT_PATHS_LIMIT);
         @JsonProperty("with_path")
         public boolean withPath = false;
         @JsonProperty("with_vertex")
@@ -173,24 +174,25 @@ public class CustomizedCrosspointsAPI extends API {
         public List<String> labels;
         @JsonProperty("properties")
         public Map<String, Object> properties;
-        @JsonProperty("degree")
-        public long degree = Long.valueOf(DEFAULT_DEGREE);
+        @JsonAlias("degree")
+        @JsonProperty("max_degree")
+        public long maxDegree = Long.parseLong(DEFAULT_MAX_DEGREE);
         @JsonProperty("skip_degree")
         public long skipDegree = 0L;
 
         @Override
         public String toString() {
             return String.format("Step{direction=%s,labels=%s,properties=%s," +
-                                 "degree=%s,skipDegree=%s}",
+                                 "maxDegree=%s,skipDegree=%s}",
                                  this.direction, this.labels, this.properties,
-                                 this.degree, this.skipDegree);
+                                 this.maxDegree, this.skipDegree);
         }
 
         private CustomizedCrosspointsTraverser.Step jsonToStep(HugeGraph g) {
             return new CustomizedCrosspointsTraverser.Step(g, this.direction,
                                                            this.labels,
                                                            this.properties,
-                                                           this.degree,
+                                                           this.maxDegree,
                                                            this.skipDegree);
         }
     }

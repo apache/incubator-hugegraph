@@ -30,13 +30,13 @@ import com.baidu.hugegraph.util.Bytes;
 
 public class CoreOptions extends OptionHolder {
 
+    public static final int CPUS = Runtime.getRuntime().availableProcessors();
+
     private CoreOptions() {
         super();
     }
 
     private static volatile CoreOptions instance;
-
-    private static final int CPUS = Runtime.getRuntime().availableProcessors();
 
     public static synchronized CoreOptions instance() {
         if (instance == null) {
@@ -124,7 +124,7 @@ public class CoreOptions extends OptionHolder {
                     "raft.use_snapshot",
                     "Whether to use snapshot.",
                     disallowEmpty(),
-                    false
+                    true
             );
 
     public static final ConfigOption<String> RAFT_ENDPOINT =
@@ -374,6 +374,15 @@ public class CoreOptions extends OptionHolder {
                     "vertex, enabled if commit size > 0, 0 meas disabled.",
                     rangeInt(0, (int) Query.DEFAULT_CAPACITY),
                     5000
+            );
+
+    public static final ConfigOption<Boolean> VERTEX_ENCODE_PK_NUMBER =
+            new ConfigOption<>(
+                    "vertex.encode_primary_key_number",
+                    "Whether to encode number value of primary key " +
+                    "in vertex id.",
+                    disallowEmpty(),
+                    true
             );
 
     public static final ConfigOption<Boolean> QUERY_IGNORE_INVALID_DATA =

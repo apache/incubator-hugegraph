@@ -20,7 +20,7 @@
 package com.baidu.hugegraph.api.traversers;
 
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPACITY;
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEGREE;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PATHS_LIMIT;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.NO_LIMIT;
 
@@ -42,7 +42,6 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.core.GraphManager;
-import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.traversal.algorithm.FusiformSimilarityTraverser;
 import com.baidu.hugegraph.traversal.algorithm.FusiformSimilarityTraverser.SimilarsMap;
@@ -76,9 +75,9 @@ public class FusiformSimilarityAPI extends API {
         E.checkArgument(request.minNeighbors > 0,
                         "The min neighbor count must be > 0, but got: %s",
                         request.minNeighbors);
-        E.checkArgument(request.degree > 0 || request.degree == NO_LIMIT,
-                        "The degree of request must be > 0, but got: %s",
-                        request.degree);
+        E.checkArgument(request.maxDegree > 0L || request.maxDegree == NO_LIMIT,
+                        "The max_degree of request must be > 0, but got: %s",
+                        request.maxDegree);
         E.checkArgument(request.alpha > 0 && request.alpha <= 1.0,
                         "The alpha of request must be in range (0, 1], " +
                         "but got '%s'", request.alpha);
@@ -100,23 +99,21 @@ public class FusiformSimilarityAPI extends API {
         Iterator<Vertex> sources = request.sources.vertices(g);
         E.checkArgument(sources != null && sources.hasNext(),
                         "The source vertices can't be empty");
-        EdgeLabel edgeLabel = request.label == null ?
-                              null : g.edgeLabel(request.label);
 
         FusiformSimilarityTraverser traverser =
                                     new FusiformSimilarityTraverser(g);
         SimilarsMap result = traverser.fusiformSimilarity(
-                             sources, request.direction, edgeLabel,
+                             sources, request.direction, request.label,
                              request.minNeighbors, request.alpha,
                              request.minSimilars, request.top,
                              request.groupProperty, request.minGroups,
-                             request.degree, request.capacity, request.limit,
-                             request.withIntermediary);
+                             request.maxDegree, request.capacity,
+                             request.limit, request.withIntermediary);
 
         CloseableIterator.closeIterator(sources);
 
         Iterator<Vertex> iterator = QueryResults.emptyIterator();
-        if (request.withVertex) {
+        if (request.withVertex && !result.isEmpty()) {
             iterator = g.vertices(result.vertices().toArray());
         }
         return manager.serializer(g).writeSimilars(result, iterator);
@@ -143,11 +140,11 @@ public class FusiformSimilarityAPI extends API {
         @JsonProperty("min_groups")
         public int minGroups;
         @JsonProperty("max_degree")
-        public long degree = Long.valueOf(DEFAULT_DEGREE);
+        public long maxDegree = Long.parseLong(DEFAULT_MAX_DEGREE);
         @JsonProperty("capacity")
-        public long capacity = Long.valueOf(DEFAULT_CAPACITY);
+        public long capacity = Long.parseLong(DEFAULT_CAPACITY);
         @JsonProperty("limit")
-        public long limit = Long.valueOf(DEFAULT_PATHS_LIMIT);
+        public long limit = Long.parseLong(DEFAULT_PATHS_LIMIT);
         @JsonProperty("with_intermediary")
         public boolean withIntermediary = false;
         @JsonProperty("with_vertex")
@@ -159,13 +156,13 @@ public class FusiformSimilarityAPI extends API {
                                  "label=%s,direction=%s,minNeighbors=%s," +
                                  "alpha=%s,minSimilars=%s,top=%s," +
                                  "groupProperty=%s,minGroups=%s," +
-                                 "degree=%s,capacity=%s,limit=%s," +
+                                 "maxDegree=%s,capacity=%s,limit=%s," +
                                  "withIntermediary=%s,withVertex=%s}",
                                  this.sources, this.label, this.direction,
                                  this.minNeighbors, this.alpha,
                                  this.minSimilars, this.top,
                                  this.groupProperty, this.minGroups,
-                                 this.degree, this.capacity, this.limit,
+                                 this.maxDegree, this.capacity, this.limit,
                                  this.withIntermediary, this.withVertex);
         }
     }

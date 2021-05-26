@@ -103,7 +103,7 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
         } else {
             for (BackendColumn col : entry.columns()) {
                 assert entry.belongToMe(col) : entry;
-                session.remove(this.table(), col.name);
+                session.delete(this.table(), col.name);
             }
         }
     }
@@ -271,7 +271,7 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
     }
 
     protected static final long sizeOfBackendEntry(BackendEntry entry) {
-        return BinaryEntryIterator.sizeOfBackendEntry(entry);
+        return BinaryEntryIterator.sizeOfEntry(entry);
     }
 
     private static class RocksDBShardSpliter extends ShardSpliter<Session> {
@@ -327,7 +327,7 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
 
         @Override
         public byte[] position(String position) {
-            if (END.equals(position)) {
+            if (START.equals(position) || END.equals(position)) {
                 return null;
             }
             return StringEncoding.decodeBase64(position);

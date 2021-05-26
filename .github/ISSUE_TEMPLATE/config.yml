@@ -1,0 +1,10 @@
+blank_issues_enabled: true
+
+# 设置提 issue 前的参考文档
+contact_links:
+  - name: HugeGraph Server Doc
+    url: https://hugegraph.github.io/hugegraph-doc/quickstart/hugegraph-server.html
+    about: Please search question here before opening a new issue
+  - name: HugeGraph API Doc
+    url: https://hugegraph.github.io/hugegraph-doc/clients/hugegraph-api.html
+    about: Please search usage here before opening a new issue

@@ -24,15 +24,20 @@ import java.net.InetAddress;
 import java.util.Scanner;
 
 import org.apache.commons.lang.NotImplementedException;
+import org.apache.commons.lang.StringUtils;
 import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
 
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
+import com.baidu.hugegraph.rpc.RpcClientProviderWithAuth;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.StringEncoding;
 
 public class StandardAuthenticator implements HugeAuthenticator {
+
+    private static final String INITING_STORE = "initing_store";
 
     private HugeGraph graph = null;
 
@@ -46,28 +51,38 @@ public class StandardAuthenticator implements HugeAuthenticator {
         String caller = Thread.currentThread().getName();
         E.checkState(caller.equals("main"), "Invalid caller '%s'", caller);
 
-        UserManager userManager = this.graph().hugegraph().userManager();
-        if (userManager.findUser(HugeAuthenticator.USER_ADMIN) == null) {
+        AuthManager authManager = this.graph().hugegraph().authManager();
+        // Only init user when local mode and user has not been initialized
+        if (StandardAuthManager.isLocal(authManager) &&
+            authManager.findUser(HugeAuthenticator.USER_ADMIN) == null) {
             HugeUser admin = new HugeUser(HugeAuthenticator.USER_ADMIN);
-            admin.password(StringEncoding.hashPassword(inputPassword()));
+            admin.password(StringEncoding.hashPassword(this.inputPassword()));
             admin.creator(HugeAuthenticator.USER_SYSTEM);
-            userManager.createUser(admin);
+            authManager.createUser(admin);
         }
 
         this.graph.close();
     }
 
     private String inputPassword() {
-        String prompt = "Please input the admin password:";
+        String inputPrompt = "Please input the admin password:";
+        String notEmptyPrompt = "The admin password can't be empty";
         Console console = System.console();
-        if (console != null) {
-            char[] chars = console.readPassword(prompt);
-            return new String(chars);
-        } else {
-            System.out.print(prompt);
-            @SuppressWarnings("resource") // just wrapper of System.in
-            Scanner scanner = new Scanner(System.in);
-            return scanner.nextLine();
+        while (true) {
+            String password = "";
+            if (console != null) {
+                char[] chars = console.readPassword(inputPrompt);
+                password = new String(chars);
+            } else {
+                System.out.print(inputPrompt);
+                @SuppressWarnings("resource") // just wrapper of System.in
+                Scanner scanner = new Scanner(System.in);
+                password = scanner.nextLine();
+            }
+            if (!password.isEmpty()) {
+                return password;
+            }
+            System.out.println(notEmptyPrompt);
         }
     }
 
@@ -77,7 +92,20 @@ public class StandardAuthenticator implements HugeAuthenticator {
         String graphPath = config.getMap(ServerOptions.GRAPHS).get(graphName);
         E.checkArgument(graphPath != null,
                         "Invalid graph name '%s'", graphName);
-        this.graph = (HugeGraph) GraphFactory.open(graphPath);
+        HugeConfig graphConfig = new HugeConfig(graphPath);
+        if (config.getProperty(INITING_STORE) != null &&
+            config.getBoolean(INITING_STORE)) {
+            // Forced set RAFT_MODE to false when initializing backend
+            graphConfig.setProperty(CoreOptions.RAFT_MODE.name(), "false");
+        }
+        this.graph = (HugeGraph) GraphFactory.open(graphConfig);
+
+        String remoteUrl = config.get(ServerOptions.AUTH_REMOTE_URL);
+        if (StringUtils.isNotEmpty(remoteUrl)) {
+            RpcClientProviderWithAuth clientProvider =
+                                      new RpcClientProviderWithAuth(config);
+            this.graph.switchAuthManager(clientProvider.authManager());
+        }
     }
 
     /**
@@ -93,7 +121,7 @@ public class StandardAuthenticator implements HugeAuthenticator {
         E.checkArgumentNotNull(password,
                                "The password parameter can't be null");
 
-        RolePermission role = this.graph().userManager().loginUser(username,
+        RolePermission role = this.graph().authManager().loginUser(username,
                                                                    password);
         if (role == null) {
             role = ROLE_NONE;
@@ -104,8 +132,8 @@ public class StandardAuthenticator implements HugeAuthenticator {
     }
 
     @Override
-    public UserManager userManager() {
-        return this.graph().userManager();
+    public AuthManager authManager() {
+        return this.graph().authManager();
     }
 
     @Override
@@ -120,6 +148,7 @@ public class StandardAuthenticator implements HugeAuthenticator {
         if (authClass.isEmpty()) {
             return;
         }
+        config.addProperty(INITING_STORE, true);
         auth.setup(config);
         auth.initAdminUser();
     }

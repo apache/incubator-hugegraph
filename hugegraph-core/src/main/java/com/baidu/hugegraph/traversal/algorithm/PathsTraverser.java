@@ -60,7 +60,7 @@ public class PathsTraverser extends HugeTraverser {
 
         PathSet paths = new PathSet();
         if (sourceV.equals(targetV)) {
-            paths.add(new Path(sourceV, ImmutableList.of(sourceV)));
+            return paths;
         }
 
         Id labelId = this.getEdgeLabelId(label);

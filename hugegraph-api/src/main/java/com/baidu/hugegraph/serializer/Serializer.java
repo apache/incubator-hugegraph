@@ -28,7 +28,7 @@ import java.util.Set;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
-import com.baidu.hugegraph.auth.SchemaDefine.UserElement;
+import com.baidu.hugegraph.auth.SchemaDefine.AuthElement;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
@@ -75,9 +75,9 @@ public interface Serializer {
 
     public String writeIds(List<Id> ids);
 
-    public String writeUserElement(UserElement elem);
+    public String writeAuthElement(AuthElement elem);
 
-    public <V extends UserElement> String writeUserElements(String label,
+    public <V extends AuthElement> String writeAuthElements(String label,
                                                             List<V> users);
 
     public String writePaths(String name, Collection<HugeTraverser.Path> paths,

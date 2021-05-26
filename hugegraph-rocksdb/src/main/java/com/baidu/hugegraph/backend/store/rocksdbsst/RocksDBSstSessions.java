@@ -134,7 +134,7 @@ public class RocksDBSstSessions extends RocksDBSessions {
 
     @Override
     public List<String> property(String property) {
-        throw new NotSupportException("RocksDBSstStore property()");
+        throw new UnsupportedOperationException("RocksDBSstStore property()");
     }
 
     @Override
@@ -143,6 +143,36 @@ public class RocksDBSstSessions extends RocksDBSessions {
         return new RocksDBSstSessions(config, database, store, this);
     }
 
+    @Override
+    public void createSnapshot(String snapshotPath) {
+        throw new UnsupportedOperationException("createSnapshot");
+    }
+
+    @Override
+    public void resumeSnapshot(String snapshotPath) {
+        throw new UnsupportedOperationException("resumeSnapshot");
+    }
+
+    @Override
+    public String buildSnapshotPath(String snapshotPrefix) {
+        throw new UnsupportedOperationException("buildSnapshotPath");
+    }
+
+    @Override
+    public String hardLinkSnapshot(String snapshotPath)
+                                   throws RocksDBException {
+        throw new UnsupportedOperationException("hardLinkSnapshot");
+    }
+
+    @Override
+    public void reloadRocksDB() throws RocksDBException {
+        throw new UnsupportedOperationException("reloadRocksDB");
+    }
+
+    @Override
+    public void forceCloseRocksDB() {
+        throw new UnsupportedOperationException("forceCloseRocksDB");
+    }
 
     private SstFileWriter table(String table) {
         SstFileWriter sst = this.tables.get(table);
@@ -311,24 +341,33 @@ public class RocksDBSstSessions extends RocksDBSessions {
          * Delete a record by key from a table
          */
         @Override
-        public void remove(String table, byte[] key) {
-            throw new NotSupportException("RocksDBSstStore remove()");
+        public void delete(String table, byte[] key) {
+            throw new NotSupportException("RocksDBSstStore delete()");
+        }
+
+        /**
+         * Delete the only one version of a record by key from a table
+         * NOTE: requires that the key exists and was not overwritten.
+         */
+        @Override
+        public void deleteSingle(String table, byte[] key) {
+            throw new NotSupportException("RocksDBSstStore deleteSingle()");
         }
 
         /**
          * Delete a record by key(or prefix with key) from a table
          */
         @Override
-        public void delete(String table, byte[] key) {
-            throw new NotSupportException("RocksDBSstStore delete()");
+        public void deletePrefix(String table, byte[] key) {
+            throw new NotSupportException("RocksDBSstStore deletePrefix()");
         }
 
         /**
          * Delete a range of keys from a table
          */
         @Override
-        public void delete(String table, byte[] keyFrom, byte[] keyTo) {
-            throw new NotSupportException("RocksDBSstStore delete()");
+        public void deleteRange(String table, byte[] keyFrom, byte[] keyTo) {
+            throw new NotSupportException("RocksDBSstStore deleteRange()");
         }
 
         /**
@@ -367,11 +406,6 @@ public class RocksDBSstSessions extends RocksDBSessions {
                                           int scanType) {
             assert !this.hasChanges();
             return BackendColumnIterator.empty();
-        }
-
-        @Override
-        public void createSnapshot(String snapshotPath) {
-            throw new UnsupportedOperationException("createSnapshot");
         }
     }
 

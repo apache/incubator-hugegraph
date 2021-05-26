@@ -65,9 +65,9 @@ public class RocksDBOptions extends OptionHolder {
                     "rocksdb.data_disks",
                     false,
                     "The optimized disks for storing data of RocksDB. " +
-                    "The format of each element: `STORE/TABLE: /path/to/disk`." +
-                    "Allowed keys are [graph/vertex, graph/edge_out, graph/edge_in, " +
-                    "graph/secondary_index, graph/range_index]",
+                    "The format of each element: `STORE/TABLE: /path/disk`." +
+                    "Allowed keys are [g/vertex, g/edge_out, g/edge_in, " +
+                    "g/secondary_index, g/range_index]",
                     null,
                     String.class,
                     ImmutableList.of()
@@ -278,6 +278,20 @@ public class RocksDBOptions extends OptionHolder {
                     "The total maximum number of write buffers to maintain in memory.",
                     rangeInt(0, Integer.MAX_VALUE),
                     0
+            );
+
+    public static final ConfigOption<Boolean> DYNAMIC_LEVEL_BYTES =
+            new ConfigOption<>(
+                    "rocksdb.level_compaction_dynamic_level_bytes",
+                    "Whether to enable level_compaction_dynamic_level_bytes, " +
+                    "if it's enabled we give max_bytes_for_level_multiplier a " +
+                    "priority against max_bytes_for_level_base, the bytes of " +
+                    "base level is dynamic for a more predictable LSM tree, " +
+                    "it is useful to limit worse case space amplification. " +
+                    "Turning this feature on/off for an existing DB can cause " +
+                    "unexpected LSM tree structure so it's not recommended.",
+                    disallowEmpty(),
+                    false
             );
 
     public static final ConfigOption<Long> MAX_LEVEL1_BYTES =

@@ -49,6 +49,7 @@ import com.baidu.hugegraph.type.define.AggregateType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.type.define.GraphMode;
+import com.baidu.hugegraph.type.define.ReadFrequency;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
@@ -66,7 +67,7 @@ public class PropertyKeyAPI extends API {
     @Status(Status.CREATED)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=$graph $action=schema_write"})
+    @RolesAllowed({"admin", "$owner=$graph $action=property_key_write"})
     public String create(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          JsonPropertyKey jsonPropertyKey) {
@@ -85,7 +86,7 @@ public class PropertyKeyAPI extends API {
     @Path("{name}")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=$graph $action=schema_write"})
+    @RolesAllowed({"admin", "$owner=$graph $action=property_key_write"})
     public String update(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          @PathParam("name") String name,
@@ -111,7 +112,7 @@ public class PropertyKeyAPI extends API {
     @GET
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=$graph $action=schema_read"})
+    @RolesAllowed({"admin", "$owner=$graph $action=property_key_read"})
     public String list(@Context GraphManager manager,
                        @PathParam("graph") String graph,
                        @QueryParam("names") List<String> names) {
@@ -139,7 +140,7 @@ public class PropertyKeyAPI extends API {
     @Timed
     @Path("{name}")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=$graph $action=schema_read"})
+    @RolesAllowed({"admin", "$owner=$graph $action=property_key_read"})
     public String get(@Context GraphManager manager,
                       @PathParam("graph") String graph,
                       @PathParam("name") String name) {
@@ -154,7 +155,7 @@ public class PropertyKeyAPI extends API {
     @Timed
     @Path("{name}")
     @Consumes(APPLICATION_JSON)
-    @RolesAllowed({"admin", "$owner=$graph $action=schema_delete"})
+    @RolesAllowed({"admin", "$owner=$graph $action=property_key_delete"})
     public void delete(@Context GraphManager manager,
                        @PathParam("graph") String graph,
                        @PathParam("name") String name) {
@@ -182,6 +183,8 @@ public class PropertyKeyAPI extends API {
         public DataType dataType;
         @JsonProperty("aggregate_type")
         public AggregateType aggregateType;
+        @JsonProperty("read_frequency")
+        public ReadFrequency readFrequency;
         @JsonProperty("properties")
         public String[] properties;
         @JsonProperty("user_data")
@@ -221,6 +224,9 @@ public class PropertyKeyAPI extends API {
             if (this.aggregateType != null) {
                 builder.aggregateType(this.aggregateType);
             }
+            if (this.readFrequency != null) {
+                builder.readFrequency(this.readFrequency);
+            }
             if (this.userdata != null) {
                 builder.userdata(this.userdata);
             }
@@ -234,10 +240,10 @@ public class PropertyKeyAPI extends API {
         public String toString() {
             return String.format("JsonPropertyKey{name=%s, cardinality=%s, " +
                                  "dataType=%s, aggregateType=%s, " +
-                                 "properties=%s}",
+                                 "readFrequency=%s, properties=%s}",
                                  this.name, this.cardinality,
                                  this.dataType, this.aggregateType,
-                                 this.properties);
+                                 this.readFrequency, this.properties);
         }
     }
 }

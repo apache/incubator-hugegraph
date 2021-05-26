@@ -29,6 +29,7 @@ import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
+import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction;
 import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType;
 import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.event.EventListener;
@@ -73,6 +74,12 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
                      "The RaftBackendStoreProvider has not been opened");
     }
 
+    private void checkNonSharedStore(BackendStore store) {
+        E.checkArgument(!store.features().supportsSharedStorage(),
+                        "Can't enable raft mode with %s backend",
+                        this.type());
+    }
+
     @Override
     public String type() {
         return this.provider.type();
@@ -93,6 +100,7 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
         if (this.schemaStore == null) {
             LOG.info("Init raft backend schema store");
             BackendStore store = this.provider.loadSchemaStore(name);
+            this.checkNonSharedStore(store);
             this.schemaStore = new RaftBackendStore(store, this.context);
             this.context.addStore(StoreType.SCHEMA, this.schemaStore);
         }
@@ -104,6 +112,7 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
         if (this.graphStore == null) {
             LOG.info("Init raft backend graph store");
             BackendStore store = this.provider.loadGraphStore(name);
+            this.checkNonSharedStore(store);
             this.graphStore = new RaftBackendStore(store, this.context);
             this.context.addStore(StoreType.GRAPH, this.graphStore);
         }
@@ -115,6 +124,7 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
         if (this.systemStore == null) {
             LOG.info("Init raft backend system store");
             BackendStore store = this.provider.loadSystemStore(name);
+            this.checkNonSharedStore(store);
             this.systemStore = new RaftBackendStore(store, this.context);
             this.context.addStore(StoreType.SYSTEM, this.systemStore);
         }
@@ -129,8 +139,10 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
     @Override
     public void waitStoreStarted() {
         this.context.initRaftNode();
+        LOG.info("The raft node is initialized");
+
         this.context.waitRaftNodeStarted();
-        LOG.info("The raft store was started");
+        LOG.info("The raft store is started");
     }
 
     @Override
@@ -185,6 +197,21 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
 
         this.notifyAndWaitEvent(Events.STORE_INITED);
         LOG.debug("Graph '{}' system info has been initialized", this.graph());
+    }
+
+    @Override
+    public void createSnapshot() {
+        StoreCommand command = new StoreCommand(StoreType.ALL,
+                                                StoreAction.SNAPSHOT, null);
+        RaftStoreClosure closure = new RaftStoreClosure(command);
+        this.context.node().submitAndWait(command, closure);
+        LOG.debug("Graph '{}' has writed snapshot", this.graph());
+    }
+
+    @Override
+    public void resumeSnapshot() {
+        // Jraft doesn't expose API to load snapshot
+        throw new UnsupportedOperationException("resumeSnapshot");
     }
 
     @Override

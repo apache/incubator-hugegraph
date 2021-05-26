@@ -29,6 +29,8 @@ public class PageState {
 
     public static final byte[] EMPTY_BYTES = new byte[0];
     public static final PageState EMPTY = new PageState(EMPTY_BYTES, 0, 0);
+    public static final char SPACE = ' ';
+    public static final char PLUS = '+';
 
     private final byte[] position;
     private final int offset;
@@ -72,6 +74,13 @@ public class PageState {
     }
 
     public static PageState fromString(String page) {
+        E.checkNotNull(page, "page");
+        /*
+         * URLDecoder will auto decode '+' to space in url due to the request
+         * of HTML4, so we choose to replace the space to '+' after getting it
+         * More details refer to #1437
+         */
+        page = page.replace(SPACE, PLUS);
         return fromBytes(toBytes(page));
     }
 

@@ -3139,8 +3139,7 @@ public class EdgeCoreTest extends BaseCoreTest {
         Assert.assertTrue(adjacent.schemaLabel().undefined());
         Assert.assertEquals("~undefined", adjacent.label());
 
-        params().graphEventHub().notify(Events.CACHE, "clear",
-                                        null, null).get();
+        params().graphEventHub().notify(Events.CACHE, "clear", null).get();
         vertices = graph.traversal().V(james.id()).outE().otherV().toList();
         Assert.assertEquals(1, vertices.size());
         adjacent = (HugeVertex) vertices.get(0);
@@ -3285,8 +3284,7 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         Whitebox.setInternalState(params().graphTransaction(),
                                   "checkCustomVertexExist", false);
-        params().graphEventHub().notify(Events.CACHE, "clear",
-                                        null, null).get();
+        params().graphEventHub().notify(Events.CACHE, "clear", null).get();
         try {
             // override vertex designer-456 wirh programmer-456
             graph.addVertex(T.label, "programmer", T.id, "456",
@@ -5114,9 +5112,15 @@ public class EdgeCoreTest extends BaseCoreTest {
         while (page != null) {
             GraphTraversal<?, ?> iterator = graph.traversal().V(james).bothE()
                                                  .has("~page", page).limit(1);
-            Assert.assertEquals(1, IteratorUtils.count(iterator));
+            long size = IteratorUtils.count(iterator);
+            if (size == 0L) {
+                // The last page is empty
+                Assert.assertEquals(6, count);
+            } else {
+                Assert.assertEquals(1, size);
+            }
             page = TraversalUtil.page(iterator);
-            count++;
+            count += size;
         }
         Assert.assertEquals(6, count);
     }
@@ -5134,9 +5138,15 @@ public class EdgeCoreTest extends BaseCoreTest {
         while (page != null) {
             GraphTraversal<?, ?> iterator = graph.traversal().V(james).outE()
                                                  .has("~page", page).limit(1);
-            Assert.assertEquals(1, IteratorUtils.count(iterator));
+            long size = IteratorUtils.count(iterator);
+            if (size == 0L) {
+                // The last page is empty
+                Assert.assertEquals(4, count);
+            } else {
+                Assert.assertEquals(1, size);
+            }
             page = TraversalUtil.page(iterator);
-            count++;
+            count += size;
         }
         Assert.assertEquals(4, count);
     }
@@ -5154,9 +5164,15 @@ public class EdgeCoreTest extends BaseCoreTest {
         while (page != null) {
             GraphTraversal<?, ?> iterator = graph.traversal().V(james).inE()
                                                  .has("~page", page).limit(1);
-            Assert.assertEquals(1, IteratorUtils.count(iterator));
+            long size = IteratorUtils.count(iterator);
+            if (size == 0L) {
+                // The last page is empty
+                Assert.assertEquals(2, count);
+            } else {
+                Assert.assertEquals(1, size);
+            }
             page = TraversalUtil.page(iterator);
-            count++;
+            count += size;
         }
         Assert.assertEquals(2, count);
     }
@@ -5491,7 +5507,11 @@ public class EdgeCoreTest extends BaseCoreTest {
         guido.remove();
 
         // Clear all
-        graph.truncateBackend();
+        try {
+            graph.truncateBackend();
+        } catch (UnsupportedOperationException e) {
+            LOG.warn("Failed to truncate backend", e);
+        }
     }
 
     @Test
@@ -5920,11 +5940,17 @@ public class EdgeCoreTest extends BaseCoreTest {
         schema.propertyKey("times")
               .asLong().valueSingle().calcSum()
               .ifNotExist().create();
+        schema.propertyKey("port")
+              .asInt().valueSet().calcSet()
+              .ifNotExist().create();
+        schema.propertyKey("type")
+              .asInt().valueList().calcList()
+              .ifNotExist().create();
 
         schema.vertexLabel("ip").useCustomizeStringId().ifNotExist().create();
 
         schema.edgeLabel("attack").sourceLabel("ip").targetLabel("ip")
-              .properties("startTime", "endTime", "times")
+              .properties("startTime", "endTime", "times", "port", "type")
               .ifNotExist().create();
 
         Vertex ip1 = graph.addVertex(T.label, "ip", T.id, "10.0.0.1");
@@ -5933,7 +5959,7 @@ public class EdgeCoreTest extends BaseCoreTest {
         ip1.addEdge("attack", ip2,
                     "startTime", "2019-1-1 00:00:30",
                     "endTime", "2019-1-1 00:01:00",
-                    "times", 3);
+                    "times", 3, "port", 21, "type", 21);
         graph.tx().commit();
 
         Edge edge = graph.traversal().V("10.0.0.1").outE().next();
@@ -5942,10 +5968,23 @@ public class EdgeCoreTest extends BaseCoreTest {
         Assert.assertEquals(Utils.date("2019-1-1 00:01:00"),
                             edge.value("endTime"));
         Assert.assertEquals(3L, edge.value("times"));
+        Assert.assertEquals(ImmutableSet.of(21), edge.value("port"));
+        Assert.assertEquals(ImmutableList.of(21), edge.value("type"));
+
+        edge = graph.traversal().V("10.0.0.2").inE().next();
+        Assert.assertEquals(Utils.date("2019-1-1 00:00:30"),
+                            edge.value("startTime"));
+        Assert.assertEquals(Utils.date("2019-1-1 00:01:00"),
+                            edge.value("endTime"));
+        Assert.assertEquals(3L, edge.value("times"));
+        Assert.assertEquals(ImmutableSet.of(21), edge.value("port"));
+        Assert.assertEquals(ImmutableList.of(21), edge.value("type"));
 
         edge.property("startTime", "2019-1-1 00:04:00");
         edge.property("endTime", "2019-1-1 00:08:00");
         edge.property("times", 10);
+        edge.property("port", 22);
+        edge.property("type", 22);
         graph.tx().commit();
 
         edge = graph.traversal().V("10.0.0.1").outE().next();
@@ -5954,10 +5993,23 @@ public class EdgeCoreTest extends BaseCoreTest {
         Assert.assertEquals(Utils.date("2019-1-1 00:08:00"),
                             edge.value("endTime"));
         Assert.assertEquals(13L, edge.value("times"));
+        Assert.assertEquals(ImmutableSet.of(21, 22), edge.value("port"));
+        Assert.assertEquals(ImmutableList.of(21, 22), edge.value("type"));
+
+        edge = graph.traversal().V("10.0.0.2").inE().next();
+        Assert.assertEquals(Utils.date("2019-1-1 00:00:30"),
+                            edge.value("startTime"));
+        Assert.assertEquals(Utils.date("2019-1-1 00:08:00"),
+                            edge.value("endTime"));
+        Assert.assertEquals(13L, edge.value("times"));
+        Assert.assertEquals(ImmutableSet.of(21, 22), edge.value("port"));
+        Assert.assertEquals(ImmutableList.of(21, 22), edge.value("type"));
 
         edge.property("startTime", "2019-1-2 00:04:00");
         edge.property("endTime", "2019-1-2 00:08:00");
         edge.property("times", 7);
+        edge.property("port", 23);
+        edge.property("type", 23);
         graph.tx().commit();
 
         edge = graph.traversal().V("10.0.0.1").outE().next();
@@ -5966,17 +6018,50 @@ public class EdgeCoreTest extends BaseCoreTest {
         Assert.assertEquals(Utils.date("2019-1-2 00:08:00"),
                             edge.value("endTime"));
         Assert.assertEquals(20L, edge.value("times"));
+        Assert.assertEquals(ImmutableSet.of(21, 22, 23),
+                            edge.value("port"));
+        Assert.assertEquals(ImmutableList.of(21, 22, 23),
+                            edge.value("type"));
+
+        edge = graph.traversal().V("10.0.0.2").inE().next();
+        Assert.assertEquals(Utils.date("2019-1-1 00:00:30"),
+                            edge.value("startTime"));
+        Assert.assertEquals(Utils.date("2019-1-2 00:08:00"),
+                            edge.value("endTime"));
+        Assert.assertEquals(20L, edge.value("times"));
+        Assert.assertEquals(ImmutableSet.of(21, 22, 23),
+                            edge.value("port"));
+        Assert.assertEquals(ImmutableList.of(21, 22, 23),
+                            edge.value("type"));
 
         edge.property("startTime", "2019-1-1 00:00:00");
         edge.property("endTime", "2019-2-1 00:20:00");
         edge.property("times", 100);
+        edge.property("port", 23);
+        edge.property("type", 23);
         graph.tx().commit();
+
         edge = graph.traversal().V("10.0.0.1").outE().next();
         Assert.assertEquals(Utils.date("2019-1-1 00:00:00"),
                             edge.value("startTime"));
         Assert.assertEquals(Utils.date("2019-2-1 00:20:00"),
                             edge.value("endTime"));
         Assert.assertEquals(120L, edge.value("times"));
+        Assert.assertEquals(ImmutableSet.of(21, 22, 23),
+                            edge.value("port"));
+        Assert.assertEquals(ImmutableList.of(21, 22, 23, 23),
+                            edge.value("type"));
+
+        edge = graph.traversal().V("10.0.0.2").inE().next();
+        Assert.assertEquals(Utils.date("2019-1-1 00:00:00"),
+                            edge.value("startTime"));
+        Assert.assertEquals(Utils.date("2019-2-1 00:20:00"),
+                            edge.value("endTime"));
+        Assert.assertEquals(120L, edge.value("times"));
+        Assert.assertEquals(ImmutableSet.of(21, 22, 23),
+                            edge.value("port"));
+        Assert.assertEquals(ImmutableList.of(21, 22, 23, 23),
+                            edge.value("type"));
     }
 
     @Test
@@ -5996,11 +6081,17 @@ public class EdgeCoreTest extends BaseCoreTest {
         schema.propertyKey("times")
               .asLong().valueSingle().calcSum()
               .ifNotExist().create();
+        schema.propertyKey("port")
+              .asInt().valueSet().calcSet()
+              .ifNotExist().create();
+        schema.propertyKey("type")
+              .asInt().valueList().calcList()
+              .ifNotExist().create();
 
         schema.vertexLabel("ip").useCustomizeStringId().ifNotExist().create();
 
         schema.edgeLabel("attack").sourceLabel("ip").targetLabel("ip")
-              .properties("startTime", "endTime", "times")
+              .properties("startTime", "endTime", "times", "port", "type")
               .ifNotExist().create();
 
         Vertex ip1 = graph.addVertex(T.label, "ip", T.id, "10.0.0.1");
@@ -6009,10 +6100,12 @@ public class EdgeCoreTest extends BaseCoreTest {
         Edge edge = ip1.addEdge("attack", ip2,
                                 "startTime", "2019-1-1 00:00:30",
                                 "endTime", "2019-1-1 00:01:00",
-                                "times", 3);
+                                "times", 3, "port", 21, "type", 21);
         edge.property("startTime", "2019-1-1 00:04:00");
         edge.property("endTime", "2019-1-1 00:08:00");
-        edge.property("times", 10);
+        edge.property("times", 10L);
+        edge.property("port", 21);
+        edge.property("type", 21);
 
         Edge result = graph.traversal().V("10.0.0.1").outE().next();
         Assert.assertEquals(Utils.date("2019-1-1 00:04:00"),
@@ -6020,6 +6113,17 @@ public class EdgeCoreTest extends BaseCoreTest {
         Assert.assertEquals(Utils.date("2019-1-1 00:08:00"),
                             result.value("endTime"));
         Assert.assertEquals(10L, result.value("times"));
+        Assert.assertEquals(ImmutableSet.of(21), result.value("port"));
+        Assert.assertEquals(ImmutableList.of(21, 21), result.value("type"));
+
+        result = graph.traversal().V("10.0.0.2").inE().next();
+        Assert.assertEquals(Utils.date("2019-1-1 00:04:00"),
+                            result.value("startTime"));
+        Assert.assertEquals(Utils.date("2019-1-1 00:08:00"),
+                            result.value("endTime"));
+        Assert.assertEquals(10L, result.value("times"));
+        Assert.assertEquals(ImmutableSet.of(21), result.value("port"));
+        Assert.assertEquals(ImmutableList.of(21, 21), result.value("type"));
 
         graph.tx().commit();
 
@@ -6029,34 +6133,71 @@ public class EdgeCoreTest extends BaseCoreTest {
         Assert.assertEquals(Utils.date("2019-1-1 00:08:00"),
                             result.value("endTime"));
         Assert.assertEquals(10L, result.value("times"));
+        Assert.assertEquals(ImmutableSet.of(21), result.value("port"));
+        Assert.assertEquals(ImmutableList.of(21, 21), result.value("type"));
+
+        result = graph.traversal().V("10.0.0.2").inE().next();
+        Assert.assertEquals(Utils.date("2019-1-1 00:04:00"),
+                            result.value("startTime"));
+        Assert.assertEquals(Utils.date("2019-1-1 00:08:00"),
+                            result.value("endTime"));
+        Assert.assertEquals(10L, result.value("times"));
+        Assert.assertEquals(ImmutableSet.of(21), result.value("port"));
+        Assert.assertEquals(ImmutableList.of(21, 21), result.value("type"));
 
         edge = ip1.addEdge("attack", ip2,
                            "startTime", "2019-1-1 00:00:30",
                            "endTime", "2019-1-1 00:01:00",
-                           "times", 3);
+                           "times", 3, "port", 22, "type", 22);
 
         edge.property("startTime", "2019-1-2 00:00:30");
         edge.property("endTime", "2019-1-2 00:01:00");
         edge.property("times", 2);
+        edge.property("port", 23);
+        edge.property("type", 23);
 
-        Assert.assertEquals(Utils.date("2019-1-1 00:04:00"),
+        Assert.assertEquals(Utils.date("2019-1-2 00:00:30"),
                             edge.value("startTime"));
         Assert.assertEquals(Utils.date("2019-1-2 00:01:00"),
                             edge.value("endTime"));
-        Assert.assertEquals(12L, edge.value("times"));
+        Assert.assertEquals(2L, edge.value("times"));
+        Assert.assertEquals(ImmutableSet.of(22, 23),
+                            edge.value("port"));
+        Assert.assertEquals(ImmutableList.of(22, 23),
+                            edge.value("type"));
 
-        Assert.assertEquals(Utils.date("2019-1-1 00:04:00"),
+        Assert.assertEquals(Utils.date("2019-1-2 00:00:30"),
                             edge.property("startTime").value());
         Assert.assertEquals(Utils.date("2019-1-2 00:01:00"),
                             edge.property("endTime").value());
-        Assert.assertEquals(12L, edge.property("times").value());
+        Assert.assertEquals(2L, edge.property("times").value());
+        Assert.assertEquals(ImmutableSet.of(22, 23),
+                            edge.property("port").value());
+        Assert.assertEquals(ImmutableList.of(22, 23),
+                            edge.property("type").value());
 
+        graph.tx().commit();
         result = graph.traversal().V("10.0.0.1").outE().next();
         Assert.assertEquals(Utils.date("2019-1-1 00:04:00"),
                             result.property("startTime").value());
         Assert.assertEquals(Utils.date("2019-1-2 00:01:00"),
                             result.property("endTime").value());
         Assert.assertEquals(12L, result.property("times").value());
+        Assert.assertEquals(ImmutableSet.of(21, 22, 23),
+                            result.property("port").value());
+        Assert.assertEquals(ImmutableList.of(21, 21, 22, 23),
+                            result.property("type").value());
+
+        result = graph.traversal().V("10.0.0.2").inE().next();
+        Assert.assertEquals(Utils.date("2019-1-1 00:04:00"),
+                            result.property("startTime").value());
+        Assert.assertEquals(Utils.date("2019-1-2 00:01:00"),
+                            result.property("endTime").value());
+        Assert.assertEquals(12L, result.property("times").value());
+        Assert.assertEquals(ImmutableSet.of(21, 22, 23),
+                            result.property("port").value());
+        Assert.assertEquals(ImmutableList.of(21, 21, 22, 23),
+                            result.property("type").value());
     }
 
     @Test
@@ -6079,11 +6220,19 @@ public class EdgeCoreTest extends BaseCoreTest {
         schema.propertyKey("firstTime")
               .asDate().valueSingle().calcOld()
               .ifNotExist().create();
+        schema.propertyKey("port")
+              .asInt().valueSet().calcSet()
+              .ifNotExist().create();
+        schema.propertyKey("type")
+              .asInt().valueList().calcList()
+              .ifNotExist().create();
 
         schema.vertexLabel("ip").useCustomizeStringId().ifNotExist().create();
 
         schema.edgeLabel("attack").sourceLabel("ip").targetLabel("ip")
-              .properties("startTime", "endTime", "times", "firstTime")
+              .properties("startTime", "endTime", "times",
+                          "firstTime", "port", "type")
+              .nullableKeys("port", "type")
               .ifNotExist().create();
 
         schema.indexLabel("attackByStartTime")
@@ -6099,6 +6248,20 @@ public class EdgeCoreTest extends BaseCoreTest {
         });
         schema.indexLabel("attackByFirstTime")
               .onE("attack").by("firstTime").range().ifNotExist().create();
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("attackByPort")
+                  .onE("attack").by("port").secondary().ifNotExist().create();
+        }, e -> {
+            Assert.assertTrue(e.getMessage(), e.getMessage().contains(
+                              "The aggregate type SET is not indexable"));
+        });
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("attackByType")
+                  .onE("attack").by("type").secondary().ifNotExist().create();
+        }, e -> {
+            Assert.assertTrue(e.getMessage(), e.getMessage().contains(
+                              "The aggregate type LIST is not indexable"));
+        });
 
         Vertex ip1 = graph.addVertex(T.label, "ip", T.id, "10.0.0.1");
         Vertex ip2 = graph.addVertex(T.label, "ip", T.id, "10.0.0.2");
@@ -6728,7 +6891,48 @@ public class EdgeCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testQueryEdgeByPageResultsMatched() {
+    public void testQueryEdgeByPageResultsMatchedAll() {
+        Assume.assumeTrue("Not support paging",
+                          storeFeatures().supportsQueryByPage());
+
+        HugeGraph graph = graph();
+        init100LookEdges();
+
+        List<Edge> all = graph.traversal().E().toList();
+
+        GraphTraversal<Edge, Edge> iter;
+
+        String page = PageInfo.PAGE_NONE;
+        int size = 21;
+
+        Set<Edge> pageAll = new HashSet<>();
+        for (int i = 0; i < 100 / size; i++) {
+            iter = graph.traversal().E()
+                        .has("~page", page).limit(size);
+            @SuppressWarnings("unchecked")
+            List<Edge> edges = IteratorUtils.asList(iter);
+            Assert.assertEquals(size, edges.size());
+
+            pageAll.addAll(edges);
+
+            page = TraversalUtil.page(iter);
+        }
+
+        iter = graph.traversal().E()
+                    .has("~page", page).limit(size);
+        @SuppressWarnings("unchecked")
+        List<Edge> edges = IteratorUtils.asList(iter);
+        Assert.assertEquals(16, edges.size());
+        pageAll.addAll(edges);
+        page = TraversalUtil.page(iter);
+
+        Assert.assertEquals(100, pageAll.size());
+        Assert.assertTrue(all.containsAll(pageAll));
+        Assert.assertNull(page);
+    }
+
+    @Test
+    public void testQueryEdgeByPageResultsMatchedAllWithFullPage() {
         Assume.assumeTrue("Not support paging",
                           storeFeatures().supportsQueryByPage());
 
@@ -6756,6 +6960,15 @@ public class EdgeCoreTest extends BaseCoreTest {
         }
         Assert.assertEquals(100, pageAll.size());
         Assert.assertTrue(all.containsAll(pageAll));
+
+        if (page != null) {
+            iter = graph.traversal().E().has("~page", page);
+            long count = IteratorUtils.count(iter);
+            Assert.assertEquals(0L, count);
+
+            page = TraversalUtil.page(iter);
+            CloseableIterator.closeIterator(iter);
+        }
         Assert.assertNull(page);
     }
 
@@ -6962,9 +7175,10 @@ public class EdgeCoreTest extends BaseCoreTest {
         int count = 0;
         while (page != null) {
             GraphTraversal<?, ?> iterator = fetcher.apply(page);
-            Assert.assertEquals(1, IteratorUtils.count(iterator));
+            long size = IteratorUtils.count(iterator);
+            Assert.assertLte(1L, size);
             page = TraversalUtil.page(iterator);
-            count++;
+            count += size;
         }
         return count;
     }

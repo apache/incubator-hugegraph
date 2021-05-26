@@ -19,7 +19,7 @@
 
 package com.baidu.hugegraph.api.traversers;
 
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEGREE;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PATHS_LIMIT;
 
 import java.util.Set;
@@ -63,12 +63,12 @@ public class SameNeighborsAPI extends API {
                       @QueryParam("direction") String direction,
                       @QueryParam("label") String edgeLabel,
                       @QueryParam("max_degree")
-                      @DefaultValue(DEFAULT_DEGREE) long degree,
+                      @DefaultValue(DEFAULT_MAX_DEGREE) long maxDegree,
                       @QueryParam("limit")
                       @DefaultValue(DEFAULT_PATHS_LIMIT) long limit) {
         LOG.debug("Graph [{}] get same neighbors between '{}' and '{}' with " +
                   "direction {}, edge label {}, max degree '{}' and limit '{}'",
-                  graph, vertex, other, direction, edgeLabel, degree, limit);
+                  graph, vertex, other, direction, edgeLabel, maxDegree, limit);
 
         Id sourceId = VertexAPI.checkAndParseVertexId(vertex);
         Id targetId = VertexAPI.checkAndParseVertexId(other);
@@ -77,7 +77,7 @@ public class SameNeighborsAPI extends API {
         HugeGraph g = graph(manager, graph);
         SameNeighborTraverser traverser = new SameNeighborTraverser(g);
         Set<Id> neighbors = traverser.sameNeighbors(sourceId, targetId, dir,
-                                                    edgeLabel, degree, limit);
+                                                    edgeLabel, maxDegree, limit);
         return manager.serializer(g).writeList("same_neighbors", neighbors);
     }
 }

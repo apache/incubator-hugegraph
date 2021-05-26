@@ -25,6 +25,7 @@ import java.util.Set;
 import org.apache.commons.lang3.tuple.Pair;
 import org.rocksdb.RocksDBException;
 
+import com.alipay.sofa.jraft.storage.snapshot.remote.Session;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumnIterator;
 import com.baidu.hugegraph.backend.store.BackendSession.AbstractBackendSession;
 import com.baidu.hugegraph.backend.store.BackendSessionPool;
@@ -46,6 +47,19 @@ public abstract class RocksDBSessions extends BackendSessionPool {
 
     public abstract RocksDBSessions copy(HugeConfig config,
                                          String database, String store);
+
+    public abstract void createSnapshot(String parentPath);
+
+    public abstract void resumeSnapshot(String snapshotPath);
+
+    public abstract String buildSnapshotPath(String snapshotPrefix);
+
+    public abstract String hardLinkSnapshot(String snapshotPath)
+                                            throws RocksDBException;
+
+    public abstract void reloadRocksDB() throws RocksDBException;
+
+    public abstract void forceCloseRocksDB();
 
     @Override
     public abstract Session session();
@@ -73,9 +87,11 @@ public abstract class RocksDBSessions extends BackendSessionPool {
         public abstract void merge(String table, byte[] key, byte[] value);
         public abstract void increase(String table, byte[] key, byte[] value);
 
-        public abstract void remove(String table, byte[] key);
-        public abstract void delete(String table, byte[] keyFrom, byte[] keyTo);
         public abstract void delete(String table, byte[] key);
+        public abstract void deleteSingle(String table, byte[] key);
+        public abstract void deletePrefix(String table, byte[] key);
+        public abstract void deleteRange(String table,
+                                         byte[] keyFrom, byte[] keyTo);
 
         public abstract byte[] get(String table, byte[] key);
 
@@ -86,8 +102,6 @@ public abstract class RocksDBSessions extends BackendSessionPool {
                                                    byte[] keyFrom,
                                                    byte[] keyTo,
                                                    int scanType);
-
-        public abstract void createSnapshot(String parentPath);
 
         public BackendColumnIterator scan(String table,
                                           byte[] keyFrom,

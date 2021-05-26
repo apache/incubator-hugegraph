@@ -37,18 +37,18 @@ import javax.ws.rs.core.UriInfo;
 import javax.ws.rs.ext.Provider;
 import javax.xml.bind.DatatypeConverter;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.tinkerpop.gremlin.server.auth.AuthenticationException;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.utils.Charsets;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.auth.HugeAuthenticator;
-import com.baidu.hugegraph.auth.HugeAuthenticator.RoleAction;
+import com.baidu.hugegraph.auth.HugeAuthenticator.RequiredPerm;
 import com.baidu.hugegraph.auth.HugeAuthenticator.RolePerm;
 import com.baidu.hugegraph.auth.HugeAuthenticator.User;
 import com.baidu.hugegraph.auth.RolePermission;
 import com.baidu.hugegraph.core.GraphManager;
-import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.google.common.collect.ImmutableMap;
@@ -58,7 +58,7 @@ import com.google.common.collect.ImmutableMap;
 @Priority(Priorities.AUTHENTICATION)
 public class AuthenticationFilter implements ContainerRequestFilter {
 
-    private static final Logger LOG = Log.logger(RestServer.class);
+    private static final Logger LOG = Log.logger(AuthenticationFilter.class);
 
     @Context
     private javax.inject.Provider<GraphManager> managerProvider;
@@ -114,7 +114,11 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
         final String username = values[0];
         final String password = values[1];
-        assert username != null && password != null;
+
+        if (StringUtils.isEmpty(username) || StringUtils.isEmpty(password)) {
+            throw new BadRequestException(
+                      "Invalid syntax for username and password");
+        }
 
         // Validate the extracted credentials
         try {
@@ -159,20 +163,12 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
         @Override
         public boolean isUserInRole(String required) {
-            boolean valid;
             if (required.equals(HugeAuthenticator.KEY_DYNAMIC)) {
                 // Let the resource itself determine dynamically
-                valid = true;
+                return true;
             } else {
-                valid = this.matchPermission(required);
+                return this.matchPermission(required);
             }
-
-            if (!valid && LOG.isDebugEnabled() &&
-                !required.equals(HugeAuthenticator.ROLE_ADMIN)) {
-                LOG.debug("Permission denied to {}, expect permission '{}'",
-                          this.user, required);
-            }
-            return valid;
         }
 
         @Override
@@ -186,24 +182,49 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         }
 
         private boolean matchPermission(String required) {
+            boolean valid;
+            RequiredPerm requiredPerm;
+
             if (!required.startsWith(HugeAuthenticator.KEY_OWNER)) {
                 // Permission format like: "admin"
-                return RolePerm.match(this.role(), required);
+                requiredPerm = new RequiredPerm();
+                requiredPerm.owner(required);
+            } else {
+                // The required like: $owner=graph1 $action=vertex_write
+                requiredPerm = RequiredPerm.fromPermission(required);
+
+                /*
+                 * Replace owner value(it may be a variable) if the permission
+                 * format like: "$owner=$graph $action=vertex_write"
+                 */
+                String owner = requiredPerm.owner();
+                if (owner.startsWith(HugeAuthenticator.VAR_PREFIX)) {
+                    // Replace `$graph` with graph name like "graph1"
+                    int prefixLen = HugeAuthenticator.VAR_PREFIX.length();
+                    assert owner.length() > prefixLen;
+                    owner = owner.substring(prefixLen);
+                    owner = this.getPathParameter(owner);
+                    requiredPerm.owner(owner);
+                }
             }
 
-            // Permission format like: "$owner=$graph $action=vertex-write"
-            RoleAction roleAction = RoleAction.fromPermission(required);
-
-            // Replace owner value(may be variable) if needed
-            String owner = roleAction.owner();
-            if (owner.startsWith(HugeAuthenticator.VAR_PREFIX)) {
-                assert owner.length() > HugeAuthenticator.VAR_PREFIX.length();
-                owner = owner.substring(HugeAuthenticator.VAR_PREFIX.length());
-                owner = this.getPathParameter(owner);
-                roleAction.owner(owner);
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Verify permission {} {} for user '{}' with role {}",
+                          requiredPerm.action().string(),
+                          requiredPerm.resourceObject(),
+                          this.user.username(), this.user.role());
             }
 
-            return RolePerm.match(this.role(), roleAction);
+            // verify role permission
+            valid = RolePerm.match(this.role(), requiredPerm);
+
+            if (!valid && LOG.isInfoEnabled() &&
+                !required.equals(HugeAuthenticator.USER_ADMIN)) {
+                LOG.info("User '{}' is denied to {} {}",
+                         this.user.username(), requiredPerm.action().string(),
+                         requiredPerm.resourceObject());
+            }
+            return valid;
         }
 
         private String getPathParameter(String key) {

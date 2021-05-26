@@ -5,7 +5,7 @@
     <parent>
         <artifactId>hugegraph</artifactId>
         <groupId>com.baidu.hugegraph</groupId>
-        <version>0.11.2</version>
+        <version>0.12.0</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -17,6 +17,33 @@
             <artifactId>hugegraph-core</artifactId>
             <version>${project.version}</version>
         </dependency>
+
+        <dependency>
+            <groupId>com.baidu.hugegraph</groupId>
+            <artifactId>hugegraph-rpc</artifactId>
+            <version>1.0.0</version>
+            <exclusions>
+                <!-- conflict with jraft -->
+                <exclusion>
+                    <groupId>com.alipay.sofa</groupId>
+                    <artifactId>bolt</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.alipay.sofa.common</groupId>
+                    <artifactId>sofa-common-tools</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.alipay.sofa</groupId>
+                    <artifactId>hessian</artifactId>
+                </exclusion>
+                <!-- conflict with cassandra-netty/tinkerpop-server  -->
+                <exclusion>
+                    <groupId>io.netty</groupId>
+                    <artifactId>netty-all</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
         <dependency>
             <groupId>org.apache.tinkerpop</groupId>
             <artifactId>gremlin-server</artifactId>
@@ -27,6 +54,7 @@
                 </exclusion>
             </exclusions>
         </dependency>
+
         <dependency>
             <groupId>org.glassfish.jersey.core</groupId>
             <artifactId>jersey-server</artifactId>
@@ -63,11 +91,6 @@
         </dependency>
 
         <dependency>
-            <groupId>io.dropwizard.metrics</groupId>
-            <artifactId>metrics-jersey2</artifactId>
-        </dependency>
-
-        <dependency>
             <groupId>org.glassfish.grizzly</groupId>
             <artifactId>grizzly-http</artifactId>
             <version>2.4.4</version>
@@ -86,6 +109,11 @@
             <groupId>org.glassfish.grizzly</groupId>
             <artifactId>grizzly-http-servlet</artifactId>
             <version>2.4.4</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.dropwizard.metrics</groupId>
+            <artifactId>metrics-jersey2</artifactId>
         </dependency>
     </dependencies>
 
@@ -125,7 +153,7 @@
                             </addDefaultSpecificationEntries>
                         </manifest>
                         <manifestEntries>
-                            <Implementation-Version>0.58.0.0</Implementation-Version>
+                            <Implementation-Version>0.61.0.0</Implementation-Version>
                         </manifestEntries>
                     </archive>
                 </configuration>

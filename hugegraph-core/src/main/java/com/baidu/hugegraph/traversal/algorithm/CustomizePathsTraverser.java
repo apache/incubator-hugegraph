@@ -32,10 +32,9 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeVertex;
-import com.baidu.hugegraph.type.define.Directions;
+import com.baidu.hugegraph.traversal.algorithm.steps.WeightedEdgeStep;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 import com.google.common.collect.ImmutableList;
@@ -48,7 +47,7 @@ public class CustomizePathsTraverser extends HugeTraverser {
     }
 
     public List<Path> customizedPaths(Iterator<Vertex> vertices,
-                                      List<Step> steps, boolean sorted,
+                                      List<WeightedEdgeStep> steps, boolean sorted,
                                       long capacity, long limit) {
         E.checkArgument(vertices.hasNext(),
                         "The source vertices can't be empty");
@@ -68,7 +67,7 @@ public class CustomizePathsTraverser extends HugeTraverser {
         int pathCount = 0;
         long access = 0;
         MultivaluedMap<Id, Node> newVertices = null;
-        root : for (Step step : steps) {
+        root : for (WeightedEdgeStep step : steps) {
             stepNum--;
             newVertices = newMultivalueMap();
             Iterator<Edge> edges;
@@ -76,7 +75,7 @@ public class CustomizePathsTraverser extends HugeTraverser {
             // Traversal vertices of previous level
             for (Map.Entry<Id, List<Node>> entry : sources.entrySet()) {
                 List<Node> adjacency = new ArrayList<>();
-                edges = this.edgesOfVertex(entry.getKey(), step.edgeStep);
+                edges = this.edgesOfVertex(entry.getKey(), step.step());
                 while (edges.hasNext()) {
                     HugeEdge edge = (HugeEdge) edges.next();
                     Id target = edge.id().otherVertexId();
@@ -87,9 +86,9 @@ public class CustomizePathsTraverser extends HugeTraverser {
                         }
                         Node newNode;
                         if (sorted) {
-                            double w = step.weightBy != null ?
-                                       edge.value(step.weightBy.name()) :
-                                       step.defaultWeight;
+                            double w = step.weightBy() != null ?
+                                       edge.value(step.weightBy().name()) :
+                                       step.defaultWeight();
                             newNode = new WeightNode(target, n, w);
                         } else {
                             newNode = new Node(target, n);
@@ -100,9 +99,9 @@ public class CustomizePathsTraverser extends HugeTraverser {
                     }
                 }
 
-                if (step.sample > 0) {
+                if (step.sample() > 0) {
                     // Sample current node's adjacent nodes
-                    adjacency = sample(adjacency, step.sample);
+                    adjacency = sample(adjacency, step.sample());
                 }
 
                 // Add current node's adjacent nodes
@@ -236,37 +235,6 @@ public class CustomizePathsTraverser extends HugeTraverser {
                 sum += w;
             }
             this.totalWeight = sum;
-        }
-    }
-
-    public static class Step {
-
-        private final EdgeStep edgeStep;
-        private final PropertyKey weightBy;
-        private final double defaultWeight;
-        private final long sample;
-
-        public Step(HugeGraph g, Directions direction, List<String> labels,
-                    Map<String, Object> properties,
-                    long degree, long skipDegree,
-                    String weightBy, double defaultWeight, long sample) {
-            E.checkArgument(sample > 0L || sample == NO_LIMIT,
-                            "The sample must be > 0 or == -1, but got: %s",
-                            sample);
-            E.checkArgument(degree == NO_LIMIT || degree >= sample,
-                            "Degree must be greater than or equal to sample," +
-                            " but got degree %s and sample %s",
-                            degree, sample);
-
-            this.edgeStep = new EdgeStep(g, direction, labels, properties,
-                                         degree, skipDegree);
-            if (weightBy != null) {
-                this.weightBy = g.propertyKey(weightBy);
-            } else {
-                this.weightBy = null;
-            }
-            this.defaultWeight = defaultWeight;
-            this.sample = sample;
         }
     }
 }

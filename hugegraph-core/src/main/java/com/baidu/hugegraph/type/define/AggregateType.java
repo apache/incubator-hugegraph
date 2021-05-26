@@ -25,7 +25,9 @@ public enum AggregateType implements SerialEnum {
     MAX(1, "max"),
     MIN(2, "min"),
     SUM(3, "sum"),
-    OLD(4, "old");
+    OLD(4, "old"),
+    SET(5, "set"),
+    LIST(6, "list");
 
     private final byte code;
     private final String name;
@@ -71,6 +73,18 @@ public enum AggregateType implements SerialEnum {
 
     public boolean isOld() {
         return this == OLD;
+    }
+
+    public boolean isSet() {
+        return this == SET;
+    }
+
+    public boolean isList() {
+        return this == LIST;
+    }
+
+    public boolean isUnion() {
+        return this == SET || this == LIST;
     }
 
     public boolean isIndexable() {

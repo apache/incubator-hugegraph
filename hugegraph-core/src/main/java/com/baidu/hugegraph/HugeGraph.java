@@ -31,12 +31,15 @@ import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 
-import com.baidu.hugegraph.auth.UserManager;
+import com.baidu.hugegraph.auth.AuthManager;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
 import com.baidu.hugegraph.backend.store.raft.RaftGroupManager;
+import com.baidu.hugegraph.config.ConfigOption;
+import com.baidu.hugegraph.rpc.RpcServiceConfig4Client;
+import com.baidu.hugegraph.rpc.RpcServiceConfig4Server;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -51,6 +54,7 @@ import com.baidu.hugegraph.traversal.optimize.HugeGraphStepStrategy;
 import com.baidu.hugegraph.traversal.optimize.HugeVertexStepStrategy;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.GraphMode;
+import com.baidu.hugegraph.type.define.GraphReadMode;
 import com.baidu.hugegraph.type.define.NodeRole;
 
 /**
@@ -135,6 +139,9 @@ public interface HugeGraph extends Graph {
     public GraphMode mode();
     public void mode(GraphMode mode);
 
+    public GraphReadMode readMode();
+    public void readMode(GraphReadMode readMode);
+
     public void waitStarted();
     public void serverStarted(Id serverId, NodeRole serverRole);
     public boolean started();
@@ -146,10 +153,14 @@ public interface HugeGraph extends Graph {
     public void clearBackend();
     public void truncateBackend();
 
+    public void createSnapshot();
+    public void resumeSnapshot();
+
     @Override
     public HugeFeatures features();
 
-    public UserManager userManager();
+    public AuthManager authManager();
+    public void switchAuthManager(AuthManager authManager);
     public TaskScheduler taskScheduler();
     public RaftGroupManager raftGroupManager(String group);
 
@@ -158,6 +169,11 @@ public interface HugeGraph extends Graph {
     public boolean sameAs(HugeGraph graph);
 
     public long now();
+
+    public <V> V option(ConfigOption<V> option);
+
+    public void registerRpcServices(RpcServiceConfig4Server serverConfig,
+                                    RpcServiceConfig4Client clientConfig);
 
     public default List<String> mapPkId2Name(Collection<Id> ids) {
         List<String> names = new ArrayList<>(ids.size());

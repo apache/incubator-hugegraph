@@ -50,9 +50,6 @@ public interface TaskScheduler {
 
     public boolean close();
 
-    public int taskInputSizeLimit();
-    public int taskResultSizeLimit();
-
     public <V> HugeTask<V> waitUntilTaskCompleted(Id id, long seconds)
                                                   throws TimeoutException;
 
@@ -61,4 +58,6 @@ public interface TaskScheduler {
 
     public void waitUntilAllTasksCompleted(long seconds)
                                            throws TimeoutException;
+
+    public void checkRequirement(String op);
 }

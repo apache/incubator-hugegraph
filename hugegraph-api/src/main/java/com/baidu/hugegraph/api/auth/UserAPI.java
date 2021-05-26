@@ -34,6 +34,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
@@ -72,8 +73,8 @@ public class UserAPI extends API {
 
         HugeGraph g = graph(manager, graph);
         HugeUser user = jsonUser.build();
-        user.id(manager.userManager().createUser(user));
-        return manager.serializer(g).writeUserElement(user);
+        user.id(manager.authManager().createUser(user));
+        return manager.serializer(g).writeAuthElement(user);
     }
 
     @PUT
@@ -91,13 +92,13 @@ public class UserAPI extends API {
         HugeGraph g = graph(manager, graph);
         HugeUser user;
         try {
-            user = manager.userManager().getUser(UserAPI.parseId(id));
+            user = manager.authManager().getUser(UserAPI.parseId(id));
         } catch (NotFoundException e) {
             throw new IllegalArgumentException("Invalid user id: " + id);
         }
         user = jsonUser.build(user);
-        manager.userManager().updateUser(user);
-        return manager.serializer(g).writeUserElement(user);
+        manager.authManager().updateUser(user);
+        return manager.serializer(g).writeAuthElement(user);
     }
 
     @GET
@@ -109,8 +110,8 @@ public class UserAPI extends API {
         LOG.debug("Graph [{}] list users", graph);
 
         HugeGraph g = graph(manager, graph);
-        List<HugeUser> users = manager.userManager().listAllUsers(limit);
-        return manager.serializer(g).writeUserElements("users", users);
+        List<HugeUser> users = manager.authManager().listAllUsers(limit);
+        return manager.serializer(g).writeAuthElements("users", users);
     }
 
     @GET
@@ -123,8 +124,8 @@ public class UserAPI extends API {
         LOG.debug("Graph [{}] get user: {}", graph, id);
 
         HugeGraph g = graph(manager, graph);
-        HugeUser user = manager.userManager().getUser(IdGenerator.of(id));
-        return manager.serializer(g).writeUserElement(user);
+        HugeUser user = manager.authManager().getUser(IdGenerator.of(id));
+        return manager.serializer(g).writeAuthElement(user);
     }
 
     @GET
@@ -136,8 +137,10 @@ public class UserAPI extends API {
                        @PathParam("id") String id) {
         LOG.debug("Graph [{}] get user role: {}", graph, id);
 
-        HugeUser user = manager.userManager().getUser(IdGenerator.of(id));
-        return manager.userManager().rolePermission(user).toJson();
+        @SuppressWarnings("unused") // just check if the graph exists
+        HugeGraph g = graph(manager, graph);
+        HugeUser user = manager.authManager().getUser(IdGenerator.of(id));
+        return manager.authManager().rolePermission(user).toJson();
     }
 
     @DELETE
@@ -149,8 +152,10 @@ public class UserAPI extends API {
                        @PathParam("id") String id) {
         LOG.debug("Graph [{}] delete user: {}", graph, id);
 
+        @SuppressWarnings("unused") // just check if the graph exists
+        HugeGraph g = graph(manager, graph);
         try {
-            manager.userManager().deleteUser(IdGenerator.of(id));
+            manager.authManager().deleteUser(IdGenerator.of(id));
         } catch (NotFoundException e) {
             throw new IllegalArgumentException("Invalid user id: " + id);
         }
@@ -204,15 +209,15 @@ public class UserAPI extends API {
 
         @Override
         public void checkCreate(boolean isBatch) {
-            E.checkArgumentNotNull(this.name,
-                                   "The name of user can't be null");
-            E.checkArgumentNotNull(this.password,
-                                   "The password of user can't be null");
+            E.checkArgument(!StringUtils.isEmpty(this.name),
+                            "The name of user can't be null");
+            E.checkArgument(!StringUtils.isEmpty(this.password),
+                            "The password of user can't be null");
         }
 
         @Override
         public void checkUpdate() {
-            E.checkArgument(this.password != null ||
+            E.checkArgument(!StringUtils.isEmpty(this.password) ||
                             this.phone != null ||
                             this.email != null ||
                             this.avatar != null,

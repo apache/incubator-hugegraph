@@ -28,6 +28,7 @@ import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.exception.ExistedException;
 import com.baidu.hugegraph.exception.NotAllowException;
 import com.baidu.hugegraph.exception.NotFoundException;
+import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.Userdata;
 import com.baidu.hugegraph.type.HugeType;
@@ -35,6 +36,7 @@ import com.baidu.hugegraph.type.define.Action;
 import com.baidu.hugegraph.type.define.AggregateType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
+import com.baidu.hugegraph.type.define.ReadFrequency;
 import com.baidu.hugegraph.util.E;
 
 public class PropertyKeyBuilder extends AbstractBuilder
@@ -45,6 +47,7 @@ public class PropertyKeyBuilder extends AbstractBuilder
     private DataType dataType;
     private Cardinality cardinality;
     private AggregateType aggregateType;
+    private ReadFrequency readFrequency;
     private boolean checkExist;
     private Userdata userdata;
 
@@ -57,6 +60,7 @@ public class PropertyKeyBuilder extends AbstractBuilder
         this.dataType = DataType.TEXT;
         this.cardinality = Cardinality.SINGLE;
         this.aggregateType = AggregateType.NONE;
+        this.readFrequency = ReadFrequency.OLTP;
         this.userdata = new Userdata();
         this.checkExist = true;
     }
@@ -70,6 +74,7 @@ public class PropertyKeyBuilder extends AbstractBuilder
         this.dataType = copy.dataType();
         this.cardinality = copy.cardinality();
         this.aggregateType = copy.aggregateType();
+        this.readFrequency = copy.readFrequency();
         this.userdata = new Userdata(copy.userdata());
         this.checkExist = false;
     }
@@ -82,6 +87,7 @@ public class PropertyKeyBuilder extends AbstractBuilder
         propertyKey.dataType(this.dataType);
         propertyKey.cardinality(this.cardinality);
         propertyKey.aggregateType(this.aggregateType);
+        propertyKey.readFrequency(this.readFrequency);
         propertyKey.userdata(this.userdata);
         return propertyKey;
     }
@@ -103,6 +109,7 @@ public class PropertyKeyBuilder extends AbstractBuilder
 
             Userdata.check(this.userdata, Action.INSERT);
             this.checkAggregateType();
+            this.checkOlap();
 
             propertyKey = this.build();
             assert propertyKey.name().equals(name);
@@ -132,6 +139,10 @@ public class PropertyKeyBuilder extends AbstractBuilder
 
         // aggregateType is enum
         if (this.aggregateType != propertyKey.aggregateType()) {
+            return false;
+        }
+
+        if (this.readFrequency != propertyKey.readFrequency()) {
             return false;
         }
 
@@ -290,6 +301,24 @@ public class PropertyKeyBuilder extends AbstractBuilder
     }
 
     @Override
+    public PropertyKey.Builder calcSet() {
+        this.aggregateType = AggregateType.SET;
+        return this;
+    }
+
+    @Override
+    public PropertyKey.Builder calcList() {
+        this.aggregateType = AggregateType.LIST;
+        return this;
+    }
+
+    @Override
+    public PropertyKey.Builder readFrequency(ReadFrequency readFrequency) {
+        this.readFrequency = readFrequency;
+        return this;
+    }
+
+    @Override
     public PropertyKeyBuilder userdata(String key, Object value) {
         this.userdata.put(key, value);
         return this;
@@ -347,7 +376,15 @@ public class PropertyKeyBuilder extends AbstractBuilder
             return;
         }
 
-        if (this.cardinality != Cardinality.SINGLE) {
+        if (this.aggregateType.isSet() &&
+            this.cardinality == Cardinality.SET ||
+            this.aggregateType.isList() &&
+            this.cardinality == Cardinality.LIST) {
+            return;
+        }
+
+        if (this.cardinality != Cardinality.SINGLE ||
+            this.aggregateType.isUnion()) {
             throw new NotAllowException("Not allowed to set aggregate type " +
                                         "'%s' for property key '%s' with " +
                                         "cardinality '%s'",
@@ -355,12 +392,38 @@ public class PropertyKeyBuilder extends AbstractBuilder
                                         this.cardinality);
         }
 
+        if (this.aggregateType.isSum() && this.dataType.isDate()) {
+            throw new NotAllowException(
+                      "Not allowed to set aggregate type '%s' for " +
+                      "property key '%s' with data type '%s'",
+                      this.aggregateType, this.name, this.dataType);
+        }
+
+
         if (this.aggregateType.isNumber() &&
             !this.dataType.isNumber() && !this.dataType.isDate()) {
             throw new NotAllowException(
                       "Not allowed to set aggregate type '%s' for " +
                       "property key '%s' with data type '%s'",
                       this.aggregateType, this.name, this.dataType);
+        }
+    }
+
+    private void checkOlap() {
+        if (this.readFrequency == ReadFrequency.OLTP) {
+            return;
+        }
+
+        if (!this.graph().backendStoreFeatures().supportsOlapProperties()) {
+            throw new NotSupportException(
+                      "olap property key '%s' for backend '%s'",
+                      this.name, this.graph().backend());
+        }
+
+        if (!this.aggregateType.isNone()) {
+            throw new NotAllowException(
+                      "Not allow to set aggregate type '%s' for olap " +
+                      "property key '%s'", this.aggregateType, this.name);
         }
     }
 }

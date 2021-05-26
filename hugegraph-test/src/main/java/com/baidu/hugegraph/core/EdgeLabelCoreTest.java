@@ -766,6 +766,31 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
     }
 
     @Test
+    public void testAppendEdgeLabelWithSkAsNullableProperties() {
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+        schema.vertexLabel("person")
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .create();
+        schema.vertexLabel("book").properties("id", "name")
+              .primaryKeys("id").create();
+        schema.edgeLabel("look")
+              .properties("time")
+              .link("person", "book")
+              .multiTimes().sortKeys("time")
+              .create();
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.edgeLabel("look")
+                  .properties("time", "weight")
+                  .nullableKeys("time", "weight")
+                  .append();
+        });
+
+    }
+
+    @Test
     public void testRemoveEdgeLabel() {
         super.initPropertyKeys();
         SchemaManager schema = graph().schema();
@@ -1215,7 +1240,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
         Assert.assertTrue(edgeLabels.contains(write));
 
         // clear cache
-        params().schemaEventHub().call(Events.CACHE, "clear", null, null);
+        params().schemaEventHub().call(Events.CACHE, "clear", null);
 
         Assert.assertEquals(look, schema.getEdgeLabel("look"));
 

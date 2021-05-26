@@ -7,39 +7,67 @@
             <PatternLayout pattern="%-d{yyyy-MM-dd HH:mm:ss} %-5r [%t] [%-5p] %c %x - %m%n"/>
         </Console>
 
-        <RollingFile name="file" fileName="logs/hugegraph-example.log"
-                     filePattern="logs/$${date:yyyy-MM}/hugegraph-example-%d{yyyy-MM-dd}-%i.log">
+        <!-- Normal server log config -->
+        <RollingRandomAccessFile name="file" fileName="logs/hugegraph-example.log"
+            filePattern="logs/$${date:yyyy-MM}/hugegraph-example-%d{yyyy-MM-dd}-%i.log"
+            immediateFlush="false">
             <ThresholdFilter level="TRACE" onMatch="ACCEPT" onMismatch="DENY"/>
             <PatternLayout pattern="%-d{yyyy-MM-dd HH:mm:ss} %-5r [%t] [%-5p] %c %x - %m%n"/>
             <SizeBasedTriggeringPolicy size="50MB"/>
-        </RollingFile>
+        </RollingRandomAccessFile>
+
+        <!-- Separate audit log, buffer size is 512KB -->
+        <RollingRandomAccessFile name="audit" fileName="logs/audit-hugegraph-example.log"
+            filePattern="logs/$${date:yyyy-MM}/audit-hugegraph-example-%d{yyyy-MM-dd}-%i.log"
+            bufferSize="524288" immediateFlush="false">
+            <ThresholdFilter level="TRACE" onMatch="ACCEPT" onMismatch="DENY"/>
+            <!-- Use simple format for audit log to speed up -->
+            <PatternLayout pattern="%-d{yyyy-MM-dd HH:mm:ss} - %m%n"/>
+            <SizeBasedTriggeringPolicy size="50MB"/>
+        </RollingRandomAccessFile>
     </appenders>
+
     <loggers>
         <root level="INFO">
             <appender-ref ref="console"/>
             <appender-ref ref="file"/>
         </root>
         <logger name="org.apache.cassandra" level="INFO" additivity="false">
-            <appender-ref ref="file"/>
-        </logger>
-        <logger name="org.apache.hadoop" level="INFO" additivity="false">
-            <appender-ref ref="file"/>
-        </logger>
-        <logger name="com.datastax.driver" level="WARN" additivity="false">
-            <appender-ref ref="file"/>
-        </logger>
-        <logger name="io.netty" level="INFO" additivity="false">
-            <appender-ref ref="file"/>
-        </logger>
-        <logger name="org.apache.commons" level="INFO" additivity="false">
-            <appender-ref ref="file"/>
-        </logger>
-        <logger name="org.apdplat.word" level="WARN" additivity="false">
-            <appender-ref ref="file"/>
-        </logger>
-        <logger name="com.baidu.hugegraph" level="INFO" additivity="false">
             <appender-ref ref="console"/>
             <appender-ref ref="file"/>
         </logger>
+        <logger name="org.apache.hadoop" level="INFO" additivity="false">
+            <appender-ref ref="console"/>
+            <appender-ref ref="file"/>
+        </logger>
+        <logger name="org.apache.zookeeper" level="WARN" additivity="false">
+            <appender-ref ref="console"/>
+            <appender-ref ref="file"/>
+        </logger>
+        <logger name="com.datastax.driver" level="WARN" additivity="false">
+            <appender-ref ref="console"/>
+            <appender-ref ref="file"/>
+        </logger>
+        <logger name="com.alipay.sofa" level="WARN" additivity="false">
+            <appender-ref ref="console"/>
+            <appender-ref ref="file"/>
+        </logger>
+        <logger name="io.netty" level="INFO" additivity="false">
+            <appender-ref ref="console"/>
+            <appender-ref ref="file"/>
+        </logger>
+        <logger name="org.apache.commons" level="INFO" additivity="false">
+            <appender-ref ref="console"/>
+            <appender-ref ref="file"/>
+        </logger>
+        <!-- Use mixed async way to output logs -->
+        <AsyncLogger name="com.baidu.hugegraph" level="INFO" additivity="false">
+            <appender-ref ref="console"/>
+            <appender-ref ref="file"/>
+        </AsyncLogger>
+        <AsyncLogger name="com.baidu.hugegraph.auth" level="INFO" additivity="false">
+            <appender-ref ref="console"/>
+            <appender-ref ref="audit"/>
+        </AsyncLogger>
     </loggers>
 </configuration>

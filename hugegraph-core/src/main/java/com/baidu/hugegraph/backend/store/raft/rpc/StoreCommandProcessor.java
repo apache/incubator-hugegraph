@@ -25,7 +25,7 @@ import com.alipay.sofa.jraft.rpc.RpcRequestClosure;
 import com.alipay.sofa.jraft.rpc.RpcRequestProcessor;
 import com.baidu.hugegraph.backend.store.raft.RaftNode;
 import com.baidu.hugegraph.backend.store.raft.RaftSharedContext;
-import com.baidu.hugegraph.backend.store.raft.StoreClosure;
+import com.baidu.hugegraph.backend.store.raft.RaftStoreClosure;
 import com.baidu.hugegraph.backend.store.raft.StoreCommand;
 import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction;
 import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandRequest;
@@ -54,7 +54,7 @@ public class StoreCommandProcessor
         RaftNode node = this.context.node();
         try {
             StoreCommand command = this.parseStoreCommand(request);
-            StoreClosure closure = new StoreClosure(command);
+            RaftStoreClosure closure = new RaftStoreClosure(command);
             node.submitAndWait(command, closure);
             return StoreCommandResponse.newBuilder().setStatus(true).build();
         } catch (Throwable e) {
@@ -76,6 +76,6 @@ public class StoreCommandProcessor
         StoreType type = request.getType();
         StoreAction action = request.getAction();
         byte[] data = request.getData().toByteArray();
-        return new StoreCommand(type, action, data);
+        return new StoreCommand(type, action, data, true);
     }
 }

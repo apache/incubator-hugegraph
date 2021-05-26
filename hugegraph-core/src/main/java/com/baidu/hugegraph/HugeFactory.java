@@ -50,7 +50,7 @@ public class HugeFactory {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             LOG.info("HugeGraph is shutting down");
             HugeFactory.shutdown(30L);
-        }));
+        }, "hugegraph-shutdown"));
     }
 
     private static final String NAME_REGEX = "^[A-Za-z][A-Za-z0-9_]{0,47}$";
@@ -64,6 +64,16 @@ public class HugeFactory {
     }
 
     public static synchronized HugeGraph open(HugeConfig config) {
+        SecurityManager sm = System.getSecurityManager();
+        if (sm != null) {
+            // Not allowed to read file via Gremlin when SecurityManager enabled
+            String configFile = config.getFileName();
+            if (configFile == null) {
+                configFile = config.toString();
+            }
+            sm.checkRead(configFile);
+        }
+
         String name = config.get(CoreOptions.STORE);
         checkGraphName(name, "graph config(like hugegraph.properties)");
         name = name.toLowerCase();

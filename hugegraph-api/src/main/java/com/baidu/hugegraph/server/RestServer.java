@@ -23,10 +23,13 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
 import javax.ws.rs.core.UriBuilder;
 
+import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.NetworkListener;
 import org.glassfish.grizzly.ssl.SSLContextConfigurator;
@@ -70,23 +73,26 @@ public class RestServer {
     }
 
     private HttpServer configHttpServer(URI uri, ResourceConfig rc) {
+        String protocol = uri.getScheme();
         final HttpServer server;
-        String protocol = this.conf.get(ServerOptions.SERVER_PROTOCOL);
-        String keystoreServerFile = this.conf.get(ServerOptions.SERVER_KEYSTORE_FILE);
-        String keystoreServerPassword = this.conf.get(ServerOptions.SERVER_KEYSTORE_PASSWORD);
         if (protocol != null && protocol.equals("https")) {
             SSLContextConfigurator sslContext = new SSLContextConfigurator();
-            // set up security context
-            sslContext.setKeyStoreFile(keystoreServerFile);
-            sslContext.setKeyStorePass(keystoreServerPassword);
-            SSLEngineConfigurator sslEngineConfigurator = new SSLEngineConfigurator(sslContext)
-                                                              .setClientMode(false)
-                                                              .setWantClientAuth(true);
+            String keystoreFile = this.conf.get(
+                                  ServerOptions.SSL_KEYSTORE_FILE);
+            String keystorePass = this.conf.get(
+                                  ServerOptions.SSL_KEYSTORE_PASSWORD);
+            sslContext.setKeyStoreFile(keystoreFile);
+            sslContext.setKeyStorePass(keystorePass);
+            SSLEngineConfigurator sslConfig = new SSLEngineConfigurator(
+                                              sslContext);
+            sslConfig.setClientMode(false);
+            sslConfig.setWantClientAuth(true);
             server = GrizzlyHttpServerFactory.createHttpServer(uri, rc, true,
-                                                               sslEngineConfigurator);
+                                                               sslConfig);
         } else {
             server = GrizzlyHttpServerFactory.createHttpServer(uri, rc, false);
         }
+
         Collection<NetworkListener> listeners = server.getListeners();
         E.checkState(listeners.size() > 0,
                      "Http Server should have some listeners, but now is none");
@@ -114,7 +120,44 @@ public class RestServer {
 
     public Future<HttpServer> shutdown() {
         E.checkNotNull(this.httpServer, "http server");
-        return this.httpServer.shutdown();
+        /*
+         * Since 2.3.x shutdown() won't call shutdownNow(), so the event
+         * ApplicationEvent.Type.DESTROY_FINISHED also won't be triggered,
+         * which is listened by ApplicationConfig.GraphManagerFactory, we
+         * manually call shutdownNow() here when the future is completed.
+         * See shutdown() change:
+         * https://github.com/javaee/grizzly/commit/182d8bcb4e45de5609ab92f6f1d5980f95d79b04
+         * #diff-f6c130f38a1ec11bdf9d3cb7e0a81084c8788c79a00befe65e40a13bc989b098R388
+         */
+        CompletableFuture<HttpServer> future = new CompletableFuture<>();
+        future.whenComplete((server, exception) -> {
+            this.httpServer.shutdownNow();
+        });
+
+        GrizzlyFuture<HttpServer> grizzlyFuture = this.httpServer.shutdown();
+        grizzlyFuture.addCompletionHandler(new CompletionHandler<HttpServer>() {
+            @Override
+            public void cancelled() {
+                future.cancel(true);
+            }
+
+            @Override
+            public void failed(Throwable throwable) {
+                future.completeExceptionally(throwable);
+            }
+
+            @Override
+            public void completed(HttpServer result) {
+                future.complete(result);
+            }
+
+            @Override
+            public void updated(HttpServer result) {
+                // pass
+            }
+        });
+
+        return future;
     }
 
     public void shutdownNow() {
@@ -160,7 +203,8 @@ public class RestServer {
         }
         LOG.info("The maximum batch writing threads is {} (total threads {})",
                  maxWriteThreads, maxWorkerThreads);
-        this.conf.addProperty(ServerOptions.MAX_WRITE_THREADS.name(),
+        // NOTE: addProperty will make exist option's value become List
+        this.conf.setProperty(ServerOptions.MAX_WRITE_THREADS.name(),
                               String.valueOf(maxWriteThreads));
     }
 

@@ -19,14 +19,11 @@
 
 package com.baidu.hugegraph.task;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -35,6 +32,8 @@ import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraphParams;
+import com.baidu.hugegraph.concurrent.PausableScheduledThreadPool;
+import com.baidu.hugegraph.util.Consumers;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.ExecutorUtil;
 import com.baidu.hugegraph.util.LockUtil;
@@ -60,7 +59,7 @@ public final class TaskManager {
     private final ExecutorService taskExecutor;
     private final ExecutorService taskDbExecutor;
     private final ExecutorService serverInfoDbExecutor;
-    private final ScheduledExecutorService schedulerExecutor;
+    private final PausableScheduledThreadPool schedulerExecutor;
 
     public static TaskManager instance() {
         return MANAGER;
@@ -77,7 +76,7 @@ public final class TaskManager {
         this.serverInfoDbExecutor = ExecutorUtil.newFixedThreadPool(
                                     1, SERVER_INFO_DB_WORKER);
         // For schedule task to run, just one thread is ok
-        this.schedulerExecutor = ExecutorUtil.newScheduledThreadPool(
+        this.schedulerExecutor = ExecutorUtil.newPausableScheduledThreadPool(
                                  1, TASK_SCHEDULER);
         // Start after 10s waiting for HugeGraphServer startup
         this.schedulerExecutor.scheduleWithFixedDelay(this::scheduleOrExecuteJob,
@@ -89,7 +88,7 @@ public final class TaskManager {
         E.checkArgumentNotNull(graph, "The graph can't be null");
 
         TaskScheduler scheduler = new StandardTaskScheduler(graph,
-                                  this.taskExecutor,this.taskDbExecutor,
+                                  this.taskExecutor, this.taskDbExecutor,
                                   this.serverInfoDbExecutor);
         this.schedulers.put(graph, scheduler);
     }
@@ -127,42 +126,14 @@ public final class TaskManager {
     private void closeTaskTx(HugeGraphParams graph) {
         final boolean selfIsTaskWorker = Thread.currentThread().getName()
                                                .startsWith(TASK_WORKER_PREFIX);
-        final Map<Thread, Integer> threadsTimes = new ConcurrentHashMap<>();
-        final List<Callable<Void>> tasks = new ArrayList<>();
         final int totalThreads = selfIsTaskWorker ? THREADS - 1 : THREADS;
-
-        final Callable<Void> closeTx = () -> {
-            Thread current = Thread.currentThread();
-            threadsTimes.putIfAbsent(current, 0);
-            int times = threadsTimes.get(current);
-            if (times == 0) {
-                // Do close-tx for current thread
-                graph.closeTx();
-                // Let other threads run
-                Thread.yield();
-            } else {
-                assert times < totalThreads;
-                assert threadsTimes.size() < totalThreads;
-                E.checkState(tasks.size() == totalThreads,
-                             "Bad tasks size: %s", tasks.size());
-                // Let another thread run and wait for it
-                this.taskExecutor.submit(tasks.get(0)).get();
-            }
-            threadsTimes.put(current, ++times);
-            return null;
-        };
-
-        // NOTE: expect each task thread to perform a close operation
-        for (int i = 0; i < totalThreads; i++) {
-            tasks.add(closeTx);
-        }
-
         try {
             if (selfIsTaskWorker) {
                 // Call closeTx directly if myself is task thread(ignore others)
-                closeTx.call();
+                graph.closeTx();
             } else {
-                this.taskExecutor.invokeAll(tasks);
+                Consumers.executeOncePerThread(this.taskExecutor, totalThreads,
+                                               graph::closeTx);
             }
         } catch (Exception e) {
             throw new HugeException("Exception when closing task tx", e);
@@ -177,12 +148,19 @@ public final class TaskManager {
             Thread.yield();
             return null;
         };
-
         try {
             this.schedulerExecutor.submit(closeTx).get();
         } catch (Exception e) {
             throw new HugeException("Exception when closing scheduler tx", e);
         }
+    }
+
+    public void pauseScheduledThreadPool() {
+        this.schedulerExecutor.pauseSchedule();
+    }
+
+    public void resumeScheduledThreadPool() {
+        this.schedulerExecutor.resumeSchedule();
     }
 
     public TaskScheduler getScheduler(HugeGraphParams graph) {

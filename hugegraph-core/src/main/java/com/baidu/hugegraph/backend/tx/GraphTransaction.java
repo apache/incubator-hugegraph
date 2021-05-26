@@ -32,6 +32,8 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import javax.ws.rs.ForbiddenException;
+
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Element;
@@ -70,8 +72,10 @@ import com.baidu.hugegraph.iterator.BatchMapperIterator;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.iterator.FilterIterator;
 import com.baidu.hugegraph.iterator.FlatMapperIterator;
+import com.baidu.hugegraph.iterator.LimitIterator;
 import com.baidu.hugegraph.iterator.ListIterator;
 import com.baidu.hugegraph.iterator.MapperIterator;
+import com.baidu.hugegraph.iterator.WrappedIterator;
 import com.baidu.hugegraph.job.system.DeleteExpiredJob;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.EdgeLabel;
@@ -747,7 +751,7 @@ public class GraphTransaction extends IndexableTransaction {
 
         @SuppressWarnings("unchecked")
         Iterator<Vertex> r = (Iterator<Vertex>) joinTxVertices(query, results);
-        return this.filterOffsetLimitRecords(r, query);
+        return this.skipOffsetOrStopLimit(r, query);
     }
 
     protected Iterator<HugeVertex> queryVerticesFromBackend(Query query) {
@@ -930,7 +934,7 @@ public class GraphTransaction extends IndexableTransaction {
         @SuppressWarnings("unchecked")
         Iterator<Edge> r = (Iterator<Edge>) joinTxEdges(query, results,
                                                         this.removedVertices);
-        return this.filterOffsetLimitRecords(r, query);
+        return this.skipOffsetOrStopLimit(r, query);
     }
 
     protected Iterator<HugeEdge> queryEdgesFromBackend(Query query) {
@@ -1599,7 +1603,7 @@ public class GraphTransaction extends IndexableTransaction {
             }
             // Process results that query from left index or primary-key
             if (query.resultType().isVertex() == elem.type().isVertex() &&
-                !filterResultFromIndexQuery(query, elem)) {
+                !rightResultFromIndexQuery(query, elem)) {
                 // Only index query will come here
                 return false;
             }
@@ -1607,7 +1611,7 @@ public class GraphTransaction extends IndexableTransaction {
         });
     }
 
-    private boolean filterResultFromIndexQuery(Query query, HugeElement elem) {
+    private boolean rightResultFromIndexQuery(Query query, HugeElement elem) {
         /*
          * If query is ConditionQuery or query.originQuery() is ConditionQuery
          * means it's index query
@@ -1637,8 +1641,24 @@ public class GraphTransaction extends IndexableTransaction {
         return false;
     }
 
-    private <T> Iterator<T> filterOffsetLimitRecords(Iterator<T> results,
-                                                     Query query) {
+    private <T extends HugeElement> Iterator<T>
+                                    filterExpiredResultFromFromBackend(
+                                    Query query, Iterator<T> results) {
+        if (this.store().features().supportsTtl() || query.showExpired()) {
+            return results;
+        }
+        // Filter expired vertices/edges with TTL
+        return new FilterIterator<>(results, elem -> {
+            if (elem.expired()) {
+                DeleteExpiredJob.asyncDeleteExpiredObject(this.graph(), elem);
+                return false;
+            }
+            return true;
+        });
+    }
+
+    private <T> Iterator<T> skipOffsetOrStopLimit(Iterator<T> results,
+                                                  Query query) {
         if (query.noLimitAndOffset()) {
             return results;
         }
@@ -1655,26 +1675,10 @@ public class GraphTransaction extends IndexableTransaction {
                 query.goOffset(1L);
             }
         }
-        // Filter limit
-        return new FilterIterator<>(results, elem -> {
+        // Stop if reach limit
+        return new LimitIterator<>(results, elem -> {
             long count = query.goOffset(1L);
-            return !query.reachLimit(count - 1L);
-        });
-    }
-
-    private <T extends HugeElement> Iterator<T>
-                                    filterExpiredResultFromFromBackend(
-                                    Query query, Iterator<T> results) {
-        if (this.store().features().supportsTtl() || query.showExpired()) {
-            return results;
-        }
-        // Filter expired vertices/edges with TTL
-        return new FilterIterator<>(results, elem -> {
-            if (elem.expired()) {
-                DeleteExpiredJob.asyncDeleteExpiredObject(this.params(), elem);
-                return false;
-            }
-            return true;
+            return query.reachLimit(count - 1L);
         });
     }
 
@@ -1814,6 +1818,12 @@ public class GraphTransaction extends IndexableTransaction {
             HugeVertex vertex = this.serializer.readVertex(graph(), entry);
             assert vertex != null;
             return vertex;
+        } catch (ForbiddenException | SecurityException e) {
+            /*
+             * Can't ignore permission exception here, otherwise users will
+             * be confused to treat as the record does not exist.
+             */
+            throw e;
         } catch (Throwable e) {
             LOG.error("Failed to parse entry: {}", entry, e);
             if (this.ignoreInvalidEntry) {

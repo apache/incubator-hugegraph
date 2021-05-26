@@ -125,18 +125,6 @@ public class StandardTaskScheduler implements TaskScheduler {
         return this.tasks.size();
     }
 
-    @Override
-    public int taskInputSizeLimit() {
-        return this.graph.configuration()
-                         .get(CoreOptions.TASK_INPUT_SIZE_LIMIT).intValue();
-    }
-
-    @Override
-    public int taskResultSizeLimit() {
-        return this.graph.configuration()
-                         .get(CoreOptions.TASK_RESULT_SIZE_LIMIT).intValue();
-    }
-
     private TaskTransaction tx() {
         // NOTE: only the owner thread can access task tx
         if (this.taskTx == null) {
@@ -217,6 +205,15 @@ public class StandardTaskScheduler implements TaskScheduler {
     public <V> Future<?> schedule(HugeTask<V> task) {
         E.checkArgumentNotNull(task, "Task can't be null");
 
+        if (task.status() == TaskStatus.QUEUED) {
+            /*
+             * Just submit to queue if status=QUEUED (means re-schedule task)
+             * NOTE: schedule() method may be called multi times by
+             * HugeTask.checkDependenciesSuccess() method
+             */
+            return this.resubmitTask(task);
+        }
+
         if (task.callable() instanceof EphemeralJob) {
             /*
              * Due to EphemeralJob won't be serialized and deserialized through
@@ -261,6 +258,16 @@ public class StandardTaskScheduler implements TaskScheduler {
         this.initTaskCallable(task);
         assert !this.tasks.containsKey(task.id()) : task;
         this.tasks.put(task.id(), task);
+        return this.taskExecutor.submit(task);
+    }
+
+    private <V> Future<?> resubmitTask(HugeTask<V> task) {
+        E.checkArgument(task.status() == TaskStatus.QUEUED,
+                        "Can't resubmit task '%s' with status %s",
+                        task.id(), TaskStatus.QUEUED);
+        E.checkArgument(this.tasks.containsKey(task.id()),
+                        "Can't resubmit task '%s' not been submitted before",
+                        task.id());
         return this.taskExecutor.submit(task);
     }
 
@@ -437,10 +444,14 @@ public class StandardTaskScheduler implements TaskScheduler {
     protected void taskDone(HugeTask<?> task) {
         this.remove(task);
 
-        this.serverManager().decreaseLoad(task.load());
-
-        LOG.debug("Task '{}' done on server '{}'",
-                  task.id(), this.serverManager().selfServerId());
+        Id selfServerId = this.serverManager().selfServerId();
+        try {
+            this.serverManager().decreaseLoad(task.load());
+        } catch (Throwable e) {
+            LOG.error("Failed to decrease load for task '{}' on server '{}'",
+                      task.id(), selfServerId, e);
+        }
+        LOG.debug("Task '{}' done on server '{}'", task.id(), selfServerId);
     }
 
     protected void remove(HugeTask<?> task) {
@@ -657,6 +668,11 @@ public class StandardTaskScheduler implements TaskScheduler {
         throw new TimeoutException(String.format(
                   "There are still %s incomplete tasks after %s seconds",
                   taskSize, seconds));
+    }
+
+    @Override
+    public void checkRequirement(String op) {
+        this.checkOnMasterNode(op);
     }
 
     private <V> Iterator<HugeTask<V>> queryTask(String key, Object value,

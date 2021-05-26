@@ -21,13 +21,20 @@ package com.baidu.hugegraph.io;
 
 import java.io.File;
 import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.tinkerpop.gremlin.process.traversal.Path;
+import org.apache.tinkerpop.gremlin.process.traversal.step.util.Tree;
+import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.io.graphson.GraphSONIo;
+import org.apache.tinkerpop.gremlin.structure.io.graphson.GraphSONTokens;
 import org.apache.tinkerpop.gremlin.structure.io.graphson.TinkerPopJacksonModule;
 import org.apache.tinkerpop.shaded.jackson.core.JsonGenerator;
 import org.apache.tinkerpop.shaded.jackson.core.JsonParser;
@@ -53,7 +60,6 @@ import com.baidu.hugegraph.backend.id.IdGenerator.LongId;
 import com.baidu.hugegraph.backend.id.IdGenerator.StringId;
 import com.baidu.hugegraph.backend.id.IdGenerator.UuidId;
 import com.baidu.hugegraph.backend.store.Shard;
-import com.baidu.hugegraph.date.SafeDateFormat;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -70,9 +76,9 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
 
     private static final long serialVersionUID = 6480426922914059122L;
 
-    public static boolean OPTIMIZE_SERIALIZE = true;
-
     private static final String TYPE_NAMESPACE = "hugegraph";
+
+    private static boolean OPTIMIZE_SERIALIZE = true;
 
     @SuppressWarnings("rawtypes")
     private static final Map<Class, String> TYPE_DEFINITIONS;
@@ -80,8 +86,9 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
     private static final GraphSONSchemaSerializer schemaSerializer =
                          new GraphSONSchemaSerializer();
 
+    // NOTE: jackson will synchronize DateFormat
     private static final String DF = "yyyy-MM-dd HH:mm:ss.SSS";
-    private static final SafeDateFormat DATE_FORMAT = new SafeDateFormat(DF);
+    private static final DateFormat DATE_FORMAT = new SimpleDateFormat(DF);
 
     static {
         TYPE_DEFINITIONS = new ConcurrentHashMap<>();
@@ -198,6 +205,9 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
          */
         module.addSerializer(HugeVertex.class, new HugeVertexSerializer());
         module.addSerializer(HugeEdge.class, new HugeEdgeSerializer());
+
+        module.addSerializer(Path.class, new PathSerializer());
+        module.addSerializer(Tree.class, new TreeSerializer());
     }
 
     @SuppressWarnings("rawtypes")
@@ -485,6 +495,49 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         }
     }
 
+    private static class PathSerializer extends StdSerializer<Path> {
+
+        public PathSerializer() {
+            super(Path.class);
+        }
+
+        @Override
+        public void serialize(Path path, JsonGenerator jsonGenerator,
+                              SerializerProvider provider) throws IOException {
+            jsonGenerator.writeStartObject();
+            jsonGenerator.writeObjectField(GraphSONTokens.LABELS,
+                                           path.labels());
+            jsonGenerator.writeObjectField(GraphSONTokens.OBJECTS,
+                                           path.objects());
+            jsonGenerator.writeEndObject();
+        }
+    }
+
+    @SuppressWarnings("rawtypes") // Tree<T>
+    private static class TreeSerializer extends StdSerializer<Tree> {
+
+        public TreeSerializer() {
+            super(Tree.class);
+        }
+
+        @Override
+        public void serialize(Tree tree, JsonGenerator jsonGenerator,
+                              SerializerProvider provider) throws IOException {
+            jsonGenerator.writeStartArray();
+            @SuppressWarnings("unchecked")
+            Set<Map.Entry<Element, Tree>> set = tree.entrySet();
+            for (Map.Entry<Element, Tree> entry : set) {
+                jsonGenerator.writeStartObject();
+                jsonGenerator.writeObjectField(GraphSONTokens.KEY,
+                                               entry.getKey());
+                jsonGenerator.writeObjectField(GraphSONTokens.VALUE,
+                                               entry.getValue());
+                jsonGenerator.writeEndObject();
+            }
+            jsonGenerator.writeEndArray();
+        }
+    }
+
     private static class ShardSerializer extends StdSerializer<Shard> {
 
         public ShardSerializer() {
@@ -493,8 +546,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
 
         @Override
         public void serialize(Shard shard, JsonGenerator jsonGenerator,
-                              SerializerProvider provider)
-                              throws IOException {
+                              SerializerProvider provider) throws IOException {
             jsonGenerator.writeStartObject();
             jsonGenerator.writeStringField("start", shard.start());
             jsonGenerator.writeStringField("end", shard.end());
@@ -511,8 +563,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
 
         @Override
         public void serialize(File file, JsonGenerator jsonGenerator,
-                              SerializerProvider provider)
-                              throws IOException {
+                              SerializerProvider provider) throws IOException {
             jsonGenerator.writeStartObject();
             jsonGenerator.writeStringField("file", file.getName());
             jsonGenerator.writeEndObject();
@@ -527,8 +578,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
 
         @Override
         public void serialize(Blob blob, JsonGenerator jsonGenerator,
-                              SerializerProvider provider)
-                              throws IOException {
+                              SerializerProvider provider) throws IOException {
             jsonGenerator.writeBinary(blob.bytes());
         }
     }

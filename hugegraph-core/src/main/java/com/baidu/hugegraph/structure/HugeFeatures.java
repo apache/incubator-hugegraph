@@ -21,7 +21,6 @@ package com.baidu.hugegraph.structure;
 
 import java.util.UUID;
 
-import org.apache.commons.configuration.Configuration;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.structure.util.FeatureDescriptor;
@@ -30,7 +29,6 @@ import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.config.CoreOptions;
-import com.baidu.hugegraph.config.HugeConfig;
 
 public class HugeFeatures implements Graph.Features {
 
@@ -279,8 +277,8 @@ public class HugeFeatures implements Graph.Features {
         }
 
         public String defaultLabel() {
-            Configuration conf = HugeFeatures.this.graph.configuration();
-            return ((HugeConfig) conf).get(CoreOptions.VERTEX_DEFAULT_LABEL);
+            return HugeFeatures.this.graph
+                               .option(CoreOptions.VERTEX_DEFAULT_LABEL);
         }
     }
 

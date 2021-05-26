@@ -364,6 +364,11 @@ public abstract class InMemoryDBStore
         }
 
         @Override
+        public boolean supportsSharedStorage() {
+            return false;
+        }
+
+        @Override
         public boolean supportsScanToken() {
             return false;
         }
@@ -459,6 +464,11 @@ public abstract class InMemoryDBStore
 
         @Override
         public boolean supportsTtl() {
+            return false;
+        }
+
+        @Override
+        public boolean supportsOlapProperties() {
             return false;
         }
     };

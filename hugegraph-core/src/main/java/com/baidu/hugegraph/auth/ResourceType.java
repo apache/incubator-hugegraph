@@ -49,6 +49,8 @@ public enum ResourceType {
 
     INDEX_LABEL, // include create/rebuild/delete index
 
+    SCHEMA,
+
     META,
 
     ALL,
@@ -59,14 +61,33 @@ public enum ResourceType {
 
     TARGET,
 
+    METRICS,
+
     ROOT;
 
-    public boolean match(ResourceType type) {
-        if (this == type || this == ROOT ||
-            (this == ALL && type.ordinal() <= ALL.ordinal())) {
+    public boolean match(ResourceType required) {
+        if (this == required) {
             return true;
         }
-        return this == type;
+
+        switch (required) {
+            case NONE:
+                return this != NONE;
+            default:
+                break;
+        }
+
+        switch (this) {
+            case ROOT:
+            case ALL:
+                return this.ordinal() >= required.ordinal();
+            case SCHEMA:
+                return required.isSchema();
+            default:
+                break;
+        }
+
+        return false;
     }
 
     public boolean isGraph() {
@@ -76,20 +97,20 @@ public enum ResourceType {
 
     public boolean isSchema() {
         int ord = this.ordinal();
-        return PROPERTY_KEY.ordinal() <= ord && ord <= INDEX_LABEL.ordinal();
+        return PROPERTY_KEY.ordinal() <= ord && ord <= SCHEMA.ordinal();
     }
 
-    public boolean isUsers() {
+    public boolean isAuth() {
         int ord = this.ordinal();
         return GRANT.ordinal() <= ord && ord <= TARGET.ordinal();
     }
 
     public boolean isGrantOrUser() {
-        return this == GRANT && this == USER_GROUP;
+        return this == GRANT || this == USER_GROUP;
     }
 
-    public boolean isAny() {
-        return this == ALL || this == ROOT;
+    public boolean isRepresentative() {
+        return this == ROOT || this == ALL || this == SCHEMA;
     }
 
     public static ResourceType from(HugeType type) {

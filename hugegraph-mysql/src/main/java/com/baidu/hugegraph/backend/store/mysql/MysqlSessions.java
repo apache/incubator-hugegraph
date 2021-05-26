@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.stream.IntStream;
 
 import org.apache.http.client.utils.URIBuilder;
+import org.apache.logging.log4j.util.Strings;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.backend.BackendException;
@@ -213,13 +214,7 @@ public class MysqlSessions extends BackendSessionPool {
 
     protected String buildUri(boolean withConnParams, boolean withDB,
                               boolean autoReconnect, Integer timeout) {
-        String url = this.config.get(MysqlOptions.JDBC_URL);
-        if (!url.endsWith("/")) {
-            url = String.format("%s/", url);
-        }
-        if (withDB) {
-            url = String.format("%s%s", url, this.database());
-        }
+        String url = this.buildUrlPrefix(withDB);
 
         int maxTimes = this.config.get(MysqlOptions.JDBC_RECONNECT_MAX_TIMES);
         int interval = this.config.get(MysqlOptions.JDBC_RECONNECT_INTERVAL);
@@ -241,11 +236,25 @@ public class MysqlSessions extends BackendSessionPool {
         return builder.toString();
     }
 
+    protected String buildUrlPrefix(boolean withDB) {
+        String url = this.config.get(MysqlOptions.JDBC_URL);
+        if (!url.endsWith("/")) {
+            url = String.format("%s/", url);
+        }
+        String database = withDB ? this.database() : this.connectDatabase();
+        return String.format("%s%s", url, database);
+    }
+
+    protected String connectDatabase() {
+        return Strings.EMPTY;
+    }
+
     protected URIBuilder newConnectionURIBuilder() {
         return new URIBuilder();
     }
 
     private Connection connect(String url) throws SQLException {
+        LOG.info("Connect to the jdbc url: '{}'", url);
         String driverName = this.config.get(MysqlOptions.JDBC_DRIVER);
         String username = this.config.get(MysqlOptions.JDBC_USERNAME);
         String password = this.config.get(MysqlOptions.JDBC_PASSWORD);

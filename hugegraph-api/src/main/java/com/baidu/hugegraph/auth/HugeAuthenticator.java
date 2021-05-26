@@ -19,12 +19,9 @@
 
 package com.baidu.hugegraph.auth;
 
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.tinkerpop.gremlin.groovy.jsr223.dsl.credential.CredentialGraphTokens;
 import org.apache.tinkerpop.gremlin.server.auth.AuthenticatedUser;
@@ -34,10 +31,11 @@ import org.apache.tinkerpop.shaded.jackson.annotation.JsonProperty;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.auth.HugeGraphAuthProxy.Context;
-import com.baidu.hugegraph.auth.SchemaDefine.UserElement;
+import com.baidu.hugegraph.auth.SchemaDefine.AuthElement;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.OptionSpace;
 import com.baidu.hugegraph.config.ServerOptions;
+import com.baidu.hugegraph.type.Namifiable;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
 
@@ -66,7 +64,7 @@ public interface HugeAuthenticator extends Authenticator {
     public void setup(HugeConfig config);
 
     public RolePermission authenticate(String username, String password);
-    public UserManager userManager();
+    public AuthManager authManager();
 
     @Override
     public default void setup(final Map<String, Object> config) {
@@ -264,48 +262,25 @@ public interface HugeAuthenticator extends Authenticator {
             return this.roles.containsKey(owner);
         }
 
-        private boolean matchPermission(String owner,
-                                        Set<HugePermission> actions) {
-            // It's OK if owner and action are matched
-            if (owner == null) {
-                return true;
-            }
-            Map<HugePermission, Object> permissions = this.roles.get(owner);
-            if (permissions == null) {
-                return false;
-            }
-            if (permissions.keySet().containsAll(actions)) {
-                // All actions are matched (string equal)
-                return true;
-            }
-            for (HugePermission action : actions) {
-                if (!this.matchAction(action, permissions)) {
-                    // Permission denied for `action`
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        private boolean matchResource(HugePermission required,
-                                      ResourceObject<?> resourceObject) {
-            E.checkNotNull(resourceObject, "resource object");
+        private boolean matchResource(HugePermission requiredAction,
+                                      ResourceObject<?> requiredResource) {
+            E.checkNotNull(requiredResource, "resource object");
 
             /*
              * Is resource allowed to access by anyone?
              * TODO: only allowed resource of related type(USER/TASK/VAR),
              *       such as role VAR is allowed to access '~variables' label
              */
-            if (HugeResource.allowed(resourceObject)) {
+            if (HugeResource.allowed(requiredResource)) {
                 return true;
             }
 
-            String owner = resourceObject.graph();
+            String owner = requiredResource.graph();
             Map<HugePermission, Object> permissions = this.roles.get(owner);
             if (permissions == null) {
                 return false;
             }
-            Object permission = matchedAction(required, permissions);
+            Object permission = matchedAction(requiredAction, permissions);
             if (permission == null) {
                 // Deny all if no specified permission
                 return false;
@@ -319,30 +294,24 @@ public interface HugeAuthenticator extends Authenticator {
                 ress = HugeResource.parseResources(permission.toString());
             }
             for (HugeResource res : ress) {
-                if (res.filter(resourceObject)) {
+                if (res.filter(requiredResource)) {
                     return true;
                 }
             }
             return false;
         }
 
-        private boolean matchAction(HugePermission required,
-                                    Map<HugePermission, Object> permissions) {
-            if (required == null || permissions.containsKey(required)) {
-                return true;
-            }
-            return matchedAction(required, permissions) != null;
-        }
-
-        private Object matchedAction(HugePermission required,
-                                     Map<HugePermission, Object> permissions) {
-            Object matched = permissions.get(required);
+        private static Object matchedAction(HugePermission action,
+                                            Map<HugePermission, Object> perms) {
+            Object matched = perms.get(action);
             if (matched != null) {
                 return matched;
             }
-            for (Map.Entry<HugePermission, Object> e : permissions.entrySet()) {
+            for (Map.Entry<HugePermission, Object> e : perms.entrySet()) {
                 HugePermission permission = e.getKey();
-                if (required.match(permission)) {
+                // May be required = ANY
+                if (action.match(permission)) {
+                    // Return matched resource of corresponding action
                     return e.getValue();
                 }
             }
@@ -355,31 +324,22 @@ public interface HugeAuthenticator extends Authenticator {
             return new RolePerm((Map) table.map());
         }
 
-        public static boolean match(Object role, Object requiredPerm) {
+        public static boolean match(Object role, RequiredPerm requiredPerm) {
             if (role == ROLE_ADMIN) {
                 return true;
             }
             if (role == ROLE_NONE) {
                 return false;
             }
+
             RolePerm rolePerm = RolePerm.fromJson(role);
-            RoleAction roleAction;
-            if (requiredPerm instanceof RoleAction) {
-                roleAction = (RoleAction) requiredPerm;
-            } else {
-                // The required like: $owner=graph1 $action=vertex-write
-                String required = (String) requiredPerm;
-                if (!required.startsWith(KEY_OWNER)) {
-                    /*
-                     * The required parameter means the owner if not started
-                     * with ROLE_OWNER, any action is OK if the owner matched.
-                     */
-                    return rolePerm.matchOwner(required);
-                }
-                roleAction = RoleAction.fromPermission(required);
+
+            if (requiredPerm.action() == HugePermission.NONE) {
+                // None action means any action is OK if the owner matched
+                return rolePerm.matchOwner(requiredPerm.owner());
             }
-            return rolePerm.matchPermission(roleAction.owner(),
-                                            roleAction.actions());
+            return rolePerm.matchResource(requiredPerm.action(),
+                                          requiredPerm.resourceObject());
         }
 
         public static boolean match(Object role, HugePermission required,
@@ -404,7 +364,7 @@ public interface HugeAuthenticator extends Authenticator {
             }
 
             if (resourceObject != null) {
-                UserElement element = (UserElement) resourceObject.operated();
+                AuthElement element = (AuthElement) resourceObject.operated();
                 if (element instanceof HugeUser &&
                     ((HugeUser) element).name().equals(USER_ADMIN)) {
                     // Can't access admin by other users
@@ -417,19 +377,22 @@ public interface HugeAuthenticator extends Authenticator {
         }
     }
 
-    public static class RoleAction {
+    public static class RequiredPerm {
 
         @JsonProperty("owner")
         private String owner;
-        @JsonProperty("actions")
-        private Set<HugePermission> actions;
+        @JsonProperty("action")
+        private HugePermission action;
+        @JsonProperty("resource")
+        private ResourceType resource;
 
-        public RoleAction() {
+        public RequiredPerm() {
             this.owner = "";
-            this.actions = new HashSet<>();
+            this.action = HugePermission.NONE;
+            this.resource = ResourceType.NONE;
         }
 
-        public RoleAction owner(String owner) {
+        public RequiredPerm owner(String owner) {
             this.owner = owner;
             return this;
         }
@@ -438,15 +401,22 @@ public interface HugeAuthenticator extends Authenticator {
             return this.owner;
         }
 
-        public RoleAction action(String... actions) {
-            for (String action : actions) {
-                this.actions.add(parseAction(action));
-            }
+        public RequiredPerm action(String action) {
+            this.parseAction(action);
             return this;
         }
 
-        public Set<HugePermission> actions() {
-            return Collections.unmodifiableSet(this.actions);
+        public HugePermission action() {
+            return this.action;
+        }
+
+        public ResourceType resource() {
+            return this.resource;
+        }
+
+        public ResourceObject<?> resourceObject() {
+            Namifiable elem = HugeResource.NameObject.ANY;
+            return ResourceObject.of(this.owner, this.resource, elem);
         }
 
         @Override
@@ -454,39 +424,50 @@ public interface HugeAuthenticator extends Authenticator {
             return JsonUtil.toJson(this);
         }
 
-        private HugePermission parseAction(String action) {
+        private void parseAction(String action) {
             int offset = action.lastIndexOf('_');
             if (0 < offset && ++offset < action.length()) {
                 /*
                  * In order to be compatible with the old permission mechanism,
-                 * here is only to provide pre-control by extract the suffix of
-                 * action {vertex/edge/schema}_{read/write} like vertex_read.
+                 * here is only to provide pre-control by extract the
+                 * resource_action {vertex/edge/schema}_{read/write},
+                 * resource_action like vertex_read.
                  */
+                String resource = action.substring(0, offset - 1);
+                this.resource = ResourceType.valueOf(resource.toUpperCase());
                 action = action.substring(offset);
             }
-            return HugePermission.valueOf(action.toUpperCase());
+            this.action = HugePermission.valueOf(action.toUpperCase());
         }
 
         public static String roleFor(String owner, HugePermission perm) {
+            /*
+             * Construct required permission such as:
+             *  $owner=graph1 $action=read
+             *  (means required read permission of any one resource)
+             *
+             * In the future maybe also support:
+             *  $owner=graph1 $action=vertex_read
+             */
             return String.format("%s=%s %s=%s", KEY_OWNER, owner,
                                  KEY_ACTION, perm.string());
         }
 
-        public static RoleAction fromJson(String json) {
-            return JsonUtil.fromJson(json, RoleAction.class);
+        public static RequiredPerm fromJson(String json) {
+            return JsonUtil.fromJson(json, RequiredPerm.class);
         }
 
-        public static RoleAction fromPermission(String permission) {
+        public static RequiredPerm fromPermission(String permission) {
             // Permission format like: "$owner=$graph1 $action=vertex-write"
-            RoleAction roleAction = new RoleAction();
+            RequiredPerm requiredPerm = new RequiredPerm();
             String[] ownerAndAction = permission.split(" ");
             String[] ownerKV = ownerAndAction[0].split("=", 2);
             E.checkState(ownerKV.length == 2 && ownerKV[0].equals(KEY_OWNER),
                          "Bad permission format: '%s'", permission);
-            roleAction.owner(ownerKV[1]);
+            requiredPerm.owner(ownerKV[1]);
             if (ownerAndAction.length == 1) {
-                // Return owner if no action
-                return roleAction;
+                // Return owner if no action (means NONE)
+                return requiredPerm;
             }
 
             E.checkState(ownerAndAction.length == 2,
@@ -496,9 +477,9 @@ public interface HugeAuthenticator extends Authenticator {
                          "Bad permission format: '%s'", permission);
             E.checkState(actionKV[0].equals(StandardAuthenticator.KEY_ACTION),
                          "Bad permission format: '%s'", permission);
-            roleAction.action(actionKV[1]);
+            requiredPerm.action(actionKV[1]);
 
-            return roleAction;
+            return requiredPerm;
         }
     }
 }

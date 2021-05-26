@@ -33,6 +33,7 @@ import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.auth.HugeGraphAuthProxy.Context;
 import com.baidu.hugegraph.auth.HugeGraphAuthProxy.ContextThreadPoolExecutor;
+import com.baidu.hugegraph.config.CoreOptions;
 
 /**
  * GremlinServer with custom ServerGremlinExecutor, which can pass Context
@@ -76,7 +77,7 @@ public class ContextGremlinServer extends GremlinServer {
 
     static ExecutorService newGremlinExecutorService(Settings settings) {
         if (settings.gremlinPool == 0) {
-            settings.gremlinPool = Runtime.getRuntime().availableProcessors();
+            settings.gremlinPool = CoreOptions.CPUS;
         }
         int size = settings.gremlinPool;
         ThreadFactory factory = ThreadFactoryUtil.create("exec-%d");

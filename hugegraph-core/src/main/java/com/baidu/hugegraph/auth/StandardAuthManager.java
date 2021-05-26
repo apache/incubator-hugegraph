@@ -26,7 +26,7 @@ import java.util.Set;
 
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.auth.HugeUser.P;
-import com.baidu.hugegraph.auth.SchemaDefine.UserElement;
+import com.baidu.hugegraph.auth.SchemaDefine.AuthElement;
 import com.baidu.hugegraph.backend.cache.Cache;
 import com.baidu.hugegraph.backend.cache.CacheManager;
 import com.baidu.hugegraph.backend.id.Id;
@@ -38,13 +38,14 @@ import com.baidu.hugegraph.util.Events;
 import com.baidu.hugegraph.util.StringEncoding;
 import com.google.common.collect.ImmutableSet;
 
-public class StandardUserManager implements UserManager {
+public class StandardAuthManager implements AuthManager {
 
     private static final long CACHE_EXPIRE = Duration.ofDays(1L).toMillis();
 
     private final HugeGraphParams graph;
     private final EventListener eventListener;
     private final Cache<Id, HugeUser> usersCache;
+    private final Cache<Id, String> pwdCache;
 
     private final EntityManager<HugeUser> users;
     private final EntityManager<HugeGroup> groups;
@@ -53,12 +54,13 @@ public class StandardUserManager implements UserManager {
     private final RelationshipManager<HugeBelong> belong;
     private final RelationshipManager<HugeAccess> access;
 
-    public StandardUserManager(HugeGraphParams graph) {
+    public StandardAuthManager(HugeGraphParams graph) {
         E.checkNotNull(graph, "graph");
 
         this.graph = graph;
         this.eventListener = this.listenChanges();
         this.usersCache = this.cache("users");
+        this.pwdCache = this.cache("users_pwd");
 
         this.users = new EntityManager<>(this.graph, HugeUser.P.USER,
                                          HugeUser::fromVertex);
@@ -73,9 +75,9 @@ public class StandardUserManager implements UserManager {
                                                 HugeAccess::fromEdge);
     }
 
-    private Cache<Id, HugeUser> cache(String prefix) {
+    private <V> Cache<Id, V> cache(String prefix) {
         String name = prefix + "-" + this.graph.name();
-        Cache<Id, HugeUser> cache = CacheManager.instance().cache(name);
+        Cache<Id, V> cache = CacheManager.instance().cache(name);
         cache.expire(CACHE_EXPIRE);
         return cache;
     }
@@ -120,6 +122,7 @@ public class StandardUserManager implements UserManager {
 
     private void invalidCache() {
         this.usersCache.clear();
+        this.pwdCache.clear();
     }
 
     @Override
@@ -341,15 +344,24 @@ public class StandardUserManager implements UserManager {
         E.checkArgumentNotNull(name, "User name can't be null");
         E.checkArgumentNotNull(password, "User password can't be null");
         HugeUser user = this.findUser(name);
-        if (user != null &&
-            StringEncoding.checkPassword(password, user.password())) {
+        if (user == null) {
+            return null;
+        }
+
+        Id id = IdGenerator.of(user.id());
+        if (password.equals(pwdCache.get(id))) {
+            return user;
+        }
+
+        if (StringEncoding.checkPassword(password, user.password())) {
+            pwdCache.update(id, password);
             return user;
         }
         return null;
     }
 
     @Override
-    public RolePermission rolePermission(UserElement element) {
+    public RolePermission rolePermission(AuthElement element) {
         if (element instanceof HugeUser) {
             return this.rolePermission((HugeUser) element);
         } else if (element instanceof HugeTarget) {
@@ -419,5 +431,12 @@ public class StandardUserManager implements UserManager {
             return null;
         }
         return this.rolePermission(user);
+    }
+
+    /**
+     * Maybe can define an proxy class to choose forward or call local
+     */
+    public static boolean isLocal(AuthManager authManager) {
+        return authManager instanceof StandardAuthManager;
     }
 }

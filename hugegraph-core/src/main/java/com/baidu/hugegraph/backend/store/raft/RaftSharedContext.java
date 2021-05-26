@@ -22,12 +22,10 @@ package com.baidu.hugegraph.backend.store.raft;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -41,11 +39,11 @@ import com.alipay.sofa.jraft.option.NodeOptions;
 import com.alipay.sofa.jraft.option.RaftOptions;
 import com.alipay.sofa.jraft.rpc.RaftRpcServerFactory;
 import com.alipay.sofa.jraft.rpc.RpcServer;
-import com.alipay.sofa.jraft.rpc.impl.BoltRaftRpcFactory;
 import com.alipay.sofa.jraft.util.NamedThreadFactory;
 import com.alipay.sofa.jraft.util.ThreadPoolUtil;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraphParams;
+import com.baidu.hugegraph.backend.cache.Cache;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.raft.rpc.ListPeersProcessor;
@@ -56,9 +54,9 @@ import com.baidu.hugegraph.backend.store.raft.rpc.StoreCommandProcessor;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.event.EventHub;
-import com.baidu.hugegraph.testutil.Whitebox;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.GraphMode;
+import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Events;
 import com.baidu.hugegraph.util.Log;
@@ -70,12 +68,18 @@ public final class RaftSharedContext {
     // unit is ms
     public static final int NO_TIMEOUT = -1;
     public static final int POLL_INTERVAL = 3000;
-    public static final int WAIT_RAFT_LOG_TIMEOUT = 30 * 60 * 1000;
+    public static final int WAIT_RAFTLOG_TIMEOUT = 30 * 60 * 1000;
     public static final int WAIT_LEADER_TIMEOUT = 5 * 60 * 1000;
     public static final int BUSY_SLEEP_FACTOR = 3 * 1000;
     public static final int WAIT_RPC_TIMEOUT = 30 * 60 * 1000;
+    public static final int LOG_WARN_INTERVAL = 60 * 1000;
+
     // compress block size
-    public static final int BLOCK_SIZE = 4096;
+    public static final int BLOCK_SIZE = (int) (Bytes.KB * 8);
+
+    // work queue size
+    public static final int QUEUE_SIZE = CoreOptions.CPUS;
+    public static final long KEEP_ALIVE_SEC = 300L;
 
     public static final String DEFAULT_GROUP = "default";
 
@@ -101,11 +105,11 @@ public final class RaftSharedContext {
         this.schemaStoreName = config.get(CoreOptions.STORE_SCHEMA);
         this.graphStoreName = config.get(CoreOptions.STORE_GRAPH);
         this.systemStoreName = config.get(CoreOptions.STORE_SYSTEM);
-        this.stores = new RaftBackendStore[StoreType.SIZE.getNumber()];
+        this.stores = new RaftBackendStore[StoreType.ALL.getNumber()];
         this.rpcServer = this.initAndStartRpcServer();
         if (config.get(CoreOptions.RAFT_SAFE_READ)) {
-            int readIndexThreads = config.get(CoreOptions.RAFT_READ_INDEX_THREADS);
-            this.readIndexExecutor = this.createReadIndexExecutor(readIndexThreads);
+            int threads = config.get(CoreOptions.RAFT_READ_INDEX_THREADS);
+            this.readIndexExecutor = this.createReadIndexExecutor(threads);
         } else {
             this.readIndexExecutor = null;
         }
@@ -186,19 +190,15 @@ public final class RaftSharedContext {
         }
     }
 
+    protected RaftBackendStore[] stores() {
+        return this.stores;
+    }
+
     public BackendStore originStore(StoreType storeType) {
         RaftBackendStore raftStore = this.stores[storeType.getNumber()];
         E.checkState(raftStore != null,
                      "The raft store of type %s shouldn't be null", storeType);
         return raftStore.originStore();
-    }
-
-    public Collection<BackendStore> originStores() {
-        List<BackendStore> originStores = new ArrayList<>();
-        for (RaftBackendStore store : this.stores) {
-            originStores.add(store.originStore());
-        }
-        return originStores;
     }
 
     public NodeOptions nodeOptions() throws IOException {
@@ -262,7 +262,13 @@ public final class RaftSharedContext {
         return nodeOptions;
     }
 
-    public void notifyCache(HugeType type, Id id) {
+    public void clearCache() {
+        // Just choose two representatives used to represent schema and graph
+        this.notifyCache(Cache.ACTION_CLEAR, HugeType.VERTEX_LABEL, null);
+        this.notifyCache(Cache.ACTION_CLEAR, HugeType.VERTEX, null);
+    }
+
+    protected void notifyCache(String action, HugeType type, List<Id> ids) {
         EventHub eventHub;
         if (type.isGraph()) {
             eventHub = this.params.graphEventHub();
@@ -273,7 +279,15 @@ public final class RaftSharedContext {
         }
         try {
             // How to avoid update cache from server info
-            eventHub.notify(Events.CACHE, "invalid", type, id);
+            if (ids == null) {
+                eventHub.call(Events.CACHE, action, type);
+            } else {
+                if (ids.size() == 1) {
+                    eventHub.call(Events.CACHE, action, type, ids.get(0));
+                } else {
+                    eventHub.call(Events.CACHE, action, type, ids.toArray());
+                }
+            }
         } catch (RejectedExecutionException e) {
             LOG.warn("Can't update cache due to EventHub is too busy");
         }
@@ -290,6 +304,10 @@ public final class RaftSharedContext {
 
     public boolean isSafeRead() {
         return this.config().get(CoreOptions.RAFT_SAFE_READ);
+    }
+
+    public boolean useSnapshot() {
+        return this.config().get(CoreOptions.RAFT_USE_SNAPSHOT);
     }
 
     public ExecutorService snapshotExecutor() {
@@ -309,12 +327,14 @@ public final class RaftSharedContext {
     }
 
     private RpcServer initAndStartRpcServer() {
-        Whitebox.setInternalState(
-                 BoltRaftRpcFactory.class, "CHANNEL_WRITE_BUF_LOW_WATER_MARK",
-                 this.config().get(CoreOptions.RAFT_RPC_BUF_LOW_WATER_MARK));
-        Whitebox.setInternalState(
-                 BoltRaftRpcFactory.class, "CHANNEL_WRITE_BUF_HIGH_WATER_MARK",
-                 this.config().get(CoreOptions.RAFT_RPC_BUF_HIGH_WATER_MARK));
+        Integer lowWaterMark = this.config().get(
+                               CoreOptions.RAFT_RPC_BUF_LOW_WATER_MARK);
+        System.setProperty("bolt.channel_write_buf_low_water_mark",
+                           String.valueOf(lowWaterMark));
+        Integer highWaterMark = this.config().get(
+                                CoreOptions.RAFT_RPC_BUF_HIGH_WATER_MARK);
+        System.setProperty("bolt.channel_write_buf_high_water_mark",
+                           String.valueOf(highWaterMark));
 
         PeerId serverId = new PeerId();
         serverId.parse(this.config().get(CoreOptions.RAFT_ENDPOINT));
@@ -341,22 +361,22 @@ public final class RaftSharedContext {
 
     private ExecutorService createBackendExecutor(int threads) {
         String name = "store-backend-executor";
-        RejectedExecutionHandler handler;
-        handler = new ThreadPoolExecutor.CallerRunsPolicy();
+        RejectedExecutionHandler handler =
+                                 new ThreadPoolExecutor.CallerRunsPolicy();
         return newPool(threads, threads, name, handler);
     }
 
     private static ExecutorService newPool(int coreThreads, int maxThreads,
                                            String name,
                                            RejectedExecutionHandler handler) {
-        BlockingQueue<Runnable> workQueue = new LinkedBlockingQueue<>();
+        BlockingQueue<Runnable> queue = new ArrayBlockingQueue<>(QUEUE_SIZE);
         return ThreadPoolUtil.newBuilder()
                              .poolName(name)
                              .enableMetric(false)
                              .coreThreads(coreThreads)
                              .maximumThreads(maxThreads)
-                             .keepAliveSeconds(300L)
-                             .workQueue(workQueue)
+                             .keepAliveSeconds(KEEP_ALIVE_SEC)
+                             .workQueue(queue)
                              .threadFactory(new NamedThreadFactory(name, true))
                              .rejectedHandler(handler)
                              .build();

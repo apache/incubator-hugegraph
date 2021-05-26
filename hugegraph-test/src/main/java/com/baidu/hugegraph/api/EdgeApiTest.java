@@ -107,7 +107,7 @@ public class EdgeApiTest extends BaseApiTest {
         // Now allowed to modify sortkey values, the property 'date' has changed
         content = assertResponseStatus(400, r);
         Assert.assertTrue(content.contains(
-                          "either be null or equal to origin when " +
+                          "either be null or equal to the origin value when " +
                           "specified edge id"));
 
         // Update edge without edgeId

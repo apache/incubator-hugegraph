@@ -59,29 +59,30 @@ import org.rocksdb.RocksIterator;
 import org.rocksdb.SstFileManager;
 import org.rocksdb.WriteBatch;
 import org.rocksdb.WriteOptions;
+import org.slf4j.Logger;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.serializer.BinarySerializer;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumn;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumnIterator;
 import com.baidu.hugegraph.backend.store.BackendEntryIterator;
+import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
-import com.baidu.hugegraph.util.GZipUtil;
+import com.baidu.hugegraph.util.Log;
 import com.baidu.hugegraph.util.StringEncoding;
 import com.google.common.collect.ImmutableList;
 
 public class RocksDBStdSessions extends RocksDBSessions {
 
+    private static final Logger LOG = Log.logger(RocksDBStdSessions.class);
+
     private final HugeConfig config;
     private final String dataPath;
     private final String walPath;
 
-    private final RocksDB rocksdb;
-    private final SstFileManager sstFileManager;
-
-    private final Map<String, CFHandle> cfs;
+    private volatile OpenedRocksDB rocksdb;
     private final AtomicInteger refCount;
 
     public RocksDBStdSessions(HugeConfig config, String database, String store,
@@ -91,22 +92,8 @@ public class RocksDBStdSessions extends RocksDBSessions {
         this.config = config;
         this.dataPath = dataPath;
         this.walPath = walPath;
-        // Init options
-        Options options = new Options();
-        RocksDBStdSessions.initOptions(config, options, options,
-                                       options, options);
-        options.setWalDir(walPath);
-
-        this.sstFileManager = new SstFileManager(Env.getDefault());
-        options.setSstFileManager(this.sstFileManager);
-
-        /*
-         * Open RocksDB at the first time
-         * Don't merge old CFs, we expect a clear DB when using this one
-         */
-        this.rocksdb = RocksDB.open(options, dataPath);
-
-        this.cfs = new ConcurrentHashMap<>();
+        this.rocksdb = RocksDBStdSessions.openRocksDB(config, dataPath,
+                                                      walPath);
         this.refCount = new AtomicInteger(1);
     }
 
@@ -117,43 +104,11 @@ public class RocksDBStdSessions extends RocksDBSessions {
         this.config = config;
         this.dataPath = dataPath;
         this.walPath = walPath;
-        // Old CFs should always be opened
-        Set<String> mergedCFs = this.mergeOldCFs(dataPath, cfNames);
-        List<String> cfs = ImmutableList.copyOf(mergedCFs);
-
-        // Init CFs options
-        List<ColumnFamilyDescriptor> cfds = new ArrayList<>(cfs.size());
-        for (String cf : cfs) {
-            ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(encode(cf));
-            ColumnFamilyOptions options = cfd.getOptions();
-            RocksDBStdSessions.initOptions(config, null, null,
-                                           options, options);
-            cfds.add(cfd);
-        }
-
-        // Init DB options
-        DBOptions options = new DBOptions();
-        RocksDBStdSessions.initOptions(config, options, options, null, null);
-        options.setWalDir(walPath);
-
-        this.sstFileManager = new SstFileManager(Env.getDefault());
-        options.setSstFileManager(this.sstFileManager);
-
-        // Open RocksDB with CFs
-        List<ColumnFamilyHandle> cfhs = new ArrayList<>();
-        this.rocksdb = RocksDB.open(options, dataPath, cfds, cfhs);
-        E.checkState(cfhs.size() == cfs.size(),
-                     "Expect same size of cf-handles and cf-names");
-
-        // Collect CF Handles
-        this.cfs = new ConcurrentHashMap<>();
-        for (int i = 0; i < cfs.size(); i++) {
-            this.cfs.put(cfs.get(i), new CFHandle(cfhs.get(i)));
-        }
-
+        this.rocksdb = RocksDBStdSessions.openRocksDB(config, cfNames,
+                                                      dataPath, walPath);
         this.refCount = new AtomicInteger(1);
 
-        ingestExternalFile();
+        this.ingestExternalFile();
     }
 
     private RocksDBStdSessions(HugeConfig config, String database, String store,
@@ -163,10 +118,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
         this.dataPath = origin.dataPath;
         this.walPath = origin.walPath;
         this.rocksdb = origin.rocksdb;
-        this.sstFileManager = origin.sstFileManager;
-        this.cfs = origin.cfs;
         this.refCount = origin.refCount;
-
         this.refCount.incrementAndGet();
     }
 
@@ -182,7 +134,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
 
     @Override
     public Set<String> openedTables() {
-        return this.cfs.keySet();
+        return this.rocksdb.cfs();
     }
 
     @Override
@@ -192,7 +144,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
 
         List<ColumnFamilyDescriptor> cfds = new ArrayList<>();
         for (String table : tables) {
-            if (this.cfs.containsKey(table)) {
+            if (this.rocksdb.existCf(table)) {
                 continue;
             }
             ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(
@@ -206,14 +158,14 @@ public class RocksDBStdSessions extends RocksDBSessions {
          * To speed up the creation of tables, like truncate() for tinkerpop
          * test, we call createColumnFamilies instead of createColumnFamily.
          */
-        List<ColumnFamilyHandle> cfhs = this.rocksdb.createColumnFamilies(cfds);
+        List<ColumnFamilyHandle> cfhs = this.rocksdb().createColumnFamilies(cfds);
 
         for (ColumnFamilyHandle cfh : cfhs) {
             String table = decode(cfh.getName());
-            this.cfs.put(table, new CFHandle(cfh));
+            this.rocksdb.addCf(table, new CFHandle(cfh));
         }
 
-        ingestExternalFile();
+        this.ingestExternalFile();
     }
 
     @Override
@@ -228,7 +180,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
          */
         List<ColumnFamilyHandle> cfhs = new ArrayList<>();
         for (String table : tables) {
-            CFHandle cfh = this.cfs.get(table);
+            CFHandle cfh = this.rocksdb.cf(table);
             if (cfh == null) {
                 continue;
             }
@@ -239,66 +191,50 @@ public class RocksDBStdSessions extends RocksDBSessions {
          * To speed up the creation of tables, like truncate() for tinkerpop
          * test, we call dropColumnFamilies instead of dropColumnFamily.
          */
-        this.rocksdb.dropColumnFamilies(cfhs);
+        this.rocksdb().dropColumnFamilies(cfhs);
 
         for (String table : tables) {
-            CFHandle cfh = this.cfs.get(table);
+            CFHandle cfh = this.rocksdb.cf(table);
             if (cfh == null) {
                 continue;
             }
             cfh.destroy();
-            this.cfs.remove(table);
-        }
-    }
-
-    @SuppressWarnings("unused")
-    private void reload() throws RocksDBException {
-        this.rocksdb.close();
-        this.cfs.values().forEach(CFHandle::destroy);
-        // Init CFs options
-        Set<String> mergedCFs = this.mergeOldCFs(this.dataPath, new ArrayList<>(
-                                                 this.cfs.keySet()));
-        List<String> cfNames = ImmutableList.copyOf(mergedCFs);
-
-        List<ColumnFamilyDescriptor> cfds = new ArrayList<>(cfNames.size());
-        for (String cf : cfNames) {
-            ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(encode(cf));
-            ColumnFamilyOptions options = cfd.getOptions();
-            RocksDBStdSessions.initOptions(this.config, null, null,
-                                           options, options);
-            cfds.add(cfd);
-        }
-        List<ColumnFamilyHandle> cfhs = new ArrayList<>();
-
-        // Init DB options
-        DBOptions options = new DBOptions();
-        RocksDBStdSessions.initOptions(this.config, options, options,
-                                       null, null);
-        options.setWalDir(this.walPath);
-        options.setSstFileManager(this.sstFileManager);
-        // NOTE: before using this method, remeber to uncomment the next line
-        // this.rocksdb = RocksDB.open(options, this.dataPath, cfds, cfhs);
-        for (int i = 0; i < cfNames.size(); i++) {
-            this.cfs.put(cfNames.get(i), new CFHandle(cfhs.get(i)));
+            this.rocksdb.removeCf(table);
         }
     }
 
     @Override
     public boolean existsTable(String table) {
-        return this.cfs.containsKey(table);
+        return this.rocksdb.existCf(table);
+    }
+
+    @Override
+    public void reloadRocksDB() throws RocksDBException {
+        if (this.rocksdb.isOwningHandle()) {
+            this.rocksdb.close();
+        }
+        this.rocksdb = RocksDBStdSessions.openRocksDB(this.config,
+                                                      ImmutableList.of(),
+                                                      this.dataPath,
+                                                      this.walPath);
+    }
+
+    @Override
+    public void forceCloseRocksDB() {
+        this.rocksdb().close();
     }
 
     @Override
     public List<String> property(String property) {
         try {
             if (property.equals(RocksDBMetrics.DISK_USAGE)) {
-                long size = this.sstFileManager.getTotalSize();
+                long size = this.rocksdb.sstFileManager.getTotalSize();
                 return ImmutableList.of(String.valueOf(size));
             }
             List<String> values = new ArrayList<>();
             for (String cf : this.openedTables()) {
-                try (CFHandle cfh = cf(cf)) {
-                    values.add(rocksdb().getProperty(cfh.get(), property));
+                try (CFHandle cfh = this.cf(cf)) {
+                    values.add(this.rocksdb().getProperty(cfh.get(), property));
                 }
             }
             return values;
@@ -311,6 +247,68 @@ public class RocksDBStdSessions extends RocksDBSessions {
     public RocksDBSessions copy(HugeConfig config,
                                 String database, String store) {
         return new RocksDBStdSessions(config, database, store, this);
+    }
+
+    @Override
+    public void createSnapshot(String snapshotPath) {
+        RocksDBStdSessions.createCheckpoint(this.rocksdb(), snapshotPath);
+    }
+
+    @Override
+    public void resumeSnapshot(String snapshotPath) {
+        File originDataDir = new File(this.dataPath);
+        File snapshotDir = new File(snapshotPath);
+        try {
+            /*
+             * Close current instance first
+             * NOTE: must close rocksdb instance before deleting file directory,
+             * if close after copying the snapshot directory to origin position,
+             * it may produce dirty data.
+             */
+            this.forceCloseRocksDB();
+            // Delete origin data directory
+            if (originDataDir.exists()) {
+                LOG.info("Delete origin data directory {}", originDataDir);
+                FileUtils.deleteDirectory(originDataDir);
+            }
+            // Move snapshot directory to origin data directory
+            FileUtils.moveDirectory(snapshotDir, originDataDir);
+            LOG.info("Move snapshot directory {} to {}",
+                     snapshotDir, originDataDir);
+            // Reload rocksdb instance
+            this.reloadRocksDB();
+        } catch (Exception e) {
+            throw new BackendException("Failed to resume snapshot '%s' to' %s'",
+                                       e, snapshotDir, this.dataPath);
+        }
+    }
+
+    @Override
+    public String buildSnapshotPath(String snapshotPrefix) {
+        // Like: parent_path/rocksdb-data/*, * can be g,m,s
+        Path originDataPath = Paths.get(this.dataPath);
+        Path parentParentPath = originDataPath.getParent().getParent();
+        // Like: rocksdb-data/*
+        Path pureDataPath = parentParentPath.relativize(originDataPath);
+        // Like: parent_path/snapshot_rocksdb-data/*
+        Path snapshotPath = parentParentPath.resolve(snapshotPrefix + "_" +
+                                                     pureDataPath);
+        E.checkArgument(snapshotPath.toFile().exists(),
+                        "The snapshot path '%s' doesn't exist",
+                        snapshotPath);
+        return snapshotPath.toString();
+    }
+
+    @Override
+    public String hardLinkSnapshot(String snapshotPath) throws RocksDBException {
+        String snapshotLinkPath = this.dataPath + "_temp";
+        try (RocksDB rocksdb = openRocksDB(this.config, ImmutableList.of(),
+                                           snapshotPath, null).rocksdb) {
+            RocksDBStdSessions.createCheckpoint(rocksdb, snapshotLinkPath);
+        }
+        LOG.info("The snapshot {} has been hard linked to {}",
+                 snapshotPath, snapshotLinkPath);
+        return snapshotLinkPath;
     }
 
     @Override
@@ -333,12 +331,6 @@ public class RocksDBStdSessions extends RocksDBSessions {
             return;
         }
         assert this.refCount.get() == 0;
-
-        for (CFHandle cf : this.cfs.values()) {
-            cf.close();
-        }
-        this.cfs.clear();
-
         this.rocksdb.close();
     }
 
@@ -349,23 +341,16 @@ public class RocksDBStdSessions extends RocksDBSessions {
 
     private RocksDB rocksdb() {
         this.checkValid();
-        return this.rocksdb;
+        return this.rocksdb.rocksdb;
     }
 
-    private CFHandle cf(String cf) {
-        CFHandle cfh = this.cfs.get(cf);
+    private CFHandle cf(String cfName) {
+        CFHandle cfh = this.rocksdb.cf(cfName);
         if (cfh == null) {
-            throw new BackendException("Table '%s' is not opened", cf);
+            throw new BackendException("Table '%s' is not opened", cfName);
         }
         cfh.open();
         return cfh;
-    }
-
-    private Set<String> mergeOldCFs(String path, List<String> cfNames)
-                                    throws RocksDBException {
-        Set<String> cfs = listCFs(path);
-        cfs.addAll(cfNames);
-        return cfs;
     }
 
     private void ingestExternalFile() throws RocksDBException {
@@ -373,15 +358,108 @@ public class RocksDBStdSessions extends RocksDBSessions {
         if (directory == null || directory.isEmpty()) {
             return;
         }
-        RocksDBIngester ingester = new RocksDBIngester(this.rocksdb);
+        RocksDBIngester ingester = new RocksDBIngester(this.rocksdb());
         // Ingest all *.sst files in `directory`
-        for (String cf : this.cfs.keySet()) {
+        for (String cf : this.rocksdb.cfs()) {
             Path path = Paths.get(directory, cf);
             if (path.toFile().isDirectory()) {
-                try (CFHandle cfh = cf(cf)) {
+                try (CFHandle cfh = this.cf(cf)) {
                     ingester.ingest(path, cfh.get());
                 }
             }
+        }
+    }
+
+    private static OpenedRocksDB openRocksDB(HugeConfig config,
+                                             String dataPath, String walPath)
+                                             throws RocksDBException {
+        // Init options
+        Options options = new Options();
+        RocksDBStdSessions.initOptions(config, options, options,
+                                       options, options);
+        options.setWalDir(walPath);
+        SstFileManager sstFileManager = new SstFileManager(Env.getDefault());
+        options.setSstFileManager(sstFileManager);
+        /*
+         * Open RocksDB at the first time
+         * Don't merge old CFs, we expect a clear DB when using this one
+         */
+        RocksDB rocksdb = RocksDB.open(options, dataPath);
+        Map<String, CFHandle> cfs = new ConcurrentHashMap<>();
+        return new OpenedRocksDB(rocksdb, cfs, sstFileManager);
+    }
+
+    private static OpenedRocksDB openRocksDB(HugeConfig config,
+                                             List<String> cfNames,
+                                             String dataPath, String walPath)
+                                             throws RocksDBException {
+        // Old CFs should always be opened
+        Set<String> mergedCFs = RocksDBStdSessions.mergeOldCFs(dataPath,
+                                                               cfNames);
+        List<String> cfs = ImmutableList.copyOf(mergedCFs);
+
+        // Init CFs options
+        List<ColumnFamilyDescriptor> cfds = new ArrayList<>(cfs.size());
+        for (String cf : cfs) {
+            ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(encode(cf));
+            ColumnFamilyOptions options = cfd.getOptions();
+            RocksDBStdSessions.initOptions(config, null, null,
+                                           options, options);
+            cfds.add(cfd);
+        }
+
+        // Init DB options
+        DBOptions options = new DBOptions();
+        RocksDBStdSessions.initOptions(config, options, options, null, null);
+        if (walPath != null) {
+            options.setWalDir(walPath);
+        }
+        SstFileManager sstFileManager = new SstFileManager(Env.getDefault());
+        options.setSstFileManager(sstFileManager);
+
+        // Open RocksDB with CFs
+        List<ColumnFamilyHandle> cfhs = new ArrayList<>();
+        RocksDB rocksdb = RocksDB.open(options, dataPath, cfds, cfhs);
+
+        E.checkState(cfhs.size() == cfs.size(),
+                     "Expect same size of cf-handles and cf-names");
+        // Collect CF Handles
+        Map<String, CFHandle> cfHandles = new ConcurrentHashMap<>();
+        for (int i = 0; i < cfs.size(); i++) {
+            cfHandles.put(cfs.get(i), new CFHandle(cfhs.get(i)));
+        }
+        return new OpenedRocksDB(rocksdb, cfHandles, sstFileManager);
+    }
+
+    private static Set<String> mergeOldCFs(String path, List<String> cfNames)
+                                           throws RocksDBException {
+        Set<String> cfs = listCFs(path);
+        cfs.addAll(cfNames);
+        return cfs;
+    }
+
+    private static void createCheckpoint(RocksDB rocksdb, String targetPath) {
+        Path parentPath = Paths.get(targetPath).getParent().getFileName();
+        assert parentPath.toString().startsWith("snapshot") : targetPath;
+        // https://github.com/facebook/rocksdb/wiki/Checkpoints
+        try (Checkpoint checkpoint = Checkpoint.create(rocksdb)) {
+            String tempPath = targetPath + "_temp";
+            File tempFile = new File(tempPath);
+            FileUtils.deleteDirectory(tempFile);
+            LOG.debug("Deleted temp directory {}", tempFile);
+
+            FileUtils.forceMkdir(tempFile.getParentFile());
+            checkpoint.createCheckpoint(tempPath);
+            File snapshotFile = new File(targetPath);
+            FileUtils.deleteDirectory(snapshotFile);
+            LOG.debug("Deleted stale directory {}", snapshotFile);
+            if (!tempFile.renameTo(snapshotFile)) {
+                throw new IOException(String.format("Failed to rename %s to %s",
+                                                    tempFile, snapshotFile));
+            }
+        } catch (Exception e) {
+            throw new BackendException("Failed to create checkpoint at path %s",
+                                       e, targetPath);
         }
     }
 
@@ -415,7 +493,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
 
             // Optimize RocksDB
             if (optimize) {
-                int processors = Runtime.getRuntime().availableProcessors();
+                int processors = CoreOptions.CPUS;
                 db.setIncreaseParallelism(Math.max(processors / 2, 1));
 
                 db.setAllowConcurrentMemtableWrite(true);
@@ -499,6 +577,9 @@ public class RocksDBStdSessions extends RocksDBSessions {
                     conf.get(RocksDBOptions.MIN_MEMTABLES_TO_MERGE));
             cf.setMaxWriteBufferNumberToMaintain(
                     conf.get(RocksDBOptions.MAX_MEMTABLES_TO_MAINTAIN));
+
+            cf.setLevelCompactionDynamicLevelBytes(
+                    conf.get(RocksDBOptions.DYNAMIC_LEVEL_BYTES));
 
             // https://github.com/facebook/rocksdb/wiki/Block-Cache
             BlockBasedTableConfig tableConfig = new BlockBasedTableConfig();
@@ -587,7 +668,57 @@ public class RocksDBStdSessions extends RocksDBSessions {
         return StringEncoding.decode(bytes);
     }
 
-    private class CFHandle implements Closeable {
+    private static class OpenedRocksDB {
+
+        private final RocksDB rocksdb;
+        private final Map<String, CFHandle> cfHandles;
+        private final SstFileManager sstFileManager;
+
+        public OpenedRocksDB(RocksDB rocksdb, Map<String, CFHandle> cfHandles,
+                             SstFileManager sstFileManager) {
+            this.rocksdb = rocksdb;
+            this.cfHandles = cfHandles;
+            this.sstFileManager = sstFileManager;
+        }
+
+        public Set<String> cfs() {
+            return this.cfHandles.keySet();
+        }
+
+        public CFHandle cf(String cfName) {
+            return this.cfHandles.get(cfName);
+        }
+
+        public void addCf(String cfName, CFHandle cfHandle) {
+            this.cfHandles.put(cfName, cfHandle);
+        }
+
+        public CFHandle removeCf(String cfName) {
+            return this.cfHandles.remove(cfName);
+        }
+
+        public boolean existCf(String cfName) {
+            return this.cfHandles.containsKey(cfName);
+        }
+
+        public boolean isOwningHandle() {
+            return this.rocksdb.isOwningHandle();
+        }
+
+        public void close() {
+            if (!this.isOwningHandle()) {
+                return;
+            }
+            for (CFHandle cf : this.cfHandles.values()) {
+                cf.close();
+            }
+            this.cfHandles.clear();
+
+            this.rocksdb.close();
+        }
+    }
+
+    private static class CFHandle implements Closeable {
 
         private final ColumnFamilyHandle handle;
         private final AtomicInteger refs;
@@ -650,11 +781,17 @@ public class RocksDBStdSessions extends RocksDBSessions {
         private WriteOptions writeOptions;
 
         public StdSession(HugeConfig conf) {
-            boolean bulkload = conf.get(RocksDBOptions.BULKLOAD_MODE);
+            boolean raftMode = conf.get(CoreOptions.RAFT_MODE);
             this.batch = new WriteBatch();
             this.writeOptions = new WriteOptions();
-            this.writeOptions.setDisableWAL(bulkload);
-            //this.writeOptions.setSync(false);
+            /*
+             * When work under raft mode. if store crashed, the state-machine
+             * can restore by snapshot + raft log, doesn't need wal and sync
+             */
+            if (raftMode) {
+                this.writeOptions.setDisableWAL(true);
+                this.writeOptions.setSync(false);
+            }
         }
 
         @Override
@@ -800,7 +937,20 @@ public class RocksDBStdSessions extends RocksDBSessions {
          * Delete a record by key from a table
          */
         @Override
-        public void remove(String table, byte[] key) {
+        public void delete(String table, byte[] key) {
+            try (CFHandle cf = cf(table)) {
+                this.batch.delete(cf.get(), key);
+            } catch (RocksDBException e) {
+                throw new BackendException(e);
+            }
+        }
+
+        /**
+         * Delete the only one version of a record by key from a table
+         * NOTE: requires that the key exists and was not overwritten.
+         */
+        @Override
+        public void deleteSingle(String table, byte[] key) {
             try (CFHandle cf = cf(table)) {
                 this.batch.singleDelete(cf.get(), key);
             } catch (RocksDBException e) {
@@ -812,7 +962,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
          * Delete a record by key(or prefix with key) from a table
          */
         @Override
-        public void delete(String table, byte[] key) {
+        public void deletePrefix(String table, byte[] key) {
             byte[] keyFrom = key;
             byte[] keyTo = Arrays.copyOf(key, key.length);
             keyTo = BinarySerializer.increaseOne(keyTo);
@@ -827,7 +977,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
          * Delete a range of keys from a table
          */
         @Override
-        public void delete(String table, byte[] keyFrom, byte[] keyTo) {
+        public void deleteRange(String table, byte[] keyFrom, byte[] keyTo) {
             try (CFHandle cf = cf(table)) {
                 this.batch.deleteRange(cf.get(), keyFrom, keyTo);
             } catch (RocksDBException e) {
@@ -896,32 +1046,6 @@ public class RocksDBStdSessions extends RocksDBSessions {
                 RocksIterator iter = rocksdb().newIterator(cf.get());
                 return new ColumnIterator(table, iter, keyFrom,
                                           keyTo, scanType);
-            }
-        }
-
-        @Override
-        public void createSnapshot(String parentPath) {
-            String md5 = GZipUtil.md5(this.dataPath());
-            String snapshotPath = Paths.get(parentPath, md5).toString();
-            // https://github.com/facebook/rocksdb/wiki/Checkpoints
-            try (Checkpoint checkpoint = Checkpoint.create(rocksdb())) {
-                String tempPath = snapshotPath + "_temp";
-                File tempFile = new File(tempPath);
-                FileUtils.deleteDirectory(tempFile);
-
-                FileUtils.forceMkdir(tempFile.getParentFile());
-                checkpoint.createCheckpoint(tempPath);
-                File snapshotFile = new File(snapshotPath);
-                FileUtils.deleteDirectory(snapshotFile);
-                if (!tempFile.renameTo(snapshotFile)) {
-                    throw new IOException(String.format(
-                              "Failed to rename %s to %s",
-                              tempFile, snapshotFile));
-                }
-            } catch (Exception e) {
-                throw new BackendException(
-                          "Failed to write snapshot at path %s",
-                          e, snapshotPath);
             }
         }
     }
@@ -1098,7 +1222,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
                  */
                 assert this.keyEnd != null;
                 if (this.match(Session.SCAN_LTE_END)) {
-                    // Just compare the prefix, maybe there are excess tail
+                    // Just compare the prefix, can be there are excess tail
                     key = Arrays.copyOfRange(key, 0, this.keyEnd.length);
                     return Bytes.compare(key, this.keyEnd) <= 0;
                 } else {

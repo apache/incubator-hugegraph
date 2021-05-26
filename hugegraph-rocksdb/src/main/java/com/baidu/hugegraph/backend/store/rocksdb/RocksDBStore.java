@@ -19,11 +19,13 @@
 
 package com.baidu.hugegraph.backend.store.rocksdb;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -42,7 +44,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.tuple.Pair;
 import org.rocksdb.RocksDBException;
 import org.slf4j.Logger;
 
@@ -54,15 +55,16 @@ import com.baidu.hugegraph.backend.store.BackendAction;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendMutation;
+import com.baidu.hugegraph.backend.store.BackendSessionPool;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import com.baidu.hugegraph.backend.store.BackendTable;
 import com.baidu.hugegraph.backend.store.rocksdb.RocksDBSessions.Session;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.exception.ConnectionException;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.util.Consumers;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.ExecutorUtil;
-import com.baidu.hugegraph.util.GZipUtil;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.Log;
 import com.google.common.collect.ImmutableList;
@@ -79,11 +81,14 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
     private final BackendStoreProvider provider;
     private final Map<HugeType, RocksDBTable> tables;
 
+    private String dataPath;
     private RocksDBSessions sessions;
     private final Map<HugeType, String> tableDiskMapping;
+    // DataPath:RocksDB mapping
+    private final ConcurrentMap<String, RocksDBSessions> dbs;
+    private final ReadWriteLock storeLock;
 
-    private final ReadWriteLock truncateLock;
-
+    private static final String TABLE_GENERAL_KEY = "general";
     private static final String DB_OPEN = "db-open-%s";
     private static final long OPEN_TIMEOUT = 600L;
     /*
@@ -92,13 +97,6 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
      * disk number of one machine
      */
     private static final int OPEN_POOL_THREADS = 8;
-
-    // DataPath:RocksDB mapping
-    protected static final ConcurrentMap<String, RocksDBSessions> dbs;
-
-    static {
-        dbs = new ConcurrentHashMap<>();
-    }
 
     public RocksDBStore(final BackendStoreProvider provider,
                         final String database, final String store) {
@@ -109,7 +107,8 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         this.store = store;
         this.sessions = null;
         this.tableDiskMapping = new HashMap<>();
-        this.truncateLock = new ReentrantReadWriteLock();
+        this.dbs = new ConcurrentHashMap<>();
+        this.storeLock = new ReentrantReadWriteLock();
 
         this.registerMetaHandlers();
     }
@@ -118,7 +117,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         this.registerMetaHandler("metrics", (session, meta, args) -> {
             List<RocksDBSessions> dbs = new ArrayList<>();
             dbs.add(this.sessions);
-            dbs.addAll(tableDBMapping().values());
+            dbs.addAll(this.tableDBMapping().values());
 
             RocksDBMetrics metrics = new RocksDBMetrics(dbs, session);
             return metrics.getMetrics();
@@ -169,10 +168,11 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         LOG.debug("Store open: {}", this.store);
 
         E.checkNotNull(config, "config");
+        this.dataPath = config.get(RocksDBOptions.DATA_PATH);
 
         if (this.sessions != null && !this.sessions.closed()) {
             LOG.debug("Store {} has been opened before", this.store);
-            this.sessions.useSession();
+            this.useSessions();
             return;
         }
 
@@ -188,8 +188,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         Map<String, String> disks = config.getMap(RocksDBOptions.DATA_DISKS);
         Set<String> openedDisks = new HashSet<>();
         if (!disks.isEmpty()) {
-            String dataPath = config.get(RocksDBOptions.DATA_PATH);
-            this.parseTableDiskMapping(disks, dataPath);
+            this.parseTableDiskMapping(disks, this.dataPath);
             for (Entry<HugeType, String> e : this.tableDiskMapping.entrySet()) {
                 String table = this.table(e.getKey()).table();
                 String disk = e.getValue();
@@ -202,11 +201,11 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
                 }));
             }
         }
-        waitOpenFinish(futures, openPool);
+        this.waitOpenFinish(futures, openPool);
     }
 
-    private static void waitOpenFinish(List<Future<?>> futures,
-                                       ExecutorService openPool) {
+    private void waitOpenFinish(List<Future<?>> futures,
+                                ExecutorService openPool) {
         for (Future<?> future : futures) {
             try {
                 future.get();
@@ -217,6 +216,22 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         if (openPool.isShutdown()) {
             return;
         }
+
+        /*
+         * Transfer the session holder from db-open thread to main thread,
+         * otherwise once the db-open thread pool is closed, we can no longer
+         * close the session created by it, which will cause the rocksdb
+         * instance fail to close
+         */
+        this.useSessions();
+        try {
+            Consumers.executeOncePerThread(openPool, OPEN_POOL_THREADS,
+                                           this::closeSessions);
+        } catch (InterruptedException e) {
+            throw new BackendException("Failed to close session opened by " +
+                                       "open-pool");
+        }
+
         boolean terminated = false;
         openPool.shutdown();
         try {
@@ -247,10 +262,17 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
             sessions = this.openSessionPool(config, dataPath,
                                             walPath, tableNames);
         } catch (RocksDBException e) {
-            RocksDBSessions origin = dbs.get(dataPath);
+            RocksDBSessions origin = this.dbs.get(dataPath);
             if (origin != null) {
                 if (e.getMessage().contains("No locks available")) {
-                    // Open twice, but we should support keyspace
+                    /*
+                     * Open twice, copy a RocksDBSessions reference, since from
+                     * v0.11.2 release we don't support multi graphs share
+                     * rocksdb instance (before v0.11.2 graphs with different
+                     * CF-prefix share one rocksdb instance and data path),
+                     * so each graph has its independent data paths, but multi
+                     * CFs may share same optimized disk(or optimized disk path).
+                     */
                     sessions = origin.copy(config, this.database, this.store);
                 }
             }
@@ -292,7 +314,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
 
         if (sessions != null) {
             // May override the original session pool
-            dbs.put(dataPath, sessions);
+            this.dbs.put(dataPath, sessions);
             sessions.session();
             LOG.debug("Store opened: {}", dataPath);
         }
@@ -328,7 +350,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         Map<String, RocksDBSessions> tableDBMap = InsertionOrderUtil.newMap();
         for (Entry<HugeType, String> e : this.tableDiskMapping.entrySet()) {
             String table = this.table(e.getKey()).table();
-            RocksDBSessions db = db(e.getValue());
+            RocksDBSessions db = this.db(e.getValue());
             tableDBMap.put(table, db);
         }
         return tableDBMap;
@@ -339,7 +361,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         LOG.debug("Store close: {}", this.store);
 
         this.checkOpened();
-        this.sessions.close();
+        this.closeSessions();
     }
 
     @Override
@@ -350,7 +372,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
 
     @Override
     public void mutate(BackendMutation mutation) {
-        Lock readLock = this.truncateLock.readLock();
+        Lock readLock = this.storeLock.readLock();
         readLock.lock();
         try {
             this.checkOpened();
@@ -396,7 +418,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
 
     @Override
     public Iterator<BackendEntry> query(Query query) {
-        Lock readLock = this.truncateLock.readLock();
+        Lock readLock = this.storeLock.readLock();
         readLock.lock();
         try {
             this.checkOpened();
@@ -411,7 +433,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
 
     @Override
     public Number queryNumber(Query query) {
-        Lock readLock = this.truncateLock.readLock();
+        Lock readLock = this.storeLock.readLock();
         readLock.lock();
         try {
             this.checkOpened();
@@ -426,7 +448,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
 
     @Override
     public synchronized void init() {
-        Lock writeLock = this.truncateLock.writeLock();
+        Lock writeLock = this.storeLock.writeLock();
         writeLock.lock();
         try {
             this.checkDbOpened();
@@ -458,7 +480,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
 
     @Override
     public synchronized void clear(boolean clearSpace) {
-        Lock writeLock = this.truncateLock.writeLock();
+        Lock writeLock = this.storeLock.writeLock();
         writeLock.lock();
         try {
             this.checkDbOpened();
@@ -510,13 +532,15 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
 
     @Override
     public synchronized void truncate() {
-        Lock writeLock = this.truncateLock.writeLock();
+        Lock writeLock = this.storeLock.writeLock();
         writeLock.lock();
         try {
             this.checkOpened();
 
             this.clear(false);
             this.init();
+            // clear write batch
+            this.dbs.values().forEach(BackendSessionPool::forceResetSessions);
             LOG.debug("Store truncated: {}", this.store);
         } finally {
             writeLock.unlock();
@@ -525,7 +549,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
 
     @Override
     public void beginTx() {
-        Lock readLock = this.truncateLock.readLock();
+        Lock readLock = this.storeLock.readLock();
         readLock.lock();
         try {
             this.checkOpened();
@@ -540,7 +564,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
 
     @Override
     public void commitTx() {
-        Lock readLock = this.truncateLock.readLock();
+        Lock readLock = this.storeLock.readLock();
         readLock.lock();
         try {
             this.checkOpened();
@@ -558,7 +582,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
 
     @Override
     public void rollbackTx() {
-        Lock readLock = this.truncateLock.readLock();
+        Lock readLock = this.storeLock.readLock();
         readLock.lock();
         try {
             this.checkOpened();
@@ -578,80 +602,105 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         // Optimized disk
         String disk = this.tableDiskMapping.get(tableType);
         if (disk != null) {
-            return db(disk).session();
+            return this.db(disk).session();
         }
 
         return this.sessions.session();
     }
 
     @Override
-    public void writeSnapshot(String parentPath) {
-        Lock readLock = this.truncateLock.readLock();
+    public Map<String, String> createSnapshot(String snapshotPrefix) {
+        Lock readLock = this.storeLock.readLock();
         readLock.lock();
         try {
-            for (Session session : this.session()) {
-                session.createSnapshot(parentPath);
+            Map<String, String> uniqueSnapshotDirMaps = new HashMap<>();
+            // Every rocksdb instance should create an snapshot
+            for (Map.Entry<String, RocksDBSessions> entry : this.dbs.entrySet()) {
+                // Like: parent_path/rocksdb-data/*, * maybe g,m,s
+                Path originDataPath = Paths.get(entry.getKey()).toAbsolutePath();
+                Path parentParentPath = originDataPath.getParent().getParent();
+                // Like: rocksdb-data/*
+                Path pureDataPath = parentParentPath.relativize(originDataPath);
+                // Like: parent_path/snapshot_rocksdb-data/*
+                Path snapshotPath = parentParentPath.resolve(snapshotPrefix +
+                                                             "_" + pureDataPath);
+                LOG.debug("The origin data path: {}", originDataPath);
+                LOG.debug("The snapshot data path: {}", snapshotPath);
+                RocksDBSessions sessions = entry.getValue();
+                sessions.createSnapshot(snapshotPath.toString());
+
+                String snapshotDir = snapshotPath.getParent().toString();
+                // Find correspond data HugeType key
+                String diskTableKey = this.findDiskTableKeyByPath(
+                                      entry.getKey());
+                uniqueSnapshotDirMaps.put(snapshotDir, diskTableKey);
             }
+            LOG.info("The store '{}' create snapshot successfully", this);
+            return uniqueSnapshotDirMaps;
         } finally {
             readLock.unlock();
         }
     }
 
     @Override
-    public void readSnapshot(String parentPath) {
-        Lock readLock = this.truncateLock.readLock();
+    public void resumeSnapshot(String snapshotPrefix, boolean deleteSnapshot) {
+        Lock readLock = this.storeLock.readLock();
         readLock.lock();
         try {
             if (!this.opened()) {
                 return;
             }
-
-            File[] snapshotFiles = new File(parentPath).listFiles();
-            E.checkNotNull(snapshotFiles, "snapshot files");
-            List<Pair<File, File>> fileRenamePairs = new ArrayList<>();
-            for (File snapshotFile : snapshotFiles) {
-                Session session = this.findMatchedSession(snapshotFile);
-                File dataFile = new File(session.dataPath());
-                fileRenamePairs.add(Pair.of(snapshotFile, dataFile));
+            Map<String, RocksDBSessions> snapshotPaths = new HashMap<>();
+            for (Map.Entry<String, RocksDBSessions> entry : this.dbs.entrySet()) {
+                RocksDBSessions sessions = entry.getValue();
+                String snapshotPath = sessions.buildSnapshotPath(snapshotPrefix);
+                LOG.debug("The origin data path: {}", entry.getKey());
+                if (!deleteSnapshot) {
+                    snapshotPath = sessions.hardLinkSnapshot(snapshotPath);
+                }
+                LOG.debug("The snapshot data path: {}", snapshotPath);
+                snapshotPaths.put(snapshotPath, sessions);
             }
-            // Close old sessions, is that right?
-            for (Session session : this.session()) {
-                session.close();
-            }
-            this.sessions.session().close();
 
-            // Copy snapshot file to dest file
-            for (Pair<File, File> pair : fileRenamePairs) {
-                File snapshotFile = pair.getLeft();
-                File dataFile = pair.getRight();
-                try {
-                    if (dataFile.exists()) {
-                        LOG.warn("Delete origin data directory {}", dataFile);
-                        FileUtils.deleteDirectory(dataFile);
+            for (Map.Entry<String, RocksDBSessions> entry :
+                 snapshotPaths.entrySet()) {
+                String snapshotPath = entry.getKey();
+                RocksDBSessions sessions = entry.getValue();
+                sessions.resumeSnapshot(snapshotPath);
+
+                if (deleteSnapshot) {
+                    // Delete empty snapshot parent directory
+                    Path parentPath = Paths.get(snapshotPath).getParent();
+                    if (Files.list(parentPath).count() == 0) {
+                        FileUtils.deleteDirectory(parentPath.toFile());
                     }
-                    FileUtils.moveDirectory(snapshotFile, dataFile);
-                } catch (IOException e) {
-                    throw new BackendException("Failed to move %s to %s",
-                                               e, snapshotFile, dataFile);
                 }
             }
-
-            // Reopen the db
-            this.open(this.sessions.config());
+            LOG.info("The store '{}' resume snapshot successfully", this);
+        } catch (RocksDBException | IOException e) {
+            throw new BackendException("Failed to resume snapshot", e);
         } finally {
             readLock.unlock();
         }
     }
 
-    private Session findMatchedSession(File snapshotFile) {
-        String fileName = snapshotFile.getName();
-        for (Session session : this.session()) {
-            if (fileName.equals(GZipUtil.md5(session.dataPath()))) {
-                return session;
+    private final void useSessions() {
+        for (RocksDBSessions sessions : this.sessions()) {
+            sessions.useSession();
+        }
+    }
+
+    private final void closeSessions() {
+        Iterator<Map.Entry<String, RocksDBSessions>> iter = this.dbs.entrySet()
+                                                                    .iterator();
+        while (iter.hasNext()) {
+            Map.Entry<String, RocksDBSessions> entry = iter.next();
+            RocksDBSessions sessions = entry.getValue();
+            boolean closed = sessions.close();
+            if (closed) {
+                iter.remove();
             }
         }
-        throw new BackendException("Can't find matched session for " +
-                                   "snapshot file {}", snapshotFile);
     }
 
     private final List<Session> session() {
@@ -668,6 +717,10 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
             list.add(db(disk).session());
         }
         return list;
+    }
+
+    private final Collection<RocksDBSessions> sessions() {
+        return this.dbs.values();
     }
 
     private final void parseTableDiskMapping(Map<String, String> disks,
@@ -695,13 +748,35 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         }
     }
 
+    private Map<String, String> reportDiskMapping() {
+        Map<String, String> diskMapping = new HashMap<>();
+        diskMapping.put(TABLE_GENERAL_KEY, this.dataPath);
+        for (Map.Entry<HugeType, String> e : this.tableDiskMapping.entrySet()) {
+            String key = this.store + "/" + e.getKey().name();
+            String value = Paths.get(e.getValue()).getParent().toString();
+            diskMapping.put(key, value);
+        }
+        return diskMapping;
+    }
+
+    private String findDiskTableKeyByPath(String diskPath) {
+        String diskTableKey = TABLE_GENERAL_KEY;
+        for (Map.Entry<HugeType, String> e : this.tableDiskMapping.entrySet()) {
+            if (diskPath.equals(e.getValue())) {
+                diskTableKey = this.store + "/" + e.getKey().name();
+                break;
+            }
+        }
+        return diskTableKey;
+    }
+
     private final void checkDbOpened() {
         E.checkState(this.sessions != null && !this.sessions.closed(),
                      "RocksDB has not been opened");
     }
 
-    private static RocksDBSessions db(String disk) {
-        RocksDBSessions db = dbs.get(disk);
+    private RocksDBSessions db(String disk) {
+        RocksDBSessions db = this.dbs.get(disk);
         E.checkState(db != null && !db.closed(),
                      "RocksDB store has not been opened: %s", disk);
         return db;
@@ -768,16 +843,28 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
 
         @Override
         public void increaseCounter(HugeType type, long increment) {
-            super.checkOpened();
-            Session session = super.sessions.session();
-            this.counters.increaseCounter(session, type, increment);
+            Lock readLock = super.storeLock.readLock();
+            readLock.lock();
+            try {
+                super.checkOpened();
+                Session session = super.sessions.session();
+                this.counters.increaseCounter(session, type, increment);
+            } finally {
+                readLock.unlock();
+            }
         }
 
         @Override
         public long getCounter(HugeType type) {
-            super.checkOpened();
-            Session session = super.sessions.session();
-            return this.counters.getCounter(session, type);
+            Lock readLock = super.storeLock.readLock();
+            readLock.lock();
+            try {
+                super.checkOpened();
+                Session session = super.sessions.session();
+                return this.counters.getCounter(session, type);
+            } finally {
+                readLock.unlock();
+            }
         }
 
         @Override

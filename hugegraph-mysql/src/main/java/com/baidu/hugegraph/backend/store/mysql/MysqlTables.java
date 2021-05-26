@@ -212,6 +212,7 @@ public class MysqlTables {
             this.define.column(HugeKeys.DATA_TYPE, TINYINT);
             this.define.column(HugeKeys.CARDINALITY, TINYINT);
             this.define.column(HugeKeys.AGGREGATE_TYPE, TINYINT);
+            this.define.column(HugeKeys.READ_FREQUENCY, TINYINT);
             this.define.column(HugeKeys.PROPERTIES, SMALL_JSON);
             this.define.column(HugeKeys.USER_DATA, LARGE_JSON);
             this.define.column(HugeKeys.STATUS, TINYINT);

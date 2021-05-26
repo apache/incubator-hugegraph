@@ -75,8 +75,8 @@ public abstract class HugeProperty<V> implements Property<V>, GraphType {
         return this.value;
     }
 
-    public Object serialValue() {
-        return this.pkey.serialValue(this.value);
+    public Object serialValue(boolean encodeNumber) {
+        return this.pkey.serialValue(this.value, encodeNumber);
     }
 
     @Override

@@ -107,10 +107,11 @@ public class PaloSessions extends MysqlSessions {
     }
 
     @Override
-    public void close() {
+    public boolean close() {
         this.loadTask.join();
         this.timer.cancel();
         super.close();
+        return true;
     }
 
     public final class Session extends MysqlSessions.Session {
@@ -218,7 +219,7 @@ public class PaloSessions extends MysqlSessions {
     public final class PaloLoadTask extends TimerTask {
 
         private static final String DF = "yyyy-MM-dd-HH-mm-ss";
-        private final DateFormat DATE_FORMAT = new SafeDateFormat(DF);
+        private final SafeDateFormat DATE_FORMAT = new SafeDateFormat(DF);
 
         /**
          * There exist two running palo load task corresponds to two stores,

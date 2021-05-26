@@ -23,15 +23,21 @@ import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction;
 import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType;
 
-public class StoreCommand {
+public final class StoreCommand {
 
     public static final int HEADER_SIZE = 2;
 
     private final StoreType type;
     private final StoreAction action;
     private final byte[] data;
+    private final boolean forwarded;
 
     public StoreCommand(StoreType type, StoreAction action, byte[] data) {
+        this(type, action, data, false);
+    }
+
+    public StoreCommand(StoreType type, StoreAction action,
+                        byte[] data, boolean forwarded) {
         this.type = type;
         this.action = action;
         if (data == null) {
@@ -42,6 +48,7 @@ public class StoreCommand {
         }
         this.data[0] = (byte) this.type.getNumber();
         this.data[1] = (byte) this.action.getNumber();
+        this.forwarded = forwarded;
     }
 
     public StoreType type() {
@@ -54,6 +61,10 @@ public class StoreCommand {
 
     public byte[] data() {
         return this.data;
+    }
+
+    public boolean forwarded() {
+        return this.forwarded;
     }
 
     public static void writeHeader(BytesBuffer buffer) {
@@ -75,7 +86,7 @@ public class StoreCommand {
 
     @Override
     public String toString() {
-        return String.format("StoreCommand{type=%s, action=%s",
+        return String.format("StoreCommand{type=%s,action=%s}",
                              this.type.name(), this.action.name());
     }
 }

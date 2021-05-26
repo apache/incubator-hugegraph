@@ -34,6 +34,7 @@ import org.apache.tinkerpop.gremlin.structure.Edge;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.structure.HugeEdge;
+import com.baidu.hugegraph.traversal.algorithm.steps.EdgeStep;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.OrderLimitMap;
@@ -243,8 +244,11 @@ public class NeighborRankTraverser extends HugeTraverser {
         public Step(HugeGraph g, Directions direction, List<String> labels,
                     long degree, long skipDegree, int top, int capacity) {
             E.checkArgument(top > 0 && top <= MAX_TOP,
-                            "The top of each layer can't exceed %s", MAX_TOP);
-
+                            "The top of each layer must be in (0, %s], but " +
+                            "got %s", MAX_TOP, top);
+            E.checkArgument(capacity > 0,
+                            "The capacity of each layer must be > 0, " +
+                            "but got %s", capacity);
             this.edgeStep = new EdgeStep(g, direction, labels, null,
                                          degree, skipDegree);
             this.top = top;

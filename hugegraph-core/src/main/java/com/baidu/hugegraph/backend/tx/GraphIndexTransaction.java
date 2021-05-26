@@ -396,10 +396,22 @@ public class GraphIndexTransaction extends AbstractTransaction {
         indexQuery.eq(HugeKeys.INDEX_LABEL_ID, il.id());
         indexQuery.eq(HugeKeys.FIELD_VALUES, label);
         /*
-         * Set offset and limit to avoid redundant element ids
-         * NOTE: the backend itself will skip the offset
+         * We can avoid redundant element ids if set limit, but if there are
+         * label index overridden by other vertices with different label,
+         * query with limit like g.V().hasLabel('xx').limit(10) may lose some
+         * results, so can't set limit here. But in this case, the following
+         * query results may be still different:
+         *   g.V().hasLabel('xx').count()  // label index count
+         *   g.V().hasLabel('xx').limit(-1).count()  // actual vertices count
+         * It’s a similar situation for the offset, like:
+         *   g.V().hasLabel('xx').range(26, 27)
+         *   g.V().hasLabel('xx').range(27, 28)
+         * we just reset limit here, but don't reset offset due to performance
+         * optimization with index+offset query, see Query.skipOffsetIfNeeded().
+         * NOTE: if set offset the backend itself will skip the offset
          */
         indexQuery.copyBasic(query);
+        indexQuery.limit(Query.NO_LIMIT);
 
         IdHolder idHolder = this.doIndexQuery(il, indexQuery);
 
@@ -794,7 +806,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
             HugeIndex removeIndex = index.clone();
             removeIndex.resetElementIds();
             removeIndex.elementIds(id.id(), id.expiredTime());
-            DeleteExpiredJob.asyncDeleteExpiredObject(this.params(),
+            DeleteExpiredJob.asyncDeleteExpiredObject(this.graph(),
                                                       removeIndex);
         }
     }
@@ -1345,6 +1357,9 @@ public class GraphIndexTransaction extends AbstractTransaction {
         }
         if (query.hasNeqCondition()) {
             mismatched.add("not-equal");
+        }
+        if (mismatched.isEmpty()) {
+            mismatched.add(query.relations().toString());
         }
         return new NoIndexException("Don't accept query based on properties " +
                                     "%s that are not indexed in %s, " +

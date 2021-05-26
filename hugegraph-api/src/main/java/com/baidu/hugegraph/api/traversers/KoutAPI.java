@@ -20,9 +20,8 @@
 package com.baidu.hugegraph.api.traversers;
 
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPACITY;
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEGREE;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_ELEMENTS_LIMIT;
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PATHS_LIMIT;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -52,7 +51,7 @@ import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.structure.HugeVertex;
-import com.baidu.hugegraph.traversal.algorithm.EdgeStep;
+import com.baidu.hugegraph.traversal.algorithm.steps.EdgeStep;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser.Node;
 import com.baidu.hugegraph.traversal.algorithm.KoutTraverser;
@@ -80,7 +79,7 @@ public class KoutAPI extends TraverserAPI {
                       @QueryParam("nearest")
                       @DefaultValue("true")  boolean nearest,
                       @QueryParam("max_degree")
-                      @DefaultValue(DEFAULT_DEGREE) long degree,
+                      @DefaultValue(DEFAULT_MAX_DEGREE) long maxDegree,
                       @QueryParam("capacity")
                       @DefaultValue(DEFAULT_CAPACITY) long capacity,
                       @QueryParam("limit")
@@ -89,7 +88,7 @@ public class KoutAPI extends TraverserAPI {
                   "direction '{}', edge label '{}', max depth '{}', nearest " +
                   "'{}', max degree '{}', capacity '{}' and limit '{}'",
                   graph, source, direction, edgeLabel, depth, nearest,
-                  degree, capacity, limit);
+                  maxDegree, capacity, limit);
 
         Id sourceId = VertexAPI.checkAndParseVertexId(source);
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
@@ -99,7 +98,7 @@ public class KoutAPI extends TraverserAPI {
         Set<Id> ids;
         try (KoutTraverser traverser = new KoutTraverser(g)) {
             ids = traverser.kout(sourceId, dir, edgeLabel, depth,
-                                 nearest, degree, capacity, limit);
+                                 nearest, maxDegree, capacity, limit);
         }
         return manager.serializer(g).writeList("vertices", ids);
     }
@@ -185,9 +184,9 @@ public class KoutAPI extends TraverserAPI {
         @JsonProperty("count_only")
         public boolean countOnly = false;
         @JsonProperty("capacity")
-        public long capacity = Long.valueOf(DEFAULT_CAPACITY);
+        public long capacity = Long.parseLong(DEFAULT_CAPACITY);
         @JsonProperty("limit")
-        public long limit = Long.valueOf(DEFAULT_PATHS_LIMIT);
+        public long limit = Long.parseLong(DEFAULT_ELEMENTS_LIMIT);
         @JsonProperty("with_vertex")
         public boolean withVertex = false;
         @JsonProperty("with_path")

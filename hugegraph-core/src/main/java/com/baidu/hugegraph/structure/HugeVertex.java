@@ -46,6 +46,7 @@ import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
+import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -199,13 +200,15 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
                         "Primary key can't be empty for id strategy '%s'",
                         IdStrategy.PRIMARY_KEY);
 
+        boolean encodeNumber = this.graph()
+                                   .option(CoreOptions.VERTEX_ENCODE_PK_NUMBER);
         List<Object> propValues = new ArrayList<>(primaryKeys.size());
         for (Id pk : primaryKeys) {
             HugeProperty<?> property = this.getProperty(pk);
             E.checkState(property != null,
                          "The value of primary key '%s' can't be null",
                          this.graph().propertyKey(pk).name());
-            propValues.add(property.serialValue());
+            propValues.add(property.serialValue(encodeNumber));
         }
         return propValues;
     }

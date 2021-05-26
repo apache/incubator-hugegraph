@@ -25,6 +25,14 @@ public interface BackendFeatures {
         return true;
     }
 
+    public default boolean supportsSharedStorage() {
+        return true;
+    }
+
+    public default boolean supportsSnapshot() {
+        return false;
+    }
+
     public boolean supportsScanToken();
 
     public boolean supportsScanKeyPrefix();
@@ -62,4 +70,6 @@ public interface BackendFeatures {
     public boolean supportsAggregateProperty();
 
     public boolean supportsTtl();
+
+    public boolean supportsOlapProperties();
 }

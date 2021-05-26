@@ -806,6 +806,8 @@ public final class TraversalUtil {
                 return P.outside(params[0], params[1]);
             case "within":
                 return P.within(predicateArgs(value));
+            case "textcontains":
+                return ConditionP.textContains(predicateArg(value));
             case "contains":
                 // Just for inner use case like auth filter
                 return ConditionP.contains(predicateArg(value));
@@ -868,6 +870,12 @@ public final class TraversalUtil {
                     validValues.add(validPropertyValue(v, pk));
                 }
                 return Condition.in(pk.id(), validValues);
+            case "textcontains":
+                validValue = validPropertyValue(value, pk);
+                return Condition.textContains(pk.id(), (String) validValue);
+            case "contains":
+                validValue = validPropertyValue(value, pk);
+                return Condition.contains(pk.id(), validValue);
             default:
                 throw new NotSupportException("predicate '%s'", method);
         }

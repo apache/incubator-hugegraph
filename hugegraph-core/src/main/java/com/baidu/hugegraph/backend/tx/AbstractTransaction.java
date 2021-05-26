@@ -37,7 +37,6 @@ import com.baidu.hugegraph.backend.store.BackendEntryIterator;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
-import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.type.HugeType;
@@ -111,14 +110,6 @@ public abstract class AbstractTransaction implements Transaction {
 
     public GraphMode graphMode() {
         return this.params().mode();
-    }
-
-    public long taskWaitTimeout() {
-        return this.params().configuration().get(CoreOptions.TASK_WAIT_TIMEOUT);
-    }
-
-    public boolean syncDelete() {
-        return this.params().configuration().get(CoreOptions.TASK_SYNC_DELETION);
     }
 
     @Watched(prefix = "tx")

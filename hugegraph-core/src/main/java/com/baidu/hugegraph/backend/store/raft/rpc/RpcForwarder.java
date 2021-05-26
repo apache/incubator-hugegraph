@@ -35,7 +35,7 @@ import com.alipay.sofa.jraft.util.Endpoint;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.store.raft.RaftClosure;
 import com.baidu.hugegraph.backend.store.raft.RaftNode;
-import com.baidu.hugegraph.backend.store.raft.StoreClosure;
+import com.baidu.hugegraph.backend.store.raft.RaftStoreClosure;
 import com.baidu.hugegraph.backend.store.raft.StoreCommand;
 import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse;
 import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandRequest;
@@ -60,7 +60,7 @@ public class RpcForwarder {
     }
 
     public void forwardToLeader(PeerId leaderId, StoreCommand command,
-                                StoreClosure closure) {
+                                RaftStoreClosure closure) {
         E.checkNotNull(leaderId, "leader id");
         E.checkState(!leaderId.equals(this.nodeId),
                      "Invalid state: current node is the leader, there is " +

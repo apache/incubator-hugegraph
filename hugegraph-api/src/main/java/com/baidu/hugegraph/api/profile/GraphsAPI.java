@@ -43,12 +43,13 @@ import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
-import com.baidu.hugegraph.auth.HugeAuthenticator.RoleAction;
+import com.baidu.hugegraph.auth.HugeAuthenticator.RequiredPerm;
 import com.baidu.hugegraph.auth.HugePermission;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.type.define.GraphMode;
+import com.baidu.hugegraph.type.define.GraphReadMode;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
@@ -72,7 +73,7 @@ public class GraphsAPI extends API {
         // Filter by user role
         Set<String> filterGraphs = new HashSet<>();
         for (String graph : graphs) {
-            String role = RoleAction.roleFor(graph, HugePermission.READ);
+            String role = RequiredPerm.roleFor(graph, HugePermission.READ);
             if (sc.isUserInRole(role)) {
                 try {
                     HugeGraph g = graph(manager, graph);
@@ -139,10 +140,38 @@ public class GraphsAPI extends API {
 
     @PUT
     @Timed
+    @Path("{name}/snapshot_create")
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin", "$owner=$name"})
+    public Object createSnapshot(@Context GraphManager manager,
+                                 @PathParam("name") String name) {
+        LOG.debug("Create snapshot for graph '{}'", name);
+
+        HugeGraph g = graph(manager, name);
+        g.createSnapshot();
+        return ImmutableMap.of(name, "snapshot_created");
+    }
+
+    @PUT
+    @Timed
+    @Path("{name}/snapshot_resume")
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin", "$owner=$name"})
+    public Object resumeSnapshot(@Context GraphManager manager,
+                                 @PathParam("name") String name) {
+        LOG.debug("Resume snapshot for graph '{}'", name);
+
+        HugeGraph g = graph(manager, name);
+        g.resumeSnapshot();
+        return ImmutableMap.of(name, "snapshot_resumed");
+    }
+
+    @PUT
+    @Timed
     @Path("{name}/mode")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed("admin")
+    @RolesAllowed({"admin", "$owner=$name"})
     public Map<String, GraphMode> mode(@Context GraphManager manager,
                                        @PathParam("name") String name,
                                        GraphMode mode) {
@@ -166,5 +195,40 @@ public class GraphsAPI extends API {
 
         HugeGraph g = graph(manager, name);
         return ImmutableMap.of("mode", g.mode());
+    }
+
+    @PUT
+    @Timed
+    @Path("{name}/graph_read_mode")
+    @Consumes(APPLICATION_JSON)
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed("admin")
+    public Map<String, GraphReadMode> graphReadMode(
+                                      @Context GraphManager manager,
+                                      @PathParam("name") String name,
+                                      GraphReadMode readMode) {
+        LOG.debug("Set graph read mode to: '{}' of graph '{}'",
+                  readMode, name);
+
+        E.checkArgument(readMode != null,
+                        "Graph read mode can't be null");
+        HugeGraph g = graph(manager, name);
+        g.readMode(readMode);
+        return ImmutableMap.of("graph_read_mode", readMode);
+    }
+
+    @GET
+    @Timed
+    @Path("{name}/graph_read_mode")
+    @Consumes(APPLICATION_JSON)
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin", "$owner=$name"})
+    public Map<String, GraphReadMode> graphReadMode(
+                                      @Context GraphManager manager,
+                                      @PathParam("name") String name) {
+        LOG.debug("Get graph read mode of graph '{}'", name);
+
+        HugeGraph g = graph(manager, name);
+        return ImmutableMap.of("graph_read_mode", g.readMode());
     }
 }

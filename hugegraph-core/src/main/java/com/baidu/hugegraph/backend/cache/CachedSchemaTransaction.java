@@ -35,6 +35,7 @@ import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.event.EventListener;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Events;
 import com.google.common.collect.ImmutableSet;
 
@@ -71,7 +72,7 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
         try {
             super.close();
         } finally {
-            this.clearCache();
+            this.clearCache(false);
             this.unlistenChanges();
         }
     }
@@ -91,7 +92,7 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
             if (storeEvents.contains(event.name())) {
                 LOG.debug("Graph {} clear schema cache on event '{}'",
                           this.graph(), event.name());
-                this.clearCache();
+                this.clearCache(true);
                 return true;
             }
             return false;
@@ -102,9 +103,11 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
         this.cacheEventListener = event -> {
             LOG.debug("Graph {} received schema cache event: {}",
                       this.graph(), event);
-            event.checkArgs(String.class, HugeType.class, Id.class);
             Object[] args = event.args();
-            if ("invalid".equals(args[0])) {
+            E.checkArgument(args.length > 0 && args[0] instanceof String,
+                            "Expect event action argument");
+            if (Cache.ACTION_INVALID.equals(args[0])) {
+                event.checkArgs(String.class, HugeType.class, Id.class);
                 HugeType type = (HugeType) args[1];
                 Id id = (Id) args[2];
                 this.arrayCaches.remove(type, id);
@@ -121,9 +124,11 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
                                                  schema.name());
                     this.nameCache.invalidate(prefixedName);
                 }
+                this.resetCachedAll(type);
                 return true;
-            } else if ("clear".equals(args[0])) {
-                this.clearCache();
+            } else if (Cache.ACTION_CLEAR.equals(args[0])) {
+                event.checkArgs(String.class, HugeType.class);
+                this.clearCache(false);
                 return true;
             }
             return false;
@@ -134,10 +139,19 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
         }
     }
 
-    private void clearCache() {
+    private final void resetCachedAll(HugeType type) {
+        // Set the cache all flag of the schema type to false
+        this.cachedTypes().put(type, false);
+    }
+
+    private void clearCache(boolean notify) {
         this.idCache.clear();
         this.nameCache.clear();
         this.arrayCaches.clear();
+
+        if (notify) {
+            this.notifyChanges(Cache.ACTION_CLEARED, null, null);
+        }
     }
 
     private void unlistenChanges() {
@@ -147,6 +161,11 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
         // Unlisten cache event
         EventHub schemaEventHub = this.params().schemaEventHub();
         schemaEventHub.unlisten(Events.CACHE, this.cacheEventListener);
+    }
+
+    private void notifyChanges(String action, HugeType type, Id id) {
+        EventHub graphEventHub = this.params().schemaEventHub();
+        graphEventHub.notify(Events.CACHE, action, type, id);
     }
 
     private final void resetCachedAllIfReachedCapacity() {
@@ -187,6 +206,8 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
 
         // update optimized array cache
         this.arrayCaches.updateIfNeeded(schema);
+
+        this.notifyChanges(Cache.ACTION_INVALIDED, schema.type(), schema.id());
     }
 
     @Override
@@ -258,6 +279,8 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
 
         // remove from optimized array cache
         this.arrayCaches.remove(schema.type(), schema.id());
+
+        this.notifyChanges(Cache.ACTION_INVALIDED, schema.type(), schema.id());
     }
 
     @Override

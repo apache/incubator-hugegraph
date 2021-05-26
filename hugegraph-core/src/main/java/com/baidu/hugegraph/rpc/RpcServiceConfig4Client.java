@@ -17,20 +17,21 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.backend.store.raft;
+package com.baidu.hugegraph.rpc;
 
-import com.baidu.hugegraph.util.E;
+public interface RpcServiceConfig4Client {
 
-public class StoreClosure extends RaftClosure<Object> {
+    public <T> T serviceProxy(String interfaceId);
 
-    private final StoreCommand command;
+    public <T> T serviceProxy(String graph, String interfaceId);
 
-    public StoreClosure(StoreCommand command) {
-        E.checkNotNull(command, "store command");
-        this.command = command;
+    public default <T> T serviceProxy(Class<T> clazz) {
+        return this.serviceProxy(clazz.getName());
     }
 
-    public StoreCommand command() {
-        return this.command;
+    public default <T> T serviceProxy(String graph, Class<T> clazz) {
+        return this.serviceProxy(graph, clazz.getName());
     }
+
+    public void removeAllServiceProxy();
 }

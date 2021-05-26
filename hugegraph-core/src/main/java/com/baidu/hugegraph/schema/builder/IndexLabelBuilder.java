@@ -32,6 +32,7 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
+import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.exception.ExistedException;
 import com.baidu.hugegraph.exception.NotAllowException;
 import com.baidu.hugegraph.exception.NotFoundException;
@@ -256,7 +257,7 @@ public class IndexLabelBuilder extends AbstractBuilder
 
         // Wait task completed (change to sync mode)
         HugeGraph graph = this.graph();
-        long timeout = this.taskWaitTimeout();
+        long timeout = graph.option(CoreOptions.TASK_WAIT_TIMEOUT);
         try {
             graph.taskScheduler().waitUntilTaskCompleted(task, timeout);
         } catch (TimeoutException e) {

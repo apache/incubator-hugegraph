@@ -20,7 +20,7 @@
 package com.baidu.hugegraph.api.traversers;
 
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPACITY;
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_DEGREE;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEGREE;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEPTH;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PATHS_LIMIT;
 
@@ -48,6 +48,7 @@ import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Path("graphs/{graph}/traversers/neighborrank")
@@ -67,7 +68,7 @@ public class NeighborRankAPI extends API {
                                "The source of rank request can't be null");
         E.checkArgument(request.steps != null && !request.steps.isEmpty(),
                         "The steps of rank request can't be empty");
-        E.checkArgument(request.steps.size() <= Long.valueOf(DEFAULT_MAX_DEPTH),
+        E.checkArgument(request.steps.size() <= Long.parseLong(DEFAULT_MAX_DEPTH),
                         "The steps length of rank request can't exceed %s",
                         DEFAULT_MAX_DEPTH);
         E.checkArgument(request.alpha > 0 && request.alpha <= 1.0,
@@ -101,13 +102,13 @@ public class NeighborRankAPI extends API {
     private static class RankRequest {
 
         @JsonProperty("source")
-        private String source;
+        private Object source;
         @JsonProperty("steps")
         private List<Step> steps;
         @JsonProperty("alpha")
         private double alpha;
         @JsonProperty("capacity")
-        public long capacity = Long.valueOf(DEFAULT_CAPACITY);
+        public long capacity = Long.parseLong(DEFAULT_CAPACITY);
 
         @Override
         public String toString() {
@@ -123,26 +124,27 @@ public class NeighborRankAPI extends API {
         public Directions direction;
         @JsonProperty("labels")
         public List<String> labels;
-        @JsonProperty("degree")
-        public long degree = Long.valueOf(DEFAULT_DEGREE);
+        @JsonAlias("degree")
+        @JsonProperty("max_degree")
+        public long maxDegree = Long.parseLong(DEFAULT_MAX_DEGREE);
         @JsonProperty("skip_degree")
         public long skipDegree = 0L;
         @JsonProperty("top")
-        public int top = Integer.valueOf(DEFAULT_PATHS_LIMIT);
+        public int top = Integer.parseInt(DEFAULT_PATHS_LIMIT);
 
         public static final int DEFAULT_CAPACITY_PER_LAYER = 100000;
 
         @Override
         public String toString() {
-            return String.format("Step{direction=%s,labels=%s,degree=%s," +
+            return String.format("Step{direction=%s,labels=%s,maxDegree=%s," +
                                  "top=%s}", this.direction, this.labels,
-                                 this.degree, this.top);
+                                 this.maxDegree, this.top);
         }
 
         private NeighborRankTraverser.Step jsonToStep(HugeGraph g) {
             return new NeighborRankTraverser.Step(g, this.direction,
                                                   this.labels,
-                                                  this.degree,
+                                                  this.maxDegree,
                                                   this.skipDegree,
                                                   this.top,
                                                   DEFAULT_CAPACITY_PER_LAYER);

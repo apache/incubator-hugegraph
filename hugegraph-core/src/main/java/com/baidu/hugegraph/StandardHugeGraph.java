@@ -22,6 +22,7 @@ package com.baidu.hugegraph;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -39,9 +40,13 @@ import org.slf4j.Logger;
 
 import com.baidu.hugegraph.analyzer.Analyzer;
 import com.baidu.hugegraph.analyzer.AnalyzerFactory;
-import com.baidu.hugegraph.auth.StandardUserManager;
-import com.baidu.hugegraph.auth.UserManager;
+import com.baidu.hugegraph.auth.AuthManager;
+import com.baidu.hugegraph.auth.StandardAuthManager;
 import com.baidu.hugegraph.backend.BackendException;
+import com.baidu.hugegraph.backend.cache.Cache;
+import com.baidu.hugegraph.backend.cache.CacheNotifier;
+import com.baidu.hugegraph.backend.cache.CacheNotifier.GraphCacheNotifier;
+import com.baidu.hugegraph.backend.cache.CacheNotifier.SchemaCacheNotifier;
 import com.baidu.hugegraph.backend.cache.CachedGraphTransaction;
 import com.baidu.hugegraph.backend.cache.CachedSchemaTransaction;
 import com.baidu.hugegraph.backend.id.Id;
@@ -59,10 +64,15 @@ import com.baidu.hugegraph.backend.store.raft.RaftGroupManager;
 import com.baidu.hugegraph.backend.store.ram.RamTable;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
+import com.baidu.hugegraph.config.ConfigOption;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.event.EventHub;
+import com.baidu.hugegraph.event.EventListener;
+import com.baidu.hugegraph.exception.NotAllowException;
 import com.baidu.hugegraph.io.HugeGraphIoRegistry;
+import com.baidu.hugegraph.rpc.RpcServiceConfig4Client;
+import com.baidu.hugegraph.rpc.RpcServiceConfig4Server;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -80,12 +90,15 @@ import com.baidu.hugegraph.task.TaskManager;
 import com.baidu.hugegraph.task.TaskScheduler;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.GraphMode;
+import com.baidu.hugegraph.type.define.GraphReadMode;
 import com.baidu.hugegraph.type.define.NodeRole;
 import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.Events;
 import com.baidu.hugegraph.util.LockUtil;
 import com.baidu.hugegraph.util.Log;
 import com.baidu.hugegraph.variables.HugeVariables;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.RateLimiter;
 
 /**
@@ -102,11 +115,24 @@ public class StandardHugeGraph implements HugeGraph {
            StandardHugeGraph.SysTransaction.class
     };
 
+    public static final Set<ConfigOption<?>> ALLOWED_CONFIGS = ImmutableSet.of(
+           CoreOptions.TASK_WAIT_TIMEOUT,
+           CoreOptions.TASK_SYNC_DELETION,
+           CoreOptions.TASK_TTL_DELETE_BATCH,
+           CoreOptions.TASK_INPUT_SIZE_LIMIT,
+           CoreOptions.TASK_RESULT_SIZE_LIMIT,
+           CoreOptions.OLTP_CONCURRENT_THREADS,
+           CoreOptions.OLTP_CONCURRENT_DEPTH,
+           CoreOptions.VERTEX_DEFAULT_LABEL,
+           CoreOptions.VERTEX_ENCODE_PK_NUMBER
+    );
+
     private static final Logger LOG = Log.logger(HugeGraph.class);
 
     private volatile boolean started;
     private volatile boolean closed;
     private volatile GraphMode mode;
+    private volatile GraphReadMode readMode;
     private volatile HugeVariables variables;
 
     private final String name;
@@ -122,7 +148,7 @@ public class StandardHugeGraph implements HugeGraph {
     private final RateLimiter writeRateLimiter;
     private final RateLimiter readRateLimiter;
     private final TaskManager taskManager;
-    private final UserManager userManager;
+    private AuthManager authManager;
 
     private final HugeFeatures features;
 
@@ -163,25 +189,32 @@ public class StandardHugeGraph implements HugeGraph {
         this.started = false;
         this.closed = false;
         this.mode = GraphMode.NONE;
+        this.readMode = GraphReadMode.OLTP_ONLY;
 
         LockUtil.init(this.name);
 
         try {
             this.storeProvider = this.loadStoreProvider();
-        } catch (BackendException e) {
+        } catch (Exception e) {
             LockUtil.destroy(this.name);
             String message = "Failed to load backend store provider";
             LOG.error("{}: {}", message, e.getMessage());
             throw new HugeException(message);
         }
 
-        this.tx = new TinkerPopTransaction(this);
+        try {
+            this.tx = new TinkerPopTransaction(this);
 
-        SnowflakeIdGenerator.init(this.params);
+            SnowflakeIdGenerator.init(this.params);
 
-        this.taskManager.addScheduler(this.params);
-        this.userManager = new StandardUserManager(this.params);
-        this.variables = null;
+            this.taskManager.addScheduler(this.params);
+            this.authManager = new StandardAuthManager(this.params);
+            this.variables = null;
+        } catch (Exception e) {
+            this.storeProvider.close();
+            LockUtil.destroy(this.name);
+            throw e;
+        }
     }
 
     @Override
@@ -216,7 +249,8 @@ public class StandardHugeGraph implements HugeGraph {
 
     @Override
     public void serverStarted(Id serverId, NodeRole serverRole) {
-        LOG.info("Init server info for graph '{}'...", this.name);
+        LOG.info("Init server info [{}-{}] for graph '{}'...",
+                 serverId, serverRole, this.name);
         this.serverInfoManager().initServerInfo(serverId, serverRole);
 
         LOG.info("Restoring incomplete tasks for graph '{}'...", this.name);
@@ -247,6 +281,25 @@ public class StandardHugeGraph implements HugeGraph {
     public void mode(GraphMode mode) {
         LOG.info("Graph {} will work in {} mode", this, mode);
         this.mode = mode;
+        if (mode.loading()) {
+            /*
+             * NOTE: This may block tasks submit and lead the queue to be full,
+             * so don't submit gremlin job when loading data
+             */
+            this.taskManager.pauseScheduledThreadPool();
+        } else {
+            this.taskManager.resumeScheduledThreadPool();
+        }
+    }
+
+    @Override
+    public GraphReadMode readMode() {
+        return this.readMode;
+    }
+
+    @Override
+    public void readMode(GraphReadMode readMode) {
+        this.readMode = readMode;
     }
 
     @Override
@@ -307,11 +360,44 @@ public class StandardHugeGraph implements HugeGraph {
             this.storeProvider.initSystemInfo(this);
             this.serverStarted(this.serverInfoManager().selfServerId(),
                                this.serverInfoManager().selfServerRole());
+            /*
+             * Take the initiative to generate a snapshot, it can avoid this
+             * situation: when the server restart need to read the database
+             * (such as checkBackendVersionInfo), it happens that raft replays
+             * the truncate log, at the same time, the store has been cleared
+             * (truncate) but init-store has not been completed, which will
+             * cause reading errors.
+             * When restarting, load the snapshot first and then read backend,
+             * will not encounter such an intermediate state.
+             */
+            this.storeProvider.createSnapshot();
         } finally {
             LockUtil.unlock(this.name, LockUtil.GRAPH_LOCK);
         }
 
         LOG.info("Graph '{}' has been truncated", this.name);
+    }
+
+    @Override
+    public void createSnapshot() {
+        LockUtil.lock(this.name, LockUtil.GRAPH_LOCK);
+        try {
+            this.storeProvider.createSnapshot();
+        } finally {
+            LockUtil.unlock(this.name, LockUtil.GRAPH_LOCK);
+        }
+        LOG.info("Graph '{}' has created snapshot", this.name);
+    }
+
+    @Override
+    public void resumeSnapshot() {
+        LockUtil.lock(this.name, LockUtil.GRAPH_LOCK);
+        try {
+            this.storeProvider.resumeSnapshot();
+        } finally {
+            LockUtil.unlock(this.name, LockUtil.GRAPH_LOCK);
+        }
+        LOG.info("Graph '{}' has resumed from snapshot", this.name);
     }
 
     private SchemaTransaction openSchemaTransaction() throws HugeException {
@@ -776,7 +862,9 @@ public class StandardHugeGraph implements HugeGraph {
         }
 
         LOG.info("Close graph {}", this);
-        this.userManager.close();
+        if (StandardAuthManager.isLocal(this.authManager)) {
+            this.authManager.close();
+        }
         this.taskManager.closeScheduler(this.params);
         try {
             this.closeTx();
@@ -838,9 +926,14 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
-    public UserManager userManager() {
-        // this.userManager.initSchemaIfNeeded();
-        return this.userManager;
+    public AuthManager authManager() {
+        // this.authManager.initSchemaIfNeeded();
+        return this.authManager;
+    }
+
+    @Override
+    public void switchAuthManager(AuthManager authManager) {
+        this.authManager = authManager;
     }
 
     @Override
@@ -876,6 +969,39 @@ public class StandardHugeGraph implements HugeGraph {
     @Override
     public long now() {
         return ((TinkerPopTransaction) this.tx()).openedTime();
+    }
+
+    @Override
+    public <V> V option(ConfigOption<V> option) {
+        HugeConfig config = this.configuration();
+        if (!ALLOWED_CONFIGS.contains(option)) {
+            throw new NotAllowException("Not allowed to access config: %s",
+                                        option.name());
+        }
+        return config.get(option);
+    }
+
+    @Override
+    public void registerRpcServices(RpcServiceConfig4Server serverConfig,
+                                    RpcServiceConfig4Client clientConfig) {
+        /*
+         * Skip register cache-rpc service if it's non-shared storage,
+         * because we assume cache of non-shared storage is updated by raft.
+         */
+        if (!this.backendStoreFeatures().supportsSharedStorage()) {
+            return;
+        }
+
+        Class<GraphCacheNotifier> clazz1 = GraphCacheNotifier.class;
+        // The proxy is sometimes unavailable (issue #664)
+        CacheNotifier proxy = clientConfig.serviceProxy(this.name, clazz1);
+        serverConfig.addService(this.name, clazz1, new HugeGraphCacheNotifier(
+                                                   this.graphEventHub, proxy));
+
+        Class<SchemaCacheNotifier> clazz2 = SchemaCacheNotifier.class;
+        proxy = clientConfig.serviceProxy(this.name, clazz2);
+        serverConfig.addService(this.name, clazz2, new HugeSchemaCacheNotifier(
+                                                   this.schemaEventHub, proxy));
     }
 
     private void closeTx() {
@@ -918,6 +1044,11 @@ public class StandardHugeGraph implements HugeGraph {
         @Override
         public GraphMode mode() {
             return StandardHugeGraph.this.mode();
+        }
+
+        @Override
+        public GraphReadMode readMode() {
+            return StandardHugeGraph.this.readMode();
         }
 
         @Override
@@ -1270,6 +1401,85 @@ public class StandardHugeGraph implements HugeGraph {
         public SysTransaction(HugeGraphParams graph, BackendStore store) {
             super(graph, store);
             this.autoCommit(true);
+        }
+    }
+
+    private static class AbstractCacheNotifier implements CacheNotifier {
+
+        private final EventHub hub;
+        private final EventListener cacheEventListener;
+
+        public AbstractCacheNotifier(EventHub hub, CacheNotifier proxy) {
+            this.hub = hub;
+            this.cacheEventListener = event -> {
+                Object[] args = event.args();
+                E.checkArgument(args.length > 0 && args[0] instanceof String,
+                                "Expect event action argument");
+                if (Cache.ACTION_INVALIDED.equals(args[0])) {
+                    event.checkArgs(String.class, HugeType.class, Object.class);
+                    HugeType type = (HugeType) args[1];
+                    Object ids = args[2];
+                    if (ids instanceof Id[]) {
+                        // argument type mismatch: proxy.invalid2(type,Id[]ids)
+                        proxy.invalid2(type, (Id[]) ids);
+                    } else if (ids instanceof Id) {
+                        proxy.invalid(type, (Id) ids);
+                    } else {
+                        E.checkArgument(false, "Unexpected argument: %s", ids);
+                    }
+                    return true;
+                } else if (Cache.ACTION_CLEARED.equals(args[0])) {
+                    event.checkArgs(String.class, HugeType.class);
+                    HugeType type = (HugeType) args[1];
+                    proxy.clear(type);
+                    return true;
+                }
+                return false;
+            };
+            this.hub.listen(Events.CACHE, this.cacheEventListener);
+        }
+
+        @Override
+        public void close() {
+            this.hub.unlisten(Events.CACHE, this.cacheEventListener);
+        }
+
+        @Override
+        public void invalid(HugeType type, Id id) {
+            this.hub.notify(Events.CACHE, Cache.ACTION_INVALID, type, id);
+        }
+
+        @Override
+        public void invalid2(HugeType type, Object[] ids) {
+            this.hub.notify(Events.CACHE, Cache.ACTION_INVALID, type, ids);
+        }
+
+        @Override
+        public void clear(HugeType type) {
+            this.hub.notify(Events.CACHE, Cache.ACTION_CLEAR, type);
+        }
+
+        @Override
+        public void reload() {
+            // pass
+        }
+    }
+
+    private static class HugeSchemaCacheNotifier
+                   extends AbstractCacheNotifier
+                   implements SchemaCacheNotifier {
+
+        public HugeSchemaCacheNotifier(EventHub hub, CacheNotifier proxy) {
+            super(hub, proxy);
+        }
+    }
+
+    private static class HugeGraphCacheNotifier
+                   extends AbstractCacheNotifier
+                   implements GraphCacheNotifier {
+
+        public HugeGraphCacheNotifier(EventHub hub, CacheNotifier proxy) {
+            super(hub, proxy);
         }
     }
 }

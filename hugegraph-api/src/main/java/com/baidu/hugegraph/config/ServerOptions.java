@@ -71,7 +71,7 @@ public class ServerOptions extends OptionHolder {
                     "restserver.max_worker_threads",
                     "The maxmium worker threads of rest server.",
                     rangeInt(2, Integer.MAX_VALUE),
-                    2 * Runtime.getRuntime().availableProcessors()
+                    2 * CoreOptions.CPUS
             );
 
     public static final ConfigOption<Integer> MIN_FREE_MEMORY =
@@ -132,7 +132,7 @@ public class ServerOptions extends OptionHolder {
                     "gremlinserver.max_route",
                     "The max route number for gremlin server.",
                     positiveInt(),
-                    2 * Runtime.getRuntime().availableProcessors()
+                    2 * CoreOptions.CPUS
             );
 
     public static final ConfigListOption<String> GRAPHS =
@@ -173,7 +173,7 @@ public class ServerOptions extends OptionHolder {
                     "batch.max_write_threads",
                     "The maximum threads for batch writing, " +
                     "if the value is 0, the actual value will be set to " +
-                    "batch.max_write_ratio * total-rest-threads.",
+                    "batch.max_write_ratio * restserver.max_worker_threads.",
                     nonNegativeInt(),
                     0);
 
@@ -198,13 +198,13 @@ public class ServerOptions extends OptionHolder {
     public static final ConfigOption<String> AUTH_GRAPH_STORE =
             new ConfigOption<>(
                     "auth.graph_store",
-                    "The graph name used to store users, " +
-                    "only for com.baidu.hugegraph.auth.StandardAuthenticator.",
+                    "The name of graph used to store authentication information, " +
+                    "like users, only for com.baidu.hugegraph.auth.StandardAuthenticator.",
                     disallowEmpty(),
                     "hugegraph"
             );
 
-    public static final ConfigOption<String> ADMIN_TOKEN =
+    public static final ConfigOption<String> AUTH_ADMIN_TOKEN =
             new ConfigOption<>(
                     "auth.admin_token",
                     "Token for administrator operations, " +
@@ -213,7 +213,7 @@ public class ServerOptions extends OptionHolder {
                     "162f7848-0b6d-4faf-b557-3a0797869c55"
             );
 
-    public static final ConfigListOption<String> USER_TOKENS =
+    public static final ConfigListOption<String> AUTH_USER_TOKENS =
             new ConfigListOption<>(
                     "auth.user_tokens",
                     "The map of user tokens with name and password, " +
@@ -222,30 +222,32 @@ public class ServerOptions extends OptionHolder {
                     "hugegraph:9fd95c9c-711b-415b-b85f-d4df46ba5c31"
             );
 
-    public static final ConfigOption<String> SERVER_KEYSTORE_FILE =
+    public static final ConfigOption<String> AUTH_REMOTE_URL =
             new ConfigOption<>(
-                    "ssl.server_keystore_file",
+                    "auth.remote_url",
+                    "If the address is empty, it provide auth service, " +
+                    "otherwise it is auth client and also provide auth service " +
+                    "through rpc forwarding. The remote url can be set to " +
+                    "multiple addresses, which are concat by ','.",
+                    null,
+                    ""
+            );
+
+    public static final ConfigOption<String> SSL_KEYSTORE_FILE =
+            new ConfigOption<>(
+                    "ssl.keystore_file",
                     "The path of server keystore file used when https " +
                     "protocol is enabled.",
                     disallowEmpty(),
-                    "hugegraph-server.keystore"
+                    "conf/hugegraph-server.keystore"
             );
 
-    public static final ConfigOption<String> SERVER_KEYSTORE_PASSWORD =
+    public static final ConfigOption<String> SSL_KEYSTORE_PASSWORD =
             new ConfigOption<>(
-                    "ssl.server_keystore_password",
-                    "The password of the path of the server keystore file " +
-                    "used when the https protocol is enabled.",
+                    "ssl.keystore_password",
+                    "The password of the server keystore file " +
+                    "when the https protocol is enabled.",
                     null,
                     "hugegraph"
-            );
-
-    public static final ConfigOption<String> SERVER_PROTOCOL =
-            new ConfigOption<>(
-                    "server.protocol",
-                    "The protocol of rest-server, allowed values are: " +
-                    "http or https.",
-                    allowValues("http", "https"),
-                    "http"
             );
 }

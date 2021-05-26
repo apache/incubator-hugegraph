@@ -37,7 +37,9 @@ import com.baidu.hugegraph.unit.core.DataTypeTest;
 import com.baidu.hugegraph.unit.core.DirectionsTest;
 import com.baidu.hugegraph.unit.core.ExceptionTest;
 import com.baidu.hugegraph.unit.core.LocksTableTest;
+import com.baidu.hugegraph.unit.core.PageStateTest;
 import com.baidu.hugegraph.unit.core.QueryTest;
+import com.baidu.hugegraph.unit.core.RangeTest;
 import com.baidu.hugegraph.unit.core.RolePermissionTest;
 import com.baidu.hugegraph.unit.core.RowLockTest;
 import com.baidu.hugegraph.unit.core.SecurityManagerTest;
@@ -46,6 +48,7 @@ import com.baidu.hugegraph.unit.core.TraversalUtilTest;
 import com.baidu.hugegraph.unit.id.EdgeIdTest;
 import com.baidu.hugegraph.unit.id.IdTest;
 import com.baidu.hugegraph.unit.id.IdUtilTest;
+import com.baidu.hugegraph.unit.id.SplicingIdGeneratorTest;
 import com.baidu.hugegraph.unit.mysql.MysqlUtilTest;
 import com.baidu.hugegraph.unit.mysql.WhereBuilderTest;
 import com.baidu.hugegraph.unit.rocksdb.RocksDBCountersTest;
@@ -58,6 +61,7 @@ import com.baidu.hugegraph.unit.serializer.SerializerFactoryTest;
 import com.baidu.hugegraph.unit.serializer.StoreSerializerTest;
 import com.baidu.hugegraph.unit.serializer.TableBackendEntryTest;
 import com.baidu.hugegraph.unit.serializer.TextBackendEntryTest;
+import com.baidu.hugegraph.unit.util.CompressUtilTest;
 import com.baidu.hugegraph.unit.util.JsonUtilTest;
 import com.baidu.hugegraph.unit.util.StringEncodingTest;
 import com.baidu.hugegraph.unit.util.VersionTest;
@@ -82,6 +86,7 @@ import com.baidu.hugegraph.unit.util.VersionTest;
     IdTest.class,
     EdgeIdTest.class,
     IdUtilTest.class,
+    SplicingIdGeneratorTest.class,
 
     /* core */
     LocksTableTest.class,
@@ -91,11 +96,13 @@ import com.baidu.hugegraph.unit.util.VersionTest;
     ConditionTest.class,
     ConditionQueryFlattenTest.class,
     QueryTest.class,
+    RangeTest.class,
     SecurityManagerTest.class,
     RolePermissionTest.class,
     ExceptionTest.class,
     BackendStoreSystemInfoTest.class,
     TraversalUtilTest.class,
+    PageStateTest.class,
 
     /* serializer */
     BytesBufferTest.class,
@@ -121,7 +128,8 @@ import com.baidu.hugegraph.unit.util.VersionTest;
     /* utils */
     VersionTest.class,
     JsonUtilTest.class,
-    StringEncodingTest.class
+    StringEncodingTest.class,
+    CompressUtilTest.class
 })
 public class UnitTestSuite {
 }

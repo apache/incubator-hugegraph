@@ -24,6 +24,16 @@ import com.baidu.hugegraph.backend.store.BackendFeatures;
 public class RocksDBFeatures implements BackendFeatures {
 
     @Override
+    public boolean supportsSharedStorage() {
+        return false;
+    }
+
+    @Override
+    public boolean supportsSnapshot() {
+        return true;
+    }
+
+    @Override
     public boolean supportsScanToken() {
         return false;
     }
@@ -123,6 +133,11 @@ public class RocksDBFeatures implements BackendFeatures {
 
     @Override
     public boolean supportsTtl() {
+        return false;
+    }
+
+    @Override
+    public boolean supportsOlapProperties() {
         return false;
     }
 }

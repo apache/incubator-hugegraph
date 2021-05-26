@@ -183,7 +183,10 @@ public class RegisterUtil {
     }
 
     public static void registerServer() {
+        // Register ServerOptions (rest-server)
         OptionSpace.register("server", "com.baidu.hugegraph.config.ServerOptions");
+        // Register RpcOptions (rpc-server)
+        OptionSpace.register("rpc", "com.baidu.hugegraph.config.RpcOptions");
     }
 
     /**
