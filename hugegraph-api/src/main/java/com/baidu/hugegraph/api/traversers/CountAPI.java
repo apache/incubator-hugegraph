@@ -76,7 +76,7 @@ public class CountAPI extends API {
         E.checkArgumentNotNull(request.dedupSize == NO_LIMIT ||
                                request.dedupSize >= 0L,
                                "The dedup size of request " +
-                               "must >= 0 or == -1, but got '%s'",
+                               "must >= 0 or == -1, but got: '%s'",
                                request.dedupSize);
 
         HugeGraph g = graph(manager, graph);

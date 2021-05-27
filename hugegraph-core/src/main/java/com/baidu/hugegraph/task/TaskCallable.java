@@ -82,7 +82,7 @@ public abstract class TaskCallable<V> implements Callable<V> {
 
     public void setMinSaveInterval(long seconds) {
         E.checkArgument(seconds > 0,
-                        "Must set interval > 0, bug got '%s'", seconds);
+                        "Must set interval > 0, but got '%s'", seconds);
         this.saveInterval = seconds * 1000L;
     }
 
