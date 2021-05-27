@@ -47,6 +47,7 @@ public class KneighborRecords extends SingleWayMultiPathsRecords {
     public Set<Id> ids(long limit) {
         Set<Id> ids = CollectionFactory.newIdSet(CollectionType.EC);
         Stack<Record> records = this.records();
+        // Not include record(i=0) to ignore source vertex
         for (int i = 1; i < records.size(); i++) {
             IntIterator iterator = records.get(i).keys();
             while ((limit == NO_LIMIT || limit > 0L) && iterator.hasNext()) {

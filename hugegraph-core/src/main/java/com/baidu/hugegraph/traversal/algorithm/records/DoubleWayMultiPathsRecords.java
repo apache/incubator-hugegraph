@@ -42,7 +42,7 @@ public abstract class DoubleWayMultiPathsRecords extends AbstractRecords {
     private final Stack<Record> targetRecords;
 
     private IntIterator lastRecordKeys;
-    private int current;
+    private int currentKey;
     private boolean forward;
     private int accessed;
 
@@ -91,8 +91,8 @@ public abstract class DoubleWayMultiPathsRecords extends AbstractRecords {
     @Watched
     @Override
     public Id nextKey() {
-        this.current = this.lastRecordKeys.next();
-        return this.id(this.current);
+        this.currentKey = this.lastRecordKeys.next();
+        return this.id(this.currentKey);
     }
 
     @Watched
@@ -102,12 +102,13 @@ public abstract class DoubleWayMultiPathsRecords extends AbstractRecords {
         PathSet results = new PathSet();
         int targetCode = this.code(target);
         // If cross point exists, path found, concat them
-        if (this.contains(targetCode)) {
-            results = this.forward ?
-                      this.linkPath(this.current, targetCode, ring) :
-                      this.linkPath(targetCode, this.current, ring);
+        if (this.forward && this.targetContains(targetCode)) {
+            results = this.linkPath(this.currentKey, targetCode, ring);
         }
-        this.addPath(targetCode, this.current);
+        if (!this.forward && this.sourceContains(targetCode)) {
+            results = this.linkPath(targetCode, this.currentKey, ring);
+        }
+        this.addPath(targetCode, this.currentKey);
         return results;
     }
 
@@ -116,16 +117,11 @@ public abstract class DoubleWayMultiPathsRecords extends AbstractRecords {
         return this.accessed;
     }
 
-    protected boolean contains(int node) {
-        return this.forward ? this.targetContains(node) :
-                              this.sourceContains(node);
-    }
-
-    private boolean sourceContains(int node) {
+    protected boolean sourceContains(int node) {
         return this.sourceRecords.peek().containsKey(node);
     }
 
-    private boolean targetContains(int node) {
+    protected boolean targetContains(int node) {
         return this.targetRecords.peek().containsKey(node);
     }
 
@@ -209,6 +205,6 @@ public abstract class DoubleWayMultiPathsRecords extends AbstractRecords {
     }
 
     protected int current() {
-        return this.current;
+        return this.currentKey;
     }
 }

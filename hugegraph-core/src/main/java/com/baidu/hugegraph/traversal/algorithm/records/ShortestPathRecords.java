@@ -55,7 +55,8 @@ public class ShortestPathRecords extends DoubleWayMultiPathsRecords {
         PathSet paths = new PathSet();
         int targetCode = this.code(target);
         // If cross point exists, shortest path found, concat them
-        if (this.contains(targetCode)) {
+        if (this.forward() && this.targetContains(targetCode) ||
+            !this.forward() && this.sourceContains(targetCode)) {
             if (!filter.apply(target)) {
                 return paths;
             }
