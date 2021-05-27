@@ -99,7 +99,7 @@ public class InitStore {
             initGraph(configPath);
         }
 
-        StandardAuthenticator.initAdminUser(restConfFile);
+        StandardAuthenticator.initAdminUserIfNeeded(restConfFile);
 
         HugeFactory.shutdown(30L);
     }
