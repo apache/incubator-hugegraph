@@ -466,7 +466,17 @@ public class IndexLabelBuilder extends AbstractBuilder
             E.checkArgument(pkey.aggregateType().isIndexable(),
                             "The aggregate type %s is not indexable",
                             pkey.aggregateType());
+
+            if(pkey.cardinality().multiple()){
+                E.checkArgument(fields.size() == 1,
+                                "Not allowed to build union index on property" +
+                                " key " +
+                                "'%s' whose cardinality is list or set",
+                                pkey.name());
+            }
         }
+
+
 
         List<String> properties = this.graph().mapPkId2Name(propertyIds);
         E.checkArgument(properties.containsAll(fields),

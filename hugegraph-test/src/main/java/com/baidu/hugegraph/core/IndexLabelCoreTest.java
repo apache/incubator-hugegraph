@@ -41,10 +41,12 @@ import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.schema.Userdata;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.testutil.Assert;
+import com.baidu.hugegraph.traversal.optimize.ConditionP;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.IndexType;
 import com.baidu.hugegraph.util.DateUtil;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 
 public class IndexLabelCoreTest extends SchemaCoreTest {
 
@@ -535,21 +537,41 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
         super.initPropertyKeys();
         HugeGraph graph = graph();
         SchemaManager schema = graph.schema();
-        schema.vertexLabel("soft").properties("name", "tags")
+        schema.vertexLabel("soft").properties("name", "tags", "country", "category")
               .primaryKeys("name").create();
+
         graph.addVertex(T.label, "soft", "name", "hugegraph",
+                        "country", "china",
+                        "category", Arrays.asList("graphdb"),
                         "tags", Arrays.asList("graphdb", "gremlin"));
+
         graph.addVertex(T.label, "soft", "name", "neo4j",
+                        "country", "usa",
+                        "category", Arrays.asList("graphdb"),
                         "tags", Arrays.asList("graphdb", "cypher"));
         graph.tx().commit();
+
 
         schema.indexLabel("softByTag").onV("soft").secondary()
               .by("tags").create();
 
+        schema.indexLabel("softByCategory").onV("soft").search()
+              .by("category").create();
+
         List<Vertex> vertices;
-        vertices = graph.traversal().V().has("soft", "tags", "graphdb").toList();
+        vertices = graph.traversal().V().has("soft", "category",
+                                             ConditionP.textContains("graphdb")).toList();
         Assert.assertEquals(2, vertices.size());
-        vertices = graph.traversal().V().has("soft", "tags", "gremlin").toList();
+
+        // ConditionP.contains
+        vertices = graph.traversal().V().has("soft", "tags",
+                                             ConditionP.contains("gremlin")).toList();
+        Assert.assertEquals(1, vertices.size());
+
+        // array
+        vertices = graph.traversal().V().has("soft", "tags", Sets.newHashSet(
+                "cypher",
+                "graphdb")).toList();
         Assert.assertEquals(1, vertices.size());
     }
 

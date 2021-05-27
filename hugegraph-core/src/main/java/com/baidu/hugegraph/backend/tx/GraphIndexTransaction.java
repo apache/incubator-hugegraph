@@ -38,6 +38,7 @@ import org.apache.logging.log4j.util.Strings;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
+import org.checkerframework.checker.units.qual.C;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
@@ -95,6 +96,8 @@ import com.baidu.hugegraph.util.LongEncoding;
 import com.baidu.hugegraph.util.NumericUtil;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 public class GraphIndexTransaction extends AbstractTransaction {
 
@@ -229,11 +232,6 @@ public class GraphIndexTransaction extends AbstractTransaction {
                              "Expect only one property in search index");
                 value = propValues.get(0);
 
-                // for
-                if(value instanceof Collection){
-                    value = StringUtils.join(value);
-                }
-
                 Set<String> words = this.segmentWords(value.toString());
                 for (String word : words) {
                     this.updateIndex(indexLabel, word, element.id(),
@@ -247,9 +245,12 @@ public class GraphIndexTransaction extends AbstractTransaction {
                     // prefixValues is list or set , should create index for
                     // each item
                     if(prefixValues.get(0) instanceof Collection) {
-                        Collection values = (Collection) prefixValues.get(0);
-                        for (Object propValue : values) {
-                            value = escapeIndexValueIfNeeded(propValue.toString());
+                           List<String> values =
+                                   ((Collection<Object>) prefixValues.get(0)).stream()
+                                .map(s->s.toString())
+                                .collect(Collectors.toList());
+                        for (String propValue : getAllCombinationList(values)) {
+                            value = escapeIndexValueIfNeeded(propValue);
                             this.updateIndex(indexLabel, value, element.id(),
                                              expiredTime, removed);
                         }
@@ -285,6 +286,30 @@ public class GraphIndexTransaction extends AbstractTransaction {
                           "Unknown index type '%s'", indexLabel.indexType()));
         }
     }
+
+
+    private List<String> getAllCombinationList(List<String> prefixValues){
+
+        Set<String> valueSet = Sets.newHashSet(prefixValues);
+
+        List<Set<String>>  combinations = new ArrayList<>();
+        for (int i=1; i <= prefixValues.size(); i++) {
+            combinations.addAll(Sets.combinations(valueSet, i));
+        }
+
+        return combinations.stream()
+                .map(set-> {
+                    List<Object> data = new ArrayList<>();
+                    if (set.size() == 1) {
+                        data.add(set.iterator().next());
+                    } else {
+                        data.add(set);
+                    }
+                    return ConditionQuery.concatValues(data);
+                })
+                .collect(Collectors.toList());
+    }
+
 
     private void updateIndex(IndexLabel indexLabel, Object propValue,
                              Id elementId, long expiredTime, boolean removed) {
@@ -784,7 +809,11 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 if (key instanceof Id && indexFields.contains(key)) {
                     // This is an index field of search index
                     Id field = (Id) key;
-                    String propValue = elem.<String>getPropertyValue(field);
+                    HugeProperty property = elem.getProperty(field);
+                    Object value = property.value();
+                    // collection join
+                    String propValue = value instanceof Collection ?
+                                       StringUtils.join(value) : (String)value;
                     String fvalue = (String) originQuery.userpropValue(field);
                     if (this.matchSearchIndexWords(propValue, fvalue)) {
                         continue;

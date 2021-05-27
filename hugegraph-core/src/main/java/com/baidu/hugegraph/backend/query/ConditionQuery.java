@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.backend.query;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -42,6 +43,8 @@ import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.LongEncoding;
 import com.baidu.hugegraph.util.NumericUtil;
 import com.google.common.base.Function;
+
+import afu.org.checkerframework.checker.oigj.qual.O;
 
 public final class ConditionQuery extends IdQuery {
 
@@ -308,7 +311,7 @@ public final class ConditionQuery extends IdQuery {
             boolean got = false;
             for (Relation r : this.userpropRelations()) {
                 if (r.key().equals(field) && !r.isSysprop()) {
-                    E.checkState(r.relation == RelationType.EQ,
+                    E.checkState(r.relation == RelationType.EQ || r.relation == RelationType.CONTAINS,
                                  "Method userpropValues(List<String>) only " +
                                  "used for secondary index, " +
                                  "relation must be EQ, but got %s",
@@ -500,7 +503,14 @@ public final class ConditionQuery extends IdQuery {
     public static String concatValues(List<Object> values) {
         List<Object> newValues = new ArrayList<>(values.size());
         for (Object v : values) {
-            newValues.add(convertNumberIfNeeded(v));
+            if(v instanceof Collection){
+                // ensure collection order
+                List sortedValues = new ArrayList((Collection) v);
+                Collections.sort(sortedValues);
+                newValues.add(sortedValues);
+            }else {
+                newValues.add(convertNumberIfNeeded(v));
+            }
         }
         return SplicingIdGenerator.concatValues(newValues);
     }
