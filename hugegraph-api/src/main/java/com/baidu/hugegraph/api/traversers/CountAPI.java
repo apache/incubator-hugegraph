@@ -75,7 +75,8 @@ public class CountAPI extends API {
                                "The steps of request can't be null or empty");
         E.checkArgumentNotNull(request.dedupSize == NO_LIMIT ||
                                request.dedupSize >= 0L,
-                               "The dedupSize of request must >= 0, but got '%s'",
+                               "The dedup size of request " +
+                               "must >= 0 or == -1, but got: '%s'",
                                request.dedupSize);
 
         HugeGraph g = graph(manager, graph);

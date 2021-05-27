@@ -282,7 +282,8 @@ public class NeighborRankTraverser extends HugeTraverser {
 
         public long degree() {
             E.checkArgument(this.degree > 0,
-                            "The degree must be > 0, but got %s", this.degree);
+                            "The max degree must be > 0, but got %s",
+                            this.degree);
             return this.degree;
         }
 
