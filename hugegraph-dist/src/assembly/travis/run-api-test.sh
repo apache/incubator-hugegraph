@@ -12,6 +12,7 @@ GREMLIN_SERVER_CONF=$SERVER_DIR/conf/gremlin-server.yaml
 mvn package -DskipTests
 
 sed -i 's/#auth.authenticator=/auth.authenticator=com.baidu.hugegraph.auth.StandardAuthenticator/' $REST_SERVER_CONF
+sed -i 's/#auth.admin_token=/auth.admin_token=pa/' $REST_SERVER_CONF
 sed -i 's/gremlin.graph=.*/gremlin.graph=com.baidu.hugegraph.auth.HugeFactoryAuthProxy/' $CONF
 echo "
 authentication: {

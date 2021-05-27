@@ -53,8 +53,8 @@ public class BaseApiTest {
 
     private static String BASE_URL = "http://127.0.0.1:8080";
     private static String GRAPH = "hugegraph";
-    protected static final String USERNAME = "admin";
-    protected static final String PASSWORD = "pa";
+    private static final String USERNAME = "admin";
+    private static final String PASSWORD = "pa";
 
     private static final String URL_PREFIX = "graphs/" + GRAPH;
     private static final String SCHEMA_PKS = "/schema/propertykeys";

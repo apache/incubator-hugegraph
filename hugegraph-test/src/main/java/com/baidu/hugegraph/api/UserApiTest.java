@@ -173,9 +173,10 @@ public class UserApiTest extends BaseApiTest {
         Response r = this.client().get(path, ImmutableMap.of("limit",
                                                              NO_LIMIT));
         String result = assertResponseStatus(200, r);
+
         Map<String, List<Map<String, Object>>> resultMap =
-        JsonUtil.fromJson(result, new TypeReference<Map<String,
-                                      List<Map<String, Object>>>>() {});
+                JsonUtil.fromJson(result, new TypeReference<Map<String,
+                                              List<Map<String, Object>>>>() {});
         return resultMap.get("users");
     }
 }
