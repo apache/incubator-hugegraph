@@ -130,11 +130,11 @@ public class KoutTraverser extends OltpTraverser {
                          NO_LIMIT : capacity - latest.size();
         while (depth-- > 0) {
             if (nearest) {
-                latest = this.adjacentVertices(latest, step, all,
+                latest = this.adjacentVertices(source, latest, step, all,
                                                remaining, single);
                 all.addAll(latest);
             } else {
-                latest = this.adjacentVertices(latest, step, null,
+                latest = this.adjacentVertices(source, latest, step, null,
                                                remaining, single);
             }
             if (capacity != NO_LIMIT) {

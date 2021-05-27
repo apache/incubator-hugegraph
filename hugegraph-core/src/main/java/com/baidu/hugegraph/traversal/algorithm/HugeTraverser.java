@@ -141,16 +141,19 @@ public class HugeTraverser {
         return neighbors;
     }
 
-    protected Set<Node> adjacentVertices(Set<Node> vertices, EdgeStep step,
-                                         Set<Node> excluded, long remaining) {
+    protected Set<Node> adjacentVertices(Id start, Set<Node> vertices,
+                                         EdgeStep step, Set<Node> excluded,
+                                         long remaining) {
         Set<Node> neighbors = newSet();
         for (Node source : vertices) {
             Iterator<Edge> edges = this.edgesOfVertex(source.id(), step);
             while (edges.hasNext()) {
                 Id target = ((HugeEdge) edges.next()).id().otherVertexId();
                 KNode kNode = new KNode(target, (KNode) source);
-                if ((excluded != null && excluded.contains(kNode)) ||
-                    neighbors.contains(kNode)) {
+                boolean matchExcluded = (excluded != null &&
+                                         excluded.contains(kNode));
+                if (matchExcluded || neighbors.contains(kNode) ||
+                    start.equals(kNode.id())) {
                     continue;
                 }
                 neighbors.add(kNode);
@@ -367,7 +370,7 @@ public class HugeTraverser {
                         Query.DEFAULT_CAPACITY, skipDegree);
         if (capacity != NO_LIMIT) {
             E.checkArgument(degree != NO_LIMIT && degree < capacity,
-                            "The degree must be < capacity");
+                            "The max degree must be < capacity");
             E.checkArgument(skipDegree < capacity,
                             "The skipped degree must be < capacity");
         }

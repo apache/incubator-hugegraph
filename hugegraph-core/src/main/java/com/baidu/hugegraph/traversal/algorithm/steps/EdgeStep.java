@@ -73,7 +73,7 @@ public class EdgeStep {
                     Map<String, Object> properties,
                     long degree, long skipDegree) {
         E.checkArgument(degree == NO_LIMIT || degree > 0L,
-                        "The degree must be > 0 or == -1, but got: %s",
+                        "The max degree must be > 0 or == -1, but got: %s",
                         degree);
         HugeTraverser.checkSkipDegree(skipDegree, degree,
                                       HugeTraverser.NO_LIMIT);

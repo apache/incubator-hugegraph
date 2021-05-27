@@ -71,8 +71,8 @@ public class WeightedEdgeStep {
                         "The sample must be > 0 or == -1, but got: %s",
                         sample);
         E.checkArgument(maxDegree == NO_LIMIT || maxDegree >= sample,
-                        "The max_degree must be greater than or equal to " +
-                        "sample, but got max_degree %s and sample %s",
+                        "The max degree must be greater than or equal to " +
+                        "sample, but got max degree %s and sample %s",
                         maxDegree, sample);
 
         this.edgeStep = new EdgeStep(g, direction, labels, properties,

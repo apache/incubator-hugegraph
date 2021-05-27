@@ -559,7 +559,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
             E.checkArgument(compressions.isEmpty() ||
                             compressions.size() == numLevels,
                             "Elements number of '%s' must be 0 or " +
-                            "be the same as '%s', bug got %s != %s",
+                            "be the same as '%s', but got %s != %s",
                             RocksDBOptions.LEVELS_COMPRESSIONS.name(),
                             RocksDBOptions.NUM_LEVELS.name(),
                             compressions.size(), numLevels);

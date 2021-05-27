@@ -89,7 +89,7 @@ public class KneighborTraverser extends OltpTraverser {
 
         while (maxDepth-- > 0) {
             long remaining = limit == NO_LIMIT ? NO_LIMIT : limit - all.size();
-            latest = this.adjacentVertices(latest, step, all,
+            latest = this.adjacentVertices(source, latest, step, all,
                                            remaining, single);
             int size = all.size() + latest.size();
             if (limit != NO_LIMIT && size >= limit) {
