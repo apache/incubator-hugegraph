@@ -69,11 +69,11 @@ public class PersonalRankAPI extends API {
                         "The alpha of rank request must be in range (0, 1], " +
                         "but got '%s'", request.alpha);
         E.checkArgument(request.maxDegree > 0L || request.maxDegree == NO_LIMIT,
-                        "The max_degree of rank request must be > 0 " +
+                        "The max degree of rank request must be > 0 " +
                         "or == -1, but got: %s", request.maxDegree);
         E.checkArgument(request.limit > 0L || request.limit == NO_LIMIT,
-                        "The limit of rank request must be > 0, but got: %s",
-                        request.limit);
+                        "The limit of rank request must be > 0 or == -1, " +
+                        "but got: %s", request.limit);
         E.checkArgument(request.maxDepth > 0L &&
                         request.maxDepth <= Long.parseLong(DEFAULT_MAX_DEPTH),
                         "The max depth of rank request must be " +
