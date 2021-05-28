@@ -476,8 +476,6 @@ public class IndexLabelBuilder extends AbstractBuilder
             }
         }
 
-
-
         List<String> properties = this.graph().mapPkId2Name(propertyIds);
         E.checkArgument(properties.containsAll(fields),
                         "Not all index fields '%s' are contained in " +

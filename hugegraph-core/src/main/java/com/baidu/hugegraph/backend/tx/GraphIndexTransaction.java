@@ -38,7 +38,6 @@ import org.apache.logging.log4j.util.Strings;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
-import org.checkerframework.checker.units.qual.C;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
@@ -96,7 +95,6 @@ import com.baidu.hugegraph.util.LongEncoding;
 import com.baidu.hugegraph.util.NumericUtil;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 public class GraphIndexTransaction extends AbstractTransaction {
@@ -231,7 +229,6 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 E.checkState(propValues.size() == 1,
                              "Expect only one property in search index");
                 value = propValues.get(0);
-
                 Set<String> words = this.segmentWords(value.toString());
                 for (String word : words) {
                     this.updateIndex(indexLabel, word, element.id(),
@@ -245,12 +242,10 @@ public class GraphIndexTransaction extends AbstractTransaction {
                     // prefixValues is list or set , should create index for
                     // each item
                     if(prefixValues.get(0) instanceof Collection) {
-                           List<String> values =
-                                   ((Collection<Object>) prefixValues.get(0)).stream()
-                                .map(s->s.toString())
-                                .collect(Collectors.toList());
-                        for (String propValue : getAllCombinationList(values)) {
-                            value = escapeIndexValueIfNeeded(propValue);
+                        for (Object propValue :
+                                getAllCombinationList(
+                                        (Collection<Object>) prefixValues.get(0))) {
+                            value = escapeIndexValueIfNeeded(propValue.toString());
                             this.updateIndex(indexLabel, value, element.id(),
                                              expiredTime, removed);
                         }
@@ -288,11 +283,15 @@ public class GraphIndexTransaction extends AbstractTransaction {
     }
 
 
-    private List<String> getAllCombinationList(List<String> prefixValues){
+    private List<Object> getAllCombinationList(Collection<Object> prefixValues){
 
-        Set<String> valueSet = Sets.newHashSet(prefixValues);
+        // this function get all combination of a collection
+        // [1,2,3] => [1,2,3,[1,2],[1,3],[2,3],[1,2,3]]
+        // so wo can search by one item eg. [1] or search by the combination
+        // of multiple items, eg. [1,2]
+        Set<Object> valueSet = Sets.newHashSet(prefixValues);
 
-        List<Set<String>>  combinations = new ArrayList<>();
+        List<Set<Object>>  combinations = new ArrayList<>();
         for (int i=1; i <= prefixValues.size(); i++) {
             combinations.addAll(Sets.combinations(valueSet, i));
         }
