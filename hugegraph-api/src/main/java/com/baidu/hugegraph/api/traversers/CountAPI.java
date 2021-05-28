@@ -141,7 +141,8 @@ public class CountAPI extends API {
 
         private EdgeStep jsonToStep(HugeGraph graph) {
             return new EdgeStep(graph, this.direction, this.labels,
-                                this.properties, this.maxDegree, this.skipDegree);
+                                this.properties, this.maxDegree,
+                                this.skipDegree);
         }
     }
 }
