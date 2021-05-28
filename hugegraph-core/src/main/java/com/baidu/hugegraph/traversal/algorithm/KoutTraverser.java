@@ -70,12 +70,12 @@ public class KoutTraverser extends OltpTraverser {
                 remaining = limit;
             }
             if (nearest) {
-                latest = this.adjacentVertices(latest, dir, labelId, all,
-                                               degree, remaining);
+                latest = this.adjacentVertices(sourceV, latest, dir, labelId,
+                                               all, degree, remaining);
                 all.addAll(latest);
             } else {
-                latest = this.adjacentVertices(latest, dir, labelId, null,
-                                               degree, remaining);
+                latest = this.adjacentVertices(sourceV, latest, dir, labelId,
+                                               null, degree, remaining);
             }
             if (capacity != NO_LIMIT) {
                 // Update 'remaining' value to record remaining capacity

@@ -97,9 +97,10 @@ public class HugeTraverser {
         return this.graph.option(CoreOptions.OLTP_CONCURRENT_DEPTH);
     }
 
-    protected Set<Id> adjacentVertices(Set<Id> vertices, Directions dir,
-                                       Id label, Set<Id> excluded,
-                                       long degree, long limit) {
+    protected Set<Id> adjacentVertices(Id sourceV, Set<Id> vertices,
+                                       Directions dir, Id label,
+                                       Set<Id> excluded, long degree,
+                                       long limit) {
         if (limit == 0) {
             return ImmutableSet.of();
         }
@@ -111,7 +112,10 @@ public class HugeTraverser {
             while (edges.hasNext()) {
                 HugeEdge e = (HugeEdge) edges.next();
                 Id target = e.id().otherVertexId();
-                if (excluded != null && excluded.contains(target)) {
+                boolean matchExcluded = (excluded != null &&
+                                         excluded.contains(target));
+                if (matchExcluded || neighbors.contains(target) ||
+                    sourceV.equals(target)) {
                     continue;
                 }
                 neighbors.add(target);
@@ -376,8 +380,8 @@ public class HugeTraverser {
         }
         if (skipDegree > 0L) {
             E.checkArgument(degree != NO_LIMIT && skipDegree >= degree,
-                            "The skipped degree must be >= degree, " +
-                            "but got skipped degree '%s' and degree '%s'",
+                            "The skipped degree must be >= max degree, " +
+                            "but got skipped degree '%s' and max degree '%s'",
                             skipDegree, degree);
         }
     }
