@@ -47,15 +47,14 @@ public class KneighborTraverser extends OltpTraverser {
         Id labelId = this.getEdgeLabelId(label);
 
         Set<Id> latest = newSet();
-        latest.add(sourceV);
-
         Set<Id> all = newSet();
-        all.add(sourceV);
+
+        latest.add(sourceV);
 
         while (depth-- > 0) {
             long remaining = limit == NO_LIMIT ? NO_LIMIT : limit - all.size();
-            latest = this.adjacentVertices(latest, dir, labelId, all,
-                                           degree, remaining);
+            latest = this.adjacentVertices(sourceV, latest, dir, labelId,
+                                           all, degree, remaining);
             all.addAll(latest);
             if (limit != NO_LIMIT && all.size() >= limit) {
                 break;
