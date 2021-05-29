@@ -45,17 +45,17 @@ public class ScyllaDBMetrics extends CassandraMetrics {
                              "DroppedMutations");
         appendCounterMetrics(metrics, probe, this.keyspace(), this.tables(),
                              "PendingFlushes");
-        appendCounterMetrics(metrics, probe, this.keyspace(), this.tables(),
-                             "KeyCacheHitRate");
+        //appendCounterMetrics(metrics, probe, this.keyspace(), this.tables(),
+        //                     "KeyCacheHitRate");
         appendCounterMetrics(metrics, probe, this.keyspace(), this.tables(),
                              "BloomFilterFalseRatio");
 
 System.out.println(">>>> probe WriteLatency");
         //Table timer Metrics
-        appendTimerMetrics(metrics, probe, this.keyspace(), "WriteLatency");
-        appendTimerMetrics(metrics, probe, this.keyspace(), "ReadLatency");
-        appendTimerMetrics(metrics, probe, null, "WriteLatency");
-        appendTimerMetrics(metrics, probe, null, "ReadLatency");
+        //appendTimerMetrics(metrics, probe, this.keyspace(), "WriteLatency");
+        //appendTimerMetrics(metrics, probe, this.keyspace(), "ReadLatency");
+        //appendTimerMetrics(metrics, probe, null, "WriteLatency");
+        //appendTimerMetrics(metrics, probe, null, "ReadLatency");
 
 System.out.println(">>>> probe Cache");
         // Cache Metrics
@@ -70,9 +70,9 @@ System.out.println(">>>> probe Compaction");
         // Compaction Metrics
         appendCompactionMetrics(metrics, probe, "CompletedTasks");
         appendCompactionMetrics(metrics, probe, "PendingTasks");
-        appendCompactionMetrics(metrics, probe, "BytesCompacted");
+        //appendCompactionMetrics(metrics, probe, "BytesCompacted");
 
 System.out.println(">>>> probe Nodes");
-metrics.remove("write_latency_*");
+metrics.remove(MEM_UNIT);
     }
 }
