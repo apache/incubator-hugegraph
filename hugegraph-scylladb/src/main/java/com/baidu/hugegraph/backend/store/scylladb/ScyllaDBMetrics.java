@@ -50,14 +50,12 @@ public class ScyllaDBMetrics extends CassandraMetrics {
         appendCounterMetrics(metrics, probe, this.keyspace(), this.tables(),
                              "BloomFilterFalseRatio");
 
-System.out.println(">>>> probe WriteLatency");
         //Table timer Metrics
         //appendTimerMetrics(metrics, probe, this.keyspace(), "WriteLatency");
         //appendTimerMetrics(metrics, probe, this.keyspace(), "ReadLatency");
         //appendTimerMetrics(metrics, probe, null, "WriteLatency");
         //appendTimerMetrics(metrics, probe, null, "ReadLatency");
 
-System.out.println(">>>> probe Cache");
         // Cache Metrics
         appendCacheMetrics(metrics, probe, "KeyCache", "Size");
         appendCacheMetrics(metrics, probe, "KeyCache", "Entries");
@@ -66,13 +64,9 @@ System.out.println(">>>> probe Cache");
         appendCacheMetrics(metrics, probe, "CounterCache", "Size");
         appendCacheMetrics(metrics, probe, "CounterCache", "Entries");
 
-System.out.println(">>>> probe Compaction");
         // Compaction Metrics
         appendCompactionMetrics(metrics, probe, "CompletedTasks");
         appendCompactionMetrics(metrics, probe, "PendingTasks");
         //appendCompactionMetrics(metrics, probe, "BytesCompacted");
-
-System.out.println(">>>> probe Nodes");
-metrics.remove(MEM_UNIT);
     }
 }

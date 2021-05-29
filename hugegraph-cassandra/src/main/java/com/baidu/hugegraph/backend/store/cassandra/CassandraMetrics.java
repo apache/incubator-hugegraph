@@ -139,7 +139,6 @@ public class CassandraMetrics implements BackendMetrics {
              */
         } catch (Throwable e) {
             metrics.put(EXCEPTION, e.toString());
-e.printStackTrace();
         }
         return metrics;
     }
@@ -158,14 +157,12 @@ e.printStackTrace();
         appendCounterMetrics(metrics, probe, this.keyspace, this.tables,
                              "BloomFilterFalseRatio");
 
-System.out.println(">>>> probe WriteLatency");
         //Table timer Metrics
         appendTimerMetrics(metrics, probe, this.keyspace, "WriteLatency");
         appendTimerMetrics(metrics, probe, this.keyspace, "ReadLatency");
         appendTimerMetrics(metrics, probe, null, "WriteLatency");
         appendTimerMetrics(metrics, probe, null, "ReadLatency");
 
-System.out.println(">>>> probe Cache");
         // Cache Metrics
         appendCacheMetrics(metrics, probe, "KeyCache", "Size");
         appendCacheMetrics(metrics, probe, "KeyCache", "Entries");
@@ -174,14 +171,10 @@ System.out.println(">>>> probe Cache");
         appendCacheMetrics(metrics, probe, "CounterCache", "Size");
         appendCacheMetrics(metrics, probe, "CounterCache", "Entries");
 
-System.out.println(">>>> probe Compaction");
         // Compaction Metrics
         appendCompactionMetrics(metrics, probe, "CompletedTasks");
         appendCompactionMetrics(metrics, probe, "PendingTasks");
         appendCompactionMetrics(metrics, probe, "BytesCompacted");
-
-System.out.println(">>>> probe Nodes");
-metrics.remove("write_latency_*");
     }
 
     protected static void appendCounterMetrics(Map<String, Object> metrics,
@@ -195,14 +188,6 @@ metrics.remove("write_latency_*");
         // Aggregation of metrics for the whole host tables
         Number number = 0;
         for (String table : tables) {
-// just for debug
-try {
-     probe.getColumnFamilyMetric(keyspace, table, metric);
-} catch (Throwable e) {
-    System.out.println(">>>> probe error1: " + name); e.printStackTrace();
-    metrics.put(name, e.toString());
-    return;
-}
             // like: "hugegraph", "g_v", "EstimatedPartitionCount"
             Object value = probe.getColumnFamilyMetric(keyspace, table, metric);
             if (!(value instanceof Number)) {
@@ -220,16 +205,6 @@ try {
         // "ReadLatency" => "read_latency_hugegraph"
         String suffix = keyspace == null ? "*" : keyspace;
         String name = humpToLine(metric + "_" + suffix);
-// just for debug
-try {
-    JmxTimerMBean value = (JmxTimerMBean) probe.getColumnFamilyMetric(
-                          keyspace, null, metric);
-    value.getCount();
-} catch (Throwable e) {
-    System.out.println(">>>> probe error2: " + name); e.printStackTrace();
-    metrics.put(name, e.toString());
-    return;
-}
         // Aggregation of metrics for the whole host if keyspace=null
         JmxTimerMBean value = (JmxTimerMBean) probe.getColumnFamilyMetric(
                               keyspace, null, metric);
@@ -260,17 +235,6 @@ try {
                                                   String metric) {
         // "CompletedTasks" => "compaction_completed_tasks"
         String name = humpToLine("compaction" + metric);
-// just for debug
-try {
-    Object value = probe.getCompactionMetric(metric);
-    if (value instanceof JmxCounterMBean) {
-        value = ((JmxCounterMBean) value).getCount();
-    }
-} catch (Throwable e) {
-    System.out.println(">>>> probe error3: " + name); e.printStackTrace();
-    metrics.put(name, e.toString());
-    return;
-}
         Object value = probe.getCompactionMetric(metric);
         if (value instanceof JmxCounterMBean) {
             value = ((JmxCounterMBean) value).getCount();
@@ -284,14 +248,6 @@ try {
                                              String metric) {
         // "RowCache" + "Size" => "row_cache_size"
         String name = humpToLine(cacheType + metric);
-// just for debug
-try {
-    probe.getCacheMetric(cacheType, metric);
-} catch (Throwable e) {
-    System.out.println(">>>> probe error4: " + name); e.printStackTrace();
-    metrics.put(name, e.toString());
-    return;
-}
         metrics.put(name, probe.getCacheMetric(cacheType, metric));
     }
 
