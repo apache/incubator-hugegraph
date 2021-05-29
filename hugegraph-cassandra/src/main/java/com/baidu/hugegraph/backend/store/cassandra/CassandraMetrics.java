@@ -21,6 +21,7 @@ package com.baidu.hugegraph.backend.store.cassandra;
 
 import java.io.IOException;
 import java.lang.management.MemoryUsage;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -55,9 +56,9 @@ public class CassandraMetrics implements BackendMetrics {
     private final String keyspace;
     private final List<String> tables;
 
-    public CassandraMetrics(CassandraSessionPool sessions,
-                            String keyspace,
-                            HugeConfig conf) {
+    public CassandraMetrics(HugeConfig conf,
+                            CassandraSessionPool sessions,
+                            String keyspace) {
         E.checkNotNull(conf, "config");
         E.checkArgumentNotNull(sessions,
                                "Cassandra sessions have not been initialized");
@@ -80,7 +81,15 @@ public class CassandraMetrics implements BackendMetrics {
         return this.executeAllHosts(this::getMetricsByHost);
     }
 
-    private Map<String, Object> getMetricsByHost(String host) {
+    protected String keyspace() {
+        return this.keyspace;
+    }
+
+    protected List<String> tables() {
+        return Collections.unmodifiableList(this.tables);
+    }
+
+    protected Map<String, Object> getMetricsByHost(String host) {
         Map<String, Object> metrics = InsertionOrderUtil.newMap();
         // JMX client operations for Cassandra.
         try (NodeProbe probe = this.newNodeProbe(host)) {
@@ -107,39 +116,10 @@ public class CassandraMetrics implements BackendMetrics {
                         UnitUtil.timestampToReadableString(probe.getUptime()));
             metrics.put("time_unit", "ms");
 
-            // Table Metrics
-            appendTableMetrics(metrics, probe, "EstimatedPartitionCount");
-            appendTableMetrics(metrics, probe, "DroppedMutations");
-            appendTableMetrics(metrics, probe, "PendingFlushes");
-            appendTableMetrics(metrics, probe, "KeyCacheHitRate");
-            appendTableMetrics(metrics, probe, "BloomFilterFalseRatio");
+            // Table/Cache/Compaction Metrics
+            this.appendExtraMetrics(metrics, probe);
 
-System.out.println(">>>> probe WriteLatency");
-            appendKeyspaceMetricsTimer(metrics, probe,
-                                       this.keyspace, "WriteLatency");
-            appendKeyspaceMetricsTimer(metrics, probe,
-                                       this.keyspace, "ReadLatency");
-            appendKeyspaceMetricsTimer(metrics, probe, null, "WriteLatency");
-            appendKeyspaceMetricsTimer(metrics, probe, null, "ReadLatency");
-
-System.out.println(">>>> probe Cache");
-            // Cache Metrics
-            appendCacheMetrics(metrics, probe, "KeyCache", "Size");
-            appendCacheMetrics(metrics, probe, "KeyCache", "Entries");
-            appendCacheMetrics(metrics, probe, "RowCache", "Size");
-            appendCacheMetrics(metrics, probe, "RowCache", "Entries");
-            appendCacheMetrics(metrics, probe, "CounterCache", "Size");
-            appendCacheMetrics(metrics, probe, "CounterCache", "Entries");
-
-System.out.println(">>>> probe Compaction");
-            // Compaction Metrics
-            appendCompactionMetrics(metrics, probe, "CompletedTasks");
-            appendCompactionMetrics(metrics, probe, "PendingTasks");
-            appendCompactionMetrics(metrics, probe, "BytesCompacted");
-
-System.out.println(">>>> probe Nodes");
-metrics.remove("write_latency_*");
-            // Nodes
+            // Nodes Metrics
             metrics.put("live_nodes", probe.getLiveNodes());
             metrics.put("joining_nodes", probe.getJoiningNodes());
             metrics.put("moving_nodes", probe.getMovingNodes());
@@ -164,25 +144,67 @@ e.printStackTrace();
         return metrics;
     }
 
-    private void appendTableMetrics(Map<String, Object> metrics,
-                                    NodeProbe probe, String metric) {
+    protected void appendExtraMetrics(Map<String, Object> metrics,
+                                      NodeProbe probe) {
+        // Table counter Metrics
+        appendCounterMetrics(metrics, probe, this.keyspace, this.tables,
+                             "EstimatedPartitionCount");
+        appendCounterMetrics(metrics, probe, this.keyspace, this.tables,
+                             "DroppedMutations");
+        appendCounterMetrics(metrics, probe, this.keyspace, this.tables,
+                             "PendingFlushes");
+        appendCounterMetrics(metrics, probe, this.keyspace, this.tables,
+                             "KeyCacheHitRate");
+        appendCounterMetrics(metrics, probe, this.keyspace, this.tables,
+                             "BloomFilterFalseRatio");
+
+System.out.println(">>>> probe WriteLatency");
+        //Table timer Metrics
+        appendTimerMetrics(metrics, probe, this.keyspace, "WriteLatency");
+        appendTimerMetrics(metrics, probe, this.keyspace, "ReadLatency");
+        appendTimerMetrics(metrics, probe, null, "WriteLatency");
+        appendTimerMetrics(metrics, probe, null, "ReadLatency");
+
+System.out.println(">>>> probe Cache");
+        // Cache Metrics
+        appendCacheMetrics(metrics, probe, "KeyCache", "Size");
+        appendCacheMetrics(metrics, probe, "KeyCache", "Entries");
+        appendCacheMetrics(metrics, probe, "RowCache", "Size");
+        appendCacheMetrics(metrics, probe, "RowCache", "Entries");
+        appendCacheMetrics(metrics, probe, "CounterCache", "Size");
+        appendCacheMetrics(metrics, probe, "CounterCache", "Entries");
+
+System.out.println(">>>> probe Compaction");
+        // Compaction Metrics
+        appendCompactionMetrics(metrics, probe, "CompletedTasks");
+        appendCompactionMetrics(metrics, probe, "PendingTasks");
+        appendCompactionMetrics(metrics, probe, "BytesCompacted");
+
+System.out.println(">>>> probe Nodes");
+metrics.remove("write_latency_*");
+    }
+
+    protected static void appendCounterMetrics(Map<String, Object> metrics,
+                                               NodeProbe probe,
+                                               String keyspace,
+                                               List<String> tables,
+                                               String metric) {
         // "EstimatedPartitionCount" => "estimated_partition_count"
         String name = humpToLine(metric);
 
         // Aggregation of metrics for the whole host tables
         Number number = 0;
-        for (String table : this.tables) {
+        for (String table : tables) {
 // just for debug
 try {
-     probe.getColumnFamilyMetric(this.keyspace, table, metric);
+     probe.getColumnFamilyMetric(keyspace, table, metric);
 } catch (Throwable e) {
     System.out.println(">>>> probe error1: " + name); e.printStackTrace();
     metrics.put(name, e.toString());
     return;
 }
             // like: "hugegraph", "g_v", "EstimatedPartitionCount"
-            Object value = probe.getColumnFamilyMetric(this.keyspace,
-                                                       table, metric);
+            Object value = probe.getColumnFamilyMetric(keyspace, table, metric);
             if (!(value instanceof Number)) {
                 value = Double.parseDouble(value.toString());
             }
@@ -191,10 +213,10 @@ try {
         metrics.put(name, number);
     }
 
-    private static void appendKeyspaceMetricsTimer(Map<String, Object> metrics,
-                                                   NodeProbe probe,
-                                                   String keyspace,
-                                                   String metric) {
+    protected static void appendTimerMetrics(Map<String, Object> metrics,
+                                             NodeProbe probe,
+                                             String keyspace,
+                                             String metric) {
         // "ReadLatency" => "read_latency_hugegraph"
         String suffix = keyspace == null ? "*" : keyspace;
         String name = humpToLine(metric + "_" + suffix);
@@ -233,9 +255,9 @@ try {
         metrics.put(name, timerMap);
     }
 
-    private static void appendCompactionMetrics(Map<String, Object> metrics,
-                                                NodeProbe probe,
-                                                String metric) {
+    protected static void appendCompactionMetrics(Map<String, Object> metrics,
+                                                  NodeProbe probe,
+                                                  String metric) {
         // "CompletedTasks" => "compaction_completed_tasks"
         String name = humpToLine("compaction" + metric);
 // just for debug
@@ -256,9 +278,10 @@ try {
         metrics.put(name, value);
     }
 
-    private static void appendCacheMetrics(Map<String, Object> metrics,
-                                           NodeProbe probe,
-                                           String cacheType, String metric) {
+    protected static void appendCacheMetrics(Map<String, Object> metrics,
+                                             NodeProbe probe,
+                                             String cacheType,
+                                             String metric) {
         // "RowCache" + "Size" => "row_cache_size"
         String name = humpToLine(cacheType + metric);
 // just for debug
