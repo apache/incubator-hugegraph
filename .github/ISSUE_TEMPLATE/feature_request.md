@@ -6,6 +6,6 @@ labels: 'feature'
 assignees: ''
 ---
 
-## Feature Description: 
+## Feature Description:
 
-xxx
+请简要描述新功能 / 需求的使用场景或上下文, 最好能给个具体的例子说明

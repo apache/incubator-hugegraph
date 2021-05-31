@@ -1,4 +1,4 @@
-blank_issues_enabled: true
+blank_issues_enabled: false
 
 # 设置提 issue 前的参考文档
 contact_links:
