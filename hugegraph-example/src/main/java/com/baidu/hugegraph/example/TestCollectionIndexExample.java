@@ -32,7 +32,8 @@ import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.traversal.optimize.ConditionP;
 import com.baidu.hugegraph.util.Log;
-import com.google.common.collect.Sets;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 public class TestCollectionIndexExample {
 
@@ -101,42 +102,46 @@ public class TestCollectionIndexExample {
         vertices = graph.traversal().V().has("soft", "tags", "gremlin").toList();
         Assert.assertEquals(2, vertices.size());
 
+        vertices = graph.traversal().V().has("soft", "tags", ImmutableList.of(
+                "graphdb", "graphdb")).toList();
+        Assert.assertEquals(3, vertices.size());
+
         // by contains
         vertices = graph.traversal().V().has("soft", "tags", ConditionP.contains("gremlin")).toList();
         Assert.assertEquals(2, vertices.size());
 
-        vertices = graph.traversal().V().has("soft", "tags", Sets.newHashSet(
+        vertices = graph.traversal().V().has("soft", "tags", ImmutableSet.of(
                 "graphdb")).toList();
         Assert.assertEquals(3, vertices.size());
 
         // collection search
-        vertices = graph.traversal().V().has("soft", "tags", Sets.newHashSet(
+        vertices = graph.traversal().V().has("soft", "tags", ImmutableSet.of(
                 "gremlin",
                 "graphdb")).toList();
         Assert.assertEquals(2, vertices.size());
 
-        vertices = graph.traversal().V().has("soft", "tags", Sets.newHashSet(
+        vertices = graph.traversal().V().has("soft", "tags", ImmutableSet.of(
                 "cypher",
                 "graphdb")).toList();
         Assert.assertEquals(1, vertices.size());
 
-        vertices = graph.traversal().V().has("soft", "tags", Sets.newHashSet(
+        vertices = graph.traversal().V().has("soft", "tags", ImmutableSet.of(
                 "gremlin",
                 "graphdb")).toList();
         Assert.assertEquals(2, vertices.size());
 
         Vertex vertex = vertices.get(0);
 
-        vertex.property("tags",  Sets.newHashSet("new_tag"));
+        vertex.property("tags",  ImmutableSet.of("new_tag"));
 
         graph.tx().commit();
 
-        vertices = graph.traversal().V().has("soft", "tags", Sets.newHashSet(
+        vertices = graph.traversal().V().has("soft", "tags", ImmutableSet.of(
                 "cypher",
                 "graphdb")).toList();
         Assert.assertEquals(1, vertices.size());
 
-        vertices = graph.traversal().V().has("soft", "tags", Sets.newHashSet(
+        vertices = graph.traversal().V().has("soft", "tags", ImmutableSet.of(
                 "new_tag")).toList();
         Assert.assertEquals(1, vertices.size());
 
