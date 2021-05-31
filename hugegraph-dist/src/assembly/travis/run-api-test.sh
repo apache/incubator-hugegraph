@@ -11,9 +11,14 @@ GREMLIN_SERVER_CONF=$SERVER_DIR/conf/gremlin-server.yaml
 
 mvn package -DskipTests
 
+# config rest-server
 sed -i 's/#auth.authenticator=/auth.authenticator=com.baidu.hugegraph.auth.StandardAuthenticator/' $REST_SERVER_CONF
 sed -i 's/#auth.admin_token=/auth.admin_token=pa/' $REST_SERVER_CONF
+
+# config hugegraph.properties
 sed -i 's/gremlin.graph=.*/gremlin.graph=com.baidu.hugegraph.auth.HugeFactoryAuthProxy/' $CONF
+
+# config gremlin-server
 echo "
 authentication: {
   authenticator: com.baidu.hugegraph.auth.StandardAuthenticator,
@@ -22,6 +27,8 @@ authentication: {
 }" >> $GREMLIN_SERVER_CONF
 
 $TRAVIS_DIR/start-server.sh $SERVER_DIR || (cat $SERVER_DIR/logs/hugegraph-server.log && exit 1)
+
+# run api-test
 mvn test -P api-test,$BACKEND || (cat $SERVER_DIR/logs/hugegraph-server.log && exit 1)
 $TRAVIS_DIR/build-report.sh
 $TRAVIS_DIR/stop-server.sh
