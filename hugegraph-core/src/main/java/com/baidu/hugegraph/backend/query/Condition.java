@@ -153,9 +153,13 @@ public abstract class Condition {
                 return compare(first, second) == 0;
             } else if (second.getClass().isArray()) {
                 return ArrayUtils.isEquals(first, second);
-            } else if (first instanceof Collection && !(second instanceof Collection)) {
-                // collection (List,Set) check contains
-                return ((Collection)(first)).contains(second);
+            } else if (first instanceof Collection ) {
+                if(!(second instanceof Collection)) {
+                    // collection (List,Set) check contains
+                    return ((Collection) first).contains(second);
+                } else {
+                    return collectionContains((Collection) first, (Collection)second);
+                }
             }
 
             return Objects.equals(first, second);
@@ -247,6 +251,16 @@ public abstract class Condition {
         public boolean isSecondaryType() {
             return this == EQ;
         }
+    }
+
+    private static boolean collectionContains(Collection dataSource,
+                                              Collection values) {
+        for (Object value : values) {
+            if (!dataSource.contains(value)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public abstract ConditionType type();

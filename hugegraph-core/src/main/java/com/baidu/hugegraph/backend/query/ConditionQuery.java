@@ -309,8 +309,8 @@ public final class ConditionQuery extends IdQuery {
             boolean got = false;
             for (Relation r : this.userpropRelations()) {
                 if (r.key().equals(field) && !r.isSysprop()) {
-                    E.checkState(r.relation == RelationType.EQ
-                                 || r.relation == RelationType.CONTAINS,
+                    E.checkState(r.relation == RelationType.EQ ||
+                                 r.relation == RelationType.CONTAINS,
                                  "Method userpropValues(List<String>) only " +
                                  "used for secondary index, " +
                                  "relation must be EQ, but got %s",

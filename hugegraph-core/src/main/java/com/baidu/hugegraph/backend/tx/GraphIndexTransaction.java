@@ -49,6 +49,7 @@ import com.baidu.hugegraph.backend.page.IdHolder.BatchIdHolder;
 import com.baidu.hugegraph.backend.page.IdHolder.FixedIdHolder;
 import com.baidu.hugegraph.backend.page.IdHolder.PagingIdHolder;
 import com.baidu.hugegraph.backend.page.IdHolderList;
+import com.baidu.hugegraph.backend.page.JointIdHolderList;
 import com.baidu.hugegraph.backend.page.PageIds;
 import com.baidu.hugegraph.backend.page.PageInfo;
 import com.baidu.hugegraph.backend.page.PageState;
@@ -95,7 +96,6 @@ import com.baidu.hugegraph.util.LongEncoding;
 import com.baidu.hugegraph.util.NumericUtil;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
 
 public class GraphIndexTransaction extends AbstractTransaction {
 
@@ -243,8 +243,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                     // each item
                     if(prefixValues.get(0) instanceof Collection) {
                         for (Object propValue :
-                                getAllCombinationList(
-                                        (Collection<Object>) prefixValues.get(0))) {
+                                (Collection<Object>) prefixValues.get(0)) {
                             value = escapeIndexValueIfNeeded(propValue.toString());
                             this.updateIndex(indexLabel, value, element.id(),
                                              expiredTime, removed);
@@ -281,34 +280,6 @@ public class GraphIndexTransaction extends AbstractTransaction {
                           "Unknown index type '%s'", indexLabel.indexType()));
         }
     }
-
-
-    private List<Object> getAllCombinationList(Collection<Object> prefixValues){
-
-        // this function get all combination of a collection
-        // [1,2,3] => [1,2,3,[1,2],[1,3],[2,3],[1,2,3]]
-        // so wo can search by one item eg. [1] or search by the combination
-        // of multiple items, eg. [1,2]
-        Set<Object> valueSet = Sets.newHashSet(prefixValues);
-
-        List<Set<Object>>  combinations = new ArrayList<>();
-        for (int i=1; i <= prefixValues.size(); i++) {
-            combinations.addAll(Sets.combinations(valueSet, i));
-        }
-
-        return combinations.stream()
-                .map(set-> {
-                    List<Object> data = new ArrayList<>();
-                    if (set.size() == 1) {
-                        data.add(set.iterator().next());
-                    } else {
-                        data.add(set);
-                    }
-                    return ConditionQuery.concatValues(data);
-                })
-                .collect(Collectors.toList());
-    }
-
 
     private void updateIndex(IndexLabel indexLabel, Object propValue,
                              Id elementId, long expiredTime, boolean removed) {
@@ -491,6 +462,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
             if (index.containsSearchIndex()) {
                 // Do search-index query
                 holders.addAll(this.doSearchIndex(query, index));
+            } else if (hasCollectionIndex(index)){
+                holders.addAll(this.doCollectionIndex(query, index));
             } else {
                 // Do secondary-index, range-index or shard-index query
                 IndexQueries queries = index.constructIndexQueries(query);
@@ -511,12 +484,48 @@ public class GraphIndexTransaction extends AbstractTransaction {
         return holders;
     }
 
+    private boolean hasCollectionIndex(MatchedIndex index){
+        if(index.indexLabels().size() != 1){
+            return false;
+        }
+
+        IndexLabel indexLabel = index.indexLabels().iterator().next();
+        if(indexLabel.indexFields().size() == 1) {
+            return graph().propertyKey(indexLabel.indexFields().get(0))
+                          .cardinality().multiple();
+        }
+
+        return false;
+    }
+
     @Watched(prefix = "index")
-    private IdHolderList doSearchIndex(ConditionQuery query,
+    private IdHolderList doCollectionIndex(ConditionQuery query,
                                        MatchedIndex index) {
-        query = this.constructSearchQuery(query, index);
-        // Sorted by matched count
-        IdHolderList holders = new SortByCountIdHolderList(query.paging());
+        query = query.copy();
+        Id indexField = index.indexLabels().iterator().next().indexFields().get(0);
+        Set<Object> queryValues = query.userpropValues(indexField);
+        Object value = queryValues.iterator().next();
+
+        List<Object> items = new ArrayList<>();
+        if(value instanceof Collection){
+            items.addAll((Collection)value);
+        } else {
+            items.add(value);
+        }
+
+        query.unsetCondition(indexField);
+
+        // convert to in query
+        query.query(Condition.in(indexField, items));
+
+        // JointIdHolderList works like doJointIndex, intersect IdHolders
+        IdHolderList holders = new JointIdHolderList(query.paging());
+
+        return flattenQueryAndFillIdHolderList(query, holders, index);
+    }
+
+    private IdHolderList flattenQueryAndFillIdHolderList(ConditionQuery query,
+                                                         IdHolderList holders, MatchedIndex index) {
         List<ConditionQuery> flatten = ConditionQueryFlatten.flatten(query);
         for (ConditionQuery q : flatten) {
             if (!q.noLimit() && flatten.size() > 1) {
@@ -530,6 +539,15 @@ public class GraphIndexTransaction extends AbstractTransaction {
             holders.add(holder);
         }
         return holders;
+    }
+
+    @Watched(prefix = "index")
+    private IdHolderList doSearchIndex(ConditionQuery query,
+                                       MatchedIndex index) {
+        query = this.constructSearchQuery(query, index);
+        IdHolderList holders = new SortByCountIdHolderList(query.paging());
+        // Sorted by matched count
+        return flattenQueryAndFillIdHolderList(query, holders, index);
     }
 
     @Watched(prefix = "index")

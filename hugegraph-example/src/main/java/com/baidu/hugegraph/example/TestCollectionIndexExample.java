@@ -66,13 +66,19 @@ public class TestCollectionIndexExample {
 
         graph.addVertex(T.label, "soft", "name", "hugegraph",
                         "country", "china",
-                        "category", Arrays.asList("graphdb"),
+                        "category", Arrays.asList("graphdb", "db"),
                         "tags", Arrays.asList("graphdb", "gremlin"));
 
         graph.addVertex(T.label, "soft", "name", "neo4j",
                         "country", "usa",
-                        "category", Arrays.asList("graphdb"),
+                        "category", Arrays.asList("graphdb", "db"),
                         "tags", Arrays.asList("graphdb", "cypher"));
+
+        graph.addVertex(T.label, "soft", "name", "jenagraph",
+                        "country", "usa",
+                        "category", Arrays.asList("graphdb", "javadb"),
+                        "tags", Arrays.asList("graphdb", "gremlin"));
+
         graph.tx().commit();
 
 
@@ -87,22 +93,55 @@ public class TestCollectionIndexExample {
     public static void queryTest(final HugeGraph graph) {
         List<Vertex> vertices;
         vertices = graph.traversal().V().has("soft", "category",
-                                             ConditionP.textContains("graphdb")).toList();
-        Assert.assertEquals(2, vertices.size());
+                                             ConditionP.textContains("graphdb" +
+                                                                     " db")).toList();
+        Assert.assertEquals(3, vertices.size());
 
         // by single item
         vertices = graph.traversal().V().has("soft", "tags", "gremlin").toList();
-        Assert.assertEquals(1, vertices.size());
+        Assert.assertEquals(2, vertices.size());
 
         // by contains
         vertices = graph.traversal().V().has("soft", "tags", ConditionP.contains("gremlin")).toList();
-        Assert.assertEquals(1, vertices.size());
+        Assert.assertEquals(2, vertices.size());
+
+        vertices = graph.traversal().V().has("soft", "tags", Sets.newHashSet(
+                "graphdb")).toList();
+        Assert.assertEquals(3, vertices.size());
 
         // collection search
+        vertices = graph.traversal().V().has("soft", "tags", Sets.newHashSet(
+                "gremlin",
+                "graphdb")).toList();
+        Assert.assertEquals(2, vertices.size());
+
         vertices = graph.traversal().V().has("soft", "tags", Sets.newHashSet(
                 "cypher",
                 "graphdb")).toList();
         Assert.assertEquals(1, vertices.size());
+
+        vertices = graph.traversal().V().has("soft", "tags", Sets.newHashSet(
+                "gremlin",
+                "graphdb")).toList();
+        Assert.assertEquals(2, vertices.size());
+
+        Vertex vertex = vertices.get(0);
+
+        vertex.property("tags",  Sets.newHashSet("new_tag"));
+
+        graph.tx().commit();
+
+        vertices = graph.traversal().V().has("soft", "tags", Sets.newHashSet(
+                "cypher",
+                "graphdb")).toList();
+        Assert.assertEquals(1, vertices.size());
+
+        vertices = graph.traversal().V().has("soft", "tags", Sets.newHashSet(
+                "new_tag")).toList();
+        Assert.assertEquals(1, vertices.size());
+
+        graph.tx().close();
+
     }
 
 
