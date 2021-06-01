@@ -1,0 +1,36 @@
+name: Mark stale issues and pull requests
+
+on:
+  schedule:
+  - cron: "0 21 * * *"
+
+jobs:
+  stale:
+
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+
+    steps:
+    - uses: actions/stale@v3
+      with:
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+        stale-issue-message: 'Due to the lack of activity, the current issue is marked as stale and will be closed after 20 days, any update will remove the stale label'
+        stale-pr-message: 'Due to the lack of activity, the current pr is marked as stale and will be closed after 180 days, any update will remove the stale label'
+        stale-issue-label: 'inactive'
+        stale-pr-label: 'inactive'
+        exempt-issue-labels: 'feature,bug,enhancement,improvement,wontfix,todo'
+
+        days-before-issue-stale: 15
+        days-before-issue-close: 20
+        days-before-pr-stale: 30
+        days-before-pr-close: 180
+        operations-per-run: 25
+        start-date: '2020-12-01T00:00:00Z'
+
+        exempt-all-assignees: true
+        remove-stale-when-updated: true
+        exempt-all-pr-milestones: true
+        delete-branch: false
+        enable-statistics: true
