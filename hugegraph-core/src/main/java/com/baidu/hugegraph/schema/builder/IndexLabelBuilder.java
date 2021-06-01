@@ -466,10 +466,13 @@ public class IndexLabelBuilder extends AbstractBuilder
             E.checkArgument(pkey.aggregateType().isIndexable(),
                             "The aggregate type %s is not indexable",
                             pkey.aggregateType());
-            E.checkArgument(pkey.cardinality().single(),
-                            "Not allowed to build index on property key " +
-                            "'%s' whose cardinality is list or set",
-                            pkey.name());
+
+            if (pkey.cardinality().multiple()) {
+                E.checkArgument(fields.size() == 1,
+                                "Not allowed to build union index on property" +
+                                " key '%s' whose cardinality is multiple",
+                                pkey.name());
+            }
         }
 
         List<String> properties = this.graph().mapPkId2Name(propertyIds);
@@ -506,6 +509,10 @@ public class IndexLabelBuilder extends AbstractBuilder
                         "one field, but got %s fields: '%s'",
                         fields.size(), fields);
         String field = fields.iterator().next();
+        PropertyKey property = this.graph().propertyKey(field);
+        E.checkArgument(!property.cardinality().multiple(),
+                        "Not allowed to build range index on property " +
+                        "'%s' whose cardinality is multiple", field);
         DataType dataType = this.graph().propertyKey(field).dataType();
         E.checkArgument(dataType.isNumber() || dataType.isDate(),
                         "Range index can only build on numeric or " +

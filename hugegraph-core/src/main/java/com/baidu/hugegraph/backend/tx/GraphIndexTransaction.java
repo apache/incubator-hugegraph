@@ -33,6 +33,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.util.Strings;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
@@ -227,7 +228,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 E.checkState(propValues.size() == 1,
                              "Expect only one property in search index");
                 value = propValues.get(0);
-                Set<String> words = this.segmentWords(value.toString());
+                Set<String> words =
+                            this.segmentWords(propertyValueToString(value));
                 for (String word : words) {
                     this.updateIndex(indexLabel, word, element.id(),
                                      expiredTime, removed);
@@ -235,12 +237,27 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 break;
             case SECONDARY:
                 // Secondary index maybe include multi prefix index
-                for (int i = 0, n = propValues.size(); i < n; i++) {
-                    List<Object> prefixValues = propValues.subList(0, i + 1);
-                    value = ConditionQuery.concatValues(prefixValues);
-                    value = escapeIndexValueIfNeeded((String) value);
-                    this.updateIndex(indexLabel, value, element.id(),
-                                     expiredTime, removed);
+                if (isCollectionIndex(propValues)) {
+                    /*
+                     * Property value is a collection
+                     * we should create index for each item
+                     */
+                    for (Object propValue :
+                                (Collection<Object>) propValues.get(0)) {
+                        value = ConditionQuery.concatValues(propValue);
+                        value = escapeIndexValueIfNeeded((String) value);
+                        this.updateIndex(indexLabel, value, element.id(),
+                                         expiredTime, removed);
+                    }
+                } else {
+                    for (int i = 0, n = propValues.size(); i < n; i++) {
+                        List<Object> prefixValues =
+                                     propValues.subList(0, i + 1);
+                        value = ConditionQuery.concatValues(prefixValues);
+                        value = escapeIndexValueIfNeeded((String) value);
+                        this.updateIndex(indexLabel, value, element.id(),
+                                         expiredTime, removed);
+                    }
                 }
                 break;
             case SHARD:
@@ -766,9 +783,11 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 if (key instanceof Id && indexFields.contains(key)) {
                     // This is an index field of search index
                     Id field = (Id) key;
-                    String propValue = elem.<String>getPropertyValue(field);
-                    String fvalue = (String) originQuery.userpropValue(field);
-                    if (this.matchSearchIndexWords(propValue, fvalue)) {
+                    assert elem != null;
+                    HugeProperty<?> property = elem.getProperty(field);
+                    String propValue = propertyValueToString(property.value());
+                    String fieldValue = (String) originQuery.userpropValue(field);
+                    if (this.matchSearchIndexWords(propValue, fieldValue)) {
                         continue;
                     }
                     return false;
@@ -1310,13 +1329,59 @@ public class GraphIndexTransaction extends AbstractTransaction {
             E.checkState(!values.isEmpty(),
                          "Expect user property values for key '%s', " +
                          "but got none", pk);
+            boolean hasContains = query.containsContainsCondition(key);
+            if (pk.cardinality().multiple()) {
+                // If contains collection index, relation should be contains
+                E.checkState(hasContains,
+                             "The relation of property '%s' must be " +
+                             "CONTAINS or TEXT_CONTAINS, but got %s",
+                             pk.name(), query.relation(key).relation());
+            }
+
             for (Object value : values) {
+                if (hasContains) {
+                    value = toCollectionIfNeeded(pk, value);
+                }
+
                 if (!pk.checkValueType(value)) {
                     return false;
                 }
             }
         }
         return true;
+    }
+
+    private static Object toCollectionIfNeeded(PropertyKey pk, Object value) {
+        switch (pk.cardinality()) {
+            case SET:
+                if (!(value instanceof Set)) {
+                    value = CollectionUtil.toSet(value);
+                }
+                break;
+            case LIST:
+                if (!(value instanceof List)) {
+                    value = CollectionUtil.toList(value);
+                }
+                break;
+            default:
+                break;
+        }
+        return value;
+    }
+
+    private static boolean isCollectionIndex(List<Object> propValues) {
+        return propValues.size() == 1 &&
+               propValues.get(0) instanceof Collection;
+    }
+
+    private static String propertyValueToString(Object value) {
+        /*
+         * Join collection items with white space if the value is Collection,
+         * or else keep the origin value.
+         */
+        return value instanceof Collection ?
+               StringUtils.join(((Collection<Object>) value).toArray(), " ") :
+               value.toString();
     }
 
     private static String escapeIndexValueIfNeeded(String value) {

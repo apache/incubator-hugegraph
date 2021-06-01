@@ -142,6 +142,15 @@ public final class ConditionQuery extends IdQuery {
         return relations;
     }
 
+    public Relation relation(Id key){
+        for (Relation r : this.relations()) {
+            if (r.key().equals(key)) {
+                return r;
+            }
+        }
+        return null;
+    }
+
     @Watched
     public <T> T condition(Object key) {
         List<Object> values = new ArrayList<>();
@@ -207,6 +216,16 @@ public final class ConditionQuery extends IdQuery {
 
     public boolean containsScanCondition() {
         return this.containsCondition(Condition.RelationType.SCAN);
+    }
+
+    public boolean containsContainsCondition(Id key) {
+        for (Relation r : this.relations()) {
+            if (r.key().equals(key)) {
+                return r.relation().equals(RelationType.CONTAINS) ||
+                       r.relation().equals(RelationType.TEXT_CONTAINS);
+            }
+        }
+        return false;
     }
 
     public boolean allSysprop() {
@@ -310,10 +329,11 @@ public final class ConditionQuery extends IdQuery {
             boolean got = false;
             for (Relation r : this.userpropRelations()) {
                 if (r.key().equals(field) && !r.isSysprop()) {
-                    E.checkState(r.relation == RelationType.EQ,
+                    E.checkState(r.relation == RelationType.EQ ||
+                                 r.relation == RelationType.CONTAINS,
                                  "Method userpropValues(List<String>) only " +
                                  "used for secondary index, " +
-                                 "relation must be EQ, but got %s",
+                                 "relation must be EQ or CONTAINS, but got %s",
                                  r.relation());
                     values.add(r.serialValue());
                     got = true;
@@ -507,12 +527,27 @@ public final class ConditionQuery extends IdQuery {
         return SplicingIdGenerator.concatValues(newValues);
     }
 
+    public static String concatValues(Object value) {
+        if (value instanceof List) {
+            return concatValues((List<Object>)value);
+        }
+
+        if (needConvertNumber(value)) {
+            return LongEncoding.encodeNumber(value);
+        }
+        return value.toString();
+    }
+
     private static Object convertNumberIfNeeded(Object value) {
-        if (NumericUtil.isNumber(value) || value instanceof Date) {
-            // Numeric or date values should be converted to string
+        if (needConvertNumber(value)) {
             return LongEncoding.encodeNumber(value);
         }
         return value;
+    }
+
+    private static boolean needConvertNumber(Object value) {
+        // Numeric or date values should be converted to number from string
+        return NumericUtil.isNumber(value) || value instanceof Date;
     }
 
     public enum OptimizedType {

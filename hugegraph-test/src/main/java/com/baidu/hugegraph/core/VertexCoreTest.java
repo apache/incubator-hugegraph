@@ -71,6 +71,7 @@ import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.testutil.FakeObjects.FakeVertex;
 import com.baidu.hugegraph.testutil.Utils;
 import com.baidu.hugegraph.testutil.Whitebox;
+import com.baidu.hugegraph.traversal.optimize.ConditionP;
 import com.baidu.hugegraph.traversal.optimize.Text;
 import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
 import com.baidu.hugegraph.type.HugeType;
@@ -429,6 +430,136 @@ public class VertexCoreTest extends BaseCoreTest {
         vertex = vertex("review", "id", 2);
         Assert.assertEquals(ImmutableSet.of("+1", "+2"),
                             vertex.value("contribution"));
+    }
+
+    @Test
+    public void testAddVertexWithCollectionIndex() {
+        SchemaManager schema = graph().schema();
+        schema.propertyKey("tags").asText().valueSet().create();
+        schema.propertyKey("category").asText().valueSet().create();
+        schema.propertyKey("country").asText().create();
+        schema.propertyKey("score").asInt().valueSet().create();
+
+        schema.vertexLabel("soft").properties("name", "tags", "score",
+                                              "country", "category")
+              .primaryKeys("name").create();
+
+        schema.indexLabel("softByTag").onV("soft").secondary()
+              .by("tags").create();
+
+        schema.indexLabel("softByCategory").onV("soft").search()
+              .by("category").create();
+
+        schema.indexLabel("softByScore").onV("soft").secondary()
+              .by("score").create();
+
+        HugeGraph graph = graph();
+
+        graph.addVertex(T.label, "soft", "name", "hugegraph",
+                        "country", "china",
+                        "score", ImmutableList.of(5, 4, 3),
+                        "category", ImmutableList.of("graph database", "db"),
+                        "tags", ImmutableList.of("graphdb", "gremlin"));
+
+        graph.addVertex(T.label, "soft", "name", "neo4j",
+                        "country", "usa",
+                        "score", ImmutableList.of(5, 4),
+                        "category", ImmutableList.of("graphdb", "database"),
+                        "tags", ImmutableList.of("graphdb", "cypher"));
+
+        graph.addVertex(T.label, "soft", "name", "janusgraph",
+                        "country", "usa",
+                        "score", ImmutableList.of(5),
+                        "category",
+                        ImmutableList.of("hello graph", "graph database"),
+                        "tags", ImmutableList.of("graphdb", "gremlin"));
+
+        graph.tx().commit();
+
+        List<Vertex> vertices;
+        vertices = graph.traversal().V()
+                        .has("soft", "category",
+                             ConditionP.textContains("hello database"))
+                        .toList();
+        Assert.assertEquals(3, vertices.size());
+
+        vertices = graph.traversal().V()
+                        .has("soft", "category",
+                             ConditionP.textContains("graph"))
+                        .toList();
+        Assert.assertEquals(2, vertices.size());
+
+        Assert.assertThrows(IllegalStateException.class, () -> {
+            graph.traversal().V().has("soft", "tags",
+                                      "gremlin").toList();
+        });
+
+        // query by contains
+        vertices = graph.traversal().V()
+                        .has("soft", "tags",
+                             ConditionP.contains("gremlin"))
+                        .toList();
+        Assert.assertEquals(2, vertices.size());
+
+        // secondary-index with list/set of number properties
+        vertices = graph.traversal().V()
+                        .has("soft", "score",
+                             ConditionP.contains(5))
+                        .toList();
+        Assert.assertEquals(3, vertices.size());
+
+        vertices = graph.traversal().V()
+                        .has("soft", "name",
+                             "hugegraph").toList();
+        Assert.assertEquals(1, vertices.size());
+
+        // add a new tag
+        Vertex vertex = vertices.get(0);
+        vertex.property("tags", ImmutableSet.of("new_tag"));
+        graph.tx().commit();
+
+        vertices = graph.traversal().V()
+                        .has("soft", "tags",
+                             ConditionP.contains("new_tag")).toList();
+        Assert.assertEquals(1, vertices.size());
+
+        // delete tag gremlin
+        vertex = graph.addVertex(T.label, "soft", "name", "hugegraph",
+                                 "country", "china",
+                                 "score", ImmutableList.of(5, 4, 3),
+                                 "category",
+                                 ImmutableList.of("hello graph", "graph database"),
+                                 "tags", ImmutableList.of("graphdb", "new_tag"));
+        graph.tx().commit();
+
+        vertices = graph.traversal().V()
+                        .has("soft", "tags", ConditionP.contains("gremlin"))
+                        .toList();
+        Assert.assertEquals(1, vertices.size());
+
+        vertices = graph.traversal().V()
+                        .has("soft", "tags", ConditionP.contains("new_tag"))
+                        .toList();
+        Assert.assertEquals(1, vertices.size());
+
+        vertices = graph.traversal().V()
+                        .has("soft", "tags", ConditionP.contains("graphdb"))
+                        .toList();
+        Assert.assertEquals(3, vertices.size());
+
+        // remove
+        vertex.remove();
+        graph.tx().commit();
+
+        vertices = graph.traversal().V()
+                        .has("soft", "tags", ConditionP.contains("new_tag"))
+                        .toList();
+        Assert.assertEquals(0, vertices.size());
+
+        vertices = graph.traversal().V()
+                        .has("soft", "tags", ConditionP.contains("graphdb"))
+                        .toList();
+        Assert.assertEquals(2, vertices.size());
     }
 
     @Test

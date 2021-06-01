@@ -112,9 +112,6 @@ public class IndexLabel extends SchemaElement {
     }
 
     public Id indexField() {
-        E.checkState(this.indexType.isRange() || this.indexType.isSearch(),
-                     "Can't call indexField() for %s index label",
-                     this.indexType.string());
         E.checkState(this.indexFields.size() == 1,
                      "There should be only one field in %s index label, " +
                      "but got: %s", this.indexType.string(), this.indexFields);
