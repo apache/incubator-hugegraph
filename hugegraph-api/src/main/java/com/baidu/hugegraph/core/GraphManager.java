@@ -82,7 +82,7 @@ public final class GraphManager {
         // this.installLicense(conf, "");
         // Raft will load snapshot firstly then launch election and replay log
         this.waitGraphsStarted();
-        this.checkBackendVersionOrExit();
+        this.checkBackendVersionOrExit(conf);
         this.startRpcServer();
         this.serverStarted(conf);
         this.addMetrics(conf);
@@ -256,12 +256,22 @@ public final class GraphManager {
         }
     }
 
-    private void checkBackendVersionOrExit() {
+    private void checkBackendVersionOrExit(HugeConfig config) {
         for (String graph : this.graphs()) {
             // TODO: close tx from main thread
             HugeGraph hugegraph = this.graph(graph);
             if (!hugegraph.backendStoreFeatures().supportsPersistence()) {
                 hugegraph.initBackend();
+                if (this.requireAuthentication()) {
+                    String token = config.get(ServerOptions.AUTH_ADMIN_TOKEN);
+                    try {
+                        this.authenticator.initAdminUser(token);
+                    } catch (Exception e) {
+                        throw new BackendException(
+                                  "The backend store of '%s' can't " +
+                                  "initialize admin user", hugegraph.name());
+                    }
+                }
             }
             BackendStoreSystemInfo info = hugegraph.backendStoreSystemInfo();
             if (!info.exists()) {

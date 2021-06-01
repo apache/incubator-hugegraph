@@ -121,6 +121,8 @@ public interface HugeAuthenticator extends Authenticator {
         }
     }
 
+    public void initAdminUser(String password) throws Exception;
+
     public static HugeAuthenticator loadAuthenticator(HugeConfig conf) {
         String authClass = conf.get(ServerOptions.AUTHENTICATOR);
         if (authClass.isEmpty()) {

@@ -86,14 +86,12 @@ public class GremlinApiTest extends BaseApiTest {
     @Test
     public void testClearAndInit() {
         String body = "{"
-                + "\"gremlin\":\"hugegraph.clearBackend()\","
-                + "\"bindings\":{},"
-                + "\"language\":\"gremlin-groovy\","
-                + "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
-        assertResponseStatus(200, client().post(path, body));
-
-        body = "{"
-                + "\"gremlin\":\"hugegraph.initBackend()\","
+                + "\"gremlin\":\""
+                + "def auth = hugegraph.hugegraph().authManager();"
+                + "def admin = auth.findUser('admin');"
+                + "hugegraph.clearBackend();"
+                + "hugegraph.initBackend();"
+                + "auth.createUser(admin);\","
                 + "\"bindings\":{},"
                 + "\"language\":\"gremlin-groovy\","
                 + "\"aliases\":{\"g\":\"__g_hugegraph\"}}";

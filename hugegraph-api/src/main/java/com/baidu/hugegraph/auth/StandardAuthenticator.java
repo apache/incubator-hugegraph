@@ -47,6 +47,12 @@ public class StandardAuthenticator implements HugeAuthenticator {
     }
 
     private void initAdminUser() throws Exception {
+        this.initAdminUser(this.inputPassword());
+
+        this.graph.close();
+    }
+
+    public void initAdminUser(String password) throws Exception {
         // Not allowed to call by non main thread
         String caller = Thread.currentThread().getName();
         E.checkState(caller.equals("main"), "Invalid caller '%s'", caller);
@@ -56,12 +62,10 @@ public class StandardAuthenticator implements HugeAuthenticator {
         if (StandardAuthManager.isLocal(authManager) &&
             authManager.findUser(HugeAuthenticator.USER_ADMIN) == null) {
             HugeUser admin = new HugeUser(HugeAuthenticator.USER_ADMIN);
-            admin.password(StringEncoding.hashPassword(this.inputPassword()));
+            admin.password(StringEncoding.hashPassword(password));
             admin.creator(HugeAuthenticator.USER_SYSTEM);
             authManager.createUser(admin);
         }
-
-        this.graph.close();
     }
 
     private String inputPassword() {
@@ -141,15 +145,17 @@ public class StandardAuthenticator implements HugeAuthenticator {
         throw new NotImplementedException("SaslNegotiator is unsupported");
     }
 
-    public static void initAdminUser(String restConfFile) throws Exception {
+    public static void initAdminUserIfNeeded(String confFile) throws Exception {
         StandardAuthenticator auth = new StandardAuthenticator();
-        HugeConfig config = new HugeConfig(restConfFile);
+        HugeConfig config = new HugeConfig(confFile);
         String authClass = config.get(ServerOptions.AUTHENTICATOR);
         if (authClass.isEmpty()) {
             return;
         }
         config.addProperty(INITING_STORE, true);
         auth.setup(config);
-        auth.initAdminUser();
+        if (auth.graph().backendStoreFeatures().supportsPersistence()) {
+            auth.initAdminUser();
+        }
     }
 }
