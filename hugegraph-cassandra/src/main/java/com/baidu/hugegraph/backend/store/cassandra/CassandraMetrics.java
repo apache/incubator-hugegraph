@@ -39,6 +39,7 @@ import com.baidu.hugegraph.backend.store.cassandra.CassandraTables.Edge;
 import com.baidu.hugegraph.backend.store.cassandra.CassandraTables.Vertex;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
+import com.baidu.hugegraph.testutil.Whitebox;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.UnitUtil;
@@ -157,7 +158,7 @@ public class CassandraMetrics implements BackendMetrics {
         appendCounterMetrics(metrics, probe, this.keyspace, this.tables,
                              "BloomFilterFalseRatio");
 
-        //Table timer Metrics
+        // Table timer Metrics
         appendTimerMetrics(metrics, probe, this.keyspace, "WriteLatency");
         appendTimerMetrics(metrics, probe, this.keyspace, "ReadLatency");
         appendTimerMetrics(metrics, probe, null, "WriteLatency");
@@ -266,6 +267,13 @@ public class CassandraMetrics implements BackendMetrics {
     private Object compactHost(String host) {
         try (NodeProbe probe = this.newNodeProbe(host)) {
             Compact compact = new Compact();
+            /*
+             * Set the keyspace to be compacted
+             * NOTE: use Whitebox due to no public api is provided, args format
+             * is [<keyspace> <tables>...], the first arg means keyspace.
+             */
+            Whitebox.invoke(compact, "args", new Class<?>[]{Object.class},
+                            "add", this.keyspace);
             compact.execute(probe);
             return "OK";
         } catch (Throwable e) {

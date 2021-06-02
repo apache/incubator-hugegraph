@@ -50,7 +50,7 @@ public class ScyllaDBMetrics extends CassandraMetrics {
         appendCounterMetrics(metrics, probe, this.keyspace(), this.tables(),
                              "BloomFilterFalseRatio");
 
-        //Table timer Metrics
+        // Table timer Metrics
         //appendTimerMetrics(metrics, probe, this.keyspace(), "WriteLatency");
         //appendTimerMetrics(metrics, probe, this.keyspace(), "ReadLatency");
         //appendTimerMetrics(metrics, probe, null, "WriteLatency");
