@@ -34,61 +34,64 @@ public class RocksDBMetrics implements BackendMetrics {
     private static final String PREFIX = "rocksdb.";
 
     // memory
-    public static final String KEY_BLOCK_CACHE = PREFIX +
-                               "block-cache-usage";
-    public static final String KEY_BLOCK_CACHE_PINNED = PREFIX +
-                               "block-cache-pinned-usage";
-    public static final String KEY_BLOCK_CACHE_CAPACITY = PREFIX +
-                               "block-cache-capacity";
-    public static final String KEY_INDEX_FILTER = PREFIX +
-                               "estimate-table-readers-mem";
-    public static final String KEY_ALL_MEM_TABLE = PREFIX +
-                               "size-all-mem-tables";
-    public static final String KEY_CUR_MEM_TABLE = PREFIX +
-                               "cur-size-all-mem-tables";
+    private static final String BLOCK_CACHE = PREFIX +
+                                "block-cache-usage";
+    private static final String BLOCK_CACHE_PINNED = PREFIX +
+                                "block-cache-pinned-usage";
+    private static final String BLOCK_CACHE_CAPACITY = PREFIX +
+                                "block-cache-capacity";
+    private static final String INDEX_FILTER = PREFIX +
+                                "estimate-table-readers-mem";
+    private static final String ALL_MEM_TABLE = PREFIX +
+                                "size-all-mem-tables";
+    private static final String CUR_MEM_TABLE = PREFIX +
+                                "cur-size-all-mem-tables";
     // disk
-    public static final String KEY_DISK_USAGE = PREFIX +
-                               "disk-usage";
-    public static final String KEY_LIVE_DATA_SIZE = PREFIX +
-                               "estimate-live-data-size";
-    public static final String KEY_SST_FILE_SIZE = PREFIX +
-                               "total-sst-files-size";
-    public static final String KEY_LIVE_SST_FILE_SIZE = PREFIX +
-                               "live-sst-files-size";
-    public static final String KEY_PENDING_COMPACTION_BYTES = PREFIX +
-                               "estimate-pending-compaction-bytes";
+    private static final String DISK_USAGE = PREFIX +
+                                "disk-usage";
+    private static final String LIVE_DATA_SIZE = PREFIX +
+                                "estimate-live-data-size";
+    private static final String SST_FILE_SIZE = PREFIX +
+                                "total-sst-files-size";
+    private static final String LIVE_SST_FILE_SIZE = PREFIX +
+                                "live-sst-files-size";
+    private static final String PENDING_COMPACTION_BYTES = PREFIX +
+                                "estimate-pending-compaction-bytes";
 
     // count/number
-    public static final String KEY_NUM_KEYS = PREFIX +
-                               "estimate-num-keys";
-    public static final String KEY_NUM_KEYS_MEM_TABLE = PREFIX +
-                               "num-entries-active-mem-table";
-    public static final String KEY_NUM_KEYS_IMM_MEM_TABLE = PREFIX +
-                               "num-entries-imm-mem-tables";
-    public static final String KEY_NUM_DELETES_MEM_TABLE = PREFIX +
-                               "num-deletes-active-mem-table";
-    public static final String KEY_NUM_DELETES_IMM_MEM_TABLE = PREFIX +
-                               "num-deletes-imm-mem-tables";
+    private static final String NUM_KEYS = PREFIX +
+                                "estimate-num-keys";
+    private static final String NUM_KEYS_MEM_TABLE = PREFIX +
+                                "num-entries-active-mem-table";
+    private static final String NUM_KEYS_IMM_MEM_TABLE = PREFIX +
+                                "num-entries-imm-mem-tables";
+    private static final String NUM_DELETES_MEM_TABLE = PREFIX +
+                                "num-deletes-active-mem-table";
+    private static final String NUM_DELETES_IMM_MEM_TABLE = PREFIX +
+                                "num-deletes-imm-mem-tables";
 
-    public static final String KEY_RUNNING_FLUSHS = PREFIX +
-                               "num-running-flushes";
-    public static final String KEY_MEM_TABLE_FLUSH_PENDINF = PREFIX +
-                               "mem-table-flush-pending";
-    public static final String KEY_RUNNING_COMPACTIONS = PREFIX +
-                               "num-running-compactions";
-    public static final String KEY_COMPACTION_PENDINF = PREFIX +
-                               "compaction-pending";
+    private static final String RUNNING_FLUSHS = PREFIX +
+                                "num-running-flushes";
+    private static final String MEM_TABLE_FLUSH_PENDINF = PREFIX +
+                                "mem-table-flush-pending";
+    private static final String RUNNING_COMPACTIONS = PREFIX +
+                                "num-running-compactions";
+    private static final String COMPACTION_PENDINF = PREFIX +
+                                "compaction-pending";
 
-    public static final String KEY_NUM_IMM_MEM_TABLE = PREFIX +
-                               "num-immutable-mem-table";
-    public static final String KEY_NUM_SNAPSHOTS = PREFIX +
-                               "num-snapshots";
-    public static final String KEY_OLDEST_SNAPSHOT_TIME = PREFIX +
-                               "oldest-snapshot-time";
-    public static final String KEY_NUM_LIVE_VERSIONS = PREFIX +
-                               "num-live-versions";
-    public static final String KEY_SUPER_VERSION = PREFIX +
-                               "current-super-version-number";
+    private static final String NUM_IMM_MEM_TABLE = PREFIX +
+                                "num-immutable-mem-table";
+    private static final String NUM_SNAPSHOTS = PREFIX +
+                                "num-snapshots";
+    private static final String OLDEST_SNAPSHOT_TIME = PREFIX +
+                                "oldest-snapshot-time";
+    private static final String NUM_LIVE_VERSIONS = PREFIX +
+                                "num-live-versions";
+    private static final String SUPER_VERSION = PREFIX +
+                                "current-super-version-number";
+
+    public static final String KEY_DISK_USAGE = DISK_USAGE;
+    public static final String KEY_NUM_KEYS = NUM_KEYS;
 
     private final List<RocksDBSessions> dbs;
     private final RocksDBSessions.Session session;
@@ -130,34 +133,34 @@ public class RocksDBMetrics implements BackendMetrics {
                     UnitUtil.bytesToReadableString(diskUsage));
 
         // memory
-        this.appendMetricsMemory(metrics, KEY_BLOCK_CACHE);
-        this.appendMetricsMemory(metrics, KEY_BLOCK_CACHE_PINNED);
-        this.appendMetricsMemory(metrics, KEY_BLOCK_CACHE_CAPACITY);
-        this.appendMetricsMemory(metrics, KEY_INDEX_FILTER);
-        this.appendMetricsMemory(metrics, KEY_ALL_MEM_TABLE);
-        this.appendMetricsMemory(metrics, KEY_CUR_MEM_TABLE);
+        this.appendMetricsMemory(metrics, BLOCK_CACHE);
+        this.appendMetricsMemory(metrics, BLOCK_CACHE_PINNED);
+        this.appendMetricsMemory(metrics, BLOCK_CACHE_CAPACITY);
+        this.appendMetricsMemory(metrics, INDEX_FILTER);
+        this.appendMetricsMemory(metrics, ALL_MEM_TABLE);
+        this.appendMetricsMemory(metrics, CUR_MEM_TABLE);
 
         // disk
-        this.appendMetricsDisk(metrics, KEY_LIVE_DATA_SIZE);
-        this.appendMetricsDisk(metrics, KEY_SST_FILE_SIZE);
-        this.appendMetricsDisk(metrics, KEY_LIVE_SST_FILE_SIZE);
-        this.appendMetricsDisk(metrics, KEY_PENDING_COMPACTION_BYTES);
+        this.appendMetricsDisk(metrics, LIVE_DATA_SIZE);
+        this.appendMetricsDisk(metrics, SST_FILE_SIZE);
+        this.appendMetricsDisk(metrics, LIVE_SST_FILE_SIZE);
+        this.appendMetricsDisk(metrics, PENDING_COMPACTION_BYTES);
 
         // count/number
-        this.appendMetricsNumber(metrics, KEY_NUM_KEYS);
-        this.appendMetricsNumber(metrics, KEY_NUM_KEYS_MEM_TABLE);
-        this.appendMetricsNumber(metrics, KEY_NUM_KEYS_IMM_MEM_TABLE);
-        this.appendMetricsNumber(metrics, KEY_NUM_DELETES_MEM_TABLE);
-        this.appendMetricsNumber(metrics, KEY_NUM_DELETES_IMM_MEM_TABLE);
-        this.appendMetricsNumber(metrics, KEY_RUNNING_FLUSHS);
-        this.appendMetricsNumber(metrics, KEY_MEM_TABLE_FLUSH_PENDINF);
-        this.appendMetricsNumber(metrics, KEY_RUNNING_COMPACTIONS);
-        this.appendMetricsNumber(metrics, KEY_COMPACTION_PENDINF);
-        this.appendMetricsNumber(metrics, KEY_NUM_IMM_MEM_TABLE);
-        this.appendMetricsNumber(metrics, KEY_NUM_SNAPSHOTS);
-        this.appendMetricsNumber(metrics, KEY_OLDEST_SNAPSHOT_TIME);
-        this.appendMetricsNumber(metrics, KEY_NUM_LIVE_VERSIONS);
-        this.appendMetricsNumber(metrics, KEY_SUPER_VERSION);
+        this.appendMetricsNumber(metrics, NUM_KEYS);
+        this.appendMetricsNumber(metrics, NUM_KEYS_MEM_TABLE);
+        this.appendMetricsNumber(metrics, NUM_KEYS_IMM_MEM_TABLE);
+        this.appendMetricsNumber(metrics, NUM_DELETES_MEM_TABLE);
+        this.appendMetricsNumber(metrics, NUM_DELETES_IMM_MEM_TABLE);
+        this.appendMetricsNumber(metrics, RUNNING_FLUSHS);
+        this.appendMetricsNumber(metrics, MEM_TABLE_FLUSH_PENDINF);
+        this.appendMetricsNumber(metrics, RUNNING_COMPACTIONS);
+        this.appendMetricsNumber(metrics, COMPACTION_PENDINF);
+        this.appendMetricsNumber(metrics, NUM_IMM_MEM_TABLE);
+        this.appendMetricsNumber(metrics, NUM_SNAPSHOTS);
+        this.appendMetricsNumber(metrics, OLDEST_SNAPSHOT_TIME);
+        this.appendMetricsNumber(metrics, NUM_LIVE_VERSIONS);
+        this.appendMetricsNumber(metrics, SUPER_VERSION);
 
         return metrics;
     }
@@ -180,16 +183,15 @@ public class RocksDBMetrics implements BackendMetrics {
 
     private double getMemUsed() {
         // https://github.com/facebook/rocksdb/wiki/Memory-usage-in-RocksDB
-        double blockCache = this.sum(this.session, KEY_BLOCK_CACHE);
-        double indexFilter = this.sum(this.session, KEY_INDEX_FILTER);
-        double memtable = this.sum(this.session, KEY_ALL_MEM_TABLE);
-        double blockCachePinned = this.sum(this.session,
-                                           KEY_BLOCK_CACHE_PINNED);
+        double blockCache = this.sum(this.session, BLOCK_CACHE);
+        double indexFilter = this.sum(this.session, INDEX_FILTER);
+        double memtable = this.sum(this.session, ALL_MEM_TABLE);
+        double blockCachePinned = this.sum(this.session, BLOCK_CACHE_PINNED);
         return blockCache + indexFilter + memtable + blockCachePinned;
     }
 
     private double getDiskUsage() {
-        return this.sum(KEY_DISK_USAGE);
+        return this.sum(DISK_USAGE);
     }
 
     private double sum(RocksDBSessions.Session session, String property) {

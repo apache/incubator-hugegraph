@@ -757,6 +757,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         }
     }
 
+    @SuppressWarnings("unused")
     private Map<String, String> reportDiskMapping() {
         Map<String, String> diskMapping = new HashMap<>();
         diskMapping.put(TABLE_GENERAL_KEY, this.dataPath);
