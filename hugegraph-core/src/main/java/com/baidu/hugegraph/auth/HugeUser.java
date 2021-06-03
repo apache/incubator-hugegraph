@@ -43,6 +43,7 @@ public class HugeUser extends Entity {
     private String phone;
     private String email;
     private String avatar;
+    private String description;
     // This field is just for cache
     private RolePermission role;
 
@@ -105,6 +106,14 @@ public class HugeUser extends Entity {
 
     public void avatar(String avatar) {
         this.avatar = avatar;
+    }
+
+    public String description() {
+        return this.description;
+    }
+
+    public void description(String description) {
+        this.description = description;
     }
 
     public RolePermission role() {

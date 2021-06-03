@@ -17,32 +17,13 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.api;
+package com.baidu.hugegraph.auth;
 
-import org.junit.BeforeClass;
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
+public interface AuthConstant {
 
-import com.baidu.hugegraph.dist.RegisterUtil;
-
-@RunWith(Suite.class)
-@Suite.SuiteClasses({
-    PropertyKeyApiTest.class,
-    VertexLabelApiTest.class,
-    EdgeLabelApiTest.class,
-    IndexLabelApiTest.class,
-    VertexApiTest.class,
-    EdgeApiTest.class,
-    TaskApiTest.class,
-    GremlinApiTest.class,
-    MetricsApiTest.class,
-    UserApiTest.class,
-    LoginApiTest.class
-})
-public class ApiTestSuite {
-
-    @BeforeClass
-    public static void initEnv() {
-        RegisterUtil.registerBackends();
-    }
+    /*
+     * Fields in token
+     */
+    String TOKEN_USER_NAME = "user_name";
+    String TOKEN_USER_ID = "user_id";
 }

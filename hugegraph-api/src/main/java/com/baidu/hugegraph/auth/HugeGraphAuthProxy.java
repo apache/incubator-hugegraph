@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -34,7 +35,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 
+import javax.security.sasl.AuthenticationException;
 import javax.ws.rs.ForbiddenException;
+import javax.ws.rs.NotAuthorizedException;
 
 import org.apache.tinkerpop.gremlin.groovy.jsr223.GroovyTranslator;
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
@@ -1365,17 +1368,46 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         }
 
         @Override
-        public RolePermission loginUser(String username, String password) {
-            // Can't verifyPermission() here, login first with temp permission
+        public UserWithRole validateUser(String username, String password) {
+            // Can't verifyPermission() here, validate first with tmp permission
             Context context = setContext(Context.admin());
             try {
-                return this.authManager.loginUser(username, password);
+                return this.authManager.validateUser(username, password);
             } catch (Exception e) {
-                LOG.error("Failed to login user {} with error: ", username, e);
+                LOG.error("Failed to validate user {} with error: ",
+                          username, e);
                 throw e;
             } finally {
                 setContext(context);
             }
+        }
+
+        @Override
+        public UserWithRole validateUser(String token) {
+            // Can't verifyPermission() here, validate first with tmp permission
+            Context context = setContext(Context.admin());
+            try {
+                return this.authManager.validateUser(token);
+            } catch (Exception e) {
+                LOG.error("Failed to validate token {} with error: ", token, e);
+                throw e;
+            } finally {
+                setContext(context);
+            }
+        }
+
+        @Override
+        public String loginUser(String username, String password) {
+            try {
+                return this.authManager.loginUser(username, password);
+            } catch (AuthenticationException e) {
+                throw new NotAuthorizedException(e.getMessage(), e);
+            }
+        }
+
+        @Override
+        public void logoutUser(String token) {
+            this.authManager.logoutUser(token);
         }
 
         private void switchAuthManager(AuthManager authManager) {

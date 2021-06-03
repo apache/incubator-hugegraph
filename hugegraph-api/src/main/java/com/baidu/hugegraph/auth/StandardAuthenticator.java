@@ -116,23 +116,34 @@ public class StandardAuthenticator implements HugeAuthenticator {
      * Verify if a user is legal
      * @param username  the username for authentication
      * @param password  the password for authentication
+     * @param token the token for authentication
      * @return String No permission if return ROLE_NONE else return a role
      */
     @Override
-    public RolePermission authenticate(String username, String password) {
-        E.checkArgumentNotNull(username,
-                               "The username parameter can't be null");
-        E.checkArgumentNotNull(password,
-                               "The password parameter can't be null");
+    public UserWithRole authenticate(String username, String password,
+                                     String token) {
+        UserWithRole userWithRole;
+        if (StringUtils.isNotEmpty(token)) {
+            userWithRole = this.authManager().validateUser(token);
+        } else {
+            E.checkArgumentNotNull(username,
+                                   "The username parameter can't be null");
+            E.checkArgumentNotNull(password,
+                                   "The password parameter can't be null");
+            userWithRole = this.authManager().validateUser(username, password);
+        }
 
-        RolePermission role = this.graph().authManager().loginUser(username,
-                                                                   password);
+        RolePermission role = userWithRole.role();
         if (role == null) {
             role = ROLE_NONE;
-        } else if (username.equals(USER_ADMIN)) {
+        } else if (userWithRole.username().equals(USER_ADMIN)) {
             role = ROLE_ADMIN;
+        } else {
+            return userWithRole;
         }
-        return role;
+
+        return new UserWithRole(userWithRole.userId(),
+                                userWithRole.username(), role);
     }
 
     @Override
