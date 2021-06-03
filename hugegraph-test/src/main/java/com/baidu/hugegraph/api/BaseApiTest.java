@@ -64,6 +64,7 @@ public class BaseApiTest {
     private static final String SCHEMA_ILS = "/schema/indexlabels";
     private static final String GRAPH_VERTEX = "/graph/vertices";
     private static final String GRAPH_EDGE = "/graph/edges";
+    private static final String BATCH = "/batch";
 
     private static RestClient client;
 
@@ -296,6 +297,71 @@ public class BaseApiTest {
         assertResponseStatus(202, r);
     }
 
+    protected static void initEdge() {
+        String path = URL_PREFIX + GRAPH_EDGE + BATCH;
+        Map<String, String> ret = getAllName2VertexIds();
+        System.out.println(ret);
+        String markoId = ret.get("marko");
+        String peterId = ret.get("peter");
+        String joshId = ret.get("josh");
+        String vadasId = ret.get("vadas");
+        String rippleId = ret.get("ripple");
+
+        createAndAssert(path, "[" +
+                          "{" +
+                          "\"label\": \"knows\"," +
+                          "\"outV\": \"" + markoId + "\"," +
+                          "\"inV\": \""+ peterId +"\"," +
+                          "\"outVLabel\": \"person\"," +
+                          "\"inVLabel\": \"person\"," +
+                          "\"properties\": {" +
+                          "\"date\": \"2021-01-01\"," +
+                          "\"weight\":0.5}" +
+                          "}," +
+                          "{" +
+                          "\"label\": \"knows\"," +
+                          "\"outV\": \"" + peterId + "\"," +
+                          "\"inV\": \""+ joshId +"\"," +
+                          "\"outVLabel\": \"person\"," +
+                          "\"inVLabel\": \"person\"," +
+                          "\"properties\": {" +
+                          "\"date\": \"2021-01-01\"," +
+                          "\"weight\":0.5}" +
+                          "}," +
+                          "{" +
+                          "\"label\": \"knows\"," +
+                          "\"outV\": \"" + joshId + "\"," +
+                          "\"inV\": \""+ vadasId +"\"," +
+                          "\"outVLabel\": \"person\"," +
+                          "\"inVLabel\": \"person\"," +
+                          "\"properties\": {" +
+                          "\"date\": \"2021-01-01\"," +
+                          "\"weight\":0.5}" +
+                          "}," +
+                          "{" +
+                          "\"label\": \"created\"," +
+                          "\"outV\": \"" + markoId + "\"," +
+                          "\"inV\": \""+ rippleId +"\"," +
+                          "\"outVLabel\": \"person\"," +
+                          "\"inVLabel\": \"software\"," +
+                          "\"properties\": {" +
+                          "\"date\": \"2021-01-01\"," +
+                          "\"weight\":0.5}" +
+                          "}," +
+                          "{" +
+                          "\"label\": \"created\"," +
+                          "\"outV\": \"" + peterId + "\"," +
+                          "\"inV\": \""+ rippleId +"\"," +
+                          "\"outVLabel\": \"person\"," +
+                          "\"inVLabel\": \"software\"," +
+                          "\"properties\": {" +
+                          "\"date\": \"2021-01-01\"," +
+                          "\"weight\":0.5}" +
+                          "}" +
+                          "]");
+
+    }
+
     protected static void initVertex() {
         String path = URL_PREFIX + GRAPH_VERTEX;
 
@@ -359,6 +425,21 @@ public class BaseApiTest {
         Response r = client.post(path, body);
         assertResponseStatus(201, r);
         return r;
+    }
+
+    protected static Map<String, String> getAllName2VertexIds() {
+        Response r = client.get(URL_PREFIX + GRAPH_VERTEX);
+        String content = r.readEntity(String.class);
+        if (r.getStatus() != 200) {
+            throw new HugeException("Failed to get vertex id: %s", content);
+        }
+
+        @SuppressWarnings("rawtypes")
+        List<Map> list = readList(content, "vertices", Map.class);
+
+        return list.stream().filter(map -> map.get("properties") != null && ((Map)map.get("properties")).get("name") != null).collect(
+                Collectors.toMap(map -> ((Map) map.get("properties")).get(
+                        "name").toString(), map -> map.get("id").toString()));
     }
 
     protected static String getVertexId(String label, String key, String value)
