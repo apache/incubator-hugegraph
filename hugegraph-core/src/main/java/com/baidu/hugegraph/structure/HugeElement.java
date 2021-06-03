@@ -59,7 +59,7 @@ import com.baidu.hugegraph.util.collection.CollectionFactory;
 public abstract class HugeElement implements Element, GraphType, Idfiable {
 
     private static final MutableIntObjectMap<HugeProperty<?>> EMPTY_MAP =
-                         new IntObjectHashMap<>();
+                         CollectionFactory.newIntObjectMap();
     private static final int MAX_PROPERTIES = BytesBuffer.UINT16_MAX;
 
     private final HugeGraph graph;

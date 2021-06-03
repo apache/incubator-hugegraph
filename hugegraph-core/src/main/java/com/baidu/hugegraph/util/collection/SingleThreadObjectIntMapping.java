@@ -28,6 +28,7 @@ import com.baidu.hugegraph.perf.PerfUtil.Watched;
 public class SingleThreadObjectIntMapping<V> implements ObjectIntMapping<V> {
 
     private static final int MAGIC = 1 << 16;
+
     private final IntObjectHashMap<V> int2IdMap;
 
     public SingleThreadObjectIntMapping() {
@@ -37,19 +38,22 @@ public class SingleThreadObjectIntMapping<V> implements ObjectIntMapping<V> {
     @Watched
     @SuppressWarnings("unchecked")
     public int object2Code(Object object) {
-        int key = object.hashCode();
+        int code = object.hashCode();
         // TODO: improve hash algorithm
         for (int i = 1; i > 0; i <<= 1) {
-            for (int j = 0; i >= MAGIC && j < 10; j++) {
-                Id existed = (Id) this.int2IdMap.get(key);
+            for (int j = 0; j < 10; j++) {
+                Id existed = (Id) this.int2IdMap.get(code);
                 if (existed == null) {
-                    this.int2IdMap.put(key, (V) object);
-                    return key;
+                    this.int2IdMap.put(code, (V) object);
+                    return code;
                 }
                 if (existed.equals(object)) {
-                    return key;
+                    return code;
                 }
-                key = key + i + j;
+                code = code + i + j;
+                if (i < MAGIC) {
+                    break;
+                }
             }
         }
         throw new HugeException("Failed to get code for id: %s", object);
