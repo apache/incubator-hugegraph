@@ -118,18 +118,18 @@ public class RocksDBMetrics implements BackendMetrics {
 
     private Map<String, Object> metricsInfo() {
         Map<String, Object> metrics = InsertionOrderUtil.newMap();
-        metrics.put(MEM_UNIT, "MB");
-        metrics.put(DISK_UNIT, "GB");
+        metrics.put(BackendMetrics.MEM_UNIT, "MB");
+        metrics.put(BackendMetrics.DISK_UNIT, "GB");
 
         // NOTE: the unit of rocksdb memory property is bytes
         long memUsed = (long) this.getMemUsed();
-        metrics.put(MEM_USED, UnitUtil.bytesToMB(memUsed));
-        metrics.put(MEM_USED + "_readable",
+        metrics.put(BackendMetrics.MEM_USED, UnitUtil.bytesToMB(memUsed));
+        metrics.put(BackendMetrics.MEM_USED + BackendMetrics.READABLE,
                     UnitUtil.bytesToReadableString(memUsed));
 
         long diskUsage = (long) this.getDiskUsage();
-        metrics.put(DISK_USAGE, UnitUtil.bytesToMB(diskUsage));
-        metrics.put(DISK_USAGE + "_readable",
+        metrics.put(BackendMetrics.DISK_USAGE, UnitUtil.bytesToMB(diskUsage));
+        metrics.put(BackendMetrics.DISK_USAGE + BackendMetrics.READABLE,
                     UnitUtil.bytesToReadableString(diskUsage));
 
         // memory
