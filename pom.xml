@@ -60,7 +60,7 @@
         <commons.configuration.version>1.10</commons.configuration.version>
         <commons.configuration2.version>2.1.1</commons.configuration2.version>
         <commons.collections.version>3.2.2</commons.collections.version>
-        <commons.io.version>2.4</commons.io.version>
+        <commons.io.version>2.7</commons.io.version>
         <commons.codec.version>1.11</commons.codec.version>
         <guava.version>25.1-jre</guava.version>
         <javax.json.version>1.0</javax.json.version>
