@@ -1365,17 +1365,42 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         }
 
         @Override
-        public RolePermission loginUser(String username, String password) {
-            // Can't verifyPermission() here, login first with temp permission
+        public RolePermission validateUser(String username, String password) {
+            // Can't verifyPermission() here, validate first with tmp permission
             Context context = setContext(Context.admin());
             try {
-                return this.authManager.loginUser(username, password);
+                return this.authManager.validateUser(username, password);
             } catch (Exception e) {
-                LOG.error("Failed to login user {} with error: ", username, e);
+                LOG.error("Failed to validate user {} with error: ",
+                          username, e);
                 throw e;
             } finally {
                 setContext(context);
             }
+        }
+
+        @Override
+        public RolePermission validateUser(String token) {
+            // Can't verifyPermission() here, validate first with tmp permission
+            Context context = setContext(Context.admin());
+            try {
+                return this.authManager.validateUser(token);
+            } catch (Exception e) {
+                LOG.error("Failed to validate token {} with error: ", token, e);
+                throw e;
+            } finally {
+                setContext(context);
+            }
+        }
+
+        @Override
+        public String loginUser(String username, String password) {
+            return null;
+        }
+
+        @Override
+        public void logoutUser(String token) {
+
         }
 
         private void switchAuthManager(AuthManager authManager) {

@@ -343,6 +343,7 @@ public class StandardAuthManager implements AuthManager {
     public HugeUser matchUser(String name, String password) {
         E.checkArgumentNotNull(name, "User name can't be null");
         E.checkArgumentNotNull(password, "User password can't be null");
+
         HugeUser user = this.findUser(name);
         if (user == null) {
             return null;
@@ -425,12 +426,27 @@ public class StandardAuthManager implements AuthManager {
     }
 
     @Override
-    public RolePermission loginUser(String username, String password) {
+    public RolePermission validateUser(String username, String password) {
         HugeUser user = this.matchUser(username, password);
         if (user == null) {
             return null;
         }
         return this.rolePermission(user);
+    }
+
+    @Override
+    public String loginUser(String username, String password) {
+        return null;
+    }
+
+    @Override
+    public void logoutUser(String token) {
+
+    }
+
+    @Override
+    public RolePermission validateUser(String token) {
+        return null;
     }
 
     /**

@@ -125,8 +125,11 @@ public class StandardAuthenticator implements HugeAuthenticator {
         E.checkArgumentNotNull(password,
                                "The password parameter can't be null");
 
-        RolePermission role = this.graph().authManager().loginUser(username,
-                                                                   password);
+        // switch here
+
+        RolePermission role = this.authManager().validateUser(username,
+                                                              password);
+
         if (role == null) {
             role = ROLE_NONE;
         } else if (username.equals(USER_ADMIN)) {

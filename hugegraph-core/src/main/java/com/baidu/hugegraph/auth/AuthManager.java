@@ -72,5 +72,9 @@ public interface AuthManager {
     public HugeUser matchUser(String name, String password);
     public RolePermission rolePermission(AuthElement element);
 
-    public RolePermission loginUser(String username, String password);
+    public String loginUser(String username, String password);
+    public void logoutUser(String token);
+
+    public RolePermission validateUser(String username, String password);
+    public RolePermission validateUser(String token);
 }
