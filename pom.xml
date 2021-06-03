@@ -68,7 +68,7 @@
         <javassist.version>3.21.0-GA</javassist.version>
         <jersey.version>2.22</jersey.version>
         <jersey.hk2.version>2.27</jersey.hk2.version>
-        <jackson.version>2.10.2</jackson.version>
+        <jackson.version>2.12.1</jackson.version>
         <junit.version>4.12</junit.version>
         <mockito.version>2.25.1</mockito.version>
     </properties>
