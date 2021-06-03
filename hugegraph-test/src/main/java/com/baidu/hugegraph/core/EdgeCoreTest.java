@@ -76,7 +76,6 @@ import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
-import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.Events;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -726,7 +725,7 @@ public class EdgeCoreTest extends BaseCoreTest {
         Vertex java = graph().addVertex(T.label, "book",
                                         "name", "Java in action");
         Edge edge = baby.addEdge("borrow", java, "place", "library of school",
-                                 "date", DateUtil.now().getTime() - 2000L);
+                                 "date", graph().now() - 2000L);
         graph().tx().commit();
 
         Iterator<Edge> edges = graph().edges(edge);
