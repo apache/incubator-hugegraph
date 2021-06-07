@@ -32,6 +32,12 @@ public class CountAPITest extends BaseApiTest {
                                          "\t\t\t \"degree\": 100,\n" +
                                          "\t\t\t \"skip_degree\": 100\n" +
                                          "\t\t},\n" +
+                                         "\t\t{\n" +
+                                         "\t\t\t\"labels\": [\n" +
+                                         "\t\t\t ],\n" +
+                                         "\t\t\t \"degree\": 100,\n" +
+                                         "\t\t\t \"skip_degree\": 100\n" +
+                                         "\t\t},\n" +
                                          "\t\t\t{\n" +
                                          "\t\t\t\"labels\": [\n" +
                                          "\t\t\t ],\n" +
@@ -45,7 +51,7 @@ public class CountAPITest extends BaseApiTest {
 
         assertEquals(200, r.getStatus());
         Integer count = (Integer) r.readEntity(Map.class).get("count");
-        assertEquals(5, count);
+        assertEquals(3, count);
 
     }
 }
