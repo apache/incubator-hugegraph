@@ -109,7 +109,7 @@ public class MetricsApiTest extends BaseApiTest {
                                       value instanceof Map);
                     host = (Map<?, ?>) value;
                     assertMapContains(host, "mem_max");
-                    assertMapContains(host, "mem_commited");
+                    assertMapContains(host, "mem_committed");
                     assertMapContains(host, "mem_used");
                     assertMapContains(host, "mem_used_readable");
                     assertMapContains(host, "mem_unit");
@@ -171,7 +171,7 @@ public class MetricsApiTest extends BaseApiTest {
                                       value instanceof Map);
                     host = (Map<?, ?>) value;
                     assertMapContains(host, "mem_max");
-                    assertMapContains(host, "mem_commited");
+                    assertMapContains(host, "mem_committed");
                     assertMapContains(host, "mem_used");
                     assertMapContains(host, "mem_used_readable");
                     assertMapContains(host, "mem_unit");

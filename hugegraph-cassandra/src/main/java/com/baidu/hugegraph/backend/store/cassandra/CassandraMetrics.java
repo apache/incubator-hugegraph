@@ -96,7 +96,7 @@ public class CassandraMetrics implements BackendMetrics {
         try (NodeProbe probe = this.newNodeProbe(host)) {
             MemoryUsage heapUsage = probe.getHeapMemoryUsage();
             metrics.put(MEM_MAX, UnitUtil.bytesToMB(heapUsage.getMax()));
-            metrics.put(MEM_COMMITED,
+            metrics.put(MEM_COMMITTED,
                         UnitUtil.bytesToMB(heapUsage.getCommitted()));
             metrics.put(MEM_USED, UnitUtil.bytesToMB(heapUsage.getUsed()));
             metrics.put(MEM_USED + READABLE,

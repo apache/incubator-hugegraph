@@ -33,7 +33,7 @@ public interface BackendMetrics {
 
     // Memory related metrics
     public String MEM_USED = "mem_used";
-    public String MEM_COMMITED = "mem_commited";
+    public String MEM_COMMITTED = "mem_committed";
     public String MEM_MAX = "mem_max";
     public String MEM_UNIT = "mem_unit";
 

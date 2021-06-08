@@ -23,6 +23,7 @@ import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Random;
 
 import org.junit.Assume;
 import org.junit.Test;
@@ -40,15 +41,15 @@ public class RocksDBSessionTest extends BaseRocksDBUnitTest {
         Assert.assertEquals(null, value);
 
         this.rocks.session().put(TABLE, b("person:1gname"), b("James"));
-        this.rocks.session().put(TABLE, b("person:1gage"), b("19"));
+        this.rocks.session().put(TABLE, b("person:1gage"), b(19));
         this.rocks.session().put(TABLE, b("person:1gcity"), b("Beijing"));
         this.commit();
 
         value = s(this.rocks.session().get(TABLE, b("person:1gname")));
         Assert.assertEquals("James", value);
 
-        value = s(this.rocks.session().get(TABLE, b("person:1gage")));
-        Assert.assertEquals("19", value);
+        long age = l(this.rocks.session().get(TABLE, b("person:1gage")));
+        Assert.assertEquals(19, age);
 
         value = s(this.rocks.session().get(TABLE, b("person:1gcity")));
         Assert.assertEquals("Beijing", value);
@@ -491,6 +492,8 @@ public class RocksDBSessionTest extends BaseRocksDBUnitTest {
 
         // NOTE: maybe return "James" here
         Assert.assertEquals(null, get("person:1gname"));
+        Assert.assertTrue(null == get("person:1gname") ||
+                          "James".equals(get("person:1gname")));
         Assert.assertEquals(null, get("person:1gage"));
     }
 
@@ -520,7 +523,7 @@ public class RocksDBSessionTest extends BaseRocksDBUnitTest {
 
     @Test
     public void testProperty() {
-        int count = 1234;
+        int count = new Random().nextInt(2048);
         for (int i = 0; i < count; i++) {
             put("key-" + i, "value" + i);
         }
