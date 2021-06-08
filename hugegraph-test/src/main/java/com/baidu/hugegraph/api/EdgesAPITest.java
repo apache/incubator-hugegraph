@@ -2,7 +2,6 @@ package com.baidu.hugegraph.api;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 
 import java.util.List;
 import java.util.Map;
@@ -58,20 +57,24 @@ public class EdgesAPITest extends BaseApiTest {
     }
 
     @Test
-    public void share() {
+    public void shareAndScan() {
         Response r = client().get(SHARES_PATH, ImmutableMap.of("split_size",
                                                                1048576));
         assertEquals(200, r.getStatus());
         Map entity = r.readEntity(Map.class);
         assertNotNull(entity);
-    }
 
-    @Test
-    public void scan() {
-        Response r = client().get(SCAN_PATH, ImmutableMap.of("start", "",
-                                                             "end", "1048576"));
+        List<Map> shards = (List<Map>) entity.get("shards");
+        assertNotNull(shards);
+        assertEquals(false, shards.isEmpty());
+        String start = shards.get(0).get("start").toString();
+        String end = shards.get(0).get("end").toString();
+
+        r = client().get(SCAN_PATH, ImmutableMap.of("start", start,
+                                                          "end", end));
         assertEquals(200, r.getStatus());
-        Map entity = r.readEntity(Map.class);
-        assertNotNull(entity);
+        Map<String, Object> entity2 = r.readEntity(Map.class);
+        assertNotNull(entity2);
+        assertEquals(false, entity2.isEmpty());
     }
 }
