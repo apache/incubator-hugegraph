@@ -38,22 +38,26 @@ function abs_path() {
     echo "$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 }
 
-BIN=`abs_path`
-TOP="$(cd $BIN/../ && pwd)"
+BIN=$(abs_path)
+TOP="$(cd "$BIN"/../ && pwd)"
 CONF="$TOP/conf"
 LOGS="$TOP/logs"
 PID_FILE="$BIN/pid"
 
-. $BIN/util.sh
+. "$BIN"/util.sh
 
-GREMLIN_SERVER_URL=`read_property "$CONF/rest-server.properties" "gremlinserver.url"`
+GREMLIN_SERVER_URL=$(read_property "$CONF/rest-server.properties" "gremlinserver.url")
 if [ -z "$GREMLIN_SERVER_URL" ]; then
     GREMLIN_SERVER_URL="http://127.0.0.1:8182"
 fi
-REST_SERVER_URL=`read_property "$CONF/rest-server.properties" "restserver.url"`
+REST_SERVER_URL=$(read_property "$CONF/rest-server.properties" "restserver.url")
 
 check_port "$GREMLIN_SERVER_URL"
 check_port "$REST_SERVER_URL"
+
+if [ ! -d "$LOGS" ]; then
+    mkdir -p "$LOGS"
+fi
 
 echo "Starting HugeGraphServer..."
 
@@ -62,7 +66,7 @@ echo "Starting HugeGraphServer..."
 
 PID="$!"
 # Write pid to file
-echo "$PID" > $PID_FILE
+echo "$PID" > "$PID_FILE"
 
 trap 'kill $PID; exit' SIGHUP SIGINT SIGQUIT SIGTERM
 
@@ -73,7 +77,7 @@ wait_for_startup ${PID} 'HugeGraphServer' "$REST_SERVER_URL/graphs" ${SERVER_STA
 disown
 
 if [ "$OPEN_MONITOR" == "true" ]; then
-    $BIN/start-monitor.sh
+    "$BIN"/start-monitor.sh
     if [ $? -ne 0 ]; then
         echo "Failed to open monitor, please start it manually"
     fi

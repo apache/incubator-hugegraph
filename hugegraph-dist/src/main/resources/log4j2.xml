@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<configuration status="error">
+<!-- Config will be auto loaded every 60s -->
+<configuration status="error" monitorInterval="60">
     <appenders>
         <Console name="console" target="SYSTEM_OUT">
             <ThresholdFilter level="DEBUG" onMatch="ACCEPT" onMismatch="DENY"/>
@@ -13,17 +14,27 @@
             immediateFlush="false">
             <ThresholdFilter level="TRACE" onMatch="ACCEPT" onMismatch="DENY"/>
             <PatternLayout pattern="%-d{yyyy-MM-dd HH:mm:ss} %-5r [%t] [%-5p] %c %x - %m%n"/>
-            <SizeBasedTriggeringPolicy size="50MB"/>
+            <DefaultRolloverStrategy max="10"/>
+
+            <Policies>
+                <SizeBasedTriggeringPolicy size="50MB"/>
+                <TimeBasedTriggeringPolicy interval="1" modulate="true" />
+            </Policies>
         </RollingRandomAccessFile>
 
-        <!-- Separate audit log, buffer size is 512KB -->
+        <!-- Separate & compress audit log, buffer size is 512KB -->
         <RollingRandomAccessFile name="audit" fileName="logs/audit-hugegraph-server.log"
-            filePattern="logs/$${date:yyyy-MM}/audit-hugegraph-server-%d{yyyy-MM-dd}-%i.log"
+            filePattern="logs/$${date:yyyy-MM}/audit-hugegraph-server-%d{yyyy-MM-dd}-%i.gz"
             bufferSize="524288" immediateFlush="false">
             <ThresholdFilter level="TRACE" onMatch="ACCEPT" onMismatch="DENY"/>
             <!-- Use simple format for audit log to speed up -->
             <PatternLayout pattern="%-d{yyyy-MM-dd HH:mm:ss} - %m%n"/>
-            <SizeBasedTriggeringPolicy size="50MB"/>
+            <DefaultRolloverStrategy max="5"/>
+
+            <Policies>
+                <SizeBasedTriggeringPolicy size="500MB"/>
+                <TimeBasedTriggeringPolicy interval="1" modulate="true" />
+            </Policies>
         </RollingRandomAccessFile>
     </appenders>
 
