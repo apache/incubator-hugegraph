@@ -23,9 +23,11 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
@@ -36,6 +38,7 @@ import java.util.function.Supplier;
 
 import javax.ws.rs.ForbiddenException;
 
+import org.apache.commons.configuration.Configuration;
 import org.apache.tinkerpop.gremlin.groovy.jsr223.GroovyTranslator;
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
 import org.apache.tinkerpop.gremlin.process.traversal.Bytecode;
@@ -64,6 +67,7 @@ import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
 import com.baidu.hugegraph.backend.store.raft.RaftGroupManager;
 import com.baidu.hugegraph.config.ConfigOption;
+import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.iterator.FilterIterator;
@@ -92,6 +96,7 @@ import com.baidu.hugegraph.type.define.GraphReadMode;
 import com.baidu.hugegraph.type.define.NodeRole;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
+import com.baidu.hugegraph.util.RateLimiter;
 
 public final class HugeGraphAuthProxy implements HugeGraph {
 
@@ -100,6 +105,8 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     private static final Logger LOG = Log.logger(HugeGraphAuthProxy.class);
+    private Map<String, RateLimiter> userRates;
+    private double logRate;
 
     private final HugeGraph hugegraph;
     private final TaskSchedulerProxy taskScheduler;
@@ -110,7 +117,13 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         this.hugegraph = hugegraph;
         this.taskScheduler = new TaskSchedulerProxy(hugegraph.taskScheduler());
         this.authManager = new AuthManagerProxy(hugegraph.authManager());
+        this.userRates = new ConcurrentHashMap<>();
         this.hugegraph.proxy(this);
+
+        Configuration config = hugegraph.configuration();
+        HugeConfig conf = config instanceof HugeConfig ?
+                          (HugeConfig) config : new HugeConfig(config);
+        this.logRate = conf.get(CoreOptions.AUTH_LOG_RATE);
     }
 
     @Override
@@ -900,13 +913,19 @@ public final class HugeGraphAuthProxy implements HugeGraph {
             result = null;
         }
 
-        // log user action
-        if (!(actionPerm == HugePermission.READ && ro.type().isSchema())) {
+        // log user action, limit rate for each user
+        RateLimiter userRate = userRates.get(username);
+        if (userRate == null) {
+            userRate = RateLimiter.create(logRate);
+            userRates.put(username, userRate);
+        }
+        if (userRate.tryAcquire() &&
+            !(actionPerm == HugePermission.READ && ro.type().isSchema())) {
             String status = result == null ? "denied" : "allowed";
             LOG.info("User '{}' is {} to {} {}", username, status, action, ro);
         }
 
-        // result=null means no permission, throw if needed
+        // result = null means no permission, throw if needed
         if (result == null && throwIfNoPerm) {
             String error = String.format("Permission denied: %s %s",
                                          action, ro);
@@ -1085,6 +1104,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
             String username = currentUsername();
             if (username != null && elem.creator() == null) {
                 elem.creator(username);
+                userRates.putIfAbsent(username, RateLimiter.create(logRate));
             }
             return elem;
         }
@@ -1129,6 +1149,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
             E.checkArgument(!HugeAuthenticator.USER_ADMIN.equals(user.name()),
                             "Can't delete user '%s'", user.name());
             verifyUserPermission(HugePermission.DELETE, user);
+            userRates.remove(user.name());
             return this.authManager.deleteUser(id);
         }
 
