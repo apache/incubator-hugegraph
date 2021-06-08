@@ -1,4 +1,4 @@
-package com.baidu.hugegraph.api;
+package com.baidu.hugegraph.api.traversers;
 
 import static com.baidu.hugegraph.testutil.Assert.assertEquals;
 
@@ -10,10 +10,13 @@ import javax.ws.rs.core.Response;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.baidu.hugegraph.api.BaseApiTest;
 import com.google.common.collect.ImmutableMap;
 
-public class CrosspointsAPITest extends BaseApiTest{
+public class CrosspointsAPITest extends BaseApiTest {
+
     public static String path = "graphs/hugegraph/traversers/crosspoints";
+
     @Before
     public void prepareSchema() {
         BaseApiTest.initPropertyKey();
@@ -22,21 +25,21 @@ public class CrosspointsAPITest extends BaseApiTest{
         BaseApiTest.initVertex();
         BaseApiTest.initEdge();
     }
+
     @Test
-    public void get(){
-        Map<String, String> name2Ids = getAllName2VertexIds();
+    public void testGet() {
+        Map<String, String> name2Ids = listAllVertexName2Ids();
         String markoId = name2Ids.get("marko");
         String vadasId = name2Ids.get("vadas");
         Map<String, Object> params = ImmutableMap.of("source",
-                                                     "\"" + markoId + "\"",
+                                                     id2Json(markoId),
                                                      "target",
-                                                     "\"" + vadasId + "\"",
+                                                     id2Json(vadasId),
                                                      "max_depth", 1000);
         Response r = client().get(path, params);
-        assertEquals(200, r.getStatus());
-        Map<String, Object> data = r.readEntity(Map.class);
-        List<Map<String, Object>> crosspoints =
-                (List<Map<String, Object>>) data.get("crosspoints");
+        String respBody = assertResponseStatus(200, r);
+        List<Map<String, Object>> crosspoints = assertJsonContains(respBody,
+                                                                   "crosspoints");
         assertEquals(2, crosspoints.size());
     }
 }

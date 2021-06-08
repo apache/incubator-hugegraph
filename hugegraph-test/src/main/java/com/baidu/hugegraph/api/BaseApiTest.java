@@ -21,16 +21,13 @@ package com.baidu.hugegraph.api;
 
 import java.io.IOException;
 import java.net.URLEncoder;
+import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Spliterator;
-import java.util.Spliterators;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
@@ -39,7 +36,7 @@ import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 
-import org.glassfish.grizzly.utils.Pair;
+import org.apache.http.util.TextUtils;
 import org.glassfish.jersey.client.authentication.HttpAuthenticationFeature;
 import org.glassfish.jersey.client.filter.EncodingFilter;
 import org.glassfish.jersey.message.GZipEncoder;
@@ -54,6 +51,7 @@ import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Multimap;
 
 public class BaseApiTest {
 
@@ -99,7 +97,7 @@ public class BaseApiTest {
         return new RestClient(BASE_URL);
     }
 
-    static class RestClient {
+    public static class RestClient {
 
         private Client client;
         private WebTarget target;
@@ -138,42 +136,20 @@ public class BaseApiTest {
             return this.target.path(path).request().headers(headers).get();
         }
 
-        public Response get(String path, Map<String, Object> params) {
-            return this.get(path,
-                            params.entrySet().stream()
-                                  .map(entry -> new Pair<String, Object>(
-                                          entry.getKey(), entry.getValue()))
-                                  .iterator());
+        public Response get(String path, Multimap<String, Object> params) {
+            WebTarget target = this.target.path(path);
+            for (Map.Entry<String, Object> entries : params.entries()) {
+                target = target.queryParam(entries.getKey(), entries.getValue());
+            }
+            return target.request().get();
         }
 
-        public Response get(String path,
-                            Iterator<Pair<String, Object>> params) {
-            class WrapWebTarget {
-                WebTarget target;
-
-                WrapWebTarget(WebTarget target) {
-                    this.target = target;
-                }
-
-                public void accept(Pair<String, Object> pair) {
-                    this.target = this.target.queryParam(pair.getFirst(),
-                                                         pair.getSecond());
-                }
+        public Response get(String path, Map<String, Object> params) {
+            WebTarget target = this.target.path(path);
+            for (Map.Entry<String, Object> i : params.entrySet()) {
+                target = target.queryParam(i.getKey(), i.getValue());
             }
-
-            return StreamSupport
-                    .stream(Spliterators.spliteratorUnknownSize(params,
-                                                                Spliterator.ORDERED),
-                            false)
-                    .collect(() -> new WrapWebTarget(this.target.path(path)),
-                             WrapWebTarget::accept,
-                             (t1, t2) -> {
-                                 throw new IllegalStateException(
-                                         "unreach code");
-                             })
-                    .target
-                    .request()
-                    .get();
+            return target.request().get();
         }
 
         public Response post(String path, String content) {
@@ -334,67 +310,66 @@ public class BaseApiTest {
 
     protected static void initEdge() {
         String path = URL_PREFIX + GRAPH_EDGE + BATCH;
-        Map<String, String> ret = getAllName2VertexIds();
-        System.out.println(ret);
+        Map<String, String> ret = listAllVertexName2Ids();
         String markoId = ret.get("marko");
         String peterId = ret.get("peter");
         String joshId = ret.get("josh");
         String vadasId = ret.get("vadas");
         String rippleId = ret.get("ripple");
 
-        createAndAssert(path, "[" +
-                              "{" +
-                              "\"label\": \"knows\"," +
-                              "\"outV\": \"" + markoId + "\"," +
-                              "\"inV\": \"" + peterId + "\"," +
-                              "\"outVLabel\": \"person\"," +
-                              "\"inVLabel\": \"person\"," +
-                              "\"properties\": {" +
-                              "\"date\": \"2021-01-01\"," +
-                              "\"weight\":0.5}" +
-                              "}," +
-                              "{" +
-                              "\"label\": \"knows\"," +
-                              "\"outV\": \"" + peterId + "\"," +
-                              "\"inV\": \"" + joshId + "\"," +
-                              "\"outVLabel\": \"person\"," +
-                              "\"inVLabel\": \"person\"," +
-                              "\"properties\": {" +
-                              "\"date\": \"2021-01-01\"," +
-                              "\"weight\":0.5}" +
-                              "}," +
-                              "{" +
-                              "\"label\": \"knows\"," +
-                              "\"outV\": \"" + joshId + "\"," +
-                              "\"inV\": \"" + vadasId + "\"," +
-                              "\"outVLabel\": \"person\"," +
-                              "\"inVLabel\": \"person\"," +
-                              "\"properties\": {" +
-                              "\"date\": \"2021-01-01\"," +
-                              "\"weight\":0.5}" +
-                              "}," +
-                              "{" +
-                              "\"label\": \"created\"," +
-                              "\"outV\": \"" + markoId + "\"," +
-                              "\"inV\": \"" + rippleId + "\"," +
-                              "\"outVLabel\": \"person\"," +
-                              "\"inVLabel\": \"software\"," +
-                              "\"properties\": {" +
-                              "\"date\": \"2021-01-01\"," +
-                              "\"weight\":0.5}" +
-                              "}," +
-                              "{" +
-                              "\"label\": \"created\"," +
-                              "\"outV\": \"" + peterId + "\"," +
-                              "\"inV\": \"" + rippleId + "\"," +
-                              "\"outVLabel\": \"person\"," +
-                              "\"inVLabel\": \"software\"," +
-                              "\"properties\": {" +
-                              "\"date\": \"2021-01-01\"," +
-                              "\"weight\":0.5}" +
-                              "}" +
-                              "]");
-
+        String body = String.format("[{"
+                                    + "\"label\": \"knows\","
+                                    + "\"outV\": \"%s\","
+                                    + "\"inV\": \"%s\","
+                                    + "\"outVLabel\": \"person\","
+                                    + "\"inVLabel\": \"person\","
+                                    + "\"properties\": {"
+                                    + " \"date\": \"2021-01-01\","
+                                    + " \"weight\":0.5}"
+                                    +   "},"
+                                    + "{"
+                                    + "\"label\": \"knows\","
+                                    + "\"outV\": \"%s\","
+                                    + "\"inV\": \"%s\","
+                                    + "\"outVLabel\": \"person\","
+                                    + "\"inVLabel\": \"person\","
+                                    + "\"properties\": {"
+                                    + " \"date\": \"2021-01-01\","
+                                    + " \"weight\":0.5}"
+                                    + "},"
+                                    + "{"
+                                    + "\"label\": \"knows\","
+                                    + "\"outV\": \"%s\","
+                                    + "\"inV\": \"%s\","
+                                    + "\"outVLabel\": \"person\","
+                                    + "\"inVLabel\": \"person\","
+                                    + "\"properties\": {"
+                                    + " \"date\": \"2021-01-01\","
+                                    + " \"weight\":0.5}"
+                                    + "},"
+                                    + "{"
+                                    + "\"label\": \"created\","
+                                    + "\"outV\": \"%s\","
+                                    + "\"inV\": \"%s\","
+                                    + "\"outVLabel\": \"person\","
+                                    + "\"inVLabel\": \"software\","
+                                    + "\"properties\": {"
+                                    + " \"date\": \"2021-01-01\","
+                                    + " \"weight\":0.5}"
+                                    + "},"
+                                    + "{"
+                                    + "\"label\": \"created\","
+                                    + "\"outV\": \"%s\","
+                                    + "\"inV\": \"%s\","
+                                    + "\"outVLabel\": \"person\","
+                                    + "\"inVLabel\": \"software\","
+                                    + "\"properties\": {"
+                                    + " \"date\": \"2021-01-01\","
+                                    + " \"weight\":0.5}"
+                                    + "}]", markoId, peterId, peterId, joshId,
+                                    joshId, vadasId, markoId, rippleId,
+                                    peterId, rippleId);
+        createAndAssert(path, body);
     }
 
     protected static void initVertex() {
@@ -462,38 +437,50 @@ public class BaseApiTest {
         return r;
     }
 
-    protected static Map<String, String> getAllName2VertexIds() {
+    protected static Map<String, String> listAllVertexName2Ids() {
         Response r = client.get(URL_PREFIX + GRAPH_VERTEX);
-        String content = r.readEntity(String.class);
-        if (r.getStatus() != 200) {
-            throw new HugeException("Failed to get vertex id: %s", content);
-        }
+        String content = assertResponseStatus(200, r);
 
         @SuppressWarnings("rawtypes")
-        List<Map> list = readList(content, "vertices", Map.class);
+        List<Map> vertices = readList(content, "vertices", Map.class);
 
-        return list.stream().filter(map -> map.get("properties") != null &&
-                                           ((Map) map.get("properties"))
-                                                   .get("name") != null)
-                   .collect(
-                           Collectors.toMap(map -> ((Map) map.get("properties"))
-                                                    .get(
-                                                            "name").toString(),
-                                            map -> map.get("id").toString()));
+        Map<String, String> vertextName2Ids = new HashMap<>();
+        for (Map vertice : vertices) {
+            Map properties = (Map) vertice.get("properties");
+            if (properties == null ||
+                !properties.containsKey("name") ||
+                !vertice.containsKey("id")) {
+                continue;
+            }
+            String name = (String) properties.get("name");
+            if (TextUtils.isEmpty(name)) {
+                continue;
+            }
+
+            String id = (String) vertice.get("id");
+            if (TextUtils.isEmpty(id)) {
+                continue;
+            }
+
+            vertextName2Ids.put(name, id);
+        }
+
+        return vertextName2Ids;
+    }
+
+    protected static String id2Json(String params) {
+        return String.format("\"%s\"", params);
     }
 
     protected static String getVertexId(String label, String key, String value)
-            throws IOException {
+                                        throws IOException {
         String props = mapper.writeValueAsString(ImmutableMap.of(key, value));
         Map<String, Object> params = ImmutableMap.of(
                 "label", label,
                 "properties", URLEncoder.encode(props, "UTF-8")
         );
         Response r = client.get(URL_PREFIX + GRAPH_VERTEX, params);
-        String content = r.readEntity(String.class);
-        if (r.getStatus() != 200) {
-            throw new HugeException("Failed to get vertex id: %s", content);
-        }
+        String content = assertResponseStatus(200, r);
 
         @SuppressWarnings("rawtypes")
         List<Map> list = readList(content, "vertices", Map.class);
@@ -581,14 +568,14 @@ public class BaseApiTest {
             JsonNode element = root.get(key);
             if (element == null) {
                 throw new HugeException(String.format(
-                        "Can't find value of the key: %s in json.", key));
+                          "Can't find value of the key: %s in json.", key));
             }
             JavaType type = mapper.getTypeFactory()
                                   .constructParametricType(List.class, clazz);
             return mapper.readValue(element.toString(), type);
         } catch (IOException e) {
             throw new HugeException(String.format(
-                    "Failed to deserialize %s", content), e);
+                      "Failed to deserialize %s", content), e);
         }
     }
 
@@ -613,6 +600,10 @@ public class BaseApiTest {
                                        response.getStatus(), content);
         Assert.assertEquals(message, status, response.getStatus());
         return content;
+    }
+
+    protected static Map<String, Object> parseMap(String json) {
+        return JsonUtil.fromJson(json, Map.class);
     }
 
     public static <T> T assertJsonContains(String response, String key) {
