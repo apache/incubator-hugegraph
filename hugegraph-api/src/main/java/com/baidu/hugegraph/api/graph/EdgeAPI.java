@@ -403,7 +403,7 @@ public class EdgeAPI extends BatchAPI {
             throw new IllegalArgumentException(String.format(
                       "Invalid vertex id '%s'", id));
         }
-        if (vertex.label().equals(label)) {
+        if (!vertex.label().equals(label)) {
             throw new IllegalArgumentException(String.format(
                       "The label of vertex '%s' is unmatched, users expect " +
                       "label '%s', actual label stored is '%s'",
