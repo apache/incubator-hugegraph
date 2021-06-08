@@ -104,8 +104,8 @@ public class EdgeAPI extends BatchAPI {
                         "Invalid target vertex label '%s'");
         }
 
-        Vertex srcVertex = getVertex(g, jsonEdge.source, null);
-        Vertex tgtVertex = getVertex(g, jsonEdge.target, null);
+        Vertex srcVertex = getVertex(g, jsonEdge.source, jsonEdge.sourceLabel);
+        Vertex tgtVertex = getVertex(g, jsonEdge.target, jsonEdge.targetLabel);
 
         Edge edge = commit(g, () -> {
             return srcVertex.addEdge(jsonEdge.label, tgtVertex,
