@@ -19,7 +19,6 @@
 
 package com.baidu.hugegraph.unit.core;
 
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
@@ -32,6 +31,9 @@ import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.util.collection.Int2IntsMap;
 
 public class Int2IntsMapTest {
+
+    private static final int KEY_NUMBER = 5;
+    private static final int VALUE_NUMBER = 1000;
 
     @Before
     public void setup() {
@@ -53,8 +55,8 @@ public class Int2IntsMapTest {
         int l = 255;
         int m = 270;
         Random random = new Random();
-        for (int n = 0; n < 1000; n++) {
-            switch (random.nextInt() % 5) {
+        for (int n = 0; n < VALUE_NUMBER; n++) {
+            switch (random.nextInt() % KEY_NUMBER) {
                 case 0:
                     if (i < 200) {
                         map.add(1, i++);
@@ -83,7 +85,7 @@ public class Int2IntsMapTest {
             }
         }
 
-        int[][] results = new int[5][];
+        int[][] results = new int[KEY_NUMBER][];
         results[0] = new int[]{100,101,102,103,104,105,106,107,108,109,
                                110,111,112,113,114,115,116,117,118,119,
                                120,121,122,123,124,125,126,127,128,129,
@@ -106,7 +108,7 @@ public class Int2IntsMapTest {
                                280,281,282,283,284,285,286,287,288,289,
                                290,291,292,293,294,295,296,297,298,299};
 
-        for (int ii = 0; ii < 5; ii++) {
+        for (int ii = 0; ii < KEY_NUMBER; ii++) {
             int[] result = map.getValues(ii + 1);
             Assert.assertArrayEquals(results[ii], result);
         }
@@ -117,17 +119,59 @@ public class Int2IntsMapTest {
         Int2IntsMap map = new Int2IntsMap();
 
         Random random = new Random();
-        for (int i = 0; i < 1000; i++) {
-            map.add(Math.abs(random.nextInt()) % 5, i);
+        for (int i = 0; i < VALUE_NUMBER; i++) {
+            map.add(Math.abs(random.nextInt()) % KEY_NUMBER, i);
         }
 
         Set<Integer> all = new HashSet<>();
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < KEY_NUMBER; i++) {
             int[] values = map.getValues(i);
             for (int j : values) {
                 all.add(j);
             }
         }
-        Assert.assertEquals(1000, all.size());
+        Assert.assertEquals(VALUE_NUMBER, all.size());
+    }
+
+    @Test
+    public void testInt2IntsMapContainsKey() {
+        Int2IntsMap map = new Int2IntsMap();
+
+        Random random = new Random();
+        for (int i = 0; i < VALUE_NUMBER; i++) {
+            map.add(Math.abs(random.nextInt()) % KEY_NUMBER, i);
+        }
+
+        Set<Integer> all = new HashSet<>();
+        for (int i = 0; i < KEY_NUMBER; i++) {
+            int[] values = map.getValues(i);
+            for (int j : values) {
+                all.add(j);
+            }
+        }
+        Assert.assertEquals(VALUE_NUMBER, all.size());
+        for (int i = 0; i < 5; i++) {
+            Assert.assertTrue(map.containsKey(i));
+        }
+    }
+
+    @Test
+    public void testInt2IntsMapSize() {
+        Int2IntsMap map = new Int2IntsMap();
+
+        Random random = new Random();
+        for (int i = 0; i < VALUE_NUMBER; i++) {
+            map.add(Math.abs(random.nextInt()) % KEY_NUMBER, i);
+        }
+
+        Set<Integer> all = new HashSet<>();
+        for (int i = 0; i < KEY_NUMBER; i++) {
+            int[] values = map.getValues(i);
+            for (int j : values) {
+                all.add(j);
+            }
+        }
+        Assert.assertEquals(VALUE_NUMBER, all.size());
+        Assert.assertEquals(KEY_NUMBER, map.size());
     }
 }

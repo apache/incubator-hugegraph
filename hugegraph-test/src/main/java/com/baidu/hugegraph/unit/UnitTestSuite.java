@@ -64,11 +64,11 @@ import com.baidu.hugegraph.unit.serializer.SerializerFactoryTest;
 import com.baidu.hugegraph.unit.serializer.StoreSerializerTest;
 import com.baidu.hugegraph.unit.serializer.TableBackendEntryTest;
 import com.baidu.hugegraph.unit.serializer.TextBackendEntryTest;
+import com.baidu.hugegraph.unit.util.CollectionFactoryTest;
 import com.baidu.hugegraph.unit.util.CompressUtilTest;
 import com.baidu.hugegraph.unit.util.JsonUtilTest;
 import com.baidu.hugegraph.unit.util.StringEncodingTest;
 import com.baidu.hugegraph.unit.util.VersionTest;
-import com.baidu.hugegraph.util.collection.IdSet;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
@@ -136,7 +136,8 @@ import com.baidu.hugegraph.util.collection.IdSet;
     VersionTest.class,
     JsonUtilTest.class,
     StringEncodingTest.class,
-    CompressUtilTest.class
+    CompressUtilTest.class,
+    CollectionFactoryTest.class
 })
 public class UnitTestSuite {
 }

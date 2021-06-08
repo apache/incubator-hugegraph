@@ -22,12 +22,12 @@ package com.baidu.hugegraph.util.collection;
 import org.eclipse.collections.impl.map.mutable.primitive.IntObjectHashMap;
 
 import com.baidu.hugegraph.HugeException;
-import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 
 public class SingleThreadObjectIntMapping<V> implements ObjectIntMapping<V> {
 
     private static final int MAGIC = 1 << 16;
+    private static final int MAX_OFFSET = 10;
 
     private final IntObjectHashMap<V> int2IdMap;
 
@@ -41,8 +41,8 @@ public class SingleThreadObjectIntMapping<V> implements ObjectIntMapping<V> {
         int code = object.hashCode();
         // TODO: improve hash algorithm
         for (int i = 1; i > 0; i <<= 1) {
-            for (int j = 0; j < 10; j++) {
-                Id existed = (Id) this.int2IdMap.get(code);
+            for (int j = 0; j < MAX_OFFSET; j++) {
+                V existed = this.int2IdMap.get(code);
                 if (existed == null) {
                     this.int2IdMap.put(code, (V) object);
                     return code;
@@ -51,12 +51,17 @@ public class SingleThreadObjectIntMapping<V> implements ObjectIntMapping<V> {
                     return code;
                 }
                 code = code + i + j;
+                /*
+                 * If i < MAGIC, try (i * 2) to reduce conflicts, otherwise
+                 * try (i + 1), (i + 2), ..., (i + 10) to try more times
+                 * before try (i * 2).
+                 */
                 if (i < MAGIC) {
                     break;
                 }
             }
         }
-        throw new HugeException("Failed to get code for id: %s", object);
+        throw new HugeException("Failed to get code for object: %s", object);
     }
 
     @Watched

@@ -30,7 +30,6 @@ public class ConcurrentObjectIntMapping<V> implements ObjectIntMapping<V> {
     }
 
     @Watched
-    @SuppressWarnings("unchecked")
     public synchronized int object2Code(Object object) {
         return this.objectIntMapping.object2Code(object);
     }

@@ -174,6 +174,10 @@ public class CollectionFactory {
         return newMap(this.type, initialCapacity);
     }
 
+    public <K, V> Map<K, V> newMap(Map<? extends K, ? extends V> map) {
+        return newMap(this.type, map);
+    }
+
     public static <K, V> Map<K, V> newMap(CollectionType type) {
         /*
          * EC is faster 10%-20% than JCF, and it's more stable & less
@@ -201,6 +205,21 @@ public class CollectionFactory {
                 return new HashMap<>(initialCapacity);
             case FU:
                 return new Object2ObjectOpenHashMap<>(initialCapacity);
+            default:
+                throw new AssertionError(
+                          "Unsupported collection type: " + type);
+        }
+    }
+
+    public static <K, V> Map<K, V> newMap(CollectionType type,
+                                          Map<? extends K, ? extends V> map) {
+        switch (type) {
+            case EC:
+                return new UnifiedMap<>(map);
+            case JCF:
+                return new HashMap<>(map);
+            case FU:
+                return new Object2ObjectOpenHashMap<>(map);
             default:
                 throw new AssertionError(
                           "Unsupported collection type: " + type);
@@ -235,11 +254,11 @@ public class CollectionFactory {
         return map;
     }
 
-    public Set<Id> newIdSet() {
+    public IdSet newIdSet() {
         return newIdSet(this.type);
     }
 
-    public static Set<Id> newIdSet(CollectionType type) {
+    public static IdSet newIdSet(CollectionType type) {
         return new IdSet(type);
     }
 }

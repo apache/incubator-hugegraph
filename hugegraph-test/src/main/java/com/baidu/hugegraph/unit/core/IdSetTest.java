@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.unit.core;
 
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
@@ -160,6 +161,163 @@ public class IdSetTest {
                                                              "nonNumberIds");
             Assert.assertEquals(uuids.size() + strings.size(),
                                 nonNumberIds.size());
+
+            numbers.clear();
+            uuids.clear();
+            strings.clear();
+            idSet.clear();
+        }
+    }
+
+    @Test
+    public void testIdSetContains() {
+        Random random = new Random();
+        Set<Long> numbers = new HashSet<>();
+        Set<UUID> uuids = new HashSet<>();
+        Set<String> strings = new HashSet<>();
+        long number = 0L;
+        UUID uuid = null;
+        String string = null;
+        for (CollectionType type : CollectionType.values()) {
+            idSet = new IdSet(type);
+            for (int i = 1; i < SIZE; i++) {
+                number = random.nextLong();
+                numbers.add(number);
+                idSet.add(IdGenerator.of(number));
+            }
+            for (int i = 0; i < SIZE; i++) {
+                uuid = UUID.randomUUID();
+                uuids.add(uuid);
+                idSet.add(IdGenerator.of(uuid));
+            }
+            for (int i = 0; i < SIZE; i++) {
+                string = RandomStringUtils.randomAlphanumeric(10);
+                strings.add(string);
+                idSet.add(IdGenerator.of(string));
+            }
+            Assert.assertEquals(numbers.size() + uuids.size() + strings.size(),
+                                idSet.size());
+
+            LongHashSet numberIds = Whitebox.getInternalState(idSet,
+                                                              "numberIds");
+            Assert.assertEquals(numbers.size(), numberIds.size());
+            Set<Id> nonNumberIds = Whitebox.getInternalState(idSet,
+                                                             "nonNumberIds");
+            Assert.assertEquals(uuids.size() + strings.size(),
+                                nonNumberIds.size());
+
+            Assert.assertTrue(idSet.contains(IdGenerator.of(number)));
+            Assert.assertTrue(idSet.contains(IdGenerator.of(uuid)));
+            Assert.assertTrue(idSet.contains(IdGenerator.of(string)));
+
+            numbers.clear();
+            uuids.clear();
+            strings.clear();
+            idSet.clear();
+        }
+    }
+
+    @Test
+    public void testIdSetIterator() {
+        Random random = new Random();
+        Set<Long> numbers = new HashSet<>();
+        Set<UUID> uuids = new HashSet<>();
+        Set<String> strings = new HashSet<>();
+        for (CollectionType type : CollectionType.values()) {
+            idSet = new IdSet(type);
+            for (int i = 1; i < SIZE; i++) {
+                long number = random.nextLong();
+                numbers.add(number);
+                idSet.add(IdGenerator.of(number));
+            }
+            for (int i = 0; i < SIZE; i++) {
+                UUID uuid = UUID.randomUUID();
+                uuids.add(uuid);
+                idSet.add(IdGenerator.of(uuid));
+            }
+            for (int i = 0; i < SIZE; i++) {
+                String string = RandomStringUtils.randomAlphanumeric(10);
+                strings.add(string);
+                idSet.add(IdGenerator.of(string));
+            }
+            Assert.assertEquals(numbers.size() + uuids.size() + strings.size(),
+                                idSet.size());
+
+            LongHashSet numberIds = Whitebox.getInternalState(idSet,
+                                                              "numberIds");
+            Assert.assertEquals(numbers.size(), numberIds.size());
+            Set<Id> nonNumberIds = Whitebox.getInternalState(idSet,
+                                                             "nonNumberIds");
+            Assert.assertEquals(uuids.size() + strings.size(),
+                                nonNumberIds.size());
+
+            Iterator<Id> iterator = idSet.iterator();
+            while (iterator.hasNext()) {
+                Id id = iterator.next();
+                if (id instanceof IdGenerator.LongId) {
+                    Assert.assertTrue(numbers.contains(id.asLong()));
+                } else if (id instanceof IdGenerator.UuidId) {
+                    Assert.assertTrue(id.uuid() &&
+                                      uuids.contains(id.asObject()));
+                } else {
+                    Assert.assertTrue(id instanceof IdGenerator.StringId);
+                    Assert.assertTrue(strings.contains(id.asString()));
+                }
+            }
+
+            numbers.clear();
+            uuids.clear();
+            strings.clear();
+            idSet.clear();
+        }
+    }
+
+    @Test
+    public void testIdSetRemove() {
+        Random random = new Random();
+        Set<Long> numbers = new HashSet<>();
+        Set<UUID> uuids = new HashSet<>();
+        Set<String> strings = new HashSet<>();
+        for (CollectionType type : CollectionType.values()) {
+            idSet = new IdSet(type);
+            for (int i = 1; i < SIZE; i++) {
+                long number = random.nextLong();
+                numbers.add(number);
+                idSet.add(IdGenerator.of(number));
+            }
+            for (int i = 0; i < SIZE; i++) {
+                UUID uuid = UUID.randomUUID();
+                uuids.add(uuid);
+                idSet.add(IdGenerator.of(uuid));
+            }
+            for (int i = 0; i < SIZE; i++) {
+                String string = RandomStringUtils.randomAlphanumeric(10);
+                strings.add(string);
+                idSet.add(IdGenerator.of(string));
+            }
+            Assert.assertEquals(numbers.size() + uuids.size() + strings.size(),
+                                idSet.size());
+
+            LongHashSet numberIds = Whitebox.getInternalState(idSet,
+                                                              "numberIds");
+            Assert.assertEquals(numbers.size(), numberIds.size());
+            Set<Id> nonNumberIds = Whitebox.getInternalState(idSet,
+                                                             "nonNumberIds");
+            Assert.assertEquals(uuids.size() + strings.size(),
+                                nonNumberIds.size());
+
+            for (long number : numbers) {
+                idSet.remove(IdGenerator.of(number));
+            }
+            Assert.assertEquals(nonNumberIds.size(), idSet.size());
+
+            for (UUID uuid : uuids) {
+                idSet.remove(IdGenerator.of(uuid));
+            }
+            for (String string : strings) {
+                idSet.remove(IdGenerator.of(string));
+            }
+            Assert.assertTrue(idSet.isEmpty());
 
             numbers.clear();
             uuids.clear();
