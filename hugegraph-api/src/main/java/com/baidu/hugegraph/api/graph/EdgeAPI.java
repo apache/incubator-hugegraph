@@ -104,8 +104,8 @@ public class EdgeAPI extends BatchAPI {
                         "Invalid target vertex label '%s'");
         }
 
-        Vertex srcVertex = getVertex(g, jsonEdge.source, null);
-        Vertex tgtVertex = getVertex(g, jsonEdge.target, null);
+        Vertex srcVertex = getVertex(g, jsonEdge.source, jsonEdge.sourceLabel);
+        Vertex tgtVertex = getVertex(g, jsonEdge.target, jsonEdge.targetLabel);
 
         Edge edge = commit(g, () -> {
             return srcVertex.addEdge(jsonEdge.label, tgtVertex,
@@ -275,7 +275,8 @@ public class EdgeAPI extends BatchAPI {
                        @QueryParam("limit") @DefaultValue("100") long limit) {
         LOG.debug("Graph [{}] query edges by vertex: {}, direction: {}, " +
                   "label: {}, properties: {}, offset: {}, page: {}, limit: {}",
-                  vertexId, direction, label, properties, offset, page, limit);
+                  graph, vertexId, direction,
+                  label, properties, offset, page, limit);
 
         Map<String, Object> props = parseProperties(properties);
         if (page != null) {
@@ -401,6 +402,12 @@ public class EdgeAPI extends BatchAPI {
         } catch (NoSuchElementException e) {
             throw new IllegalArgumentException(String.format(
                       "Invalid vertex id '%s'", id));
+        }
+        if (!vertex.label().equals(label)) {
+            throw new IllegalArgumentException(String.format(
+                      "The label of vertex '%s' is unmatched, users expect " +
+                      "label '%s', actual label stored is '%s'",
+                      id, label, vertex.label()));
         }
         // Clone a new vertex to support multi-thread access
         return vertex.copy();
