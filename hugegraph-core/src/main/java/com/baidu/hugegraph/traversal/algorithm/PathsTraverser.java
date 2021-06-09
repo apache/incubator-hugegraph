@@ -20,19 +20,16 @@
 package com.baidu.hugegraph.traversal.algorithm;
 
 import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-
-import javax.ws.rs.core.MultivaluedMap;
 
 import org.apache.tinkerpop.gremlin.structure.Edge;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.structure.HugeEdge;
+import com.baidu.hugegraph.traversal.algorithm.records.PathsRecords;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
-import com.google.common.collect.ImmutableList;
 
 public class PathsTraverser extends HugeTraverser {
 
@@ -40,6 +37,7 @@ public class PathsTraverser extends HugeTraverser {
         super(graph);
     }
 
+    @Watched
     public PathSet paths(Id sourceV, Directions sourceDir,
                          Id targetV, Directions targetDir, String label,
                          int depth, long degree, long capacity, long limit) {
@@ -83,141 +81,93 @@ public class PathsTraverser extends HugeTraverser {
 
     private class Traverser {
 
-        private MultivaluedMap<Id, Node> sources = newMultivalueMap();
-        private MultivaluedMap<Id, Node> targets = newMultivalueMap();
-        private MultivaluedMap<Id, Node> sourcesAll = newMultivalueMap();
-        private MultivaluedMap<Id, Node> targetsAll = newMultivalueMap();
+        private final PathsRecords record;
 
         private final Id label;
         private final long degree;
         private final long capacity;
         private final long limit;
+
         private PathSet paths;
 
         public Traverser(Id sourceV, Id targetV, Id label,
                          long degree, long capacity, long limit) {
-            this.sources.add(sourceV, new Node(sourceV));
-            this.targets.add(targetV, new Node(targetV));
-            this.sourcesAll.putAll(this.sources);
-            this.targetsAll.putAll(this.targets);
+            this.record = new PathsRecords(false, sourceV, targetV);
             this.label = label;
             this.degree = degree;
             this.capacity = capacity;
             this.limit = limit;
+
             this.paths = new PathSet();
         }
 
         /**
          * Search forward from source
          */
+        @Watched
         public void forward(Directions direction) {
-            MultivaluedMap<Id, Node> newVertices = newMultivalueMap();
             Iterator<Edge> edges;
-            // Traversal vertices of previous level
-            for (Map.Entry<Id, List<Node>> entry : this.sources.entrySet()) {
-                Id vid = entry.getKey();
+
+            this.record.startOneLayer(true);
+            while (this.record.hasNextKey()) {
+                Id vid = this.record.nextKey();
+
                 edges = edgesOfVertex(vid, direction, this.label, this.degree);
 
                 while (edges.hasNext()) {
                     HugeEdge edge = (HugeEdge) edges.next();
                     Id target = edge.id().otherVertexId();
 
-                    for (Node n : entry.getValue()) {
-                        // If have loop, skip target
-                        if (n.contains(target)) {
-                            continue;
+                    PathSet results = this.record.findPath(target, null,
+                                                           true, false);
+                    for (Path path : results) {
+                        this.paths.add(path);
+                        if (this.reachLimit()) {
+                            return;
                         }
-
-                        // If cross point exists, path found, concat them
-                        if (this.targetsAll.containsKey(target)) {
-                            for (Node node : this.targetsAll.get(target)) {
-                                List<Id> path = n.joinPath(node);
-                                if (!path.isEmpty()) {
-                                    this.paths.add(new Path(target, path));
-                                    if (this.reachLimit()) {
-                                        return;
-                                    }
-                                }
-                            }
-                        }
-
-                        // Add node to next start-nodes
-                        newVertices.add(target, new Node(target, n));
                     }
                 }
             }
-            // Re-init sources
-            this.sources = newVertices;
-            // Record all passed vertices
-            for (Map.Entry<Id, List<Node>> entry : newVertices.entrySet()) {
-                this.sourcesAll.addAll(entry.getKey(), entry.getValue());
-            }
+            this.record.finishOneLayer();
         }
 
         /**
          * Search backward from target
          */
+        @Watched
         public void backward(Directions direction) {
-            MultivaluedMap<Id, Node> newVertices = newMultivalueMap();
             Iterator<Edge> edges;
-            // Traversal vertices of previous level
-            for (Map.Entry<Id, List<Node>> entry : this.targets.entrySet()) {
-                Id vid = entry.getKey();
+
+            this.record.startOneLayer(false);
+            while (this.record.hasNextKey()) {
+                Id vid = this.record.nextKey();
                 edges = edgesOfVertex(vid, direction, this.label, this.degree);
 
                 while (edges.hasNext()) {
                     HugeEdge edge = (HugeEdge) edges.next();
                     Id target = edge.id().otherVertexId();
 
-                    for (Node n : entry.getValue()) {
-                        // If have loop, skip target
-                        if (n.contains(target)) {
-                            continue;
+                    PathSet results = this.record.findPath(target, null,
+                                                           true, false);
+                    for (Path path : results) {
+                        this.paths.add(path);
+                        if (this.reachLimit()) {
+                            return;
                         }
-
-                        // If cross point exists, path found, concat them
-                        if (this.sourcesAll.containsKey(target)) {
-                            for (Node node : this.sourcesAll.get(target)) {
-                                List<Id> path = n.joinPath(node);
-                                if (!path.isEmpty()) {
-                                    Path newPath = new Path(target, path);
-                                    newPath.reverse();
-                                    this.paths.add(newPath);
-                                    if (this.reachLimit()) {
-                                        return;
-                                    }
-                                }
-                            }
-                        }
-
-                        // Add node to next start-nodes
-                        newVertices.add(target, new Node(target, n));
                     }
                 }
             }
 
-            // Re-init targets
-            this.targets = newVertices;
-            // Record all passed vertices
-            for (Map.Entry<Id, List<Node>> entry : newVertices.entrySet()) {
-                this.targetsAll.addAll(entry.getKey(), entry.getValue());
-            }
+            this.record.finishOneLayer();
         }
 
         public PathSet paths() {
             return this.paths;
         }
 
-        private int accessedNodes() {
-            return this.sourcesAll.size() + this.targetsAll.size();
-        }
-
         private boolean reachLimit() {
-            checkCapacity(this.capacity, this.accessedNodes(), "paths");
-            if (this.limit == NO_LIMIT || this.paths.size() < this.limit) {
-                return false;
-            }
-            return true;
+            checkCapacity(this.capacity, this.record.accessed(), "paths");
+            return this.limit != NO_LIMIT && this.paths.size() >= this.limit;
         }
     }
 }

@@ -88,7 +88,7 @@ public class HugeGraphServer {
         }
     }
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) throws Throwable {
         if (args.length != 2) {
             String msg = "HugeGraphServer can only accept two config files";
             LOG.error(msg);

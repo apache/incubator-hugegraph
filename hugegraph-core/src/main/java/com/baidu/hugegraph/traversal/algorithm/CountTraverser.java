@@ -19,7 +19,6 @@
 
 package com.baidu.hugegraph.traversal.algorithm;
 
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -40,7 +39,7 @@ public class CountTraverser extends HugeTraverser {
 
     private boolean containsTraversed = false;
     private long dedupSize = 1000000L;
-    private final Set<Id> dedupSet = new HashSet<>();
+    private final Set<Id> dedupSet = newIdSet();
     private final MutableLong count = new MutableLong(0L);
 
     public CountTraverser(HugeGraph graph) {

@@ -64,13 +64,14 @@ import com.baidu.hugegraph.backend.store.raft.RaftGroupManager;
 import com.baidu.hugegraph.backend.store.ram.RamTable;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
-import com.baidu.hugegraph.config.ConfigOption;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
+import com.baidu.hugegraph.config.TypedOption;
 import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.event.EventListener;
 import com.baidu.hugegraph.exception.NotAllowException;
 import com.baidu.hugegraph.io.HugeGraphIoRegistry;
+import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.rpc.RpcServiceConfig4Client;
 import com.baidu.hugegraph.rpc.RpcServiceConfig4Server;
 import com.baidu.hugegraph.schema.EdgeLabel;
@@ -115,7 +116,7 @@ public class StandardHugeGraph implements HugeGraph {
            StandardHugeGraph.SysTransaction.class
     };
 
-    public static final Set<ConfigOption<?>> ALLOWED_CONFIGS = ImmutableSet.of(
+    public static final Set<TypedOption<?, ?>> ALLOWED_CONFIGS = ImmutableSet.of(
            CoreOptions.TASK_WAIT_TIMEOUT,
            CoreOptions.TASK_SYNC_DELETION,
            CoreOptions.TASK_TTL_DELETE_BATCH,
@@ -123,6 +124,7 @@ public class StandardHugeGraph implements HugeGraph {
            CoreOptions.TASK_RESULT_SIZE_LIMIT,
            CoreOptions.OLTP_CONCURRENT_THREADS,
            CoreOptions.OLTP_CONCURRENT_DEPTH,
+           CoreOptions.OLTP_COLLECTION_TYPE,
            CoreOptions.VERTEX_DEFAULT_LABEL,
            CoreOptions.VERTEX_ENCODE_PK_NUMBER
     );
@@ -453,6 +455,7 @@ public class StandardHugeGraph implements HugeGraph {
         return this.storeProvider.loadSystemStore(name);
     }
 
+    @Watched
     private SchemaTransaction schemaTransaction() {
         this.checkGraphNotClosed();
         /*
@@ -472,6 +475,7 @@ public class StandardHugeGraph implements HugeGraph {
         return this.tx.systemTransaction();
     }
 
+    @Watched
     private GraphTransaction graphTransaction() {
         this.checkGraphNotClosed();
         /*
@@ -656,6 +660,7 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
+    @Watched
     public Iterator<Edge> edges(Query query) {
         return this.graphTransaction().queryEdges(query);
     }
@@ -727,6 +732,7 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
+    @Watched
     public VertexLabel vertexLabelOrNone(Id id) {
         VertexLabel vl = this.schemaTransaction().getVertexLabel(id);
         if (vl == null) {
@@ -972,7 +978,7 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
-    public <V> V option(ConfigOption<V> option) {
+    public <K, V> V option(TypedOption<K, V> option) {
         HugeConfig config = this.configuration();
         if (!ALLOWED_CONFIGS.contains(option)) {
             throw new NotAllowException("Not allowed to access config: %s",

@@ -26,6 +26,7 @@ import static com.baidu.hugegraph.config.OptionChecker.positiveInt;
 import static com.baidu.hugegraph.config.OptionChecker.rangeInt;
 
 import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.type.define.CollectionType;
 import com.baidu.hugegraph.util.Bytes;
 
 public class CoreOptions extends OptionHolder {
@@ -622,5 +623,15 @@ public class CoreOptions extends OptionHolder {
                     "The min depth to enable concurrent oltp algorithm.",
                     rangeInt(0, 65535),
                     10
+            );
+
+    public static final ConfigConvOption<String, CollectionType> OLTP_COLLECTION_TYPE =
+            new ConfigConvOption<>(
+                    "oltp.collection_type",
+                    "The implementation type of collections " +
+                    "used in oltp algorithm.",
+                    allowValues("JCF", "EC", "FU"),
+                    CollectionType::valueOf,
+                    "EC"
             );
 }

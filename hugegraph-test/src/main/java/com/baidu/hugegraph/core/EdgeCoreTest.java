@@ -21,7 +21,6 @@ package com.baidu.hugegraph.core;
 
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -77,6 +76,7 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.Events;
+import com.baidu.hugegraph.util.collection.CollectionFactory;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
@@ -3090,7 +3090,8 @@ public class EdgeCoreTest extends BaseCoreTest {
         // Fill edge properties
         Assert.assertEquals(2, edge.getProperties().size());
         Whitebox.setInternalState(edge, "propLoaded", false);
-        Whitebox.setInternalState(edge, "properties", new HashMap<>());
+        Whitebox.setInternalState(edge, "properties",
+                                  CollectionFactory.newIntObjectMap());
         Assert.assertEquals(0, edge.getProperties().size());
         Assert.assertEquals(2, edge.getFilledProperties().size());
         Assert.assertEquals(2, edge.getProperties().size());

@@ -19,7 +19,6 @@
 
 package com.baidu.hugegraph.traversal.algorithm;
 
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -51,7 +50,7 @@ public class MultiNodeShortestPathTraverser extends OltpTraverser {
                      "The number of vertices of multiple node shortest path " +
                      "must in [2, %s], but got: %s",
                      MAX_VERTICES, vertexList.size());
-        List<Pair<Id, Id>> pairs = new ArrayList<>();
+        List<Pair<Id, Id>> pairs = newList();
         cmn(vertexList, vertexCount, 2, 0, null, r -> {
             Id source = ((HugeVertex) r.get(0)).id();
             Id target = ((HugeVertex) r.get(1)).id();
@@ -91,7 +90,7 @@ public class MultiNodeShortestPathTraverser extends OltpTraverser {
     public List<Path> multiNodeShortestPathSingle(List<Pair<Id, Id>> pairs,
                                                   EdgeStep step, int maxDepth,
                                                   long capacity) {
-        List<Path> results = new ArrayList<>();
+        List<Path> results = newList();
         ShortestPathTraverser traverser =
                               new ShortestPathTraverser(this.graph());
         for (Pair<Id, Id> pair : pairs) {
@@ -109,7 +108,7 @@ public class MultiNodeShortestPathTraverser extends OltpTraverser {
         assert m <= all.size();
         assert current <= all.size();
         if (result == null) {
-            result = new ArrayList<>(n);
+            result = newList(n);
         }
         if (n == 0) {
             // All n items are selected

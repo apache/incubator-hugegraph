@@ -21,7 +21,6 @@ package com.baidu.hugegraph.structure;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -35,6 +34,9 @@ import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
+import org.eclipse.collections.api.map.primitive.MutableIntObjectMap;
+import org.eclipse.collections.api.tuple.primitive.IntObjectPair;
+import org.eclipse.collections.impl.map.mutable.primitive.IntObjectHashMap;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.EdgeId;
@@ -52,15 +54,16 @@ import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
-import com.google.common.collect.ImmutableMap;
+import com.baidu.hugegraph.util.collection.CollectionFactory;
 
 public abstract class HugeElement implements Element, GraphType, Idfiable {
 
-    private static final Map<Id, HugeProperty<?>> EMPTY_MAP = ImmutableMap.of();
+    private static final MutableIntObjectMap<HugeProperty<?>> EMPTY_MAP =
+                         CollectionFactory.newIntObjectMap();
     private static final int MAX_PROPERTIES = BytesBuffer.UINT16_MAX;
 
     private final HugeGraph graph;
-    private Map<Id, HugeProperty<?>> properties;
+    private MutableIntObjectMap<HugeProperty<?>> properties;
 
     private long expiredTime; // TODO: move into properties to keep small object
 
@@ -98,7 +101,7 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
         this.defaultValueUpdated = true;
         // Set default value if needed
         for (Id pkeyId : this.schemaLabel().properties()) {
-            if (this.properties.containsKey(pkeyId)) {
+            if (this.properties.containsKey(intFromId(pkeyId))) {
                 continue;
             }
             PropertyKey pkey = this.graph().propertyKey(pkeyId);
@@ -198,28 +201,36 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
         return this.schemaLabel().ttl() > 0L;
     }
 
+    // TODO: return MutableIntObjectMap<HugeProperty<?>>
     public Map<Id, HugeProperty<?>> getProperties() {
-        return Collections.unmodifiableMap(this.properties);
+        Map<Id, HugeProperty<?>> props = new HashMap<>();
+        for (IntObjectPair<HugeProperty<?>> e : this.properties.keyValuesView()) {
+            props.put(IdGenerator.of(e.getOne()), e.getTwo());
+        }
+        return props;
     }
 
+    // TODO: return MutableIntObjectMap<HugeProperty<?>>
     public Map<Id, HugeProperty<?>> getFilledProperties() {
         this.ensureFilledProperties(true);
         return this.getProperties();
     }
 
+    // TODO: return MutableIntObjectMap<HugeProperty<?>>
     public Map<Id, Object> getPropertiesMap() {
         Map<Id, Object> props = new HashMap<>();
-        for (Map.Entry<Id, HugeProperty<?>> e : this.properties.entrySet()) {
-            props.put(e.getKey(), e.getValue().value());
+        for (IntObjectPair<HugeProperty<?>> e : this.properties.keyValuesView()) {
+            props.put(IdGenerator.of(e.getOne()), e.getTwo().value());
         }
         return props;
     }
 
+    // TODO: return MutableIntObjectMap<HugeProperty<?>>
     public Map<Id, HugeProperty<?>> getAggregateProperties() {
         Map<Id, HugeProperty<?>> aggrProps = new HashMap<>();
-        for (Map.Entry<Id, HugeProperty<?>> e : this.properties.entrySet()) {
-            if (e.getValue().type().isAggregateProperty()) {
-                aggrProps.put(e.getKey(), e.getValue());
+        for (IntObjectPair<HugeProperty<?>> e : this.properties.keyValuesView()) {
+            if (e.getTwo().type().isAggregateProperty()) {
+                aggrProps.put(IdGenerator.of(e.getOne()), e.getTwo());
             }
         }
         return aggrProps;
@@ -227,12 +238,12 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
 
     @SuppressWarnings("unchecked")
     public <V> HugeProperty<V> getProperty(Id key) {
-        return (HugeProperty<V>) this.properties.get(key);
+        return (HugeProperty<V>) this.properties.get(intFromId(key));
     }
 
     @SuppressWarnings("unchecked")
     public <V> V getPropertyValue(Id key) {
-        HugeProperty<?> prop = this.properties.get(key);
+        HugeProperty<?> prop = this.properties.get(intFromId(key));
         if (prop == null) {
             return null;
         }
@@ -240,7 +251,7 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
     }
 
     public boolean hasProperty(Id key) {
-        return this.properties.containsKey(key);
+        return this.properties.containsKey(intFromId(key));
     }
 
     public boolean hasProperties() {
@@ -266,17 +277,18 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
     @Watched(prefix = "element")
     public <V> HugeProperty<?> setProperty(HugeProperty<V> prop) {
         if (this.properties == EMPTY_MAP) {
-            this.properties = new HashMap<>();
+            this.properties = CollectionFactory.newIntObjectMap();
         }
         PropertyKey pkey = prop.propertyKey();
-        E.checkArgument(this.properties.containsKey(pkey.id()) ||
+
+        E.checkArgument(this.properties.containsKey(intFromId(pkey.id())) ||
                         this.properties.size() < MAX_PROPERTIES,
                         "Exceeded the maximum number of properties");
-        return this.properties.put(pkey.id(), prop);
+        return this.properties.put(intFromId(pkey.id()), prop);
     }
 
     public <V> HugeProperty<?> removeProperty(Id key) {
-        return this.properties.remove(key);
+        return this.properties.remove(intFromId(key));
     }
 
     public <V> HugeProperty<V> addProperty(PropertyKey pkey, V value) {
@@ -353,7 +365,7 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
     }
 
     public void resetProperties() {
-        this.properties = new HashMap<>();
+        this.properties = CollectionFactory.newIntObjectMap();
         this.propLoaded = false;
     }
 
@@ -361,7 +373,8 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
         if (element.properties == EMPTY_MAP) {
             this.properties = EMPTY_MAP;
         } else {
-            this.properties = new HashMap<>(element.properties);
+            this.properties = CollectionFactory.newIntObjectMap(
+                              element.properties);
         }
         this.propLoaded = true;
     }
@@ -491,6 +504,12 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
             }
         }
         return labelValue;
+    }
+
+    public static int intFromId(Id id) {
+        E.checkArgument(id instanceof IdGenerator.LongId,
+                        "Can't get number from %s(%s)", id, id.getClass());
+        return ((IdGenerator.LongId) id).intValue();
     }
 
     public static final class ElementKeys {

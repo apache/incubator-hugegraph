@@ -21,9 +21,15 @@ package com.baidu.hugegraph.traversal.algorithm;
 
 import java.util.Iterator;
 import java.util.Set;
+import java.util.function.Consumer;
+
+import org.apache.tinkerpop.gremlin.structure.Edge;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.structure.HugeEdge;
+import com.baidu.hugegraph.traversal.algorithm.records.KneighborRecords;
+import com.baidu.hugegraph.traversal.algorithm.records.record.RecordType;
 import com.baidu.hugegraph.traversal.algorithm.steps.EdgeStep;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
@@ -56,7 +62,7 @@ public class KneighborTraverser extends OltpTraverser {
             latest = this.adjacentVertices(sourceV, latest, dir, labelId,
                                            all, degree, remaining);
             all.addAll(latest);
-            if (limit != NO_LIMIT && all.size() >= limit) {
+            if (reachLimit(limit, all.size())) {
                 break;
             }
         }
@@ -64,45 +70,40 @@ public class KneighborTraverser extends OltpTraverser {
         return all;
     }
 
-    public Set<Node> customizedKneighbor(Id source, EdgeStep step,
-                                         int maxDepth, long limit) {
+    public KneighborRecords customizedKneighbor(Id source, EdgeStep step,
+                                                int maxDepth, long limit) {
         E.checkNotNull(source, "source vertex id");
         this.checkVertexExist(source, "source vertex");
         checkPositive(maxDepth, "k-neighbor max_depth");
         checkLimit(limit);
 
-        boolean single = maxDepth < this.concurrentDepth() ||
-                         step.direction() != Directions.BOTH;
-        return this.customizedKneighbor(source, step, maxDepth,
-                                        limit, single);
-    }
+        boolean concurrent = maxDepth >= this.concurrentDepth() &&
+                             step.direction() == Directions.BOTH;
 
-    public Set<Node> customizedKneighbor(Id source, EdgeStep step, int maxDepth,
-                                         long limit, boolean single) {
-        Set<Node> latest = newSet(single);
-        Set<Node> all = newSet(single);
+        KneighborRecords records = new KneighborRecords(RecordType.INT,
+                                                        concurrent,
+                                                        source, true);
 
-        Node sourceV = new KNode(source, null);
-
-        latest.add(sourceV);
+        Consumer<Id> consumer = v -> {
+            if (this.reachLimit(limit, records.size())) {
+                return;
+            }
+            Iterator<Edge> edges = edgesOfVertex(v, step);
+            while (!this.reachLimit(limit, records.size()) && edges.hasNext()) {
+                Id target = ((HugeEdge) edges.next()).id().otherVertexId();
+                records.addPath(v, target);
+            }
+        };
 
         while (maxDepth-- > 0) {
-            long remaining = limit == NO_LIMIT ? NO_LIMIT : limit - all.size();
-            latest = this.adjacentVertices(source, latest, step, all,
-                                           remaining, single);
-            int size = all.size() + latest.size();
-            if (limit != NO_LIMIT && size >= limit) {
-                int subLength = (int) limit - all.size();
-                Iterator<Node> iterator = latest.iterator();
-                for (int i = 0; i < subLength && iterator.hasNext(); i++) {
-                    all.add(iterator.next());
-                }
-                break;
-            } else {
-                all.addAll(latest);
-            }
+            records.startOneLayer(true);
+            traverseIds(records.keys(), consumer, concurrent);
+            records.finishOneLayer();
         }
+        return records;
+    }
 
-        return all;
+    private boolean reachLimit(long limit, int size) {
+        return limit != NO_LIMIT && size >= limit;
     }
 }

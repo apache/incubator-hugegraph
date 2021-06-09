@@ -19,9 +19,7 @@
 
 package com.baidu.hugegraph.traversal.algorithm;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -60,14 +58,14 @@ public class CustomizedCrosspointsTraverser extends HugeTraverser {
         checkCapacity(capacity);
         checkLimit(limit);
         MultivaluedMap<Id, Node> initialSources = newMultivalueMap();
-        List<HugeVertex> verticesList = new ArrayList<>();
+        List<HugeVertex> verticesList = newList();
         while (vertices.hasNext()) {
             HugeVertex vertex = (HugeVertex) vertices.next();
             verticesList.add(vertex);
             Node node = new Node(vertex.id(), null);
             initialSources.add(vertex.id(), node);
         }
-        List<Path> paths = new ArrayList<>();
+        List<Path> paths = newList();
 
         for (PathPattern pathPattern : pathPatterns) {
             MultivaluedMap<Id, Node> sources = initialSources;
@@ -81,7 +79,7 @@ public class CustomizedCrosspointsTraverser extends HugeTraverser {
 
                 // Traversal vertices of previous level
                 for (Map.Entry<Id, List<Node>> entry : sources.entrySet()) {
-                    List<Node> adjacency = new ArrayList<>();
+                    List<Node> adjacency = newList();
                     edges = this.edgesOfVertex(entry.getKey(), step.edgeStep);
                     while (edges.hasNext()) {
                         HugeEdge edge = (HugeEdge) edges.next();
@@ -151,11 +149,11 @@ public class CustomizedCrosspointsTraverser extends HugeTraverser {
         // Limit intersection number to limit crosspoints vertices in result
         int size = intersection.size();
         if (limit != NO_LIMIT && size > limit) {
-            intersection = new ArrayList<>(intersection).subList(0, size - 1);
+            intersection = newList(intersection).subList(0, size - 1);
         }
 
         // Filter intersection paths
-        List<Path> results = new ArrayList<>();
+        List<Path> results = newList();
         for (Path path : paths) {
             List<Id> vertices = path.vertices();
             int length = vertices.size();
@@ -163,7 +161,7 @@ public class CustomizedCrosspointsTraverser extends HugeTraverser {
                 results.add(path);
             }
         }
-        return new CrosspointsPaths(new HashSet<>(intersection), results);
+        return new CrosspointsPaths(newSet(intersection), results);
     }
 
     public static class PathPattern {
@@ -171,7 +169,7 @@ public class CustomizedCrosspointsTraverser extends HugeTraverser {
         private List<Step> steps;
 
         public PathPattern() {
-            this.steps = new ArrayList<>();
+            this.steps = newList();
         }
 
         public List<Step> steps() {

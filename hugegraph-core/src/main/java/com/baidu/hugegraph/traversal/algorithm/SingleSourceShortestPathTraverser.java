@@ -19,9 +19,6 @@
 
 package com.baidu.hugegraph.traversal.algorithm;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -223,7 +220,7 @@ public class SingleSourceShortestPathTraverser extends HugeTraverser {
             if (this.skipDegree <= 0L) {
                 return edges;
             }
-            List<Edge> edgeList = new ArrayList<>();
+            List<Edge> edgeList = newList();
             int count = 0;
             while (edges.hasNext()) {
                 if (count < this.degree) {
@@ -276,7 +273,7 @@ public class SingleSourceShortestPathTraverser extends HugeTraverser {
         private static final long serialVersionUID = -313873642177730993L;
 
         public Set<Id> vertices() {
-            Set<Id> vertices = new HashSet<>();
+            Set<Id> vertices = newIdSet();
             vertices.addAll(this.keySet());
             for (NodeWithWeight nw : this.values()) {
                 vertices.addAll(nw.node().path());
@@ -285,7 +282,7 @@ public class SingleSourceShortestPathTraverser extends HugeTraverser {
         }
 
         public Map<Id, Map<String, Object>> toMap() {
-            Map<Id, Map<String, Object>> results = new HashMap<>();
+            Map<Id, Map<String, Object>> results = newMap();
             for (Map.Entry<Id, NodeWithWeight> entry : this.entrySet()) {
                 Id source = entry.getKey();
                 NodeWithWeight nw = entry.getValue();

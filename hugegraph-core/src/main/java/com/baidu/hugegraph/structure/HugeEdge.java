@@ -370,6 +370,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         }
     }
 
+    @Watched
     public HugeEdge switchOwner() {
         HugeEdge edge = this.clone();
         edge.isOutEdge = !edge.isOutEdge;
@@ -488,6 +489,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         return EdgeId.parse(id.asString(), returnNullIfError);
     }
 
+    @Watched
     public static HugeEdge constructEdge(HugeVertex ownerVertex,
                                          boolean isOutEdge,
                                          EdgeLabel edgeLabel,

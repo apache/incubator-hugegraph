@@ -19,7 +19,6 @@
 
 package com.baidu.hugegraph.traversal.algorithm;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -74,7 +73,7 @@ public class CustomizePathsTraverser extends HugeTraverser {
 
             // Traversal vertices of previous level
             for (Map.Entry<Id, List<Node>> entry : sources.entrySet()) {
-                List<Node> adjacency = new ArrayList<>();
+                List<Node> adjacency = newList();
                 edges = this.edgesOfVertex(entry.getKey(), step.step());
                 while (edges.hasNext()) {
                     HugeEdge edge = (HugeEdge) edges.next();
@@ -122,7 +121,7 @@ public class CustomizePathsTraverser extends HugeTraverser {
         if (stepNum != 0) {
             return ImmutableList.of();
         }
-        List<Path> paths = new ArrayList<>();
+        List<Path> paths = newList();
         for (List<Node> nodes : newVertices.values()) {
             for (Node n : nodes) {
                 if (sorted) {
@@ -155,7 +154,7 @@ public class CustomizePathsTraverser extends HugeTraverser {
         if (nodes.size() <= sample) {
             return nodes;
         }
-        List<Node> result = new ArrayList<>((int) sample);
+        List<Node> result = newList((int) sample);
         int size = nodes.size();
         for (int random : CollectionUtil.randomSet(0, size, (int) sample)) {
             result.add(nodes.get(random));
@@ -173,7 +172,7 @@ public class CustomizePathsTraverser extends HugeTraverser {
         }
 
         public List<Double> weights() {
-            List<Double> weights = new ArrayList<>();
+            List<Double> weights = newList();
             WeightNode current = this;
             while (current.parent() != null) {
                 weights.add(current.weight);

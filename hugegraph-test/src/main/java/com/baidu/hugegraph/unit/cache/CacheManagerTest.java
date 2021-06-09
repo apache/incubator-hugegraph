@@ -234,7 +234,7 @@ public class CacheManagerTest extends BaseUnitTest {
     @Test
     public void testCacheExpire() {
         Cache<Id, Object> cache1 = new RamCache();
-        cache1.expire(28 * 1000L);
+        cache1.expire(26 * 1000L);
 
         Cache<Id, Object> cache2 = new RamCache();
         cache2.expire(0);

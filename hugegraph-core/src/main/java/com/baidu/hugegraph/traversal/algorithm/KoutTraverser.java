@@ -19,14 +19,20 @@
 
 package com.baidu.hugegraph.traversal.algorithm;
 
+import java.util.Iterator;
 import java.util.Set;
+import java.util.function.Consumer;
+
+import org.apache.tinkerpop.gremlin.structure.Edge;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.structure.HugeEdge;
+import com.baidu.hugegraph.traversal.algorithm.records.KoutRecords;
+import com.baidu.hugegraph.traversal.algorithm.records.record.RecordType;
 import com.baidu.hugegraph.traversal.algorithm.steps.EdgeStep;
 import com.baidu.hugegraph.type.define.Directions;
-import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 
 public class KoutTraverser extends OltpTraverser {
@@ -55,10 +61,10 @@ public class KoutTraverser extends OltpTraverser {
 
         Id labelId = this.getEdgeLabelId(label);
 
-        Set<Id> latest = newSet();
+        Set<Id> latest = newIdSet();
         latest.add(sourceV);
 
-        Set<Id> all = newSet();
+        Set<Id> all = newIdSet();
         all.add(sourceV);
 
         long remaining = capacity == NO_LIMIT ?
@@ -92,67 +98,54 @@ public class KoutTraverser extends OltpTraverser {
         return latest;
     }
 
-    public Set<Node> customizedKout(Id source, EdgeStep step, int maxDepth,
-                                    boolean nearest, long capacity,
-                                    long limit) {
+    public KoutRecords customizedKout(Id source, EdgeStep step,
+                                      int maxDepth, boolean nearest,
+                                      long capacity, long limit) {
         E.checkNotNull(source, "source vertex id");
         this.checkVertexExist(source, "source vertex");
         checkPositive(maxDepth, "k-out max_depth");
         checkCapacity(capacity);
         checkLimit(limit);
+        long[] depth = new long[1];
+        depth[0] = maxDepth;
+        boolean concurrent = maxDepth >= this.concurrentDepth() &&
+                             step.direction() == Directions.BOTH;
+        KoutRecords records = new KoutRecords(RecordType.INT, concurrent,
+                                              source, nearest);
 
-        Set<Node> results;
-        boolean single = maxDepth < this.concurrentDepth() ||
-                         step.direction() != Directions.BOTH;
-        results = this.customizedKout(source, step, maxDepth, nearest,
-                                      capacity, single);
+        Consumer<Id> consumer = v -> {
+            if (this.reachLimit(limit, depth[0], records.size())) {
+                return;
+            }
+            Iterator<Edge> edges = edgesOfVertex(v, step);
+            while (!this.reachLimit(limit, depth[0], records.size()) &&
+                   edges.hasNext()) {
+                Id target = ((HugeEdge) edges.next()).id().otherVertexId();
+                records.addPath(v, target);
+                this.checkCapacity(capacity, records.accessed(), depth[0]);
+            }
+        };
 
-        if (limit != NO_LIMIT && results.size() > limit) {
-            results = CollectionUtil.subSet(results, 0, (int) limit);
+        while (depth[0]-- > 0) {
+            records.startOneLayer(true);
+            traverseIds(records.keys(), consumer, concurrent);
+            records.finishOneLayer();
         }
-
-        return results;
+        return records;
     }
 
-    public Set<Node> customizedKout(Id source, EdgeStep step, int maxDepth,
-                                    boolean nearest, long capacity,
-                                    boolean single) {
-        Set<Node> latest = newSet(single);
-        Set<Node> all = newSet(single);
-
-        Node sourceV = new KNode(source, null);
-
-        latest.add(sourceV);
-        all.add(sourceV);
-
-        int depth = maxDepth;
-        long remaining = capacity == NO_LIMIT ?
-                         NO_LIMIT : capacity - latest.size();
-        while (depth-- > 0) {
-            if (nearest) {
-                latest = this.adjacentVertices(source, latest, step, all,
-                                               remaining, single);
-                all.addAll(latest);
-            } else {
-                latest = this.adjacentVertices(source, latest, step, null,
-                                               remaining, single);
-            }
-            if (capacity != NO_LIMIT) {
-                // Update 'remaining' value to record remaining capacity
-                remaining -= latest.size();
-                reachCapacity(remaining, capacity, depth);
-            }
+    private void checkCapacity(long capacity, long accessed, long depth) {
+        if (capacity == NO_LIMIT) {
+            return;
         }
-
-        return latest;
-    }
-
-    private static void reachCapacity(long remaining, long capacity,
-                                      int depth) {
-        if (remaining <= 0 && depth > 0) {
+        if (accessed >= capacity && depth > 0) {
             throw new HugeException(
                       "Reach capacity '%s' while remaining depth '%s'",
                       capacity, depth);
         }
+    }
+
+    private boolean reachLimit(long limit, long depth, int size) {
+        return limit != NO_LIMIT && depth <= 0 && size >= limit;
     }
 }
