@@ -102,7 +102,7 @@ public class RamCache extends AbstractCache<Id, Object> {
 
     @Override
     @Watched(prefix = "ramcache")
-    protected final boolean write(Id id, Object value) {
+    protected final boolean write(Id id, Object value, long timeOffset) {
         assert id != null;
         long capacity = this.capacity();
         assert capacity > 0;
@@ -150,7 +150,7 @@ public class RamCache extends AbstractCache<Id, Object> {
             }
 
             // Add the new item to tail of the queue, then map it
-            this.map.put(id, this.queue.enqueue(id, value));
+            this.map.put(id, this.queue.enqueue(id, value, timeOffset));
             return true;
         } finally {
             lock.unlock();
@@ -228,7 +228,11 @@ public class RamCache extends AbstractCache<Id, Object> {
         private LinkNode<K, V> next;
 
         public LinkNode(K key, V value) {
-            super(key, value);
+            this(key, value, 0L);
+        }
+
+        public LinkNode(K key, V value, long timeOffset) {
+            super(key, value, timeOffset);
             this.prev = this.next = null;
         }
 
@@ -370,8 +374,8 @@ public class RamCache extends AbstractCache<Id, Object> {
         /**
          * Add an item with key-value to the queue
          */
-        public LinkNode<K, V> enqueue(K key, V value) {
-            return this.enqueue(new LinkNode<>(key, value));
+        public LinkNode<K, V> enqueue(K key, V value, long timeOffset) {
+            return this.enqueue(new LinkNode<>(key, value, timeOffset));
         }
 
         /**

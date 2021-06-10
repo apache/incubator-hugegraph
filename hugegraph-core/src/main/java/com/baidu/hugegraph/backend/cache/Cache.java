@@ -37,6 +37,8 @@ public interface Cache<K, V> {
 
     public boolean update(K id, V value);
 
+    public boolean update(K id, V value, long timeOffset);
+
     public boolean updateIfAbsent(K id, V value);
 
     public boolean updateIfPresent(K id, V value);

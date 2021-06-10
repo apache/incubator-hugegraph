@@ -87,10 +87,10 @@ public final class LevelCache extends AbstractCache<Id, Object> {
     }
 
     @Override
-    protected boolean write(Id id, Object value) {
+    protected boolean write(Id id, Object value, long timeOffset) {
         boolean success = false;
         for (AbstractCache<Id, Object> cache : this.caches) {
-            success |= cache.write(id, value);
+            success |= cache.write(id, value, timeOffset);
         }
         return success;
     }
