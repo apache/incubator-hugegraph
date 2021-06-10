@@ -90,6 +90,7 @@ import com.baidu.hugegraph.task.ServerInfoManager;
 import com.baidu.hugegraph.task.TaskManager;
 import com.baidu.hugegraph.task.TaskScheduler;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.CollectionType;
 import com.baidu.hugegraph.type.define.GraphMode;
 import com.baidu.hugegraph.type.define.GraphReadMode;
 import com.baidu.hugegraph.type.define.NodeRole;
@@ -98,6 +99,7 @@ import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Events;
 import com.baidu.hugegraph.util.LockUtil;
 import com.baidu.hugegraph.util.Log;
+import com.baidu.hugegraph.util.collection.IdSet;
 import com.baidu.hugegraph.variables.HugeVariables;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.RateLimiter;
@@ -254,6 +256,13 @@ public class StandardHugeGraph implements HugeGraph {
         LOG.info("Init server info [{}-{}] for graph '{}'...",
                  serverId, serverRole, this.name);
         this.serverInfoManager().initServerInfo(serverId, serverRole);
+
+        LOG.info("Search olap property key for graph '{}'", this.name);
+        for (PropertyKey pk : this.schemaTransaction().getPropertyKeys()) {
+            if (pk.readFrequency().olap()) {
+                this.schemaTransaction().initAndRegisterOlapTable(pk.id());
+            }
+        }
 
         LOG.info("Restoring incomplete tasks for graph '{}'...", this.name);
         this.taskScheduler().restoreTasks();
@@ -435,8 +444,8 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     private BackendStore loadGraphStore() {
-        String graph = this.configuration.get(CoreOptions.STORE_GRAPH);
-        return this.storeProvider.loadGraphStore(graph);
+        String name = this.configuration.get(CoreOptions.STORE_GRAPH);
+        return this.storeProvider.loadGraphStore(name);
     }
 
     private BackendStore loadSystemStore() {
@@ -670,14 +679,14 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
-    public void addPropertyKey(PropertyKey pkey) {
+    public Id addPropertyKey(PropertyKey pkey) {
         assert this.name.equals(pkey.graph().name());
-        this.schemaTransaction().addPropertyKey(pkey);
+        return this.schemaTransaction().addPropertyKey(pkey);
     }
 
     @Override
-    public void removePropertyKey(Id pkey) {
-        this.schemaTransaction().removePropertyKey(pkey);
+    public Id removePropertyKey(Id pkey) {
+        return this.schemaTransaction().removePropertyKey(pkey);
     }
 
     @Override
@@ -697,6 +706,14 @@ public class StandardHugeGraph implements HugeGraph {
         PropertyKey pk = this.schemaTransaction().getPropertyKey(name);
         E.checkArgument(pk != null, "Undefined property key: '%s'", name);
         return pk;
+    }
+
+    @Override
+    public Id clearPropertyKey(PropertyKey propertyKey) {
+        if (propertyKey.readFrequency().oltp()) {
+            return null;
+        }
+        return this.schemaTransaction().clearOlapPk(propertyKey);
     }
 
     @Override

@@ -184,16 +184,22 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     @Override
-    public void addPropertyKey(PropertyKey key) {
+    public Id addPropertyKey(PropertyKey key) {
         verifySchemaPermission(HugePermission.WRITE, key);
-        this.hugegraph.addPropertyKey(key);
+        return this.hugegraph.addPropertyKey(key);
     }
 
     @Override
-    public void removePropertyKey(Id key) {
+    public Id removePropertyKey(Id key) {
         PropertyKey pkey = this.hugegraph.propertyKey(key);
         verifySchemaPermission(HugePermission.DELETE, pkey);
-        this.hugegraph.removePropertyKey(key);
+        return this.hugegraph.removePropertyKey(key);
+    }
+
+    @Override
+    public Id clearPropertyKey(PropertyKey propertyKey) {
+        verifySchemaPermission(HugePermission.DELETE, propertyKey);
+        return this.hugegraph.clearPropertyKey(propertyKey);
     }
 
     @Override

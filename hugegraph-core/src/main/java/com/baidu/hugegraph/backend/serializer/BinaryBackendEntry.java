@@ -42,6 +42,7 @@ public class BinaryBackendEntry implements BackendEntry {
     private Id subId;
     private final List<BackendColumn> columns;
     private long ttl;
+    private boolean olap;
 
     public BinaryBackendEntry(HugeType type, byte[] bytes) {
         this(type, BytesBuffer.wrap(bytes).parseId(type));
@@ -53,6 +54,7 @@ public class BinaryBackendEntry implements BackendEntry {
         this.subId = null;
         this.columns = new ArrayList<>();
         this.ttl = 0L;
+        this.olap = false;
     }
 
     @Override
@@ -86,6 +88,15 @@ public class BinaryBackendEntry implements BackendEntry {
     @Override
     public long ttl() {
         return this.ttl;
+    }
+
+    public void olap(boolean olap) {
+        this.olap = olap;
+    }
+
+    @Override
+    public boolean olap() {
+        return this.olap;
     }
 
     @Override
@@ -149,6 +160,18 @@ public class BinaryBackendEntry implements BackendEntry {
                 this.column(col);
             }
         }
+    }
+
+    @Override
+    public boolean mergable(BackendEntry other) {
+        if (!(other instanceof BinaryBackendEntry)) {
+            return false;
+        }
+        if (!this.id().equals(other.id())) {
+            return false;
+        }
+        this.columns(other.columns());
+        return true;
     }
 
     @Override

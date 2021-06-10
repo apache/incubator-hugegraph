@@ -66,6 +66,10 @@ public abstract class AbstractBuilder {
         return this.transaction.rebuildIndex(indexLabel, dependencies);
     }
 
+    protected Id createOlapPk(PropertyKey propertyKey) {
+        return this.transaction.createOlapPk(propertyKey);
+    }
+
     protected <V> V lockCheckAndCreateSchema(HugeType type, String name,
                                              Function<String, V> callback) {
         String graph = this.transaction.graphName();

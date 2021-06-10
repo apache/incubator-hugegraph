@@ -832,6 +832,110 @@ public class CassandraTables {
         }
     }
 
+    public static class Olap extends CassandraTable {
+
+        public static final String TABLE = HugeType.OLAP.string();
+
+        private Id pkId;
+
+        public Olap(String store, Id id) {
+            super(joinTableName(store, joinTableName(TABLE, id.asString())));
+            this.pkId = id;
+        }
+
+        @Override
+        public void init(CassandraSessionPool.Session session) {
+            ImmutableMap<HugeKeys, DataType> pkeys = ImmutableMap.of(
+                    HugeKeys.ID, TYPE_ID
+            );
+            ImmutableMap<HugeKeys, DataType> ckeys = ImmutableMap.of();
+            ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of(
+                    HugeKeys.PROPERTY_VALUE, TYPE_PROP
+            );
+
+            this.createTable(session, pkeys, ckeys, columns);
+        }
+
+        @Override
+        protected Iterator<BackendEntry> results2Entries(Query q, ResultSet r) {
+            return new CassandraEntryIterator(r, q, (e1, row) -> {
+                CassandraBackendEntry e2 = row2Entry(q.resultType(), row);
+                e2.subId(this.pkId);
+                return this.mergeEntries(e1, e2);
+            });
+        }
+
+        @Override
+        public boolean isOlap() {
+            return true;
+        }
+    }
+
+    public static class OlapSecondaryIndex extends SecondaryIndex {
+
+        public static final String TABLE = HugeType.OLAP.string();
+
+        public OlapSecondaryIndex(String store) {
+            this(store, TABLE);
+        }
+
+        protected OlapSecondaryIndex(String store, String table) {
+            super(joinTableName(store, table));
+        }
+    }
+
+    public static class OlapRangeIntIndex extends RangeIntIndex {
+
+        public static final String TABLE = HugeType.OLAP.string();
+
+        public OlapRangeIntIndex(String store) {
+            this(store, TABLE);
+        }
+
+        protected OlapRangeIntIndex(String store, String table) {
+            super(joinTableName(store, table));
+        }
+    }
+
+    public static class OlapRangeLongIndex extends RangeLongIndex {
+
+        public static final String TABLE = HugeType.OLAP.string();
+
+        public OlapRangeLongIndex(String store) {
+            this(store, TABLE);
+        }
+
+        protected OlapRangeLongIndex(String store, String table) {
+            super(joinTableName(store, table));
+        }
+    }
+
+    public static class OlapRangeFloatIndex extends RangeFloatIndex {
+
+        public static final String TABLE = HugeType.OLAP.string();
+
+        public OlapRangeFloatIndex(String store) {
+            this(store, TABLE);
+        }
+
+        protected OlapRangeFloatIndex(String store, String table) {
+            super(joinTableName(store, table));
+        }
+    }
+
+    public static class OlapRangeDoubleIndex extends RangeDoubleIndex {
+
+        public static final String TABLE = HugeType.OLAP.string();
+
+        public OlapRangeDoubleIndex(String store) {
+            this(store, TABLE);
+        }
+
+        protected OlapRangeDoubleIndex(String store, String table) {
+            super(joinTableName(store, table));
+        }
+    }
+
     private static Statement setTtl(BuiltStatement statement,
                                     CassandraBackendEntry.Row entry) {
         long ttl = entry.ttl();

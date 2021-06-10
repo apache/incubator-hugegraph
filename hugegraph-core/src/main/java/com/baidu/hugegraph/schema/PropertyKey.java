@@ -348,6 +348,8 @@ public class PropertyKey extends SchemaElement implements Propfiable {
 
     public interface Builder extends SchemaBuilder<PropertyKey> {
 
+        PropertyKeyWithTask createWithTask();
+
         Builder asText();
 
         Builder asInt();
@@ -397,5 +399,35 @@ public class PropertyKey extends SchemaElement implements Propfiable {
         Builder userdata(String key, Object value);
 
         Builder userdata(Map<String, Object> userdata);
+    }
+
+
+    public static class PropertyKeyWithTask {
+
+        private PropertyKey propertyKey;
+        private Id task;
+
+        public PropertyKeyWithTask(PropertyKey propertyKey, Id task) {
+            E.checkNotNull(propertyKey, "property key");
+            this.propertyKey = propertyKey;
+            this.task = task;
+        }
+
+        public void propertyKey(PropertyKey propertyKey) {
+            E.checkNotNull(propertyKey, "property key");
+            this.propertyKey = propertyKey;
+        }
+
+        public PropertyKey propertyKey() {
+            return this.propertyKey;
+        }
+
+        public void task(Id task) {
+            this.task = task;
+        }
+
+        public Id task() {
+            return this.task;
+        }
     }
 }

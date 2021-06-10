@@ -450,7 +450,8 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         }
 
         // Check key in vertex label
-        E.checkArgument(this.label.properties().contains(propertyKey.id()),
+        E.checkArgument(VertexLabel.ALL_VL.equals(this.label) ||
+                        this.label.properties().contains(propertyKey.id()),
                         "Invalid property '%s' for vertex label '%s'",
                         key, this.label());
         // Primary-Keys can only be set once
@@ -608,6 +609,10 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         vertex.resetEdges();
         vertex.resetProperties();
         return vertex;
+    }
+
+    public boolean olap() {
+        return VertexLabel.ALL_VL.equals(this.label);
     }
 
     @Override

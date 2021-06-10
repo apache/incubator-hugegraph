@@ -146,6 +146,16 @@ public class JsonSerializer implements Serializer {
     }
 
     @Override
+    public String writePropertyKeyWithTask(PropertyKey.PropertyKeyWithTask pkt) {
+    StringBuilder builder = new StringBuilder();
+    long id = pkt.task() == null ? 0L : pkt.task().asLong();
+        return builder.append("{\"property_key\": ")
+                      .append(this.writePropertyKey(pkt.propertyKey()))
+                      .append(", \"task_id\": ").append(id).append("}")
+                      .toString();
+    }
+
+    @Override
     public String writePropertyKeys(List<PropertyKey> propertyKeys) {
         return writeList("propertykeys", propertyKeys);
     }

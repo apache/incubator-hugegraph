@@ -284,6 +284,11 @@ public class TextSerializer extends AbstractSerializer {
     }
 
     @Override
+    public BackendEntry writeOlapVertex(HugeVertex vertex) {
+        throw new NotImplementedException("Unsupported writeOlapVertex()");
+    }
+
+    @Override
     public BackendEntry writeVertexProperty(HugeVertexProperty<?> prop) {
         throw new NotImplementedException("Unsupported writeVertexProperty()");
     }

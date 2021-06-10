@@ -17,47 +17,24 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.type.define;
+package com.baidu.hugegraph.job.schema;
 
-public enum ReadFrequency implements SerialEnum {
+import com.baidu.hugegraph.backend.tx.SchemaTransaction;
+import com.baidu.hugegraph.schema.PropertyKey;
 
-    OLTP(1, "oltp"),
+public class OlapPropertyKeyCreateCallable extends SchemaCallable {
 
-    OLAP_NONE(2, "olap_none"),
-
-    OLAP_SECONDARY(3, "olap_secondary"),
-
-    OLAP_RANGE(4, "olap_range");
-
-    private byte code = 0;
-    private String name = null;
-
-    static {
-        SerialEnum.register(ReadFrequency.class);
-    }
-
-    ReadFrequency(int code, String name) {
-        assert code < 256;
-        this.code = (byte) code;
-        this.name = name;
+    @Override
+    public String type() {
+        return CREATE_OLAP;
     }
 
     @Override
-    public byte code() {
-        return this.code;
-    }
-
-    public String string() {
-        return this.name;
-    }
-
-    public boolean oltp() {
-        return this == OLTP;
-    }
-
-    public boolean olap() {
-        return this == OLAP_NONE ||
-               this == OLAP_RANGE ||
-               this == OLAP_SECONDARY;
+    public Object execute() {
+        SchemaTransaction schemaTx = this.params().schemaTransaction();
+        PropertyKey propertyKey = schemaTx.getPropertyKey(this.schemaId());
+        schemaTx.processOlapPropertyKey(propertyKey);
+        schemaTx.createOlapPk(this.schemaId());
+        return null;
     }
 }

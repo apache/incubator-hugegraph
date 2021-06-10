@@ -19,6 +19,10 @@
 
 package com.baidu.hugegraph.backend.tx;
 
+import static com.baidu.hugegraph.schema.SchemaElement.ALL;
+import static com.baidu.hugegraph.schema.SchemaElement.ALL_ID;
+import static com.baidu.hugegraph.schema.VertexLabel.ALL_VL;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -42,6 +46,9 @@ import com.baidu.hugegraph.exception.NotAllowException;
 import com.baidu.hugegraph.job.JobBuilder;
 import com.baidu.hugegraph.job.schema.EdgeLabelRemoveCallable;
 import com.baidu.hugegraph.job.schema.IndexLabelRemoveCallable;
+import com.baidu.hugegraph.job.schema.OlapPropertyKeyClearCallable;
+import com.baidu.hugegraph.job.schema.OlapPropertyKeyCreateCallable;
+import com.baidu.hugegraph.job.schema.OlapPropertyKeyRemoveCallable;
 import com.baidu.hugegraph.job.schema.RebuildIndexCallable;
 import com.baidu.hugegraph.job.schema.SchemaCallable;
 import com.baidu.hugegraph.job.schema.VertexLabelRemoveCallable;
@@ -57,6 +64,7 @@ import com.baidu.hugegraph.task.HugeTask;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.GraphMode;
 import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.type.define.ReadFrequency;
 import com.baidu.hugegraph.type.define.SchemaStatus;
 import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.E;
@@ -111,8 +119,12 @@ public class SchemaTransaction extends IndexableTransaction {
     }
 
     @Watched(prefix = "schema")
-    public void addPropertyKey(PropertyKey propertyKey) {
+    public Id addPropertyKey(PropertyKey propertyKey) {
         this.addSchema(propertyKey);
+        if (propertyKey.readFrequency().olap()) {
+            return this.createOlapPk(propertyKey);
+        }
+        return null;
     }
 
     @Watched(prefix = "schema")
@@ -129,12 +141,12 @@ public class SchemaTransaction extends IndexableTransaction {
     }
 
     @Watched(prefix = "schema")
-    public void removePropertyKey(Id id) {
+    public Id removePropertyKey(Id id) {
         LOG.debug("SchemaTransaction remove property key '{}'", id);
         PropertyKey propertyKey = this.getPropertyKey(id);
         // If the property key does not exist, return directly
         if (propertyKey == null) {
-            return;
+            return null;
         }
 
         List<VertexLabel> vertexLabels = this.getVertexLabels();
@@ -157,7 +169,12 @@ public class SchemaTransaction extends IndexableTransaction {
             }
         }
 
-        this.removeSchema(propertyKey);
+        if (propertyKey.readFrequency().oltp()) {
+            this.removeSchema(propertyKey);
+            return null;
+        } else {
+            return this.removeOlapPk(propertyKey);
+        }
     }
 
     @Watched(prefix = "schema")
@@ -168,6 +185,9 @@ public class SchemaTransaction extends IndexableTransaction {
     @Watched(prefix = "schema")
     public VertexLabel getVertexLabel(Id id) {
         E.checkArgumentNotNull(id, "Vertex label id can't be null");
+        if (ALL_ID.equals(id)) {
+            return ALL_VL;
+        }
         return this.getSchema(HugeType.VERTEX_LABEL, id);
     }
 
@@ -175,6 +195,9 @@ public class SchemaTransaction extends IndexableTransaction {
     public VertexLabel getVertexLabel(String name) {
         E.checkArgumentNotNull(name, "Vertex label name can't be null");
         E.checkArgument(!name.isEmpty(), "Vertex label name can't be empty");
+        if (ALL.equals(name)) {
+            return ALL_VL;
+        }
         return this.getSchema(HugeType.VERTEX_LABEL, name);
     }
 
@@ -220,6 +243,9 @@ public class SchemaTransaction extends IndexableTransaction {
          * Update index name in base-label(VL/EL)
          * TODO: should wrap update base-label and create index in one tx.
          */
+        if (schemaLabel instanceof VertexLabel && schemaLabel.equals(ALL_VL)) {
+            return;
+        }
         schemaLabel.indexLabel(indexLabel.id());
         this.updateSchema(schemaLabel);
     }
@@ -256,6 +282,70 @@ public class SchemaTransaction extends IndexableTransaction {
                   schema.type(), schema.id());
         SchemaCallable callable = new RebuildIndexCallable();
         return asyncRun(this.graph(), schema, callable, dependencies);
+    }
+
+    public Id processOlapPropertyKey(PropertyKey propertyKey) {
+        if (propertyKey.readFrequency() == ReadFrequency.OLTP) {
+            return null;
+        }
+
+        Id taskId = this.createOlapPk(propertyKey);
+        if (propertyKey.readFrequency() == ReadFrequency.OLAP_NONE) {
+            return taskId;
+        }
+
+        String indexName = ALL +"_by_" + propertyKey.name();
+        IndexLabel.Builder builder = this.graph().schema()
+                                         .indexLabel(indexName)
+                                         .onV(ALL)
+                                         .by(propertyKey.name());
+        if (propertyKey.readFrequency() == ReadFrequency.OLAP_SECONDARY) {
+            builder.secondary();
+        } else {
+            assert propertyKey.readFrequency() == ReadFrequency.OLAP_RANGE;
+            builder.range();
+        }
+        builder.build();
+        this.graph().addIndexLabel(ALL_VL, builder.build());
+
+        return taskId;
+    }
+
+    public Id createOlapPk(PropertyKey propertyKey) {
+        LOG.debug("SchemaTransaction create olap property key {} with id '{}'",
+                  propertyKey.name(), propertyKey.id());
+        SchemaCallable callable = new OlapPropertyKeyCreateCallable();
+        return asyncRun(this.graph(), propertyKey, callable);
+    }
+
+    public Id clearOlapPk(PropertyKey propertyKey) {
+        LOG.debug("SchemaTransaction clear olap property key {} with id '{}'",
+                  propertyKey.name(), propertyKey.id());
+        SchemaCallable callable = new OlapPropertyKeyClearCallable();
+        return asyncRun(this.graph(), propertyKey, callable);
+    }
+
+    public Id removeOlapPk(PropertyKey propertyKey) {
+        LOG.debug("SchemaTransaction remove olap property key {} with id '{}'",
+                  propertyKey.name(), propertyKey.id());
+        SchemaCallable callable = new OlapPropertyKeyRemoveCallable();
+        return asyncRun(this.graph(), propertyKey, callable);
+    }
+
+    public void createOlapPk(Id id) {
+        this.store().provider().createOlapTable(this.graph(), id);
+    }
+
+    public void initAndRegisterOlapTable(Id id) {
+        this.store().provider().initAndRegisterOlapTable(this.graph(), id);
+    }
+
+    public void clearOlapPk(Id id) {
+        this.store().provider().clearOlapTable(this.graph(), id);
+    }
+
+    public void removeOlapPk(Id id) {
+        this.store().provider().removeOlapTable(this.graph(), id);
     }
 
     @Watched(prefix = "schema")

@@ -19,6 +19,9 @@
 
 package com.baidu.hugegraph.schema.builder;
 
+import static com.baidu.hugegraph.schema.SchemaElement.ALL;
+import static com.baidu.hugegraph.schema.VertexLabel.ALL_VL;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -118,7 +121,6 @@ public class IndexLabelBuilder extends AbstractBuilder
         return indexLabel;
     }
 
-
     /**
      * Check whether this has same properties with existedIndexLabel.
      * Only baseType, baseValue, indexType, indexFields are checked.
@@ -193,6 +195,11 @@ public class IndexLabelBuilder extends AbstractBuilder
             this.checkBaseType();
             this.checkIndexType();
 
+            if (ALL.equals(this.baseValue)) {
+                return new IndexLabel.CreatedIndexLabel(this.build(),
+                                                        IdGenerator.ZERO);
+            }
+
             SchemaLabel schemaLabel = this.loadElement();
 
             /*
@@ -250,7 +257,7 @@ public class IndexLabelBuilder extends AbstractBuilder
         if (task == IdGenerator.ZERO) {
             /*
              * Task id will be IdGenerator.ZERO if creating index label
-             * already exists.
+             * already exists or creating index label is for olap
              */
             return createdIndexLabel.indexLabel();
         }
@@ -448,6 +455,9 @@ public class IndexLabelBuilder extends AbstractBuilder
     }
 
     private SchemaLabel loadElement() {
+        if (ALL.equals(this.baseValue)) {
+            return ALL_VL;
+        }
         return IndexLabel.getElement(this.graph(),
                                      this.baseType, this.baseValue);
     }

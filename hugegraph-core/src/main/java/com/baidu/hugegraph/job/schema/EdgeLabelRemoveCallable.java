@@ -34,7 +34,7 @@ public class EdgeLabelRemoveCallable extends SchemaCallable {
 
     @Override
     public String type() {
-        return SchemaCallable.REMOVE_SCHEMA;
+        return REMOVE_SCHEMA;
     }
 
     @Override
@@ -43,7 +43,7 @@ public class EdgeLabelRemoveCallable extends SchemaCallable {
         return null;
     }
 
-    protected static void removeEdgeLabel(HugeGraphParams graph, Id id) {
+    private static void removeEdgeLabel(HugeGraphParams graph, Id id) {
         GraphTransaction graphTx = graph.graphTransaction();
         SchemaTransaction schemaTx = graph.schemaTransaction();
         EdgeLabel edgeLabel = schemaTx.getEdgeLabel(id);

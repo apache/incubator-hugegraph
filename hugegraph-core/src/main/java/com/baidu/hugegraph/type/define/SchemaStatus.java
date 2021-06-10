@@ -27,11 +27,13 @@ public enum SchemaStatus implements SerialEnum {
 
     REBUILDING(3, "rebuilding"),
 
-    DELETING(4, "deleting"),
+    CLEARING(4, "clearing"),
 
-    UNDELETED(5, "undeleted"),
+    DELETING(5, "deleting"),
 
-    INVALID(6, "invalid");
+    UNDELETED(6, "undeleted"),
+
+    INVALID(7, "invalid");
 
     private byte code = 0;
     private String name = null;
@@ -52,6 +54,10 @@ public enum SchemaStatus implements SerialEnum {
 
     public boolean deleting() {
         return this == DELETING || this == UNDELETED;
+    }
+
+    public boolean clearing() {
+        return this == CLEARING;
     }
 
     @Override

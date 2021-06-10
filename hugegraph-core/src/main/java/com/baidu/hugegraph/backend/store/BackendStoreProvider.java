@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.backend.store;
 
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.event.EventListener;
 
@@ -53,6 +54,26 @@ public interface BackendStoreProvider {
     public void truncate();
 
     public void initSystemInfo(HugeGraph graph);
+
+    public default void createOlapTable(HugeGraph graph, Id pkId) {
+        throw new UnsupportedOperationException(
+                  "BackendStoreProvider.createOlapTable()");
+    }
+
+    public default void initAndRegisterOlapTable(HugeGraph graph, Id pkId) {
+        throw new UnsupportedOperationException(
+                  "BackendStoreProvider.checkAndRegisterOlapTable()");
+    }
+
+    public default void clearOlapTable(HugeGraph graph, Id pkId) {
+        throw new UnsupportedOperationException(
+                  "BackendStoreProvider.clearOlapTable()");
+    }
+
+    public default void removeOlapTable(HugeGraph graph, Id pkId) {
+        throw new UnsupportedOperationException(
+                  "BackendStoreProvider.removeOlapTable()");
+    }
 
     public void createSnapshot();
 

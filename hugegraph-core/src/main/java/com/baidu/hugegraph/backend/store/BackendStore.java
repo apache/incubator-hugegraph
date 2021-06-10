@@ -111,11 +111,39 @@ public interface BackendStore {
         this.increaseCounter(type, increment);
     }
 
+    public default String olapTableName(HugeType type) {
+        return this.store() + "_" + HugeType.OLAP.string() + "_" + type.string();
+    }
+
+    public default String olapTableName(Id id) {
+        return this.store() + "_" + HugeType.OLAP.string() + "_" + id.asLong();
+    }
+
     // Increase next id for specific type
     public void increaseCounter(HugeType type, long increment);
 
     // Get current counter for a specific type
     public long getCounter(HugeType type);
+
+    public default void createOlapTable(Id pkId) {
+        throw new UnsupportedOperationException(
+                  "BackendStore.createOlapTable()");
+    }
+
+    public default void checkAndRegisterOlapTable(Id pkId) {
+        throw new UnsupportedOperationException(
+                  "BackendStore.checkAndRegisterOlapTable()");
+    }
+
+    public default void clearOlapTable(Id pkId) {
+        throw new UnsupportedOperationException(
+                  "BackendStore.clearOlapTable()");
+    }
+
+    public default void removeOlapTable(Id pkId) {
+        throw new UnsupportedOperationException(
+                  "BackendStore.removeOlapTable()");
+    }
 
     public default Map<String, String> createSnapshot(String snapshotDir) {
         throw new UnsupportedOperationException("createSnapshot");

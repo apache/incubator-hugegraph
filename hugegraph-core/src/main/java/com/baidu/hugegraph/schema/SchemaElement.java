@@ -38,10 +38,12 @@ public abstract class SchemaElement implements Namifiable, Typifiable,
                                                Cloneable {
 
     public static final int MAX_PRIMITIVE_SYS_ID = 32;
-    public static final int NEXT_PRIMITIVE_SYS_ID = 7;
+    public static final int NEXT_PRIMITIVE_SYS_ID = 8;
 
     public static final Id NONE_ID = IdGenerator.ZERO;
+    public static final Id ALL_ID = IdGenerator.of(-7);
     public static final String UNDEF = "~undefined";
+    public static final String ALL = "~all";
 
     protected final HugeGraph graph;
 

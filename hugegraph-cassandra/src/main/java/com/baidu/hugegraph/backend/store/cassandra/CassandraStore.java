@@ -25,19 +25,23 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.backend.serializer.MergeIterator;
 import com.baidu.hugegraph.backend.store.AbstractBackendStore;
 import com.baidu.hugegraph.backend.store.BackendAction;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
+import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.exception.ConnectionException;
 import com.baidu.hugegraph.type.HugeType;
@@ -63,7 +67,7 @@ public abstract class CassandraStore
 
     private final BackendStoreProvider provider;
     // TODO: move to parent class
-    private final Map<HugeType, CassandraTable> tables;
+    private final Map<String, CassandraTable> tables;
 
     private CassandraSessionPool sessions;
     private HugeConfig conf;
@@ -109,7 +113,15 @@ public abstract class CassandraStore
     }
 
     protected void registerTableManager(HugeType type, CassandraTable table) {
-        this.tables.put(type, table);
+        this.registerTableManager(type.string(), table);
+    }
+
+    protected void registerTableManager(String name, CassandraTable table) {
+        this.tables.put(name, table);
+    }
+
+    protected void unregisterTableManager(String name) {
+        this.tables.remove(name);
     }
 
     @Override
@@ -214,6 +226,12 @@ public abstract class CassandraStore
 
         switch (item.action()) {
             case INSERT:
+                // Insert olap entry
+                if (entry.type() == HugeType.OLAP) {
+                    this.table(this.olapTableName(entry.subId()))
+                        .insert(session, entry.row());
+                    break;
+                }
                 // Insert entry
                 if (entry.selfChanged()) {
                     this.table(entry.type()).insert(session, entry.row());
@@ -234,6 +252,11 @@ public abstract class CassandraStore
                 }
                 break;
             case APPEND:
+                if (entry.olap()) {
+                    this.table(this.olapTableName(entry.type()))
+                        .append(session, entry.row());
+                    break;
+                }
                 // Append entry
                 if (entry.selfChanged()) {
                     this.table(entry.type()).append(session, entry.row());
@@ -262,9 +285,23 @@ public abstract class CassandraStore
     @Override
     public Iterator<BackendEntry> query(Query query) {
         this.checkOpened();
-
-        CassandraTable table = this.table(CassandraTable.tableType(query));
-        return table.query(this.sessions.session(), query);
+        HugeType type = CassandraTable.tableType(query);
+        String tableName = query.olap() ?
+                           this.olapTableName(type) : type.string();
+        CassandraTable table = this.table(tableName);
+        Iterator<BackendEntry> entrys = table.query(this.session(), query);
+        Set<Id> olapPks = query.olapPks();
+        String graphStore = this.conf.get(CoreOptions.STORE_GRAPH);
+        if (graphStore.equals(this.store) && !olapPks.isEmpty()) {
+            List<Iterator<BackendEntry>> iters = new ArrayList<>();
+            for (Id pk : olapPks) {
+                Query q = query.copy();
+                table = this.table(this.olapTableName(pk));
+                iters.add(table.query(this.session(), q));
+            }
+            entrys = new MergeIterator<>(entrys, iters, BackendEntry::mergable);
+        }
+        return entrys;
     }
 
     @Override
@@ -528,7 +565,11 @@ public abstract class CassandraStore
     protected void truncateTables() {
         CassandraSessionPool.Session session = this.sessions.session();
         for (CassandraTable table : this.tables()) {
-            table.truncate(session);
+            if (table.isOlap()) {
+                table.dropTable(session);
+            } else {
+                table.truncate(session);
+            }
         }
     }
 
@@ -538,16 +579,25 @@ public abstract class CassandraStore
 
     @Override
     protected final CassandraTable table(HugeType type) {
-        assert type != null;
-        CassandraTable table = this.tables.get(type);
+        return this.table(type.string());
+    }
+
+    protected final CassandraTable table(String name) {
+        assert name != null;
+        CassandraTable table = this.tables.get(name);
         if (table == null) {
-            throw new BackendException("Unsupported table type: %s", type);
+            throw new BackendException("Unsupported table: %s", name);
         }
         return table;
     }
 
     @Override
     protected CassandraSessionPool.Session session(HugeType type) {
+        this.checkOpened();
+        return this.sessions.session();
+    }
+
+    protected CassandraSessionPool.Session session() {
         this.checkOpened();
         return this.sessions.session();
     }
@@ -646,6 +696,17 @@ public abstract class CassandraStore
                                  new CassandraTables.ShardIndex(store));
             registerTableManager(HugeType.UNIQUE_INDEX,
                                  new CassandraTables.UniqueIndex(store));
+
+            registerTableManager(this.olapTableName(HugeType.SECONDARY_INDEX),
+                                 new CassandraTables.OlapSecondaryIndex(store));
+            registerTableManager(this.olapTableName(HugeType.RANGE_INT_INDEX),
+                                 new CassandraTables.OlapRangeIntIndex(store));
+            registerTableManager(this.olapTableName(HugeType.RANGE_LONG_INDEX),
+                                 new CassandraTables.OlapRangeLongIndex(store));
+            registerTableManager(this.olapTableName(HugeType.RANGE_FLOAT_INDEX),
+                                 new CassandraTables.OlapRangeFloatIndex(store));
+            registerTableManager(this.olapTableName(HugeType.RANGE_DOUBLE_INDEX),
+                                 new CassandraTables.OlapRangeDoubleIndex(store));
         }
 
         @Override
@@ -669,6 +730,43 @@ public abstract class CassandraStore
         @Override
         public boolean isSchemaStore() {
             return false;
+        }
+
+        @Override
+        public void createOlapTable(Id pkId) {
+            CassandraTable table = new CassandraTables.Olap(this.store(), pkId);
+            table.init(this.session());
+            registerTableManager(this.olapTableName(pkId), table);
+        }
+
+        @Override
+        public void checkAndRegisterOlapTable(Id pkId) {
+            CassandraTable table = new CassandraTables.Olap(this.store(), pkId);
+            if (!this.existsTable(table.table())) {
+                throw new HugeException("Not exist table '%s'", table.table());
+            }
+            registerTableManager(this.olapTableName(pkId), table);
+        }
+
+        @Override
+        public void clearOlapTable(Id pkId) {
+            String name = this.olapTableName(pkId);
+            CassandraTable table = this.table(name);
+            if (table == null || !this.existsTable(table.table())) {
+                throw new HugeException("Not exist table '%s'", name);
+            }
+            table.truncate(this.session());
+        }
+
+        @Override
+        public void removeOlapTable(Id pkId) {
+            String name = this.olapTableName(pkId);
+            CassandraTable table = this.table(name);
+            if (table == null || !this.existsTable(table.table())) {
+                throw new HugeException("Not exist table '%s'", name);
+            }
+            table.dropTable(this.session());
+            this.unregisterTableManager(name);
         }
     }
 }

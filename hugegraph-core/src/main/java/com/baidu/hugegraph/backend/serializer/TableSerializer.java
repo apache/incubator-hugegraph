@@ -193,6 +193,9 @@ public abstract class TableSerializer extends AbstractSerializer {
 
     @Override
     public BackendEntry writeVertex(HugeVertex vertex) {
+        if (vertex.olap()) {
+            return this.writeOlapVertex(vertex);
+        }
         TableBackendEntry entry = newBackendEntry(vertex);
         if (vertex.hasTtl()) {
             entry.ttl(vertex.ttl());

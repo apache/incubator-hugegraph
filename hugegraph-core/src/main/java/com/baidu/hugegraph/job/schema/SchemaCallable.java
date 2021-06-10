@@ -1,5 +1,7 @@
 package com.baidu.hugegraph.job.schema;
 
+import static com.baidu.hugegraph.schema.SchemaElement.ALL_ID;
+
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
@@ -18,6 +20,9 @@ public abstract class SchemaCallable extends SysJob<Object> {
     public static final String REMOVE_SCHEMA = "remove_schema";
     public static final String REBUILD_INDEX = "rebuild_index";
     public static final String CREATE_INDEX = "create_index";
+    public static final String CREATE_OLAP = "create_olap";
+    public static final String CLEAR_OLAP = "clear_olap";
+    public static final String REMOVE_OLAP = "remove_olap";
 
     private static final String SPLITOR = ":";
 
@@ -40,6 +45,15 @@ public abstract class SchemaCallable extends SysJob<Object> {
         return IdGenerator.of(Long.valueOf(parts[1]));
     }
 
+    protected String schemaName() {
+        String name = this.task().name();
+        String[] parts = name.split(SPLITOR, 3);
+        E.checkState(parts.length == 3 && parts[2] != null,
+                     "Task name should be formatted to String " +
+                     "'TYPE:ID:NAME', but got '%s'", name);
+        return parts[2];
+    }
+
     public static String formatTaskName(HugeType type, Id id, String name) {
         E.checkNotNull(type, "schema type");
         E.checkNotNull(id, "schema id");
@@ -53,6 +67,9 @@ public abstract class SchemaCallable extends SysJob<Object> {
         Id baseValue = label.baseValue();
         SchemaLabel schemaLabel;
         if (baseType == HugeType.VERTEX_LABEL) {
+            if (ALL_ID.equals(baseValue)) {
+                return;
+            }
             schemaLabel = tx.getVertexLabel(baseValue);
         } else {
             assert baseType == HugeType.EDGE_LABEL;

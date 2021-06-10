@@ -21,6 +21,7 @@ package com.baidu.hugegraph.api.schema;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import javax.annotation.security.RolesAllowed;
 import javax.inject.Singleton;
@@ -41,6 +42,7 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
+import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.define.Checkable;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -55,6 +57,7 @@ import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableMap;
 
 @Path("graphs/{graph}/schema/propertykeys")
 @Singleton
@@ -77,8 +80,8 @@ public class PropertyKeyAPI extends API {
 
         HugeGraph g = graph(manager, graph);
         PropertyKey.Builder builder = jsonPropertyKey.convert2Builder(g);
-        PropertyKey propertyKey = builder.create();
-        return manager.serializer(g).writePropertyKey(propertyKey);
+        PropertyKey.PropertyKeyWithTask pk = builder.createWithTask();
+        return manager.serializer(g).writePropertyKeyWithTask(pk);
     }
 
     @PUT
@@ -98,15 +101,29 @@ public class PropertyKeyAPI extends API {
         E.checkArgument(name.equals(jsonPropertyKey.name),
                         "The name in url(%s) and body(%s) are different",
                         name, jsonPropertyKey.name);
+
+        HugeGraph g = graph(manager, graph);
+        if (ACTION_CLEAR.equals(action)) {
+            PropertyKey propertyKey = g.propertyKey(name);
+            E.checkArgument(propertyKey.readFrequency().olap(),
+                            "Only olap property key can do action clear, " +
+                            "but got '%s'", propertyKey);
+            Id id = g.clearPropertyKey(propertyKey);
+            PropertyKey.PropertyKeyWithTask pk =
+                    new PropertyKey.PropertyKeyWithTask(propertyKey, id);
+            return manager.serializer(g).writePropertyKeyWithTask(pk);
+        }
+
         // Parse action parameter
         boolean append = checkAndParseAction(action);
 
-        HugeGraph g = graph(manager, graph);
         PropertyKey.Builder builder = jsonPropertyKey.convert2Builder(g);
         PropertyKey propertyKey = append ?
                                   builder.append() :
                                   builder.eliminate();
-        return manager.serializer(g).writePropertyKey(propertyKey);
+        PropertyKey.PropertyKeyWithTask pk =
+                new PropertyKey.PropertyKeyWithTask(propertyKey, null);
+        return manager.serializer(g).writePropertyKeyWithTask(pk);
     }
 
     @GET
@@ -156,15 +173,16 @@ public class PropertyKeyAPI extends API {
     @Path("{name}")
     @Consumes(APPLICATION_JSON)
     @RolesAllowed({"admin", "$owner=$graph $action=property_key_delete"})
-    public void delete(@Context GraphManager manager,
-                       @PathParam("graph") String graph,
-                       @PathParam("name") String name) {
+    public Map<String, Id> delete(@Context GraphManager manager,
+                                  @PathParam("graph") String graph,
+                                  @PathParam("name") String name) {
         LOG.debug("Graph [{}] remove property key by name '{}'", graph, name);
 
         HugeGraph g = graph(manager, graph);
         // Throw 404 if not exists
         g.schema().getPropertyKey(name);
-        g.schema().propertyKey(name).remove();
+        return ImmutableMap.of("task_id",
+                               g.schema().propertyKey(name).remove());
     }
 
     /**

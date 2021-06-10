@@ -130,6 +130,10 @@ public class IndexLabel extends SchemaElement {
                              other.graph.mapPkId2Name(other.indexFields));
     }
 
+    public boolean olap() {
+        return ALL_ID.equals(this.baseValue);
+    }
+
     // ABS of System index id must be below SchemaElement.MAX_PRIMITIVE_SYS_ID
     private static final int VL_IL_ID = -1;
     private static final int EL_IL_ID = -2;

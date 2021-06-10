@@ -35,6 +35,8 @@ import com.google.common.base.Objects;
 public class VertexLabel extends SchemaLabel {
 
     public static final VertexLabel NONE = new VertexLabel(null, NONE_ID, UNDEF);
+    public static final VertexLabel ALL_VL = new VertexLabel(null, ALL_ID,
+                                                             SchemaElement.ALL);
 
     private IdStrategy idStrategy;
     private List<Id> primaryKeys;

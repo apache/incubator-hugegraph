@@ -49,6 +49,8 @@ public interface Serializer {
 
     public String writePropertyKey(PropertyKey propertyKey);
 
+    public String writePropertyKeyWithTask(PropertyKey.PropertyKeyWithTask pkt);
+
     public String writePropertyKeys(List<PropertyKey> propertyKeys);
 
     public String writeVertexLabel(VertexLabel vertexLabel);

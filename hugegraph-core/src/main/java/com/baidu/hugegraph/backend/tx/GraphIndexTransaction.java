@@ -129,6 +129,9 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
     @Watched(prefix = "index")
     public void updateLabelIndex(HugeElement element, boolean removed) {
+        if (element instanceof HugeVertex && ((HugeVertex) element).olap()) {
+            return;
+        }
         if (!this.needIndexForLabel()) {
             return;
         }
@@ -154,6 +157,17 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
     @Watched(prefix = "index")
     public void updateVertexIndex(HugeVertex vertex, boolean removed) {
+        if (vertex.olap()) {
+            Id pkId = vertex.getProperties().keySet().iterator().next();
+            List<IndexLabel> indexLabels = this.params().schemaTransaction()
+                                               .getIndexLabels();
+            for (IndexLabel il : indexLabels) {
+                if (il.indexFields().contains(pkId)) {
+                    this.updateIndex(il.id(), vertex, removed);
+                }
+            }
+            return;
+        }
         // Update index(only property, no edge) of a vertex
         for (Id id : vertex.schemaLabel().indexLabels()) {
             this.updateIndex(id, vertex, removed);
@@ -740,6 +754,11 @@ public class GraphIndexTransaction extends AbstractTransaction {
             }
             ils.add(indexLabel);
         }
+        for (IndexLabel il : schema.getIndexLabels()) {
+            if (il.olap()) {
+                ils.add(il);
+            }
+        }
         if (ils.isEmpty()) {
             return null;
         }
@@ -1135,6 +1154,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 joinedValues = escapeIndexValueIfNeeded(joinedValues);
 
                 indexQuery = new ConditionQuery(indexType.type(), query);
+                indexQuery.olap(indexLabel.olap());
                 indexQuery.eq(HugeKeys.INDEX_LABEL_ID, indexLabel.id());
                 indexQuery.eq(HugeKeys.FIELD_VALUES, joinedValues);
                 break;
@@ -1150,6 +1170,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 // Replace the query key with PROPERTY_VALUES, set number value
                 indexQuery = new ConditionQuery(indexType.type(), query);
                 indexQuery.eq(HugeKeys.INDEX_LABEL_ID, indexLabel.id());
+                indexQuery.olap(indexLabel.olap());
                 for (Condition condition : query.userpropConditions()) {
                     assert condition instanceof Condition.Relation;
                     Condition.Relation r = (Condition.Relation) condition;
@@ -1519,6 +1540,20 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 }
             }
             return false;
+        }
+
+        @Override
+        public int hashCode() {
+            return indexLabels.hashCode();
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (!(other instanceof MatchedIndex)) {
+                return false;
+            }
+            Set<IndexLabel> indexLabels = ((MatchedIndex) other).indexLabels;
+            return Objects.equals(this.indexLabels, indexLabels);
         }
     }
 

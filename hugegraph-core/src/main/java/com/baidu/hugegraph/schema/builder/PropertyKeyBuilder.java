@@ -20,11 +20,14 @@
 package com.baidu.hugegraph.schema.builder;
 
 import java.util.Map;
+import java.util.concurrent.TimeoutException;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
+import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.exception.ExistedException;
 import com.baidu.hugegraph.exception.NotAllowException;
 import com.baidu.hugegraph.exception.NotFoundException;
@@ -92,33 +95,6 @@ public class PropertyKeyBuilder extends AbstractBuilder
         return propertyKey;
     }
 
-    @Override
-    public PropertyKey create() {
-        HugeType type = HugeType.PROPERTY_KEY;
-        this.checkSchemaName(this.name);
-
-        return this.lockCheckAndCreateSchema(type, this.name, name -> {
-            PropertyKey propertyKey = this.propertyKeyOrNull(name);
-            if (propertyKey != null) {
-                if (this.checkExist || !hasSameProperties(propertyKey)) {
-                    throw new ExistedException(type, name);
-                }
-                return propertyKey;
-            }
-            this.checkSchemaIdIfRestoringMode(type, this.id);
-
-            Userdata.check(this.userdata, Action.INSERT);
-            this.checkAggregateType();
-            this.checkOlap();
-
-            propertyKey = this.build();
-            assert propertyKey.name().equals(name);
-            this.graph().addPropertyKey(propertyKey);
-            return propertyKey;
-        });
-    }
-
-
     /**
      * Check whether this has same properties with propertyKey.
      * Only dataType, cardinality, aggregateType are checked.
@@ -148,6 +124,62 @@ public class PropertyKeyBuilder extends AbstractBuilder
 
         // all properties are same, return true.
         return true;
+    }
+
+    @Override
+    public PropertyKey.PropertyKeyWithTask createWithTask() {
+        HugeType type = HugeType.PROPERTY_KEY;
+        this.checkSchemaName(this.name);
+
+        return this.lockCheckAndCreateSchema(type, this.name, name -> {
+            PropertyKey propertyKey = this.propertyKeyOrNull(name);
+            if (propertyKey != null) {
+                if (this.checkExist || !hasSameProperties(propertyKey)) {
+                    throw new ExistedException(type, name);
+                }
+                return new PropertyKey.PropertyKeyWithTask(propertyKey,
+                                                           IdGenerator.ZERO);
+            }
+            this.checkSchemaIdIfRestoringMode(type, this.id);
+
+            Userdata.check(this.userdata, Action.INSERT);
+            this.checkAggregateType();
+            this.checkOlap();
+
+            propertyKey = this.build();
+            assert propertyKey.name().equals(name);
+            Id id = this.graph().addPropertyKey(propertyKey);
+            return new PropertyKey.PropertyKeyWithTask(propertyKey, id);
+        });
+    }
+
+    @Override
+    public PropertyKey create() {
+        // Create index label async
+        PropertyKey.PropertyKeyWithTask propertyKeyWithTask =
+                                        this.createWithTask();
+
+        Id task = propertyKeyWithTask.task();
+        if (task == IdGenerator.ZERO) {
+            /*
+             * Task id will be IdGenerator.ZERO if creating property key
+             * already exists or creating property key is oltp
+             */
+            return propertyKeyWithTask.propertyKey();
+        }
+
+        // Wait task completed (change to sync mode)
+        HugeGraph graph = this.graph();
+        long timeout = graph.option(CoreOptions.TASK_WAIT_TIMEOUT);
+        try {
+            graph.taskScheduler().waitUntilTaskCompleted(task, timeout);
+        } catch (TimeoutException e) {
+            throw new HugeException(
+                      "Failed to wait property key create task completed", e);
+        }
+
+        // Return property key without task-info
+        return propertyKeyWithTask.propertyKey();
     }
 
     @Override
@@ -186,8 +218,7 @@ public class PropertyKeyBuilder extends AbstractBuilder
         if (propertyKey == null) {
             return null;
         }
-        this.graph().removePropertyKey(propertyKey.id());
-        return null;
+        return this.graph().removePropertyKey(propertyKey.id());
     }
 
     @Override
@@ -424,6 +455,14 @@ public class PropertyKeyBuilder extends AbstractBuilder
             throw new NotAllowException(
                       "Not allow to set aggregate type '%s' for olap " +
                       "property key '%s'", this.aggregateType, this.name);
+        }
+
+        if (this.readFrequency == ReadFrequency.OLAP_RANGE &&
+            !this.dataType.isNumber() && !this.dataType.isDate()) {
+            throw new NotAllowException(
+                      "Not allow to set read frequency to OLAP_RANGE for " +
+                      "property key '%s' with data type '%s'",
+                      this.name, this.dataType);
         }
     }
 }
