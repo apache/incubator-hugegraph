@@ -125,6 +125,7 @@ public class GraphTransaction extends IndexableTransaction {
     private final boolean checkCustomVertexExist;
     private final boolean checkAdjacentVertexExist;
     private final boolean lazyLoadAdjacentVertex;
+    private final boolean removeLeftIndexOnOverwrite;
     private final boolean ignoreInvalidEntry;
     private final int commitPartOfAdjacentEdges;
     private final int batchSize;
@@ -148,6 +149,8 @@ public class GraphTransaction extends IndexableTransaction {
              conf.get(CoreOptions.VERTEX_ADJACENT_VERTEX_EXIST);
         this.lazyLoadAdjacentVertex =
              conf.get(CoreOptions.VERTEX_ADJACENT_VERTEX_LAZY);
+        this.removeLeftIndexOnOverwrite =
+             conf.get(CoreOptions.VERTEX_REMOVE_LEFT_INDEX);
         this.commitPartOfAdjacentEdges =
              conf.get(CoreOptions.VERTEX_PART_EDGE_COMMIT_SIZE);
         this.ignoreInvalidEntry =
@@ -316,6 +319,11 @@ public class GraphTransaction extends IndexableTransaction {
         if (this.checkCustomVertexExist) {
             this.checkVertexExistIfCustomizedId(addedVertices);
         }
+
+        if (this.removeLeftIndexOnOverwrite) {
+            this.removeLeftIndex(addedVertices);
+        }
+
         // Do vertex update
         for (HugeVertex v : addedVertices.values()) {
             assert !v.removed();
@@ -348,6 +356,25 @@ public class GraphTransaction extends IndexableTransaction {
             // Update index of edge
             this.indexTx.updateEdgeIndex(e, false);
             this.indexTx.updateLabelIndex(e, false);
+        }
+    }
+
+    private void removeLeftIndex(Map<Id, HugeVertex> vertices) {
+        Set<Id> ids = vertices.keySet();
+        if (ids.isEmpty()) {
+            return;
+        }
+        IdQuery idQuery = new IdQuery(HugeType.VERTEX, ids);
+        Iterator<HugeVertex> results = this.queryVerticesFromBackend(idQuery);
+        try {
+            while (results.hasNext()) {
+                HugeVertex existedVertex = results.next();
+                HugeVertex newVertex = vertices.get(existedVertex.id());
+                checkLabel(existedVertex, newVertex);
+                this.indexTx.updateVertexIndex(existedVertex, true);
+            }
+        } finally {
+            CloseableIterator.closeIterator(results);
         }
     }
 
@@ -1548,14 +1575,7 @@ public class GraphTransaction extends IndexableTransaction {
             }
             HugeVertex existedVertex = results.next();
             HugeVertex newVertex = vertices.get(existedVertex.id());
-            if (!existedVertex.label().equals(newVertex.label())) {
-                throw new HugeException(
-                          "The newly added vertex with id:'%s' label:'%s' " +
-                          "is not allowed to insert, because already exist " +
-                          "a vertex with same id and different label:'%s'",
-                          newVertex.id(), newVertex.label(),
-                          existedVertex.label());
-            }
+            checkLabel(existedVertex, newVertex);
         } finally {
             CloseableIterator.closeIterator(results);
         }
@@ -1645,6 +1665,14 @@ public class GraphTransaction extends IndexableTransaction {
 
         ConditionQuery cq = (ConditionQuery) query;
         if (cq.optimized() == OptimizedType.NONE || cq.test(elem)) {
+            if (cq.elementHasLeftIndex(elem.id())) {
+                /*
+                 * Both have correct and left index, wo should return true
+                 * but also needs to cleaned up left index
+                 */
+                this.indexTx.asyncRemoveIndexLeft(cq, elem);
+            }
+
             /* Return true if:
              * 1.not query by index or by primary-key/sort-key
              *   (cq.optimized() == 0 means query just by sysprop)
@@ -1654,7 +1682,6 @@ public class GraphTransaction extends IndexableTransaction {
         }
 
         if (cq.optimized() == OptimizedType.INDEX) {
-            LOG.info("Remove left index: {}, query: {}", elem, cq);
             this.indexTx.asyncRemoveIndexLeft(cq, elem);
         }
         return false;
@@ -2013,6 +2040,18 @@ public class GraphTransaction extends IndexableTransaction {
                     CloseableIterator.closeIterator(iter);
                 }
             } while (page != null);
+        }
+    }
+
+    private static void checkLabel(HugeVertex existedVertex,
+                                   HugeVertex newVertex) {
+        if (!existedVertex.label().equals(newVertex.label())) {
+            throw new HugeException(
+                      "The newly added vertex with id:'%s' label:'%s' " +
+                      "is not allowed to insert, because already exist " +
+                      "a vertex with same id and different label:'%s'",
+                      newVertex.id(), newVertex.label(),
+                      existedVertex.label());
         }
     }
 }

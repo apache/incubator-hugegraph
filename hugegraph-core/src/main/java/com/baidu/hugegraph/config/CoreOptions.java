@@ -352,6 +352,14 @@ public class CoreOptions extends OptionHolder {
                     false
             );
 
+    public static final ConfigOption<Boolean> VERTEX_REMOVE_LEFT_INDEX =
+            new ConfigOption<>(
+                    "vertex.remove_left_index_at_overwrite",
+                    "Whether remove left index at overwrite.",
+                    disallowEmpty(),
+                    false
+            );
+
     public static final ConfigOption<Boolean> VERTEX_ADJACENT_VERTEX_EXIST =
             new ConfigOption<>(
                     "vertex.check_adjacent_vertex_exist",
