@@ -88,10 +88,24 @@ public abstract class CassandraStore
 
     private void registerMetaHandlers() {
         this.registerMetaHandler("metrics", (session, meta, args) -> {
-            CassandraMetrics metrics = new CassandraMetrics(this.sessions,
-                                                            this.conf);
-            return metrics.getMetrics();
+            CassandraMetrics metrics = this.createMetrics(this.conf,
+                                                          this.sessions,
+                                                          this.keyspace);
+            return metrics.metrics();
         });
+
+        this.registerMetaHandler("compact", (session, meta, args) -> {
+            CassandraMetrics metrics = this.createMetrics(this.conf,
+                                                          this.sessions,
+                                                          this.keyspace);
+            return metrics.compact();
+        });
+    }
+
+    protected CassandraMetrics createMetrics(HugeConfig conf,
+                                             CassandraSessionPool sessions,
+                                             String keyspace) {
+        return new CassandraMetrics(conf, sessions, keyspace);
     }
 
     protected void registerTableManager(HugeType type, CassandraTable table) {

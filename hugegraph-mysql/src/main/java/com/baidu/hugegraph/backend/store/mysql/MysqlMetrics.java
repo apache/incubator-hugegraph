@@ -27,7 +27,7 @@ import com.google.common.collect.ImmutableMap;
 public class MysqlMetrics implements BackendMetrics {
 
     @Override
-    public Map<String, Object> getMetrics() {
+    public Map<String, Object> metrics() {
         return ImmutableMap.of(NODES, 1);
     }
 }

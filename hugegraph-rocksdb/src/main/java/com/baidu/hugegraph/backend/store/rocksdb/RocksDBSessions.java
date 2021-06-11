@@ -25,7 +25,6 @@ import java.util.Set;
 import org.apache.commons.lang3.tuple.Pair;
 import org.rocksdb.RocksDBException;
 
-import com.alipay.sofa.jraft.storage.snapshot.remote.Session;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumnIterator;
 import com.baidu.hugegraph.backend.store.BackendSession.AbstractBackendSession;
 import com.baidu.hugegraph.backend.store.BackendSessionPool;
@@ -44,11 +43,12 @@ public abstract class RocksDBSessions extends BackendSessionPool {
     public abstract boolean existsTable(String table);
 
     public abstract List<String> property(String property);
+    public abstract void compactRange();
 
     public abstract RocksDBSessions copy(HugeConfig config,
                                          String database, String store);
 
-    public abstract void createSnapshot(String parentPath);
+    public abstract void createSnapshot(String snapshotPath);
 
     public abstract void resumeSnapshot(String snapshotPath);
 
@@ -82,6 +82,7 @@ public abstract class RocksDBSessions extends BackendSessionPool {
 
         public abstract String property(String table, String property);
         public abstract Pair<byte[], byte[]> keyRange(String table);
+        public abstract void compactRange(String table);
 
         public abstract void put(String table, byte[] key, byte[] value);
         public abstract void merge(String table, byte[] key, byte[] value);

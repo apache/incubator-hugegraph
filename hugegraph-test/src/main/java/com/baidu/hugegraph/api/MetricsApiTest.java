@@ -74,37 +74,163 @@ public class MetricsApiTest extends BaseApiTest {
                 break;
             case "rocksdb":
                 Assert.assertEquals(1, nodes);
-                assertMapContains(graph, "mem_used");
-                assertMapContains(graph, "mem_unit");
-                assertMapContains(graph, "data_size");
+
+                String clusterId = assertMapContains(graph, "cluster_id");
+                Assert.assertEquals("local", clusterId);
+
+                Map<?, ?> servers = assertMapContains(graph, "servers");
+                Assert.assertEquals(1, servers.size());
+                Map.Entry<?, ?> server = servers.entrySet().iterator().next();
+                Assert.assertEquals("local", server.getKey());
+
+                Map<?, ?> host = (Map<?, ?>) server.getValue();
+                assertMapContains(host, "mem_used");
+                assertMapContains(host, "mem_used_readable");
+                assertMapContains(host, "mem_unit");
+
+                assertMapContains(host, "disk_usage");
+                assertMapContains(host, "disk_usage_readable");
+                assertMapContains(host, "disk_unit");
+
+                assertMapContains(host, "estimate_num_keys");
                 break;
             case "cassandra":
-            case "scylladb":
-                for (Map.Entry<?, ?> e : graph.entrySet()) {
+                assertMapContains(graph, "cluster_id");
+                assertMapContains(graph, "servers");
+
+                servers = (Map<?, ?>) graph.get("servers");
+                Assert.assertGte(1, servers.size());
+                for (Map.Entry<?, ?> e : servers.entrySet()) {
                     String key = (String) e.getKey();
                     value = e.getValue();
-                    if ("backend".equals(key) || "nodes".equals(key)) {
-                        continue;
-                    }
                     Assert.assertTrue(String.format(
                                       "Expect map value for key %s but got %s",
                                       key, value),
                                       value instanceof Map);
-                    Map<?, ?> host = (Map<?, ?>) value;
-                    assertMapContains(host, "mem_used");
-                    assertMapContains(host, "mem_commited");
+                    host = (Map<?, ?>) value;
                     assertMapContains(host, "mem_max");
+                    assertMapContains(host, "mem_committed");
+                    assertMapContains(host, "mem_used");
+                    assertMapContains(host, "mem_used_readable");
                     assertMapContains(host, "mem_unit");
-                    assertMapContains(host, "data_size");
+
+                    assertMapContains(host, "disk_usage");
+                    assertMapContains(host, "disk_usage_readable");
+                    assertMapContains(host, "disk_usage_details");
+                    assertMapContains(host, "disk_unit");
+
+                    assertMapContains(host, "uptime");
+                    assertMapContains(host, "uptime_readable");
+                    assertMapContains(host, "time_unit");
+
+                    assertMapContains(host, "estimated_partition_count");
+                    assertMapContains(host, "dropped_mutations");
+                    assertMapContains(host, "pending_flushes");
+                    assertMapContains(host, "key_cache_hit_rate");
+                    assertMapContains(host, "bloom_filter_false_ratio");
+
+                    assertMapContains(host, "write_latency_hugegraph");
+                    assertMapContains(host, "read_latency_hugegraph");
+                    assertMapContains(host, "write_latency_*");
+                    assertMapContains(host, "read_latency_*");
+
+                    assertMapContains(host, "key_cache_size");
+                    assertMapContains(host, "key_cache_entries");
+                    assertMapContains(host, "row_cache_size");
+                    assertMapContains(host, "row_cache_entries");
+                    assertMapContains(host, "counter_cache_size");
+                    assertMapContains(host, "counter_cache_entries");
+
+                    assertMapContains(host, "compaction_completed_tasks");
+                    assertMapContains(host, "compaction_pending_tasks");
+                    assertMapContains(host, "compaction_bytes_compacted");
+
+                    assertMapContains(host, "live_nodes");
+                    assertMapContains(host, "joining_nodes");
+                    assertMapContains(host, "moving_nodes");
+                    assertMapContains(host, "leaving_nodes");
+                    assertMapContains(host, "unreachable_nodes");
+
+                    assertMapContains(host, "keyspaces");
+                    assertMapContains(host, "num_tables");
+                    assertMapContains(host, "exception_count");
+                }
+                break;
+            case "scylladb":
+                assertMapContains(graph, "cluster_id");
+                assertMapContains(graph, "servers");
+
+                servers = (Map<?, ?>) graph.get("servers");
+                Assert.assertGte(1, servers.size());
+                for (Map.Entry<?, ?> e : servers.entrySet()) {
+                    String key = (String) e.getKey();
+                    value = e.getValue();
+                    Assert.assertTrue(String.format(
+                                      "Expect map value for key %s but got %s",
+                                      key, value),
+                                      value instanceof Map);
+                    host = (Map<?, ?>) value;
+                    assertMapContains(host, "mem_max");
+                    assertMapContains(host, "mem_committed");
+                    assertMapContains(host, "mem_used");
+                    assertMapContains(host, "mem_used_readable");
+                    assertMapContains(host, "mem_unit");
+
+                    assertMapContains(host, "disk_usage");
+                    assertMapContains(host, "disk_usage_readable");
+                    assertMapContains(host, "disk_usage_details");
+                    assertMapContains(host, "disk_unit");
+
+                    assertMapContains(host, "uptime");
+                    assertMapContains(host, "uptime_readable");
+                    assertMapContains(host, "time_unit");
+
+                    assertMapContains(host, "estimated_partition_count");
+                    assertMapContains(host, "dropped_mutations");
+                    assertMapContains(host, "pending_flushes");
+                    //assertMapContains(host, "key_cache_hit_rate");
+                    assertMapContains(host, "bloom_filter_false_ratio");
+
+                    //assertMapContains(host, "write_latency_hugegraph");
+                    //assertMapContains(host, "read_latency_hugegraph");
+                    //assertMapContains(host, "write_latency_*");
+                    //assertMapContains(host, "read_latency_*");
+
+                    assertMapContains(host, "key_cache_size");
+                    assertMapContains(host, "key_cache_entries");
+                    assertMapContains(host, "row_cache_size");
+                    assertMapContains(host, "row_cache_entries");
+                    assertMapContains(host, "counter_cache_size");
+                    assertMapContains(host, "counter_cache_entries");
+
+                    assertMapContains(host, "compaction_completed_tasks");
+                    assertMapContains(host, "compaction_pending_tasks");
+                    //assertMapContains(host, "compaction_bytes_compacted");
+
+                    assertMapContains(host, "live_nodes");
+                    assertMapContains(host, "joining_nodes");
+                    assertMapContains(host, "moving_nodes");
+                    assertMapContains(host, "leaving_nodes");
+                    assertMapContains(host, "unreachable_nodes");
+
+                    assertMapContains(host, "keyspaces");
+                    assertMapContains(host, "num_tables");
+                    assertMapContains(host, "exception_count");
                 }
                 break;
             case "hbase":
                 assertMapContains(graph, "cluster_id");
+                assertMapContains(graph, "master_name");
                 assertMapContains(graph, "average_load");
                 assertMapContains(graph, "hbase_version");
                 assertMapContains(graph, "region_count");
+                assertMapContains(graph, "leaving_servers");
+                assertMapContains(graph, "nodes");
                 assertMapContains(graph, "region_servers");
-                Map<?, ?> servers = (Map<?, ?>) graph.get("region_servers");
+
+                assertMapContains(graph, "servers");
+                servers = (Map<?, ?>) graph.get("servers");
+                Assert.assertGte(1, servers.size());
                 for (Map.Entry<?, ?> e : servers.entrySet()) {
                     String key = (String) e.getKey();
                     value = e.getValue();
@@ -113,13 +239,48 @@ public class MetricsApiTest extends BaseApiTest {
                                       key, value),
                                       value instanceof Map);
                     Map<?, ?> regionServer = (Map<?, ?>) value;
-                    assertMapContains(regionServer, "max_heap_size");
-                    assertMapContains(regionServer, "used_heap_size");
-                    assertMapContains(regionServer, "heap_size_unit");
+                    assertMapContains(regionServer, "mem_max");
+                    assertMapContains(regionServer, "mem_used");
+                    assertMapContains(regionServer, "mem_used_readable");
+                    assertMapContains(regionServer, "mem_unit");
+
+                    assertMapContains(regionServer, "disk_usage");
+                    assertMapContains(regionServer, "disk_usage_readable");
+                    assertMapContains(regionServer, "disk_unit");
+
                     assertMapContains(regionServer, "request_count");
-                    assertMapContains(regionServer,
-                                      "request_count_per_second");
-                    assertMapContains(regionServer, "regions");
+                    assertMapContains(regionServer, "request_count_per_second");
+                    assertMapContains(regionServer, "coprocessor_names");
+
+                    Map<?, ?> regions = assertMapContains(regionServer,
+                                                          "regions");
+                    Assert.assertGte(1, regions.size());
+                    for (Map.Entry<?, ?> e2 : regions.entrySet()) {
+                        Map<?, ?> region = (Map<?, ?>) e2.getValue();
+                        assertMapContains(region, "disk_usage");
+                        assertMapContains(region, "disk_usage_readable");
+                        assertMapContains(region, "disk_unit");
+
+                        assertMapContains(region, "index_store_size");
+                        assertMapContains(region, "root_level_index_store_size");
+                        assertMapContains(region, "mem_store_size");
+                        assertMapContains(region, "bloom_filter_size");
+                        assertMapContains(region, "size_unit");
+
+                        assertMapContains(region, "store_count");
+                        assertMapContains(region, "store_file_count");
+
+                        assertMapContains(region, "request_count");
+                        assertMapContains(region, "write_request_count");
+                        assertMapContains(region, "read_request_count");
+                        assertMapContains(region, "filtered_read_request_count");
+
+                        assertMapContains(region, "completed_sequence_id");
+                        assertMapContains(region, "data_locality");
+                        assertMapContains(region, "compacted_cell_count");
+                        assertMapContains(region, "compacting_cell_count");
+                        assertMapContains(region, "last_compaction_time");
+                    }
                 }
                 break;
             default:

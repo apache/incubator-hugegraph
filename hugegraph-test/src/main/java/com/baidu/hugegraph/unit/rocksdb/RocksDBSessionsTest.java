@@ -19,46 +19,38 @@
 
 package com.baidu.hugegraph.unit.rocksdb;
 
-import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
+import java.io.File;
+import java.io.IOException;
 
-import org.junit.Assume;
+import org.apache.commons.io.FileUtils;
 import org.junit.Test;
 import org.rocksdb.RocksDBException;
 
-import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumn;
-import com.baidu.hugegraph.backend.store.rocksdb.RocksDBSessions.Session;
+import com.baidu.hugegraph.backend.store.rocksdb.RocksDBMetrics;
+import com.baidu.hugegraph.backend.store.rocksdb.RocksDBOptions;
+import com.baidu.hugegraph.backend.store.rocksdb.RocksDBSessions;
+import com.baidu.hugegraph.backend.store.rocksdb.RocksDBStdSessions;
+import com.baidu.hugegraph.backend.store.rocksdbsst.RocksDBSstSessions;
+import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.testutil.Assert;
+import com.baidu.hugegraph.unit.FakeObjects;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 public class RocksDBSessionsTest extends BaseRocksDBUnitTest {
 
     @Test
-    public void testPutGet() throws RocksDBException {
-        String value = s(this.rocks.session().get(TABLE, b("person:1gname")));
-        Assert.assertEquals(null, value);
-
-        this.rocks.session().put(TABLE, b("person:1gname"), b("James"));
-        this.rocks.session().put(TABLE, b("person:1gage"), b("19"));
-        this.rocks.session().put(TABLE, b("person:1gcity"), b("Beijing"));
-        this.commit();
-
-        value = s(this.rocks.session().get(TABLE, b("person:1gname")));
-        Assert.assertEquals("James", value);
-
-        value = s(this.rocks.session().get(TABLE, b("person:1gage")));
-        Assert.assertEquals("19", value);
-
-        value = s(this.rocks.session().get(TABLE, b("person:1gcity")));
-        Assert.assertEquals("Beijing", value);
-    }
-
-    @Test
-    public void testPutGetWithMultiTables() throws RocksDBException {
+    public void testTable() throws RocksDBException {
         final String TABLE2 = "test-table2";
 
+        Assert.assertTrue(this.rocks.existsTable(TABLE));
+        Assert.assertFalse(this.rocks.existsTable(TABLE2));
+
         this.rocks.createTable(TABLE2);
+        Assert.assertTrue(this.rocks.existsTable(TABLE2));
+        Assert.assertEquals(ImmutableSet.of(TABLE, TABLE2),
+                            this.rocks.openedTables());
+
         this.rocks.session().put(TABLE, b("person:1gname"), b("James"));
         this.rocks.session().put(TABLE2, b("person:1gname"), b("James2"));
         this.commit();
@@ -68,404 +60,164 @@ public class RocksDBSessionsTest extends BaseRocksDBUnitTest {
 
         String value2 = s(this.rocks.session().get(TABLE2, b("person:1gname")));
         Assert.assertEquals("James2", value2);
+
+        this.rocks.dropTable(TABLE2);
+        Assert.assertFalse(this.rocks.existsTable(TABLE2));
+        Assert.assertEquals(ImmutableSet.of(TABLE),
+                            this.rocks.openedTables());
     }
 
     @Test
-    public void testMergeWithCounter() throws RocksDBException {
-        this.rocks.session().put(TABLE, b("person:1gage"), b(19));
+    public void testProperty() throws RocksDBException {
+        final String TABLE2 = "test-table2";
+        this.rocks.createTable(TABLE2);
+
+        this.rocks.session().put(TABLE, b("person:1gname"), b("James"));
+        this.rocks.session().put(TABLE, b("person:2gname"), b("James2"));
         this.commit();
 
-        this.rocks.session().merge(TABLE, b("person:1gage"), b(1));
+        Assert.assertEquals(ImmutableList.of("0"),
+                            this.rocks.property(RocksDBMetrics.KEY_DISK_USAGE));
+        Assert.assertEquals(ImmutableList.of("2", "0"),
+                            this.rocks.property(RocksDBMetrics.KEY_NUM_KEYS));
+
+        this.rocks.session().put(TABLE2, b("person:1gname"), b("James1"));
+        this.rocks.session().put(TABLE2, b("person:2gname"), b("James2"));
+        this.rocks.session().put(TABLE2, b("person:3gname"), b("James3"));
         this.commit();
 
-        byte[] value = this.rocks.session().get(TABLE, b("person:1gage"));
-        Assert.assertEquals(20L, l(value));
-
-        this.rocks.session().merge(TABLE, b("person:1gage"), b(123456789000L));
-        this.commit();
-
-        value = this.rocks.session().get(TABLE, b("person:1gage"));
-        Assert.assertEquals(123456789020L, l(value));
-
-        this.rocks.session().put(TABLE, b("person:1gage"), b(250));
-        this.commit();
-
-        this.rocks.session().merge(TABLE, b("person:1gage"), b(10));
-        this.commit();
-
-        value = this.rocks.session().get(TABLE, b("person:1gage"));
-        Assert.assertEquals(260L, l(value));
+        Assert.assertEquals(ImmutableList.of("0"),
+                            this.rocks.property(RocksDBMetrics.KEY_DISK_USAGE));
+        Assert.assertEquals(ImmutableList.of("2", "3"),
+                            this.rocks.property(RocksDBMetrics.KEY_NUM_KEYS));
     }
 
     @Test
-    public void testMergeWithStringList() throws RocksDBException {
-        Assume.assumeTrue("Not support string append now", false);
-
-        this.rocks.session().put(TABLE, b("person:1gphoneno"), b("12306"));
+    public void testCompactRange() throws RocksDBException {
+        this.rocks.session().put(TABLE, b("person:1gname"), b("James"));
+        this.rocks.session().put(TABLE, b("person:2gname"), b("James2"));
         this.commit();
 
-        this.rocks.session().merge(TABLE, b("person:1gphoneno"), b("12315"));
-        this.commit();
+        this.rocks.compactRange();
 
-        Assert.assertEquals("12306,12315", get("person:1gphoneno"));
+        String value = s(this.rocks.session().get(TABLE, b("person:1gname")));
+        Assert.assertEquals("James", value);
+
+        value = s(this.rocks.session().get(TABLE, b("person:2gname")));
+        Assert.assertEquals("James2", value);
     }
 
     @Test
-    public void testScanByPrefix() throws RocksDBException {
-        put("person:1gname", "James");
-        put("person:1gage", "19");
-        put("person:1gcity", "Beijing");
+    public void testSnapshot() throws RocksDBException, IOException {
+        this.rocks.session().put(TABLE, b("person:1gname"), b("James"));
+        this.rocks.session().commit();
 
-        put("person:2gname", "Lisa");
-        put("person:2gage", "20");
-        put("person:2gcity", "Beijing");
+        String snapshotPath = SNAPSHOT_PATH + "/rocksdb";
+        try {
+            this.rocks.createSnapshot(snapshotPath);
 
-        Map<String, String> results = new HashMap<>();
-        Session session = this.rocks.session();
-        Iterator<BackendColumn> iter = session.scan(TABLE, b("person:1"));
-        while (iter.hasNext()) {
-            BackendColumn col = iter.next();
-            results.put(s(col.name), s(col.value));
+            byte[] value = this.rocks.session().get(TABLE, b("person:1gname"));
+            Assert.assertEquals("James", s(value));
+
+            this.rocks.session().put(TABLE, b("person:1gname"), b("James2"));
+            this.rocks.session().commit();
+
+            value = this.rocks.session().get(TABLE, b("person:1gname"));
+            Assert.assertEquals("James2", s(value));
+
+            this.rocks.resumeSnapshot(snapshotPath);
+
+            value = this.rocks.session().get(TABLE, b("person:1gname"));
+            Assert.assertEquals("James", s(value));
+        } finally {
+            File snapshotFile = FileUtils.getFile(SNAPSHOT_PATH);
+            if (snapshotFile.exists()) {
+                FileUtils.forceDelete(snapshotFile);
+            }
         }
-
-        Assert.assertEquals(3, results.size());
-        Assert.assertEquals("James", results.get("person:1gname"));
-        Assert.assertEquals("19", results.get("person:1gage"));
-        Assert.assertEquals("Beijing", results.get("person:1gcity"));
-
-        Assert.assertEquals("Lisa", get("person:2gname"));
     }
 
     @Test
-    public void testScanByRange() throws RocksDBException {
-        put("person:1gname", "James");
-        put("person:1gage", "19");
-        put("person:1gcity", "Beijing");
+    public void testCopySessions() throws RocksDBException {
+        Assert.assertFalse(this.rocks.closed());
 
-        put("person:2gname", "Lisa");
-        put("person:2gage", "20");
-        put("person:2gcity", "Beijing");
+        HugeConfig config = FakeObjects.newConfig();
+        RocksDBSessions copy = this.rocks.copy(config, "db2", "store2");
+        Assert.assertFalse(this.rocks.closed());
 
-        put("person:3gname", "Hebe");
-        put("person:3gage", "21");
-        put("person:3gcity", "Taipei");
+        final String TABLE2 = "test-table2";
+        copy.createTable(TABLE2);
 
-        Map<String, String> results = new HashMap<>();
-        Session session = this.rocks.session();
-        Iterator<BackendColumn> iter = session.scan(TABLE,
-                                                    b("person:1"),
-                                                    b("person:3"));
-        while (iter.hasNext()) {
-            BackendColumn col = iter.next();
-            results.put(s(col.name), s(col.value));
+        copy.session().put(TABLE2, b("person:1gname"), b("James"));
+        copy.session().commit();
+
+        String value = s(copy.session().get(TABLE2, b("person:1gname")));
+        Assert.assertEquals("James", value);
+
+        copy.close();
+        Assert.assertTrue(copy.closed());
+        Assert.assertFalse(this.rocks.closed());
+    }
+
+    @Test
+    public void testIngestSst() throws RocksDBException {
+        HugeConfig config = FakeObjects.newConfig();
+        String sstPath = DB_PATH + "/sst";
+        config.addProperty(RocksDBOptions.SST_PATH.name(), sstPath);
+        RocksDBSstSessions sstSessions = new RocksDBSstSessions(config,
+                                                                "sst", "store",
+                                                                sstPath);
+        final String TABLE1 = "test-table1";
+        final String TABLE2 = "test-table2";
+        sstSessions.createTable(TABLE1);
+        Assert.assertEquals(1, sstSessions.openedTables().size());
+        sstSessions.createTable(TABLE2);
+        Assert.assertEquals(2, sstSessions.openedTables().size());
+        Assert.assertTrue(sstSessions.existsTable(TABLE1));
+        Assert.assertTrue(sstSessions.existsTable(TABLE2));
+
+        // Write some data to sst file
+        for (int i = 0; i < 1000; i++) {
+            String k = String.format("%03d", i);
+            sstSessions.session().put(TABLE1, b("person:" + k), b("James" + i));
         }
-
-        Assert.assertEquals(6, results.size());
-        Assert.assertEquals("James", results.get("person:1gname"));
-        Assert.assertEquals("19", results.get("person:1gage"));
-        Assert.assertEquals("Beijing", results.get("person:1gcity"));
-
-        Assert.assertEquals("Lisa", results.get("person:2gname"));
-        Assert.assertEquals("20", results.get("person:2gage"));
-        Assert.assertEquals("Beijing", results.get("person:2gcity"));
-
-        Assert.assertEquals("Hebe", get("person:3gname"));
-    }
-
-    @Test
-    public void testScanByRangeWithBytes() throws RocksDBException {
-        Session session = this.rocks.session();
-
-        byte[] key11 = new byte[]{1, 1};
-        byte[] value11 = b("value-1-1");
-        session.put(TABLE, key11, value11);
-
-        byte[] key12 = new byte[]{1, 2};
-        byte[] value12 = b("value-1-2");
-        session.put(TABLE, key12, value12);
-
-        byte[] key21 = new byte[]{2, 1};
-        byte[] value21 = b("value-2-1");
-        session.put(TABLE, key21, value21);
-
-        byte[] key22 = new byte[]{2, 2};
-        byte[] value22 = b("value-2-2");
-        session.put(TABLE, key22, value22);
-
-        byte[] key23 = new byte[]{2, 3};
-        byte[] value23 = b("value-2-3");
-        session.put(TABLE, key23, value23);
-
-        this.commit();
-
-        Map<ByteBuffer, byte[]> results = new HashMap<>();
-        Iterator<BackendColumn> iter = session.scan(TABLE,
-                                                    new byte[]{1, 0},
-                                                    new byte[]{2, 3});
-        while (iter.hasNext()) {
-            BackendColumn col = iter.next();
-            results.put(ByteBuffer.wrap(col.name), col.value);
+        for (int i = 0; i < 2000; i++) {
+            String k = String.format("%04d", i);
+            sstSessions.session().put(TABLE2, b("book:" + k), b("Java" + i));
         }
+        sstSessions.session().commit();
+        sstSessions.close();
 
-        Assert.assertEquals(4, results.size());
-        Assert.assertArrayEquals(value11, results.get(ByteBuffer.wrap(key11)));
-        Assert.assertArrayEquals(value12, results.get(ByteBuffer.wrap(key12)));
-        Assert.assertArrayEquals(value21, results.get(ByteBuffer.wrap(key21)));
-        Assert.assertArrayEquals(value22, results.get(ByteBuffer.wrap(key22)));
+        sstSessions.dropTable(TABLE1);
+        sstSessions.dropTable(TABLE2);
+        Assert.assertEquals(0, sstSessions.openedTables().size());
+        Assert.assertFalse(sstSessions.existsTable(TABLE1));
+        Assert.assertFalse(sstSessions.existsTable(TABLE2));
 
-        Assert.assertArrayEquals(value23, session.get(TABLE, key23));
-    }
+        RocksDBSessions rocks = new RocksDBStdSessions(config, "db", "store",
+                                                       sstPath, sstPath);
+        // Will ingest sst file of TABLE1
+        rocks.createTable(TABLE1);
+        Assert.assertEquals(ImmutableList.of("1000"),
+                            rocks.property(RocksDBMetrics.KEY_NUM_KEYS));
+        String value = s(rocks.session().get(TABLE1, b("person:001")));
+        Assert.assertEquals("James1", value);
+        value = s(rocks.session().get(TABLE1, b("person:010")));
+        Assert.assertEquals("James10", value);
+        value = s(rocks.session().get(TABLE1, b("person:999")));
+        Assert.assertEquals("James999", value);
 
-    @Test
-    public void testScanByRangeWithSignedBytes() throws RocksDBException {
-        Session session = this.rocks.session();
-
-        byte[] key11 = new byte[]{1, 1};
-        byte[] value11 = b("value-1-1");
-        session.put(TABLE, key11, value11);
-
-        byte[] key12 = new byte[]{1, 2};
-        byte[] value12 = b("value-1-2");
-        session.put(TABLE, key12, value12);
-
-        byte[] key13 = new byte[]{1, -3};
-        byte[] value13 = b("value-1-3");
-        session.put(TABLE, key13, value13);
-
-        byte[] key21 = new byte[]{2, 1};
-        byte[] value21 = b("value-2-1");
-        session.put(TABLE, key21, value21);
-
-        this.commit();
-
-        Iterator<BackendColumn> iter;
-
-        iter = session.scan(TABLE, new byte[]{1, -1}, new byte[]{1, 3});
-        Assert.assertFalse(iter.hasNext());
-
-        iter = session.scan(TABLE, new byte[]{1, 1}, new byte[]{1, -1});
-        Map<ByteBuffer, byte[]> results = new HashMap<>();
-        while (iter.hasNext()) {
-            BackendColumn col = iter.next();
-            results.put(ByteBuffer.wrap(col.name), col.value);
-        }
-
-        Assert.assertEquals(3, results.size());
-        Assert.assertArrayEquals(value11, results.get(ByteBuffer.wrap(key11)));
-        Assert.assertArrayEquals(value12, results.get(ByteBuffer.wrap(key12)));
-        Assert.assertArrayEquals(value13, results.get(ByteBuffer.wrap(key13)));
-
-        Assert.assertArrayEquals(value21, session.get(TABLE, key21));
-    }
-
-    @Test
-    public void testUpdate() throws RocksDBException {
-        put("person:1gname", "James");
-        put("person:1gage", "19");
-        put("person:1gcity", "Beijing");
-
-        Assert.assertEquals("James", get("person:1gname"));
-        Assert.assertEquals("19", get("person:1gage"));
-        Assert.assertEquals("Beijing", get("person:1gcity"));
-
-        put("person:1gage", "20");
-
-        Assert.assertEquals("James", get("person:1gname"));
-        Assert.assertEquals("20", get("person:1gage"));
-        Assert.assertEquals("Beijing", get("person:1gcity"));
-    }
-
-    @Test
-    public void testDeleteByKey() throws RocksDBException {
-        put("person:1gname", "James");
-        put("person:1gage", "19");
-        put("person:1gcity", "Beijing");
-
-        Assert.assertEquals("James", get("person:1gname"));
-        Assert.assertEquals("19", get("person:1gage"));
-        Assert.assertEquals("Beijing", get("person:1gcity"));
-
-        this.rocks.session().delete(TABLE, b("person:1gage"));
-        this.commit();
-
-        Assert.assertEquals("James", get("person:1gname"));
-        Assert.assertEquals(null, get("person:1gage"));
-        Assert.assertEquals("Beijing", get("person:1gcity"));
-    }
-
-    @Test
-    public void testDeleteByKeyButNotExist() throws RocksDBException {
-        put("person:1gname", "James");
-        put("person:1gage", "19");
-        put("person:1gcity", "Beijing");
-
-        Assert.assertEquals("James", get("person:1gname"));
-        Assert.assertEquals("19", get("person:1gage"));
-        Assert.assertEquals("Beijing", get("person:1gcity"));
-
-        this.rocks.session().delete(TABLE, b("person:1"));
-        this.commit();
-
-        Assert.assertEquals("James", get("person:1gname"));
-        Assert.assertEquals("19", get("person:1gage"));
-        Assert.assertEquals("Beijing", get("person:1gcity"));
-    }
-
-    @Test
-    public void testDeleteByPrefix() throws RocksDBException {
-        put("person:1gname", "James");
-        put("person:1gage", "19");
-        put("person:1gcity", "Beijing");
-
-        put("person:2gname", "Lisa");
-        put("person:2gage", "20");
-        put("person:2gcity", "Beijing");
-
-        Assert.assertEquals("James", get("person:1gname"));
-        Assert.assertEquals("19", get("person:1gage"));
-        Assert.assertEquals("Beijing", get("person:1gcity"));
-
-        this.rocks.session().deletePrefix(TABLE, b("person:1"));
-        this.commit();
-
-        Assert.assertEquals(null, get("person:1gname"));
-        Assert.assertEquals(null, get("person:1gage"));
-        Assert.assertEquals(null, get("person:1gcity"));
-
-        Assert.assertEquals("Lisa", get("person:2gname"));
-    }
-
-    @Test
-    public void testDeleteByRange() throws RocksDBException {
-        put("person:1gname", "James");
-        put("person:1gage", "19");
-        put("person:1gcity", "Beijing");
-
-        put("person:2gname", "Lisa");
-        put("person:2gage", "20");
-        put("person:2gcity", "Beijing");
-
-        put("person:3gname", "Hebe");
-        put("person:3gage", "21");
-        put("person:3gcity", "Taipei");
-
-        Assert.assertEquals("James", get("person:1gname"));
-        Assert.assertEquals("Lisa", get("person:2gname"));
-        Assert.assertEquals("Hebe", get("person:3gname"));
-
-        this.rocks.session().deleteRange(TABLE, b("person:1"), b("person:3"));
-        this.commit();
-
-        Assert.assertEquals(null, get("person:1gname"));
-        Assert.assertEquals(null, get("person:1gage"));
-        Assert.assertEquals(null, get("person:1gcity"));
-
-        Assert.assertEquals(null, get("person:2gname"));
-        Assert.assertEquals(null, get("person:2gage"));
-        Assert.assertEquals(null, get("person:2gcity"));
-
-        Assert.assertEquals("Hebe", get("person:3gname"));
-        Assert.assertEquals("21", get("person:3gage"));
-        Assert.assertEquals("Taipei", get("person:3gcity"));
-    }
-
-    @Test
-    public void testDeleteByRangeWithBytes() throws RocksDBException {
-        Session session = this.rocks.session();
-
-        byte[] key11 = new byte[]{1, 1};
-        byte[] value11 = b("value-1-1");
-        session.put(TABLE, key11, value11);
-
-        byte[] key12 = new byte[]{1, 2};
-        byte[] value12 = b("value-1-2");
-        session.put(TABLE, key12, value12);
-
-        byte[] key21 = new byte[]{2, 1};
-        byte[] value21 = b("value-2-1");
-        session.put(TABLE, key21, value21);
-
-        session.deleteRange(TABLE, key11, new byte[]{1, 3});
-        this.commit();
-
-        Assert.assertArrayEquals(null, session.get(TABLE, key11));
-        Assert.assertArrayEquals(null, session.get(TABLE, key12));
-        Assert.assertArrayEquals(value21, session.get(TABLE, key21));
-    }
-
-    @Test
-    public void testDeleteByRangeWithSignedBytes() throws RocksDBException {
-        Session session = this.rocks.session();
-
-        byte[] key11 = new byte[]{1, 1};
-        byte[] value11 = b("value-1-1");
-        session.put(TABLE, key11, value11);
-
-        byte[] key12 = new byte[]{1, -2};
-        byte[] value12 = b("value-1-2");
-        session.put(TABLE, key12, value12);
-
-        byte[] key21 = new byte[]{2, 1};
-        byte[] value21 = b("value-2-1");
-        session.put(TABLE, key21, value21);
-
-        session.deleteRange(TABLE, new byte[]{1, -3}, new byte[]{1, 3});
-        this.commit();
-
-        Assert.assertArrayEquals(value11, session.get(TABLE, key11));
-        Assert.assertArrayEquals(value12, session.get(TABLE, key12));
-        Assert.assertArrayEquals(value21, session.get(TABLE, key21));
-
-        session.deleteRange(TABLE, new byte[]{1, 1}, new byte[]{1, -1});
-        this.commit();
-
-        Assert.assertArrayEquals(null, session.get(TABLE, key11));
-        Assert.assertArrayEquals(null, session.get(TABLE, key12));
-        Assert.assertArrayEquals(value21, session.get(TABLE, key21));
-    }
-
-    @Test
-    public void testDeleteByRangeWithMinMaxByteValue() throws RocksDBException {
-        Session session = this.rocks.session();
-
-        byte[] key11 = new byte[]{1, 0};
-        byte[] value11 = b("value-1-1");
-        session.put(TABLE, key11, value11);
-
-        byte[] key12 = new byte[]{1, 127};
-        byte[] value12 = b("value-1-2");
-        session.put(TABLE, key12, value12);
-
-        byte[] key13 = new byte[]{1, (byte) 0x80}; // 128
-        byte[] value13 = b("value-1-3");
-        session.put(TABLE, key13, value13);
-
-        byte[] key14 = new byte[]{1, (byte) 0xff}; // 255
-        byte[] value14 = b("value-1-4");
-        session.put(TABLE, key14, value14);
-
-        byte[] key20 = new byte[]{2, 0};
-        byte[] value20 = b("value-2-0");
-        session.put(TABLE, key20, value20);
-
-        session.deleteRange(TABLE,
-                            new byte[]{1, 0}, new byte[]{1, (byte) 0xff});
-        this.commit();
-
-        Assert.assertArrayEquals(null, session.get(TABLE, key11));
-        Assert.assertArrayEquals(null, session.get(TABLE, key12));
-        Assert.assertArrayEquals(null, session.get(TABLE, key13));
-        Assert.assertArrayEquals(value14, session.get(TABLE, key14));
-        Assert.assertArrayEquals(value20, session.get(TABLE, key20));
-
-        session.deleteRange(TABLE,
-                            new byte[]{1, (byte) 0xff}, new byte[]{2, 0});
-        this.commit();
-
-        Assert.assertArrayEquals(null, session.get(TABLE, key11));
-        Assert.assertArrayEquals(null, session.get(TABLE, key12));
-        Assert.assertArrayEquals(null, session.get(TABLE, key13));
-        Assert.assertArrayEquals(null, session.get(TABLE, key14));
-        Assert.assertArrayEquals(value20, session.get(TABLE, key20));
+        // Will ingest sst file of TABLE2
+        rocks.createTable(TABLE2);
+        Assert.assertEquals(ImmutableList.of("1000", "2000"),
+                            rocks.property(RocksDBMetrics.KEY_NUM_KEYS));
+        value = s(rocks.session().get(TABLE2, b("book:0001")));
+        Assert.assertEquals("Java1", value);
+        value = s(rocks.session().get(TABLE2, b("book:0010")));
+        Assert.assertEquals("Java10", value);
+        value = s(rocks.session().get(TABLE2, b("book:0999")));
+        Assert.assertEquals("Java999", value);
+        value = s(rocks.session().get(TABLE2, b("book:1999")));
+        Assert.assertEquals("Java1999", value);
     }
 }
