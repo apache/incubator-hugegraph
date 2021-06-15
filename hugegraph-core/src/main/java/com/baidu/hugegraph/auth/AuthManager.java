@@ -20,8 +20,8 @@
 package com.baidu.hugegraph.auth;
 
 import java.util.List;
+import java.util.Map;
 
-import com.baidu.hugegraph.auth.RolePermission;
 import com.baidu.hugegraph.auth.SchemaDefine.AuthElement;
 import com.baidu.hugegraph.backend.id.Id;
 
@@ -75,6 +75,7 @@ public interface AuthManager {
     public String loginUser(String username, String password);
     public void logoutUser(String token);
 
-    public RolePermission validateUser(String username, String password);
-    public RolePermission validateUser(String token);
+    public UserWithRole validateUser(String username, String password);
+    public UserWithRole validateUser(String token);
+    public Map<String, Object> verifyToken(String token);
 }

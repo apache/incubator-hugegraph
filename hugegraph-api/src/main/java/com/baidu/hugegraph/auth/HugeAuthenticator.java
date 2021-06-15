@@ -45,6 +45,7 @@ public interface HugeAuthenticator extends Authenticator {
                                CredentialGraphTokens.PROPERTY_USERNAME;
     public static final String KEY_PASSWORD =
                                CredentialGraphTokens.PROPERTY_PASSWORD;
+    public static final String KEY_TOKEN = "token";
     public static final String KEY_ROLE = "role";
     public static final String KEY_ADDRESS = "address";
     public static final String KEY_PATH = "path";
@@ -63,7 +64,8 @@ public interface HugeAuthenticator extends Authenticator {
 
     public void setup(HugeConfig config);
 
-    public RolePermission authenticate(String username, String password);
+    public UserWithRole authenticate(String username, String password,
+                                     String token);
     public AuthManager authManager();
 
     @Override
@@ -86,15 +88,16 @@ public interface HugeAuthenticator extends Authenticator {
         if (this.requireAuthentication()) {
             String username = credentials.get(KEY_USERNAME);
             String password = credentials.get(KEY_PASSWORD);
+            String token = credentials.get(KEY_TOKEN);
 
             // Currently we just use config tokens to authenticate
-            RolePermission role = this.authenticate(username, password);
-            if (!verifyRole(role)) {
+            UserWithRole role = this.authenticate(username, password, token);
+            if (!verifyRole(role.role())) {
                 // Throw if not certified
                 String message = "Incorrect username or password";
                 throw new AuthenticationException(message);
             }
-            user = new User(username, role);
+            user = new User(role.username(), role.role());
             user.client(credentials.get(KEY_ADDRESS));
         }
 

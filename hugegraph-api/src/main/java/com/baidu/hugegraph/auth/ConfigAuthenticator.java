@@ -58,8 +58,9 @@ public class ConfigAuthenticator implements HugeAuthenticator {
      * @return String No permission if return ROLE_NONE else return a role
      */
     @Override
-    public RolePermission authenticate(final String username,
-                                       final String password) {
+    public UserWithRole authenticate(final String username,
+                                     final String password,
+                                     final String token) {
         E.checkArgumentNotNull(username,
                                "The username parameter can't be null");
         E.checkArgumentNotNull(password,
@@ -77,7 +78,7 @@ public class ConfigAuthenticator implements HugeAuthenticator {
             role = ROLE_NONE;
         }
 
-        return role;
+        return new UserWithRole(username, role);
     }
 
     @Override

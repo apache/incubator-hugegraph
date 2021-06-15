@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -1365,7 +1366,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         }
 
         @Override
-        public RolePermission validateUser(String username, String password) {
+        public UserWithRole validateUser(String username, String password) {
             // Can't verifyPermission() here, validate first with tmp permission
             Context context = setContext(Context.admin());
             try {
@@ -1380,7 +1381,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         }
 
         @Override
-        public RolePermission validateUser(String token) {
+        public UserWithRole validateUser(String token) {
             // Can't verifyPermission() here, validate first with tmp permission
             Context context = setContext(Context.admin());
             try {
@@ -1395,12 +1396,17 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
         @Override
         public String loginUser(String username, String password) {
-            return null;
+            return this.authManager.loginUser(username, password);
         }
 
         @Override
         public void logoutUser(String token) {
+            this.authManager.logoutUser(token);
+        }
 
+        @Override
+        public Map<String, Object> verifyToken(String token) {
+            return this.authManager.verifyToken(token);
         }
 
         private void switchAuthManager(AuthManager authManager) {
