@@ -29,9 +29,9 @@ public interface Cache<K, V> {
     public static final String ACTION_INVALIDED = "invalided";
     public static final String ACTION_CLEARED = "cleared";
 
-    public Object get(K id);
+    public V get(K id);
 
-    public Object getOrFetch(K id, Function<K, V> fetcher);
+    public V getOrFetch(K id, Function<K, V> fetcher);
 
     public boolean containsKey(K id);
 

@@ -29,17 +29,18 @@ import com.google.common.base.Stopwatch;
  * Now just simplify for performance, don't need lock stop watch
  *
  * Note: This class is not thread safe
+ * TODO: Move to common module
  * */
 public class FixedStopWatchRateLimiter implements RateLimiter {
 
-    private LongAdder count = new LongAdder();
-    private Stopwatch watch;
-    private static int limit;
+    private final LongAdder count;
+    private final Stopwatch watch;
+    private final int limit;
 
     public FixedStopWatchRateLimiter(int limitPerSecond) {
         this.limit = limitPerSecond;
         this.watch = Stopwatch.createStarted();
-        LOG.info("Audit log rate limit is '{}/s'", limitPerSecond);
+        this.count = new LongAdder();
     }
 
     @Override

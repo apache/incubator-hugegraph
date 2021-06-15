@@ -23,11 +23,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
@@ -61,7 +59,10 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.auth.HugeAuthenticator.RolePerm;
 import com.baidu.hugegraph.auth.HugeAuthenticator.User;
 import com.baidu.hugegraph.auth.SchemaDefine.AuthElement;
+import com.baidu.hugegraph.backend.cache.Cache;
+import com.baidu.hugegraph.backend.cache.CacheManager;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
@@ -105,7 +106,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     private static final Logger LOG = Log.logger(HugeGraphAuthProxy.class);
-    private Map<String, RateLimiter> userRates;
+    private final Cache<Id, RateLimiter> auditPerUserRates;
     private double logRate;
 
     private final HugeGraph hugegraph;
@@ -117,13 +118,14 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         this.hugegraph = hugegraph;
         this.taskScheduler = new TaskSchedulerProxy(hugegraph.taskScheduler());
         this.authManager = new AuthManagerProxy(hugegraph.authManager());
-        this.userRates = new ConcurrentHashMap<>();
+        this.auditPerUserRates = this.cache("audit-rate");
         this.hugegraph.proxy(this);
 
         Configuration config = hugegraph.configuration();
         HugeConfig conf = config instanceof HugeConfig ?
                           (HugeConfig) config : new HugeConfig(config);
         this.logRate = conf.get(CoreOptions.AUTH_LOG_RATE);
+        LOG.info("Audit log rate limit is '{}/s'", this.logRate);
     }
 
     @Override
@@ -725,6 +727,13 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         this.hugegraph.resumeSnapshot();
     }
 
+    private <V> Cache<Id, V> cache(String prefix) {
+        String name = prefix + "-" + this.hugegraph.name();
+        Cache<Id, V> cache = CacheManager.instance().cache(name);
+        cache.expire(-1L);
+        return cache;
+    }
+
     private void verifyAdminPermission() {
         verifyPermission(HugePermission.ANY, ResourceType.ROOT);
     }
@@ -914,12 +923,13 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         }
 
         // log user action, limit rate for each user
-        RateLimiter userRate = userRates.get(username);
-        if (userRate == null) {
-            userRate = RateLimiter.create(logRate);
-            userRates.put(username, userRate);
+        Id usernameId = IdGenerator.of(username);
+        RateLimiter auditPerUserRate = this.auditPerUserRates.get(usernameId);
+        if (auditPerUserRate == null) {
+            auditPerUserRate = RateLimiter.create(this.logRate);
+            this.auditPerUserRates.update(usernameId, auditPerUserRate);
         }
-        if (userRate.tryAcquire() &&
+        if (auditPerUserRate.tryAcquire() &&
             !(actionPerm == HugePermission.READ && ro.type().isSchema())) {
             String status = result == null ? "denied" : "allowed";
             LOG.info("User '{}' is {} to {} {}", username, status, action, ro);
@@ -1104,7 +1114,8 @@ public final class HugeGraphAuthProxy implements HugeGraph {
             String username = currentUsername();
             if (username != null && elem.creator() == null) {
                 elem.creator(username);
-                userRates.putIfAbsent(username, RateLimiter.create(logRate));
+                auditPerUserRates.updateIfAbsent(IdGenerator.of(username),
+                                                 RateLimiter.create(logRate));
             }
             return elem;
         }
@@ -1149,7 +1160,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
             E.checkArgument(!HugeAuthenticator.USER_ADMIN.equals(user.name()),
                             "Can't delete user '%s'", user.name());
             verifyUserPermission(HugePermission.DELETE, user);
-            userRates.remove(user.name());
+            auditPerUserRates.invalidate(IdGenerator.of(user.name()));
             return this.authManager.deleteUser(id);
         }
 

@@ -24,16 +24,20 @@ import java.util.TimerTask;
 import java.util.concurrent.atomic.LongAdder;
 
 /**
- * This class is used for fixed window to rate limit request per second
+ * This class is used for fixed window to limit request per second
  * The different with stopwatch is to use timer for reducing count times
+ *
+ * TODO: Move to common module
  */
 public class FixedTimerRateLimiter implements RateLimiter {
 
-    private Timer timer = new Timer("RateAuditLog", true);
-    private LongAdder count = new LongAdder();
-    private static int limit;
+    private final Timer timer;
+    private final LongAdder count;
+    private final int limit;
 
     public FixedTimerRateLimiter(int limitPerSecond) {
+        this.timer = new Timer("RateAuditLog", true);
+        this.count = new LongAdder();
         this.limit = limitPerSecond;
         // Count will be reset if exceeds limit (run once per 1000ms)
         this.timer.schedule(new TimerTask() {
@@ -44,7 +48,6 @@ public class FixedTimerRateLimiter implements RateLimiter {
                 }
             }
         }, 300, ONE_SECOND);
-        LOG.info("Audit log rate limit is '{}/s'", limitPerSecond);
     }
 
     @Override

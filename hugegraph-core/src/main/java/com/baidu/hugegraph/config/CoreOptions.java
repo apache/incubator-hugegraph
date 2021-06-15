@@ -628,7 +628,8 @@ public class CoreOptions extends OptionHolder {
     public static final ConfigOption<Double> AUTH_LOG_RATE =
             new ConfigOption<>(
                     "auth.log_rate",
-                    "The audit log output rate per user, default is 500",
+                    "The audit log output rate per user, default is " +
+                    "500 records per second",
                     rangeDouble(0.0, Double.MAX_VALUE),
                     500.0
             );
