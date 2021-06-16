@@ -39,20 +39,20 @@ public class FixedTimerRateLimiter implements RateLimiter {
         this.timer = new Timer("RateAuditLog", true);
         this.count = new LongAdder();
         this.limit = limitPerSecond;
-        // Count will be reset if exceeds limit (run once per 1000ms)
+        // Count will be reset if hit limit (run once per 1000ms)
         this.timer.schedule(new TimerTask() {
             @Override
             public void run() {
-                if (count.intValue() > limit) {
+                if (count.intValue() >= limit) {
                     count.reset();
                 }
             }
-        }, 300, ONE_SECOND);
+        }, 0L, RESET_PERIOD);
     }
 
     @Override
     public boolean tryAcquire() {
-        if (count.intValue() > limit) {
+        if (count.intValue() >= limit) {
             return false;
         }
 

@@ -51,7 +51,7 @@ public class FixedStopWatchRateLimiter implements RateLimiter {
         }
 
         // Reset only if 1000ms elapsed
-        if (watch.elapsed(TimeUnit.MILLISECONDS) >= ONE_SECOND) {
+        if (watch.elapsed(TimeUnit.MILLISECONDS) >= RESET_PERIOD) {
             count.reset();
             watch.reset();
             count.increment();

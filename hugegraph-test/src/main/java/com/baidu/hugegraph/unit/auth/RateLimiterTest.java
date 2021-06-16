@@ -1,0 +1,156 @@
+/*
+ * Copyright 2017 HugeGraph Authors
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
+package com.baidu.hugegraph.unit.auth;
+
+import static com.baidu.hugegraph.testutil.Assert.assertEquals;
+import static com.baidu.hugegraph.testutil.Assert.assertFalse;
+import static com.baidu.hugegraph.testutil.Assert.assertInstanceOf;
+import static com.baidu.hugegraph.testutil.Assert.assertTrue;
+
+import java.util.concurrent.atomic.LongAdder;
+
+import org.junit.Test;
+
+import com.baidu.hugegraph.testutil.Whitebox;
+import com.baidu.hugegraph.util.FixedStopWatchRateLimiter;
+import com.baidu.hugegraph.util.FixedTimerRateLimiter;
+import com.baidu.hugegraph.util.RateLimiter;
+
+public class RateLimiterTest {
+
+    private RateLimiter limiter;
+    private int rateLimit;
+
+    @Test
+    public void testDefaultRateLimiterCreate() {
+        rateLimit = 500;
+        limiter = RateLimiter.create(rateLimit);
+        assertInstanceOf(FixedTimerRateLimiter.class, limiter);
+
+        Object limit = Whitebox.getInternalState(limiter, "limit");
+        assertEquals(rateLimit, limit);
+    }
+
+    @Test
+    public void testTimerRateLimiter() throws Exception {
+        rateLimit = 400;
+        limiter = new FixedTimerRateLimiter(rateLimit);
+
+        int limit = Whitebox.getInternalState(limiter, "limit");
+        assertEquals(rateLimit, limit);
+
+        LongAdder count = Whitebox.getInternalState(limiter, "count");
+        assertEquals(0, count.intValue());
+
+        for (int i = 0; i < rateLimit; i++) {
+            assertTrue(limiter.tryAcquire());
+        }
+
+        count = Whitebox.getInternalState(limiter, "count");
+        assertEquals(rateLimit, count.intValue());
+        assertFalse(limiter.tryAcquire());
+
+        // Reset count after period
+        Thread.sleep(RateLimiter.RESET_PERIOD);
+        assertFalse(!limiter.tryAcquire());
+        count = Whitebox.getInternalState(limiter, "count");
+        assertEquals(1, count.intValue());
+    }
+
+    @Test
+    public void testStopWatchRateLimiter() throws Exception {
+        rateLimit = 300;
+        limiter = new FixedStopWatchRateLimiter(rateLimit);
+
+        int limit = Whitebox.getInternalState(limiter, "limit");
+        assertEquals(rateLimit, limit);
+
+        LongAdder count = Whitebox.getInternalState(limiter, "count");
+        assertEquals(0, count.intValue());
+
+        for (int i = 0; i < rateLimit; i++) {
+            assertTrue(limiter.tryAcquire());
+        }
+
+        count = Whitebox.getInternalState(limiter, "count");
+        assertEquals(rateLimit, count.intValue());
+        assertFalse(limiter.tryAcquire());
+
+        // Reset count after period
+        Thread.sleep(RateLimiter.RESET_PERIOD);
+        assertFalse(!limiter.tryAcquire());
+        count = Whitebox.getInternalState(limiter, "count");
+        assertEquals(1, count.intValue());
+    }
+
+    @Test
+    public void testTimerRateLimiterWithIdle() throws Exception {
+        rateLimit = 200;
+        limiter = new FixedTimerRateLimiter(rateLimit);
+
+        LongAdder count = Whitebox.getInternalState(limiter, "count");
+        assertEquals(0, count.intValue());
+
+        for (int i = 0; i < rateLimit; i++) {
+            assertTrue(limiter.tryAcquire());
+        }
+        Thread.sleep(RateLimiter.RESET_PERIOD);
+        count = Whitebox.getInternalState(limiter, "count");
+        assertEquals(0, count.intValue());
+
+        // Assert count doesn't reset after period if not hit limit
+        for (int i = 0; i < rateLimit / 2; i++) {
+            assertTrue(limiter.tryAcquire());
+        }
+        Thread.sleep(RateLimiter.RESET_PERIOD);
+
+        count = Whitebox.getInternalState(limiter, "count");
+        assertEquals(rateLimit / 2, count.intValue());
+        assertTrue(limiter.tryAcquire());
+
+        Thread.sleep(RateLimiter.RESET_PERIOD);
+        assertTrue(limiter.tryAcquire());
+    }
+
+    @Test
+    public void testStopWatchRateLimiterWithIdle() throws Exception {
+        rateLimit = 100;
+        limiter = new FixedStopWatchRateLimiter(rateLimit);
+
+        LongAdder count = Whitebox.getInternalState(limiter, "count");
+        assertEquals(0, count.intValue());
+
+        for (int i = 0; i < rateLimit; i++) {
+            assertTrue(limiter.tryAcquire());
+        }
+        count = Whitebox.getInternalState(limiter, "count");
+        assertEquals(rateLimit, count.intValue());
+
+        // Count will not be reset if tryAcquire() is not called
+        Thread.sleep(RateLimiter.RESET_PERIOD);
+        count = Whitebox.getInternalState(limiter, "count");
+        assertEquals(rateLimit, count.intValue());
+
+        // Reset when method call
+        assertTrue(limiter.tryAcquire());
+        count = Whitebox.getInternalState(limiter, "count");
+        assertEquals(1, count.intValue());
+    }
+}
