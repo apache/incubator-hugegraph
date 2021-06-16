@@ -24,15 +24,19 @@ import java.util.Date;
 import java.util.Map;
 
 import javax.crypto.SecretKey;
+import javax.ws.rs.NotAuthorizedException;
 
 import com.baidu.hugegraph.config.AuthOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jws;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.SignatureException;
 
 public class TokenGenerator {
 
@@ -47,14 +51,25 @@ public class TokenGenerator {
         return Jwts.builder()
                    .setClaims(payload)
                    .setExpiration(new Date(System.currentTimeMillis() + expire))
-                   .signWith(this.key, SignatureAlgorithm.HS256).compact();
+                   .signWith(this.key, SignatureAlgorithm.HS256)
+                   .compact();
     }
 
     public Claims verify(String token) {
-        Jws<Claims> claimsJws = Jwts.parserBuilder()
-                                    .setSigningKey(key)
-                                    .build()
-                                    .parseClaimsJws(token);
-        return claimsJws.getBody();
+        try {
+            Jws<Claims> claimsJws = Jwts.parserBuilder()
+                                        .setSigningKey(key)
+                                        .build()
+                                        .parseClaimsJws(token);
+            return claimsJws.getBody();
+        } catch (ExpiredJwtException e) {
+            throw new NotAuthorizedException("The token has expired");
+        } catch (SignatureException e) {
+            throw new NotAuthorizedException("The token signature does not " +
+                                             "match");
+        } catch (JwtException e) {
+            throw new NotAuthorizedException("The token validity cannot be " +
+                                             "asserted and can't be trusted");
+        }
     }
 }

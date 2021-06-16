@@ -39,6 +39,7 @@ import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
+import com.baidu.hugegraph.api.filter.AuthenticationFilter;
 import com.baidu.hugegraph.api.filter.StatusFilter;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.core.GraphManager;
@@ -50,7 +51,7 @@ import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
 
-@Path("graphs/{graph}/auth/login")
+@Path("graphs/{graph}/auth")
 @Singleton
 public class LoginAPI extends API {
 
@@ -58,6 +59,7 @@ public class LoginAPI extends API {
 
     @POST
     @Timed
+    @Path("login")
     @Status(StatusFilter.Status.OK)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
@@ -76,6 +78,7 @@ public class LoginAPI extends API {
 
     @DELETE
     @Timed
+    @Path("logout")
     @Status(StatusFilter.Status.OK)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
@@ -86,18 +89,20 @@ public class LoginAPI extends API {
                         "Request header Authorization must not be null");
         LOG.debug("Graph [{}] user logout: {}", graph, auth);
 
-        if (!auth.startsWith("Bearer ")) {
+        if (!auth.startsWith(AuthenticationFilter.BEARER_AUTH_PREFIX)) {
             throw new BadRequestException(
                   "Only HTTP Bearer authentication is supported");
         }
 
-        String token = auth.substring("Bearer ".length());
+        String token = auth.substring(AuthenticationFilter.BEARER_AUTH_PREFIX
+                                                          .length());
 
         manager.authManager().logoutUser(token);
     }
 
     @GET
     @Timed
+    @Path("verify")
     @Status(StatusFilter.Status.OK)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
@@ -109,12 +114,13 @@ public class LoginAPI extends API {
                         "Request header Authorization must not be null");
         LOG.debug("Graph [{}] get user: {}", graph, token);
 
-        if (!token.startsWith("Bearer ")) {
+        if (!token.startsWith(AuthenticationFilter.BEARER_AUTH_PREFIX)) {
             throw new BadRequestException(
-                    "Only HTTP Bearer authentication is supported");
+                      "Only HTTP Bearer authentication is supported");
         }
 
-        token = token.substring("Bearer ".length());
+        token = token.substring(AuthenticationFilter.BEARER_AUTH_PREFIX
+                                                    .length());
         Map<String, Object> claims = manager.authManager().verifyToken(token);
 
         HugeGraph g = graph(manager, graph);

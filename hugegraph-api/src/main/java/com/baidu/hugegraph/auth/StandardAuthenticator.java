@@ -138,10 +138,12 @@ public class StandardAuthenticator implements HugeAuthenticator {
             role = ROLE_NONE;
         } else if (userWithRole.username().equals(USER_ADMIN)) {
             role = ROLE_ADMIN;
+        } else {
+            return userWithRole;
         }
-        userWithRole.role(role);
 
-        return userWithRole;
+        return new UserWithRole(userWithRole.userId(),
+                                userWithRole.username(), role);
     }
 
     @Override

@@ -55,13 +55,15 @@ import com.baidu.hugegraph.auth.RolePermission;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 @Provider
 @PreMatching
 @Priority(Priorities.AUTHENTICATION)
 public class AuthenticationFilter implements ContainerRequestFilter {
+
+    public static final String BASIC_AUTH_PREFIX = "Basic ";
+    public static final String BEARER_AUTH_PREFIX = "Bearer ";
 
     private static final Logger LOG = Log.logger(AuthenticationFilter.class);
 
@@ -113,8 +115,8 @@ public class AuthenticationFilter implements ContainerRequestFilter {
                       "Missing authentication credentials");
         }
 
-        if (auth.startsWith("Basic ")) {
-            auth = auth.substring("Basic ".length());
+        if (auth.startsWith(BASIC_AUTH_PREFIX)) {
+            auth = auth.substring(BASIC_AUTH_PREFIX.length());
             auth = new String(DatatypeConverter.parseBase64Binary(auth),
                               Charsets.ASCII_CHARSET);
             String[] values = auth.split(":");
@@ -134,12 +136,12 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
             credentials.put(HugeAuthenticator.KEY_USERNAME, username);
             credentials.put(HugeAuthenticator.KEY_PASSWORD, password);
-        } else if (auth.startsWith("Bearer ")) {
-            String token = auth.substring("Bearer ".length());
+        } else if (auth.startsWith(BEARER_AUTH_PREFIX)) {
+            String token = auth.substring(BEARER_AUTH_PREFIX.length());
             credentials.put(HugeAuthenticator.KEY_TOKEN, token);
         } else {
             throw new BadRequestException(
-                      "Only HTTP Basic/Bearer authentication is supported");
+                      "Only HTTP Basic or Bearer authentication is supported");
         }
 
         credentials.put(HugeAuthenticator.KEY_ADDRESS, peer);
@@ -147,7 +149,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
         // Validate the extracted credentials
         try {
-            return manager.authenticate(ImmutableMap.copyOf(credentials));
+            return manager.authenticate(credentials);
         } catch (AuthenticationException e) {
             throw new NotAuthorizedException("Authentication failed",
                                              e.getMessage());

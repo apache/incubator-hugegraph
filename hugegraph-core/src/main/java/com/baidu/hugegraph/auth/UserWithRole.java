@@ -19,14 +19,26 @@
 
 package com.baidu.hugegraph.auth;
 
+import com.baidu.hugegraph.backend.id.Id;
+
 public class UserWithRole {
 
+    private final Id userId;
     private final String username;
-    private RolePermission role;
+    private final RolePermission role;
 
-    public UserWithRole(String username, RolePermission role) {
+    public UserWithRole(String username) {
+        this(null, username, null);
+    }
+
+    public UserWithRole(Id userId, String username, RolePermission role) {
+        this.userId = userId;
         this.username = username;
         this.role = role;
+    }
+
+    public Id userId() {
+        return this.userId;
     }
 
     public String username() {
@@ -35,9 +47,5 @@ public class UserWithRole {
 
     public RolePermission role() {
         return this.role;
-    }
-
-    public void role(RolePermission role) {
-        this.role = role;
     }
 }

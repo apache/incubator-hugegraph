@@ -472,9 +472,9 @@ public class StandardAuthManager implements AuthManager {
     public UserWithRole validateUser(String username, String password) {
         HugeUser user = this.matchUser(username, password);
         if (user == null) {
-            return null;
+            return new UserWithRole(username);
         }
-        return new UserWithRole(username, this.rolePermission(user));
+        return new UserWithRole(user.id, username, this.rolePermission(user));
     }
 
     @Override
@@ -493,10 +493,10 @@ public class StandardAuthManager implements AuthManager {
 
         HugeUser user = this.findUser(username);
         if (user == null) {
-            return null;
+            return new UserWithRole(username);
         }
 
-        return new UserWithRole(username, this.rolePermission(user));
+        return new UserWithRole(user.id, username, this.rolePermission(user));
     }
 
     /**
