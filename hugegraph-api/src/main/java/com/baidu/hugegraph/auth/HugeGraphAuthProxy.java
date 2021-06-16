@@ -36,7 +36,6 @@ import java.util.function.Supplier;
 
 import javax.ws.rs.ForbiddenException;
 
-import org.apache.commons.configuration.Configuration;
 import org.apache.tinkerpop.gremlin.groovy.jsr223.GroovyTranslator;
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
 import org.apache.tinkerpop.gremlin.process.traversal.Bytecode;
@@ -67,7 +66,6 @@ import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
 import com.baidu.hugegraph.backend.store.raft.RaftGroupManager;
-import com.baidu.hugegraph.config.ConfigOption;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.TypedOption;
@@ -107,8 +105,8 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     private static final Logger LOG = Log.logger(HugeGraphAuthProxy.class);
-    private final Cache<Id, RateLimiter> auditPerUserRates;
-    private double logRate;
+    private final Cache<Id, RateLimiter> auditLimiters;
+    private final double auditLogMaxRate;
 
     private final HugeGraph hugegraph;
     private final TaskSchedulerProxy taskScheduler;
@@ -119,14 +117,13 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         this.hugegraph = hugegraph;
         this.taskScheduler = new TaskSchedulerProxy(hugegraph.taskScheduler());
         this.authManager = new AuthManagerProxy(hugegraph.authManager());
-        this.auditPerUserRates = this.cache("audit-rate");
+        this.auditLimiters = this.cache("audit-log-limiter");
         this.hugegraph.proxy(this);
 
-        Configuration config = hugegraph.configuration();
-        HugeConfig conf = config instanceof HugeConfig ?
-                          (HugeConfig) config : new HugeConfig(config);
-        this.logRate = conf.get(CoreOptions.AUTH_LOG_RATE);
-        LOG.info("Audit log rate limit is '{}/s'", this.logRate);
+        HugeConfig config = (HugeConfig) hugegraph.configuration();
+        // TODO: Consider better way to get, use auth client's config now
+        this.auditLogMaxRate = config.get(CoreOptions.AUTH_AUDIT_LOG_RATE);
+        LOG.info("Audit log rate limit is '{}/s'", this.auditLogMaxRate);
     }
 
     @Override
@@ -904,11 +901,11 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         }
 
         V result = ro.operated();
-        // verify role permission
+        // Verify role permission
         if (!RolePerm.match(role, actionPerm, ro)) {
             result = null;
         }
-        // verify permission for one access another, like: granted <= user role
+        // Verify permission for one access another, like: granted <= user role
         else if (ro.type().isGrantOrUser()) {
             AuthElement element = (AuthElement) ro.operated();
             RolePermission grant = this.hugegraph.authManager()
@@ -918,20 +915,19 @@ public final class HugeGraphAuthProxy implements HugeGraph {
             }
         }
 
-        // check resource detail if needed
+        // Check resource detail if needed
         if (result != null && checker != null && !checker.get()) {
             result = null;
         }
 
-        // log user action, limit rate for each user
-        Id usernameId = IdGenerator.of(username);
-        RateLimiter auditPerUserRate = this.auditPerUserRates.get(usernameId);
-        if (auditPerUserRate == null) {
-            auditPerUserRate = RateLimiter.create(this.logRate);
-            this.auditPerUserRates.update(usernameId, auditPerUserRate);
-        }
-        if (auditPerUserRate.tryAcquire() &&
-            !(actionPerm == HugePermission.READ && ro.type().isSchema())) {
+        // Log user action, limit rate for each user
+        Id usrId = IdGenerator.of(username);
+        RateLimiter auditLimiter = this.auditLimiters.getOrFetch(usrId, id -> {
+            return RateLimiter.create(this.auditLogMaxRate);
+        });
+
+        if (!(actionPerm == HugePermission.READ && ro.type().isSchema()) &&
+            auditLimiter.tryAcquire()) {
             String status = result == null ? "denied" : "allowed";
             LOG.info("User '{}' is {} to {} {}", username, status, action, ro);
         }
@@ -1115,8 +1111,8 @@ public final class HugeGraphAuthProxy implements HugeGraph {
             String username = currentUsername();
             if (username != null && elem.creator() == null) {
                 elem.creator(username);
-                auditPerUserRates.updateIfAbsent(IdGenerator.of(username),
-                                                 RateLimiter.create(logRate));
+                auditLimiters.update(IdGenerator.of(username),
+                                     RateLimiter.create(auditLogMaxRate));
             }
             return elem;
         }
@@ -1161,7 +1157,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
             E.checkArgument(!HugeAuthenticator.USER_ADMIN.equals(user.name()),
                             "Can't delete user '%s'", user.name());
             verifyUserPermission(HugePermission.DELETE, user);
-            auditPerUserRates.invalidate(IdGenerator.of(user.name()));
+            auditLimiters.invalidate(IdGenerator.of(user.name()));
             return this.authManager.deleteUser(id);
         }
 
