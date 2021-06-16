@@ -36,7 +36,6 @@ import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
-import io.jsonwebtoken.security.SignatureException;
 
 public class TokenGenerator {
 
@@ -63,13 +62,9 @@ public class TokenGenerator {
                                         .parseClaimsJws(token);
             return claimsJws.getBody();
         } catch (ExpiredJwtException e) {
-            throw new NotAuthorizedException("The token has expired");
-        } catch (SignatureException e) {
-            throw new NotAuthorizedException("The token signature does not " +
-                                             "match");
+            throw new NotAuthorizedException("The token has expired", e);
         } catch (JwtException e) {
-            throw new NotAuthorizedException("The token validity cannot be " +
-                                             "asserted and can't be trusted");
+            throw new NotAuthorizedException("Invalid token", e);
         }
     }
 }

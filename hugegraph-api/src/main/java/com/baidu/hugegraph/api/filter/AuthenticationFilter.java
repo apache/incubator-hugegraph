@@ -63,7 +63,7 @@ import com.google.common.collect.ImmutableSet;
 public class AuthenticationFilter implements ContainerRequestFilter {
 
     public static final String BASIC_AUTH_PREFIX = "Basic ";
-    public static final String BEARER_AUTH_PREFIX = "Bearer ";
+    public static final String BEARER_TOKEN_PREFIX = "Bearer ";
 
     private static final Logger LOG = Log.logger(AuthenticationFilter.class);
 
@@ -136,8 +136,8 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
             credentials.put(HugeAuthenticator.KEY_USERNAME, username);
             credentials.put(HugeAuthenticator.KEY_PASSWORD, password);
-        } else if (auth.startsWith(BEARER_AUTH_PREFIX)) {
-            String token = auth.substring(BEARER_AUTH_PREFIX.length());
+        } else if (auth.startsWith(BEARER_TOKEN_PREFIX)) {
+            String token = auth.substring(BEARER_TOKEN_PREFIX.length());
             credentials.put(HugeAuthenticator.KEY_TOKEN, token);
         } else {
             throw new BadRequestException(
@@ -282,6 +282,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
     public static boolean isWhiteAPI(ContainerRequestContext context) {
         List<PathSegment> segments = context.getUriInfo().getPathSegments();
+
         E.checkArgument(segments.size() > 0, "Invalid request uri '%s'",
                         context.getUriInfo().getPath());
         String rootPath = segments.get(segments.size() - 1).getPath();

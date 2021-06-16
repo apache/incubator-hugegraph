@@ -19,14 +19,14 @@
 
 package com.baidu.hugegraph.api.auth;
 
-import java.util.Map;
-
 import javax.inject.Singleton;
+import javax.security.sasl.AuthenticationException;
 import javax.ws.rs.BadRequestException;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
+import javax.ws.rs.NotAuthorizedException;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -42,6 +42,8 @@ import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.AuthenticationFilter;
 import com.baidu.hugegraph.api.filter.StatusFilter;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
+import com.baidu.hugegraph.auth.AuthConstant;
+import com.baidu.hugegraph.auth.UserWithRole;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.define.Checkable;
 import com.baidu.hugegraph.server.RestServer;
@@ -51,7 +53,7 @@ import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
 
-@Path("graphs/{graph}/auth")
+@Path("graphs/{graph}/auth/login")
 @Singleton
 public class LoginAPI extends API {
 
@@ -59,7 +61,6 @@ public class LoginAPI extends API {
 
     @POST
     @Timed
-    @Path("login")
     @Status(StatusFilter.Status.OK)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
@@ -69,11 +70,15 @@ public class LoginAPI extends API {
         LOG.debug("Graph [{}] user login: {}", graph, jsonLogin);
         checkCreatingBody(jsonLogin);
 
-        String token = manager.authManager()
-                              .loginUser(jsonLogin.name, jsonLogin.password);
-        HugeGraph g = graph(manager, graph);
-        return manager.serializer(g)
-                      .writeMap(ImmutableMap.of("token", token));
+        try {
+            String token = manager.authManager()
+                                  .loginUser(jsonLogin.name, jsonLogin.password);
+            HugeGraph g = graph(manager, graph);
+            return manager.serializer(g)
+                          .writeMap(ImmutableMap.of("token", token));
+        } catch (AuthenticationException e) {
+            throw new NotAuthorizedException(e.getMessage(), e);
+        }
     }
 
     @DELETE
@@ -89,12 +94,12 @@ public class LoginAPI extends API {
                         "Request header Authorization must not be null");
         LOG.debug("Graph [{}] user logout: {}", graph, auth);
 
-        if (!auth.startsWith(AuthenticationFilter.BEARER_AUTH_PREFIX)) {
+        if (!auth.startsWith(AuthenticationFilter.BEARER_TOKEN_PREFIX)) {
             throw new BadRequestException(
                   "Only HTTP Bearer authentication is supported");
         }
 
-        String token = auth.substring(AuthenticationFilter.BEARER_AUTH_PREFIX
+        String token = auth.substring(AuthenticationFilter.BEARER_TOKEN_PREFIX
                                                           .length());
 
         manager.authManager().logoutUser(token);
@@ -114,17 +119,21 @@ public class LoginAPI extends API {
                         "Request header Authorization must not be null");
         LOG.debug("Graph [{}] get user: {}", graph, token);
 
-        if (!token.startsWith(AuthenticationFilter.BEARER_AUTH_PREFIX)) {
+        if (!token.startsWith(AuthenticationFilter.BEARER_TOKEN_PREFIX)) {
             throw new BadRequestException(
                       "Only HTTP Bearer authentication is supported");
         }
 
-        token = token.substring(AuthenticationFilter.BEARER_AUTH_PREFIX
+        token = token.substring(AuthenticationFilter.BEARER_TOKEN_PREFIX
                                                     .length());
-        Map<String, Object> claims = manager.authManager().verifyToken(token);
+        UserWithRole userWithRole = manager.authManager().validateUser(token);
 
         HugeGraph g = graph(manager, graph);
-        return manager.serializer(g).writeMap(claims);
+        return manager.serializer(g)
+                      .writeMap(ImmutableMap.of(AuthConstant.TOKEN_USER_NAME,
+                                                userWithRole.username(),
+                                                AuthConstant.TOKEN_USER_ID,
+                                                userWithRole.userId()));
     }
 
     private static class JsonLogin implements Checkable {

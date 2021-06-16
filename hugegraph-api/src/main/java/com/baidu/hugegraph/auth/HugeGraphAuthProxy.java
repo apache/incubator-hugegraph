@@ -35,7 +35,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 
+import javax.security.sasl.AuthenticationException;
 import javax.ws.rs.ForbiddenException;
+import javax.ws.rs.NotAuthorizedException;
 
 import org.apache.tinkerpop.gremlin.groovy.jsr223.GroovyTranslator;
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
@@ -1396,17 +1398,16 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
         @Override
         public String loginUser(String username, String password) {
-            return this.authManager.loginUser(username, password);
+            try {
+                return this.authManager.loginUser(username, password);
+            } catch (AuthenticationException e) {
+                throw new NotAuthorizedException(e.getMessage(), e);
+            }
         }
 
         @Override
         public void logoutUser(String token) {
             this.authManager.logoutUser(token);
-        }
-
-        @Override
-        public Map<String, Object> verifyToken(String token) {
-            return this.authManager.verifyToken(token);
         }
 
         private void switchAuthManager(AuthManager authManager) {

@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.ws.rs.NotAuthorizedException;
+import javax.security.sasl.AuthenticationException;
 
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.auth.HugeUser.P;
@@ -47,9 +47,6 @@ import io.jsonwebtoken.Claims;
 public class StandardAuthManager implements AuthManager {
 
     private static final long CACHE_EXPIRE = Duration.ofDays(1L).toMillis();
-
-    private static final String TOKEN_USER_NAME = "user_name";
-    private static final String TOKEN_USER_ID = "user_id";
 
     private final HugeGraphParams graph;
     private final EventListener eventListener;
@@ -441,16 +438,17 @@ public class StandardAuthManager implements AuthManager {
     }
 
     @Override
-    public String loginUser(String username, String password) {
+    public String loginUser(String username, String password)
+                            throws AuthenticationException {
         HugeUser user = this.matchUser(username, password);
         if (user == null) {
-            String msg = String.format("Authentication failed for user '%s'",
-                                       username);
-            throw new NotAuthorizedException(msg);
+            String msg = "Incorrect username or password";
+            throw new AuthenticationException(msg);
         }
 
-        Map<String, ?> payload = ImmutableMap.of(TOKEN_USER_NAME, username,
-                                                 TOKEN_USER_ID,
+        Map<String, ?> payload = ImmutableMap.of(AuthConstant.TOKEN_USER_NAME,
+                                                 username,
+                                                 AuthConstant.TOKEN_USER_ID,
                                                  user.id.asString());
         String token = this.tokenGenerator.create(payload, CACHE_EXPIRE);
 
@@ -461,11 +459,6 @@ public class StandardAuthManager implements AuthManager {
     @Override
     public void logoutUser(String token) {
         this.tokenCache.invalidate(IdGenerator.of(token));
-    }
-
-    @Override
-    public Map<String, Object> verifyToken(String token) {
-        return this.tokenGenerator.verify(token);
     }
 
     @Override
@@ -482,7 +475,7 @@ public class StandardAuthManager implements AuthManager {
         String username = (String) this.tokenCache.get(IdGenerator.of(token));
         if (username == null) {
             Claims payload = this.tokenGenerator.verify(token);
-            username = (String) payload.get(TOKEN_USER_NAME);
+            username = (String) payload.get(AuthConstant.TOKEN_USER_NAME);
 
             long expireAt = payload.getExpiration().getTime();
             long bornTime = CACHE_EXPIRE -
