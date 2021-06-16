@@ -896,6 +896,7 @@ public class GraphTransaction extends IndexableTransaction {
         return this.queryEdges(q);
     }
 
+    @Watched
     public Iterator<Edge> queryEdges(Query query) {
         E.checkArgument(this.removedEdges.isEmpty() || query.noLimit(),
                         "It's not allowed to query with limit when " +
@@ -1131,6 +1132,7 @@ public class GraphTransaction extends IndexableTransaction {
      * @param edgeLabels edge labels of queried edges
      * @return constructed condition query
      */
+    @Watched
     public static ConditionQuery constructEdgesQuery(Id sourceVertex,
                                                      Directions direction,
                                                      Id... edgeLabels) {

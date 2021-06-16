@@ -22,10 +22,8 @@ package com.baidu.hugegraph.api.traversers;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEGREE;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_ELEMENTS_LIMIT;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Set;
 
 import javax.inject.Singleton;
@@ -50,6 +48,7 @@ import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.structure.HugeVertex;
+import com.baidu.hugegraph.traversal.algorithm.records.KneighborRecords;
 import com.baidu.hugegraph.traversal.algorithm.steps.EdgeStep;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
 import com.baidu.hugegraph.traversal.algorithm.KneighborTraverser;
@@ -125,32 +124,27 @@ public class KneighborAPI extends TraverserAPI {
 
         EdgeStep step = step(g, request.step);
 
-        Set<HugeTraverser.Node> results;
+        KneighborRecords results;
         try (KneighborTraverser traverser = new KneighborTraverser(g)) {
             results = traverser.customizedKneighbor(sourceId, step,
                                                     request.maxDepth,
                                                     request.limit);
         }
 
-        Set<Id> neighbors = new HashSet<>();
-        for (HugeTraverser.Node node : results) {
-            neighbors.add(node.id());
-        }
+        Set<Id> neighbors = results.ids(request.limit);
 
-        List<HugeTraverser.Path> paths = new ArrayList<>();
+        HugeTraverser.PathSet paths = new HugeTraverser.PathSet();
         if (request.withPath) {
-            for (HugeTraverser.Node node : results) {
-                paths.add(new HugeTraverser.Path(node.path()));
-            }
+            paths.addAll(results.paths(request.limit));
         }
         Iterator<Vertex> iter = QueryResults.emptyIterator();
         if (request.withVertex) {
             Set<Id> ids = new HashSet<>();
-            for (HugeTraverser.Node node : results) {
-                ids.add(node.id());
-            }
-            for (HugeTraverser.Path p : paths) {
-                ids.addAll(p.vertices());
+            ids.addAll(results.ids(request.limit));
+            if (request.withPath) {
+                for (HugeTraverser.Path p : paths) {
+                    ids.addAll(p.vertices());
+                }
             }
             if (!ids.isEmpty()) {
                 iter = g.vertices(ids.toArray());

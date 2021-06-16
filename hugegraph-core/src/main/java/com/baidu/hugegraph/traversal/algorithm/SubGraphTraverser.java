@@ -19,7 +19,6 @@
 
 package com.baidu.hugegraph.traversal.algorithm;
 
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -104,7 +103,7 @@ public class SubGraphTraverser extends HugeTraverser {
 
         private final Id source;
         private MultivaluedMap<Id, Node> sources = newMultivalueMap();
-        private Set<Id> accessedVertices = newSet();
+        private Set<Id> accessedVertices = newIdSet();
 
         private final Id label;
         private int depth;
@@ -162,7 +161,7 @@ public class SubGraphTraverser extends HugeTraverser {
                 }
 
                 int neighborCount = 0;
-                Set<Id> currentNeighbors = new HashSet<>();
+                Set<Id> currentNeighbors = newIdSet();
                 while (edges.hasNext()) {
                     neighborCount++;
                     HugeEdge edge = (HugeEdge) edges.next();

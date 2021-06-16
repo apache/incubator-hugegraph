@@ -227,7 +227,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
     @Override
     public List<String> property(String property) {
         try {
-            if (property.equals(RocksDBMetrics.DISK_USAGE)) {
+            if (property.equals(RocksDBMetrics.KEY_DISK_USAGE)) {
                 long size = this.rocksdb.sstFileManager.getTotalSize();
                 return ImmutableList.of(String.valueOf(size));
             }
@@ -239,6 +239,17 @@ public class RocksDBStdSessions extends RocksDBSessions {
             }
             return values;
         } catch(RocksDBException | UnsupportedOperationException e) {
+            throw new BackendException(e);
+        }
+    }
+
+    @Override
+    public void compactRange() {
+        try {
+            // Waits while compaction is performed on the background threads
+            // rocksdb().flush(new FlushOptions())
+            rocksdb().compactRange();
+        } catch (RocksDBException e) {
             throw new BackendException(e);
         }
     }
@@ -359,7 +370,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
             return;
         }
         RocksDBIngester ingester = new RocksDBIngester(this.rocksdb());
-        // Ingest all *.sst files in `directory`
+        // Ingest all *.sst files in each directory named cf name
         for (String cf : this.rocksdb.cfs()) {
             Path path = Paths.get(directory, cf);
             if (path.toFile().isDirectory()) {
@@ -439,8 +450,8 @@ public class RocksDBStdSessions extends RocksDBSessions {
     }
 
     private static void createCheckpoint(RocksDB rocksdb, String targetPath) {
-        Path parentPath = Paths.get(targetPath).getParent().getFileName();
-        assert parentPath.toString().startsWith("snapshot") : targetPath;
+        Path parentName = Paths.get(targetPath).getParent().getFileName();
+        assert parentName.toString().startsWith("snapshot") : targetPath;
         // https://github.com/facebook/rocksdb/wiki/Checkpoints
         try (Checkpoint checkpoint = Checkpoint.create(rocksdb)) {
             String tempPath = targetPath + "_temp";
@@ -862,6 +873,16 @@ public class RocksDBStdSessions extends RocksDBSessions {
                 endKey = iter.key();
             }
             return Pair.of(startKey, endKey);
+        }
+
+        @Override
+        public void compactRange(String table) {
+            try (CFHandle cf = cf(table)) {
+                // Waits while compaction is performed on the background threads
+                rocksdb().compactRange(cf.get());
+            } catch (RocksDBException e) {
+                throw new BackendException(e);
+            }
         }
 
         /**

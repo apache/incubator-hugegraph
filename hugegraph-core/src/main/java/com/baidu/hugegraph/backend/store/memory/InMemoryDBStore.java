@@ -81,7 +81,7 @@ public abstract class InMemoryDBStore
     private void registerMetaHandlers() {
         this.registerMetaHandler("metrics", (session, meta, args) -> {
             InMemoryMetrics metrics = new InMemoryMetrics();
-            return metrics.getMetrics();
+            return metrics.metrics();
         });
     }
 

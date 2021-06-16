@@ -275,8 +275,16 @@ public class HbaseSessions extends BackendSessionPool {
         }
     }
 
+    public void compactTables(List<String> tableNames) throws IOException {
+        try (Admin admin = this.hbase.getAdmin()) {
+            for (String table : tableNames) {
+                admin.compact(TableName.valueOf(this.namespace, table));
+            }
+        }
+    }
+
     public long storeSize(String table) throws IOException {
-        long total = 0;
+        long total = 0L;
         try (Admin admin = this.hbase.getAdmin()) {
             for (ServerName rs : admin.getRegionServers()) {
                 // NOTE: we can use getLoad() before hbase 2.0

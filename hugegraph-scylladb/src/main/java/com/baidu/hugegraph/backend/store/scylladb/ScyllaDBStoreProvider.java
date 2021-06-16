@@ -24,8 +24,11 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
+import com.baidu.hugegraph.backend.store.cassandra.CassandraMetrics;
+import com.baidu.hugegraph.backend.store.cassandra.CassandraSessionPool;
 import com.baidu.hugegraph.backend.store.cassandra.CassandraStore;
 import com.baidu.hugegraph.backend.store.cassandra.CassandraStoreProvider;
+import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
@@ -94,6 +97,13 @@ public class ScyllaDBStoreProvider extends CassandraStoreProvider {
         public BackendFeatures features() {
             return FEATURES;
         }
+
+        @Override
+        protected CassandraMetrics createMetrics(HugeConfig conf,
+                                                 CassandraSessionPool sessions,
+                                                 String keyspace) {
+            return new ScyllaDBMetrics(conf, sessions, keyspace);
+        }
     }
 
     public static class ScyllaDBGraphStore
@@ -114,6 +124,13 @@ public class ScyllaDBStoreProvider extends CassandraStoreProvider {
         @Override
         public BackendFeatures features() {
             return FEATURES;
+        }
+
+        @Override
+        protected CassandraMetrics createMetrics(HugeConfig conf,
+                                                 CassandraSessionPool sessions,
+                                                 String keyspace) {
+            return new ScyllaDBMetrics(conf, sessions, keyspace);
         }
     }
 }

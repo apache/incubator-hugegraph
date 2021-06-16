@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.backend.store.rocksdbsst;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -30,6 +31,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.rocksdb.EnvOptions;
 import org.rocksdb.Options;
@@ -38,6 +40,7 @@ import org.rocksdb.SstFileWriter;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumnIterator;
+import com.baidu.hugegraph.backend.store.rocksdb.RocksDBIngester;
 import com.baidu.hugegraph.backend.store.rocksdb.RocksDBSessions;
 import com.baidu.hugegraph.backend.store.rocksdb.RocksDBStdSessions;
 import com.baidu.hugegraph.config.HugeConfig;
@@ -103,6 +106,16 @@ public class RocksDBSstSessions extends RocksDBSessions {
     }
 
     private void createTable(String table) throws RocksDBException {
+        String number = String.format("%04d", 1);
+        Path sstFile = Paths.get(this.dataPath, table,
+                                 number + RocksDBIngester.SST);
+        try {
+            FileUtils.forceMkdir(sstFile.getParent().toFile());
+        } catch (IOException e) {
+            throw new BackendException("Can't make directory for sst: '%s'",
+                                       e, sstFile.toString());
+        }
+
         EnvOptions env = new EnvOptions();
         Options options = new Options();
         RocksDBStdSessions.initOptions(this.config(), options, options,
@@ -110,8 +123,7 @@ public class RocksDBSstSessions extends RocksDBSessions {
         // NOTE: unset merge op due to SIGSEGV when cf.setMergeOperatorName()
         options.setMergeOperatorName("not-exist-merge-op");
         SstFileWriter sst = new SstFileWriter(env, options);
-        Path path = Paths.get(this.dataPath, table);
-        sst.open(path.toString() + ".sst");
+        sst.open(sstFile.toString());
         this.tables.put(table, sst);
     }
 
@@ -124,7 +136,9 @@ public class RocksDBSstSessions extends RocksDBSessions {
     }
 
     public void dropTable(String table) throws RocksDBException {
-        this.tables.remove(table);
+        SstFileWriter sst = this.tables.remove(table);
+        assert sst == null || !sst.isOwningHandle() :
+               "Please close table before drop to ensure call sst.finish()";
     }
 
     @Override
@@ -135,6 +149,11 @@ public class RocksDBSstSessions extends RocksDBSessions {
     @Override
     public List<String> property(String property) {
         throw new UnsupportedOperationException("RocksDBSstStore property()");
+    }
+
+    @Override
+    public void compactRange() {
+        throw new NotSupportException("RocksDBSstStore compactRange()");
     }
 
     @Override
@@ -304,6 +323,11 @@ public class RocksDBSstSessions extends RocksDBSessions {
         @Override
         public Pair<byte[], byte[]> keyRange(String table) {
             return null;
+        }
+
+        @Override
+        public void compactRange(String table) {
+            throw new NotSupportException("RocksDBSstStore compactRange()");
         }
 
         /**

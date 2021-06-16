@@ -21,7 +21,6 @@ package com.baidu.hugegraph.core;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
@@ -55,7 +54,6 @@ import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.id.SnowflakeIdGenerator;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.page.PageInfo;
-import com.baidu.hugegraph.backend.page.PageState;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
@@ -79,7 +77,6 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.Blob;
 import com.baidu.hugegraph.util.CollectionUtil;
-import com.baidu.hugegraph.util.DateUtil;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
@@ -933,7 +930,7 @@ public class VertexCoreTest extends BaseCoreTest {
         Vertex vertex = graph().addVertex(
                         T.label, "follower", "name",
                         "Baby", "age", 3, "city", "Beijing",
-                        "birth", DateUtil.now().getTime() - 1000L);
+                        "birth", graph().now() - 1000L);
         graph().tx().commit();
 
         Iterator<Vertex> vertices = graph().vertices(vertex);

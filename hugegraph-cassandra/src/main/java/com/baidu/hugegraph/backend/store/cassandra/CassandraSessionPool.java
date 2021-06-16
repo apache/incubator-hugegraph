@@ -44,10 +44,10 @@ public class CassandraSessionPool extends BackendSessionPool {
     private static final int SECOND = 1000;
 
     private Cluster cluster;
-    private String keyspace;
+    private final String keyspace;
 
-    public CassandraSessionPool(HugeConfig config, String keyspace,
-                                String store) {
+    public CassandraSessionPool(HugeConfig config,
+                                String keyspace, String store) {
         super(config, keyspace + "/" + store);
         this.cluster = null;
         this.keyspace = keyspace;

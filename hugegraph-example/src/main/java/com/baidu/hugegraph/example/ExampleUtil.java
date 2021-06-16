@@ -87,7 +87,7 @@ public class ExampleUtil {
     public static void profile() {
         try {
             PerfUtil.instance().profilePackage("com.baidu.hugegraph");
-        } catch (Exception e) {
+        } catch (Throwable e) {
             throw new RuntimeException(e);
         }
     }

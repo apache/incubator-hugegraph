@@ -41,6 +41,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
@@ -114,13 +115,21 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
     }
 
     private void registerMetaHandlers() {
-        this.registerMetaHandler("metrics", (session, meta, args) -> {
+        Supplier<List<RocksDBSessions>> dbsGet = () -> {
             List<RocksDBSessions> dbs = new ArrayList<>();
             dbs.add(this.sessions);
             dbs.addAll(this.tableDBMapping().values());
+            return dbs;
+        };
 
-            RocksDBMetrics metrics = new RocksDBMetrics(dbs, session);
-            return metrics.getMetrics();
+        this.registerMetaHandler("metrics", (session, meta, args) -> {
+            RocksDBMetrics metrics = new RocksDBMetrics(dbsGet.get(), session);
+            return metrics.metrics();
+        });
+
+        this.registerMetaHandler("compact", (session, meta, args) -> {
+            RocksDBMetrics metrics = new RocksDBMetrics(dbsGet.get(), session);
+            return metrics.compact();
         });
     }
 
@@ -539,7 +548,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
 
             this.clear(false);
             this.init();
-            // clear write batch
+            // Clear write-batch
             this.dbs.values().forEach(BackendSessionPool::forceResetSessions);
             LOG.debug("Store truncated: {}", this.store);
         } finally {
@@ -624,8 +633,8 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
                 // Like: parent_path/snapshot_rocksdb-data/*
                 Path snapshotPath = parentParentPath.resolve(snapshotPrefix +
                                                              "_" + pureDataPath);
-                LOG.debug("The origin data path: {}", originDataPath);
-                LOG.debug("The snapshot data path: {}", snapshotPath);
+                LOG.debug("Create snapshot '{}' for origin data path '{}'",
+                          snapshotPath, originDataPath);
                 RocksDBSessions sessions = entry.getValue();
                 sessions.createSnapshot(snapshotPath.toString());
 
@@ -748,6 +757,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         }
     }
 
+    @SuppressWarnings("unused")
     private Map<String, String> reportDiskMapping() {
         Map<String, String> diskMapping = new HashMap<>();
         diskMapping.put(TABLE_GENERAL_KEY, this.dataPath);

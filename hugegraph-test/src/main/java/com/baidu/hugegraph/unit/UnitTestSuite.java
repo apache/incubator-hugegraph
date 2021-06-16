@@ -36,8 +36,11 @@ import com.baidu.hugegraph.unit.core.ConditionTest;
 import com.baidu.hugegraph.unit.core.DataTypeTest;
 import com.baidu.hugegraph.unit.core.DirectionsTest;
 import com.baidu.hugegraph.unit.core.ExceptionTest;
+import com.baidu.hugegraph.unit.core.IdSetTest;
+import com.baidu.hugegraph.unit.core.Int2IntsMapTest;
 import com.baidu.hugegraph.unit.core.LocksTableTest;
 import com.baidu.hugegraph.unit.core.PageStateTest;
+import com.baidu.hugegraph.unit.core.ObjectIntMappingTest;
 import com.baidu.hugegraph.unit.core.QueryTest;
 import com.baidu.hugegraph.unit.core.RangeTest;
 import com.baidu.hugegraph.unit.core.RolePermissionTest;
@@ -52,6 +55,7 @@ import com.baidu.hugegraph.unit.id.SplicingIdGeneratorTest;
 import com.baidu.hugegraph.unit.mysql.MysqlUtilTest;
 import com.baidu.hugegraph.unit.mysql.WhereBuilderTest;
 import com.baidu.hugegraph.unit.rocksdb.RocksDBCountersTest;
+import com.baidu.hugegraph.unit.rocksdb.RocksDBSessionTest;
 import com.baidu.hugegraph.unit.rocksdb.RocksDBSessionsTest;
 import com.baidu.hugegraph.unit.serializer.BinaryBackendEntryTest;
 import com.baidu.hugegraph.unit.serializer.BinaryScatterSerializerTest;
@@ -61,6 +65,7 @@ import com.baidu.hugegraph.unit.serializer.SerializerFactoryTest;
 import com.baidu.hugegraph.unit.serializer.StoreSerializerTest;
 import com.baidu.hugegraph.unit.serializer.TableBackendEntryTest;
 import com.baidu.hugegraph.unit.serializer.TextBackendEntryTest;
+import com.baidu.hugegraph.unit.util.CollectionFactoryTest;
 import com.baidu.hugegraph.unit.util.CompressUtilTest;
 import com.baidu.hugegraph.unit.util.JsonUtilTest;
 import com.baidu.hugegraph.unit.util.StringEncodingTest;
@@ -103,6 +108,9 @@ import com.baidu.hugegraph.unit.util.VersionTest;
     BackendStoreSystemInfoTest.class,
     TraversalUtilTest.class,
     PageStateTest.class,
+    Int2IntsMapTest.class,
+    ObjectIntMappingTest.class,
+    IdSetTest.class,
 
     /* serializer */
     BytesBufferTest.class,
@@ -123,13 +131,15 @@ import com.baidu.hugegraph.unit.util.VersionTest;
 
     /* rocksdb */
     RocksDBSessionsTest.class,
+    RocksDBSessionTest.class,
     RocksDBCountersTest.class,
 
     /* utils */
     VersionTest.class,
     JsonUtilTest.class,
     StringEncodingTest.class,
-    CompressUtilTest.class
+    CompressUtilTest.class,
+    CollectionFactoryTest.class
 })
 public class UnitTestSuite {
 }

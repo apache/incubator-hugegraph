@@ -53,20 +53,21 @@ import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
+import com.baidu.hugegraph.type.define.CollectionType;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.util.E;
-import com.baidu.hugegraph.util.InsertionOrderUtil;
-import com.google.common.collect.ImmutableSet;
+import com.baidu.hugegraph.util.collection.CollectionFactory;
+import com.google.common.collect.ImmutableList;
 
 public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
-    private static final Set<HugeEdge> EMPTY_SET = ImmutableSet.of();
+    private static final List<HugeEdge> EMPTY_LIST = ImmutableList.of();
 
     private Id id;
     private VertexLabel label;
-    private Set<HugeEdge> edges;
+    protected Collection<HugeEdge> edges;
 
     public HugeVertex(final HugeGraph graph, Id id, VertexLabel label) {
         super(graph);
@@ -75,7 +76,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         this.label = label;
 
         this.id = id;
-        this.edges = EMPTY_SET;
+        this.edges = EMPTY_LIST;
         if (this.id != null) {
             if (label.idStrategy() == IdStrategy.CUSTOMIZE_UUID) {
                 this.assignId(id);
@@ -217,12 +218,15 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         return this.edges.size() > 0;
     }
 
-    public Set<HugeEdge> getEdges() {
-        return Collections.unmodifiableSet(this.edges);
+    public Collection<HugeEdge> getEdges() {
+        return Collections.unmodifiableCollection(this.edges);
     }
 
     public void resetEdges() {
-        this.edges = InsertionOrderUtil.newSet();
+        /*
+         * Use List to hold edges to reduce memory usage and operation time.
+         */
+        this.edges = newList();
     }
 
     public void removeEdge(HugeEdge edge) {
@@ -230,8 +234,8 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     }
 
     public void addEdge(HugeEdge edge) {
-        if (this.edges == EMPTY_SET) {
-            this.edges = InsertionOrderUtil.newSet();
+        if (this.edges == EMPTY_LIST) {
+            this.edges = newList();
         }
         this.edges.add(edge);
     }
@@ -323,6 +327,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
      * Add edge with direction OUT
      * @param edge the out edge
      */
+    @Watched
     public void addOutEdge(HugeEdge edge) {
         if (edge.ownerVertex() == null) {
             edge.sourceVertex(this);
@@ -337,6 +342,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
      * Add edge with direction IN
      * @param edge the in edge
      */
+    @Watched
     public void addInEdge(HugeEdge edge) {
         if (edge.ownerVertex() == null) {
             edge.targetVertex(this);
@@ -639,6 +645,14 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         return new HugeVertex4Insert(tx, id, label);
     }
 
+    private static <V> Set<V> newSet() {
+        return CollectionFactory.newSet(CollectionType.EC);
+    }
+
+    private static <V> List<V> newList() {
+        return CollectionFactory.newList(CollectionType.EC);
+    }
+
     private static final class HugeVertex4Insert extends HugeVertex {
 
         private GraphTransaction tx;
@@ -646,8 +660,24 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         public HugeVertex4Insert(final GraphTransaction tx,
                                  Id id, VertexLabel label) {
             super(tx.graph(), id, label);
+            /*
+             * Use Set to hold edges inserted into vertex
+             * to avoid duplicated edges
+             */
+            this.edges = newSet();
             this.tx = tx;
             this.fresh(true);
+        }
+
+        public void resetEdges() {
+            this.edges = newSet();
+        }
+
+        public void addEdge(HugeEdge edge) {
+            if (this.edges == EMPTY_LIST) {
+                this.edges = newSet();
+            }
+            this.edges.add(edge);
         }
 
         @Override

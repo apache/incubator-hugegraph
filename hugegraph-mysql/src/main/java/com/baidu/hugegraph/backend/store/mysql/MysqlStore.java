@@ -78,7 +78,7 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
     private void registerMetaHandlers() {
         this.registerMetaHandler("metrics", (session, meta, args) -> {
             MysqlMetrics metrics = new MysqlMetrics();
-            return metrics.getMetrics();
+            return metrics.metrics();
         });
     }
 

@@ -27,6 +27,7 @@ import static com.baidu.hugegraph.config.OptionChecker.rangeDouble;
 import static com.baidu.hugegraph.config.OptionChecker.rangeInt;
 
 import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.type.define.CollectionType;
 import com.baidu.hugegraph.util.Bytes;
 
 public class CoreOptions extends OptionHolder {
@@ -628,9 +629,19 @@ public class CoreOptions extends OptionHolder {
     public static final ConfigOption<Double> AUTH_LOG_RATE =
             new ConfigOption<>(
                     "auth.log_rate",
-                    "The max rate of audit log output rate per user, " +
-                    "default value is 500 records per second",
+                    "The max rate of audit log output per user, " +
+                    "default value is 1000 records per second.",
                     rangeDouble(0.0, Double.MAX_VALUE),
-                    500.0
+                    1000.0
+            );
+
+    public static final ConfigConvOption<String, CollectionType> OLTP_COLLECTION_TYPE =
+            new ConfigConvOption<>(
+                    "oltp.collection_type",
+                    "The implementation type of collections " +
+                    "used in oltp algorithm.",
+                    allowValues("JCF", "EC", "FU"),
+                    CollectionType::valueOf,
+                    "EC"
             );
 }

@@ -39,7 +39,8 @@ import com.baidu.hugegraph.unit.FakeObjects;
 public class BaseRocksDBUnitTest extends BaseUnitTest {
 
     private static final String TMP_DIR = System.getProperty("java.io.tmpdir");
-    private static final String DB_PATH = TMP_DIR + "/" + "rocksdb";
+    protected static final String DB_PATH = TMP_DIR + "/" + "rocksdb";
+    protected static final String SNAPSHOT_PATH = TMP_DIR + "/" + "snapshot";
 
     protected static final String TABLE = "test-table";
 
@@ -120,6 +121,9 @@ public class BaseRocksDBUnitTest extends BaseUnitTest {
 
     private static void close(RocksDBSessions rocks) throws RocksDBException {
         for (String table : new ArrayList<>(rocks.openedTables())) {
+            if (table.equals("default")) {
+                continue;
+            }
             rocks.dropTable(table);
         }
         rocks.close();

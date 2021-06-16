@@ -20,11 +20,12 @@
 package com.baidu.hugegraph.unit.util;
 
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import org.apache.tinkerpop.shaded.jackson.core.type.TypeReference;
+import org.eclipse.collections.api.map.primitive.MutableIntObjectMap;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -53,8 +54,8 @@ import com.baidu.hugegraph.type.define.IndexType;
 import com.baidu.hugegraph.unit.BaseUnitTest;
 import com.baidu.hugegraph.unit.FakeObjects;
 import com.baidu.hugegraph.util.JsonUtil;
+import com.baidu.hugegraph.util.collection.CollectionFactory;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 
 public class JsonUtilTest extends BaseUnitTest {
 
@@ -234,7 +235,8 @@ public class JsonUtilTest extends BaseUnitTest {
         Id id = IdGenerator.of(123456L);
         HugeVertex vertex = new HugeVertex(fakeObject.graph(), id, vl);
 
-        Map<Id, HugeProperty<?>> properties = ImmutableMap.of(
+        MutableIntObjectMap<HugeProperty<?>> properties =
+                CollectionFactory.newIntObjectMap(
                 name.id(), new HugeVertexProperty<>(vertex, name, "marko"),
                 age.id(), new HugeVertexProperty<>(vertex, age, 29),
                 city.id(), new HugeVertexProperty<>(vertex, city, "Beijing")
@@ -282,9 +284,10 @@ public class JsonUtilTest extends BaseUnitTest {
         Whitebox.setInternalState(edge, "sourceVertex", source);
         Whitebox.setInternalState(edge, "targetVertex", target);
 
-        Map<Id, HugeProperty<?>> properties = ImmutableMap.of(
-                date.id(), new HugeEdgeProperty<>(edge, date,
-                                                  Utils.date("2019-03-12")),
+        Date dateValue = Utils.date("2019-03-12");
+        MutableIntObjectMap<HugeProperty<?>> properties =
+                CollectionFactory.newIntObjectMap(
+                date.id(), new HugeEdgeProperty<>(edge, date, dateValue),
                 weight.id(), new HugeEdgeProperty<>(edge, weight, 0.8)
         );
         Whitebox.setInternalState(edge, "properties", properties);

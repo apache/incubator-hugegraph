@@ -19,8 +19,6 @@
 
 package com.baidu.hugegraph.traversal.algorithm;
 
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -57,21 +55,21 @@ public class PersonalRankTraverser extends HugeTraverser {
         this.checkVertexExist(source, "source vertex");
         E.checkArgumentNotNull(label, "The edge label can't be null");
 
-        Map<Id, Double> ranks = new HashMap<>();
+        Map<Id, Double> ranks = newMap();
         ranks.put(source, 1.0);
 
         Id labelId = this.graph().edgeLabel(label).id();
         Directions dir = this.getStartDirection(source, label);
 
-        Set<Id> outSeeds = new HashSet<>();
-        Set<Id> inSeeds = new HashSet<>();
+        Set<Id> outSeeds = newIdSet();
+        Set<Id> inSeeds = newIdSet();
         if (dir == Directions.OUT) {
             outSeeds.add(source);
         } else {
             inSeeds.add(source);
         }
 
-        Set<Id> rootAdjacencies = new HashSet<>();
+        Set<Id> rootAdjacencies = newIdSet();
         for (long i = 0; i < this.maxDepth; i++) {
             Map<Id, Double> newRanks = this.calcNewRanks(outSeeds, inSeeds,
                                                          labelId, ranks);
@@ -93,10 +91,10 @@ public class PersonalRankTraverser extends HugeTraverser {
 
     private Map<Id, Double> calcNewRanks(Set<Id> outSeeds, Set<Id> inSeeds,
                                          Id label, Map<Id, Double> ranks) {
-        Map<Id, Double> newRanks = new HashMap<>();
+        Map<Id, Double> newRanks = newMap();
         BiFunction<Set<Id>, Directions, Set<Id>> neighborIncrRanks;
         neighborIncrRanks = (seeds, dir) -> {
-            Set<Id> tmpSeeds = new HashSet<>();
+            Set<Id> tmpSeeds = newIdSet();
             for (Id seed : seeds) {
                 Double oldRank = ranks.get(seed);
                 E.checkState(oldRank != null, "Expect rank of seed exists");

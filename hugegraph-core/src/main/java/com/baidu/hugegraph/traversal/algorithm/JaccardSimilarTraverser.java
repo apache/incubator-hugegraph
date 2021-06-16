@@ -19,8 +19,6 @@
 
 package com.baidu.hugegraph.traversal.algorithm;
 
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -151,7 +149,7 @@ public class JaccardSimilarTraverser extends OltpTraverser {
     public Map<Id, Double> jaccardSimilarsSingle(Id source, EdgeStep step,
                                                  long capacity) {
         long count = 0L;
-        Set<Id> accessed = new HashSet<>();
+        Set<Id> accessed = newIdSet();
         accessed.add(source);
         reachCapacity(++count, capacity);
 
@@ -163,9 +161,9 @@ public class JaccardSimilarTraverser extends OltpTraverser {
             return ImmutableMap.of();
         }
 
-        Map<Id, Double> results = new HashMap<>();
+        Map<Id, Double> results = newMap();
         Set<Id> layer2s;
-        Set<Id> layer2All = new HashSet<>();
+        Set<Id> layer2All = newIdSet();
         double jaccardSimilarity;
         for (Id neighbor : layer1s) {
             // Skip if accessed already

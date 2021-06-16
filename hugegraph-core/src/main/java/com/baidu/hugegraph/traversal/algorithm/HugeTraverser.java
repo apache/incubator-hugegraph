@@ -19,10 +19,8 @@
 
 package com.baidu.hugegraph.traversal.algorithm;
 
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -50,16 +48,19 @@ import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.iterator.FilterIterator;
 import com.baidu.hugegraph.iterator.LimitIterator;
 import com.baidu.hugegraph.iterator.MapperIterator;
+import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.SchemaLabel;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.traversal.algorithm.steps.EdgeStep;
 import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.CollectionType;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
+import com.baidu.hugegraph.util.collection.CollectionFactory;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -67,6 +68,8 @@ import com.google.common.collect.ImmutableSet;
 public class HugeTraverser {
 
     private HugeGraph graph;
+
+    private static CollectionFactory collectionFactory;
 
     public static final String DEFAULT_CAPACITY = "10000000";
     public static final String DEFAULT_ELEMENTS_LIMIT = "10000000";
@@ -87,6 +90,9 @@ public class HugeTraverser {
 
     public HugeTraverser(HugeGraph graph) {
         this.graph = graph;
+        if (collectionFactory == null) {
+            collectionFactory = new CollectionFactory(this.collectionType());
+        }
     }
 
     public HugeGraph graph() {
@@ -97,6 +103,10 @@ public class HugeTraverser {
         return this.graph.option(CoreOptions.OLTP_CONCURRENT_DEPTH);
     }
 
+    private CollectionType collectionType() {
+        return this.graph.option(CoreOptions.OLTP_COLLECTION_TYPE);
+    }
+
     protected Set<Id> adjacentVertices(Id sourceV, Set<Id> vertices,
                                        Directions dir, Id label,
                                        Set<Id> excluded, long degree,
@@ -105,7 +115,7 @@ public class HugeTraverser {
             return ImmutableSet.of();
         }
 
-        Set<Id> neighbors = newSet();
+        Set<Id> neighbors = newIdSet();
         for (Id source : vertices) {
             Iterator<Edge> edges = this.edgesOfVertex(source, dir,
                                                       label, degree);
@@ -137,7 +147,7 @@ public class HugeTraverser {
     }
 
     protected Set<Id> adjacentVertices(Id source, EdgeStep step) {
-        Set<Id> neighbors = new HashSet<>();
+        Set<Id> neighbors = newSet();
         Iterator<Edge> edges = this.edgesOfVertex(source, step);
         while (edges.hasNext()) {
             neighbors.add(((HugeEdge) edges.next()).id().otherVertexId());
@@ -145,30 +155,7 @@ public class HugeTraverser {
         return neighbors;
     }
 
-    protected Set<Node> adjacentVertices(Id start, Set<Node> vertices,
-                                         EdgeStep step, Set<Node> excluded,
-                                         long remaining) {
-        Set<Node> neighbors = newSet();
-        for (Node source : vertices) {
-            Iterator<Edge> edges = this.edgesOfVertex(source.id(), step);
-            while (edges.hasNext()) {
-                Id target = ((HugeEdge) edges.next()).id().otherVertexId();
-                KNode kNode = new KNode(target, (KNode) source);
-                boolean matchExcluded = (excluded != null &&
-                                         excluded.contains(kNode));
-                if (matchExcluded || neighbors.contains(kNode) ||
-                    start.equals(kNode.id())) {
-                    continue;
-                }
-                neighbors.add(kNode);
-                if (remaining != NO_LIMIT && --remaining <= 0L) {
-                    return neighbors;
-                }
-            }
-        }
-        return neighbors;
-    }
-
+    @Watched
     protected Iterator<Edge> edgesOfVertex(Id source, Directions dir,
                                            Id label, long limit) {
         Id[] labels = {};
@@ -183,6 +170,7 @@ public class HugeTraverser {
         return this.graph.edges(query);
     }
 
+    @Watched
     protected Iterator<Edge> edgesOfVertex(Id source, Directions dir,
                                            Map<Id, String> labels, long limit) {
         if (labels == null || labels.isEmpty()) {
@@ -413,7 +401,7 @@ public class HugeTraverser {
         if (skipDegree <= 0L) {
             return edges;
         }
-        List<Edge> edgeList = new ArrayList<>();
+        List<Edge> edgeList = newList();
         for (int i = 1; edges.hasNext(); i++) {
             Edge edge = edges.next();
             if (i <= degree) {
@@ -426,6 +414,10 @@ public class HugeTraverser {
         return edgeList.iterator();
     }
 
+    protected static Set<Id> newIdSet() {
+        return collectionFactory.newIdSet();
+    }
+
     protected static <V> Set<V> newSet() {
         return newSet(false);
     }
@@ -434,12 +426,36 @@ public class HugeTraverser {
         if (concurrent) {
             return ConcurrentHashMap.newKeySet();
         } else {
-            return new HashSet<>();
+            return collectionFactory.newSet();
         }
     }
 
+    protected static <V> Set<V> newSet(int initialCapacity) {
+        return collectionFactory.newSet(initialCapacity);
+    }
+
+    protected static <V> Set<V> newSet(Collection<V> collection) {
+        return collectionFactory.newSet(collection);
+    }
+
+    protected static <V> List<V> newList() {
+        return collectionFactory.newList();
+    }
+
+    protected static <V> List<V> newList(int initialCapacity) {
+        return collectionFactory.newList(initialCapacity);
+    }
+
+    protected static <V> List<V> newList(Collection<V> collection) {
+        return collectionFactory.newList(collection);
+    }
+
     protected static <K, V> Map<K, V> newMap() {
-        return new HashMap<>();
+        return collectionFactory.newMap();
+    }
+
+    protected static <K, V> Map<K, V> newMap(int initialCapacity) {
+        return collectionFactory.newMap(initialCapacity);
     }
 
     protected static <K, V> MultivaluedMap<K, V> newMultivalueMap() {
@@ -490,7 +506,7 @@ public class HugeTraverser {
         }
 
         public List<Id> path() {
-            List<Id> ids = new ArrayList<>();
+            List<Id> ids = newList();
             Node current = this;
             do {
                 ids.add(current.id);
@@ -536,22 +552,6 @@ public class HugeTraverser {
         }
     }
 
-    public static class KNode extends Node {
-
-        public KNode(Id id, KNode parent) {
-            super(id, parent);
-        }
-
-        @Override
-        public boolean equals(Object object) {
-            if (!(object instanceof KNode)) {
-                return false;
-            }
-            KNode other = (KNode) object;
-            return Objects.equals(this.id(), other.id());
-        }
-    }
-
     public static class Path {
 
         public static final Path EMPTY_PATH = new Path(ImmutableList.of());
@@ -570,6 +570,10 @@ public class HugeTraverser {
 
         public Id crosspoint() {
             return this.crosspoint;
+        }
+
+        public void addToLast(Id id) {
+            this.vertices.add(id);
         }
 
         public List<Id> vertices() {
@@ -621,13 +625,83 @@ public class HugeTraverser {
         }
     }
 
-    public static class PathSet extends HashSet<Path> {
+    public static class PathSet implements Set<Path> {
 
         private static final long serialVersionUID = -8237531948776524872L;
 
+        private Set<Path> paths = newSet();
+
+        public boolean add(Path path) {
+            return this.paths.add(path);
+        }
+
+        @Override
+        public boolean remove(Object o) {
+            return this.paths.remove(o);
+        }
+
+        @Override
+        public boolean containsAll(Collection<?> c) {
+            return this.paths.containsAll(c);
+        }
+
+        @Override
+        public boolean addAll(Collection<? extends Path> c) {
+            return this.paths.addAll(c);
+        }
+
+        @Override
+        public boolean retainAll(Collection<?> c) {
+            return this.paths.retainAll(c);
+        }
+
+        @Override
+        public boolean removeAll(Collection<?> c) {
+            return this.paths.removeAll(c);
+        }
+
+        @Override
+        public void clear() {
+            this.paths.clear();
+        }
+
+        @Override
+        public boolean isEmpty() {
+            return this.paths.isEmpty();
+        }
+
+        @Override
+        public boolean contains(Object o) {
+            return this.paths.contains(o);
+        }
+
+        @Override
+        public int size() {
+            return this.paths.size();
+        }
+
+        @Override
+        public Iterator<Path> iterator() {
+            return this.paths.iterator();
+        }
+
+        @Override
+        public Object[] toArray() {
+            return this.paths.toArray();
+        }
+
+        @Override
+        public <T> T[] toArray(T[] a) {
+            return this.paths.toArray(a);
+        }
+
+        public boolean addAll(PathSet paths) {
+            return this.paths.addAll(paths.paths);
+        }
+
         public Set<Id> vertices() {
-            Set<Id> vertices = new HashSet<>();
-            for (Path path : this) {
+            Set<Id> vertices = newIdSet();
+            for (Path path : this.paths) {
                 vertices.addAll(path.vertices());
             }
             return vertices;
