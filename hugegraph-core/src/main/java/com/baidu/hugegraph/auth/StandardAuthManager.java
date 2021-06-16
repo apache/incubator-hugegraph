@@ -21,12 +21,19 @@ package com.baidu.hugegraph.auth;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Callable;
 
 import javax.security.sasl.AuthenticationException;
 
+import javax.ws.rs.ForbiddenException;
+
+import org.slf4j.Logger;
+
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.auth.HugeUser.P;
 import com.baidu.hugegraph.auth.SchemaDefine.AuthElement;
@@ -40,13 +47,20 @@ import com.baidu.hugegraph.event.EventListener;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Events;
+import com.baidu.hugegraph.util.LockUtil;
+import com.baidu.hugegraph.util.Log;
 import com.baidu.hugegraph.util.StringEncoding;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 import io.jsonwebtoken.Claims;
 
+
 public class StandardAuthManager implements AuthManager {
+
+    protected static final Logger LOG = Log.logger(StandardAuthManager.class);
 
     private final HugeGraphParams graph;
     private final EventListener eventListener;
@@ -61,6 +75,7 @@ public class StandardAuthManager implements AuthManager {
     private final EntityManager<HugeUser> users;
     private final EntityManager<HugeGroup> groups;
     private final EntityManager<HugeTarget> targets;
+    private final EntityManager<HugeProject> project;
 
     private final RelationshipManager<HugeBelong> belong;
     private final RelationshipManager<HugeAccess> access;
@@ -87,6 +102,8 @@ public class StandardAuthManager implements AuthManager {
                                           HugeGroup::fromVertex);
         this.targets = new EntityManager<>(this.graph, HugeTarget.P.TARGET,
                                            HugeTarget::fromVertex);
+        this.project = new EntityManager<>(this.graph, HugeProject.P.PROJECT,
+                                           HugeProject::fromVertex);
 
         this.belong = new RelationshipManager<>(this.graph, HugeBelong.P.BELONG,
                                                 HugeBelong::fromEdge);
@@ -144,6 +161,7 @@ public class StandardAuthManager implements AuthManager {
         HugeTarget.schema(this.graph).initSchemaIfNeeded();
         HugeBelong.schema(this.graph).initSchemaIfNeeded();
         HugeAccess.schema(this.graph).initSchemaIfNeeded();
+        HugeProject.schema(this.graph).initSchemaIfNeeded();
     }
 
     private void invalidateUserCache() {
@@ -426,7 +444,7 @@ public class StandardAuthManager implements AuthManager {
         }
 
         // Collect accesses by user
-        List<HugeAccess> accesses = new ArrayList<>();;
+        List<HugeAccess> accesses = new ArrayList<>();
         List<HugeBelong> belongs = this.listBelongByUser(user.id(), -1);
         for (HugeBelong belong : belongs) {
             accesses.addAll(this.listAccessByGroup(belong.target(), -1));
@@ -516,10 +534,237 @@ public class StandardAuthManager implements AuthManager {
         return new UserWithRole(user.id(), username, this.rolePermission(user));
     }
 
+    @Override
+    public Id createProject(HugeProject project) {
+        E.checkArgument(!Strings.isNullOrEmpty(project.name()),
+                        "name of project not be null or empty");
+        return commit(() -> {
+            //create admin group
+            if (Strings.isNullOrEmpty(project.adminGroupId())) {
+                HugeGroup adminGroup = new HugeGroup(project.adminGroupName());
+                adminGroup.creator(project.creator());
+                Id adminGroupId = this.createGroup(adminGroup);
+                project.adminGroupId(adminGroupId.asString());
+            }
+            //create op group
+            if (Strings.isNullOrEmpty(project.opGroupId())) {
+                HugeGroup opGroup = new HugeGroup(project.opGroupName());
+                opGroup.creator(project.creator());
+                Id opGroupId = this.createGroup(opGroup);
+                project.opGroupId(opGroupId.asString());
+            }
+
+            Id projectId = this.project.add(project);
+            E.checkState(projectId != null, "create project failed");
+
+            //create target
+            HugeResource resource = new HugeResource(ResourceType.PROJECT,
+                                                     projectId.asString(),
+                                                     null);
+            HugeTarget target = new HugeTarget(project.updateTargetName(),
+                                               this.graph.name(),
+                                               "localhost:8080",
+                                               ImmutableList.of(resource));
+            target.creator(project.creator());
+            Id targetId = this.targets.add(target);
+            project.targetId(targetId.asString());
+
+            Id adminGroupId = IdGenerator.of(project.adminGroupId());
+            Id opGroupId = IdGenerator.of(project.opGroupId());
+            HugeAccess adminGroupWriteAccess2Target = new HugeAccess(adminGroupId,
+                                                                     targetId,
+                                                                     HugePermission.WRITE);
+            adminGroupWriteAccess2Target.creator(project.creator());
+            HugeAccess adminGroupReadAccess2Target = new HugeAccess(adminGroupId,
+                                                                    targetId,
+                                                                    HugePermission.READ);
+            adminGroupReadAccess2Target.creator(project.creator());
+            HugeAccess adminGroupDeleteAccess2Target = new HugeAccess(adminGroupId,
+                                                                      targetId,
+                                                                      HugePermission.DELETE);
+            adminGroupDeleteAccess2Target.creator(project.creator());
+            HugeAccess opGroupReadAccess2Target = new HugeAccess(opGroupId,
+                                                                 targetId,
+                                                                 HugePermission.READ);
+            opGroupReadAccess2Target.creator(project.creator());
+            this.access.add(adminGroupWriteAccess2Target);
+            this.access.add(adminGroupReadAccess2Target);
+            this.access.add(adminGroupDeleteAccess2Target);
+            this.access.add(opGroupReadAccess2Target);
+
+            //update targetId property of project
+            HugeProject newProject = this.project.get(projectId);
+            E.checkState(newProject != null, "create project failed");
+            newProject.targetId(targetId.asString());
+            return this.project.update(newProject);
+        });
+    }
+
+    @Override
+    public HugeProject deleteProject(Id id) {
+        return this.commit(() -> {
+            LockUtil.Locks locks = new LockUtil.Locks(this.graph.name());
+            try {
+                locks.lockWrites(LockUtil.VERTEX_LABEL_ADD_UPDATE, id);
+
+                HugeProject oldProject = this.project.get(id);
+                E.checkArgumentNotNull(oldProject,
+                                       "project that id is %s not exist!",
+                                       id.asString());
+                //check not graph bind this project
+                if (oldProject.graphs() != null &&
+                    !oldProject.graphs().isEmpty()) {
+                    throw new ForbiddenException(
+                            String.format("project that id " +
+                                          "is %s must not " +
+                                          "graph bind it", id.asString()));
+                }
+                HugeProject project = this.project.delete(id);
+                E.checkArgumentNotNull(project, "deleting project failed");
+                E.checkArgument(!Strings.isNullOrEmpty(project.adminGroupId()),
+                                "deleting %s failed, project.adminGroupId is "
+                                + "null or empty", id.asString());
+                E.checkArgument(!Strings.isNullOrEmpty(project.opGroupId()),
+                                "deleting %s failed, project.opGroupId"
+                                + " is null or empty", id.asString());
+                E.checkArgument(!Strings.isNullOrEmpty(project.targetId()),
+                                "deleting %s failed, "
+                                + "project.updateTargetId is null or empty",
+                                id.asString());
+                //deleting admin group
+                this.groups.delete(IdGenerator.of(project.adminGroupId()));
+                //deleting op group
+                this.groups.delete(IdGenerator.of(project.opGroupId()));
+                //deleting project_target
+                this.targets.delete(IdGenerator.of(project.targetId()));
+                return project;
+            } finally {
+                locks.unlock();
+            }
+        });
+    }
+
+    @Override
+    public Id updateProject(HugeProject project) {
+        E.checkArgumentNotNull(project, "project not be null");
+        E.checkArgumentNotNull(project.id(),
+                               "project's id not be null");
+        E.checkArgument(!Strings.isNullOrEmpty(project.desc()),
+                        "project's desc not be null or empty, "
+                        + "project id is %s", project.id().asString());
+
+        LockUtil.Locks locks = new LockUtil.Locks(this.graph.name());
+        try {
+            locks.lockWrites(LockUtil.VERTEX_LABEL_ADD_UPDATE, project.id());
+
+            HugeProject source = this.project.get(project.id());
+            source.desc(project.desc());
+            return this.project.update(source);
+        } finally {
+            locks.unlock();
+        }
+    }
+
+    @Override
+    public Id updateProjectAddGraph(Id id, String graph) {
+        E.checkArgument(!Strings.isNullOrEmpty(graph),
+                        "update project add graph failed, graph "
+                        + "not be null or empty");
+
+        LockUtil.Locks locks = new LockUtil.Locks(this.graph.name());
+        try {
+            locks.lockWrites(LockUtil.VERTEX_LABEL_ADD_UPDATE, id);
+
+            HugeProject project = this.project.get(id);
+            E.checkArgumentNotNull(project,
+                                   "project that id is %s is not found",
+                                   id.asString());
+            Set<String> graphs = project.graphs();
+            if (graphs == null) {
+                graphs = new HashSet<>();
+            } else {
+                E.checkArgument(!graphs.contains(graph),
+                                "graph has included in " +
+                                "project that id is %s",
+                                id);
+            }
+            graphs.add(graph);
+            project.graphs(graphs);
+            return this.project.update(project);
+        } finally {
+            locks.unlock();
+        }
+    }
+
+    @Override
+    public Id updateProjectRemoveGraph(Id id, String graph) {
+        E.checkArgument(!Strings.isNullOrEmpty(graph),
+                        "update project add graph failed, graph "
+                        + "not be null or empty");
+
+        LockUtil.Locks locks = new LockUtil.Locks(this.graph.name());
+        try {
+            locks.lockWrites(LockUtil.VERTEX_LABEL_ADD_UPDATE, id);
+
+            HugeProject project = this.project.get(id);
+            E.checkArgumentNotNull(project,
+                                   "project that id is %s is not found",
+                                   id.asString());
+            Set<String> graphs = project.graphs();
+            if (graphs == null || !graphs.contains(graph)) {
+                return id;
+            }
+            graphs.remove(graph);
+            project.graphs(graphs);
+            return this.project.update(project);
+        } finally {
+            locks.unlock();
+        }
+    }
+
+    @Override
+    public HugeProject getProject(Id id) {
+        return this.project.get(id);
+    }
+
+    @Override
+    public List<HugeProject> listAllProject(long limit) {
+        return this.project.list(limit);
+    }
+
     /**
      * Maybe can define an proxy class to choose forward or call local
      */
     public static boolean isLocal(AuthManager authManager) {
         return authManager instanceof StandardAuthManager;
+    }
+
+    public <R> R commit(Callable<R> callable) {
+        this.groups.shouldCommitTrans(false);
+        this.access.shouldCommitTrans(false);
+        this.targets.shouldCommitTrans(false);
+        this.project.shouldCommitTrans(false);
+        this.belong.shouldCommitTrans(false);
+        this.users.shouldCommitTrans(false);
+
+        try {
+            R result = callable.call();
+            this.graph.systemTransaction().commit();
+            return result;
+        } catch (Throwable throwable) {
+            this.groups.shouldCommitTrans(true);
+            this.access.shouldCommitTrans(true);
+            this.targets.shouldCommitTrans(true);
+            this.project.shouldCommitTrans(true);
+            this.belong.shouldCommitTrans(true);
+            this.users.shouldCommitTrans(true);
+            try {
+                this.graph.systemTransaction().rollback();
+            } catch (Throwable rollbackException) {
+                LOG.error("rollback failed", rollbackException);
+            }
+
+            throw new HugeException("call failed", throwable);
+        }
     }
 }

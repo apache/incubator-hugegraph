@@ -51,16 +51,17 @@ public class EntityManager<T extends Entity> {
     private final HugeGraphParams graph;
     private final String label;
     private final Function<Vertex, T> deser;
+    private final ThreadLocal<Boolean> shouldCommitTrans = new ThreadLocal<>();
 
     private static final long NO_LIMIT = -1L;
 
     public EntityManager(HugeGraphParams graph, String label,
-                         Function<Vertex, T> dser) {
+                         Function<Vertex, T> deser) {
         E.checkNotNull(graph, "graph");
 
         this.graph = graph;
         this.label = label;
-        this.deser = dser;
+        this.deser = deser;
     }
 
     private GraphTransaction tx() {
@@ -189,6 +190,13 @@ public class EntityManager<T extends Entity> {
     }
 
     private void commitOrRollback() {
+        if (shouldCommitTrans.get() != null && !shouldCommitTrans.get()) {
+            return;
+        }
         this.tx().commitOrRollback();
+    }
+
+    public void shouldCommitTrans(boolean value) {
+        shouldCommitTrans.set(value);
     }
 }

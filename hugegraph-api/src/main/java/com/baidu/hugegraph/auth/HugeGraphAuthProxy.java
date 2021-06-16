@@ -1462,6 +1462,50 @@ public final class HugeGraphAuthProxy implements HugeGraph {
             this.authManager.logoutUser(token);
         }
 
+        public Id createProject(HugeProject project) {
+            this.updateCreator(project);
+            return this.authManager.createProject(project);
+        }
+
+        @Override
+        public HugeProject deleteProject(Id id) {
+            return this.authManager.deleteProject(id);
+        }
+
+        @Override
+        public Id updateProject(HugeProject project) {
+            this.updateCreator(project);
+            verifyUserPermission(HugePermission.WRITE, project);
+            return this.authManager.updateProject(project);
+        }
+
+        @Override
+        public Id updateProjectAddGraph(Id id, String graph) {
+            verifyUserPermission(HugePermission.WRITE,
+                                 this.authManager.getProject(id));
+            return this.authManager.updateProjectAddGraph(id, graph);
+        }
+
+        @Override
+        public Id updateProjectRemoveGraph(Id id, String graph) {
+            verifyUserPermission(HugePermission.WRITE,
+                                 this.authManager.getProject(id));
+            return this.authManager.updateProjectRemoveGraph(id, graph);
+        }
+
+        @Override
+        public HugeProject getProject(Id id) {
+            HugeProject project = this.authManager.getProject(id);
+            verifyUserPermission(HugePermission.READ, project);
+            return project;
+        }
+
+        @Override
+        public List<HugeProject> listAllProject(long limit) {
+            List<HugeProject> projects = this.authManager.listAllProject(limit);
+            return verifyUserPermission(HugePermission.READ, projects);
+        }
+
         private void switchAuthManager(AuthManager authManager) {
             this.authManager = authManager;
             HugeGraphAuthProxy.this.hugegraph.switchAuthManager(authManager);

@@ -79,4 +79,12 @@ public interface AuthManager {
 
     public UserWithRole validateUser(String username, String password);
     public UserWithRole validateUser(String token);
+
+    public Id createProject(HugeProject project);
+    public HugeProject deleteProject(Id id);
+    public Id updateProject(HugeProject project);
+    public Id updateProjectAddGraph(Id id, String graph);
+    public Id updateProjectRemoveGraph(Id id, String graph);
+    public HugeProject getProject(Id id);
+    public List<HugeProject> listAllProject(long limit);
 }
