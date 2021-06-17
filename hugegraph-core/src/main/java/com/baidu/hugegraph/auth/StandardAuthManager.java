@@ -158,7 +158,7 @@ public class StandardAuthManager implements AuthManager {
     @Override
     public HugeUser findUser(String name) {
         Id key = IdGenerator.of(name);
-        HugeUser user = (HugeUser) this.usersCache.get(key);
+        HugeUser user = this.usersCache.get(key);
         if (user != null) {
             return user;
         }
@@ -362,12 +362,12 @@ public class StandardAuthManager implements AuthManager {
         }
 
         Id id = IdGenerator.of(user.id());
-        if (password.equals(pwdCache.get(id))) {
+        if (password.equals(this.pwdCache.get(id))) {
             return user;
         }
 
         if (StringEncoding.checkPassword(password, user.password())) {
-            pwdCache.update(id, password);
+            this.pwdCache.update(id, password);
             return user;
         }
         return null;
@@ -472,7 +472,7 @@ public class StandardAuthManager implements AuthManager {
 
     @Override
     public UserWithRole validateUser(String token) {
-        String username = (String) this.tokenCache.get(IdGenerator.of(token));
+        String username = this.tokenCache.get(IdGenerator.of(token));
         if (username == null) {
             Claims payload = this.tokenGenerator.verify(token);
             username = (String) payload.get(AuthConstant.TOKEN_USER_NAME);

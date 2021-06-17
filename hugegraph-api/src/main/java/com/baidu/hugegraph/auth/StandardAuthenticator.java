@@ -46,26 +46,31 @@ public class StandardAuthenticator implements HugeAuthenticator {
         return this.graph;
     }
 
-    private void initAdminUser() throws Exception {
-        this.initAdminUser(this.inputPassword());
-
+    private void initAdminUser(AuthManager authManager) throws Exception {
+        if (requireInitAdminUser(authManager)) {
+            this.initAdminUser(this.inputPassword());
+        }
         this.graph.close();
     }
 
-    public void initAdminUser(String password) throws Exception {
+    public void initAdminUser(String password) {
         // Not allowed to call by non main thread
         String caller = Thread.currentThread().getName();
         E.checkState(caller.equals("main"), "Invalid caller '%s'", caller);
 
         AuthManager authManager = this.graph().hugegraph().authManager();
         // Only init user when local mode and user has not been initialized
-        if (StandardAuthManager.isLocal(authManager) &&
-            authManager.findUser(HugeAuthenticator.USER_ADMIN) == null) {
+        if (requireInitAdminUser(authManager)) {
             HugeUser admin = new HugeUser(HugeAuthenticator.USER_ADMIN);
             admin.password(StringEncoding.hashPassword(password));
             admin.creator(HugeAuthenticator.USER_SYSTEM);
             authManager.createUser(admin);
         }
+    }
+
+    private boolean requireInitAdminUser(AuthManager authManager) {
+        return StandardAuthManager.isLocal(authManager) &&
+               authManager.findUser(HugeAuthenticator.USER_ADMIN) == null;
     }
 
     private String inputPassword() {
@@ -95,7 +100,12 @@ public class StandardAuthenticator implements HugeAuthenticator {
         String graphName = config.get(ServerOptions.AUTH_GRAPH_STORE);
         String graphPath = config.getMap(ServerOptions.GRAPHS).get(graphName);
         E.checkArgument(graphPath != null,
-                        "Invalid graph name '%s'", graphName);
+                        "Can't find graph name '%s' in config '%s' at " +
+                        "'rest-server.properties' to store auth information, " +
+                        "please ensure the value of '%s' matches it correctly",
+                        graphName, ServerOptions.GRAPHS,
+                        ServerOptions.AUTH_GRAPH_STORE.name());
+
         HugeConfig graphConfig = new HugeConfig(graphPath);
         if (config.getProperty(INITING_STORE) != null &&
             config.getBoolean(INITING_STORE)) {
@@ -114,8 +124,8 @@ public class StandardAuthenticator implements HugeAuthenticator {
 
     /**
      * Verify if a user is legal
-     * @param username  the username for authentication
-     * @param password  the password for authentication
+     * @param username the username for authentication
+     * @param password the password for authentication
      * @param token the token for authentication
      * @return String No permission if return ROLE_NONE else return a role
      */
@@ -166,7 +176,7 @@ public class StandardAuthenticator implements HugeAuthenticator {
         config.addProperty(INITING_STORE, true);
         auth.setup(config);
         if (auth.graph().backendStoreFeatures().supportsPersistence()) {
-            auth.initAdminUser();
+            auth.initAdminUser(auth.authManager());
         }
     }
 }
