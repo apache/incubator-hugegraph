@@ -55,7 +55,7 @@ import com.baidu.hugegraph.auth.RolePermission;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableList;
 
 @Provider
 @PreMatching
@@ -67,7 +67,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
     private static final Logger LOG = Log.logger(AuthenticationFilter.class);
 
-    private static final Set<String> WHITE_API_LIST = ImmutableSet.of(
+    private static final List<String> WHITE_API_LIST = ImmutableList.of(
             "auth/login",
             "versions"
     );
@@ -285,6 +285,12 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
         E.checkArgument(StringUtils.isNotEmpty(path),
                         "Invalid request uri '%s'", path);
-        return WHITE_API_LIST.stream().anyMatch(path::contains);
+
+        for (String whiteApi : WHITE_API_LIST) {
+            if (path.endsWith(whiteApi)) {
+                return true;
+            }
+        }
+        return false;
     }
 }
