@@ -62,7 +62,7 @@ public class TokenGenerator {
                                         .parseClaimsJws(token);
             return claimsJws.getBody();
         } catch (ExpiredJwtException e) {
-            throw new NotAuthorizedException("The token has expired", e);
+            throw new NotAuthorizedException("The token is expired", e);
         } catch (JwtException e) {
             throw new NotAuthorizedException("Invalid token", e);
         }

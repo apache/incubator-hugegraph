@@ -53,7 +53,7 @@ import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
 
-@Path("graphs/{graph}/auth/login")
+@Path("graphs/{graph}/auth")
 @Singleton
 public class LoginAPI extends API {
 
@@ -61,6 +61,7 @@ public class LoginAPI extends API {
 
     @POST
     @Timed
+    @Path("login")
     @Status(StatusFilter.Status.OK)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)

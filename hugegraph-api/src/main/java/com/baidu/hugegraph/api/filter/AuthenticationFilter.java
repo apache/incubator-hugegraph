@@ -68,7 +68,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
     private static final Logger LOG = Log.logger(AuthenticationFilter.class);
 
     private static final Set<String> WHITE_API_LIST = ImmutableSet.of(
-            "login",
+            "auth/login",
             "versions"
     );
 
@@ -281,11 +281,10 @@ public class AuthenticationFilter implements ContainerRequestFilter {
     }
 
     public static boolean isWhiteAPI(ContainerRequestContext context) {
-        List<PathSegment> segments = context.getUriInfo().getPathSegments();
+        String path = context.getUriInfo().getPath();
 
-        E.checkArgument(segments.size() > 0, "Invalid request uri '%s'",
-                        context.getUriInfo().getPath());
-        String rootPath = segments.get(segments.size() - 1).getPath();
-        return WHITE_API_LIST.contains(rootPath);
+        E.checkArgument(StringUtils.isNotEmpty(path),
+                        "Invalid request uri '%s'", path);
+        return WHITE_API_LIST.stream().anyMatch(path::contains);
     }
 }
