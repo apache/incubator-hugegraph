@@ -537,16 +537,16 @@ public class StandardAuthManager implements AuthManager {
     @Override
     public Id createProject(HugeProject project) {
         E.checkArgument(!Strings.isNullOrEmpty(project.name()),
-                        "name of project not be null or empty");
+                        "Name of project not be null or empty");
         return commit(() -> {
-            //create admin group
+            //Create admin group
             if (Strings.isNullOrEmpty(project.adminGroupId())) {
                 HugeGroup adminGroup = new HugeGroup(project.adminGroupName());
                 adminGroup.creator(project.creator());
                 Id adminGroupId = this.createGroup(adminGroup);
                 project.adminGroupId(adminGroupId.asString());
             }
-            //create op group
+            //Create op group
             if (Strings.isNullOrEmpty(project.opGroupId())) {
                 HugeGroup opGroup = new HugeGroup(project.opGroupName());
                 opGroup.creator(project.creator());
@@ -555,9 +555,9 @@ public class StandardAuthManager implements AuthManager {
             }
 
             Id projectId = this.project.add(project);
-            E.checkState(projectId != null, "create project failed");
+            E.checkState(projectId != null, "Create project failed");
 
-            //create target
+            //Create target
             HugeResource resource = new HugeResource(ResourceType.PROJECT,
                                                      projectId.asString(),
                                                      null);
@@ -571,17 +571,20 @@ public class StandardAuthManager implements AuthManager {
 
             Id adminGroupId = IdGenerator.of(project.adminGroupId());
             Id opGroupId = IdGenerator.of(project.opGroupId());
-            HugeAccess adminGroupWriteAccess2Target = new HugeAccess(adminGroupId,
-                                                                     targetId,
-                                                                     HugePermission.WRITE);
+            HugeAccess adminGroupWriteAccess2Target =
+                    new HugeAccess(adminGroupId,
+                                   targetId,
+                                   HugePermission.WRITE);
             adminGroupWriteAccess2Target.creator(project.creator());
-            HugeAccess adminGroupReadAccess2Target = new HugeAccess(adminGroupId,
-                                                                    targetId,
-                                                                    HugePermission.READ);
+            HugeAccess adminGroupReadAccess2Target =
+                    new HugeAccess(adminGroupId,
+                                   targetId,
+                                   HugePermission.READ);
             adminGroupReadAccess2Target.creator(project.creator());
-            HugeAccess adminGroupDeleteAccess2Target = new HugeAccess(adminGroupId,
-                                                                      targetId,
-                                                                      HugePermission.DELETE);
+            HugeAccess adminGroupDeleteAccess2Target =
+                    new HugeAccess(adminGroupId,
+                                   targetId,
+                                   HugePermission.DELETE);
             adminGroupDeleteAccess2Target.creator(project.creator());
             HugeAccess opGroupReadAccess2Target = new HugeAccess(opGroupId,
                                                                  targetId,
@@ -592,9 +595,9 @@ public class StandardAuthManager implements AuthManager {
             this.access.add(adminGroupDeleteAccess2Target);
             this.access.add(opGroupReadAccess2Target);
 
-            //update targetId property of project
+            //Update targetId property of project
             HugeProject newProject = this.project.get(projectId);
-            E.checkState(newProject != null, "create project failed");
+            E.checkState(newProject != null, "Create project failed");
             newProject.targetId(targetId.asString());
             return this.project.update(newProject);
         });
@@ -609,33 +612,33 @@ public class StandardAuthManager implements AuthManager {
 
                 HugeProject oldProject = this.project.get(id);
                 E.checkArgumentNotNull(oldProject,
-                                       "project that id is %s not exist!",
+                                       "Project that id is %s not exist!",
                                        id.asString());
-                //check not graph bind this project
+                //Check not graph bind this project
                 if (oldProject.graphs() != null &&
                     !oldProject.graphs().isEmpty()) {
                     throw new ForbiddenException(
-                            String.format("project that id " +
+                            String.format("Project that id " +
                                           "is %s must not " +
                                           "graph bind it", id.asString()));
                 }
                 HugeProject project = this.project.delete(id);
-                E.checkArgumentNotNull(project, "deleting project failed");
+                E.checkArgumentNotNull(project, "Deleting project failed");
                 E.checkArgument(!Strings.isNullOrEmpty(project.adminGroupId()),
-                                "deleting %s failed, project.adminGroupId is "
+                                "Deleting %s failed, project.adminGroupId is "
                                 + "null or empty", id.asString());
                 E.checkArgument(!Strings.isNullOrEmpty(project.opGroupId()),
-                                "deleting %s failed, project.opGroupId"
+                                "Deleting %s failed, project.opGroupId"
                                 + " is null or empty", id.asString());
                 E.checkArgument(!Strings.isNullOrEmpty(project.targetId()),
-                                "deleting %s failed, "
+                                "Deleting %s failed, "
                                 + "project.updateTargetId is null or empty",
                                 id.asString());
-                //deleting admin group
+                //Deleting admin group
                 this.groups.delete(IdGenerator.of(project.adminGroupId()));
-                //deleting op group
+                //Deleting op group
                 this.groups.delete(IdGenerator.of(project.opGroupId()));
-                //deleting project_target
+                //Deleting project_target
                 this.targets.delete(IdGenerator.of(project.targetId()));
                 return project;
             } finally {
@@ -646,12 +649,11 @@ public class StandardAuthManager implements AuthManager {
 
     @Override
     public Id updateProject(HugeProject project) {
-        E.checkArgumentNotNull(project, "project not be null");
-        E.checkArgumentNotNull(project.id(),
-                               "project's id not be null");
+        E.checkArgumentNotNull(project, "Project not be null");
+        E.checkArgumentNotNull(project.id(), "Project's id not be null");
         E.checkArgument(!Strings.isNullOrEmpty(project.desc()),
-                        "project's desc not be null or empty, "
-                        + "project id is %s", project.id().asString());
+                        "Project's desc not be null or empty, project id is %s",
+                        project.id().asString());
 
         LockUtil.Locks locks = new LockUtil.Locks(this.graph.name());
         try {
@@ -668,7 +670,7 @@ public class StandardAuthManager implements AuthManager {
     @Override
     public Id updateProjectAddGraph(Id id, String graph) {
         E.checkArgument(!Strings.isNullOrEmpty(graph),
-                        "update project add graph failed, graph "
+                        "Update project add graph failed, graph "
                         + "not be null or empty");
 
         LockUtil.Locks locks = new LockUtil.Locks(this.graph.name());
@@ -677,14 +679,14 @@ public class StandardAuthManager implements AuthManager {
 
             HugeProject project = this.project.get(id);
             E.checkArgumentNotNull(project,
-                                   "project that id is %s is not found",
+                                   "Project that id is %s is not found",
                                    id.asString());
             Set<String> graphs = project.graphs();
             if (graphs == null) {
                 graphs = new HashSet<>();
             } else {
                 E.checkArgument(!graphs.contains(graph),
-                                "graph has included in " +
+                                "Graph has included in " +
                                 "project that id is %s",
                                 id);
             }
@@ -699,7 +701,7 @@ public class StandardAuthManager implements AuthManager {
     @Override
     public Id updateProjectRemoveGraph(Id id, String graph) {
         E.checkArgument(!Strings.isNullOrEmpty(graph),
-                        "update project add graph failed, graph "
+                        "Update project add graph failed, graph "
                         + "not be null or empty");
 
         LockUtil.Locks locks = new LockUtil.Locks(this.graph.name());
@@ -708,7 +710,7 @@ public class StandardAuthManager implements AuthManager {
 
             HugeProject project = this.project.get(id);
             E.checkArgumentNotNull(project,
-                                   "project that id is %s is not found",
+                                   "Project that id is %s is not found",
                                    id.asString());
             Set<String> graphs = project.graphs();
             if (graphs == null || !graphs.contains(graph)) {
@@ -761,10 +763,10 @@ public class StandardAuthManager implements AuthManager {
             try {
                 this.graph.systemTransaction().rollback();
             } catch (Throwable rollbackException) {
-                LOG.error("rollback failed", rollbackException);
+                LOG.error("Rollback failed", rollbackException);
             }
 
-            throw new HugeException("call failed", throwable);
+            throw new HugeException("Call failed", throwable);
         }
     }
 }

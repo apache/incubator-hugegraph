@@ -129,9 +129,9 @@ public class HugeProject extends Entity {
     public Map<String, Object> asMap() {
         E.checkState(this.name != null, "Project name can't be null");
         E.checkState(this.adminGroupId != null,
-                     "admin group id can't be null");
-        E.checkState(this.opGroupId != null, "op group id can't be null");
-        E.checkState(this.targetId != null, "target id can't be null");
+                     "Admin group id can't be null");
+        E.checkState(this.opGroupId != null, "Op group id can't be null");
+        E.checkState(this.targetId != null, "Target id can't be null");
 
         Map<String, Object> map = new HashMap<>();
 
@@ -157,10 +157,11 @@ public class HugeProject extends Entity {
     protected Object[] asArray() {
         E.checkState(this.name != null, "Project name can't be null");
         E.checkState(this.adminGroupId != null,
-                     "admin group id can't be null");
-        E.checkState(this.opGroupId != null, "op group id can't be null");
+                     "Admin group id can't be null");
+        E.checkState(this.opGroupId != null,
+                     "Op group id can't be null");
         E.checkState(this.targetId != null,
-                     "target id can't be null");
+                     "Target id can't be null");
 
         List<Object> list = new ArrayList<>(16);
 

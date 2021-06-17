@@ -1382,7 +1382,7 @@ public class AuthTest extends BaseCoreTest {
         Assert.assertTrue(!Strings.isNullOrEmpty(project.opGroupId()));
         Assert.assertTrue(!Strings.isNullOrEmpty(project.targetId()));
 
-        //check name is unique index
+        //Check name is unique index
         HugeProject sameNameProject = makeProject("test_project",
                                                   "this is a test "
                                                   + "project another");
