@@ -530,7 +530,7 @@ public abstract class CacheTest extends BaseUnitTest {
     private static final int THREADS_NUM = 8;
 
     @Test
-    public void testMutiThreadsUpdate() {
+    public void testMultiThreadsUpdate() {
         Cache<Id, Object> cache = newCache(THREADS_NUM * 10000 * 10);
 
         runWithThreads(THREADS_NUM, () -> {
@@ -544,7 +544,7 @@ public abstract class CacheTest extends BaseUnitTest {
     }
 
     @Test
-    public void testMutiThreadsUpdateWithGtCapacity() {
+    public void testMultiThreadsUpdateWithGtCapacity() {
         int limit = 80;
         Cache<Id, Object> cache = newCache(limit);
 
@@ -560,7 +560,7 @@ public abstract class CacheTest extends BaseUnitTest {
     }
 
     @Test
-    public void testMutiThreadsUpdateAndCheck() {
+    public void testMultiThreadsUpdateAndCheck() {
         Cache<Id, Object> cache = newCache();
 
         runWithThreads(THREADS_NUM, () -> {
@@ -585,7 +585,7 @@ public abstract class CacheTest extends BaseUnitTest {
     }
 
     @Test
-    public void testMutiThreadsGetWith2Items() {
+    public void testMultiThreadsGetWith2Items() {
         Cache<Id, Object> cache = newCache(10);
 
         Id id1 = IdGenerator.of("1");
@@ -605,7 +605,7 @@ public abstract class CacheTest extends BaseUnitTest {
     }
 
     @Test
-    public void testMutiThreadsGetWith3Items() {
+    public void testMultiThreadsGetWith3Items() {
         Cache<Id, Object> cache = newCache(10);
 
         Id id1 = IdGenerator.of("1");
@@ -629,7 +629,7 @@ public abstract class CacheTest extends BaseUnitTest {
     }
 
     @Test
-    public void testMutiThreadsGetAndUpdate() {
+    public void testMultiThreadsGetAndUpdate() {
         Cache<Id, Object> cache = newCache(10);
 
         Id id1 = IdGenerator.of("1");
@@ -654,7 +654,7 @@ public abstract class CacheTest extends BaseUnitTest {
     }
 
     @Test
-    public void testMutiThreadsGetAndUpdateWithGtCapacity() {
+    public void testMultiThreadsGetAndUpdateWithGtCapacity() {
         Cache<Id, Object> cache = newCache(10);
 
         runWithThreads(THREADS_NUM, () -> {

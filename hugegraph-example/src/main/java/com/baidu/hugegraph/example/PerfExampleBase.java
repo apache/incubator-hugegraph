@@ -295,9 +295,9 @@ public abstract class PerfExampleBase {
         }
 
         public Vertex getVertex(Object id) {
-            return ((Vertex) this.cache.getOrFetch((Id) id, k -> {
+            return (Vertex) this.cache.getOrFetch((Id) id, k -> {
                 return this.hugegraph.vertices(k).next();
-            }));
+            });
         }
 
         public void clearVertexCache() {
