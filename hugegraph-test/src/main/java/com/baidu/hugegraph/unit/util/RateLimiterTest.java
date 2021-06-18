@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.unit.auth;
+package com.baidu.hugegraph.unit.util;
 
 import java.util.concurrent.atomic.LongAdder;
 
@@ -31,13 +31,10 @@ import com.baidu.hugegraph.util.RateLimiter;
 
 public class RateLimiterTest {
 
-    private RateLimiter limiter;
-    private int rateLimit;
-
     @Test
     public void testDefaultRateLimiterCreate() {
-        rateLimit = 500;
-        limiter = RateLimiter.create(rateLimit);
+        int rateLimit = 500;
+        RateLimiter limiter = RateLimiter.create(rateLimit);
         Assert.assertInstanceOf(FixedTimerRateLimiter.class, limiter);
 
         Object limit = Whitebox.getInternalState(limiter, "limit");
@@ -46,8 +43,8 @@ public class RateLimiterTest {
 
     @Test
     public void testTimerRateLimiter() throws Exception {
-        rateLimit = 400;
-        limiter = new FixedTimerRateLimiter(rateLimit);
+        int rateLimit = 400;
+        RateLimiter limiter = new FixedTimerRateLimiter(rateLimit);
 
         int limit = Whitebox.getInternalState(limiter, "limit");
         Assert.assertEquals(rateLimit, limit);
@@ -72,8 +69,8 @@ public class RateLimiterTest {
 
     @Test
     public void testStopWatchRateLimiter() throws Exception {
-        rateLimit = 300;
-        limiter = new FixedStopWatchRateLimiter(rateLimit);
+        int rateLimit = 300;
+        RateLimiter limiter = new FixedStopWatchRateLimiter(rateLimit);
 
         int limit = Whitebox.getInternalState(limiter, "limit");
         Assert.assertEquals(rateLimit, limit);
@@ -98,8 +95,8 @@ public class RateLimiterTest {
 
     @Test
     public void testTimerRateLimiterWithIdle() throws Exception {
-        rateLimit = 200;
-        limiter = new FixedTimerRateLimiter(rateLimit);
+        int rateLimit = 200;
+        RateLimiter limiter = new FixedTimerRateLimiter(rateLimit);
 
         LongAdder count = Whitebox.getInternalState(limiter, "count");
         Assert.assertEquals(0, count.intValue());
@@ -127,8 +124,8 @@ public class RateLimiterTest {
 
     @Test
     public void testStopWatchRateLimiterWithIdle() throws Exception {
-        rateLimit = 100;
-        limiter = new FixedStopWatchRateLimiter(rateLimit);
+        int rateLimit = 100;
+        RateLimiter limiter = new FixedStopWatchRateLimiter(rateLimit);
 
         LongAdder count = Whitebox.getInternalState(limiter, "count");
         Assert.assertEquals(0, count.intValue());

@@ -123,7 +123,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         HugeConfig config = (HugeConfig) hugegraph.configuration();
         // TODO: Consider better way to get, use auth client's config now
         this.auditLogMaxRate = config.get(CoreOptions.AUTH_AUDIT_LOG_RATE);
-        LOG.info("Audit log rate limit is '{}/s'", this.auditLogMaxRate);
+        LOG.info("Audit log rate limit is {}/s", this.auditLogMaxRate);
     }
 
     @Override
@@ -1111,8 +1111,6 @@ public final class HugeGraphAuthProxy implements HugeGraph {
             String username = currentUsername();
             if (username != null && elem.creator() == null) {
                 elem.creator(username);
-                auditLimiters.update(IdGenerator.of(username),
-                                     RateLimiter.create(auditLogMaxRate));
             }
             return elem;
         }
