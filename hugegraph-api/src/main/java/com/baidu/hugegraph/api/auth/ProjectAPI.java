@@ -106,7 +106,7 @@ public class ProjectAPI extends API {
 
         HugeGraph g = graph(manager, graph);
         List<HugeProject> projects =
-                manager.authManager().listAllProject(limit);
+                          manager.authManager().listAllProject(limit);
         return manager.serializer(g).writeAuthElements("projects", projects);
     }
 
@@ -148,16 +148,16 @@ public class ProjectAPI extends API {
     @Path("{id}/graph/{name}")
     @Consumes(APPLICATION_JSON)
     public void deleteGraph(@Context GraphManager manager,
-                       @PathParam("graph") String graph,
-                       @PathParam("id") String id,
-                       @PathParam("name") String name) {
-        LOG.debug("Graph [{}] add project's [{}] graph: {}", graph, id,
-                  name);
+                            @PathParam("graph") String graph,
+                            @PathParam("id") String id,
+                            @PathParam("name") String name) {
+        LOG.debug("Graph [{}] add project's [{}] graph: {}", graph, id, name);
 
         @SuppressWarnings("unused") // just check if the graph exists
         HugeGraph g = graph(manager, graph);
         try {
-            manager.authManager().updateProjectAddGraph(UserAPI.parseId(id), name);
+            manager.authManager()
+                   .updateProjectAddGraph(UserAPI.parseId(id), name);
         } catch (NotFoundException e) {
             throw new IllegalArgumentException("Invalid project id: " + id);
         }
@@ -168,16 +168,16 @@ public class ProjectAPI extends API {
     @Path("{id}/graph/{name}")
     @Consumes(APPLICATION_JSON)
     public void addGraph(@Context GraphManager manager,
-                       @PathParam("graph") String graph,
-                       @PathParam("id") String id,
-                       @PathParam("name") String name) {
-        LOG.debug("Graph [{}] add project's [{}] graph: {}", graph, id,
-                  name);
+                         @PathParam("graph") String graph,
+                         @PathParam("id") String id,
+                         @PathParam("name") String name) {
+        LOG.debug("Graph [{}] add project's [{}] graph: {}", graph, id, name);
 
         @SuppressWarnings("unused") // just check if the graph exists
         HugeGraph g = graph(manager, graph);
         try {
-            manager.authManager().updateProjectAddGraph(UserAPI.parseId(id), name);
+            manager.authManager()
+                   .updateProjectAddGraph(UserAPI.parseId(id), name);
         } catch (NotFoundException e) {
             throw new IllegalArgumentException("Invalid project id: " + id);
         }
@@ -200,8 +200,8 @@ public class ProjectAPI extends API {
 
         public HugeProject build() {
             HugeProject project = new HugeProject(null, this.name, this.desc,
-                                                null, null,
-                                                null, null);
+                                                  null, null,
+                                                  null, null);
             return project;
         }
 
@@ -215,7 +215,6 @@ public class ProjectAPI extends API {
         public void checkUpdate() {
             E.checkArgument(this.desc != null,
                             "Expect desc of project can't be null");
-
         }
     }
 }

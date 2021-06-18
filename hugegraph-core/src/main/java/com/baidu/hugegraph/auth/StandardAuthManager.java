@@ -650,9 +650,10 @@ public class StandardAuthManager implements AuthManager {
     @Override
     public Id updateProject(HugeProject project) {
         E.checkArgumentNotNull(project, "Project not be null");
-        E.checkArgumentNotNull(project.id(), "Project's id not be null");
+        E.checkArgumentNotNull(project.id(),
+                               "The id of the project cannot be empty");
         E.checkArgument(!Strings.isNullOrEmpty(project.desc()),
-                        "Project's desc not be null or empty, project id is %s",
+                        "The desc of the project with id %s cannot be empty",
                         project.id().asString());
 
         LockUtil.Locks locks = new LockUtil.Locks(this.graph.name());
@@ -753,7 +754,7 @@ public class StandardAuthManager implements AuthManager {
             R result = callable.call();
             this.graph.systemTransaction().commit();
             return result;
-        } catch (Throwable throwable) {
+        } catch (Exception e) {
             this.groups.shouldCommitTrans(true);
             this.access.shouldCommitTrans(true);
             this.targets.shouldCommitTrans(true);
@@ -763,10 +764,10 @@ public class StandardAuthManager implements AuthManager {
             try {
                 this.graph.systemTransaction().rollback();
             } catch (Throwable rollbackException) {
-                LOG.error("Rollback failed", rollbackException);
+                LOG.error("Failed to rollback", rollbackException);
             }
 
-            throw new HugeException("Call failed", throwable);
+            throw new HugeException("Call failed", e);
         }
     }
 }
