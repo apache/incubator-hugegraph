@@ -59,7 +59,7 @@ public abstract class CacheTest extends BaseUnitTest {
 
     protected abstract Cache<Id, Object> newCache();
 
-    protected abstract Cache<Id, Object> newCache(long capacity) ;
+    protected abstract Cache<Id, Object> newCache(long capacity);
 
     protected abstract void checkSize(Cache<Id, Object> cache, long size,
                                       Map<Id, Object> kvs);
@@ -672,6 +672,25 @@ public abstract class CacheTest extends BaseUnitTest {
         });
         // In fact, the size may be any value(such as 43)
         Assert.assertTrue(cache.size() < 10 + THREADS_NUM);
+    }
+
+    @Test
+    public void testKeyExpired() {
+        Cache<Id, Object> cache = newCache();
+        cache.expire(2000L);
+
+        Id key = IdGenerator.of("key");
+        cache.update(key, "value", -1000L);
+
+        waitTillNext(1);
+        cache.tick();
+
+        Assert.assertFalse(cache.containsKey(key));
+
+        cache.update(key, "value", -2000L);
+        cache.tick();
+
+        Assert.assertFalse(cache.containsKey(key));
     }
 }
 

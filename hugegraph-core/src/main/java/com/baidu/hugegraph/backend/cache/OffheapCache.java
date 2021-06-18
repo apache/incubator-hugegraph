@@ -109,7 +109,7 @@ public class OffheapCache extends AbstractCache<Id, Object> {
     }
 
     @Override
-    protected boolean write(Id id, Object value) {
+    protected boolean write(Id id, Object value, long timeOffset) {
         Value serializedValue = new Value(value);
         int serializedSize = serializedValue.serializedSize();
         if (serializedSize > VALUE_SIZE_TO_SKIP) {
@@ -122,7 +122,7 @@ public class OffheapCache extends AbstractCache<Id, Object> {
         if (expireTime <= 0) {
              success = this.cache.put(id, serializedValue);
         } else {
-            expireTime += now();
+            expireTime += now() + timeOffset;
             /*
              * Seems only the linked implementation support expiring entries,
              * the chunked implementation does not support it.

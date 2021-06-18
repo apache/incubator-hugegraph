@@ -121,13 +121,18 @@ public abstract class AbstractCache<K, V> implements Cache<K, V> {
         return value;
     }
 
-    @Watched(prefix = "cache")
     @Override
     public boolean update(K id, V value) {
+        return this.update(id, value, 0L);
+    }
+
+    @Watched(prefix = "cache")
+    @Override
+    public boolean update(K id, V value, long timeOffset) {
         if (id == null || value == null || this.capacity <= 0L) {
             return false;
         }
-        return this.write(id, value);
+        return this.write(id, value, timeOffset);
     }
 
     @Watched(prefix = "cache")
@@ -137,7 +142,7 @@ public abstract class AbstractCache<K, V> implements Cache<K, V> {
             this.capacity <= 0L || this.containsKey(id)) {
             return false;
         }
-        return this.write(id, value);
+        return this.write(id, value, 0L);
     }
 
     @Watched(prefix = "cache")
@@ -147,7 +152,7 @@ public abstract class AbstractCache<K, V> implements Cache<K, V> {
             this.capacity <= 0L || !this.containsKey(id)) {
             return false;
         }
-        return this.write(id, value);
+        return this.write(id, value, 0L);
     }
 
     @Watched(prefix = "cache")
@@ -180,7 +185,7 @@ public abstract class AbstractCache<K, V> implements Cache<K, V> {
         long current = now();
         for (Iterator<CacheNode<K, V>> it = this.nodes(); it.hasNext();) {
             CacheNode<K, V> node = it.next();
-            if (current - node.time() > expireTime) {
+            if (current - node.time() >= expireTime) {
                 // Remove item while iterating map (it must be ConcurrentMap)
                 this.remove(node.key());
                 expireItems++;
@@ -228,7 +233,7 @@ public abstract class AbstractCache<K, V> implements Cache<K, V> {
 
     protected abstract V access(K id);
 
-    protected abstract boolean write(K id, V value);
+    protected abstract boolean write(K id, V value, long timeOffset);
 
     protected abstract void remove(K id);
 
@@ -242,11 +247,11 @@ public abstract class AbstractCache<K, V> implements Cache<K, V> {
 
         private final K key;
         private final V value;
-        private long time;
+        private final long time;
 
-        public CacheNode(K key, V value) {
+        public CacheNode(K key, V value, long timeOffset) {
             assert key != null;
-            this.time = now();
+            this.time = now() + timeOffset;
             this.key = key;
             this.value = value;
         }
