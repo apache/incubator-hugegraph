@@ -1400,28 +1400,18 @@ public class AuthTest extends BaseCoreTest {
         Id projectId = authManager.createProject(project);
         Assert.assertNotNull(projectId);
         HugeProject deletedProject = authManager.deleteProject(projectId);
-        Assert.assertThrows(NotFoundException.class,
-                            () -> {
-                                authManager.getProject(projectId);
-                            });
-        Assert.assertThrows(NotFoundException.class,
-                            () -> {
-                                authManager.getGroup(IdGenerator
-                                                             .of(deletedProject
-                                                                         .adminGroupId()));
-                            });
-        Assert.assertThrows(NotFoundException.class,
-                            () -> {
-                                authManager.getGroup(IdGenerator
-                                                             .of(deletedProject
-                                                                         .opGroupId()));
-                            });
-        Assert.assertThrows(NotFoundException.class,
-                            () -> {
-                                authManager.getTarget(IdGenerator
-                                                              .of(deletedProject
-                                                                          .targetId()));
-                            });
+        Assert.assertThrows(NotFoundException.class, () -> {
+            authManager.getProject(projectId);
+        });
+        Assert.assertThrows(NotFoundException.class, () -> {
+            authManager.getGroup(IdGenerator.of(deletedProject.adminGroupId()));
+        });
+        Assert.assertThrows(NotFoundException.class, () -> {
+            authManager.getGroup(IdGenerator.of(deletedProject.opGroupId()));
+        });
+        Assert.assertThrows(NotFoundException.class, () -> {
+            authManager.getTarget(IdGenerator.of(deletedProject.targetId()));
+        });
     }
 
     @Test

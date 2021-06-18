@@ -36,6 +36,7 @@ import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.util.E;
+import com.google.common.base.Strings;
 
 public class HugeProject extends Entity {
 
@@ -127,11 +128,12 @@ public class HugeProject extends Entity {
 
     @Override
     public Map<String, Object> asMap() {
-        E.checkState(this.name != null, "Project name can't be null");
-        E.checkState(this.adminGroupId != null,
+        E.checkState(!Strings.isNullOrEmpty(this.name),
+            "Project name can't be null");
+        E.checkState(!Strings.isNullOrEmpty(this.adminGroupId),
                      "Admin group id can't be null");
-        E.checkState(this.opGroupId != null, "Op group id can't be null");
-        E.checkState(this.targetId != null, "Target id can't be null");
+        E.checkState(!Strings.isNullOrEmpty(this.opGroupId),
+                     "Op group id can't be null");
 
         Map<String, Object> map = new HashMap<>();
 
@@ -140,15 +142,17 @@ public class HugeProject extends Entity {
                 this.adminGroupId);
         map.put(Graph.Hidden.unHide(HugeProject.P.OP_GROUP_ID),
                 this.opGroupId);
-        if (this.graphs != null) {
+        if (this.graphs != null && !this.graphs.isEmpty()) {
             map.put(Graph.Hidden.unHide(HugeProject.P.GRAPHS), this.graphs);
         }
-        if (this.desc != null) {
+        if (!Strings.isNullOrEmpty(this.desc)) {
             map.put(Graph.Hidden.unHide(HugeProject.P.DESCRIPTIONS),
-                    this.graphs);
+                    this.desc);
         }
-        map.put(Graph.Hidden.unHide(HugeProject.P.TARGET_ID),
-                this.targetId);
+        if (!Strings.isNullOrEmpty(this.targetId)) {
+            map.put(Graph.Hidden.unHide(HugeProject.P.TARGET_ID),
+                    this.targetId);
+        }
 
         return super.asMap(map);
     }
@@ -160,8 +164,6 @@ public class HugeProject extends Entity {
                      "Admin group id can't be null");
         E.checkState(this.opGroupId != null,
                      "Op group id can't be null");
-        E.checkState(this.targetId != null,
-                     "Target id can't be null");
 
         List<Object> list = new ArrayList<>(16);
 
@@ -171,12 +173,12 @@ public class HugeProject extends Entity {
         list.add(HugeProject.P.NAME);
         list.add(this.name);
 
-        if (this.desc != null) {
+        if (!Strings.isNullOrEmpty(this.desc)) {
             list.add(HugeProject.P.DESCRIPTIONS);
             list.add(this.desc);
         }
 
-        if (this.graphs != null) {
+        if (this.graphs != null && !this.graphs.isEmpty()) {
             list.add(HugeProject.P.GRAPHS);
             list.add(this.graphs);
         }
@@ -187,8 +189,10 @@ public class HugeProject extends Entity {
         list.add(HugeProject.P.OP_GROUP_ID);
         list.add(this.opGroupId);
 
-        list.add(HugeProject.P.TARGET_ID);
-        list.add(this.targetId);
+        if (!Strings.isNullOrEmpty(this.targetId)) {
+            list.add(HugeProject.P.TARGET_ID);
+            list.add(this.targetId);
+        }
 
         return super.asArray(list);
     }
@@ -241,8 +245,8 @@ public class HugeProject extends Entity {
 
         public static final String PROJECT = Graph.Hidden.hide("project");
         public static final String LABEL = T.label.getAccessor();
-        public static final String ADMIN_GROUP_ID = "~project_adminGroupId";
-        public static final String OP_GROUP_ID = "~project_opGroupId";
+        public static final String ADMIN_GROUP_ID = "~project_admin_group_id";
+        public static final String OP_GROUP_ID = "~project_op_group_id";
         public static final String GRAPHS = "~project_graphs";
         public static final String NAME = "~project_name";
         public static final String DESCRIPTIONS = "~project_description";
@@ -277,7 +281,8 @@ public class HugeProject extends Entity {
                                     .usePrimaryKeyId()
                                     .primaryKeys(HugeProject.P.NAME)
                                     .nullableKeys(HugeProject.P.DESCRIPTIONS,
-                                                  HugeProject.P.GRAPHS)
+                                                  HugeProject.P.GRAPHS,
+                                                  HugeProject.P.TARGET_ID)
                                     .properties(properties)
                                     .build();
             this.graph.schemaTransaction().addVertexLabel(label);

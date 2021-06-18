@@ -625,14 +625,14 @@ public class StandardAuthManager implements AuthManager {
                 HugeProject project = this.project.delete(id);
                 E.checkArgumentNotNull(project, "Deleting project failed");
                 E.checkArgument(!Strings.isNullOrEmpty(project.adminGroupId()),
-                                "Deleting %s failed, project.adminGroupId is "
-                                + "null or empty", id.asString());
+                                "Deleting %s failed, project.adminGroupId"
+                                + " can't be null or empty", id.asString());
                 E.checkArgument(!Strings.isNullOrEmpty(project.opGroupId()),
                                 "Deleting %s failed, project.opGroupId"
-                                + " is null or empty", id.asString());
+                                + " can't be null or empty", id.asString());
                 E.checkArgument(!Strings.isNullOrEmpty(project.targetId()),
-                                "Deleting %s failed, "
-                                + "project.updateTargetId is null or empty",
+                                "Deleting %s failed, project.updateTargetId "
+                                + "can't be null or empty",
                                 id.asString());
                 //Deleting admin group
                 this.groups.delete(IdGenerator.of(project.adminGroupId()));
@@ -651,9 +651,9 @@ public class StandardAuthManager implements AuthManager {
     public Id updateProject(HugeProject project) {
         E.checkArgumentNotNull(project, "Project not be null");
         E.checkArgumentNotNull(project.id(),
-                               "The id of the project cannot be empty");
-        E.checkArgument(!Strings.isNullOrEmpty(project.desc()),
-                        "The desc of the project with id %s cannot be empty",
+                               "The id of the project can't be empty");
+        E.checkArgument(project.desc() != null,
+                        "The description of project '%s' can't be empty",
                         project.id().asString());
 
         LockUtil.Locks locks = new LockUtil.Locks(this.graph.name());
@@ -671,8 +671,8 @@ public class StandardAuthManager implements AuthManager {
     @Override
     public Id updateProjectAddGraph(Id id, String graph) {
         E.checkArgument(!Strings.isNullOrEmpty(graph),
-                        "Update project add graph failed, graph "
-                        + "not be null or empty");
+                        "Add graph to project failed, graph "
+                        + "can't be null or empty");
 
         LockUtil.Locks locks = new LockUtil.Locks(this.graph.name());
         try {
@@ -680,7 +680,7 @@ public class StandardAuthManager implements AuthManager {
 
             HugeProject project = this.project.get(id);
             E.checkArgumentNotNull(project,
-                                   "Project that id is %s is not found",
+                                   "Project '%s' is not found",
                                    id.asString());
             Set<String> graphs = project.graphs();
             if (graphs == null) {
@@ -688,7 +688,7 @@ public class StandardAuthManager implements AuthManager {
             } else {
                 E.checkArgument(!graphs.contains(graph),
                                 "Graph has included in " +
-                                "project that id is %s",
+                                "project '%s'",
                                 id);
             }
             graphs.add(graph);
@@ -702,8 +702,8 @@ public class StandardAuthManager implements AuthManager {
     @Override
     public Id updateProjectRemoveGraph(Id id, String graph) {
         E.checkArgument(!Strings.isNullOrEmpty(graph),
-                        "Update project add graph failed, graph "
-                        + "not be null or empty");
+                        "Delete graph from project failed, graph "
+                        + "can't be null or empty");
 
         LockUtil.Locks locks = new LockUtil.Locks(this.graph.name());
         try {
@@ -711,7 +711,7 @@ public class StandardAuthManager implements AuthManager {
 
             HugeProject project = this.project.get(id);
             E.checkArgumentNotNull(project,
-                                   "Project that id is %s is not found",
+                                   "Project '%s' is not found",
                                    id.asString());
             Set<String> graphs = project.graphs();
             if (graphs == null || !graphs.contains(graph)) {
@@ -754,7 +754,7 @@ public class StandardAuthManager implements AuthManager {
             R result = callable.call();
             this.graph.systemTransaction().commit();
             return result;
-        } catch (Exception e) {
+        } catch (Throwable e) {
             this.groups.shouldCommitTrans(true);
             this.access.shouldCommitTrans(true);
             this.targets.shouldCommitTrans(true);
@@ -766,8 +766,11 @@ public class StandardAuthManager implements AuthManager {
             } catch (Throwable rollbackException) {
                 LOG.error("Failed to rollback", rollbackException);
             }
-
-            throw new HugeException("Call failed", e);
+            if (e instanceof HugeException) {
+                throw (HugeException) e;
+            } else {
+                throw new HugeException("Call failed", e);
+            }
         }
     }
 }

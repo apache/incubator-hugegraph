@@ -40,6 +40,7 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.StatusFilter;
 import com.baidu.hugegraph.auth.HugeProject;
+import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.define.Checkable;
 import com.baidu.hugegraph.exception.NotFoundException;
@@ -48,6 +49,7 @@ import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.base.Strings;
 
 @Path("graphs/{graph}/auth/projects")
 @Singleton
@@ -68,7 +70,8 @@ public class ProjectAPI extends API {
 
         HugeGraph g = graph(manager, graph);
         HugeProject project = jsonTarget.build();
-        project.id(manager.authManager().createProject(project));
+        Id projectId = manager.authManager().createProject(project);
+        project = manager.authManager().getProject(projectId);
         return manager.serializer(g).writeAuthElement(project);
     }
 
@@ -105,8 +108,8 @@ public class ProjectAPI extends API {
         LOG.debug("Graph [{}] list project", graph);
 
         HugeGraph g = graph(manager, graph);
-        List<HugeProject> projects =
-                          manager.authManager().listAllProject(limit);
+        List<HugeProject> projects = manager.authManager()
+                                            .listAllProject(limit);
         return manager.serializer(g).writeAuthElements("projects", projects);
     }
 
@@ -120,8 +123,12 @@ public class ProjectAPI extends API {
         LOG.debug("Graph [{}] get project: {}", graph, id);
 
         HugeGraph g = graph(manager, graph);
-        HugeProject project = manager.authManager()
-                                     .getProject(UserAPI.parseId(id));
+        HugeProject project;
+        try {
+            project = manager.authManager().getProject(UserAPI.parseId(id));
+        } catch (NotFoundException e) {
+            throw new IllegalArgumentException("Invalid project id: " + id);
+        }
         return manager.serializer(g).writeAuthElement(project);
     }
 
@@ -151,13 +158,14 @@ public class ProjectAPI extends API {
                             @PathParam("graph") String graph,
                             @PathParam("id") String id,
                             @PathParam("name") String name) {
-        LOG.debug("Graph [{}] add project's [{}] graph: {}", graph, id, name);
+        LOG.debug("Graph [{}] delete graph '{}' from project '{}'",
+                  graph, name, id);
 
         @SuppressWarnings("unused") // just check if the graph exists
         HugeGraph g = graph(manager, graph);
         try {
             manager.authManager()
-                   .updateProjectAddGraph(UserAPI.parseId(id), name);
+                   .updateProjectRemoveGraph(UserAPI.parseId(id), name);
         } catch (NotFoundException e) {
             throw new IllegalArgumentException("Invalid project id: " + id);
         }
@@ -165,21 +173,34 @@ public class ProjectAPI extends API {
 
     @PUT
     @Timed
-    @Path("{id}/graph/{name}")
+    @Path("{id}/graph")
     @Consumes(APPLICATION_JSON)
     public void addGraph(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          @PathParam("id") String id,
-                         @PathParam("name") String name) {
-        LOG.debug("Graph [{}] add project's [{}] graph: {}", graph, id, name);
+                         GraphJsonTarget jsonTarget) {
+        LOG.debug("Graph [{}] add project's [{}] graph: {}", graph, id,
+                  jsonTarget.graph);
+        jsonTarget.check();
 
         @SuppressWarnings("unused") // just check if the graph exists
         HugeGraph g = graph(manager, graph);
         try {
             manager.authManager()
-                   .updateProjectAddGraph(UserAPI.parseId(id), name);
+                   .updateProjectAddGraph(UserAPI.parseId(id),
+                                          jsonTarget.graph);
         } catch (NotFoundException e) {
             throw new IllegalArgumentException("Invalid project id: " + id);
+        }
+    }
+
+    private static class GraphJsonTarget {
+        @JsonProperty("graph")
+        private String graph;
+
+        public void check() {
+            E.checkArgumentNotNull(this.graph,
+                                   "The graph name can't be null");
         }
     }
 
@@ -191,9 +212,9 @@ public class ProjectAPI extends API {
         private String name;
 
         public HugeProject build(HugeProject project) {
-            E.checkArgument(this.desc == null ||
-                            project.desc().equals(this.desc),
-                            "The desc of project can't be updated");
+            E.checkArgument(Strings.isNullOrEmpty(this.name) ||
+                            project.desc().equals(this.name),
+                            "The name of project can't be updated");
             project.desc(this.desc);
             return project;
         }
