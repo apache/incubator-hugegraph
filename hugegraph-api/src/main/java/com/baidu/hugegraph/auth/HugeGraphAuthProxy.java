@@ -58,12 +58,15 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.auth.HugeAuthenticator.RolePerm;
 import com.baidu.hugegraph.auth.HugeAuthenticator.User;
 import com.baidu.hugegraph.auth.SchemaDefine.AuthElement;
+import com.baidu.hugegraph.backend.cache.Cache;
+import com.baidu.hugegraph.backend.cache.CacheManager;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
 import com.baidu.hugegraph.backend.store.raft.RaftGroupManager;
-import com.baidu.hugegraph.config.ConfigOption;
+import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.TypedOption;
 import com.baidu.hugegraph.exception.NotSupportException;
@@ -93,6 +96,7 @@ import com.baidu.hugegraph.type.define.GraphReadMode;
 import com.baidu.hugegraph.type.define.NodeRole;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
+import com.baidu.hugegraph.util.RateLimiter;
 
 public final class HugeGraphAuthProxy implements HugeGraph {
 
@@ -101,6 +105,8 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     private static final Logger LOG = Log.logger(HugeGraphAuthProxy.class);
+    private final Cache<Id, RateLimiter> auditLimiters;
+    private final double auditLogMaxRate;
 
     private final HugeGraph hugegraph;
     private final TaskSchedulerProxy taskScheduler;
@@ -111,7 +117,13 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         this.hugegraph = hugegraph;
         this.taskScheduler = new TaskSchedulerProxy(hugegraph.taskScheduler());
         this.authManager = new AuthManagerProxy(hugegraph.authManager());
+        this.auditLimiters = this.cache("audit-log-limiter");
         this.hugegraph.proxy(this);
+
+        HugeConfig config = (HugeConfig) hugegraph.configuration();
+        // TODO: Consider better way to get, use auth client's config now
+        this.auditLogMaxRate = config.get(CoreOptions.AUTH_AUDIT_LOG_RATE);
+        LOG.info("Audit log rate limit is {}/s", this.auditLogMaxRate);
     }
 
     @Override
@@ -713,6 +725,13 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         this.hugegraph.resumeSnapshot();
     }
 
+    private <V> Cache<Id, V> cache(String prefix) {
+        String name = prefix + "-" + this.hugegraph.name();
+        Cache<Id, V> cache = CacheManager.instance().cache(name);
+        cache.expire(-1L);
+        return cache;
+    }
+
     private void verifyAdminPermission() {
         verifyPermission(HugePermission.ANY, ResourceType.ROOT);
     }
@@ -882,11 +901,11 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         }
 
         V result = ro.operated();
-        // verify role permission
+        // Verify role permission
         if (!RolePerm.match(role, actionPerm, ro)) {
             result = null;
         }
-        // verify permission for one access another, like: granted <= user role
+        // Verify permission for one access another, like: granted <= user role
         else if (ro.type().isGrantOrUser()) {
             AuthElement element = (AuthElement) ro.operated();
             RolePermission grant = this.hugegraph.authManager()
@@ -896,18 +915,24 @@ public final class HugeGraphAuthProxy implements HugeGraph {
             }
         }
 
-        // check resource detail if needed
+        // Check resource detail if needed
         if (result != null && checker != null && !checker.get()) {
             result = null;
         }
 
-        // log user action
-        if (!(actionPerm == HugePermission.READ && ro.type().isSchema())) {
+        // Log user action, limit rate for each user
+        Id usrId = IdGenerator.of(username);
+        RateLimiter auditLimiter = this.auditLimiters.getOrFetch(usrId, id -> {
+            return RateLimiter.create(this.auditLogMaxRate);
+        });
+
+        if (!(actionPerm == HugePermission.READ && ro.type().isSchema()) &&
+            auditLimiter.tryAcquire()) {
             String status = result == null ? "denied" : "allowed";
             LOG.info("User '{}' is {} to {} {}", username, status, action, ro);
         }
 
-        // result=null means no permission, throw if needed
+        // result = null means no permission, throw if needed
         if (result == null && throwIfNoPerm) {
             String error = String.format("Permission denied: %s %s",
                                          action, ro);
@@ -1130,6 +1155,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
             E.checkArgument(!HugeAuthenticator.USER_ADMIN.equals(user.name()),
                             "Can't delete user '%s'", user.name());
             verifyUserPermission(HugePermission.DELETE, user);
+            auditLimiters.invalidate(IdGenerator.of(user.name()));
             return this.authManager.deleteUser(id);
         }
 
