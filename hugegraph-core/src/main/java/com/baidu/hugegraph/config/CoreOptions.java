@@ -23,6 +23,7 @@ import static com.baidu.hugegraph.backend.tx.GraphTransaction.COMMIT_BATCH;
 import static com.baidu.hugegraph.config.OptionChecker.allowValues;
 import static com.baidu.hugegraph.config.OptionChecker.disallowEmpty;
 import static com.baidu.hugegraph.config.OptionChecker.positiveInt;
+import static com.baidu.hugegraph.config.OptionChecker.rangeDouble;
 import static com.baidu.hugegraph.config.OptionChecker.rangeInt;
 
 import com.baidu.hugegraph.backend.query.Query;
@@ -51,7 +52,7 @@ public class CoreOptions extends OptionHolder {
     public static final ConfigOption<String> GREMLIN_GRAPH =
             new ConfigOption<>(
                     "gremlin.graph",
-                    "Gremlin entrence to create graph.",
+                    "Gremlin entrance to create graph.",
                     disallowEmpty(),
                     "com.baidu.hugegraph.HugeFactory"
             );
@@ -623,6 +624,15 @@ public class CoreOptions extends OptionHolder {
                     "The min depth to enable concurrent oltp algorithm.",
                     rangeInt(0, 65535),
                     10
+            );
+
+    public static final ConfigOption<Double> AUTH_AUDIT_LOG_RATE =
+            new ConfigOption<>(
+                    "auth.audit_log_rate",
+                    "The max rate of audit log output per user, " +
+                    "default value is 1000 records per second.",
+                    rangeDouble(0.0, Double.MAX_VALUE),
+                    1000.0
             );
 
     public static final ConfigConvOption<String, CollectionType> OLTP_COLLECTION_TYPE =
