@@ -141,9 +141,8 @@ import com.baidu.hugegraph.unit.util.VersionTest;
     StringEncodingTest.class,
     CompressUtilTest.class,
     CollectionFactoryTest.class,
-    RateLimiterTest.class,
-    RateLimiterTest.FixedTimerRateLimiterTest.class,
-    RateLimiterTest.FixedStopWatchRateLimiterTest.class
+    RateLimiterTest.FixedTimerWindowRateLimiterTest.class,
+    RateLimiterTest.FixedWatchWindowRateLimiterTest.class
 })
 public class UnitTestSuite {
 }

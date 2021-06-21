@@ -21,7 +21,7 @@ package com.baidu.hugegraph.util;
 
 import org.slf4j.Logger;
 
-// TODO: Move to common module
+// TODO: Move to common module (concurrent package)
 public interface RateLimiter {
 
     public final Logger LOG = Log.logger(RateLimiter.class);
@@ -40,8 +40,10 @@ public interface RateLimiter {
      *
      * @param ratePerSecond the rate of the returned RateLimiter, measured in
      *                      how many permits become available per second
+     *
+     * TODO: refactor it to make method unchangeable
      */
     public static RateLimiter create(double ratePerSecond) {
-        return new FixedTimerRateLimiter((int) ratePerSecond);
+        return new FixedTimerWindowRateLimiter((int) ratePerSecond);
     }
 }
