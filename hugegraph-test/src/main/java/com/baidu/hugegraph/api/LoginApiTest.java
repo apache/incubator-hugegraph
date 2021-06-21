@@ -89,9 +89,9 @@ public class LoginApiTest extends BaseApiTest {
 
         String invalidToken = "eyJhbGciOiJIUzI1NiJ9.eyJ1caVyX25hbWUiOiJ0ZXN0IiwidXNlcl9pZCI6Ii02Mzp0ZXN0IiwiZXhwIjoxNjI0MzUzMjUyfQ.kYot-3mSGlfSbEMzxrTs84q8YanhTTxtsKPPG25CNxA";
         headers = new MultivaluedHashMap<>();
-        headers.add(HttpHeaders.AUTHORIZATION, "Bearer " + token);
+        headers.add(HttpHeaders.AUTHORIZATION, "Bearer " + invalidToken);
         r = client().delete(path, headers);
-        assertResponseStatus(204, r);
+        assertResponseStatus(401, r);
     }
 
     @Test
@@ -115,9 +115,16 @@ public class LoginApiTest extends BaseApiTest {
         assertJsonContains(result, "user_name");
 
         Map<String, Object> user = JsonUtil.fromJson(
-                            result, new TypeReference<Map<String, Object>>(){});
+                                   result,
+                                   new TypeReference<Map<String, Object>>(){});
         Assert.assertEquals(this.userId4Test, user.get("user_id"));
         Assert.assertEquals("test", user.get("user_name"));
+
+        String invalidToken = "eyJhbGciOiJIUzI1NiJ9.eyJ1caVyX25hbWUiOiJ0ZXN0IiwidXNlcl9pZCI6Ii02Mzp0ZXN0IiwiZXhwIjoxNjI0MzUzMjUyfQ.kYot-3mSGlfSbEMzxrTs84q8YanhTTxtsKPPG25CNxA";
+        headers = new MultivaluedHashMap<>();
+        headers.add(HttpHeaders.AUTHORIZATION, "Bearer " + invalidToken);
+        r = client().get(path, headers);
+        assertResponseStatus(401, r);
     }
 
     private Response createUser(String name, String password) {
@@ -142,9 +149,10 @@ public class LoginApiTest extends BaseApiTest {
                                                   name, password));
     }
 
-    private String tokenFromResponse(String result) {
-        Map<String, Object> loginResult = JsonUtil.fromJson(
-                            result, new TypeReference<Map<String, Object>>(){});
-        return (String) loginResult.get("token");
+    private String tokenFromResponse(String content) {
+        Map<String, Object> data = JsonUtil.fromJson(
+                                   content,
+                                   new TypeReference<Map<String, Object>>(){});
+        return (String) data.get("token");
     }
 }

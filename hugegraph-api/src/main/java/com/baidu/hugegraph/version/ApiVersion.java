@@ -112,7 +112,7 @@ public final class ApiVersion {
      * [0.60] Issue-1392: Support create and resume snapshot
      * [0.61] Issue-1433: Unify naming of degree for oltp algorithms
      * [0.62] Issue-1378: Add compact api for rocksdb/cassandra/hbase backend
-     * [0.63] HugeGraph-1500: Add login RESTful API
+     * [0.63] Issue-1500: Add user-login RESTful API
      */
 
     // The second parameter of Version.of() is for IDE running without JAR
