@@ -86,12 +86,11 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
     private final Map<String, RocksDBTable> tables;
 
     private String dataPath;
-    protected RocksDBSessions sessions;
+    private RocksDBSessions sessions;
     private final Map<HugeType, String> tableDiskMapping;
     // DataPath:RocksDB mapping
     private final ConcurrentMap<String, RocksDBSessions> dbs;
     private final ReadWriteLock storeLock;
-    private HugeConfig conf;
 
     private static final String TABLE_GENERAL_KEY = "general";
     private static final String DB_OPEN = "db-open-%s";
@@ -102,6 +101,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
      * disk number of one machine
      */
     private static final int OPEN_POOL_THREADS = 8;
+    private boolean isGraphStore;
 
     public RocksDBStore(final BackendStoreProvider provider,
                         final String database, final String store) {
@@ -114,7 +114,6 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         this.tableDiskMapping = new HashMap<>();
         this.dbs = new ConcurrentHashMap<>();
         this.storeLock = new ReentrantReadWriteLock();
-        this.conf = null;
 
         this.registerMetaHandlers();
     }
@@ -194,7 +193,8 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         LOG.debug("Store open: {}", this.store);
 
         E.checkNotNull(config, "config");
-        this.conf = config;
+        String graphStore = config.get(CoreOptions.STORE_GRAPH);
+        this.isGraphStore = this.store.equals(graphStore);
         this.dataPath = config.get(RocksDBOptions.DATA_PATH);
 
         if (this.sessions != null && !this.sessions.closed()) {
@@ -433,8 +433,9 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
                 this.table(name).insert(session, entry);
                 break;
             case DELETE:
-                table = this.table(entry.type());
-                table.delete(session, entry);
+                name = entry.olap() ?
+                       this.olapTableName(entry.type()) : entry.type().string();
+                this.table(name).delete(session, entry);
                 break;
             case APPEND:
                 name = entry.olap() ?
@@ -462,21 +463,21 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
             String tableName = query.olap() ? this.olapTableName(tableType) :
                                tableType.string();
             RocksDBTable table = this.table(tableName);
-            Iterator<BackendEntry> entrys = table.query(this.sessions.session(),
-                                                        query);
+            Iterator<BackendEntry> entries =
+                                   table.query(this.sessions.session(), query);
+            // Merge olap results as needed
             Set<Id> olapPks = query.olapPks();
-            String graphStore = this.conf.get(CoreOptions.STORE_GRAPH);
-            if (graphStore.equals(this.store) && !olapPks.isEmpty()) {
+            if (this.isGraphStore && !olapPks.isEmpty()) {
                 List<Iterator<BackendEntry>> iterators = new ArrayList<>();
                 for (Id pk : olapPks) {
                     Query q = query.copy();
                     table = this.table(this.olapTableName(pk));
                     iterators.add(table.query(this.sessions.session(), q));
                 }
-                entrys = new MergeIterator<>(entrys, iterators,
-                                             BackendEntry::mergable);
+                entries = new MergeIterator<>(entries, iterators,
+                                              BackendEntry::mergable);
             }
-            return entrys;
+            return entries;
         } finally {
             readLock.unlock();
         }
@@ -998,14 +999,14 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         @Override
         public void createOlapTable(Id pkId) {
             RocksDBTable table = new RocksDBTables.Olap(this.store(), pkId);
-            this.createTable(this.sessions, table.table());
+            this.createTable(super.sessions, table.table());
             registerTableManager(this.olapTableName(pkId), table);
         }
 
         @Override
         public void checkAndRegisterOlapTable(Id pkId) {
             RocksDBTable table = new RocksDBTables.Olap(this.store(), pkId);
-            if (!this.sessions.existsTable(table.table())) {
+            if (!super.sessions.existsTable(table.table())) {
                 throw new HugeException("Not exist table '%s''", table.table());
             }
             registerTableManager(this.olapTableName(pkId), table);
@@ -1015,21 +1016,21 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         public void clearOlapTable(Id pkId) {
             String name = this.olapTableName(pkId);
             RocksDBTable table = this.table(name);
-            if (table == null || !this.sessions.existsTable(table.table())) {
+            if (table == null || !super.sessions.existsTable(table.table())) {
                 throw new HugeException("Not exist table '%s''", name);
             }
-            this.dropTable(this.sessions, table.table());
-            this.createTable(this.sessions, table.table());
+            this.dropTable(super.sessions, table.table());
+            this.createTable(super.sessions, table.table());
         }
 
         @Override
         public void removeOlapTable(Id pkId) {
             String name = this.olapTableName(pkId);
             RocksDBTable table = this.table(name);
-            if (table == null || !this.sessions.existsTable(table.table())) {
+            if (table == null || !super.sessions.existsTable(table.table())) {
                 throw new HugeException("Not exist table '%s''", name);
             }
-            this.dropTable(this.sessions, table.table());
+            this.dropTable(super.sessions, table.table());
             this.unregisterTableManager(this.olapTableName(pkId));
         }
     }

@@ -121,10 +121,10 @@ public class SchemaTransaction extends IndexableTransaction {
     @Watched(prefix = "schema")
     public Id addPropertyKey(PropertyKey propertyKey) {
         this.addSchema(propertyKey);
-        if (propertyKey.readFrequency().olap()) {
+        if (propertyKey.olap()) {
             return this.createOlapPk(propertyKey);
         }
-        return null;
+        return IdGenerator.ZERO;
     }
 
     @Watched(prefix = "schema")
@@ -169,9 +169,9 @@ public class SchemaTransaction extends IndexableTransaction {
             }
         }
 
-        if (propertyKey.readFrequency().oltp()) {
+        if (propertyKey.oltp()) {
             this.removeSchema(propertyKey);
-            return null;
+            return IdGenerator.ZERO;
         } else {
             return this.removeOlapPk(propertyKey);
         }
@@ -284,17 +284,14 @@ public class SchemaTransaction extends IndexableTransaction {
         return asyncRun(this.graph(), schema, callable, dependencies);
     }
 
-    public Id processOlapPropertyKey(PropertyKey propertyKey) {
-        if (propertyKey.readFrequency() == ReadFrequency.OLTP) {
-            return null;
+    public void processOlapPropertyKey(PropertyKey propertyKey) {
+        ReadFrequency readFrequency = propertyKey.readFrequency();
+        if (readFrequency == ReadFrequency.OLTP ||
+            readFrequency == ReadFrequency.OLAP_NONE) {
+            return;
         }
 
-        Id taskId = this.createOlapPk(propertyKey);
-        if (propertyKey.readFrequency() == ReadFrequency.OLAP_NONE) {
-            return taskId;
-        }
-
-        String indexName = ALL +"_by_" + propertyKey.name();
+        String indexName = ALL + "_by_" + propertyKey.name();
         IndexLabel.Builder builder = this.graph().schema()
                                          .indexLabel(indexName)
                                          .onV(ALL)
@@ -307,8 +304,6 @@ public class SchemaTransaction extends IndexableTransaction {
         }
         builder.build();
         this.graph().addIndexLabel(ALL_VL, builder.build());
-
-        return taskId;
     }
 
     public Id createOlapPk(PropertyKey propertyKey) {
@@ -336,8 +331,13 @@ public class SchemaTransaction extends IndexableTransaction {
         this.store().provider().createOlapTable(this.graph(), id);
     }
 
-    public void initAndRegisterOlapTable(Id id) {
-        this.store().provider().initAndRegisterOlapTable(this.graph(), id);
+    public void initAndRegisterOlapTables() {
+        for (PropertyKey pk : this.getPropertyKeys()) {
+            if (pk.olap()) {
+                this.store().provider().initAndRegisterOlapTable(this.graph(),
+                                                                 pk.id());
+            }
+        }
     }
 
     public void clearOlapPk(Id id) {

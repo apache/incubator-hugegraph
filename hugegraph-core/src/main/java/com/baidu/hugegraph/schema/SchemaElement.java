@@ -167,4 +167,57 @@ public abstract class SchemaElement implements Namifiable, Typifiable,
                         "Schema id is out of bound: %s", l);
         return (int) l;
     }
+
+    public static class TaskWithSchema {
+
+        private SchemaElement schemaElement;
+        private Id task;
+
+        public TaskWithSchema(SchemaElement schemaElement, Id task) {
+            E.checkNotNull(schemaElement, "schema element");
+            this.schemaElement = schemaElement;
+            this.task = task;
+        }
+
+        public void schemaElement(SchemaElement schemaElement) {
+            E.checkNotNull(schemaElement, "schema element");
+            this.schemaElement = schemaElement;
+        }
+
+        public void propertyKey(PropertyKey propertyKey) {
+            E.checkNotNull(schemaElement, "property key");
+            this.schemaElement = propertyKey;
+        }
+
+        public void indexLabel(IndexLabel indexLabel) {
+            E.checkNotNull(schemaElement, "index label");
+            this.schemaElement = indexLabel;
+        }
+
+        public PropertyKey propertyKey() {
+            E.checkState(this.schemaElement instanceof PropertyKey,
+                         "Expect property key, but actual schema type is " +
+                         "'%s'", this.schemaElement.getClass());
+            return (PropertyKey) this.schemaElement;
+        }
+
+        public IndexLabel indexLabel() {
+            E.checkState(this.schemaElement instanceof IndexLabel,
+                         "Expect index label, but actual schema type is " +
+                         "'%s'", this.schemaElement.getClass());
+            return (IndexLabel) this.schemaElement;
+        }
+
+        public SchemaElement schemaElement() {
+            return this.schemaElement;
+        }
+
+        public void task(Id task) {
+            this.task = task;
+        }
+
+        public Id task() {
+            return this.task;
+        }
+    }
 }

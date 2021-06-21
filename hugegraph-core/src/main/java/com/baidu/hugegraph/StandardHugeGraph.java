@@ -19,6 +19,8 @@
 
 package com.baidu.hugegraph;
 
+import static com.baidu.hugegraph.schema.VertexLabel.ALL_VL;
+
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -50,6 +52,7 @@ import com.baidu.hugegraph.backend.cache.CacheNotifier.SchemaCacheNotifier;
 import com.baidu.hugegraph.backend.cache.CachedGraphTransaction;
 import com.baidu.hugegraph.backend.cache.CachedSchemaTransaction;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.id.SnowflakeIdGenerator;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.AbstractSerializer;
@@ -258,11 +261,7 @@ public class StandardHugeGraph implements HugeGraph {
         this.serverInfoManager().initServerInfo(serverId, serverRole);
 
         LOG.info("Search olap property key for graph '{}'", this.name);
-        for (PropertyKey pk : this.schemaTransaction().getPropertyKeys()) {
-            if (pk.readFrequency().olap()) {
-                this.schemaTransaction().initAndRegisterOlapTable(pk.id());
-            }
-        }
+        this.schemaTransaction().initAndRegisterOlapTables();
 
         LOG.info("Restoring incomplete tasks for graph '{}'...", this.name);
         this.taskScheduler().restoreTasks();
@@ -710,8 +709,8 @@ public class StandardHugeGraph implements HugeGraph {
 
     @Override
     public Id clearPropertyKey(PropertyKey propertyKey) {
-        if (propertyKey.readFrequency().oltp()) {
-            return null;
+        if (propertyKey.oltp()) {
+            return IdGenerator.ZERO;
         }
         return this.schemaTransaction().clearOlapPk(propertyKey);
     }
@@ -823,7 +822,8 @@ public class StandardHugeGraph implements HugeGraph {
 
     @Override
     public void addIndexLabel(SchemaLabel schemaLabel, IndexLabel indexLabel) {
-        assert this.name.equals(schemaLabel.graph().name());
+        assert ALL_VL.equals(schemaLabel) ||
+               this.name.equals(schemaLabel.graph().name());
         assert this.name.equals(indexLabel.graph().name());
         this.schemaTransaction().addIndexLabel(schemaLabel, indexLabel);
     }

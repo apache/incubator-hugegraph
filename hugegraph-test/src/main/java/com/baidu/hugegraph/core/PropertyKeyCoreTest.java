@@ -21,6 +21,7 @@ package com.baidu.hugegraph.core;
 
 import java.util.Date;
 
+import org.junit.Assume;
 import org.junit.Test;
 
 import com.baidu.hugegraph.HugeException;
@@ -34,6 +35,7 @@ import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.type.define.AggregateType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
+import com.baidu.hugegraph.type.define.ReadFrequency;
 import com.baidu.hugegraph.util.DateUtil;
 import com.google.common.collect.ImmutableList;
 
@@ -351,6 +353,159 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
         Assert.assertThrows(NotAllowException.class, () -> {
             schema.propertyKey("aggregateProperty")
                   .asDate().valueSingle().calcSum().create();
+        });
+    }
+
+    @Test
+    public void testAddOlapPropertyKey() {
+        Assume.assumeTrue("Not support olap properties",
+                          storeFeatures().supportsOlapProperties());
+
+        SchemaManager schema = graph().schema();
+        PropertyKey olap = schema.propertyKey("olap")
+                                 .asText().valueSingle()
+                                 .readFrequency(ReadFrequency.OLAP_NONE)
+                                 .ifNotExist().create();
+
+        Assert.assertEquals("olap", olap.name());
+        Assert.assertEquals(DataType.TEXT, olap.dataType());
+        Assert.assertEquals(Cardinality.SINGLE, olap.cardinality());
+        Assert.assertEquals(ReadFrequency.OLAP_NONE, olap.readFrequency());
+
+        PropertyKey pagerank = schema.propertyKey("pagerank")
+                                     .asDouble().valueSingle()
+                                     .readFrequency(ReadFrequency.OLAP_RANGE)
+                                     .ifNotExist().create();
+
+        Assert.assertEquals("pagerank", pagerank.name());
+        Assert.assertEquals(DataType.DOUBLE, pagerank.dataType());
+        Assert.assertEquals(Cardinality.SINGLE, pagerank.cardinality());
+        Assert.assertEquals(ReadFrequency.OLAP_RANGE, pagerank.readFrequency());
+
+        PropertyKey wcc = schema.propertyKey("wcc")
+                                .asText().valueSingle()
+                                .readFrequency(ReadFrequency.OLAP_SECONDARY)
+                                .ifNotExist().create();
+
+        Assert.assertEquals("wcc", wcc.name());
+        Assert.assertEquals(DataType.TEXT, wcc.dataType());
+        Assert.assertEquals(Cardinality.SINGLE, wcc.cardinality());
+        Assert.assertEquals(ReadFrequency.OLAP_SECONDARY, wcc.readFrequency());
+    }
+
+    @Test
+    public void testClearOlapPropertyKey() {
+        Assume.assumeTrue("Not support olap properties",
+                          storeFeatures().supportsOlapProperties());
+
+        SchemaManager schema = graph().schema();
+        PropertyKey olap = schema.propertyKey("olap")
+                                 .asText().valueSingle()
+                                 .readFrequency(ReadFrequency.OLAP_NONE)
+                                 .ifNotExist().create();
+
+        Assert.assertEquals("olap", olap.name());
+        Assert.assertEquals(DataType.TEXT, olap.dataType());
+        Assert.assertEquals(Cardinality.SINGLE, olap.cardinality());
+        Assert.assertEquals(ReadFrequency.OLAP_NONE, olap.readFrequency());
+
+        graph().clearPropertyKey(olap);
+
+        olap = graph().propertyKey("olap");
+        Assert.assertEquals("olap", olap.name());
+        Assert.assertEquals(DataType.TEXT, olap.dataType());
+        Assert.assertEquals(Cardinality.SINGLE, olap.cardinality());
+        Assert.assertEquals(ReadFrequency.OLAP_NONE, olap.readFrequency());
+
+        PropertyKey pagerank = schema.propertyKey("pagerank")
+                                     .asDouble().valueSingle()
+                                     .readFrequency(ReadFrequency.OLAP_RANGE)
+                                     .ifNotExist().create();
+
+        Assert.assertEquals("pagerank", pagerank.name());
+        Assert.assertEquals(DataType.DOUBLE, pagerank.dataType());
+        Assert.assertEquals(Cardinality.SINGLE, pagerank.cardinality());
+        Assert.assertEquals(ReadFrequency.OLAP_RANGE, pagerank.readFrequency());
+
+        graph().clearPropertyKey(pagerank);
+
+        pagerank = graph().propertyKey("pagerank");
+        Assert.assertEquals("pagerank", pagerank.name());
+        Assert.assertEquals(DataType.DOUBLE, pagerank.dataType());
+        Assert.assertEquals(Cardinality.SINGLE, pagerank.cardinality());
+        Assert.assertEquals(ReadFrequency.OLAP_RANGE, pagerank.readFrequency());
+
+        PropertyKey wcc = schema.propertyKey("wcc")
+                                .asText().valueSingle()
+                                .readFrequency(ReadFrequency.OLAP_SECONDARY)
+                                .ifNotExist().create();
+
+        Assert.assertEquals("wcc", wcc.name());
+        Assert.assertEquals(DataType.TEXT, wcc.dataType());
+        Assert.assertEquals(Cardinality.SINGLE, wcc.cardinality());
+        Assert.assertEquals(ReadFrequency.OLAP_SECONDARY, wcc.readFrequency());
+
+        graph().clearPropertyKey(wcc);
+
+        wcc = graph().propertyKey("wcc");
+        Assert.assertEquals("wcc", wcc.name());
+        Assert.assertEquals(DataType.TEXT, wcc.dataType());
+        Assert.assertEquals(Cardinality.SINGLE, wcc.cardinality());
+        Assert.assertEquals(ReadFrequency.OLAP_SECONDARY, wcc.readFrequency());
+    }
+
+    @Test
+    public void testRemoveOlapPropertyKey() {
+        Assume.assumeTrue("Not support olap properties",
+                          storeFeatures().supportsOlapProperties());
+
+        SchemaManager schema = graph().schema();
+        PropertyKey olap = schema.propertyKey("olap")
+                                 .asText().valueSingle()
+                                 .readFrequency(ReadFrequency.OLAP_NONE)
+                                 .ifNotExist().create();
+
+        Assert.assertEquals("olap", olap.name());
+        Assert.assertEquals(DataType.TEXT, olap.dataType());
+        Assert.assertEquals(Cardinality.SINGLE, olap.cardinality());
+        Assert.assertEquals(ReadFrequency.OLAP_NONE, olap.readFrequency());
+
+        schema.propertyKey("olap").remove();
+
+        Assert.assertThrows(NotFoundException.class, () -> {
+            schema.getPropertyKey("olap");
+        });
+
+        PropertyKey pagerank = schema.propertyKey("pagerank")
+                                     .asDouble().valueSingle()
+                                     .readFrequency(ReadFrequency.OLAP_RANGE)
+                                     .ifNotExist().create();
+
+        Assert.assertEquals("pagerank", pagerank.name());
+        Assert.assertEquals(DataType.DOUBLE, pagerank.dataType());
+        Assert.assertEquals(Cardinality.SINGLE, pagerank.cardinality());
+        Assert.assertEquals(ReadFrequency.OLAP_RANGE, pagerank.readFrequency());
+
+        schema.propertyKey("pagerank").remove();
+
+        Assert.assertThrows(NotFoundException.class, () -> {
+            schema.getPropertyKey("pagerank");
+        });
+
+        PropertyKey wcc = schema.propertyKey("wcc")
+                                .asText().valueSingle()
+                                .readFrequency(ReadFrequency.OLAP_SECONDARY)
+                                .ifNotExist().create();
+
+        Assert.assertEquals("wcc", wcc.name());
+        Assert.assertEquals(DataType.TEXT, wcc.dataType());
+        Assert.assertEquals(Cardinality.SINGLE, wcc.cardinality());
+        Assert.assertEquals(ReadFrequency.OLAP_SECONDARY, wcc.readFrequency());
+
+        schema.propertyKey("wcc").remove();
+
+        Assert.assertThrows(NotFoundException.class, () -> {
+            schema.getPropertyKey("wcc");
         });
     }
 

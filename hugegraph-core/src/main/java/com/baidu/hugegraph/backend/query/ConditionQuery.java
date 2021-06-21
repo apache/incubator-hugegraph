@@ -38,16 +38,21 @@ import com.baidu.hugegraph.backend.query.Condition.RelationType;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.CollectionType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.LongEncoding;
 import com.baidu.hugegraph.util.NumericUtil;
+import com.baidu.hugegraph.util.collection.CollectionFactory;
 import com.google.common.base.Function;
+import com.google.common.collect.ImmutableSet;
 
 public final class ConditionQuery extends IdQuery {
 
+    private static final Set<Condition> EMPTY_CONDITIONS = ImmutableSet.of();
+
     // Conditions will be concated with `and` by default
-    private Set<Condition> conditions = new LinkedHashSet<>();
+    private Set<Condition> conditions = EMPTY_CONDITIONS;
 
     private OptimizedType optimizedType = OptimizedType.NONE;
     private Function<HugeElement, Boolean> resultsFilter = null;
@@ -73,6 +78,9 @@ public final class ConditionQuery extends IdQuery {
             }
         }
 
+        if (this.conditions == EMPTY_CONDITIONS) {
+            this.conditions = CollectionFactory.newSet(CollectionType.EC);;
+        }
         this.conditions.add(condition);
         return this;
     }
@@ -419,7 +427,9 @@ public final class ConditionQuery extends IdQuery {
     public ConditionQuery copy() {
         ConditionQuery query = (ConditionQuery) super.copy();
         query.originQuery(this);
-        query.conditions = new LinkedHashSet<>(this.conditions);
+        query.conditions = this.conditions == EMPTY_CONDITIONS ?
+                           EMPTY_CONDITIONS :
+                           CollectionFactory.newSet(CollectionType.EC);
 
         query.optimizedType = OptimizedType.NONE;
         query.resultsFilter = null;

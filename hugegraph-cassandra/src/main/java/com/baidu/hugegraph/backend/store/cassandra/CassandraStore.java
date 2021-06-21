@@ -71,6 +71,7 @@ public abstract class CassandraStore
 
     private CassandraSessionPool sessions;
     private HugeConfig conf;
+    private boolean isGraphStore;
 
     public CassandraStore(final BackendStoreProvider provider,
                           final String keyspace, final String store) {
@@ -157,6 +158,8 @@ public abstract class CassandraStore
             return;
         }
         this.conf = config;
+        String graphStore = this.conf.get(CoreOptions.STORE_GRAPH);
+        this.isGraphStore = this.store.equals(graphStore);
 
         // Init cluster
         this.sessions.open();
@@ -242,6 +245,11 @@ public abstract class CassandraStore
                 }
                 break;
             case DELETE:
+                if (entry.olap()) {
+                    this.table(this.olapTableName(entry.type()))
+                        .delete(session, entry.row());
+                    break;
+                }
                 // Delete entry
                 if (entry.selfChanged()) {
                     this.table(entry.type()).delete(session, entry.row());
@@ -289,19 +297,20 @@ public abstract class CassandraStore
         String tableName = query.olap() ?
                            this.olapTableName(type) : type.string();
         CassandraTable table = this.table(tableName);
-        Iterator<BackendEntry> entrys = table.query(this.session(), query);
+        Iterator<BackendEntry> entries = table.query(this.session(), query);
+        // Merge olap results as needed
         Set<Id> olapPks = query.olapPks();
-        String graphStore = this.conf.get(CoreOptions.STORE_GRAPH);
-        if (graphStore.equals(this.store) && !olapPks.isEmpty()) {
-            List<Iterator<BackendEntry>> iters = new ArrayList<>();
+        if (this.isGraphStore && !olapPks.isEmpty()) {
+            List<Iterator<BackendEntry>> iterators = new ArrayList<>();
             for (Id pk : olapPks) {
                 Query q = query.copy();
                 table = this.table(this.olapTableName(pk));
-                iters.add(table.query(this.session(), q));
+                iterators.add(table.query(this.session(), q));
             }
-            entrys = new MergeIterator<>(entrys, iters, BackendEntry::mergable);
+            entries = new MergeIterator<>(entries, iterators,
+                                          BackendEntry::mergable);
         }
-        return entrys;
+        return entries;
     }
 
     @Override

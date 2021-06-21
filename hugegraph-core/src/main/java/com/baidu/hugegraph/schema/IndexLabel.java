@@ -238,7 +238,7 @@ public class IndexLabel extends SchemaElement {
 
     public interface Builder extends SchemaBuilder<IndexLabel> {
 
-        CreatedIndexLabel createWithTask();
+        TaskWithSchema createWithTask();
 
         Id rebuild();
 
@@ -269,32 +269,4 @@ public class IndexLabel extends SchemaElement {
         Builder rebuild(boolean rebuild);
     }
 
-    public static class CreatedIndexLabel {
-
-        private IndexLabel indexLabel;
-        private Id task;
-
-        public CreatedIndexLabel(IndexLabel indexLabel, Id task) {
-            E.checkNotNull(indexLabel, "index label");
-            this.indexLabel = indexLabel;
-            this.task = task;
-        }
-
-        public void indexLabel(IndexLabel indexLabel) {
-            E.checkNotNull(indexLabel, "index label");
-            this.indexLabel = indexLabel;
-        }
-
-        public IndexLabel indexLabel() {
-            return this.indexLabel;
-        }
-
-        public void task(Id task) {
-            this.task = task;
-        }
-
-        public Id task() {
-            return this.task;
-        }
-    }
 }

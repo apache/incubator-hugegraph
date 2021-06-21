@@ -43,9 +43,11 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.define.Checkable;
 import com.baidu.hugegraph.schema.PropertyKey;
+import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.Userdata;
 import com.baidu.hugegraph.type.define.AggregateType;
 import com.baidu.hugegraph.type.define.Cardinality;
@@ -80,8 +82,8 @@ public class PropertyKeyAPI extends API {
 
         HugeGraph g = graph(manager, graph);
         PropertyKey.Builder builder = jsonPropertyKey.convert2Builder(g);
-        PropertyKey.PropertyKeyWithTask pk = builder.createWithTask();
-        return manager.serializer(g).writePropertyKeyWithTask(pk);
+        SchemaElement.TaskWithSchema pk = builder.createWithTask();
+        return manager.serializer(g).writeTaskWithSchema(pk);
     }
 
     @PUT
@@ -105,13 +107,13 @@ public class PropertyKeyAPI extends API {
         HugeGraph g = graph(manager, graph);
         if (ACTION_CLEAR.equals(action)) {
             PropertyKey propertyKey = g.propertyKey(name);
-            E.checkArgument(propertyKey.readFrequency().olap(),
+            E.checkArgument(propertyKey.olap(),
                             "Only olap property key can do action clear, " +
                             "but got '%s'", propertyKey);
             Id id = g.clearPropertyKey(propertyKey);
-            PropertyKey.PropertyKeyWithTask pk =
-                    new PropertyKey.PropertyKeyWithTask(propertyKey, id);
-            return manager.serializer(g).writePropertyKeyWithTask(pk);
+            SchemaElement.TaskWithSchema pk =
+                    new SchemaElement.TaskWithSchema(propertyKey, id);
+            return manager.serializer(g).writeTaskWithSchema(pk);
         }
 
         // Parse action parameter
@@ -121,9 +123,9 @@ public class PropertyKeyAPI extends API {
         PropertyKey propertyKey = append ?
                                   builder.append() :
                                   builder.eliminate();
-        PropertyKey.PropertyKeyWithTask pk =
-                new PropertyKey.PropertyKeyWithTask(propertyKey, null);
-        return manager.serializer(g).writePropertyKeyWithTask(pk);
+        SchemaElement.TaskWithSchema pk =
+                new SchemaElement.TaskWithSchema(propertyKey, IdGenerator.ZERO);
+        return manager.serializer(g).writeTaskWithSchema(pk);
     }
 
     @GET
@@ -170,6 +172,7 @@ public class PropertyKeyAPI extends API {
 
     @DELETE
     @Timed
+    @Status(Status.ACCEPTED)
     @Path("{name}")
     @Consumes(APPLICATION_JSON)
     @RolesAllowed({"admin", "$owner=$graph $action=property_key_delete"})

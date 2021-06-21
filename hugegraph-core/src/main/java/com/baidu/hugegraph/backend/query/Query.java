@@ -51,6 +51,8 @@ public class Query implements Cloneable {
 
     protected static final Query NONE = new Query(HugeType.UNKNOWN);
 
+    private static final Set<Id> EMPTY_OLAP_PKS = ImmutableSet.of();
+
     private HugeType resultType;
     private Map<HugeKeys, Order> orders;
     private long offset;
@@ -93,7 +95,7 @@ public class Query implements Cloneable {
         this.aggregate = null;
         this.showExpired = false;
         this.olap = false;
-        this.olapPks = new IdSet(CollectionType.EC);
+        this.olapPks = EMPTY_OLAP_PKS;
     }
 
     public void copyBasic(Query query) {
@@ -359,10 +361,15 @@ public class Query implements Cloneable {
     }
 
     public void olapPks(Set<Id> olapPks) {
-        this.olapPks = olapPks;
+        for (Id olapPk : olapPks) {
+            this.olapPk(olapPk);
+        }
     }
 
     public void olapPk(Id olapPk) {
+        if (this.olapPks == EMPTY_OLAP_PKS) {
+            this.olapPks = new IdSet(CollectionType.EC);
+        }
         this.olapPks.add(olapPk);
     }
 

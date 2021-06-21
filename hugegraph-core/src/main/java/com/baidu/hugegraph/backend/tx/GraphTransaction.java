@@ -609,7 +609,7 @@ public class GraphTransaction extends IndexableTransaction {
             Iterator<HugeProperty<?>> iterator = vertex.getProperties().values()
                                                        .iterator();
             assert iterator.hasNext();
-            if (iterator.next().propertyKey().readFrequency().olap()) {
+            if (iterator.next().propertyKey().olap()) {
                 return vertex;
             }
         }

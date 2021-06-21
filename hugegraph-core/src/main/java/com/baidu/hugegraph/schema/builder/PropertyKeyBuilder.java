@@ -33,6 +33,7 @@ import com.baidu.hugegraph.exception.NotAllowException;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.schema.PropertyKey;
+import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.Userdata;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Action;
@@ -127,7 +128,7 @@ public class PropertyKeyBuilder extends AbstractBuilder
     }
 
     @Override
-    public PropertyKey.PropertyKeyWithTask createWithTask() {
+    public SchemaElement.TaskWithSchema createWithTask() {
         HugeType type = HugeType.PROPERTY_KEY;
         this.checkSchemaName(this.name);
 
@@ -137,8 +138,8 @@ public class PropertyKeyBuilder extends AbstractBuilder
                 if (this.checkExist || !hasSameProperties(propertyKey)) {
                     throw new ExistedException(type, name);
                 }
-                return new PropertyKey.PropertyKeyWithTask(propertyKey,
-                                                           IdGenerator.ZERO);
+                return new SchemaElement.TaskWithSchema(propertyKey,
+                                                        IdGenerator.ZERO);
             }
             this.checkSchemaIdIfRestoringMode(type, this.id);
 
@@ -149,15 +150,15 @@ public class PropertyKeyBuilder extends AbstractBuilder
             propertyKey = this.build();
             assert propertyKey.name().equals(name);
             Id id = this.graph().addPropertyKey(propertyKey);
-            return new PropertyKey.PropertyKeyWithTask(propertyKey, id);
+            return new SchemaElement.TaskWithSchema(propertyKey, id);
         });
     }
 
     @Override
     public PropertyKey create() {
         // Create index label async
-        PropertyKey.PropertyKeyWithTask propertyKeyWithTask =
-                                        this.createWithTask();
+        SchemaElement.TaskWithSchema propertyKeyWithTask =
+                                     this.createWithTask();
 
         Id task = propertyKeyWithTask.task();
         if (task == IdGenerator.ZERO) {

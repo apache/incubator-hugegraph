@@ -177,7 +177,7 @@ public abstract class AbstractTransaction implements Transaction {
          */
         Set<Id> olapPks = new IdSet(CollectionType.EC);
         for (PropertyKey propertyKey : this.graph.graph().propertyKeys()) {
-            if (propertyKey.readFrequency().olap()) {
+            if (propertyKey.olap()) {
                 olapPks.add(propertyKey.id());
             }
         }
