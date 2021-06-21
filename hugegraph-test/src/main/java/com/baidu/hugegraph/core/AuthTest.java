@@ -1367,6 +1367,7 @@ public class AuthTest extends BaseCoreTest {
         Assert.assertNull(userWithRole.userId());
         Assert.assertEquals("huge", userWithRole.username());
         Assert.assertNull(userWithRole.role());
+    }
 
     public void testCreateProject() {
         HugeGraph graph = graph();
@@ -1376,7 +1377,7 @@ public class AuthTest extends BaseCoreTest {
         Assert.assertNotNull(id);
         project = graph.authManager().getProject(id);
         Assert.assertNotNull(project);
-        Assert.assertEquals("this is a test project", project.desc());
+        Assert.assertEquals("this is a test project", project.description());
         Assert.assertEquals("test_project", project.name());
         Assert.assertTrue(!Strings.isNullOrEmpty(project.adminGroupId()));
         Assert.assertTrue(!Strings.isNullOrEmpty(project.opGroupId()));
@@ -1384,8 +1385,8 @@ public class AuthTest extends BaseCoreTest {
 
         //Check name is unique index
         HugeProject sameNameProject = makeProject("test_project",
-                                                  "this is a test "
-                                                  + "project another");
+                                                  "this is a test " +
+                                                  "project another");
         Assert.assertThrows(HugeException.class,
                             () -> {
                                 graph.authManager()
@@ -1421,10 +1422,10 @@ public class AuthTest extends BaseCoreTest {
         AuthManager authManager = graph().authManager();
         Id projectId = authManager.createProject(project);
         project = authManager.getProject(projectId);
-        project.desc("this is a desc another");
+        project.description("this is a desc another");
         projectId = authManager.updateProject(project);
         HugeProject newProject = authManager.getProject(projectId);
-        Assert.assertEquals("this is a desc another", newProject.desc());
+        Assert.assertEquals("this is a desc another", newProject.description());
     }
 
     @Test

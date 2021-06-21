@@ -190,13 +190,14 @@ public class EntityManager<T extends Entity> {
     }
 
     private void commitOrRollback() {
-        if (shouldCommitTrans.get() != null && !shouldCommitTrans.get()) {
+        Boolean shouldCommitTrans = this.shouldCommitTrans.get();
+        if (shouldCommitTrans != null && !shouldCommitTrans) {
             return;
         }
         this.tx().commitOrRollback();
     }
 
     public void shouldCommitTrans(boolean value) {
-        shouldCommitTrans.set(value);
+        this.shouldCommitTrans.set(value);
     }
 }

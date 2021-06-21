@@ -48,8 +48,7 @@ public class HugeProject extends Entity {
     private String targetId;
 
     public HugeProject(Id id) {
-        this(id, null, null, null,
-             null, null, null);
+        this(id, null, null, null, null, null, null);
     }
 
     public HugeProject(Id id, String name, String desc, String adminGroupId,
@@ -75,22 +74,22 @@ public class HugeProject extends Entity {
     }
 
     public String opGroupName() {
-        return String.format("op_%s", this.name);
+        return "op_" + this.name;
     }
 
     public String adminGroupName() {
-        return String.format("admin_%s", this.name);
+        return "admin_" + this.name;
     }
 
-    public String updateTargetName() {
-        return String.format("update_auth_%s", this.name);
+    public String targetName() {
+        return "target_auth_" + this.name;
     }
 
-    public String desc() {
+    public String description() {
         return this.desc;
     }
 
-    public void desc(String desc) {
+    public void description(String desc) {
         this.desc = desc;
     }
 
@@ -129,7 +128,7 @@ public class HugeProject extends Entity {
     @Override
     public Map<String, Object> asMap() {
         E.checkState(!Strings.isNullOrEmpty(this.name),
-            "Project name can't be null");
+                     "Project name can't be null");
         E.checkState(!Strings.isNullOrEmpty(this.adminGroupId),
                      "Admin group id can't be null");
         E.checkState(!Strings.isNullOrEmpty(this.opGroupId),
@@ -138,9 +137,9 @@ public class HugeProject extends Entity {
         Map<String, Object> map = new HashMap<>();
 
         map.put(Graph.Hidden.unHide(HugeProject.P.NAME), this.name);
-        map.put(Graph.Hidden.unHide(HugeProject.P.ADMIN_GROUP_ID),
+        map.put(Graph.Hidden.unHide(HugeProject.P.ADMIN_GROUP),
                 this.adminGroupId);
-        map.put(Graph.Hidden.unHide(HugeProject.P.OP_GROUP_ID),
+        map.put(Graph.Hidden.unHide(HugeProject.P.OP_GROUP),
                 this.opGroupId);
         if (this.graphs != null && !this.graphs.isEmpty()) {
             map.put(Graph.Hidden.unHide(HugeProject.P.GRAPHS), this.graphs);
@@ -150,7 +149,7 @@ public class HugeProject extends Entity {
                     this.desc);
         }
         if (!Strings.isNullOrEmpty(this.targetId)) {
-            map.put(Graph.Hidden.unHide(HugeProject.P.TARGET_ID),
+            map.put(Graph.Hidden.unHide(HugeProject.P.TARGET),
                     this.targetId);
         }
 
@@ -183,14 +182,14 @@ public class HugeProject extends Entity {
             list.add(this.graphs);
         }
 
-        list.add(HugeProject.P.ADMIN_GROUP_ID);
+        list.add(HugeProject.P.ADMIN_GROUP);
         list.add(this.adminGroupId);
 
-        list.add(HugeProject.P.OP_GROUP_ID);
+        list.add(HugeProject.P.OP_GROUP);
         list.add(this.opGroupId);
 
         if (!Strings.isNullOrEmpty(this.targetId)) {
-            list.add(HugeProject.P.TARGET_ID);
+            list.add(HugeProject.P.TARGET);
             list.add(this.targetId);
         }
 
@@ -212,13 +211,13 @@ public class HugeProject extends Entity {
             case HugeProject.P.DESCRIPTIONS:
                 this.desc = (String) value;
                 break;
-            case P.ADMIN_GROUP_ID:
+            case P.ADMIN_GROUP:
                 this.adminGroupId = (String) value;
                 break;
-            case P.OP_GROUP_ID:
+            case P.OP_GROUP:
                 this.opGroupId = (String) value;
                 break;
-            case P.TARGET_ID:
+            case P.TARGET:
                 this.targetId = (String) value;
                 break;
             default:
@@ -245,12 +244,12 @@ public class HugeProject extends Entity {
 
         public static final String PROJECT = Graph.Hidden.hide("project");
         public static final String LABEL = T.label.getAccessor();
-        public static final String ADMIN_GROUP_ID = "~project_admin_group_id";
-        public static final String OP_GROUP_ID = "~project_op_group_id";
+        public static final String ADMIN_GROUP = "~project_admin_group";
+        public static final String OP_GROUP = "~project_op_group";
         public static final String GRAPHS = "~project_graphs";
         public static final String NAME = "~project_name";
         public static final String DESCRIPTIONS = "~project_description";
-        public static final String TARGET_ID = "~project_target_id";
+        public static final String TARGET = "~project_target";
 
         public static String unhide(String key) {
             final String prefix = Graph.Hidden.hide("project_");
@@ -260,7 +259,6 @@ public class HugeProject extends Entity {
             return key;
         }
     }
-
 
     public static final class Schema extends SchemaDefine {
 
@@ -282,7 +280,7 @@ public class HugeProject extends Entity {
                                     .primaryKeys(HugeProject.P.NAME)
                                     .nullableKeys(HugeProject.P.DESCRIPTIONS,
                                                   HugeProject.P.GRAPHS,
-                                                  HugeProject.P.TARGET_ID)
+                                                  HugeProject.P.TARGET)
                                     .properties(properties)
                                     .build();
             this.graph.schemaTransaction().addVertexLabel(label);
@@ -291,16 +289,16 @@ public class HugeProject extends Entity {
         private String[] initProperties() {
             List<String> props = new ArrayList<>();
 
-            props.add(createPropertyKey(HugeProject.P.ADMIN_GROUP_ID,
+            props.add(createPropertyKey(HugeProject.P.ADMIN_GROUP,
                                         DataType.TEXT));
-            props.add(createPropertyKey(HugeProject.P.OP_GROUP_ID,
+            props.add(createPropertyKey(HugeProject.P.OP_GROUP,
                                         DataType.TEXT));
             props.add(createPropertyKey(HugeProject.P.GRAPHS, DataType.TEXT,
                                         Cardinality.SET));
             props.add(createPropertyKey(HugeProject.P.NAME, DataType.TEXT));
             props.add(createPropertyKey(HugeProject.P.DESCRIPTIONS,
                                         DataType.TEXT));
-            props.add(createPropertyKey(HugeProject.P.TARGET_ID,
+            props.add(createPropertyKey(HugeProject.P.TARGET,
                                         DataType.TEXT));
 
             return super.initProperties(props);

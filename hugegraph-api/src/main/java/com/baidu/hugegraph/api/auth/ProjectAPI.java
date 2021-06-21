@@ -19,7 +19,9 @@
 
 package com.baidu.hugegraph.api.auth;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
@@ -39,6 +41,7 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.StatusFilter;
+import com.baidu.hugegraph.auth.AuthManager;
 import com.baidu.hugegraph.auth.HugeProject;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.core.GraphManager;
@@ -56,6 +59,8 @@ import com.google.common.base.Strings;
 public class ProjectAPI extends API {
 
     private static final Logger LOG = Log.logger(RestServer.class);
+    private static final String ACTION_ADD_GRAPH = "add_graph";
+    private static final String ACTION_DELETE_GRAPH = "delete_graph";
 
     @POST
     @Timed
@@ -83,19 +88,30 @@ public class ProjectAPI extends API {
     public String update(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          @PathParam("id") String id,
+                         @QueryParam("action") String action,
                          ProjectAPI.JsonTarget jsonTarget) {
-        LOG.debug("Graph [{}] update project: {}", graph, jsonTarget);
-        checkUpdatingBody(jsonTarget);
+        LOG.debug("Graph [{}] update {} project: {}", graph, action,
+                  jsonTarget);
 
         HugeGraph g = graph(manager, graph);
         HugeProject project;
+        Id projectId = UserAPI.parseId(id);
+        AuthManager authManager = manager.authManager();
         try {
-            project = manager.authManager().getProject(UserAPI.parseId(id));
+            project = authManager.getProject(projectId);
         } catch (NotFoundException e) {
             throw new IllegalArgumentException("Invalid project id: " + id);
         }
-        project = jsonTarget.build(project);
-        manager.authManager().updateProject(project);
+        project = jsonTarget.build(action, project);
+        if (isAddGraph(action)) {
+            authManager.updateProjectAddGraph(projectId,
+                                              jsonTarget.graph);
+        } else if (isDeleteGraph(action)) {
+            authManager.updateProjectRemoveGraph(projectId,
+                                                 jsonTarget.graph);
+        } else {
+            authManager.updateProject(project);
+        }
         return manager.serializer(g).writeAuthElement(project);
     }
 
@@ -150,77 +166,58 @@ public class ProjectAPI extends API {
         }
     }
 
-    @DELETE
-    @Timed
-    @Path("{id}/graph/{name}")
-    @Consumes(APPLICATION_JSON)
-    public void deleteGraph(@Context GraphManager manager,
-                            @PathParam("graph") String graph,
-                            @PathParam("id") String id,
-                            @PathParam("name") String name) {
-        LOG.debug("Graph [{}] delete graph '{}' from project '{}'",
-                  graph, name, id);
-
-        @SuppressWarnings("unused") // just check if the graph exists
-        HugeGraph g = graph(manager, graph);
-        try {
-            manager.authManager()
-                   .updateProjectRemoveGraph(UserAPI.parseId(id), name);
-        } catch (NotFoundException e) {
-            throw new IllegalArgumentException("Invalid project id: " + id);
-        }
+    public static boolean isAddGraph(String action) {
+        return ACTION_ADD_GRAPH.equals(action);
     }
 
-    @PUT
-    @Timed
-    @Path("{id}/graph")
-    @Consumes(APPLICATION_JSON)
-    public void addGraph(@Context GraphManager manager,
-                         @PathParam("graph") String graph,
-                         @PathParam("id") String id,
-                         GraphJsonTarget jsonTarget) {
-        LOG.debug("Graph [{}] add project's [{}] graph: {}", graph, id,
-                  jsonTarget.graph);
-        jsonTarget.check();
-
-        @SuppressWarnings("unused") // just check if the graph exists
-        HugeGraph g = graph(manager, graph);
-        try {
-            manager.authManager()
-                   .updateProjectAddGraph(UserAPI.parseId(id),
-                                          jsonTarget.graph);
-        } catch (NotFoundException e) {
-            throw new IllegalArgumentException("Invalid project id: " + id);
-        }
-    }
-
-    private static class GraphJsonTarget {
-        @JsonProperty("graph")
-        private String graph;
-
-        public void check() {
-            E.checkArgumentNotNull(this.graph,
-                                   "The graph name can't be null");
-        }
+    public static boolean isDeleteGraph(String action) {
+        return ACTION_DELETE_GRAPH.equals(action);
     }
 
     private static class JsonTarget implements Checkable {
 
-        @JsonProperty("desc")
-        private String desc;
+        @JsonProperty("description")
+        private String description;
         @JsonProperty("name")
         private String name;
+        @JsonProperty("graph")
+        private String graph;
 
-        public HugeProject build(HugeProject project) {
-            E.checkArgument(Strings.isNullOrEmpty(this.name) ||
-                            project.desc().equals(this.name),
-                            "The name of project can't be updated");
-            project.desc(this.desc);
+        public HugeProject build(String action, HugeProject project) {
+            if (isAddGraph(action)) {
+                checkGraph();
+                Set<String> graphs = project.graphs();
+                if (graphs == null) {
+                    graphs = new HashSet<>();
+                }
+                graphs.add(this.graph);
+                project.graphs(graphs);
+            } else if (isDeleteGraph(action)) {
+                checkGraph();
+                Set<String> graphs = project.graphs();
+                if (graphs != null) {
+                    graphs.remove(this.graph);
+                }
+                project.graphs(graphs);
+            } else {
+                checkDescription();
+                project.description(this.description);
+            }
             return project;
         }
 
+        private void checkGraph() {
+            E.checkArgument(!Strings.isNullOrEmpty(this.graph),
+                            "The graph of project can't be empty");
+        }
+
+        private void checkDescription() {
+            E.checkArgumentNotNull(this.description,
+                            "The description of project can't be null");
+        }
+
         public HugeProject build() {
-            HugeProject project = new HugeProject(null, this.name, this.desc,
+            HugeProject project = new HugeProject(null, this.name, this.description,
                                                   null, null,
                                                   null, null);
             return project;
@@ -234,8 +231,8 @@ public class ProjectAPI extends API {
 
         @Override
         public void checkUpdate() {
-            E.checkArgument(this.desc != null,
-                            "Expect desc of project can't be null");
+            E.checkArgument(this.description != null,
+                            "Expect description of project can't be null");
         }
     }
 }

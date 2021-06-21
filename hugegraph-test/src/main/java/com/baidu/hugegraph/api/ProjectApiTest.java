@@ -36,7 +36,7 @@ public class ProjectApiTest extends BaseApiTest {
     private final static String path = "graphs/hugegraph/auth/projects";
 
     @Before
-    public void setUp() {
+    public void setup() {
         BaseApiTest.truncate();
     }
 
@@ -45,7 +45,7 @@ public class ProjectApiTest extends BaseApiTest {
         createProject("test_project", "this is a good project");
     }
 
-    public String createProject(String name, String desc) {
+    private String createProject(String name, String desc) {
         String reqBody = String.format("{\"name\": \"%s\","
                                        + "\"desc\": \"%s\"}", name, desc);
         Response resp = client().post(path, reqBody);
@@ -58,11 +58,11 @@ public class ProjectApiTest extends BaseApiTest {
             Assert.assertEquals(desc, projectDesc);
         }
         Assert.assertFalse(Strings.isNullOrEmpty(assertJsonContains(respBody,
-                                                                    "project_target_id")));
+                                                                    "project_target")));
         Assert.assertFalse(Strings.isNullOrEmpty(assertJsonContains(respBody,
-                                                                    "project_admin_group_id")));
+                                                                    "project_admin_group")));
         Assert.assertFalse(Strings.isNullOrEmpty(assertJsonContains(respBody,
-                                                                    "project_op_group_id")));
+                                                                    "project_op_group")));
         return respBody;
     }
 
@@ -138,35 +138,21 @@ public class ProjectApiTest extends BaseApiTest {
     @Test
     public void testUpdateRemoveGraph() {
         String projectId = makeProjectWithGraph("project_test", "graph_test");
-        Response resp = client().target()
-                                .path(path)
-                                .path(projectId)
-                                .path("graph")
-                                .path("graph_test")
-                                .request()
-                                .delete();
-        assertResponseStatus(204, resp);
+        deleteGraph(projectId, "graph_test");
 
         String respBody = getProject(projectId);
         Assert.assertFalse(respBody.contains("project_graphs"));
 
         makeGraph(projectId, "graph_test1");
         makeGraph(projectId, "graph_test2");
-        resp = client().target()
-                       .path(path)
-                       .path(projectId)
-                       .path("graph")
-                       .path("graph_test2")
-                       .request()
-                       .delete();
-        assertResponseStatus(204, resp);
+        deleteGraph(projectId, "graph_test2");
         respBody = getProject(projectId);
         List<String> graphs = assertJsonContains(respBody, "project_graphs");
         Assert.assertEquals(1, graphs.size());
         Assert.assertTrue(graphs.contains("graph_test1"));
     }
 
-    public String makeProjectWithGraph(String projectName,
+    private String makeProjectWithGraph(String projectName,
                                        String graph) {
         String projectId = assertJsonContains(createProject(projectName,
                                                             null), "id");
@@ -174,18 +160,29 @@ public class ProjectApiTest extends BaseApiTest {
         return projectId;
     }
 
-    public void makeGraph(String projectId, String graph) {
+    private void makeGraph(String projectId, String graph) {
         String reqBody = String.format("{\"graph\":\"%s\"}", graph);
         Response resp = client().target()
                                 .path(path)
                                 .path(projectId)
-                                .path("graph")
+                                .queryParam("action", "add_graph")
                                 .request()
                                 .put(Entity.json(reqBody));
-        assertResponseStatus(204, resp);
+        assertResponseStatus(200, resp);
     }
 
-    public String getProject(String projectId) {
+    private void deleteGraph(String projectId, String graph) {
+        String reqBody = String.format("{\"graph\":\"%s\"}", graph);
+        Response resp = client().target()
+                                .path(path)
+                                .path(projectId)
+                                .queryParam("action", "delete_graph")
+                                .request()
+                                .put(Entity.json(reqBody));
+        assertResponseStatus(200, resp);
+    }
+
+    private String getProject(String projectId) {
         Response resp = client().target()
                                 .path(path)
                                 .path(projectId)
