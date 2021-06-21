@@ -125,6 +125,12 @@ public class LoginApiTest extends BaseApiTest {
         headers.add(HttpHeaders.AUTHORIZATION, "Bearer " + invalidToken);
         r = client().get(path, headers);
         assertResponseStatus(401, r);
+
+        invalidToken = "123.ansfaf";
+        headers = new MultivaluedHashMap<>();
+        headers.add(HttpHeaders.AUTHORIZATION, "Bearer " + invalidToken);
+        r = client().get(path, headers);
+        assertResponseStatus(401, r);
     }
 
     private Response createUser(String name, String password) {
