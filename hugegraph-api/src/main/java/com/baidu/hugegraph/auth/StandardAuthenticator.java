@@ -114,8 +114,8 @@ public class StandardAuthenticator implements HugeAuthenticator {
 
     /**
      * Verify if a user is legal
-     * @param username  the username for authentication
-     * @param password  the password for authentication
+     * @param username the username for authentication
+     * @param password the password for authentication
      * @param token the token for authentication
      * @return String No permission if return ROLE_NONE else return a role
      */
@@ -136,7 +136,7 @@ public class StandardAuthenticator implements HugeAuthenticator {
         RolePermission role = userWithRole.role();
         if (role == null) {
             role = ROLE_NONE;
-        } else if (userWithRole.username().equals(USER_ADMIN)) {
+        } else if (USER_ADMIN.equals(userWithRole.username())) {
             role = ROLE_ADMIN;
         } else {
             return userWithRole;
