@@ -32,6 +32,7 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.auth.SchemaDefine.Entity;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
@@ -60,8 +61,7 @@ public class HugeProject extends Entity {
     }
 
     public HugeProject(Id id, String name, String desc, Id adminGroupId,
-                       Id opGroupId, Set<String> graphs,
-                       Id targetId) {
+                       Id opGroupId, Set<String> graphs, Id targetId) {
         this.name = name;
         this.desc = desc;
         this.adminGroupId = adminGroupId;
@@ -148,9 +148,9 @@ public class HugeProject extends Entity {
 
         map.put(Graph.Hidden.unHide(HugeProject.P.NAME), this.name);
         map.put(Graph.Hidden.unHide(HugeProject.P.ADMIN_GROUP),
-                this.adminGroupId);
+                this.adminGroupId.toString());
         map.put(Graph.Hidden.unHide(HugeProject.P.OP_GROUP),
-                this.opGroupId);
+                this.opGroupId.toString());
         if (this.graphs != null && !this.graphs.isEmpty()) {
             map.put(Graph.Hidden.unHide(HugeProject.P.GRAPHS), this.graphs);
         }
@@ -160,7 +160,7 @@ public class HugeProject extends Entity {
         }
         if (this.targetId != null) {
             map.put(Graph.Hidden.unHide(HugeProject.P.TARGET),
-                    this.targetId);
+                    this.targetId.toString());
         }
 
         return super.asMap(map);
@@ -196,14 +196,14 @@ public class HugeProject extends Entity {
         }
 
         list.add(HugeProject.P.ADMIN_GROUP);
-        list.add(this.adminGroupId);
+        list.add(this.adminGroupId.toString());
 
         list.add(HugeProject.P.OP_GROUP);
-        list.add(this.opGroupId);
+        list.add(this.opGroupId.toString());
 
         if (this.targetId != null) {
             list.add(HugeProject.P.TARGET);
-            list.add(this.targetId);
+            list.add(this.targetId.toString());
         }
 
         return super.asArray(list);
@@ -225,13 +225,13 @@ public class HugeProject extends Entity {
                 this.desc = (String) value;
                 break;
             case P.ADMIN_GROUP:
-                this.adminGroupId = (Id) value;
+                this.adminGroupId = IdGenerator.of(value);
                 break;
             case P.OP_GROUP:
-                this.opGroupId = (Id) value;
+                this.opGroupId = IdGenerator.of(value);
                 break;
             case P.TARGET:
-                this.targetId = (Id) value;
+                this.targetId = IdGenerator.of(value);
                 break;
             default:
                 throw new AssertionError("Unsupported key: " + key);

@@ -1471,7 +1471,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         @Override
         public HugeProject deleteProject(Id id) {
             verifyUserPermission(HugePermission.DELETE,
-                                 this.authManager.getTarget(id));
+                                 this.authManager.getProject(id));
             return this.authManager.deleteProject(id);
         }
 

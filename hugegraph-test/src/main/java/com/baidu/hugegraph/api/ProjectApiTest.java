@@ -46,8 +46,9 @@ public class ProjectApiTest extends BaseApiTest {
     }
 
     private String createProject(String name, String desc) {
-        String reqBody = String.format("{\"name\": \"%s\",\"desc\": \"%s\"}",
-                                       name, desc);
+        String reqBody = String.format("{\"project_name\": \"%s\"," +
+                                       "\"project_description\": " +
+                                       "\"%s\"}", name, desc);
         Response resp = client().post(path, reqBody);
         String respBody = assertResponseStatus(201, resp);
         String projectName = assertJsonContains(respBody, "project_name");
@@ -101,7 +102,7 @@ public class ProjectApiTest extends BaseApiTest {
 
     @Test
     public void testUpdate() {
-        String reqBody = "{\"desc\": \"update desc\"}";
+        String reqBody = "{\"project_description\": \"update desc\"}";
         Response resp = client().target()
                                 .path(path)
                                 .path("no_exist_id")
@@ -161,7 +162,7 @@ public class ProjectApiTest extends BaseApiTest {
     }
 
     private void makeGraph(String projectId, String graph) {
-        String reqBody = String.format("{\"graph\":\"%s\"}", graph);
+        String reqBody = String.format("{\"project_graph\":\"%s\"}", graph);
         Response resp = client().target()
                                 .path(path)
                                 .path(projectId)
@@ -172,7 +173,7 @@ public class ProjectApiTest extends BaseApiTest {
     }
 
     private void deleteGraph(String projectId, String graph) {
-        String reqBody = String.format("{\"graph\":\"%s\"}", graph);
+        String reqBody = String.format("{\"project_graph\":\"%s\"}", graph);
         Response resp = client().target()
                                 .path(path)
                                 .path(projectId)

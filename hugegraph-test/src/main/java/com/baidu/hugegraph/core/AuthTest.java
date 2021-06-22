@@ -1379,17 +1379,16 @@ public class AuthTest extends BaseCoreTest {
         Assert.assertNotNull(project);
         Assert.assertEquals("this is a test project", project.description());
         Assert.assertEquals("test_project", project.name());
-        Assert.assertTrue(project.adminGroupId() != null);
-        Assert.assertTrue(project.opGroupId() != null);
-        Assert.assertTrue(project.targetId() != null);
+        Assert.assertNotNull(project.adminGroupId());
+        Assert.assertNotNull(project.opGroupId());
+        Assert.assertNotNull(project.targetId());
 
         //Check name is unique index
         HugeProject sameNameProject = makeProject("test_project",
                                                   "this is a test " +
                                                   "project another");
         Assert.assertThrows(HugeException.class, () -> {
-                                graph.authManager()
-                                     .createProject(sameNameProject);
+            graph.authManager().createProject(sameNameProject);
         });
     }
 

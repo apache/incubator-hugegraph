@@ -76,7 +76,8 @@ public class ProjectAPI extends API {
         HugeGraph g = graph(manager, graph);
         HugeProject project = jsonTarget.build();
         Id projectId = manager.authManager().createProject(project);
-        // Some fields of project be known must be after create
+        // Some fields of project(like admin_group ) can only be known after
+        // created
         project = manager.authManager().getProject(projectId);
         return manager.serializer(g).writeAuthElement(project);
     }
@@ -177,11 +178,11 @@ public class ProjectAPI extends API {
 
     private static class JsonTarget implements Checkable {
 
-        @JsonProperty("description")
+        @JsonProperty("project_description")
         private String description;
-        @JsonProperty("name")
+        @JsonProperty("project_name")
         private String name;
-        @JsonProperty("graph")
+        @JsonProperty("project_graph")
         private String graph;
 
         public HugeProject build(String action, HugeProject project) {
@@ -209,7 +210,7 @@ public class ProjectAPI extends API {
 
         private void checkGraph() {
             E.checkArgument(!Strings.isNullOrEmpty(this.graph),
-                            "The project's graph can't be empty");
+                            "The graph of project can't be empty");
         }
 
         private void checkDescription() {

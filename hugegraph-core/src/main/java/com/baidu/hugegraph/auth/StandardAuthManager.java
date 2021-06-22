@@ -567,8 +567,8 @@ public class StandardAuthManager implements AuthManager {
             Id targetId = this.targets.add(target);
             project.targetId(targetId);
 
-            Id adminGroupId = IdGenerator.of(project.adminGroupId());
-            Id opGroupId = IdGenerator.of(project.opGroupId());
+            Id adminGroupId = project.adminGroupId();
+            Id opGroupId = project.opGroupId();
             HugeAccess adminGroupWriteAccess2Target = new HugeAccess(adminGroupId,
                                                                      targetId,
                                                                      HugePermission.WRITE);
@@ -597,15 +597,15 @@ public class StandardAuthManager implements AuthManager {
 
                 HugeProject oldProject = this.project.get(id);
                 E.checkArgumentNotNull(oldProject,
-                                       "Project '%s' not found",
-                                       id);
+                                       "The project with id '%s' " +
+                                       "can't be found", id);
                 // Check not graph bind this project
                 if (oldProject.graphs() != null &&
                     !oldProject.graphs().isEmpty()) {
                     String errInfo = String.format("Can't delete project '%s' " +
                                                    "that contains any graph, " +
-                                                   "there is %s bound to it",
-                                                   id);
+                                                   "there are graphs bound " +
+                                                   "to it", id);
                     throw new ForbiddenException(errInfo);
                 }
                 HugeProject project = this.project.delete(id);
@@ -641,7 +641,7 @@ public class StandardAuthManager implements AuthManager {
         E.checkArgumentNotNull(project.id(),
                                "The project's id can't be null");
         E.checkArgument(project.description() != null,
-                        "the project's '%s' description can't be null",
+                        "The project's '%s' description can't be null",
                         project.id());
         LockUtil.Locks locks = new LockUtil.Locks(this.graph.name());
         try {
@@ -666,13 +666,15 @@ public class StandardAuthManager implements AuthManager {
             locks.lockWrites(LockUtil.PROJECT_UPDATE, id);
 
             HugeProject project = this.project.get(id);
-            E.checkArgumentNotNull(project, "Project '%s' not found", id);
+            E.checkArgumentNotNull(project,
+                                   "The project with id '%s' can't be found",
+                                   id);
             Set<String> graphs = project.graphs();
             if (graphs == null) {
                 graphs = new HashSet<>();
             } else {
                 E.checkArgument(!graphs.contains(graph),
-                                "The graph named '%s' have been contained " +
+                                "The graph named '%s' has been contained " +
                                 "in the project '%s'", graph, id);
             }
             graphs.add(graph);
@@ -698,7 +700,7 @@ public class StandardAuthManager implements AuthManager {
 
             HugeProject project = this.project.get(id);
             E.checkArgumentNotNull(project,
-                                   "Project '%s' is not found",
+                                   "The project with id '%s' can't be found",
                                    id);
             Set<String> graphs = project.graphs();
             if (graphs == null || !graphs.contains(graph)) {
@@ -751,13 +753,13 @@ public class StandardAuthManager implements AuthManager {
             try {
                 this.graph.systemTransaction().rollback();
             } catch (Throwable rollbackException) {
-                LOG.error("Failed to rollback transaction: %s",
+                LOG.error("Failed to rollback transaction: {}",
                           rollbackException.getMessage(), rollbackException);
             }
             if (e instanceof HugeException) {
                 throw (HugeException) e;
             } else {
-                throw new HugeException("Failed to commit transaction: %s",
+                throw new HugeException("Failed to commit transaction: {%s}",
                                         e.getMessage(), e);
             }
         }
