@@ -42,25 +42,33 @@ public class HugeProject extends Entity {
 
     private String name;
     private String desc;
-    private String adminGroupId;
-    private String opGroupId;
+    private Id adminGroupId;
+    private Id opGroupId;
     private Set<String> graphs;
-    private String targetId;
+    private Id targetId;
 
     public HugeProject(Id id) {
         this(id, null, null, null, null, null, null);
     }
 
-    public HugeProject(Id id, String name, String desc, String adminGroupId,
-                       String opGroupId, Set<String> graphs,
-                       String updateTargetId) {
+    public HugeProject(String name) {
+        this(name, null);
+    }
+
+    public HugeProject(String name, String desc) {
+        this(null, name, desc, null, null, null, null);
+    }
+
+    public HugeProject(Id id, String name, String desc, Id adminGroupId,
+                       Id opGroupId, Set<String> graphs,
+                       Id targetId) {
         this.name = name;
         this.desc = desc;
         this.adminGroupId = adminGroupId;
         this.opGroupId = opGroupId;
         this.graphs = graphs;
         this.id = id;
-        this.targetId = updateTargetId;
+        this.targetId = targetId;
     }
 
     @Override
@@ -82,7 +90,7 @@ public class HugeProject extends Entity {
     }
 
     public String targetName() {
-        return "target_auth_" + this.name;
+        return "project_res_" + this.name;
     }
 
     public String description() {
@@ -93,19 +101,19 @@ public class HugeProject extends Entity {
         this.desc = desc;
     }
 
-    public String adminGroupId() {
+    public Id adminGroupId() {
         return this.adminGroupId;
     }
 
-    public void adminGroupId(String id) {
+    public void adminGroupId(Id id) {
         this.adminGroupId = id;
     }
 
-    public String opGroupId() {
+    public Id opGroupId() {
         return this.opGroupId;
     }
 
-    public void opGroupId(String id) {
+    public void opGroupId(Id id) {
         this.opGroupId = id;
     }
 
@@ -117,22 +125,24 @@ public class HugeProject extends Entity {
         this.graphs = graphs;
     }
 
-    public String targetId() {
+    public Id targetId() {
         return this.targetId;
     }
 
-    public void targetId(String targetId) {
+    public void targetId(Id targetId) {
         this.targetId = targetId;
     }
 
     @Override
     public Map<String, Object> asMap() {
         E.checkState(!Strings.isNullOrEmpty(this.name),
-                     "Project name can't be null");
-        E.checkState(!Strings.isNullOrEmpty(this.adminGroupId),
-                     "Admin group id can't be null");
-        E.checkState(!Strings.isNullOrEmpty(this.opGroupId),
-                     "Op group id can't be null");
+                     "The project's name can't be null");
+        E.checkState(this.adminGroupId != null,
+                     "The project's '%s' Admin group id can't be null",
+                     this.name);
+        E.checkState(this.opGroupId != null,
+                     "The project's '%s' Op group id can't be null",
+                     this.name);
 
         Map<String, Object> map = new HashMap<>();
 
@@ -148,7 +158,7 @@ public class HugeProject extends Entity {
             map.put(Graph.Hidden.unHide(HugeProject.P.DESCRIPTIONS),
                     this.desc);
         }
-        if (!Strings.isNullOrEmpty(this.targetId)) {
+        if (this.targetId != null) {
             map.put(Graph.Hidden.unHide(HugeProject.P.TARGET),
                     this.targetId);
         }
@@ -158,11 +168,14 @@ public class HugeProject extends Entity {
 
     @Override
     protected Object[] asArray() {
-        E.checkState(this.name != null, "Project name can't be null");
+        E.checkState(!Strings.isNullOrEmpty(this.name),
+                     "The project's name can't be null");
         E.checkState(this.adminGroupId != null,
-                     "Admin group id can't be null");
+                     "The project's '%s' Admin group id can't be null",
+                     this.name);
         E.checkState(this.opGroupId != null,
-                     "Op group id can't be null");
+                     "The project's '%s' Op group id can't be null",
+                     this.name);
 
         List<Object> list = new ArrayList<>(16);
 
@@ -188,7 +201,7 @@ public class HugeProject extends Entity {
         list.add(HugeProject.P.OP_GROUP);
         list.add(this.opGroupId);
 
-        if (!Strings.isNullOrEmpty(this.targetId)) {
+        if (this.targetId != null) {
             list.add(HugeProject.P.TARGET);
             list.add(this.targetId);
         }
@@ -212,13 +225,13 @@ public class HugeProject extends Entity {
                 this.desc = (String) value;
                 break;
             case P.ADMIN_GROUP:
-                this.adminGroupId = (String) value;
+                this.adminGroupId = (Id) value;
                 break;
             case P.OP_GROUP:
-                this.opGroupId = (String) value;
+                this.opGroupId = (Id) value;
                 break;
             case P.TARGET:
-                this.targetId = (String) value;
+                this.targetId = (Id) value;
                 break;
             default:
                 throw new AssertionError("Unsupported key: " + key);

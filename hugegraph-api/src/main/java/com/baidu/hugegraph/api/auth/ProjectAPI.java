@@ -76,6 +76,7 @@ public class ProjectAPI extends API {
         HugeGraph g = graph(manager, graph);
         HugeProject project = jsonTarget.build();
         Id projectId = manager.authManager().createProject(project);
+        // Some fields of project be known must be after create
         project = manager.authManager().getProject(projectId);
         return manager.serializer(g).writeAuthElement(project);
     }
@@ -208,31 +209,29 @@ public class ProjectAPI extends API {
 
         private void checkGraph() {
             E.checkArgument(!Strings.isNullOrEmpty(this.graph),
-                            "The graph of project can't be empty");
+                            "The project's graph can't be empty");
         }
 
         private void checkDescription() {
             E.checkArgumentNotNull(this.description,
-                            "The description of project can't be null");
+                            "The project's description can't be null");
         }
 
         public HugeProject build() {
-            HugeProject project = new HugeProject(null, this.name, this.description,
-                                                  null, null,
-                                                  null, null);
+            HugeProject project = new HugeProject(this.name, this.description);
             return project;
         }
 
         @Override
         public void checkCreate(boolean isBatch) {
             E.checkArgumentNotNull(this.name,
-                                   "The name of project can't be null");
+                                   "The project's name can't be null");
         }
 
         @Override
         public void checkUpdate() {
             E.checkArgument(this.description != null,
-                            "Expect description of project can't be null");
+                            "Expect project's description can't be null");
         }
     }
 }

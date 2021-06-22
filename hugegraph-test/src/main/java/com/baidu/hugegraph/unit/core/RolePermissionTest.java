@@ -335,11 +335,11 @@ public class RolePermissionTest {
     public void testHugeResourceFilterProject() {
         HugeResource all = HugeResource.ALL;
         HugeResource res = new HugeResource(ResourceType.PROJECT,
-                                            "project1", null);
+                                            "project1",
+                                            null);
         HugeResource rootRes = new HugeResource(ResourceType.ROOT,
-                                             HugeResource.ANY, null);
-        HugeProject project1 = new HugeProject(null, "project1", "", "", "",
-                                               null, "");
+                                                HugeResource.ANY, null);
+        HugeProject project1 = new HugeProject("project1");
         ResourceObject<SchemaDefine.AuthElement> r1 = ResourceObject.of("hugegraph",
                                                                         project1);
         Assert.assertFalse(all.filter(r1));
@@ -347,8 +347,7 @@ public class RolePermissionTest {
         Assert.assertTrue(res.filter(r1));
         Assert.assertTrue(rootRes.filter(r1));
 
-        HugeProject project2 = new HugeProject(null, "project2", "", "", "",
-                                               null, "");
+        HugeProject project2 = new HugeProject("project2");
         ResourceObject<SchemaDefine.AuthElement> r2 = ResourceObject.of("hugegraph",
                                                                         project2);
         Assert.assertFalse(res.filter(r2));

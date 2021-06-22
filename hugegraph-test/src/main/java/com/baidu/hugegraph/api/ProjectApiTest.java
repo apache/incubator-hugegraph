@@ -46,8 +46,8 @@ public class ProjectApiTest extends BaseApiTest {
     }
 
     private String createProject(String name, String desc) {
-        String reqBody = String.format("{\"name\": \"%s\","
-                                       + "\"desc\": \"%s\"}", name, desc);
+        String reqBody = String.format("{\"name\": \"%s\",\"desc\": \"%s\"}",
+                                       name, desc);
         Response resp = client().post(path, reqBody);
         String respBody = assertResponseStatus(201, resp);
         String projectName = assertJsonContains(respBody, "project_name");
@@ -110,8 +110,8 @@ public class ProjectApiTest extends BaseApiTest {
         assertResponseStatus(400, resp);
 
         String projectId = assertJsonContains(createProject("test_project",
-                                                     "desc"),
-                                       "id");
+                                                            "desc"),
+                                              "id");
         resp = client().target()
                        .path(path)
                        .path(projectId)
