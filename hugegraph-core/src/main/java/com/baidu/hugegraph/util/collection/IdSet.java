@@ -51,7 +51,12 @@ public class IdSet extends AbstractSet<Id> {
         return this.numberIds.isEmpty() && this.nonNumberIds.isEmpty();
     }
 
-    public boolean contains(Id id) {
+    @Override
+    public boolean contains(Object object) {
+        if (!(object instanceof Id)) {
+            return false;
+        }
+        Id id = (Id) object;
         if (id.type() == Id.IdType.LONG) {
             return this.numberIds.contains(id.asLong());
         } else {
