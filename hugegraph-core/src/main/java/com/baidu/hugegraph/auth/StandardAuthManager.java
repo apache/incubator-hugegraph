@@ -361,13 +361,13 @@ public class StandardAuthManager implements AuthManager {
             return null;
         }
 
-        Id id = IdGenerator.of(user.id());
-        if (password.equals(this.pwdCache.get(id))) {
+
+        if (password.equals(this.pwdCache.get(user.id()))) {
             return user;
         }
 
         if (StringEncoding.checkPassword(password, user.password())) {
-            this.pwdCache.update(id, password);
+            this.pwdCache.update(user.id(), password);
             return user;
         }
         return null;

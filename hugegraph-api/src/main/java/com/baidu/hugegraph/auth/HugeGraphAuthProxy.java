@@ -69,7 +69,7 @@ import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
 import com.baidu.hugegraph.backend.store.raft.RaftGroupManager;
-import com.baidu.hugegraph.config.CoreOptions;
+import com.baidu.hugegraph.config.AuthOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.TypedOption;
 import com.baidu.hugegraph.exception.NotSupportException;
@@ -128,7 +128,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
         HugeConfig config = (HugeConfig) hugegraph.configuration();
         // TODO: Consider better way to get, use auth client's config now
-        this.auditLogMaxRate = config.get(CoreOptions.AUTH_AUDIT_LOG_RATE);
+        this.auditLogMaxRate = config.get(AuthOptions.AUTH_AUDIT_LOG_RATE);
         LOG.info("Audit log rate limit is {}/s", this.auditLogMaxRate);
     }
 
@@ -927,7 +927,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         }
 
         // Log user action, limit rate for each user
-        Id usrId = IdGenerator.of(username);
+        Id usrId = context.user().userId();
         RateLimiter auditLimiter = this.auditLimiters.getOrFetch(usrId, id -> {
             return RateLimiter.create(this.auditLogMaxRate);
         });

@@ -32,6 +32,8 @@ import org.apache.tinkerpop.shaded.jackson.annotation.JsonProperty;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.auth.HugeGraphAuthProxy.Context;
 import com.baidu.hugegraph.auth.SchemaDefine.AuthElement;
+import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.OptionSpace;
 import com.baidu.hugegraph.config.ServerOptions;
@@ -153,18 +155,24 @@ public interface HugeAuthenticator extends Authenticator {
         public static final User ANONYMOUS = new User(USER_ANONY, ROLE_ADMIN);
 
         private final RolePermission role;
+        private final Id id;
         private String client; // peer
 
         public User(String username, RolePermission role) {
             super(username);
             E.checkNotNull(username, "username");
             E.checkNotNull(role, "role");
+            this.id = IdGenerator.of(username);
             this.role = role;
             this.client = null;
         }
 
         public String username() {
             return this.getName();
+        }
+
+        public Id userId() {
+            return this.id;
         }
 
         public RolePermission role() {
