@@ -1,0 +1,49 @@
+name: hugegraph-common ci
+
+on:
+  push:
+    branches:
+      - master
+      - /^release-.*$/
+      - /^test-.*$/
+  pull_request:
+    branches:
+      - master
+      - /^release-.*$/
+      - /^test-.*$/
+
+jobs:
+  build:
+    runs-on: ubuntu-16.04
+    steps:
+      - name: Install JDK 8
+        uses: actions/setup-java@v2
+        with:
+          java-version: '8'
+          distribution: 'adopt'
+
+      - name: Cache Maven packages
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+
+      - name: Compile
+        run: |
+          mvn compile -Dmaven.javadoc.skip=true | grep -v "Downloading\|Downloaded"
+
+      - name: Run test
+        run: |
+          mvn test -Dtest=UnitTestSuite
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v1.0.2
+        with:
+          token: ${{secrets.CODECOV_TOKEN}}
+          file: target/jacoco.xml
