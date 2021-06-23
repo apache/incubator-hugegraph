@@ -5,6 +5,7 @@ set -ev
 HOME_DIR=`pwd`
 TRAVIS_DIR=`dirname $0`
 BASE_DIR=$1
+BACKEND=$2
 BIN=$BASE_DIR/bin
 CONF=$BASE_DIR/conf/hugegraph.properties
 REST_CONF=$BASE_DIR/conf/rest-server.properties
