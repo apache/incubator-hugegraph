@@ -231,8 +231,7 @@ public abstract class AbstractTransaction implements Transaction {
         LOG.debug("Transaction rollback()...");
         this.reset();
         if (this.committing2Backend) {
-            this.committing2Backend = false;
-            this.store.rollbackTx();
+            this.rollbackBackend();
         }
     }
 
@@ -299,6 +298,11 @@ public abstract class AbstractTransaction implements Transaction {
         this.store.commitTx();
 
         this.committing2Backend = false;
+    }
+
+    protected void rollbackBackend() {
+        this.committing2Backend = false;
+        this.store.rollbackTx();
     }
 
     protected BackendMutation prepareCommit() {

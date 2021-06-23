@@ -483,7 +483,7 @@ public class GraphTransaction extends IndexableTransaction {
         try {
             this.commitMutation2Backend(mutation, idxMutation);
         } catch (Throwable e) {
-            this.store().rollbackTx();
+            this.rollbackBackend();
         } finally {
             mutation.clear();
             idxMutation.clear();
