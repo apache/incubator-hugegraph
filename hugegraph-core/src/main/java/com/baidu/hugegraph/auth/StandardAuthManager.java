@@ -493,7 +493,7 @@ public class StandardAuthManager implements AuthManager {
                                    Math.negateExact(bornTime));
         }
 
-        return new UserWithRole(user.id, username, this.rolePermission(user));
+        return new UserWithRole(user.id(), username, this.rolePermission(user));
     }
 
     /**
