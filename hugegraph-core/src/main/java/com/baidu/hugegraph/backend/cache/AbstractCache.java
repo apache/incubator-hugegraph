@@ -47,7 +47,6 @@ public abstract class AbstractCache<K, V> implements Cache<K, V> {
 
     // NOTE: the count in number of items, not in bytes
     private final long capacity;
-    private final long halfCapacity;
 
     // For user attachment
     private final AtomicReference<Object> attachment;
@@ -61,7 +60,6 @@ public abstract class AbstractCache<K, V> implements Cache<K, V> {
             capacity = 0L;
         }
         this.capacity = capacity;
-        this.halfCapacity = this.capacity >> 1;
         this.attachment = new AtomicReference<>();
 
         this.expire = 0L;
@@ -77,15 +75,13 @@ public abstract class AbstractCache<K, V> implements Cache<K, V> {
         if (id == null || this.capacity <= 0L) {
             return null;
         }
-        V value = null;
-        if (this.size() <= this.halfCapacity) {
-            // Maybe the id removed by other threads and returned null value
-            value = this.access(id);
-        }
+
+        V value = this.access(id);
 
         if (this.enabledMetrics) {
             this.collectMetrics(id, value);
         }
+
         return value;
     }
 
@@ -95,11 +91,8 @@ public abstract class AbstractCache<K, V> implements Cache<K, V> {
         if (id == null || this.capacity <= 0L) {
             return null;
         }
-        V value = null;
-        if (this.size() <= this.halfCapacity) {
-            // Maybe the id removed by other threads and returned null value
-            value = this.access(id);
-        }
+
+        V value = this.access(id);
 
         if (this.enabledMetrics) {
             this.collectMetrics(id, value);
@@ -245,10 +238,6 @@ public abstract class AbstractCache<K, V> implements Cache<K, V> {
         @SuppressWarnings("unchecked")
         T attachment = (T) this.attachment.get();
         return attachment;
-    }
-
-    protected final long halfCapacity() {
-        return this.halfCapacity;
     }
 
     protected abstract V access(K id);

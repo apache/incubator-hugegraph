@@ -39,6 +39,7 @@ public class RamCache extends AbstractCache<Id, Object> {
     private final LinkedQueueNonBigLock<Id, Object> queue;
 
     private final KeyLock keyLock;
+    private final long halfCapacity;
 
     public RamCache() {
         this(DEFAULT_SIZE);
@@ -47,11 +48,12 @@ public class RamCache extends AbstractCache<Id, Object> {
     public RamCache(long capacity) {
         super(capacity);
 
-        this.keyLock = new KeyLock();
-
         if (capacity < 0L) {
             capacity = 0L;
         }
+        this.keyLock = new KeyLock();
+        this.halfCapacity = capacity >> 1;
+
         long initialCapacity = capacity >= MB ? capacity >> 10 : 256;
         if (initialCapacity > MAX_INIT_CAP) {
             initialCapacity = MAX_INIT_CAP;
@@ -66,8 +68,7 @@ public class RamCache extends AbstractCache<Id, Object> {
     protected final Object access(Id id) {
         assert id != null;
 
-        long halfCapacity = this.halfCapacity();
-        if (this.map.size() <= halfCapacity) {
+        if (this.map.size() <= this.halfCapacity) {
             LinkNode<Id, Object> node = this.map.get(id);
             if (node == null) {
                 return null;
@@ -83,13 +84,14 @@ public class RamCache extends AbstractCache<Id, Object> {
 
         final Lock lock = this.keyLock.lock(id);
         try {
+            // Maybe the id removed by other threads and returned null value
             LinkNode<Id, Object> node = this.map.get(id);
             if (node == null) {
                 return null;
             }
 
             // NOTE: update the queue only if the size > capacity/2
-            if (this.map.size() > halfCapacity) {
+            if (this.map.size() > this.halfCapacity) {
                 // Move the node from mid to tail
                 if (this.queue.remove(node) == null) {
                     // The node may be removed by others through dequeue()
