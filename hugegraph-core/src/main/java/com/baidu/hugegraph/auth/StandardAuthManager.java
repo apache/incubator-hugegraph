@@ -21,7 +21,6 @@ package com.baidu.hugegraph.auth;
 
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -599,9 +598,11 @@ public class StandardAuthManager implements AuthManager {
                 E.checkArgumentNotNull(oldProject,
                                        "The project with id '%s' " +
                                        "can't be found", id);
-                // Check not graph bind this project
-                if (oldProject.graphs() != null &&
-                    !oldProject.graphs().isEmpty()) {
+                /*
+                 *  Check whether there are any graph binding this project,
+                 *  throw ForbiddenException, if it is
+                 */
+                if (!oldProject.graphs().isEmpty()) {
                     String errInfo = String.format("Can't delete project '%s' " +
                                                    "that contains any graph, " +
                                                    "there are graphs bound " +
@@ -669,14 +670,10 @@ public class StandardAuthManager implements AuthManager {
             E.checkArgumentNotNull(project,
                                    "The project with id '%s' can't be found",
                                    id);
-            Set<String> graphs = project.graphs();
-            if (graphs == null) {
-                graphs = new HashSet<>();
-            } else {
-                E.checkArgument(!graphs.contains(graph),
-                                "The graph named '%s' has been contained " +
-                                "in the project '%s'", graph, id);
-            }
+            Set<String> graphs = project.copyGraphs();
+            E.checkArgument(!graphs.contains(graph),
+                            "The graph named '%s' has been contained " +
+                            "in the project '%s'", graph, id);
             graphs.add(graph);
             project.graphs(graphs);
             return this.project.update(project);
@@ -702,8 +699,8 @@ public class StandardAuthManager implements AuthManager {
             E.checkArgumentNotNull(project,
                                    "The project with id '%s' can't be found",
                                    id);
-            Set<String> graphs = project.graphs();
-            if (graphs == null || !graphs.contains(graph)) {
+            Set<String> graphs = project.copyGraphs();
+            if (!graphs.contains(graph)) {
                 return id;
             }
             graphs.remove(graph);
@@ -732,24 +729,24 @@ public class StandardAuthManager implements AuthManager {
     }
 
     public <R> R commit(Callable<R> callable) {
-        this.groups.shouldCommitTrans(false);
-        this.access.shouldCommitTrans(false);
-        this.targets.shouldCommitTrans(false);
-        this.project.shouldCommitTrans(false);
-        this.belong.shouldCommitTrans(false);
-        this.users.shouldCommitTrans(false);
+        this.groups.autoCommit(false);
+        this.access.autoCommit(false);
+        this.targets.autoCommit(false);
+        this.project.autoCommit(false);
+        this.belong.autoCommit(false);
+        this.users.autoCommit(false);
 
         try {
             R result = callable.call();
             this.graph.systemTransaction().commit();
             return result;
         } catch (Throwable e) {
-            this.groups.shouldCommitTrans(true);
-            this.access.shouldCommitTrans(true);
-            this.targets.shouldCommitTrans(true);
-            this.project.shouldCommitTrans(true);
-            this.belong.shouldCommitTrans(true);
-            this.users.shouldCommitTrans(true);
+            this.groups.autoCommit(true);
+            this.access.autoCommit(true);
+            this.targets.autoCommit(true);
+            this.project.autoCommit(true);
+            this.belong.autoCommit(true);
+            this.users.autoCommit(true);
             try {
                 this.graph.systemTransaction().rollback();
             } catch (Throwable rollbackException) {
@@ -759,7 +756,7 @@ public class StandardAuthManager implements AuthManager {
             if (e instanceof HugeException) {
                 throw (HugeException) e;
             } else {
-                throw new HugeException("Failed to commit transaction: {%s}",
+                throw new HugeException("Failed to commit transaction: %s",
                                         e.getMessage(), e);
             }
         }

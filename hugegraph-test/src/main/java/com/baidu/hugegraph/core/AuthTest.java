@@ -50,7 +50,6 @@ import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.testutil.Whitebox;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.baidu.hugegraph.util.StringEncoding;
-import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -1450,7 +1449,7 @@ public class AuthTest extends BaseCoreTest {
                                                          "graph_test");
         project = authManager.getProject(projectId);
         Assert.assertNotNull(project);
-        Assert.assertNull(project.graphs());
+        Assert.assertTrue(project.graphs().isEmpty());
     }
 
     @Test

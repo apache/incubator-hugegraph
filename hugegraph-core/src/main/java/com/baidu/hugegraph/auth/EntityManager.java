@@ -51,7 +51,7 @@ public class EntityManager<T extends Entity> {
     private final HugeGraphParams graph;
     private final String label;
     private final Function<Vertex, T> deser;
-    private final ThreadLocal<Boolean> shouldCommitTrans = new ThreadLocal<>();
+    private final ThreadLocal<Boolean> autoCommit = new ThreadLocal<>();
 
     private static final long NO_LIMIT = -1L;
 
@@ -190,14 +190,14 @@ public class EntityManager<T extends Entity> {
     }
 
     private void commitOrRollback() {
-        Boolean shouldCommitTrans = this.shouldCommitTrans.get();
-        if (shouldCommitTrans != null && !shouldCommitTrans) {
+        Boolean autoCommit = this.autoCommit.get();
+        if (autoCommit != null && !autoCommit) {
             return;
         }
         this.tx().commitOrRollback();
     }
 
-    public void shouldCommitTrans(boolean value) {
-        this.shouldCommitTrans.set(value);
+    public void autoCommit(boolean value) {
+        this.autoCommit.set(value);
     }
 }

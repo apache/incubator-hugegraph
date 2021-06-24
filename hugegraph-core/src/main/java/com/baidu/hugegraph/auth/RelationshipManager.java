@@ -54,7 +54,7 @@ public class RelationshipManager<T extends Relationship> {
     private final HugeGraphParams graph;
     private final String label;
     private final Function<Edge, T> deser;
-    private final ThreadLocal<Boolean> shouldCommitTrans = new ThreadLocal<>();
+    private final ThreadLocal<Boolean> autoCommit = new ThreadLocal<>();
 
     private static final long NO_LIMIT = -1L;
 
@@ -65,7 +65,7 @@ public class RelationshipManager<T extends Relationship> {
         this.graph = graph;
         this.label = label;
         this.deser = dser;
-        this.shouldCommitTrans.set(true);
+        this.autoCommit.set(true);
     }
 
     private GraphTransaction tx() {
@@ -233,13 +233,14 @@ public class RelationshipManager<T extends Relationship> {
     }
 
     private void commitOrRollback() {
-        if (shouldCommitTrans.get() != null && !shouldCommitTrans.get()) {
+        Boolean autoCommit = this.autoCommit.get();
+        if (autoCommit != null && !autoCommit) {
             return;
         }
         this.tx().commitOrRollback();
     }
 
-    public void shouldCommitTrans(boolean value) {
-        shouldCommitTrans.set(value);
+    public void autoCommit(boolean value) {
+        autoCommit.set(value);
     }
 }

@@ -19,7 +19,6 @@
 
 package com.baidu.hugegraph.api.auth;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -69,15 +68,17 @@ public class ProjectAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String create(@Context GraphManager manager,
                          @PathParam("graph") String graph,
-                         ProjectAPI.JsonTarget jsonTarget) {
-        LOG.debug("Graph [{}] create project: {}", graph, jsonTarget);
-        checkCreatingBody(jsonTarget);
+                         JsonProject jsonProject) {
+        LOG.debug("Graph [{}] create project: {}", graph, jsonProject);
+        checkCreatingBody(jsonProject);
 
         HugeGraph g = graph(manager, graph);
-        HugeProject project = jsonTarget.build();
+        HugeProject project = jsonProject.build();
         Id projectId = manager.authManager().createProject(project);
-        // Some fields of project(like admin_group ) can only be known after
-        // created
+        /*
+         * Some fields of project(like admin_group ) can only be known after
+         * created
+         */
         project = manager.authManager().getProject(projectId);
         return manager.serializer(g).writeAuthElement(project);
     }
@@ -91,9 +92,9 @@ public class ProjectAPI extends API {
                          @PathParam("graph") String graph,
                          @PathParam("id") String id,
                          @QueryParam("action") String action,
-                         ProjectAPI.JsonTarget jsonTarget) {
+                         JsonProject jsonProject) {
         LOG.debug("Graph [{}] update {} project: {}", graph, action,
-                  jsonTarget);
+                  jsonProject);
 
         HugeGraph g = graph(manager, graph);
         HugeProject project;
@@ -104,13 +105,11 @@ public class ProjectAPI extends API {
         } catch (NotFoundException e) {
             throw new IllegalArgumentException("Invalid project id: " + id);
         }
-        project = jsonTarget.build(action, project);
-        if (isAddGraph(action)) {
-            authManager.updateProjectAddGraph(projectId,
-                                              jsonTarget.graph);
-        } else if (isDeleteGraph(action)) {
-            authManager.updateProjectRemoveGraph(projectId,
-                                                 jsonTarget.graph);
+        project = jsonProject.build(action, project);
+        if (this.isAddGraph(action)) {
+            authManager.updateProjectAddGraph(projectId, jsonProject.graph);
+        } else if (this.isDeleteGraph(action)) {
+            authManager.updateProjectRemoveGraph(projectId, jsonProject.graph);
         } else {
             authManager.updateProject(project);
         }
@@ -176,7 +175,7 @@ public class ProjectAPI extends API {
         return ACTION_DELETE_GRAPH.equals(action);
     }
 
-    private static class JsonTarget implements Checkable {
+    private static class JsonProject implements Checkable {
 
         @JsonProperty("project_description")
         private String description;
@@ -187,22 +186,17 @@ public class ProjectAPI extends API {
 
         public HugeProject build(String action, HugeProject project) {
             if (isAddGraph(action)) {
-                checkGraph();
-                Set<String> graphs = project.graphs();
-                if (graphs == null) {
-                    graphs = new HashSet<>();
-                }
+                this.checkGraph();
+                Set<String> graphs = project.copyGraphs();
                 graphs.add(this.graph);
                 project.graphs(graphs);
             } else if (isDeleteGraph(action)) {
-                checkGraph();
-                Set<String> graphs = project.graphs();
-                if (graphs != null) {
-                    graphs.remove(this.graph);
-                }
+                this.checkGraph();
+                Set<String> graphs = project.copyGraphs();
+                graphs.remove(this.graph);
                 project.graphs(graphs);
             } else {
-                checkDescription();
+                this.checkDescription();
                 project.description(this.description);
             }
             return project;
@@ -215,7 +209,7 @@ public class ProjectAPI extends API {
 
         private void checkDescription() {
             E.checkArgumentNotNull(this.description,
-                            "The project's description can't be null");
+                                   "The project's description can't be null");
         }
 
         public HugeProject build() {
@@ -231,8 +225,8 @@ public class ProjectAPI extends API {
 
         @Override
         public void checkUpdate() {
-            E.checkArgument(this.description != null,
-                            "Expect project's description can't be null");
+            E.checkArgumentNotNull(this.description,
+                                   "The project's description can't be null");
         }
     }
 }

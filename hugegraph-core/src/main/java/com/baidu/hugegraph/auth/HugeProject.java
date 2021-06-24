@@ -20,7 +20,9 @@
 package com.baidu.hugegraph.auth;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -118,6 +120,13 @@ public class HugeProject extends Entity {
     }
 
     public Set<String> graphs() {
+        return this.graphs == null ? Collections.emptySet() :
+               Collections.unmodifiableSet(this.graphs);
+    }
+
+    public Set<String> copyGraphs() {
+        Set<String> graphs = new HashSet<>();
+        graphs.addAll(this.graphs());
         return graphs;
     }
 
