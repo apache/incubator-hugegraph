@@ -155,14 +155,14 @@ public interface HugeAuthenticator extends Authenticator {
         public static final User ANONYMOUS = new User(USER_ANONY, ROLE_ADMIN);
 
         private final RolePermission role;
-        private final Id id;
+        private final Id userId;
         private String client; // peer
 
         public User(String username, RolePermission role) {
             super(username);
             E.checkNotNull(username, "username");
             E.checkNotNull(role, "role");
-            this.id = IdGenerator.of(username);
+            this.userId = IdGenerator.of(username);
             this.role = role;
             this.client = null;
         }
@@ -172,7 +172,7 @@ public interface HugeAuthenticator extends Authenticator {
         }
 
         public Id userId() {
-            return this.id;
+            return this.userId;
         }
 
         public RolePermission role() {

@@ -21,6 +21,7 @@ package com.baidu.hugegraph.config;
 
 import static com.baidu.hugegraph.config.OptionChecker.disallowEmpty;
 import static com.baidu.hugegraph.config.OptionChecker.rangeDouble;
+import static com.baidu.hugegraph.config.OptionChecker.rangeInt;
 
 public class AuthOptions extends OptionHolder {
 
@@ -101,5 +102,14 @@ public class AuthOptions extends OptionHolder {
                     "default value is 1000 records per second.",
                     rangeDouble(0.0, Double.MAX_VALUE),
                     1000.0
+            );
+
+    public static final ConfigOption<Long> AUTH_USER_ROLE_CACHE_EXPIRE =
+            new ConfigOption<>(
+                    "auth.user_role_cache_expire",
+                    "The expire time in minutes of user role cache " +
+                    "in auth client side.",
+                    rangeInt(0L, Long.MAX_VALUE),
+                    10L
             );
 }

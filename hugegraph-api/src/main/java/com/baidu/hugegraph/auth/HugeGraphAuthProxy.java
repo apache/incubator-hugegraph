@@ -118,15 +118,17 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
     public HugeGraphAuthProxy(HugeGraph hugegraph) {
         LOG.info("Wrap graph '{}' with HugeGraphAuthProxy", hugegraph.name());
+        HugeConfig config = (HugeConfig) hugegraph.configuration();
+        Long expire = config.get(AuthOptions.AUTH_USER_ROLE_CACHE_EXPIRE);
+
         this.hugegraph = hugegraph;
         this.taskScheduler = new TaskSchedulerProxy(hugegraph.taskScheduler());
         this.authManager = new AuthManagerProxy(hugegraph.authManager());
         this.auditLimiters = this.cache("audit-log-limiter", -1L);
         this.usersRoleCache = this.cache("users-role",
-                                         Duration.ofMinutes(10L).toMillis());
+                                         Duration.ofMinutes(expire).toMillis());
         this.hugegraph.proxy(this);
 
-        HugeConfig config = (HugeConfig) hugegraph.configuration();
         // TODO: Consider better way to get, use auth client's config now
         this.auditLogMaxRate = config.get(AuthOptions.AUTH_AUDIT_LOG_RATE);
         LOG.info("Audit log rate limit is {}/s", this.auditLogMaxRate);
@@ -1402,8 +1404,8 @@ public final class HugeGraphAuthProxy implements HugeGraph {
             Context context = setContext(Context.admin());
 
             try {
-                Id mixedUserId = IdGenerator.of(username + password);
-                return usersRoleCache.getOrFetch(mixedUserId, id -> {
+                Id userKey = IdGenerator.of(username + password);
+                return usersRoleCache.getOrFetch(userKey, id -> {
                     return this.authManager.validateUser(username, password);
                 });
             } catch (Exception e) {
@@ -1421,7 +1423,8 @@ public final class HugeGraphAuthProxy implements HugeGraph {
             Context context = setContext(Context.admin());
 
             try {
-                return usersRoleCache.getOrFetch(IdGenerator.of(token), id -> {
+                Id userKey = IdGenerator.of(token);
+                return usersRoleCache.getOrFetch(userKey, id -> {
                     return this.authManager.validateUser(token);
                 });
             } catch (Exception e) {

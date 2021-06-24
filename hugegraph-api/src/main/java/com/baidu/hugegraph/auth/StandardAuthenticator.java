@@ -46,21 +46,22 @@ public class StandardAuthenticator implements HugeAuthenticator {
         return this.graph;
     }
 
-    private void initAdminUser(AuthManager authManager) throws Exception {
-        if (requireInitAdminUser(authManager)) {
+    private void initAdminUser() throws Exception {
+        if (this.requireInitAdminUser()) {
             this.initAdminUser(this.inputPassword());
         }
         this.graph.close();
     }
 
+    @Override
     public void initAdminUser(String password) {
         // Not allowed to call by non main thread
         String caller = Thread.currentThread().getName();
-        E.checkState(caller.equals("main"), "Invalid caller '%s'", caller);
+        E.checkState("main".equals(caller), "Invalid caller '%s'", caller);
 
         AuthManager authManager = this.graph().hugegraph().authManager();
         // Only init user when local mode and user has not been initialized
-        if (requireInitAdminUser(authManager)) {
+        if (this.requireInitAdminUser()) {
             HugeUser admin = new HugeUser(HugeAuthenticator.USER_ADMIN);
             admin.password(StringEncoding.hashPassword(password));
             admin.creator(HugeAuthenticator.USER_SYSTEM);
@@ -68,7 +69,8 @@ public class StandardAuthenticator implements HugeAuthenticator {
         }
     }
 
-    private boolean requireInitAdminUser(AuthManager authManager) {
+    private boolean requireInitAdminUser() {
+        AuthManager authManager = this.graph().hugegraph().authManager();
         return StandardAuthManager.isLocal(authManager) &&
                authManager.findUser(HugeAuthenticator.USER_ADMIN) == null;
     }
@@ -176,7 +178,7 @@ public class StandardAuthenticator implements HugeAuthenticator {
         config.addProperty(INITING_STORE, true);
         auth.setup(config);
         if (auth.graph().backendStoreFeatures().supportsPersistence()) {
-            auth.initAdminUser(auth.authManager());
+            auth.initAdminUser();
         }
     }
 }
