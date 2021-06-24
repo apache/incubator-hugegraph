@@ -69,8 +69,8 @@ public class ProjectApiTest extends BaseApiTest {
 
     @Test
     public void testDelete() {
-        String respBody = createProject("test_project1",
-                                        "this is a good project");
+        String respBody = this.createProject("test_project1",
+                                             "this is a good project");
         String id = assertJsonContains(respBody, "id");
         Response resp = client().target()
                                 .path(path)
@@ -82,10 +82,10 @@ public class ProjectApiTest extends BaseApiTest {
 
     @Test
     public void testGet() {
-        String respBody = createProject("test_project",
-                                        "this is a good project");
+        String respBody = this.createProject("test_project",
+                                             "this is a good project");
         String projectId = assertJsonContains(respBody, "id");
-        String respBody2 = getProject(projectId);
+        String respBody2 = this.getProject(projectId);
         Assert.assertEquals(respBody, respBody2);
     }
 
@@ -125,11 +125,12 @@ public class ProjectApiTest extends BaseApiTest {
 
     @Test
     public void testUpdateAddGraph() {
-        String projectId = makeProjectWithGraph("project_test", "graph_test");
-        String respBody = getProject(projectId);
+        String projectId = this.makeProjectWithGraph("project_test",
+                                                     "graph_test");
+        String respBody = this.getProject(projectId);
         assertJsonContains(respBody, "project_graphs");
-        makeGraph(projectId, "graph_test2");
-        respBody = getProject(projectId);
+        this.makeGraph(projectId, "graph_test2");
+        respBody = this.getProject(projectId);
         List<String> graphs = assertJsonContains(respBody, "project_graphs");
         Assert.assertEquals(2, graphs.size());
         Assert.assertTrue(graphs.contains("graph_test"));
@@ -138,23 +139,24 @@ public class ProjectApiTest extends BaseApiTest {
 
     @Test
     public void testUpdateRemoveGraph() {
-        String projectId = makeProjectWithGraph("project_test", "graph_test");
-        deleteGraph(projectId, "graph_test");
+        String projectId = this.makeProjectWithGraph("project_test",
+                                                     "graph_test");
+        this.deleteGraph(projectId, "graph_test");
 
-        String respBody = getProject(projectId);
+        String respBody = this.getProject(projectId);
         Assert.assertFalse(respBody.contains("project_graphs"));
 
-        makeGraph(projectId, "graph_test1");
-        makeGraph(projectId, "graph_test2");
-        deleteGraph(projectId, "graph_test2");
-        respBody = getProject(projectId);
+        this.makeGraph(projectId, "graph_test1");
+        this.makeGraph(projectId, "graph_test2");
+        this.deleteGraph(projectId, "graph_test2");
+        respBody = this.getProject(projectId);
         List<String> graphs = assertJsonContains(respBody, "project_graphs");
         Assert.assertEquals(1, graphs.size());
         Assert.assertTrue(graphs.contains("graph_test1"));
     }
 
     private String makeProjectWithGraph(String projectName,
-                                       String graph) {
+                                        String graph) {
         String projectId = assertJsonContains(createProject(projectName,
                                                             null), "id");
         makeGraph(projectId, graph);

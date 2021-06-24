@@ -27,7 +27,6 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 
 import javax.security.sasl.AuthenticationException;
-
 import javax.ws.rs.ForbiddenException;
 
 import org.slf4j.Logger;
@@ -49,13 +48,12 @@ import com.baidu.hugegraph.util.Events;
 import com.baidu.hugegraph.util.LockUtil;
 import com.baidu.hugegraph.util.Log;
 import com.baidu.hugegraph.util.StringEncoding;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 import io.jsonwebtoken.Claims;
-
 
 public class StandardAuthManager implements AuthManager {
 

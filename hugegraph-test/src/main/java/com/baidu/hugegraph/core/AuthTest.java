@@ -70,6 +70,12 @@ public class AuthTest extends BaseCoreTest {
         for (HugeTarget target : authManager.listAllTargets(-1)) {
             authManager.deleteTarget(target.id());
         }
+        for (HugeProject project : authManager.listAllProject(-1)) {
+            for (String projectGraph : project.graphs()) {
+                authManager.updateProjectRemoveGraph(project.id(), projectGraph);
+            }
+            authManager.deleteProject(project.id());
+        }
 
         Assert.assertEquals(0, authManager.listAllAccess(-1).size());
         Assert.assertEquals(0, authManager.listAllBelong(-1).size());
@@ -1368,6 +1374,7 @@ public class AuthTest extends BaseCoreTest {
         Assert.assertNull(userWithRole.role());
     }
 
+    @Test
     public void testCreateProject() {
         HugeGraph graph = graph();
         HugeProject project = makeProject("test_project",
@@ -1382,7 +1389,7 @@ public class AuthTest extends BaseCoreTest {
         Assert.assertNotNull(project.opGroupId());
         Assert.assertNotNull(project.targetId());
 
-        //Check name is unique index
+        // Check name is unique index
         HugeProject sameNameProject = makeProject("test_project",
                                                   "this is a test " +
                                                   "project another");
