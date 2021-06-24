@@ -75,7 +75,6 @@ import com.baidu.hugegraph.iterator.FlatMapperIterator;
 import com.baidu.hugegraph.iterator.LimitIterator;
 import com.baidu.hugegraph.iterator.ListIterator;
 import com.baidu.hugegraph.iterator.MapperIterator;
-import com.baidu.hugegraph.iterator.WrappedIterator;
 import com.baidu.hugegraph.job.system.DeleteExpiredJob;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.EdgeLabel;
@@ -483,6 +482,8 @@ public class GraphTransaction extends IndexableTransaction {
 
         try {
             this.commitMutation2Backend(mutation, idxMutation);
+        } catch (Throwable e) {
+            this.rollbackBackend();
         } finally {
             mutation.clear();
             idxMutation.clear();

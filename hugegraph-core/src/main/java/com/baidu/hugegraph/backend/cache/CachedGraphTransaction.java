@@ -115,6 +115,8 @@ public final class CachedGraphTransaction extends GraphTransaction {
         }
         // Convert the unit from seconds to milliseconds
         cache.expire(expire * 1000L);
+        // Enable metrics for graph cache by default
+        cache.enableMetrics(true);
         return cache;
     }
 

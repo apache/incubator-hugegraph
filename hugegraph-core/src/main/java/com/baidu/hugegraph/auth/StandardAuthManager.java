@@ -473,9 +473,15 @@ public class StandardAuthManager implements AuthManager {
     public UserWithRole validateUser(String token) {
         String username = this.tokenCache.get(IdGenerator.of(token));
         if (username == null) {
-            Claims payload = this.tokenGenerator.verify(token);
+            payload = this.tokenGenerator.verify(token);
             username = (String) payload.get(AuthConstant.TOKEN_USER_NAME);
+            needBuildCache = true;
+        }
 
+        HugeUser user = this.findUser(username);
+        if (user == null) {
+            return new UserWithRole(username);
+        } else if (needBuildCache) {
             long expireAt = payload.getExpiration().getTime();
             long bornTime = CACHE_EXPIRE -
                             (expireAt - System.currentTimeMillis());
@@ -483,12 +489,7 @@ public class StandardAuthManager implements AuthManager {
                                    Math.negateExact(bornTime));
         }
 
-        HugeUser user = this.findUser(username);
-        if (user == null) {
-            return new UserWithRole(username);
-        }
-
-        return new UserWithRole(user.id, username, this.rolePermission(user));
+        return new UserWithRole(user.id(), username, this.rolePermission(user));
     }
 
     /**

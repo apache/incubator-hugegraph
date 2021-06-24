@@ -197,9 +197,6 @@ public class UserAPI extends API {
             if (this.avatar != null) {
                 user.avatar(this.avatar);
             }
-            if (this.avatar != null) {
-                user.avatar(this.avatar);
-            }
             if (this.description != null) {
                 user.description(this.description);
             }
