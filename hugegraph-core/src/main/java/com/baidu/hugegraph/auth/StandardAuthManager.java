@@ -472,6 +472,9 @@ public class StandardAuthManager implements AuthManager {
     @Override
     public UserWithRole validateUser(String token) {
         String username = this.tokenCache.get(IdGenerator.of(token));
+
+        Claims payload = null;
+        boolean needBuildCache = false;
         if (username == null) {
             payload = this.tokenGenerator.verify(token);
             username = (String) payload.get(AuthConstant.TOKEN_USER_NAME);
