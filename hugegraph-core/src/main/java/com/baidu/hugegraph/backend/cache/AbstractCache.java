@@ -84,19 +84,7 @@ public abstract class AbstractCache<K, V> implements Cache<K, V> {
         }
 
         if (this.enabledMetrics) {
-            if (value == null) {
-                this.miss.add(1L);
-                if (LOG.isDebugEnabled()) {
-                    LOG.debug("Cache missed '{}' (miss={}, hits={})",
-                              id, this.miss, this.hits);
-                }
-            } else {
-                this.hits.add(1L);
-                if (LOG.isDebugEnabled()) {
-                    LOG.debug("Cache cached '{}' (hits={}, miss={})",
-                              id, this.hits, this.miss);
-                }
-            }
+            this.collectMetrics(id, value);
         }
         return value;
     }
@@ -114,19 +102,7 @@ public abstract class AbstractCache<K, V> implements Cache<K, V> {
         }
 
         if (this.enabledMetrics) {
-            if (value == null) {
-                this.miss.add(1L);
-                if (LOG.isDebugEnabled()) {
-                    LOG.debug("Cache missed '{}' (miss={}, hits={})",
-                              id, this.miss, this.hits);
-                }
-            } else {
-                this.hits.add(1L);
-                if (LOG.isDebugEnabled()) {
-                    LOG.debug("Cache cached '{}' (hits={}, miss={})",
-                              id, this.hits, this.miss);
-                }
-            }
+            this.collectMetrics(id, value);
         }
 
         // Do fetch and update the cache if cache missed
@@ -136,6 +112,22 @@ public abstract class AbstractCache<K, V> implements Cache<K, V> {
         }
 
         return value;
+    }
+
+    private void collectMetrics(K key, V value) {
+        if (value == null) {
+            this.miss.add(1L);
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Cache missed '{}' (miss={}, hits={})",
+                          key, this.miss, this.hits);
+            }
+        } else {
+            this.hits.add(1L);
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Cache cached '{}' (hits={}, miss={})",
+                          key, this.hits, this.miss);
+            }
+        }
     }
 
     @Override
