@@ -46,7 +46,9 @@ import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Variant;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.http.HttpHeaders;
 import org.apache.http.config.Registry;
 import org.apache.http.config.RegistryBuilder;
 import org.apache.http.conn.socket.ConnectionSocketFactory;
@@ -234,15 +236,20 @@ public abstract class AbstractRestClient implements RestClient {
 
     @Override
     public RestResult get(String path) {
-        Response response = this.request(() -> {
-            return this.target.path(path).request().get();
-        });
-        checkStatus(response, Response.Status.OK);
-        return new RestResult(response);
+        return this.get(path, null, ImmutableMap.of());
     }
 
     @Override
     public RestResult get(String path, Map<String, Object> params) {
+        return this.get(path, null, params);
+    }
+
+    @Override
+    public RestResult get(String path, String id) {
+        return this.get(path, id, ImmutableMap.of());
+    }
+
+    private RestResult get(String path, String id, Map<String, Object> params) {
         Ref<WebTarget> target = Refs.of(this.target);
         for (String key : params.keySet()) {
             Object value = params.get(key);
@@ -254,41 +261,44 @@ public abstract class AbstractRestClient implements RestClient {
                 target.set(target.get().queryParam(key, value));
             }
         }
-        Response response = this.request(() -> {
-            return target.get().path(path).request().get();
-        });
-        checkStatus(response, Response.Status.OK);
-        return new RestResult(response);
-    }
 
-    @Override
-    public RestResult get(String path, String id) {
         Response response = this.request(() -> {
-            return this.target.path(path).path(encode(id)).request().get();
+            WebTarget webTarget = target.get();
+            Builder builder = id == null ? webTarget.path(path).request() :
+                              webTarget.path(path).path(encode(id)).request();
+            this.attachAuthToRequest(builder);
+            return builder.get();
         });
+
         checkStatus(response, Response.Status.OK);
         return new RestResult(response);
     }
 
     @Override
     public RestResult delete(String path, Map<String, Object> params) {
-        Ref<WebTarget> target = Refs.of(this.target);
-        for (String key : params.keySet()) {
-            target.set(target.get().queryParam(key, params.get(key)));
-        }
-        Response response = this.request(() -> {
-            return target.get().path(path).request().delete();
-        });
-        checkStatus(response, Response.Status.NO_CONTENT,
-                    Response.Status.ACCEPTED);
-        return new RestResult(response);
+        return this.delete(path, null, params);
     }
 
     @Override
     public RestResult delete(String path, String id) {
+        return this.delete(path, id, ImmutableMap.of());
+    }
+
+    private RestResult delete(String path, String id,
+                              Map<String, Object> params) {
+        Ref<WebTarget> target = Refs.of(this.target);
+        for (String key : params.keySet()) {
+            target.set(target.get().queryParam(key, params.get(key)));
+        }
+
         Response response = this.request(() -> {
-            return this.target.path(path).path(encode(id)).request().delete();
+            WebTarget webTarget = target.get();
+            Builder builder = id == null ? webTarget.path(path).request() :
+                              webTarget.path(path).path(encode(id)).request();
+            this.attachAuthToRequest(builder);
+            return builder.delete();
         });
+
         checkStatus(response, Response.Status.NO_CONTENT,
                     Response.Status.ACCEPTED);
         return new RestResult(response);
@@ -301,6 +311,29 @@ public abstract class AbstractRestClient implements RestClient {
             this.cleanExecutor.shutdownNow();
         }
         this.client.close();
+    }
+
+    private final ThreadLocal<String> authContext =
+                                      new InheritableThreadLocal<>();
+
+    public void setAuthContext(String auth) {
+        this.authContext.set(auth);
+    }
+
+    public void resetAuthContext() {
+        this.authContext.remove();
+    }
+
+    public String getAuthContext() {
+        return this.authContext.get();
+    }
+
+    private void attachAuthToRequest(Builder builder) {
+        // Add auth header
+        String auth = this.getAuthContext();
+        if (StringUtils.isNotEmpty(auth)) {
+            builder.header(HttpHeaders.AUTHORIZATION, auth);
+        }
     }
 
     private Pair<Builder, Entity<?>> buildRequest(
@@ -323,6 +356,8 @@ public abstract class AbstractRestClient implements RestClient {
             builder = builder.headers(headers);
             encoding = (String) headers.getFirst("Content-Encoding");
         }
+        // Add auth header
+        this.attachAuthToRequest(builder);
 
         /*
          * We should specify the encoding of the entity object manually,

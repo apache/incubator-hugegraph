@@ -122,6 +122,23 @@ public class RowLockTest extends BaseUnitTest {
     }
 
     @Test
+    public void testRowLockWithMultiThreadsLockOneKey() {
+        RowLock<Integer> lock = new RowLock<>();
+        Set<String> names = new HashSet<>(THREADS_NUM);
+
+        Assert.assertEquals(0, names.size());
+
+        Integer key = 1;
+        runWithThreads(THREADS_NUM, () -> {
+            lock.lock(key);
+            names.add(Thread.currentThread().getName());
+            lock.unlock(key);
+        });
+
+        Assert.assertEquals(THREADS_NUM, names.size());
+    }
+
+    @Test
     public void testRowLockWithMultiThreadsWithRandomKey() {
         RowLock<Integer> lock = new RowLock<>();
         Set<String> names = new HashSet<>(THREADS_NUM);
