@@ -1,0 +1,61 @@
+name: hugegraph ci
+
+on:
+  push:
+    branches:
+      - master
+      - /^release-.*$/
+      - /^test-.*$/
+  pull_request:
+    branches:
+      - master
+      - /^release-.*$/
+      - /^test-.*$/
+
+jobs:
+  build:
+    runs-on: ubuntu-16.04
+    env:
+      TRAVIS_DIR: hugegraph-dist/src/assembly/travis
+    strategy:
+      fail-fast: false
+      matrix:
+        BACKEND: [memory, cassandra, scylladb, hbase, rocksdb]
+    steps:
+      - name: Install JDK 8
+        uses: actions/setup-java@v2
+        with:
+          java-version: '8'
+          distribution: 'adopt'
+
+      - name: Cache Maven packages
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+
+      - name: Compile
+        run: |
+          mvn compile -Dmaven.javadoc.skip=true | grep -v "Downloading\|Downloaded"
+
+      - name: Prepare env and service
+        run: |
+          $TRAVIS_DIR/install-backend.sh ${{ matrix.BACKEND }}
+
+      - name: Run test
+        run: |
+          mvn test -P core-test,${{ matrix.BACKEND }}
+          $TRAVIS_DIR/run-api-test.sh ${{ matrix.BACKEND }}
+          $TRAVIS_DIR/run-unit-test.sh ${{ matrix.BACKEND }}
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v1.0.2
+        with:
+          token: ${{secrets.CODECOV_TOKEN}}
+          file: target/site/jacoco/jacoco.xml

@@ -2,6 +2,8 @@
 
 set -ev
 
+BACKEND=$1
+
 OPTION_CLASS_FILES_BACKEND="--classfiles hugegraph-$BACKEND/target/classes/com/baidu/hugegraph"
 if [ "$BACKEND" == "memory" ]; then
     # hugegraph-memory is the same as hugegraph-core

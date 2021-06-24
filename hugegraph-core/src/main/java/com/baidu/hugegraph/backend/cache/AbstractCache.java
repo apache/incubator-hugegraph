@@ -21,6 +21,7 @@ package com.baidu.hugegraph.backend.cache;
 
 import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Function;
 
 import org.slf4j.Logger;
@@ -36,15 +37,16 @@ public abstract class AbstractCache<K, V> implements Cache<K, V> {
 
     protected static final Logger LOG = Log.logger(Cache.class);
 
-    private volatile long hits = 0L;
-    private volatile long miss = 0L;
+    // The unit of expired time is ms
+    private volatile long expire;
 
-    // Default expire time(ms)
-    private volatile long expire = 0L;
+    // Enabled cache metrics may cause performance penalty
+    private volatile boolean enabledMetrics;
+    private final LongAdder hits;
+    private final LongAdder miss;
 
     // NOTE: the count in number of items, not in bytes
     private final long capacity;
-    private final long halfCapacity;
 
     // For user attachment
     private final AtomicReference<Object> attachment;
@@ -58,8 +60,13 @@ public abstract class AbstractCache<K, V> implements Cache<K, V> {
             capacity = 0L;
         }
         this.capacity = capacity;
-        this.halfCapacity = this.capacity >> 1;
         this.attachment = new AtomicReference<>();
+
+        this.expire = 0L;
+
+        this.enabledMetrics = false;
+        this.hits = new LongAdder();
+        this.miss = new LongAdder();
     }
 
     @Watched(prefix = "cache")
@@ -68,25 +75,13 @@ public abstract class AbstractCache<K, V> implements Cache<K, V> {
         if (id == null || this.capacity <= 0L) {
             return null;
         }
-        V value = null;
-        if (this.size() <= this.halfCapacity || this.containsKey(id)) {
-            // Maybe the id removed by other threads and returned null value
-            value = this.access(id);
+
+        V value = this.access(id);
+
+        if (this.enabledMetrics) {
+            this.collectMetrics(id, value);
         }
 
-        if (value == null) {
-            ++this.miss;
-            if (LOG.isDebugEnabled()) {
-                LOG.debug("Cache missed '{}' (miss={}, hits={})",
-                          id, this.miss, this.hits);
-            }
-        } else {
-            ++this.hits;
-            if (LOG.isDebugEnabled()) {
-                LOG.debug("Cache cached '{}' (hits={}, miss={})",
-                          id, this.hits, this.miss);
-            }
-        }
         return value;
     }
 
@@ -96,29 +91,36 @@ public abstract class AbstractCache<K, V> implements Cache<K, V> {
         if (id == null || this.capacity <= 0L) {
             return null;
         }
-        V value = null;
-        if (this.size() <= this.halfCapacity || this.containsKey(id)) {
-            // Maybe the id removed by other threads and returned null value
-            value = this.access(id);
+
+        V value = this.access(id);
+
+        if (this.enabledMetrics) {
+            this.collectMetrics(id, value);
         }
 
+        // Do fetch and update the cache if cache missed
         if (value == null) {
-            ++this.miss;
-            if (LOG.isDebugEnabled()) {
-                LOG.debug("Cache missed '{}' (miss={}, hits={})",
-                          id, this.miss, this.hits);
-            }
-            // Do fetch and update the cache
             value = fetcher.apply(id);
             this.update(id, value);
+        }
+
+        return value;
+    }
+
+    private void collectMetrics(K key, V value) {
+        if (value == null) {
+            this.miss.add(1L);
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Cache missed '{}' (miss={}, hits={})",
+                          key, this.miss, this.hits);
+            }
         } else {
-            ++this.hits;
+            this.hits.add(1L);
             if (LOG.isDebugEnabled()) {
                 LOG.debug("Cache cached '{}' (hits={}, miss={})",
-                          id, this.hits, this.miss);
+                          key, this.hits, this.miss);
             }
         }
-        return value;
     }
 
     @Override
@@ -200,13 +202,24 @@ public abstract class AbstractCache<K, V> implements Cache<K, V> {
     }
 
     @Override
+    public boolean enableMetrics(boolean enabled) {
+        boolean old = this.enabledMetrics;
+        if (!enabled) {
+            this.hits.reset();
+            this.miss.reset();
+        }
+        this.enabledMetrics = enabled;
+        return old;
+    }
+
+    @Override
     public final long hits() {
-        return this.hits;
+        return this.hits.sum();
     }
 
     @Override
     public final long miss() {
-        return this.miss;
+        return this.miss.sum();
     }
 
     @Override
@@ -225,10 +238,6 @@ public abstract class AbstractCache<K, V> implements Cache<K, V> {
         @SuppressWarnings("unchecked")
         T attachment = (T) this.attachment.get();
         return attachment;
-    }
-
-    protected final long halfCapacity() {
-        return this.halfCapacity;
     }
 
     protected abstract V access(K id);

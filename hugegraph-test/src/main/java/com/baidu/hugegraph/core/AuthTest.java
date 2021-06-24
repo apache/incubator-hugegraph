@@ -24,6 +24,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.security.sasl.AuthenticationException;
+
 import org.junit.After;
 import org.junit.Test;
 
@@ -37,10 +39,13 @@ import com.baidu.hugegraph.auth.HugeResource;
 import com.baidu.hugegraph.auth.HugeTarget;
 import com.baidu.hugegraph.auth.HugeUser;
 import com.baidu.hugegraph.auth.RolePermission;
+import com.baidu.hugegraph.auth.UserWithRole;
+import com.baidu.hugegraph.backend.cache.Cache;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.testutil.Assert;
+import com.baidu.hugegraph.testutil.Whitebox;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.baidu.hugegraph.util.StringEncoding;
 import com.google.common.collect.ImmutableList;
@@ -1268,6 +1273,97 @@ public class AuthTest extends BaseCoreTest {
         role = authManager.rolePermission(authManager.getTarget(graph1v));
         expected = "{\"roles\":{\"hugegraph\":{\"READ\":[{\"type\":\"VERTEX\",\"label\":\"person\",\"properties\":{\"city\":\"Beijing\",\"age\":\"P.gte(20)\"}},{\"type\":\"VERTEX_LABEL\",\"label\":\"*\",\"properties\":null},{\"type\":\"PROPERTY_KEY\",\"label\":\"*\",\"properties\":null}]}}}";
         Assert.assertEquals(expected, role.toJson());
+    }
+
+    @Test
+    public void testLogin() throws AuthenticationException {
+        AuthManager authManager = graph().authManager();
+
+        HugeUser user = makeUser("test", StringEncoding.hashPassword("pass"));
+        authManager.createUser(user);
+
+        // Login
+        authManager.loginUser("test", "pass");
+
+        // Invalid username or password
+        Assert.assertThrows(AuthenticationException.class, () -> {
+            authManager.loginUser("huge", "graph");
+        }, e -> {
+            Assert.assertContains("Incorrect username or password", e.getMessage());
+        });
+    }
+
+    @Test
+    public void testValidateUserByToken() throws AuthenticationException {
+        AuthManager authManager = graph().authManager();
+
+        HugeUser user = makeUser("test", StringEncoding.hashPassword("pass"));
+        Id userId = authManager.createUser(user);
+
+        String token = authManager.loginUser("test", "pass");
+
+        UserWithRole userWithRole;
+        userWithRole = authManager.validateUser(token);
+        Assert.assertEquals(userId, userWithRole.userId());
+        Assert.assertEquals("test", userWithRole.username());
+        Assert.assertEquals("{\"roles\":{}}", userWithRole.role().toJson());
+
+        // Token cache missed
+        Cache<Id, String> tokenCache = Whitebox.getInternalState(authManager,
+                                                                 "tokenCache");
+        tokenCache.invalidate(IdGenerator.of(token));
+        Assert.assertFalse(tokenCache.containsKey(IdGenerator.of(token)));
+
+        userWithRole = authManager.validateUser(token);
+        Assert.assertEquals(userId, userWithRole.userId());
+        Assert.assertEquals("test", userWithRole.username());
+        Assert.assertEquals("{\"roles\":{}}", userWithRole.role().toJson());
+        Assert.assertTrue(tokenCache.containsKey(IdGenerator.of(token)));
+
+        // User deleted after login and token not expire
+        authManager.deleteUser(userId);
+        userWithRole = authManager.validateUser(token);
+        Assert.assertNull(null, userWithRole.userId());
+        Assert.assertEquals("test", userWithRole.username());
+        Assert.assertNull(userWithRole.role());
+    }
+
+    @Test
+    public void testLogout() throws AuthenticationException {
+        AuthManager authManager = graph().authManager();
+
+        HugeUser user = makeUser("test", StringEncoding.hashPassword("pass"));
+        Id userId = authManager.createUser(user);
+
+        // Login
+        String token = authManager.loginUser("test", "pass");
+
+        // Logout
+        Cache<Id, String> tokenCache = Whitebox.getInternalState(authManager,
+                                                                 "tokenCache");
+        Assert.assertTrue(tokenCache.containsKey(IdGenerator.of(token)));
+        authManager.logoutUser(token);
+        Assert.assertFalse(tokenCache.containsKey(IdGenerator.of(token)));
+    }
+
+    @Test
+    public void testValidateUserByNameAndPassword() {
+        AuthManager authManager = graph().authManager();
+
+        HugeUser user = makeUser("test", StringEncoding.hashPassword("pass"));
+        Id userId = authManager.createUser(user);
+
+        UserWithRole userWithRole;
+        userWithRole = authManager.validateUser("test", "pass");
+        Assert.assertEquals(userId, userWithRole.userId());
+        Assert.assertEquals("test", userWithRole.username());
+        Assert.assertEquals("{\"roles\":{}}", userWithRole.role().toJson());
+
+        // Error case
+        userWithRole = authManager.validateUser("huge", "graph");
+        Assert.assertNull(userWithRole.userId());
+        Assert.assertEquals("huge", userWithRole.username());
+        Assert.assertNull(userWithRole.role());
     }
 
     private static HugeUser makeUser(String name, String password) {

@@ -59,6 +59,8 @@ public interface Cache<K, V> {
 
     public long size();
 
+    public boolean enableMetrics(boolean enabled);
+
     public long hits();
 
     public long miss();
