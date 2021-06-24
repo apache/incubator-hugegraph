@@ -137,6 +137,48 @@ public class CacheManagerTest extends BaseUnitTest {
     }
 
     @Test
+    public void testCacheEnableMetrics() {
+        // Don't mock
+        teardown();
+
+        CacheManager manager = CacheManager.instance();
+
+        Cache<Id, Object> c1 = manager.cache("m1");
+        Cache<Id, Object> c2 = manager.cache("m2");
+        Cache<Id, Object> c3 = manager.offheapCache(null, "m3", 1, 11);
+        Cache<Id, Object> c4 = manager.levelCache(null, "m4", 1, 1, 11);
+
+        Assert.assertEquals(false, c1.enableMetrics(false));
+        Assert.assertEquals(false, c2.enableMetrics(false));
+        Assert.assertEquals(false, c3.enableMetrics(false));
+        Assert.assertEquals(false, c4.enableMetrics(false));
+
+        Assert.assertEquals(false, CacheManager.cacheEnableMetrics("m1", true));
+        Assert.assertEquals(true, c1.enableMetrics(true));
+
+        Assert.assertEquals(false, CacheManager.cacheEnableMetrics("m2", true));
+        Assert.assertEquals(true, c2.enableMetrics(true));
+
+        Assert.assertEquals(false, CacheManager.cacheEnableMetrics("m3", true));
+        Assert.assertEquals(true, c3.enableMetrics(true));
+
+        Assert.assertEquals(false, CacheManager.cacheEnableMetrics("m4", true));
+        Assert.assertEquals(true, c4.enableMetrics(true));
+
+        Assert.assertEquals(true, CacheManager.cacheEnableMetrics("m1", false));
+        Assert.assertEquals(false, c1.enableMetrics(true));
+
+        Assert.assertEquals(true, CacheManager.cacheEnableMetrics("m2", false));
+        Assert.assertEquals(false, c2.enableMetrics(true));
+
+        Assert.assertEquals(true, CacheManager.cacheEnableMetrics("m3", false));
+        Assert.assertEquals(false, c3.enableMetrics(true));
+
+        Assert.assertEquals(true, CacheManager.cacheEnableMetrics("m4", false));
+        Assert.assertEquals(false, c4.enableMetrics(true));
+    }
+
+    @Test
     public void testCacheGetPut() {
         final String name = "test-cache";
 
