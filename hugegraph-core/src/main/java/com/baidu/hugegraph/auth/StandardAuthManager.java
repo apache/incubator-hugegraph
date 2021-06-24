@@ -361,7 +361,6 @@ public class StandardAuthManager implements AuthManager {
             return null;
         }
 
-
         if (password.equals(this.pwdCache.get(user.id()))) {
             return user;
         }

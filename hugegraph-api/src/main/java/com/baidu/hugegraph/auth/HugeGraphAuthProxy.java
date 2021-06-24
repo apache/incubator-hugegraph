@@ -1161,7 +1161,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
             E.checkArgument(!HugeAuthenticator.USER_ADMIN.equals(user.name()),
                             "Can't delete user '%s'", user.name());
             verifyUserPermission(HugePermission.DELETE, user);
-            auditLimiters.invalidate(IdGenerator.of(user.name()));
+            auditLimiters.invalidate(user.id());
             return this.authManager.deleteUser(id);
         }
 
