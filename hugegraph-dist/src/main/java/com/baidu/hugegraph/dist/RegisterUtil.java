@@ -187,6 +187,8 @@ public class RegisterUtil {
         OptionSpace.register("server", "com.baidu.hugegraph.config.ServerOptions");
         // Register RpcOptions (rpc-server)
         OptionSpace.register("rpc", "com.baidu.hugegraph.config.RpcOptions");
+        // Register AuthOptions (auth-server)
+        OptionSpace.register("auth", "com.baidu.hugegraph.config.AuthOptions");
     }
 
     /**

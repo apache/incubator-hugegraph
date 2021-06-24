@@ -22,7 +22,10 @@ package com.baidu.hugegraph.auth;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+
+import javax.security.sasl.AuthenticationException;
 
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.auth.HugeUser.P;
@@ -36,7 +39,10 @@ import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Events;
 import com.baidu.hugegraph.util.StringEncoding;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+
+import io.jsonwebtoken.Claims;
 
 public class StandardAuthManager implements AuthManager {
 
@@ -46,6 +52,7 @@ public class StandardAuthManager implements AuthManager {
     private final EventListener eventListener;
     private final Cache<Id, HugeUser> usersCache;
     private final Cache<Id, String> pwdCache;
+    private final Cache<Id, String> tokenCache;
 
     private final EntityManager<HugeUser> users;
     private final EntityManager<HugeGroup> groups;
@@ -54,6 +61,8 @@ public class StandardAuthManager implements AuthManager {
     private final RelationshipManager<HugeBelong> belong;
     private final RelationshipManager<HugeAccess> access;
 
+    private final TokenGenerator tokenGenerator;
+
     public StandardAuthManager(HugeGraphParams graph) {
         E.checkNotNull(graph, "graph");
 
@@ -61,6 +70,7 @@ public class StandardAuthManager implements AuthManager {
         this.eventListener = this.listenChanges();
         this.usersCache = this.cache("users");
         this.pwdCache = this.cache("users_pwd");
+        this.tokenCache = this.cache("token");
 
         this.users = new EntityManager<>(this.graph, HugeUser.P.USER,
                                          HugeUser::fromVertex);
@@ -73,6 +83,8 @@ public class StandardAuthManager implements AuthManager {
                                                 HugeBelong::fromEdge);
         this.access = new RelationshipManager<>(this.graph, HugeAccess.P.ACCESS,
                                                 HugeAccess::fromEdge);
+
+        this.tokenGenerator = new TokenGenerator(graph.configuration());
     }
 
     private <V> Cache<Id, V> cache(String prefix) {
@@ -343,6 +355,7 @@ public class StandardAuthManager implements AuthManager {
     public HugeUser matchUser(String name, String password) {
         E.checkArgumentNotNull(name, "User name can't be null");
         E.checkArgumentNotNull(password, "User password can't be null");
+
         HugeUser user = this.findUser(name);
         if (user == null) {
             return null;
@@ -368,7 +381,7 @@ public class StandardAuthManager implements AuthManager {
             return this.rolePermission((HugeTarget) element);
         }
 
-        List<HugeAccess> accesses = new ArrayList<>();;
+        List<HugeAccess> accesses = new ArrayList<>();
         if (element instanceof HugeBelong) {
             HugeBelong belong = (HugeBelong) element;
             accesses.addAll(this.listAccessByGroup(belong.target(), -1));
@@ -425,12 +438,62 @@ public class StandardAuthManager implements AuthManager {
     }
 
     @Override
-    public RolePermission loginUser(String username, String password) {
+    public String loginUser(String username, String password)
+                            throws AuthenticationException {
         HugeUser user = this.matchUser(username, password);
         if (user == null) {
-            return null;
+            String msg = "Incorrect username or password";
+            throw new AuthenticationException(msg);
         }
-        return this.rolePermission(user);
+
+        Map<String, ?> payload = ImmutableMap.of(AuthConstant.TOKEN_USER_NAME,
+                                                 username,
+                                                 AuthConstant.TOKEN_USER_ID,
+                                                 user.id.asString());
+        String token = this.tokenGenerator.create(payload, CACHE_EXPIRE);
+
+        this.tokenCache.update(IdGenerator.of(token), username);
+        return token;
+    }
+
+    @Override
+    public void logoutUser(String token) {
+        this.tokenCache.invalidate(IdGenerator.of(token));
+    }
+
+    @Override
+    public UserWithRole validateUser(String username, String password) {
+        HugeUser user = this.matchUser(username, password);
+        if (user == null) {
+            return new UserWithRole(username);
+        }
+        return new UserWithRole(user.id, username, this.rolePermission(user));
+    }
+
+    @Override
+    public UserWithRole validateUser(String token) {
+        String username = (String) this.tokenCache.get(IdGenerator.of(token));
+
+        Claims payload = null;
+        boolean needBuildCache = false;
+        if (username == null) {
+            payload = this.tokenGenerator.verify(token);
+            username = (String) payload.get(AuthConstant.TOKEN_USER_NAME);
+            needBuildCache = true;
+        }
+
+        HugeUser user = this.findUser(username);
+        if (user == null) {
+            return new UserWithRole(username);
+        } else if (needBuildCache) {
+            long expireAt = payload.getExpiration().getTime();
+            long bornTime = CACHE_EXPIRE -
+                            (expireAt - System.currentTimeMillis());
+            this.tokenCache.update(IdGenerator.of(token), username,
+                                   Math.negateExact(bornTime));
+        }
+
+        return new UserWithRole(user.id(), username, this.rolePermission(user));
     }
 
     /**
