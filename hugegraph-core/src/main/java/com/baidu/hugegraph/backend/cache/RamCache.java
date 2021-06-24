@@ -76,6 +76,11 @@ public class RamCache extends AbstractCache<Id, Object> {
             return node.value();
         }
 
+        // Avoid to catch lock if cache missed
+        if (!this.containsKey(id)) {
+            return null;
+        }
+
         final Lock lock = this.keyLock.lock(id);
         try {
             LinkNode<Id, Object> node = this.map.get(id);

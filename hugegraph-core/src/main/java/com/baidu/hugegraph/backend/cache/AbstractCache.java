@@ -78,7 +78,7 @@ public abstract class AbstractCache<K, V> implements Cache<K, V> {
             return null;
         }
         V value = null;
-        if (this.size() <= this.halfCapacity || this.containsKey(id)) {
+        if (this.size() <= this.halfCapacity) {
             // Maybe the id removed by other threads and returned null value
             value = this.access(id);
         }
@@ -96,7 +96,7 @@ public abstract class AbstractCache<K, V> implements Cache<K, V> {
             return null;
         }
         V value = null;
-        if (this.size() <= this.halfCapacity || this.containsKey(id)) {
+        if (this.size() <= this.halfCapacity) {
             // Maybe the id removed by other threads and returned null value
             value = this.access(id);
         }
