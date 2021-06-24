@@ -119,7 +119,7 @@ public class OffheapCache extends AbstractCache<Id, Object> {
         }
         long expireTime = this.expire();
         boolean success;
-        if (expireTime <= 0) {
+        if (expireTime <= 0L) {
              success = this.cache.put(id, serializedValue);
         } else {
             expireTime += now() + timeOffset;

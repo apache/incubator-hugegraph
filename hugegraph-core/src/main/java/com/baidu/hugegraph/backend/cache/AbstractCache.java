@@ -21,6 +21,7 @@ package com.baidu.hugegraph.backend.cache;
 
 import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Function;
 
 import org.slf4j.Logger;
@@ -36,11 +37,13 @@ public abstract class AbstractCache<K, V> implements Cache<K, V> {
 
     protected static final Logger LOG = Log.logger(Cache.class);
 
-    private volatile long hits = 0L;
-    private volatile long miss = 0L;
+    // The unit of expired time is ms
+    private volatile long expire;
 
-    // Default expire time(ms)
-    private volatile long expire = 0L;
+    // Enabled cache metrics may cause performance penalty
+    private volatile boolean enabledMetrics;
+    private final LongAdder hits;
+    private final LongAdder miss;
 
     // NOTE: the count in number of items, not in bytes
     private final long capacity;
@@ -60,6 +63,12 @@ public abstract class AbstractCache<K, V> implements Cache<K, V> {
         this.capacity = capacity;
         this.halfCapacity = this.capacity >> 1;
         this.attachment = new AtomicReference<>();
+
+        this.expire = 0L;
+
+        this.enabledMetrics = false;
+        this.hits = new LongAdder();
+        this.miss = new LongAdder();
     }
 
     @Watched(prefix = "cache")
@@ -74,17 +83,19 @@ public abstract class AbstractCache<K, V> implements Cache<K, V> {
             value = this.access(id);
         }
 
-        if (value == null) {
-            ++this.miss;
-            if (LOG.isDebugEnabled()) {
-                LOG.debug("Cache missed '{}' (miss={}, hits={})",
-                          id, this.miss, this.hits);
-            }
-        } else {
-            ++this.hits;
-            if (LOG.isDebugEnabled()) {
-                LOG.debug("Cache cached '{}' (hits={}, miss={})",
-                          id, this.hits, this.miss);
+        if (this.enabledMetrics) {
+            if (value == null) {
+                this.miss.add(1L);
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("Cache missed '{}' (miss={}, hits={})",
+                              id, this.miss, this.hits);
+                }
+            } else {
+                this.hits.add(1L);
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("Cache cached '{}' (hits={}, miss={})",
+                              id, this.hits, this.miss);
+                }
             }
         }
         return value;
@@ -102,22 +113,28 @@ public abstract class AbstractCache<K, V> implements Cache<K, V> {
             value = this.access(id);
         }
 
-        if (value == null) {
-            ++this.miss;
-            if (LOG.isDebugEnabled()) {
-                LOG.debug("Cache missed '{}' (miss={}, hits={})",
-                          id, this.miss, this.hits);
-            }
-            // Do fetch and update the cache
-            value = fetcher.apply(id);
-            this.update(id, value);
-        } else {
-            ++this.hits;
-            if (LOG.isDebugEnabled()) {
-                LOG.debug("Cache cached '{}' (hits={}, miss={})",
-                          id, this.hits, this.miss);
+        if (this.enabledMetrics) {
+            if (value == null) {
+                this.miss.add(1L);
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("Cache missed '{}' (miss={}, hits={})",
+                              id, this.miss, this.hits);
+                }
+            } else {
+                this.hits.add(1L);
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("Cache cached '{}' (hits={}, miss={})",
+                              id, this.hits, this.miss);
+                }
             }
         }
+
+        // Do fetch and update the cache if cache missed
+        if (value == null) {
+            value = fetcher.apply(id);
+            this.update(id, value);
+        }
+
         return value;
     }
 
@@ -200,13 +217,24 @@ public abstract class AbstractCache<K, V> implements Cache<K, V> {
     }
 
     @Override
+    public boolean enableMetrics(boolean enabled) {
+        boolean old = this.enabledMetrics;
+        if (!enabled) {
+            this.hits.reset();
+            this.miss.reset();
+        }
+        this.enabledMetrics = enabled;
+        return old;
+    }
+
+    @Override
     public final long hits() {
-        return this.hits;
+        return this.hits.sum();
     }
 
     @Override
     public final long miss() {
-        return this.miss;
+        return this.miss.sum();
     }
 
     @Override
