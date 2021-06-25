@@ -2714,8 +2714,9 @@ public class EdgeCoreTest extends BaseCoreTest {
             query.query(Condition.eq(IdGenerator.of("fake"), "n3"));
             graph.edges(query).hasNext();
         }, e -> {
-            Assert.assertContains("Can't do index query with [LABEL ==",
+            Assert.assertContains("Can't do index query with [",
                                   e.getMessage());
+            Assert.assertContains("LABEL == ", e.getMessage());
             Assert.assertContains("NAME == n2", e.getMessage());
         });
     }
