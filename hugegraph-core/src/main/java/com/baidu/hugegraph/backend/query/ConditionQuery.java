@@ -79,7 +79,7 @@ public final class ConditionQuery extends IdQuery {
         }
 
         if (this.conditions == EMPTY_CONDITIONS) {
-            this.conditions = CollectionFactory.newSet(CollectionType.EC);;
+            this.conditions = CollectionFactory.newSet(CollectionType.EC);
         }
         this.conditions.add(condition);
         return this;
@@ -429,7 +429,8 @@ public final class ConditionQuery extends IdQuery {
         query.originQuery(this);
         query.conditions = this.conditions == EMPTY_CONDITIONS ?
                            EMPTY_CONDITIONS :
-                           CollectionFactory.newSet(CollectionType.EC);
+                           CollectionFactory.newSet(CollectionType.EC,
+                                                    this.conditions);
 
         query.optimizedType = OptimizedType.NONE;
         query.resultsFilter = null;

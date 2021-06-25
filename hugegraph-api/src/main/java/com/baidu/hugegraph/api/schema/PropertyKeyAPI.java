@@ -175,6 +175,7 @@ public class PropertyKeyAPI extends API {
     @Status(Status.ACCEPTED)
     @Path("{name}")
     @Consumes(APPLICATION_JSON)
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin", "$owner=$graph $action=property_key_delete"})
     public Map<String, Id> delete(@Context GraphManager manager,
                                   @PathParam("graph") String graph,

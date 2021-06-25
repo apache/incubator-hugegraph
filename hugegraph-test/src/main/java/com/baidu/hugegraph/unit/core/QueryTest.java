@@ -106,9 +106,11 @@ public class QueryTest {
         query3.gt(HugeKeys.PROPERTIES, 10);
         query3.lt(HugeKeys.PROPERTIES, 18);
         query3.limit(10L);
-        Assert.assertEquals("`Query * from EDGE limit 10 where [LABEL == 3, " +
-                            "PROPERTIES > 10, PROPERTIES < 18]`",
-                            query3.toString());
+        String qStr = query3.toString();
+        Assert.assertTrue(qStr.contains("`Query * from EDGE limit 10 where ["));
+        Assert.assertTrue(qStr.contains("LABEL == 3"));
+        Assert.assertTrue(qStr.contains("PROPERTIES > 10"));
+        Assert.assertTrue(qStr.contains("PROPERTIES < 18"));
 
         ConditionQuery query4 = new ConditionQuery(HugeType.EDGE);
         query4.query(ImmutableSet.of(IdGenerator.of(1), IdGenerator.of(3)));
