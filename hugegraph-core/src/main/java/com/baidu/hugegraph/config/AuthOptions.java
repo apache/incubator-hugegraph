@@ -107,9 +107,17 @@ public class AuthOptions extends OptionHolder {
     public static final ConfigOption<Long> AUTH_USER_ROLE_CACHE_EXPIRE =
             new ConfigOption<>(
                     "auth.user_role_cache_expire",
-                    "The expire time in minutes of user role cache " +
+                    "The expired time in seconds of user role cache " +
                     "in auth client side.",
                     rangeInt(0L, Long.MAX_VALUE),
-                    10L
+                    (60 * 10L)
+            );
+
+    public static final ConfigOption<Long> AUTH_CACHE_CAPACITY =
+            new ConfigOption<>(
+                    "auth.cache_capacity",
+                    "The max cache capacity of each auth cache item.",
+                    rangeInt(0L, Long.MAX_VALUE),
+                    (1024 * 10L)
             );
 }

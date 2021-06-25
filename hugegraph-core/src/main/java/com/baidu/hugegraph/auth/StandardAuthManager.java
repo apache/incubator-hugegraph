@@ -34,6 +34,8 @@ import com.baidu.hugegraph.backend.cache.Cache;
 import com.baidu.hugegraph.backend.cache.CacheManager;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
+import com.baidu.hugegraph.config.AuthOptions;
+import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.event.EventListener;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
@@ -65,12 +67,14 @@ public class StandardAuthManager implements AuthManager {
 
     public StandardAuthManager(HugeGraphParams graph) {
         E.checkNotNull(graph, "graph");
+        HugeConfig config = graph.configuration();
+        Long capacity = config.get(AuthOptions.AUTH_CACHE_CAPACITY);
 
         this.graph = graph;
         this.eventListener = this.listenChanges();
-        this.usersCache = this.cache("users");
-        this.pwdCache = this.cache("users_pwd");
-        this.tokenCache = this.cache("token");
+        this.usersCache = this.cache("users", capacity);
+        this.pwdCache = this.cache("users_pwd", capacity);
+        this.tokenCache = this.cache("token", capacity);
 
         this.users = new EntityManager<>(this.graph, HugeUser.P.USER,
                                          HugeUser::fromVertex);
@@ -84,12 +88,12 @@ public class StandardAuthManager implements AuthManager {
         this.access = new RelationshipManager<>(this.graph, HugeAccess.P.ACCESS,
                                                 HugeAccess::fromEdge);
 
-        this.tokenGenerator = new TokenGenerator(graph.configuration());
+        this.tokenGenerator = new TokenGenerator(config);
     }
 
-    private <V> Cache<Id, V> cache(String prefix) {
+    private <V> Cache<Id, V> cache(String prefix, long capacity) {
         String name = prefix + "-" + this.graph.name();
-        Cache<Id, V> cache = CacheManager.instance().cache(name);
+        Cache<Id, V> cache = CacheManager.instance().cache(name, capacity);
         cache.expire(CACHE_EXPIRE);
         return cache;
     }

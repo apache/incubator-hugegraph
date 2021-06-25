@@ -162,9 +162,10 @@ public interface HugeAuthenticator extends Authenticator {
             super(username);
             E.checkNotNull(username, "username");
             E.checkNotNull(role, "role");
-            this.userId = IdGenerator.of(username);
             this.role = role;
             this.client = null;
+            // Use username as the userId to simplify with the cache inside
+            this.userId = IdGenerator.of(username);
         }
 
         public String username() {
