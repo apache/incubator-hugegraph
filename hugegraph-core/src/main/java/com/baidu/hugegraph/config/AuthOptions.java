@@ -20,6 +20,8 @@
 package com.baidu.hugegraph.config;
 
 import static com.baidu.hugegraph.config.OptionChecker.disallowEmpty;
+import static com.baidu.hugegraph.config.OptionChecker.rangeDouble;
+import static com.baidu.hugegraph.config.OptionChecker.rangeInt;
 
 public class AuthOptions extends OptionHolder {
 
@@ -91,5 +93,39 @@ public class AuthOptions extends OptionHolder {
                     "Secret key of HS256 algorithm.",
                     disallowEmpty(),
                     "FXQXbJtbCLxODc6tGci732pkH1cyf8Qg"
+            );
+
+    public static final ConfigOption<Double> AUTH_AUDIT_LOG_RATE =
+            new ConfigOption<>(
+                    "auth.audit_log_rate",
+                    "The max rate of audit log output per user, " +
+                    "default value is 1000 records per second.",
+                    rangeDouble(0.0, Double.MAX_VALUE),
+                    1000.0
+            );
+
+    public static final ConfigOption<Long> AUTH_CACHE_EXPIRE =
+            new ConfigOption<>(
+                    "auth.cache_expire",
+                    "The expiration time in seconds of auth cache in " +
+                    "auth client and auth server.",
+                    rangeInt(0L, Long.MAX_VALUE),
+                    (60 * 10L)
+            );
+
+    public static final ConfigOption<Long> AUTH_CACHE_CAPACITY =
+            new ConfigOption<>(
+                    "auth.cache_capacity",
+                    "The max cache capacity of each auth cache item.",
+                    rangeInt(0L, Long.MAX_VALUE),
+                    (1024 * 10L)
+            );
+
+    public static final ConfigOption<Long> AUTH_TOKEN_EXPIRE =
+            new ConfigOption<>(
+                    "auth.token_expire",
+                    "The expiration time in seconds after token created",
+                    rangeInt(0L, Long.MAX_VALUE),
+                    (3600 * 24L)
             );
 }

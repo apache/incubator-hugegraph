@@ -34,6 +34,8 @@ import com.baidu.hugegraph.backend.cache.Cache;
 import com.baidu.hugegraph.backend.cache.CacheManager;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
+import com.baidu.hugegraph.config.AuthOptions;
+import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.event.EventListener;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
@@ -46,12 +48,14 @@ import io.jsonwebtoken.Claims;
 
 public class StandardAuthManager implements AuthManager {
 
-    private static final long CACHE_EXPIRE = Duration.ofDays(1L).toMillis();
-
     private final HugeGraphParams graph;
     private final EventListener eventListener;
+
+    // Cache <username, HugeUser>
     private final Cache<Id, HugeUser> usersCache;
+    // Cache <userId, passwd>
     private final Cache<Id, String> pwdCache;
+    // Cache <token, username>
     private final Cache<Id, String> tokenCache;
 
     private final EntityManager<HugeUser> users;
@@ -62,15 +66,20 @@ public class StandardAuthManager implements AuthManager {
     private final RelationshipManager<HugeAccess> access;
 
     private final TokenGenerator tokenGenerator;
+    private final long tokenExpire;
 
     public StandardAuthManager(HugeGraphParams graph) {
         E.checkNotNull(graph, "graph");
+        HugeConfig config = graph.configuration();
+        long expired = config.get(AuthOptions.AUTH_CACHE_EXPIRE);
+        long capacity = config.get(AuthOptions.AUTH_CACHE_CAPACITY);
+        this.tokenExpire = config.get(AuthOptions.AUTH_TOKEN_EXPIRE);
 
         this.graph = graph;
         this.eventListener = this.listenChanges();
-        this.usersCache = this.cache("users");
-        this.pwdCache = this.cache("users_pwd");
-        this.tokenCache = this.cache("token");
+        this.usersCache = this.cache("users", capacity, expired);
+        this.pwdCache = this.cache("users_pwd", capacity, expired);
+        this.tokenCache = this.cache("token", capacity, expired);
 
         this.users = new EntityManager<>(this.graph, HugeUser.P.USER,
                                          HugeUser::fromVertex);
@@ -84,13 +93,18 @@ public class StandardAuthManager implements AuthManager {
         this.access = new RelationshipManager<>(this.graph, HugeAccess.P.ACCESS,
                                                 HugeAccess::fromEdge);
 
-        this.tokenGenerator = new TokenGenerator(graph.configuration());
+        this.tokenGenerator = new TokenGenerator(config);
     }
 
-    private <V> Cache<Id, V> cache(String prefix) {
+    private <V> Cache<Id, V> cache(String prefix, long capacity,
+                                   long expiredTime) {
         String name = prefix + "-" + this.graph.name();
-        Cache<Id, V> cache = CacheManager.instance().cache(name);
-        cache.expire(CACHE_EXPIRE);
+        Cache<Id, V> cache = CacheManager.instance().cache(name, capacity);
+        if (expiredTime > 0L) {
+            cache.expire(Duration.ofSeconds(expiredTime).toMillis());
+        } else {
+            cache.expire(expiredTime);
+        }
         return cache;
     }
 
@@ -124,7 +138,7 @@ public class StandardAuthManager implements AuthManager {
     }
 
     private void initSchemaIfNeeded() {
-        this.invalidCache();
+        this.invalidateUserCache();
         HugeUser.schema(this.graph).initSchemaIfNeeded();
         HugeGroup.schema(this.graph).initSchemaIfNeeded();
         HugeTarget.schema(this.graph).initSchemaIfNeeded();
@@ -132,33 +146,40 @@ public class StandardAuthManager implements AuthManager {
         HugeAccess.schema(this.graph).initSchemaIfNeeded();
     }
 
-    private void invalidCache() {
+    private void invalidateUserCache() {
         this.usersCache.clear();
-        this.pwdCache.clear();
+    }
+
+    private void invalidatePasswdCache(Id id) {
+        this.pwdCache.invalidate(id);
+        // Clear all tokenCache because can't get userId in it
+        this.tokenCache.clear();
     }
 
     @Override
     public Id createUser(HugeUser user) {
-        this.invalidCache();
+        this.invalidateUserCache();
         return this.users.add(user);
     }
 
     @Override
     public Id updateUser(HugeUser user) {
-        this.invalidCache();
+        this.invalidateUserCache();
+        this.invalidatePasswdCache(user.id());
         return this.users.update(user);
     }
 
     @Override
     public HugeUser deleteUser(Id id) {
-        this.invalidCache();
+        this.invalidateUserCache();
+        this.invalidatePasswdCache(id);
         return this.users.delete(id);
     }
 
     @Override
     public HugeUser findUser(String name) {
-        Id key = IdGenerator.of(name);
-        HugeUser user = (HugeUser) this.usersCache.get(key);
+        Id username = IdGenerator.of(name);
+        HugeUser user = this.usersCache.get(username);
         if (user != null) {
             return user;
         }
@@ -167,7 +188,7 @@ public class StandardAuthManager implements AuthManager {
         if (users.size() > 0) {
             assert users.size() == 1;
             user = users.get(0);
-            this.usersCache.update(key, user);
+            this.usersCache.update(username, user);
         }
         return user;
     }
@@ -189,19 +210,19 @@ public class StandardAuthManager implements AuthManager {
 
     @Override
     public Id createGroup(HugeGroup group) {
-        this.invalidCache();
+        this.invalidateUserCache();
         return this.groups.add(group);
     }
 
     @Override
     public Id updateGroup(HugeGroup group) {
-        this.invalidCache();
+        this.invalidateUserCache();
         return this.groups.update(group);
     }
 
     @Override
     public HugeGroup deleteGroup(Id id) {
-        this.invalidCache();
+        this.invalidateUserCache();
         return this.groups.delete(id);
     }
 
@@ -222,19 +243,19 @@ public class StandardAuthManager implements AuthManager {
 
     @Override
     public Id createTarget(HugeTarget target) {
-        this.invalidCache();
+        this.invalidateUserCache();
         return this.targets.add(target);
     }
 
     @Override
     public Id updateTarget(HugeTarget target) {
-        this.invalidCache();
+        this.invalidateUserCache();
         return this.targets.update(target);
     }
 
     @Override
     public HugeTarget deleteTarget(Id id) {
-        this.invalidCache();
+        this.invalidateUserCache();
         return this.targets.delete(id);
     }
 
@@ -255,7 +276,7 @@ public class StandardAuthManager implements AuthManager {
 
     @Override
     public Id createBelong(HugeBelong belong) {
-        this.invalidCache();
+        this.invalidateUserCache();
         E.checkArgument(this.users.exists(belong.source()),
                         "Not exists user '%s'", belong.source());
         E.checkArgument(this.groups.exists(belong.target()),
@@ -265,13 +286,13 @@ public class StandardAuthManager implements AuthManager {
 
     @Override
     public Id updateBelong(HugeBelong belong) {
-        this.invalidCache();
+        this.invalidateUserCache();
         return this.belong.update(belong);
     }
 
     @Override
     public HugeBelong deleteBelong(Id id) {
-        this.invalidCache();
+        this.invalidateUserCache();
         return this.belong.delete(id);
     }
 
@@ -304,7 +325,7 @@ public class StandardAuthManager implements AuthManager {
 
     @Override
     public Id createAccess(HugeAccess access) {
-        this.invalidCache();
+        this.invalidateUserCache();
         E.checkArgument(this.groups.exists(access.source()),
                         "Not exists group '%s'", access.source());
         E.checkArgument(this.targets.exists(access.target()),
@@ -314,13 +335,13 @@ public class StandardAuthManager implements AuthManager {
 
     @Override
     public Id updateAccess(HugeAccess access) {
-        this.invalidCache();
+        this.invalidateUserCache();
         return this.access.update(access);
     }
 
     @Override
     public HugeAccess deleteAccess(Id id) {
-        this.invalidCache();
+        this.invalidateUserCache();
         return this.access.delete(id);
     }
 
@@ -361,13 +382,12 @@ public class StandardAuthManager implements AuthManager {
             return null;
         }
 
-        Id id = IdGenerator.of(user.id());
-        if (password.equals(pwdCache.get(id))) {
+        if (password.equals(this.pwdCache.get(user.id()))) {
             return user;
         }
 
         if (StringEncoding.checkPassword(password, user.password())) {
-            pwdCache.update(id, password);
+            this.pwdCache.update(user.id(), password);
             return user;
         }
         return null;
@@ -450,7 +470,7 @@ public class StandardAuthManager implements AuthManager {
                                                  username,
                                                  AuthConstant.TOKEN_USER_ID,
                                                  user.id.asString());
-        String token = this.tokenGenerator.create(payload, CACHE_EXPIRE);
+        String token = this.tokenGenerator.create(payload, this.tokenExpire);
 
         this.tokenCache.update(IdGenerator.of(token), username);
         return token;
@@ -472,7 +492,7 @@ public class StandardAuthManager implements AuthManager {
 
     @Override
     public UserWithRole validateUser(String token) {
-        String username = (String) this.tokenCache.get(IdGenerator.of(token));
+        String username = this.tokenCache.get(IdGenerator.of(token));
 
         Claims payload = null;
         boolean needBuildCache = false;
@@ -487,7 +507,7 @@ public class StandardAuthManager implements AuthManager {
             return new UserWithRole(username);
         } else if (needBuildCache) {
             long expireAt = payload.getExpiration().getTime();
-            long bornTime = CACHE_EXPIRE -
+            long bornTime = tokenCache.expire() -
                             (expireAt - System.currentTimeMillis());
             this.tokenCache.update(IdGenerator.of(token), username,
                                    Math.negateExact(bornTime));
