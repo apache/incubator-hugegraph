@@ -25,6 +25,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -309,6 +310,7 @@ public class StandardHugeGraph implements HugeGraph {
 
     @Override
     public void readMode(GraphReadMode readMode) {
+        this.clearVertexCache();
         this.readMode = readMode;
     }
 
@@ -397,6 +399,17 @@ public class StandardHugeGraph implements HugeGraph {
             LockUtil.unlock(this.name, LockUtil.GRAPH_LOCK);
         }
         LOG.info("Graph '{}' has resumed from snapshot", this.name);
+    }
+
+    private void clearVertexCache() {
+        Future<?> future = this.graphEventHub.notify(Events.CACHE, "clear",
+                                                     HugeType.VERTEX);
+        try {
+            future.get();
+        } catch (Throwable e) {
+            LOG.warn("Error when waiting for event execution: vertex cache " +
+                     "clear", e);
+        }
     }
 
     private SchemaTransaction openSchemaTransaction() throws HugeException {
@@ -680,11 +693,17 @@ public class StandardHugeGraph implements HugeGraph {
     @Override
     public Id addPropertyKey(PropertyKey pkey) {
         assert this.name.equals(pkey.graph().name());
+        if (pkey.olap()) {
+            this.clearVertexCache();
+        }
         return this.schemaTransaction().addPropertyKey(pkey);
     }
 
     @Override
     public Id removePropertyKey(Id pkey) {
+        if (this.propertyKey(pkey).olap()) {
+            this.clearVertexCache();
+        }
         return this.schemaTransaction().removePropertyKey(pkey);
     }
 
@@ -712,6 +731,7 @@ public class StandardHugeGraph implements HugeGraph {
         if (propertyKey.oltp()) {
             return IdGenerator.ZERO;
         }
+        this.clearVertexCache();
         return this.schemaTransaction().clearOlapPk(propertyKey);
     }
 
