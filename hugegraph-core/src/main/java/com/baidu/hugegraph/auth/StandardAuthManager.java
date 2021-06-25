@@ -48,8 +48,6 @@ import io.jsonwebtoken.Claims;
 
 public class StandardAuthManager implements AuthManager {
 
-    private long tokenExpire;
-
     private final HugeGraphParams graph;
     private final EventListener eventListener;
 
@@ -68,6 +66,7 @@ public class StandardAuthManager implements AuthManager {
     private final RelationshipManager<HugeAccess> access;
 
     private final TokenGenerator tokenGenerator;
+    private final long tokenExpire;
 
     public StandardAuthManager(HugeGraphParams graph) {
         E.checkNotNull(graph, "graph");
@@ -471,7 +470,7 @@ public class StandardAuthManager implements AuthManager {
                                                  username,
                                                  AuthConstant.TOKEN_USER_ID,
                                                  user.id.asString());
-        String token = this.tokenGenerator.create(payload, tokenExpire);
+        String token = this.tokenGenerator.create(payload, this.tokenExpire);
 
         this.tokenCache.update(IdGenerator.of(token), username);
         return token;
