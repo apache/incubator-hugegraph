@@ -512,7 +512,7 @@ public class CoreOptions extends OptionHolder {
     public static final ConfigOption<Integer> VERTEX_CACHE_EXPIRE =
             new ConfigOption<>(
                     "vertex.cache_expire",
-                    "The expired time in seconds of vertex cache.",
+                    "The expiration time in seconds of vertex cache.",
                     rangeInt(0, Integer.MAX_VALUE),
                     (60 * 10)
             );
@@ -536,7 +536,7 @@ public class CoreOptions extends OptionHolder {
     public static final ConfigOption<Integer> EDGE_CACHE_EXPIRE =
             new ConfigOption<>(
                     "edge.cache_expire",
-                    "The expired time in seconds of edge cache.",
+                    "The expiration time in seconds of edge cache.",
                     rangeInt(0, Integer.MAX_VALUE),
                     (60 * 10)
             );

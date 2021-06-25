@@ -107,7 +107,7 @@ public class AuthOptions extends OptionHolder {
     public static final ConfigOption<Long> AUTH_CACHE_EXPIRE =
             new ConfigOption<>(
                     "auth.cache_expire",
-                    "The expired time in seconds of auth cache in " +
+                    "The expiration time in seconds of auth cache in " +
                     "auth client and auth server.",
                     rangeInt(0L, Long.MAX_VALUE),
                     (60 * 10L)
@@ -119,5 +119,13 @@ public class AuthOptions extends OptionHolder {
                     "The max cache capacity of each auth cache item.",
                     rangeInt(0L, Long.MAX_VALUE),
                     (1024 * 10L)
+            );
+
+    public static final ConfigOption<Long> AUTH_TOKEN_EXPIRE =
+            new ConfigOption<>(
+                    "auth.token_expire",
+                    "The expiration time in seconds after token created",
+                    rangeInt(0L, Long.MAX_VALUE),
+                    (3600 * 24L)
             );
 }
