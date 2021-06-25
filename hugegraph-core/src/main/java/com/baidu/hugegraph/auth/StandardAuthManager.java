@@ -48,7 +48,7 @@ import io.jsonwebtoken.Claims;
 
 public class StandardAuthManager implements AuthManager {
 
-    private static long TOKEN_EXPIRE;
+    private long tokenExpire;
 
     private final HugeGraphParams graph;
     private final EventListener eventListener;
@@ -74,7 +74,7 @@ public class StandardAuthManager implements AuthManager {
         HugeConfig config = graph.configuration();
         long expired = config.get(AuthOptions.AUTH_CACHE_EXPIRE);
         long capacity = config.get(AuthOptions.AUTH_CACHE_CAPACITY);
-        TOKEN_EXPIRE = config.get(AuthOptions.AUTH_TOKEN_EXPIRE);
+        this.tokenExpire = config.get(AuthOptions.AUTH_TOKEN_EXPIRE);
 
         this.graph = graph;
         this.eventListener = this.listenChanges();
@@ -471,7 +471,7 @@ public class StandardAuthManager implements AuthManager {
                                                  username,
                                                  AuthConstant.TOKEN_USER_ID,
                                                  user.id.asString());
-        String token = this.tokenGenerator.create(payload, TOKEN_EXPIRE);
+        String token = this.tokenGenerator.create(payload, tokenExpire);
 
         this.tokenCache.update(IdGenerator.of(token), username);
         return token;
