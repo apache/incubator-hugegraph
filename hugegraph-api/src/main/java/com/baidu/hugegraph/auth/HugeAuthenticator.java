@@ -164,7 +164,10 @@ public interface HugeAuthenticator extends Authenticator {
             E.checkNotNull(role, "role");
             this.role = role;
             this.client = null;
-            // Use username as the userId to simplify with the cache inside
+            /*
+             * 1. Use username as the id to simplify getting userId
+             * 2. Only used as cache's key in auth proxy now
+             */
             this.userId = IdGenerator.of(username);
         }
 

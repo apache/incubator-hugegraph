@@ -119,15 +119,14 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     public HugeGraphAuthProxy(HugeGraph hugegraph) {
         LOG.info("Wrap graph '{}' with HugeGraphAuthProxy", hugegraph.name());
         HugeConfig config = (HugeConfig) hugegraph.configuration();
-        Long expire = config.get(AuthOptions.AUTH_USER_ROLE_CACHE_EXPIRE);
-        Long capacity = config.get(AuthOptions.AUTH_CACHE_CAPACITY);
+        long expired = config.get(AuthOptions.AUTH_CACHE_EXPIRE);
+        long capacity = config.get(AuthOptions.AUTH_CACHE_CAPACITY);
 
         this.hugegraph = hugegraph;
         this.taskScheduler = new TaskSchedulerProxy(hugegraph.taskScheduler());
         this.authManager = new AuthManagerProxy(hugegraph.authManager());
         this.auditLimiters = this.cache("audit-log-limiter", capacity, -1L);
-        this.usersRoleCache = this.cache("users-role", capacity,
-                                         Duration.ofSeconds(expire).toMillis());
+        this.usersRoleCache = this.cache("users-role", capacity, expired);
         this.hugegraph.proxy(this);
 
         // TODO: Consider better way to get, use auth client's config now
@@ -735,10 +734,14 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     private <V> Cache<Id, V> cache(String prefix, long capacity,
-                                   long expireTime) {
+                                   long expiredTime) {
         String name = prefix + "-" + this.hugegraph.name();
         Cache<Id, V> cache = CacheManager.instance().cache(name, capacity);
-        cache.expire(expireTime);
+        if (expiredTime > 0L) {
+            cache.expire(Duration.ofSeconds(expiredTime).toMillis());
+        } else {
+            cache.expire(expiredTime);
+        }
         return cache;
     }
 
