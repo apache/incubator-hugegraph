@@ -19,8 +19,6 @@
 
 package com.baidu.hugegraph;
 
-import static com.baidu.hugegraph.schema.VertexLabel.ALL_VL;
-
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -842,7 +840,7 @@ public class StandardHugeGraph implements HugeGraph {
 
     @Override
     public void addIndexLabel(SchemaLabel schemaLabel, IndexLabel indexLabel) {
-        assert ALL_VL.equals(schemaLabel) ||
+        assert VertexLabel.ALL_VL.equals(schemaLabel) ||
                this.name.equals(schemaLabel.graph().name());
         assert this.name.equals(indexLabel.graph().name());
         this.schemaTransaction().addIndexLabel(schemaLabel, indexLabel);

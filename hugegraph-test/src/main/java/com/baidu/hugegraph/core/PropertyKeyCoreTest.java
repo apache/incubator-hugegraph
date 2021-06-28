@@ -364,13 +364,13 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
         SchemaManager schema = graph().schema();
         PropertyKey olap = schema.propertyKey("olap")
                                  .asText().valueSingle()
-                                 .readFrequency(ReadFrequency.OLAP_NONE)
+                                 .readFrequency(ReadFrequency.OLAP_COMMON)
                                  .ifNotExist().create();
 
         Assert.assertEquals("olap", olap.name());
         Assert.assertEquals(DataType.TEXT, olap.dataType());
         Assert.assertEquals(Cardinality.SINGLE, olap.cardinality());
-        Assert.assertEquals(ReadFrequency.OLAP_NONE, olap.readFrequency());
+        Assert.assertEquals(ReadFrequency.OLAP_COMMON, olap.readFrequency());
 
         PropertyKey pagerank = schema.propertyKey("pagerank")
                                      .asDouble().valueSingle()
@@ -401,13 +401,13 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
         SchemaManager schema = graph().schema();
         PropertyKey olap = schema.propertyKey("olap")
                                  .asText().valueSingle()
-                                 .readFrequency(ReadFrequency.OLAP_NONE)
+                                 .readFrequency(ReadFrequency.OLAP_COMMON)
                                  .ifNotExist().create();
 
         Assert.assertEquals("olap", olap.name());
         Assert.assertEquals(DataType.TEXT, olap.dataType());
         Assert.assertEquals(Cardinality.SINGLE, olap.cardinality());
-        Assert.assertEquals(ReadFrequency.OLAP_NONE, olap.readFrequency());
+        Assert.assertEquals(ReadFrequency.OLAP_COMMON, olap.readFrequency());
 
         graph().clearPropertyKey(olap);
 
@@ -415,7 +415,7 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
         Assert.assertEquals("olap", olap.name());
         Assert.assertEquals(DataType.TEXT, olap.dataType());
         Assert.assertEquals(Cardinality.SINGLE, olap.cardinality());
-        Assert.assertEquals(ReadFrequency.OLAP_NONE, olap.readFrequency());
+        Assert.assertEquals(ReadFrequency.OLAP_COMMON, olap.readFrequency());
 
         PropertyKey pagerank = schema.propertyKey("pagerank")
                                      .asDouble().valueSingle()
@@ -462,13 +462,13 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
         SchemaManager schema = graph().schema();
         PropertyKey olap = schema.propertyKey("olap")
                                  .asText().valueSingle()
-                                 .readFrequency(ReadFrequency.OLAP_NONE)
+                                 .readFrequency(ReadFrequency.OLAP_COMMON)
                                  .ifNotExist().create();
 
         Assert.assertEquals("olap", olap.name());
         Assert.assertEquals(DataType.TEXT, olap.dataType());
         Assert.assertEquals(Cardinality.SINGLE, olap.cardinality());
-        Assert.assertEquals(ReadFrequency.OLAP_NONE, olap.readFrequency());
+        Assert.assertEquals(ReadFrequency.OLAP_COMMON, olap.readFrequency());
 
         schema.propertyKey("olap").remove();
 

@@ -35,6 +35,8 @@ import com.google.common.base.Objects;
 public class VertexLabel extends SchemaLabel {
 
     public static final VertexLabel NONE = new VertexLabel(null, NONE_ID, UNDEF);
+
+    // ALL_VL means all of vertex labels
     public static final VertexLabel ALL_VL = new VertexLabel(null, ALL_ID,
                                                              SchemaElement.ALL);
 

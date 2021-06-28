@@ -117,9 +117,11 @@ public class QueryTest {
         query4.eq(HugeKeys.LABEL, 3);
         query4.lt(HugeKeys.PROPERTIES, 18);
         query4.limit(10L);
-        Assert.assertEquals("`Query * from EDGE limit 10 where id in [1, 3] " +
-                            "and [LABEL == 3, PROPERTIES < 18]`",
-                            query4.toString());
+        qStr = query4.toString();
+        Assert.assertTrue(qStr.contains("`Query * from EDGE limit 10 " +
+                                        "where id in [1, 3] and [`"));
+        Assert.assertTrue(qStr.contains("LABEL == 3"));
+        Assert.assertTrue(qStr.contains("PROPERTIES < 18"));
     }
 
     @Test

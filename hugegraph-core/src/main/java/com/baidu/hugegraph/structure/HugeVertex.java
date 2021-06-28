@@ -19,8 +19,6 @@
 
 package com.baidu.hugegraph.structure;
 
-import static com.baidu.hugegraph.schema.VertexLabel.ALL_VL;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -100,7 +98,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
     @Override
     public VertexLabel schemaLabel() {
-        assert ALL_VL.equals(this.label) ||
+        assert VertexLabel.ALL_VL.equals(this.label) ||
                this.graph().sameAs(this.label.graph());
         return this.label;
     }
@@ -453,7 +451,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         }
 
         // Check key in vertex label
-        E.checkArgument(ALL_VL.equals(this.label) ||
+        E.checkArgument(VertexLabel.ALL_VL.equals(this.label) ||
                         this.label.properties().contains(propertyKey.id()),
                         "Invalid property '%s' for vertex label '%s'",
                         key, this.label);
@@ -615,7 +613,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     }
 
     public boolean olap() {
-        return ALL_VL.equals(this.label);
+        return VertexLabel.ALL_VL.equals(this.label);
     }
 
     @Override

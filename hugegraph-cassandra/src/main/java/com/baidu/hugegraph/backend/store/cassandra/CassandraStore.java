@@ -294,8 +294,8 @@ public abstract class CassandraStore
     public Iterator<BackendEntry> query(Query query) {
         this.checkOpened();
         HugeType type = CassandraTable.tableType(query);
-        String tableName = query.olap() ?
-                           this.olapTableName(type) : type.string();
+        String tableName = query.olap() ? this.olapTableName(type) :
+                                          type.string();
         CassandraTable table = this.table(tableName);
         Iterator<BackendEntry> entries = table.query(this.session(), query);
         // Merge olap results as needed

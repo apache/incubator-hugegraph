@@ -62,7 +62,8 @@ public class CassandraStoreProvider extends AbstractBackendStoreProvider {
          * [1.8] #746: support userdata for indexlabel
          * [1.9] #295: support ttl for vertex and edge
          * [1.10] #1333: support read frequency for property key
+         * [1.11] #1506: support olap properties
          */
-        return "1.10";
+        return "1.11";
     }
 }

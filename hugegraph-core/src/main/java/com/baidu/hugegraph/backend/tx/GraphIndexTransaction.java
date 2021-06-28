@@ -465,8 +465,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 PropertyKey propertyKey = this.graph().propertyKey(pkId);
                 if (propertyKey.olap()) {
                     throw new NotAllowException(
-                              "Not allowed query by olap property key '%s' " +
-                              "when graph read mode is '%s'",
+                              "Not allowed to query by olap property key '%s'" +
+                              " when graph-read-mode is '%s'",
                               propertyKey, this.graph().readMode());
                 }
             }

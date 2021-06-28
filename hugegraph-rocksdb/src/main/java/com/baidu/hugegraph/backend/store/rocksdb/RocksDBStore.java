@@ -158,7 +158,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
     protected final RocksDBTable table(String name) {
         RocksDBTable table = this.tables.get(name);
         if (table == null) {
-            throw new BackendException("Unsupported table: %s", name);
+            throw new BackendException("Unsupported table: '%s'", name);
         }
         return table;
     }
@@ -433,13 +433,13 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
                 this.table(name).insert(session, entry);
                 break;
             case DELETE:
-                name = entry.olap() ?
-                       this.olapTableName(entry.type()) : entry.type().string();
+                name = entry.olap() ? this.olapTableName(entry.type()) :
+                                      entry.type().string();
                 this.table(name).delete(session, entry);
                 break;
             case APPEND:
-                name = entry.olap() ?
-                       this.olapTableName(entry.type()) : entry.type().string();
+                name = entry.olap() ? this.olapTableName(entry.type()) :
+                                      entry.type().string();
                 this.table(name).append(session, entry);
                 break;
             case ELIMINATE:
@@ -461,7 +461,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
             HugeType tableType = RocksDBTable.tableType(query);
 
             String tableName = query.olap() ? this.olapTableName(tableType) :
-                               tableType.string();
+                                              tableType.string();
             RocksDBTable table = this.table(tableName);
             Iterator<BackendEntry> entries =
                                    table.query(this.sessions.session(), query);
@@ -998,14 +998,14 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
 
         @Override
         public void createOlapTable(Id pkId) {
-            RocksDBTable table = new RocksDBTables.Olap(this.store(), pkId);
+            RocksDBTable table = new RocksDBTables.OlapTable(this.store(), pkId);
             this.createTable(super.sessions, table.table());
             registerTableManager(this.olapTableName(pkId), table);
         }
 
         @Override
         public void checkAndRegisterOlapTable(Id pkId) {
-            RocksDBTable table = new RocksDBTables.Olap(this.store(), pkId);
+            RocksDBTable table = new RocksDBTables.OlapTable(this.store(), pkId);
             if (!super.sessions.existsTable(table.table())) {
                 throw new HugeException("Not exist table '%s''", table.table());
             }

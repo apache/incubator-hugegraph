@@ -454,14 +454,14 @@ public class PropertyKeyBuilder extends AbstractBuilder
 
         if (!this.aggregateType.isNone()) {
             throw new NotAllowException(
-                      "Not allow to set aggregate type '%s' for olap " +
+                      "Not allowed to set aggregate type '%s' for olap " +
                       "property key '%s'", this.aggregateType, this.name);
         }
 
         if (this.readFrequency == ReadFrequency.OLAP_RANGE &&
             !this.dataType.isNumber() && !this.dataType.isDate()) {
             throw new NotAllowException(
-                      "Not allow to set read frequency to OLAP_RANGE for " +
+                      "Not allowed to set read frequency to OLAP_RANGE for " +
                       "property key '%s' with data type '%s'",
                       this.name, this.dataType);
         }

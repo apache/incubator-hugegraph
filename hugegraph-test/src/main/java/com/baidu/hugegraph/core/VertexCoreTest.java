@@ -1944,7 +1944,7 @@ public class VertexCoreTest extends BaseCoreTest {
         String olapPropName = "olap";
         schema.propertyKey(olapPropName)
               .asText().valueSingle()
-              .readFrequency(ReadFrequency.OLAP_NONE)
+              .readFrequency(ReadFrequency.OLAP_COMMON)
               .ifNotExist().create();
 
         init10Vertices();

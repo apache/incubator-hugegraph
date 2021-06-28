@@ -1,7 +1,5 @@
 package com.baidu.hugegraph.job.schema;
 
-import static com.baidu.hugegraph.schema.SchemaElement.ALL_ID;
-
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
@@ -67,7 +65,7 @@ public abstract class SchemaCallable extends SysJob<Object> {
         Id baseValue = label.baseValue();
         SchemaLabel schemaLabel;
         if (baseType == HugeType.VERTEX_LABEL) {
-            if (ALL_ID.equals(baseValue)) {
+            if (SchemaElement.ALL_ID.equals(baseValue)) {
                 return;
             }
             schemaLabel = tx.getVertexLabel(baseValue);

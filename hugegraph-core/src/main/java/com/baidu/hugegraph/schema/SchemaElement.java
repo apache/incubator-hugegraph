@@ -41,8 +41,12 @@ public abstract class SchemaElement implements Namifiable, Typifiable,
     public static final int NEXT_PRIMITIVE_SYS_ID = 8;
 
     public static final Id NONE_ID = IdGenerator.ZERO;
-    public static final Id ALL_ID = IdGenerator.of(-7);
+
     public static final String UNDEF = "~undefined";
+
+    // ALL_ID means all of vertex label ids
+    public static final Id ALL_ID = IdGenerator.of(-7);
+    // ALL means all of vertex label names
     public static final String ALL = "~all";
 
     protected final HugeGraph graph;
@@ -179,18 +183,13 @@ public abstract class SchemaElement implements Namifiable, Typifiable,
             this.task = task;
         }
 
-        public void schemaElement(SchemaElement schemaElement) {
-            E.checkNotNull(schemaElement, "schema element");
-            this.schemaElement = schemaElement;
-        }
-
         public void propertyKey(PropertyKey propertyKey) {
-            E.checkNotNull(schemaElement, "property key");
+            E.checkNotNull(propertyKey, "property key");
             this.schemaElement = propertyKey;
         }
 
         public void indexLabel(IndexLabel indexLabel) {
-            E.checkNotNull(schemaElement, "index label");
+            E.checkNotNull(indexLabel, "index label");
             this.schemaElement = indexLabel;
         }
 
@@ -210,10 +209,6 @@ public abstract class SchemaElement implements Namifiable, Typifiable,
 
         public SchemaElement schemaElement() {
             return this.schemaElement;
-        }
-
-        public void task(Id task) {
-            this.task = task;
         }
 
         public Id task() {

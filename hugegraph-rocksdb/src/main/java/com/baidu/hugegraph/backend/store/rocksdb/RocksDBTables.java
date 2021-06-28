@@ -337,11 +337,11 @@ public class RocksDBTables {
         }
     }
 
-    public static class Olap extends RocksDBTable {
+    public static class OlapTable extends RocksDBTable {
 
         public static final String TABLE = HugeType.OLAP.string();
 
-        public Olap(String database, Id id) {
+        public OlapTable(String database, Id id) {
             super(database, joinTableName(TABLE, id.asString()));
         }
 

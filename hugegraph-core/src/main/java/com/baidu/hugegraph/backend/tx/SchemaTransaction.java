@@ -19,10 +19,6 @@
 
 package com.baidu.hugegraph.backend.tx;
 
-import static com.baidu.hugegraph.schema.SchemaElement.ALL;
-import static com.baidu.hugegraph.schema.SchemaElement.ALL_ID;
-import static com.baidu.hugegraph.schema.VertexLabel.ALL_VL;
-
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -185,8 +181,8 @@ public class SchemaTransaction extends IndexableTransaction {
     @Watched(prefix = "schema")
     public VertexLabel getVertexLabel(Id id) {
         E.checkArgumentNotNull(id, "Vertex label id can't be null");
-        if (ALL_ID.equals(id)) {
-            return ALL_VL;
+        if (SchemaElement.ALL_ID.equals(id)) {
+            return VertexLabel.ALL_VL;
         }
         return this.getSchema(HugeType.VERTEX_LABEL, id);
     }
@@ -195,8 +191,8 @@ public class SchemaTransaction extends IndexableTransaction {
     public VertexLabel getVertexLabel(String name) {
         E.checkArgumentNotNull(name, "Vertex label name can't be null");
         E.checkArgument(!name.isEmpty(), "Vertex label name can't be empty");
-        if (ALL.equals(name)) {
-            return ALL_VL;
+        if (SchemaElement.ALL.equals(name)) {
+            return VertexLabel.ALL_VL;
         }
         return this.getSchema(HugeType.VERTEX_LABEL, name);
     }
@@ -243,7 +239,8 @@ public class SchemaTransaction extends IndexableTransaction {
          * Update index name in base-label(VL/EL)
          * TODO: should wrap update base-label and create index in one tx.
          */
-        if (schemaLabel instanceof VertexLabel && schemaLabel.equals(ALL_VL)) {
+        if (schemaLabel instanceof VertexLabel &&
+            schemaLabel.equals(VertexLabel.ALL_VL)) {
             return;
         }
         schemaLabel.indexLabel(indexLabel.id());
@@ -284,17 +281,17 @@ public class SchemaTransaction extends IndexableTransaction {
         return asyncRun(this.graph(), schema, callable, dependencies);
     }
 
-    public void processOlapPropertyKey(PropertyKey propertyKey) {
+    public void createIndexLabelForOlapPk(PropertyKey propertyKey) {
         ReadFrequency readFrequency = propertyKey.readFrequency();
         if (readFrequency == ReadFrequency.OLTP ||
-            readFrequency == ReadFrequency.OLAP_NONE) {
+            readFrequency == ReadFrequency.OLAP_COMMON) {
             return;
         }
 
-        String indexName = ALL + "_by_" + propertyKey.name();
+        String indexName = SchemaElement.ALL + "_by_" + propertyKey.name();
         IndexLabel.Builder builder = this.graph().schema()
                                          .indexLabel(indexName)
-                                         .onV(ALL)
+                                         .onV(SchemaElement.ALL)
                                          .by(propertyKey.name());
         if (propertyKey.readFrequency() == ReadFrequency.OLAP_SECONDARY) {
             builder.secondary();
@@ -303,7 +300,7 @@ public class SchemaTransaction extends IndexableTransaction {
             builder.range();
         }
         builder.build();
-        this.graph().addIndexLabel(ALL_VL, builder.build());
+        this.graph().addIndexLabel(VertexLabel.ALL_VL, builder.build());
     }
 
     public Id createOlapPk(PropertyKey propertyKey) {
