@@ -119,7 +119,7 @@ public class QueryTest {
         query4.limit(10L);
         qStr = query4.toString();
         Assert.assertTrue(qStr.contains("`Query * from EDGE limit 10 " +
-                                        "where id in [1, 3] and [`"));
+                                        "where id in [1, 3] and ["));
         Assert.assertTrue(qStr.contains("LABEL == 3"));
         Assert.assertTrue(qStr.contains("PROPERTIES < 18"));
     }

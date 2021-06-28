@@ -1983,7 +1983,7 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertThrows(NotAllowException.class, () -> {
             graph.traversal().V().has(olapPropName, "a").hasNext();
         }, e -> {
-            Assert.assertContains("Not allowed query by olap property key",
+            Assert.assertContains("Not allowed to query by olap property key",
                                   e.getMessage());
         });
 
@@ -1991,7 +1991,7 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertThrows(NotAllowException.class, () -> {
             graph.traversal().V().has(olapPropName, "c").hasNext();
         }, e -> {
-            Assert.assertContains("Not allowed query by olap property key",
+            Assert.assertContains("Not allowed to query by olap property key",
                                   e.getMessage());
         });
 
@@ -1999,7 +1999,7 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertThrows(NotAllowException.class, () -> {
             graph.traversal().V().has(olapPropName, "f").hasNext();
         }, e -> {
-            Assert.assertContains("Not allowed query by olap property key",
+            Assert.assertContains("Not allowed to query by olap property key",
                                   e.getMessage());
         });
 
@@ -2068,7 +2068,7 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertThrows(NotAllowException.class, () -> {
             graph.traversal().V().has(olapPropName, "a").hasNext();
         }, e -> {
-            Assert.assertContains("Not allowed query by olap property key",
+            Assert.assertContains("Not allowed to query by olap property key",
                                   e.getMessage());
         });
 
@@ -2076,7 +2076,7 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertThrows(NotAllowException.class, () -> {
             graph.traversal().V().has(olapPropName, "c").hasNext();
         }, e -> {
-            Assert.assertContains("Not allowed query by olap property key",
+            Assert.assertContains("Not allowed to query by olap property key",
                                   e.getMessage());
         });
 
@@ -2084,7 +2084,7 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertThrows(NotAllowException.class, () -> {
             graph.traversal().V().has(olapPropName, "f").hasNext();
         }, e -> {
-            Assert.assertContains("Not allowed query by olap property key",
+            Assert.assertContains("Not allowed to query by olap property key",
                                   e.getMessage());
         });
 
@@ -2154,7 +2154,7 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertThrows(NotAllowException.class, () -> {
             graph.traversal().V().has(olapPropName, 0.1D).hasNext();
         }, e -> {
-            Assert.assertContains("Not allowed query by olap property key",
+            Assert.assertContains("Not allowed to query by olap property key",
                                   e.getMessage());
         });
 
@@ -2162,7 +2162,7 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertThrows(NotAllowException.class, () -> {
             graph.traversal().V().has(olapPropName, 0.3D).hasNext();
         }, e -> {
-            Assert.assertContains("Not allowed query by olap property key",
+            Assert.assertContains("Not allowed to query by olap property key",
                                   e.getMessage());
         });
 
@@ -2170,7 +2170,7 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertThrows(NotAllowException.class, () -> {
             graph.traversal().V().has(olapPropName, 0.6D).hasNext();
         }, e -> {
-            Assert.assertContains("Not allowed query by olap property key",
+            Assert.assertContains("Not allowed to query by olap property key",
                                   e.getMessage());
         });
 
@@ -2294,7 +2294,7 @@ public class VertexCoreTest extends BaseCoreTest {
                  .has("wcc", "a")
                  .hasNext();
         }, e -> {
-            Assert.assertContains("Not allowed query by olap property key",
+            Assert.assertContains("Not allowed to query by olap property key",
                                   e.getMessage());
         });
 
@@ -2305,7 +2305,7 @@ public class VertexCoreTest extends BaseCoreTest {
                  .has("wcc", "b")
                  .hasNext();
         }, e -> {
-            Assert.assertContains("Not allowed query by olap property key",
+            Assert.assertContains("Not allowed to query by olap property key",
                                   e.getMessage());
         });
 
@@ -2316,7 +2316,7 @@ public class VertexCoreTest extends BaseCoreTest {
                  .has("wcc", "f")
                  .hasNext();
         }, e -> {
-            Assert.assertContains("Not allowed query by olap property key",
+            Assert.assertContains("Not allowed to query by olap property key",
                                   e.getMessage());
         });
 
@@ -2440,7 +2440,7 @@ public class VertexCoreTest extends BaseCoreTest {
                  .has("lived", "Canadian")
                  .hasNext();
         }, e -> {
-            Assert.assertContains("Not allowed query by olap property key",
+            Assert.assertContains("Not allowed to query by olap property key",
                                   e.getMessage());
         });
 
@@ -2451,7 +2451,7 @@ public class VertexCoreTest extends BaseCoreTest {
                  .has("age", 62)
                  .hasNext();
         }, e -> {
-            Assert.assertContains("Not allowed query by olap property key",
+            Assert.assertContains("Not allowed to query by olap property key",
                                   e.getMessage());
         });
 
@@ -2462,7 +2462,7 @@ public class VertexCoreTest extends BaseCoreTest {
                  .has("age", 62)
                  .hasNext();
         }, e -> {
-            Assert.assertContains("Not allowed query by olap property key",
+            Assert.assertContains("Not allowed to query by olap property key",
                                   e.getMessage());
         });
 
