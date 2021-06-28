@@ -97,6 +97,7 @@ public class LicenseVerifier {
             LOG.info("The license is successfully installed, valid for {} - {}",
                      content.getNotBefore(), content.getNotAfter());
         } catch (Exception e) {
+            LOG.error("Failed to install license", e);
             throw new HugeException("Failed to install license", e);
         }
     }
@@ -107,6 +108,7 @@ public class LicenseVerifier {
             LOG.info("The license verification passed, valid for {} - {}",
                      content.getNotBefore(), content.getNotAfter());
         } catch (Exception e) {
+            LOG.error("Failed to verify license", e);
             throw new HugeException("Failed to verify license", e);
         }
     }
@@ -119,6 +121,7 @@ public class LicenseVerifier {
                 throw new HugeException("Invalid public cert");
             }
         } catch (IOException e) {
+            LOG.error("Failed to read public cert", e);
             throw new HugeException("Failed to read public cert", e);
         }
     }

@@ -84,10 +84,11 @@ public class LicenseVerifyManager extends CommonLicenseManager {
 
     @Override
     protected synchronized void validate(LicenseContent content) {
-        // call super validate firstly
+        // Call super validate firstly to verify the common license parameters
         try {
             super.validate(content);
         } catch (LicenseContentException e) {
+            LOG.error("Failed to verify license", e);
             throw new HugeException("Failed to verify license", e);
         }
 
@@ -98,7 +99,8 @@ public class LicenseVerifyManager extends CommonLicenseManager {
             type = new TypeReference<List<ExtraParam>>() {};
             extraParams = MAPPER.readValue((String) content.getExtra(), type);
         } catch (IOException e) {
-            throw new RuntimeException("Failed to read extra params", e);
+            LOG.error("Failed to read extra params", e);
+            throw new HugeException("Failed to read extra params", e);
         }
 
         String serverId = this.getServerId();
