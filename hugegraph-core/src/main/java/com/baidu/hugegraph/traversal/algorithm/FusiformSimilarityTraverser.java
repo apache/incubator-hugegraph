@@ -279,6 +279,14 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
 
         private Map<Id, Set<Similar>> similars = newMap();
 
+        public int size() {
+            return this.similars.size();
+        }
+
+        public Set<Map.Entry<Id, Set<Similar>>> entrySet() {
+            return this.similars.entrySet();
+        }
+
         public void put(Id id, Set<Similar> similars) {
             this.similars.put(id, similars);
         }
