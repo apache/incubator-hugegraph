@@ -206,7 +206,7 @@ public class CassandraTables {
                     .put(HugeKeys.DATA_TYPE, DataType.tinyint())
                     .put(HugeKeys.CARDINALITY, DataType.tinyint())
                     .put(HugeKeys.AGGREGATE_TYPE, DataType.tinyint())
-                    .put(HugeKeys.READ_FREQUENCY, DataType.tinyint())
+                    .put(HugeKeys.WRITE_TYPE, DataType.tinyint())
                     .put(HugeKeys.PROPERTIES, DataType.set(TYPE_PK))
                     .put(HugeKeys.USER_DATA, TYPE_UD)
                     .put(HugeKeys.STATUS, DataType.tinyint())

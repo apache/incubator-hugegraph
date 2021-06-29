@@ -35,7 +35,7 @@ import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.type.define.AggregateType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
-import com.baidu.hugegraph.type.define.ReadFrequency;
+import com.baidu.hugegraph.type.define.WriteType;
 import com.baidu.hugegraph.util.DateUtil;
 import com.google.common.collect.ImmutableList;
 
@@ -364,33 +364,33 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
         SchemaManager schema = graph().schema();
         PropertyKey olap = schema.propertyKey("olap")
                                  .asText().valueSingle()
-                                 .readFrequency(ReadFrequency.OLAP_COMMON)
+                                 .writeType(WriteType.OLAP_COMMON)
                                  .ifNotExist().create();
 
         Assert.assertEquals("olap", olap.name());
         Assert.assertEquals(DataType.TEXT, olap.dataType());
         Assert.assertEquals(Cardinality.SINGLE, olap.cardinality());
-        Assert.assertEquals(ReadFrequency.OLAP_COMMON, olap.readFrequency());
+        Assert.assertEquals(WriteType.OLAP_COMMON, olap.writeType());
 
         PropertyKey pagerank = schema.propertyKey("pagerank")
                                      .asDouble().valueSingle()
-                                     .readFrequency(ReadFrequency.OLAP_RANGE)
+                                     .writeType(WriteType.OLAP_RANGE)
                                      .ifNotExist().create();
 
         Assert.assertEquals("pagerank", pagerank.name());
         Assert.assertEquals(DataType.DOUBLE, pagerank.dataType());
         Assert.assertEquals(Cardinality.SINGLE, pagerank.cardinality());
-        Assert.assertEquals(ReadFrequency.OLAP_RANGE, pagerank.readFrequency());
+        Assert.assertEquals(WriteType.OLAP_RANGE, pagerank.writeType());
 
         PropertyKey wcc = schema.propertyKey("wcc")
                                 .asText().valueSingle()
-                                .readFrequency(ReadFrequency.OLAP_SECONDARY)
+                                .writeType(WriteType.OLAP_SECONDARY)
                                 .ifNotExist().create();
 
         Assert.assertEquals("wcc", wcc.name());
         Assert.assertEquals(DataType.TEXT, wcc.dataType());
         Assert.assertEquals(Cardinality.SINGLE, wcc.cardinality());
-        Assert.assertEquals(ReadFrequency.OLAP_SECONDARY, wcc.readFrequency());
+        Assert.assertEquals(WriteType.OLAP_SECONDARY, wcc.writeType());
     }
 
     @Test
@@ -401,13 +401,13 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
         SchemaManager schema = graph().schema();
         PropertyKey olap = schema.propertyKey("olap")
                                  .asText().valueSingle()
-                                 .readFrequency(ReadFrequency.OLAP_COMMON)
+                                 .writeType(WriteType.OLAP_COMMON)
                                  .ifNotExist().create();
 
         Assert.assertEquals("olap", olap.name());
         Assert.assertEquals(DataType.TEXT, olap.dataType());
         Assert.assertEquals(Cardinality.SINGLE, olap.cardinality());
-        Assert.assertEquals(ReadFrequency.OLAP_COMMON, olap.readFrequency());
+        Assert.assertEquals(WriteType.OLAP_COMMON, olap.writeType());
 
         graph().clearPropertyKey(olap);
 
@@ -415,17 +415,17 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
         Assert.assertEquals("olap", olap.name());
         Assert.assertEquals(DataType.TEXT, olap.dataType());
         Assert.assertEquals(Cardinality.SINGLE, olap.cardinality());
-        Assert.assertEquals(ReadFrequency.OLAP_COMMON, olap.readFrequency());
+        Assert.assertEquals(WriteType.OLAP_COMMON, olap.writeType());
 
         PropertyKey pagerank = schema.propertyKey("pagerank")
                                      .asDouble().valueSingle()
-                                     .readFrequency(ReadFrequency.OLAP_RANGE)
+                                     .writeType(WriteType.OLAP_RANGE)
                                      .ifNotExist().create();
 
         Assert.assertEquals("pagerank", pagerank.name());
         Assert.assertEquals(DataType.DOUBLE, pagerank.dataType());
         Assert.assertEquals(Cardinality.SINGLE, pagerank.cardinality());
-        Assert.assertEquals(ReadFrequency.OLAP_RANGE, pagerank.readFrequency());
+        Assert.assertEquals(WriteType.OLAP_RANGE, pagerank.writeType());
 
         graph().clearPropertyKey(pagerank);
 
@@ -433,17 +433,17 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
         Assert.assertEquals("pagerank", pagerank.name());
         Assert.assertEquals(DataType.DOUBLE, pagerank.dataType());
         Assert.assertEquals(Cardinality.SINGLE, pagerank.cardinality());
-        Assert.assertEquals(ReadFrequency.OLAP_RANGE, pagerank.readFrequency());
+        Assert.assertEquals(WriteType.OLAP_RANGE, pagerank.writeType());
 
         PropertyKey wcc = schema.propertyKey("wcc")
                                 .asText().valueSingle()
-                                .readFrequency(ReadFrequency.OLAP_SECONDARY)
+                                .writeType(WriteType.OLAP_SECONDARY)
                                 .ifNotExist().create();
 
         Assert.assertEquals("wcc", wcc.name());
         Assert.assertEquals(DataType.TEXT, wcc.dataType());
         Assert.assertEquals(Cardinality.SINGLE, wcc.cardinality());
-        Assert.assertEquals(ReadFrequency.OLAP_SECONDARY, wcc.readFrequency());
+        Assert.assertEquals(WriteType.OLAP_SECONDARY, wcc.writeType());
 
         graph().clearPropertyKey(wcc);
 
@@ -451,7 +451,7 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
         Assert.assertEquals("wcc", wcc.name());
         Assert.assertEquals(DataType.TEXT, wcc.dataType());
         Assert.assertEquals(Cardinality.SINGLE, wcc.cardinality());
-        Assert.assertEquals(ReadFrequency.OLAP_SECONDARY, wcc.readFrequency());
+        Assert.assertEquals(WriteType.OLAP_SECONDARY, wcc.writeType());
     }
 
     @Test
@@ -462,13 +462,13 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
         SchemaManager schema = graph().schema();
         PropertyKey olap = schema.propertyKey("olap")
                                  .asText().valueSingle()
-                                 .readFrequency(ReadFrequency.OLAP_COMMON)
+                                 .writeType(WriteType.OLAP_COMMON)
                                  .ifNotExist().create();
 
         Assert.assertEquals("olap", olap.name());
         Assert.assertEquals(DataType.TEXT, olap.dataType());
         Assert.assertEquals(Cardinality.SINGLE, olap.cardinality());
-        Assert.assertEquals(ReadFrequency.OLAP_COMMON, olap.readFrequency());
+        Assert.assertEquals(WriteType.OLAP_COMMON, olap.writeType());
 
         schema.propertyKey("olap").remove();
 
@@ -478,13 +478,13 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
 
         PropertyKey pagerank = schema.propertyKey("pagerank")
                                      .asDouble().valueSingle()
-                                     .readFrequency(ReadFrequency.OLAP_RANGE)
+                                     .writeType(WriteType.OLAP_RANGE)
                                      .ifNotExist().create();
 
         Assert.assertEquals("pagerank", pagerank.name());
         Assert.assertEquals(DataType.DOUBLE, pagerank.dataType());
         Assert.assertEquals(Cardinality.SINGLE, pagerank.cardinality());
-        Assert.assertEquals(ReadFrequency.OLAP_RANGE, pagerank.readFrequency());
+        Assert.assertEquals(WriteType.OLAP_RANGE, pagerank.writeType());
 
         schema.propertyKey("pagerank").remove();
 
@@ -494,13 +494,13 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
 
         PropertyKey wcc = schema.propertyKey("wcc")
                                 .asText().valueSingle()
-                                .readFrequency(ReadFrequency.OLAP_SECONDARY)
+                                .writeType(WriteType.OLAP_SECONDARY)
                                 .ifNotExist().create();
 
         Assert.assertEquals("wcc", wcc.name());
         Assert.assertEquals(DataType.TEXT, wcc.dataType());
         Assert.assertEquals(Cardinality.SINGLE, wcc.cardinality());
-        Assert.assertEquals(ReadFrequency.OLAP_SECONDARY, wcc.readFrequency());
+        Assert.assertEquals(WriteType.OLAP_SECONDARY, wcc.writeType());
 
         schema.propertyKey("wcc").remove();
 

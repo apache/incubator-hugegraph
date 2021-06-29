@@ -65,6 +65,7 @@ public class PostgresqlStoreProvider extends MysqlStoreProvider {
          *             instead of sortable B64
          * [1.7] #295: support ttl for vertex and edge
          * [1.8] #1333: support read frequency for property key
+         * [1.9] #1506: rename read frequency to write type
          */
         return "1.8";
     }

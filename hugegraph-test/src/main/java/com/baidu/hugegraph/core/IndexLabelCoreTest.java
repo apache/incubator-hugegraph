@@ -42,7 +42,7 @@ import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.IndexType;
-import com.baidu.hugegraph.type.define.ReadFrequency;
+import com.baidu.hugegraph.type.define.WriteType;
 import com.baidu.hugegraph.util.DateUtil;
 import com.google.common.collect.ImmutableList;
 
@@ -1196,11 +1196,11 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
 
         schema.propertyKey("pagerank")
               .asDouble().valueSingle()
-              .readFrequency(ReadFrequency.OLAP_RANGE)
+              .writeType(WriteType.OLAP_RANGE)
               .ifNotExist().create();
         schema.propertyKey("wcc")
               .asText().valueSingle()
-              .readFrequency(ReadFrequency.OLAP_SECONDARY)
+              .writeType(WriteType.OLAP_SECONDARY)
               .ifNotExist().create();
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {

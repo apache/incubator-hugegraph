@@ -62,7 +62,7 @@ import com.baidu.hugegraph.type.define.Frequency;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.type.define.IndexType;
-import com.baidu.hugegraph.type.define.ReadFrequency;
+import com.baidu.hugegraph.type.define.WriteType;
 import com.baidu.hugegraph.type.define.SchemaStatus;
 import com.baidu.hugegraph.type.define.SerialEnum;
 import com.baidu.hugegraph.util.Bytes;
@@ -1035,7 +1035,7 @@ public class BinarySerializer extends AbstractSerializer {
             writeEnum(HugeKeys.DATA_TYPE, schema.dataType());
             writeEnum(HugeKeys.CARDINALITY, schema.cardinality());
             writeEnum(HugeKeys.AGGREGATE_TYPE, schema.aggregateType());
-            writeEnum(HugeKeys.READ_FREQUENCY, schema.readFrequency());
+            writeEnum(HugeKeys.WRITE_TYPE, schema.writeType());
             writeIds(HugeKeys.PROPERTIES, schema.properties());
             writeEnum(HugeKeys.STATUS, schema.status());
             writeUserdata(schema);
@@ -1055,9 +1055,9 @@ public class BinarySerializer extends AbstractSerializer {
                                              Cardinality.class));
             propertyKey.aggregateType(readEnum(HugeKeys.AGGREGATE_TYPE,
                                                AggregateType.class));
-            propertyKey.readFrequency(readEnumOrDefault(HugeKeys.READ_FREQUENCY,
-                                                        ReadFrequency.class,
-                                                        ReadFrequency.OLTP));
+            propertyKey.writeType(readEnumOrDefault(HugeKeys.WRITE_TYPE,
+                                                    WriteType.class,
+                                                    WriteType.OLTP));
             propertyKey.properties(readIds(HugeKeys.PROPERTIES));
             propertyKey.status(readEnum(HugeKeys.STATUS, SchemaStatus.class));
             readUserdata(propertyKey);

@@ -19,7 +19,7 @@
 
 package com.baidu.hugegraph.type.define;
 
-public enum ReadFrequency implements SerialEnum {
+public enum WriteType implements SerialEnum {
 
     // OLTP property key
     OLTP(1, "oltp"),
@@ -37,10 +37,10 @@ public enum ReadFrequency implements SerialEnum {
     private String name = null;
 
     static {
-        SerialEnum.register(ReadFrequency.class);
+        SerialEnum.register(WriteType.class);
     }
 
-    ReadFrequency(int code, String name) {
+    WriteType(int code, String name) {
         assert code < 256;
         this.code = (byte) code;
         this.name = name;

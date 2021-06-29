@@ -64,6 +64,7 @@ public class PaloStoreProvider extends MysqlStoreProvider {
          *             instead of sortable B64
          * [1.8] #295: support ttl for vertex and edge
          * [1.9] #1333: support read frequency for property key
+         * [1.10] #1506: rename read frequency to write type
          */
         return "1.9";
     }

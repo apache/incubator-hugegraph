@@ -78,7 +78,7 @@ import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.GraphReadMode;
 import com.baidu.hugegraph.type.define.HugeKeys;
-import com.baidu.hugegraph.type.define.ReadFrequency;
+import com.baidu.hugegraph.type.define.WriteType;
 import com.baidu.hugegraph.util.Blob;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.LongEncoding;
@@ -1944,7 +1944,7 @@ public class VertexCoreTest extends BaseCoreTest {
         String olapPropName = "olap";
         schema.propertyKey(olapPropName)
               .asText().valueSingle()
-              .readFrequency(ReadFrequency.OLAP_COMMON)
+              .writeType(WriteType.OLAP_COMMON)
               .ifNotExist().create();
 
         init10Vertices();
@@ -2029,7 +2029,7 @@ public class VertexCoreTest extends BaseCoreTest {
         String olapPropName = "wcc";
         schema.propertyKey(olapPropName)
               .asText().valueSingle()
-              .readFrequency(ReadFrequency.OLAP_SECONDARY)
+              .writeType(WriteType.OLAP_SECONDARY)
               .ifNotExist().create();
 
         init10Vertices();
@@ -2115,7 +2115,7 @@ public class VertexCoreTest extends BaseCoreTest {
         String olapPropName = "pagerank";
         schema.propertyKey(olapPropName)
               .asDouble().valueSingle()
-              .readFrequency(ReadFrequency.OLAP_RANGE)
+              .writeType(WriteType.OLAP_RANGE)
               .ifNotExist().create();
 
         init10Vertices();
@@ -2235,11 +2235,11 @@ public class VertexCoreTest extends BaseCoreTest {
         SchemaManager schema = graph.schema();
         schema.propertyKey("pagerank")
               .asDouble().valueSingle()
-              .readFrequency(ReadFrequency.OLAP_RANGE)
+              .writeType(WriteType.OLAP_RANGE)
               .ifNotExist().create();
         schema.propertyKey("wcc")
               .asText().valueSingle()
-              .readFrequency(ReadFrequency.OLAP_SECONDARY)
+              .writeType(WriteType.OLAP_SECONDARY)
               .ifNotExist().create();
 
         init10Vertices();
@@ -2409,11 +2409,11 @@ public class VertexCoreTest extends BaseCoreTest {
 
         schema.propertyKey("pagerank")
               .asDouble().valueSingle()
-              .readFrequency(ReadFrequency.OLAP_RANGE)
+              .writeType(WriteType.OLAP_RANGE)
               .ifNotExist().create();
         schema.propertyKey("wcc")
               .asText().valueSingle()
-              .readFrequency(ReadFrequency.OLAP_SECONDARY)
+              .writeType(WriteType.OLAP_SECONDARY)
               .ifNotExist().create();
 
         init10Vertices();

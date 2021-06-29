@@ -53,7 +53,7 @@ import com.baidu.hugegraph.type.define.AggregateType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.type.define.GraphMode;
-import com.baidu.hugegraph.type.define.ReadFrequency;
+import com.baidu.hugegraph.type.define.WriteType;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
@@ -205,8 +205,8 @@ public class PropertyKeyAPI extends API {
         public DataType dataType;
         @JsonProperty("aggregate_type")
         public AggregateType aggregateType;
-        @JsonProperty("read_frequency")
-        public ReadFrequency readFrequency;
+        @JsonProperty("write_type")
+        public WriteType writeType;
         @JsonProperty("properties")
         public String[] properties;
         @JsonProperty("user_data")
@@ -246,8 +246,8 @@ public class PropertyKeyAPI extends API {
             if (this.aggregateType != null) {
                 builder.aggregateType(this.aggregateType);
             }
-            if (this.readFrequency != null) {
-                builder.readFrequency(this.readFrequency);
+            if (this.writeType != null) {
+                builder.writeType(this.writeType);
             }
             if (this.userdata != null) {
                 builder.userdata(this.userdata);
@@ -262,10 +262,10 @@ public class PropertyKeyAPI extends API {
         public String toString() {
             return String.format("JsonPropertyKey{name=%s, cardinality=%s, " +
                                  "dataType=%s, aggregateType=%s, " +
-                                 "readFrequency=%s, properties=%s}",
+                                 "writeType=%s, properties=%s}",
                                  this.name, this.cardinality,
                                  this.dataType, this.aggregateType,
-                                 this.readFrequency, this.properties);
+                                 this.writeType, this.properties);
         }
     }
 }

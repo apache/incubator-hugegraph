@@ -60,7 +60,7 @@ import com.baidu.hugegraph.task.HugeTask;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.GraphMode;
 import com.baidu.hugegraph.type.define.HugeKeys;
-import com.baidu.hugegraph.type.define.ReadFrequency;
+import com.baidu.hugegraph.type.define.WriteType;
 import com.baidu.hugegraph.type.define.SchemaStatus;
 import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.E;
@@ -282,9 +282,9 @@ public class SchemaTransaction extends IndexableTransaction {
     }
 
     public void createIndexLabelForOlapPk(PropertyKey propertyKey) {
-        ReadFrequency readFrequency = propertyKey.readFrequency();
-        if (readFrequency == ReadFrequency.OLTP ||
-            readFrequency == ReadFrequency.OLAP_COMMON) {
+        WriteType writeType = propertyKey.writeType();
+        if (writeType == WriteType.OLTP ||
+            writeType == WriteType.OLAP_COMMON) {
             return;
         }
 
@@ -293,10 +293,10 @@ public class SchemaTransaction extends IndexableTransaction {
                                          .indexLabel(indexName)
                                          .onV(SchemaElement.OLAP)
                                          .by(propertyKey.name());
-        if (propertyKey.readFrequency() == ReadFrequency.OLAP_SECONDARY) {
+        if (propertyKey.writeType() == WriteType.OLAP_SECONDARY) {
             builder.secondary();
         } else {
-            assert propertyKey.readFrequency() == ReadFrequency.OLAP_RANGE;
+            assert propertyKey.writeType() == WriteType.OLAP_RANGE;
             builder.range();
         }
         builder.build();

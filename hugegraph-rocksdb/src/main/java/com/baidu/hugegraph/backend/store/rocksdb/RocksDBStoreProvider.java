@@ -62,7 +62,8 @@ public class RocksDBStoreProvider extends AbstractBackendStoreProvider {
          * [1.8] #894: encode label id in string index
          * [1.9] #295: support ttl for vertex and edge
          * [1.10] #1333: support read frequency for property key
-         * [1.11] #1506: support olap properties
+         * [1.11] #1506: support olap properties and rename read frequency to
+         *               write type
          */
         return "1.11";
     }

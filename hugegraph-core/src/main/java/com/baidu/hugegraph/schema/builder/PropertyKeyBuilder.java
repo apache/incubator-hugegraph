@@ -40,7 +40,7 @@ import com.baidu.hugegraph.type.define.Action;
 import com.baidu.hugegraph.type.define.AggregateType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
-import com.baidu.hugegraph.type.define.ReadFrequency;
+import com.baidu.hugegraph.type.define.WriteType;
 import com.baidu.hugegraph.util.E;
 
 public class PropertyKeyBuilder extends AbstractBuilder
@@ -51,7 +51,7 @@ public class PropertyKeyBuilder extends AbstractBuilder
     private DataType dataType;
     private Cardinality cardinality;
     private AggregateType aggregateType;
-    private ReadFrequency readFrequency;
+    private WriteType writeType;
     private boolean checkExist;
     private Userdata userdata;
 
@@ -64,7 +64,7 @@ public class PropertyKeyBuilder extends AbstractBuilder
         this.dataType = DataType.TEXT;
         this.cardinality = Cardinality.SINGLE;
         this.aggregateType = AggregateType.NONE;
-        this.readFrequency = ReadFrequency.OLTP;
+        this.writeType = WriteType.OLTP;
         this.userdata = new Userdata();
         this.checkExist = true;
     }
@@ -78,7 +78,7 @@ public class PropertyKeyBuilder extends AbstractBuilder
         this.dataType = copy.dataType();
         this.cardinality = copy.cardinality();
         this.aggregateType = copy.aggregateType();
-        this.readFrequency = copy.readFrequency();
+        this.writeType = copy.writeType();
         this.userdata = new Userdata(copy.userdata());
         this.checkExist = false;
     }
@@ -91,7 +91,7 @@ public class PropertyKeyBuilder extends AbstractBuilder
         propertyKey.dataType(this.dataType);
         propertyKey.cardinality(this.cardinality);
         propertyKey.aggregateType(this.aggregateType);
-        propertyKey.readFrequency(this.readFrequency);
+        propertyKey.writeType(this.writeType);
         propertyKey.userdata(this.userdata);
         return propertyKey;
     }
@@ -119,7 +119,7 @@ public class PropertyKeyBuilder extends AbstractBuilder
             return false;
         }
 
-        if (this.readFrequency != propertyKey.readFrequency()) {
+        if (this.writeType != propertyKey.writeType()) {
             return false;
         }
 
@@ -345,8 +345,8 @@ public class PropertyKeyBuilder extends AbstractBuilder
     }
 
     @Override
-    public PropertyKey.Builder readFrequency(ReadFrequency readFrequency) {
-        this.readFrequency = readFrequency;
+    public PropertyKey.Builder writeType(WriteType writeType) {
+        this.writeType = writeType;
         return this;
     }
 
@@ -442,7 +442,7 @@ public class PropertyKeyBuilder extends AbstractBuilder
     }
 
     private void checkOlap() {
-        if (this.readFrequency == ReadFrequency.OLTP) {
+        if (this.writeType == WriteType.OLTP) {
             return;
         }
 
@@ -458,10 +458,10 @@ public class PropertyKeyBuilder extends AbstractBuilder
                       "property key '%s'", this.aggregateType, this.name);
         }
 
-        if (this.readFrequency == ReadFrequency.OLAP_RANGE &&
+        if (this.writeType == WriteType.OLAP_RANGE &&
             !this.dataType.isNumber() && !this.dataType.isDate()) {
             throw new NotAllowException(
-                      "Not allowed to set read frequency to OLAP_RANGE for " +
+                      "Not allowed to set write type to OLAP_RANGE for " +
                       "property key '%s' with data type '%s'",
                       this.name, this.dataType);
         }
