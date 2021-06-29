@@ -206,7 +206,7 @@ public class StandardHugeGraph implements HugeGraph {
             LockUtil.destroy(this.name);
             String message = "Failed to load backend store provider";
             LOG.error("{}: {}", message, e.getMessage());
-            throw new HugeException(message);
+            throw new HugeException(message, e);
         }
 
         try {
@@ -310,7 +310,7 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
-    public void waitStarted() {
+    public void waitReady() {
         // Just for trigger Tx.getOrNewTransaction, then load 3 stores
         this.schemaTransaction();
         this.storeProvider.waitStoreStarted();
@@ -1003,13 +1003,13 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
-    public RaftGroupManager raftGroupManager(String group) {
+    public RaftGroupManager raftGroupManager() {
         if (!(this.storeProvider instanceof RaftBackendStoreProvider)) {
             return null;
         }
         RaftBackendStoreProvider provider =
                 ((RaftBackendStoreProvider) this.storeProvider);
-        return provider.raftNodeManager(group);
+        return provider.raftNodeManager();
     }
 
     @Override

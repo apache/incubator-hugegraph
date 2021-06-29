@@ -25,6 +25,8 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
+import javax.ws.rs.HEAD;
+
 import org.slf4j.Logger;
 
 import com.alipay.sofa.jraft.Closure;
@@ -45,6 +47,8 @@ import com.baidu.hugegraph.backend.store.raft.RaftBackendStore.IncrCounter;
 import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction;
 import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.GraphMode;
 import com.baidu.hugegraph.util.LZ4Util;
 import com.baidu.hugegraph.util.Log;
 
@@ -72,7 +76,7 @@ public final class StoreStateMachine extends StateMachineAdapter {
     public void onApply(Iterator iter) {
         LOG.debug("Node role: {}", this.node().selfIsLeader() ?
                                    "leader" : "follower");
-        List<Future<?>> futures = new ArrayList<>();
+        List<Future<?>> futures = new ArrayList<>(64);
         try {
             // Apply all the logs
             while (iter.hasNext()) {
@@ -161,8 +165,7 @@ public final class StoreStateMachine extends StateMachineAdapter {
                 break;
             case SNAPSHOT:
                 assert store == null;
-                this.node().snapshot();
-                break;
+                return this.node().snapshot();
             case BEGIN_TX:
                 store.beginTx();
                 break;

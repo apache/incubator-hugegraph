@@ -120,30 +120,6 @@ public class CoreOptions extends OptionHolder {
                     false
             );
 
-    public static final ConfigOption<Boolean> RAFT_USE_SNAPSHOT =
-            new ConfigOption<>(
-                    "raft.use_snapshot",
-                    "Whether to use snapshot.",
-                    disallowEmpty(),
-                    true
-            );
-
-    public static final ConfigOption<String> RAFT_ENDPOINT =
-            new ConfigOption<>(
-                    "raft.endpoint",
-                    "The peerid of current raft node.",
-                    disallowEmpty(),
-                    "127.0.0.1:8281"
-            );
-
-    public static final ConfigOption<String> RAFT_GROUP_PEERS =
-            new ConfigOption<>(
-                    "raft.group_peers",
-                    "The peers of current raft group.",
-                    disallowEmpty(),
-                    "127.0.0.1:8281,127.0.0.1:8282,127.0.0.1:8283"
-            );
-
     public static final ConfigOption<String> RAFT_PATH =
             new ConfigOption<>(
                     "raft.path",
@@ -252,10 +228,19 @@ public class CoreOptions extends OptionHolder {
     public static final ConfigOption<Integer> RAFT_RPC_TIMEOUT =
             new ConfigOption<>(
                     "raft.rpc_timeout",
-                    "The rpc timeout for jraft rpc.",
+                    "The general rpc timeout for jraft rpc.",
                     positiveInt(),
                     // jraft default value is 5000(ms)
-                    60000
+                    60 * 1000
+            );
+
+    public static final ConfigOption<Integer> RAFT_INSTALL_SNAPSHOT_TIMEOUT =
+            new ConfigOption<>(
+                    "raft.rpc_timeout",
+                    "The install snapshot rpc timeout for jraft rpc.",
+                    positiveInt(),
+                    // jraft default value is 5 * 60 * 1000
+                    24 * 60 * 60 * 1000
             );
 
     public static final ConfigOption<Integer> RAFT_RPC_BUF_LOW_WATER_MARK =

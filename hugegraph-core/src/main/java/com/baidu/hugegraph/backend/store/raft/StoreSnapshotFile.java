@@ -27,6 +27,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.zip.Checksum;
 
 import org.apache.commons.io.FileUtils;
@@ -52,10 +53,11 @@ public class StoreSnapshotFile {
     private static final Logger LOG = Log.logger(StoreSnapshotFile.class);
 
     public static final String SNAPSHOT_DIR = "snapshot";
-    private static final String TAR = ".tar";
+    private static final String TAR = ".zip";
 
     private final RaftBackendStore[] stores;
     private final Map<String, String> dataDisks;
+    private final AtomicBoolean compressing;
 
     public StoreSnapshotFile(RaftBackendStore[] stores) {
         this.stores = stores;
@@ -65,6 +67,7 @@ public class StoreSnapshotFile {
             this.dataDisks.putAll(Whitebox.invoke(raftStore, "store",
                                                   "reportDiskMapping"));
         }
+        this.compressing = new AtomicBoolean(false);
         /*
          * Like that:
          * general=/parent_path/rocksdb-data
@@ -79,7 +82,16 @@ public class StoreSnapshotFile {
             // Write snapshot to real directory
             Map<String, String> snapshotDirMaps = this.doSnapshotSave();
             executor.execute(() -> {
+                if (this.compressing.get()) {
+                    LOG.info("Last compress task doesn't finish, skipped it");
+                    done.run(new Status(RaftError.EBUSY,
+                                        "Last compress task doesn't finish, " +
+                                        "skipped it"));
+                    return;
+                }
+
                 try {
+                    this.compressing.set(true);
                     this.compressSnapshotDir(writer, snapshotDirMaps);
                     this.deleteSnapshotDirs(snapshotDirMaps.keySet());
                     done.run(Status.OK());
@@ -88,6 +100,8 @@ public class StoreSnapshotFile {
                     done.run(new Status(RaftError.EIO,
                                         "Failed to compress snapshot, " +
                                         "error is %s", e.getMessage()));
+                } finally {
+                    this.compressing.set(false);
                 }
             });
         } catch (Throwable e) {
@@ -102,15 +116,23 @@ public class StoreSnapshotFile {
         Set<String> snapshotDirTars = reader.listFiles();
         LOG.info("The snapshot tar files to be loaded are {}", snapshotDirTars);
         Set<String> snapshotDirs = new HashSet<>();
-        for (String snapshotDirTar : snapshotDirTars) {
-            try {
+        if (this.compressing.get()) {
+            LOG.info("Last decompress task doesn't finish, skipped it");
+            return false;
+        }
+
+        try {
+            this.compressing.set(true);
+            for (String snapshotDirTar : snapshotDirTars) {
                 String snapshotDir = this.decompressSnapshot(reader,
                                                              snapshotDirTar);
                 snapshotDirs.add(snapshotDir);
-            } catch (Throwable e) {
-                LOG.error("Failed to decompress snapshot tar", e);
-                return false;
             }
+        } catch (Throwable e) {
+            LOG.error("Failed to decompress snapshot tar", e);
+            return false;
+        } finally {
+            this.compressing.set(false);
         }
 
         try {
@@ -151,7 +173,13 @@ public class StoreSnapshotFile {
                                      .toString();
             Checksum checksum = new CRC64();
             try {
-                CompressUtil.compressTar(snapshotDir, outputFile, checksum);
+                LOG.info("Prepare to compress dir {} to {}",
+                         snapshotDir, outputFile);
+                long begin = System.currentTimeMillis();
+                CompressUtil.compressZip(snapshotDir, outputFile, checksum);
+                long end = System.currentTimeMillis();
+                LOG.info("Compressed dir {} to {}, took {} seconds",
+                         snapshotDir, outputFile, (end - begin) / 1000.0F);
             } catch (Throwable e) {
                 throw new RaftException(
                           "Failed to compress snapshot, path=%s, files=%s",
@@ -195,7 +223,13 @@ public class StoreSnapshotFile {
         Checksum checksum = new CRC64();
         String archiveFile = Paths.get(reader.getPath(), snapshotDirTar)
                                   .toString();
-        CompressUtil.decompressTar(archiveFile, parentPath, checksum);
+        LOG.info("Prepare to decompress snapshot zip {} to {}",
+                 archiveFile, parentPath);
+        long begin = System.currentTimeMillis();
+        CompressUtil.decompressZip(archiveFile, parentPath, checksum);
+        long end = System.currentTimeMillis();
+        LOG.info("Decompress snapshot zip {} to {}, took {} seconds",
+                 archiveFile, parentPath, (end - begin) / 1000.0F);
         if (meta.hasChecksum()) {
             String expected = meta.getChecksum();
             String actual = Long.toHexString(checksum.getValue());

@@ -69,6 +69,7 @@ public class RaftClosure<T> implements Closure {
     }
 
     public void complete(Status status, Supplier<T> callback) {
+        // This callback is called by consumer thread(like grizzly)
         this.future.complete(new RaftResult<>(status, callback));
     }
 

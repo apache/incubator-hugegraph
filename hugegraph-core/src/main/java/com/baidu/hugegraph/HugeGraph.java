@@ -144,7 +144,7 @@ public interface HugeGraph extends Graph {
     public GraphReadMode readMode();
     public void readMode(GraphReadMode readMode);
 
-    public void waitStarted();
+    public void waitReady();
     public void serverStarted(Id serverId, NodeRole serverRole);
     public boolean started();
     public boolean closed();
@@ -169,7 +169,7 @@ public interface HugeGraph extends Graph {
     public AuthManager authManager();
     public void switchAuthManager(AuthManager authManager);
     public TaskScheduler taskScheduler();
-    public RaftGroupManager raftGroupManager(String group);
+    public RaftGroupManager raftGroupManager();
 
     public void proxy(HugeGraph graph);
 

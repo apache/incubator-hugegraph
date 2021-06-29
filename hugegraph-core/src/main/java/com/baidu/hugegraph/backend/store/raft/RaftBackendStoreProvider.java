@@ -22,16 +22,17 @@ package com.baidu.hugegraph.backend.store.raft;
 import java.util.Set;
 import java.util.concurrent.Future;
 
-import com.baidu.hugegraph.config.HugeConfig;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.HugeGraphParams;
+import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
 import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction;
 import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType;
+import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.event.EventListener;
@@ -59,8 +60,8 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
         this.systemStore = null;
     }
 
-    public RaftGroupManager raftNodeManager(String group) {
-        return this.context.raftNodeManager(group);
+    public RaftGroupManager raftNodeManager() {
+        return this.context.raftNodeManager();
     }
 
     private Set<RaftBackendStore> stores() {
@@ -181,10 +182,15 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
     }
 
     @Override
-    public void truncate() {
+    public void truncate(HugeGraph graph) {
         this.checkOpened();
+        HugeConfig config = (HugeConfig) graph.configuration();
+        String systemStoreName = config.get(CoreOptions.STORE_SYSTEM);
         for (RaftBackendStore store : this.stores()) {
-            store.truncate();
+            // Don't truncate system store
+            if (!store.store().equals(systemStoreName)) {
+                store.truncate();
+            }
         }
         this.notifyAndWaitEvent(Events.STORE_TRUNCATE);
 
@@ -219,8 +225,16 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
         StoreCommand command = new StoreCommand(StoreType.GRAPH,
                                                 StoreAction.SNAPSHOT, null);
         RaftStoreClosure closure = new RaftStoreClosure(command);
-        this.context.node().submitAndWait(command, closure);
-        LOG.debug("Graph '{}' has writed snapshot", this.graph());
+        RaftClosure<?> future = this.context.node().submitAndWait(command,
+                                                                  closure);
+        if (future != null) {
+            try {
+                future.waitFinished();
+                LOG.debug("Graph '{}' has writed snapshot", this.graph());
+            } catch (Throwable e) {
+                throw new BackendException("Failed to create snapshot", e);
+            }
+        }
     }
 
     @Override

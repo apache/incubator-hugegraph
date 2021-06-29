@@ -21,6 +21,7 @@ package com.baidu.hugegraph.backend.store.raft;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -28,6 +29,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.slf4j.Logger;
 
 import com.alipay.sofa.jraft.Node;
+import com.alipay.sofa.jraft.RaftGroupService;
 import com.alipay.sofa.jraft.RaftServiceFactory;
 import com.alipay.sofa.jraft.Status;
 import com.alipay.sofa.jraft.closure.ReadIndexClosure;
@@ -46,6 +48,7 @@ public final class RaftNode {
     private static final Logger LOG = Log.logger(RaftNode.class);
 
     private final RaftSharedContext context;
+    private RaftGroupService raftGroupService;
     private final Node node;
     private final StoreStateMachine stateMachine;
     private final AtomicReference<LeaderInfo> leaderInfo;
@@ -98,14 +101,11 @@ public final class RaftNode {
         this.node.shutdown();
     }
 
-    public void snapshot() {
-        if (!this.context.useSnapshot()) {
-            return;
-        }
+    public RaftClosure<?> snapshot() {
         RaftClosure<?> future = new RaftClosure<>();
         try {
             this.node().snapshot(future);
-            future.waitFinished();
+            return future;
         } catch (Throwable e) {
             throw new BackendException("Failed to create snapshot", e);
         }
@@ -114,7 +114,10 @@ public final class RaftNode {
     private Node initRaftNode() throws IOException {
         NodeOptions nodeOptions = this.context.nodeOptions();
         nodeOptions.setFsm(this.stateMachine);
-        // TODO: When support sharding, groupId needs to be bound to shard Id
+        /*
+         * TODO: the groupId is same as graph name now, when support sharding,
+         *  groupId needs to be bound to shard Id
+         */
         String groupId = this.context.group();
         PeerId endpoint = this.context.endpoint();
         /*
@@ -130,7 +133,7 @@ public final class RaftNode {
     private void submitCommand(StoreCommand command, RaftStoreClosure closure) {
         // Wait leader elected
         LeaderInfo leaderInfo = this.waitLeaderElected(
-                                RaftSharedContext.NO_TIMEOUT);
+                                RaftSharedContext.WAIT_LEADER_TIMEOUT);
         if (!leaderInfo.selfIsLeader) {
             this.context.rpcForwarder().forwardToLeader(leaderInfo.leaderId,
                                                         command, closure);
@@ -153,14 +156,16 @@ public final class RaftNode {
         this.node.apply(task);
     }
 
-    public Object submitAndWait(StoreCommand command, RaftStoreClosure future) {
+    public <T> T submitAndWait(StoreCommand command, RaftStoreClosure future) {
         this.submitCommand(command, future);
         try {
             /*
              * Here will wait future complete, actually the follower has waited
              * in forwardToLeader, written like this to simplify the code
              */
-            return future.waitFinished();
+            @SuppressWarnings("unchecked")
+            T result = (T) future.waitFinished();
+            return result;
         } catch (Throwable e) {
             throw new BackendException("Failed to wait store command %s",
                                        e, command);
@@ -173,13 +178,14 @@ public final class RaftNode {
         if (leaderInfo.leaderId != null) {
             return leaderInfo;
         }
+        LOG.info("Waiting for raft group '{}' leader elected", group);
         long beginTime = System.currentTimeMillis();
         while (leaderInfo.leaderId == null) {
             try {
                 Thread.sleep(RaftSharedContext.POLL_INTERVAL);
             } catch (InterruptedException e) {
-                LOG.info("Waiting for raft group '{}' election is " +
-                         "interrupted: {}", group, e);
+                throw new BackendException("Interrupted while waiting for " +
+                                           "raft group '%s' election", group, e);
             }
             long consumedTime = System.currentTimeMillis() - beginTime;
             if (timeout > 0 && consumedTime >= timeout) {
@@ -187,42 +193,38 @@ public final class RaftNode {
                           "Waiting for raft group '%s' election timeout(%sms)",
                           group, consumedTime);
             }
-            LOG.warn("Waiting for raft group '{}' election cost {}s",
-                     group, consumedTime / 1000.0);
             leaderInfo = this.leaderInfo.get();
             assert leaderInfo != null;
         }
+        LOG.info("Waited for raft group '{}' leader elected successfully", group);
         return leaderInfo;
     }
 
-    protected void waitStarted(int timeout) {
+    protected void waitRaftLogSynced(int timeout) {
         String group = this.context.group();
-        ReadIndexClosure readIndexClosure = new ReadIndexClosure() {
-            @Override
-            public void run(Status status, long index, byte[] reqCtx) {
-                RaftNode.this.started.set(status.isOk());
-            }
-        };
+        LOG.info("Waiting for raft group '{}' log synced", group);
         long beginTime = System.currentTimeMillis();
-        while (true) {
-            this.node.readIndex(BytesUtil.EMPTY_BYTES, readIndexClosure);
-            if (this.started.get()) {
-                break;
-            }
+        while (!this.started.get()) {
+            this.node.readIndex(BytesUtil.EMPTY_BYTES, new ReadIndexClosure() {
+                @Override
+                public void run(Status status, long index, byte[] reqCtx) {
+                    RaftNode.this.started.set(status.isOk());
+                }
+            });
             try {
                 Thread.sleep(RaftSharedContext.POLL_INTERVAL);
             } catch (InterruptedException e) {
-                LOG.info("Waiting for heartbeat is interrupted: {}", e);
+                throw new BackendException("Interrupted while waiting for " +
+                                           "raft group '%s' log sync", group, e);
             }
             long consumedTime = System.currentTimeMillis() - beginTime;
             if (timeout > 0 && consumedTime >= timeout) {
                 throw new BackendException(
-                          "Waiting for raft group '%s' heartbeat timeout(%sms)",
+                          "Waiting for raft group '%s' log sync timeout(%sms)",
                           group, consumedTime);
             }
-            LOG.warn("Waiting for raft group '{}' heartbeat cost {}s",
-                     group, consumedTime / 1000.0);
         }
+        LOG.info("Waited for raft group '{}' log synced successfully", group);
     }
 
     private void waitIfBusy() {
@@ -231,8 +233,12 @@ public final class RaftNode {
             return;
         }
         // It may lead many thread sleep, but this is exactly what I want
-        long time = counter * RaftSharedContext.BUSY_SLEEP_FACTOR;
-        LOG.info("The node {} will try to sleep {} ms", this.node, time);
+        int delta = RaftSharedContext.BUSY_MAX_SLEEP_FACTOR -
+                    RaftSharedContext.BUSY_MIN_SLEEP_FACTOR;
+        Random random = new Random();
+        int timeout = random.nextInt(delta) +
+                      RaftSharedContext.BUSY_MIN_SLEEP_FACTOR;
+        int time = counter * timeout;
         try {
             Thread.sleep(time);
         } catch (InterruptedException e) {

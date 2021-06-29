@@ -170,11 +170,18 @@ public final class CompressUtil {
          * else throws exception
          */
         Path normalizePath = targetDirResolved.normalize();
-        if (!normalizePath.startsWith(targetDir)) {
+        if (!normalizePath.startsWith(targetDir.normalize())) {
             throw new IOException(String.format("Bad entry: %s",
                                                 entry.getName()));
         }
         return normalizePath;
+    }
+
+    public static void compressZip(String inputDir, String outputFile,
+                                   Checksum checksum) throws IOException {
+        String rootDir = Paths.get(inputDir).getParent().toString();
+        String sourceDir = Paths.get(inputDir).getFileName().toString();
+        compressZip(rootDir, sourceDir, outputFile, checksum);
     }
 
     public static void compressZip(String rootDir, String sourceDir,

@@ -639,9 +639,9 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     @Override
-    public void waitStarted() {
+    public void waitReady() {
         this.verifyAnyPermission();
-        this.hugegraph.waitStarted();
+        this.hugegraph.waitReady();
     }
 
     @Override
@@ -688,9 +688,9 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     @Override
-    public RaftGroupManager raftGroupManager(String group) {
+    public RaftGroupManager raftGroupManager() {
         this.verifyAdminPermission();
-        return this.hugegraph.raftGroupManager(group);
+        return this.hugegraph.raftGroupManager();
     }
 
     @Override

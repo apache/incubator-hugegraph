@@ -134,10 +134,15 @@ public abstract class AbstractBackendStoreProvider
     }
 
     @Override
-    public void truncate() {
+    public void truncate(HugeGraph graph) {
         this.checkOpened();
+        HugeConfig config = (HugeConfig) graph.configuration();
+        String systemStoreName = config.get(CoreOptions.STORE_SYSTEM);
         for (BackendStore store : this.stores.values()) {
-            store.truncate();
+            // Don't truncate system store
+            if (!store.store().equals(systemStoreName)) {
+                store.truncate();
+            }
         }
         this.notifyAndWaitEvent(Events.STORE_TRUNCATE);
 

@@ -31,6 +31,8 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ThreadPoolExecutor;
 
+import javax.ws.rs.HEAD;
+
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 
@@ -73,10 +75,11 @@ public final class RaftSharedContext {
 
     // unit is ms
     public static final int NO_TIMEOUT = -1;
-    public static final int POLL_INTERVAL = 3000;
+    public static final int POLL_INTERVAL = 5000;
     public static final int WAIT_RAFTLOG_TIMEOUT = 30 * 60 * 1000;
-    public static final int WAIT_LEADER_TIMEOUT = 5 * 60 * 1000;
-    public static final int BUSY_SLEEP_FACTOR = 3 * 1000;
+    public static final int WAIT_LEADER_TIMEOUT = 10 * 60 * 1000;
+    public static final int BUSY_MIN_SLEEP_FACTOR = 3 * 1000;
+    public static final int BUSY_MAX_SLEEP_FACTOR = 5 * 1000;
     public static final int WAIT_RPC_TIMEOUT = 30 * 60 * 1000;
     public static final int LOG_WARN_INTERVAL = 60 * 1000;
 
@@ -85,15 +88,15 @@ public final class RaftSharedContext {
 
     // work queue size
     public static final int QUEUE_SIZE = CoreOptions.CPUS;
-    public static final long KEEP_ALIVE_SEC = 300L;
-
-    public static final String DEFAULT_GROUP = "default";
+    public static final long KEEP_ALIVE_SECOND = 300L;
 
     private final HugeGraphParams params;
     private final String schemaStoreName;
     private final String graphStoreName;
     private final String systemStoreName;
     private final RaftBackendStore[] stores;
+    private final PeerId endpoint;
+    private final Configuration groupPeers;
     private final RpcServer rpcServer;
     @SuppressWarnings("unused")
     private final ExecutorService readIndexExecutor;
@@ -112,6 +115,20 @@ public final class RaftSharedContext {
         this.graphStoreName = config.get(CoreOptions.STORE_GRAPH);
         this.systemStoreName = config.get(CoreOptions.STORE_SYSTEM);
         this.stores = new RaftBackendStore[StoreType.ALL.getNumber()];
+
+        // TODO: 依赖了ServerOptions的配置项名，需要打通ServerConfig和CoreConfig
+        this.endpoint = new PeerId();
+        String endpointStr = config.getString("raft.endpoint");
+        if (!this.endpoint.parse(endpointStr)) {
+            throw new HugeException("Failed to parse endpoint %s", endpointStr);
+        }
+        this.groupPeers = new Configuration();
+        String groupPeersStr = config.getString("raft.group_peers");
+        if (!this.groupPeers.parse(groupPeersStr)) {
+            throw new HugeException("Failed to parse group peers %s",
+                                    groupPeersStr);
+        }
+
         this.rpcServer = this.initAndStartRpcServer();
         if (config.get(CoreOptions.RAFT_SAFE_READ)) {
             int threads = config.get(CoreOptions.RAFT_READ_INDEX_THREADS);
@@ -119,11 +136,7 @@ public final class RaftSharedContext {
         } else {
             this.readIndexExecutor = null;
         }
-        if (config.get(CoreOptions.RAFT_USE_SNAPSHOT)) {
-            this.snapshotExecutor = this.createSnapshotExecutor(4);
-        } else {
-            this.snapshotExecutor = null;
-        }
+        this.snapshotExecutor = this.createSnapshotExecutor(4);
         int backendThreads = config.get(CoreOptions.RAFT_BACKEND_THREADS);
         this.backendExecutor = this.createBackendExecutor(backendThreads);
 
@@ -143,9 +156,7 @@ public final class RaftSharedContext {
     public void waitRaftNodeStarted() {
         RaftNode node = this.node();
         node.waitLeaderElected(RaftSharedContext.WAIT_LEADER_TIMEOUT);
-        if (node.selfIsLeader()) {
-            node.waitStarted(RaftSharedContext.NO_TIMEOUT);
-        }
+        node.waitRaftLogSynced(RaftSharedContext.NO_TIMEOUT);
     }
 
     public void close() {
@@ -167,15 +178,13 @@ public final class RaftSharedContext {
         return this.rpcForwarder;
     }
 
-    public RaftGroupManager raftNodeManager(String group) {
-        E.checkArgument(DEFAULT_GROUP.equals(group),
-                        "The group must be '%s' now, actual is '%s'",
-                        DEFAULT_GROUP, group);
+    public RaftGroupManager raftNodeManager() {
         return this.raftGroupManager;
     }
 
     public String group() {
-        return DEFAULT_GROUP;
+        // Use graph name as group name
+        return this.params.name();
     }
 
     public void addStore(StoreType type, RaftBackendStore store) {
@@ -206,8 +215,6 @@ public final class RaftSharedContext {
 
     public NodeOptions nodeOptions() throws IOException {
         HugeConfig config = this.config();
-        PeerId selfId = new PeerId();
-        selfId.parse(config.get(CoreOptions.RAFT_ENDPOINT));
 
         NodeOptions nodeOptions = new NodeOptions();
         nodeOptions.setEnableMetrics(false);
@@ -217,6 +224,8 @@ public final class RaftSharedContext {
                     config.get(CoreOptions.RAFT_RPC_CONNECT_TIMEOUT));
         nodeOptions.setRpcDefaultTimeout(
                     config.get(CoreOptions.RAFT_RPC_TIMEOUT));
+        nodeOptions.setRpcInstallSnapshotTimeout(
+                    config.get(CoreOptions.RAFT_INSTALL_SNAPSHOT_TIMEOUT));
 
         int electionTimeout = config.get(CoreOptions.RAFT_ELECTION_TIMEOUT);
         nodeOptions.setElectionTimeoutMs(electionTimeout);
@@ -224,14 +233,7 @@ public final class RaftSharedContext {
 
         int snapshotInterval = config.get(CoreOptions.RAFT_SNAPSHOT_INTERVAL);
         nodeOptions.setSnapshotIntervalSecs(snapshotInterval);
-
-        Configuration groupPeers = new Configuration();
-        String groupPeersStr = config.get(CoreOptions.RAFT_GROUP_PEERS);
-        if (!groupPeers.parse(groupPeersStr)) {
-            throw new HugeException("Failed to parse group peers %s",
-                                    groupPeersStr);
-        }
-        nodeOptions.setInitialConf(groupPeers);
+        nodeOptions.setInitialConf(this.groupPeers);
 
         String raftPath = config.get(CoreOptions.RAFT_PATH);
         String logUri = Paths.get(raftPath, "log").toString();
@@ -242,11 +244,9 @@ public final class RaftSharedContext {
         FileUtils.forceMkdir(new File(metaUri));
         nodeOptions.setRaftMetaUri(metaUri);
 
-        if (config.get(CoreOptions.RAFT_USE_SNAPSHOT)) {
-            String snapshotUri = Paths.get(raftPath, "snapshot").toString();
-            FileUtils.forceMkdir(new File(snapshotUri));
-            nodeOptions.setSnapshotUri(snapshotUri);
-        }
+        String snapshotUri = Paths.get(raftPath, "snapshot").toString();
+        FileUtils.forceMkdir(new File(snapshotUri));
+        nodeOptions.setSnapshotUri(snapshotUri);
 
         RaftOptions raftOptions = nodeOptions.getRaftOptions();
         /*
@@ -329,20 +329,11 @@ public final class RaftSharedContext {
     }
 
     public PeerId endpoint() {
-        PeerId endpoint = new PeerId();
-        String endpointStr = this.config().get(CoreOptions.RAFT_ENDPOINT);
-        if (!endpoint.parse(endpointStr)) {
-            throw new HugeException("Failed to parse endpoint %s", endpointStr);
-        }
-        return endpoint;
+        return this.endpoint;
     }
 
     public boolean isSafeRead() {
         return this.config().get(CoreOptions.RAFT_SAFE_READ);
-    }
-
-    public boolean useSnapshot() {
-        return this.config().get(CoreOptions.RAFT_USE_SNAPSHOT);
     }
 
     public ExecutorService snapshotExecutor() {
@@ -351,6 +342,10 @@ public final class RaftSharedContext {
 
     public ExecutorService backendExecutor() {
         return this.backendExecutor;
+    }
+
+    public ExecutorService readIndexExecutor() {
+        return this.readIndexExecutor;
     }
 
     public GraphMode graphMode() {
@@ -375,6 +370,7 @@ public final class RaftSharedContext {
         NodeManager.getInstance().addAddress(endpoint.getEndpoint());
         RpcServer rpcServer = RaftRpcServerFactory.createAndStartRaftRpcServer(
                                                    endpoint.getEndpoint());
+        LOG.info("RPC server is started successfully");
         return rpcServer;
     }
 
@@ -421,7 +417,7 @@ public final class RaftSharedContext {
                              .enableMetric(false)
                              .coreThreads(coreThreads)
                              .maximumThreads(maxThreads)
-                             .keepAliveSeconds(KEEP_ALIVE_SEC)
+                             .keepAliveSeconds(KEEP_ALIVE_SECOND)
                              .workQueue(queue)
                              .threadFactory(new NamedThreadFactory(name, true))
                              .rejectedHandler(handler)
