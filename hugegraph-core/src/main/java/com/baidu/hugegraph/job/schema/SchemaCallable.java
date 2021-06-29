@@ -65,7 +65,7 @@ public abstract class SchemaCallable extends SysJob<Object> {
         Id baseValue = label.baseValue();
         SchemaLabel schemaLabel;
         if (baseType == HugeType.VERTEX_LABEL) {
-            if (SchemaElement.ALL_ID.equals(baseValue)) {
+            if (SchemaElement.OLAP_ID.equals(baseValue)) {
                 return;
             }
             schemaLabel = tx.getVertexLabel(baseValue);

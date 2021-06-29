@@ -604,7 +604,7 @@ public class GraphTransaction extends IndexableTransaction {
         if (possibleOlapVertex(elemKeys)) {
             Id id = HugeVertex.getIdValue(elemKeys.id());
             HugeVertex vertex = HugeVertex.create(this, id,
-                                                  VertexLabel.ALL_VL);
+                                                  VertexLabel.OLAP_VL);
             ElementHelper.attachProperties(vertex, keyValues);
             Iterator<HugeProperty<?>> iterator = vertex.getProperties().values()
                                                        .iterator();

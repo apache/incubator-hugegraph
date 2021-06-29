@@ -112,11 +112,14 @@ public interface BackendStore {
     }
 
     public default String olapTableName(HugeType type) {
-        return this.store() + "_" + HugeType.OLAP.string() + "_" + type.string();
+        return this.store() + "_" +
+               HugeType.OLAP.string().toLowerCase() + "_" +
+               type.string().toLowerCase();
     }
 
     public default String olapTableName(Id id) {
-        return this.store() + "_" + HugeType.OLAP.string() + "_" + id.asLong();
+        return this.store() + "_" +
+               HugeType.OLAP.string().toLowerCase() + "_" + id.asLong();
     }
 
     // Increase next id for specific type

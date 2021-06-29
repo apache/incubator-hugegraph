@@ -195,7 +195,7 @@ public class IndexLabelBuilder extends AbstractBuilder
             this.checkBaseType();
             this.checkIndexType();
 
-            if (SchemaElement.ALL.equals(this.baseValue)) {
+            if (SchemaElement.OLAP.equals(this.baseValue)) {
                 return new SchemaElement.TaskWithSchema(this.build(),
                                                         IdGenerator.ZERO);
             }
@@ -455,8 +455,8 @@ public class IndexLabelBuilder extends AbstractBuilder
     }
 
     private SchemaLabel loadElement() {
-        if (SchemaElement.ALL.equals(this.baseValue)) {
-            return VertexLabel.ALL_VL;
+        if (SchemaElement.OLAP.equals(this.baseValue)) {
+            return VertexLabel.OLAP_VL;
         }
         return IndexLabel.getElement(this.graph(),
                                      this.baseType, this.baseValue);

@@ -131,7 +131,7 @@ public class IndexLabel extends SchemaElement {
     }
 
     public boolean olap() {
-        return ALL_ID.equals(this.baseValue);
+        return OLAP_ID.equals(this.baseValue);
     }
 
     // ABS of System index id must be below SchemaElement.MAX_PRIMITIVE_SYS_ID

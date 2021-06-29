@@ -36,9 +36,9 @@ public class VertexLabel extends SchemaLabel {
 
     public static final VertexLabel NONE = new VertexLabel(null, NONE_ID, UNDEF);
 
-    // ALL_VL means all of vertex labels
-    public static final VertexLabel ALL_VL = new VertexLabel(null, ALL_ID,
-                                                             SchemaElement.ALL);
+    // OLAP_VL means all of vertex labels
+    public static final VertexLabel OLAP_VL = new VertexLabel(null, OLAP_ID,
+                                                              SchemaElement.OLAP);
 
     private IdStrategy idStrategy;
     private List<Id> primaryKeys;

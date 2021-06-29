@@ -44,10 +44,10 @@ public abstract class SchemaElement implements Namifiable, Typifiable,
 
     public static final String UNDEF = "~undefined";
 
-    // ALL_ID means all of vertex label ids
-    public static final Id ALL_ID = IdGenerator.of(-7);
-    // ALL means all of vertex label names
-    public static final String ALL = "~all";
+    // OLAP_ID means all of vertex label ids
+    public static final Id OLAP_ID = IdGenerator.of(-7);
+    // OLAP means all of vertex label names
+    public static final String OLAP = "~olap";
 
     protected final HugeGraph graph;
 

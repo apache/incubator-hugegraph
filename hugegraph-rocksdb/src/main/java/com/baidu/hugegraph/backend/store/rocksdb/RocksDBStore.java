@@ -83,7 +83,8 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
     private final String database;
 
     private final BackendStoreProvider provider;
-    private final Map<String, RocksDBTable> tables;
+    private final Map<HugeType, RocksDBTable> tables;
+    private final Map<String, RocksDBTable> olapTables;
 
     private String dataPath;
     private RocksDBSessions sessions;
@@ -106,6 +107,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
     public RocksDBStore(final BackendStoreProvider provider,
                         final String database, final String store) {
         this.tables = new HashMap<>();
+        this.olapTables = new HashMap<>();
 
         this.provider = provider;
         this.database = database;
@@ -138,25 +140,28 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
     }
 
     protected void registerTableManager(HugeType type, RocksDBTable table) {
-        this.registerTableManager(type.string(), table);
+        this.tables.put(type, table);
     }
 
     protected void registerTableManager(String name, RocksDBTable table) {
-        this.tables.put(name, table);
+        this.olapTables.put(name, table);
     }
 
     protected void unregisterTableManager(String name) {
-        this.tables.remove(name);
+        this.olapTables.remove(name);
     }
 
     @Override
     protected final RocksDBTable table(HugeType type) {
-        assert type != null;
-        return this.table(type.string());
+        RocksDBTable table = this.tables.get(type);
+        if (table == null) {
+            throw new BackendException("Unsupported table: '%s'", type);
+        }
+        return table;
     }
 
     protected final RocksDBTable table(String name) {
-        RocksDBTable table = this.tables.get(name);
+        RocksDBTable table = this.olapTables.get(name);
         if (table == null) {
             throw new BackendException("Unsupported table: '%s'", name);
         }
@@ -166,6 +171,16 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
     protected List<String> tableNames() {
         return this.tables.values().stream().map(BackendTable::table)
                                             .collect(Collectors.toList());
+    }
+
+    protected List<String> olapTables() {
+        return this.olapTables.values().stream().map(RocksDBTable::table)
+                              .collect(Collectors.toList());
+    }
+
+    protected List<String> tableNames(HugeType type) {
+        return type != HugeType.OLAP ? Arrays.asList(this.table(type).table()) :
+                                       this.olapTables();
     }
 
     @Override
@@ -217,14 +232,14 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         if (!disks.isEmpty()) {
             this.parseTableDiskMapping(disks, this.dataPath);
             for (Entry<HugeType, String> e : this.tableDiskMapping.entrySet()) {
-                String table = this.table(e.getKey()).table();
                 String disk = e.getValue();
                 if (openedDisks.contains(disk)) {
                     continue;
                 }
                 openedDisks.add(disk);
+                List<String> tables = this.tableNames(e.getKey());
                 futures.add(openPool.submit(() -> {
-                    this.open(config, disk, disk, Arrays.asList(table));
+                    this.open(config, disk, disk, tables);
                 }));
             }
         }
@@ -376,9 +391,11 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
     protected Map<String, RocksDBSessions> tableDBMapping() {
         Map<String, RocksDBSessions> tableDBMap = InsertionOrderUtil.newMap();
         for (Entry<HugeType, String> e : this.tableDiskMapping.entrySet()) {
-            String table = this.table(e.getKey()).table();
+            HugeType type = e.getKey();
             RocksDBSessions db = this.db(e.getValue());
-            tableDBMap.put(table, db);
+            String key = type != HugeType.OLAP ? this.table(type).table() :
+                                                 type.string();
+            tableDBMap.put(key, db);
         }
         return tableDBMap;
     }
@@ -424,23 +441,33 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         BackendEntry entry = item.entry();
 
         RocksDBTable table;
-        String name;
         switch (item.action()) {
             case INSERT:
-                name = entry.type() == HugeType.OLAP ?
-                       this.olapTableName(entry.subId()) :
-                       entry.type().string();
-                this.table(name).insert(session, entry);
+                if (entry.type() == HugeType.OLAP) {
+                    table = this.table(this.olapTableName(entry.subId()));
+                    session = this.session(HugeType.OLAP);
+                } else {
+                    table = this.table(entry.type());
+                }
+                table.insert(session, entry);
                 break;
             case DELETE:
-                name = entry.olap() ? this.olapTableName(entry.type()) :
-                                      entry.type().string();
-                this.table(name).delete(session, entry);
+                if (entry.olap()) {
+                    table = this.table(this.olapTableName(entry.type()));
+                    session = this.session(HugeType.OLAP);
+                } else {
+                    table = this.table(entry.type());
+                }
+                table.delete(session, entry);
                 break;
             case APPEND:
-                name = entry.olap() ? this.olapTableName(entry.type()) :
-                                      entry.type().string();
-                this.table(name).append(session, entry);
+                if (entry.olap()) {
+                    table = this.table(this.olapTableName(entry.type()));
+                    session = this.session(HugeType.OLAP);
+                } else {
+                    table = this.table(entry.type());
+                }
+                table.append(session, entry);
                 break;
             case ELIMINATE:
                 table = this.table(entry.type());
@@ -459,12 +486,16 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         try {
             this.checkOpened();
             HugeType tableType = RocksDBTable.tableType(query);
-
-            String tableName = query.olap() ? this.olapTableName(tableType) :
-                                              tableType.string();
-            RocksDBTable table = this.table(tableName);
-            Iterator<BackendEntry> entries =
-                                   table.query(this.sessions.session(), query);
+            RocksDBTable table;
+            RocksDBSessions.Session session;
+            if (query.olap()) {
+                table = this.table(this.olapTableName(tableType));
+                session = this.session(HugeType.OLAP);
+            } else {
+                table = this.table(tableType);
+                session = this.session(tableType);
+            }
+            Iterator<BackendEntry> entries = table.query(session, query);
             // Merge olap results as needed
             Set<Id> olapPks = query.olapPks();
             if (this.isGraphStore && !olapPks.isEmpty()) {
@@ -472,7 +503,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
                 for (Id pk : olapPks) {
                     Query q = query.copy();
                     table = this.table(this.olapTableName(pk));
-                    iterators.add(table.query(this.sessions.session(), q));
+                    iterators.add(table.query(this.session(HugeType.OLAP), q));
                 }
                 entries = new MergeIterator<>(entries, iterators,
                                               BackendEntry::mergable);
@@ -512,7 +543,13 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
             // Create table with optimized disk
             Map<String, RocksDBSessions> tableDBMap = this.tableDBMapping();
             for (Map.Entry<String, RocksDBSessions> e : tableDBMap.entrySet()) {
-                this.createTable(e.getValue(), e.getKey());
+                if (e.getKey().equals(HugeType.OLAP.string())) {
+                    for (String olapTable : this.olapTables()) {
+                        this.createTable(e.getValue(), olapTable);
+                    }
+                } else {
+                    this.createTable(e.getValue(), e.getKey());
+                }
             }
 
             LOG.debug("Store initialized: {}", this.store);
@@ -544,7 +581,13 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
             // Drop tables with optimized disk
             Map<String, RocksDBSessions> tableDBMap = this.tableDBMapping();
             for (Map.Entry<String, RocksDBSessions> e : tableDBMap.entrySet()) {
-                this.dropTable(e.getValue(), e.getKey());
+                if (e.getKey().equals(HugeType.OLAP.string())) {
+                    for (String olapTable : this.olapTables()) {
+                        this.dropTable(e.getValue(), olapTable);
+                    }
+                } else {
+                    this.dropTable(e.getValue(), e.getKey());
+                }
             }
 
             LOG.debug("Store cleared: {}", this.store);
@@ -645,6 +688,18 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         } finally {
             readLock.unlock();
         }
+    }
+
+    protected RocksDBSessions db(HugeType tableType) {
+        this.checkOpened();
+
+        // Optimized disk
+        String disk = this.tableDiskMapping.get(tableType);
+        if (disk != null) {
+            return this.db(disk);
+        }
+
+        return this.sessions;
     }
 
     @Override
@@ -999,7 +1054,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         @Override
         public void createOlapTable(Id pkId) {
             RocksDBTable table = new RocksDBTables.OlapTable(this.store(), pkId);
-            this.createTable(super.sessions, table.table());
+            this.createTable(this.db(HugeType.OLAP), table.table());
             registerTableManager(this.olapTableName(pkId), table);
         }
 
@@ -1016,21 +1071,23 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         public void clearOlapTable(Id pkId) {
             String name = this.olapTableName(pkId);
             RocksDBTable table = this.table(name);
-            if (table == null || !super.sessions.existsTable(table.table())) {
+            RocksDBSessions db = this.db(HugeType.OLAP);
+            if (table == null || !db.existsTable(table.table())) {
                 throw new HugeException("Not exist table '%s''", name);
             }
-            this.dropTable(super.sessions, table.table());
-            this.createTable(super.sessions, table.table());
+            this.dropTable(db, table.table());
+            this.createTable(db, table.table());
         }
 
         @Override
         public void removeOlapTable(Id pkId) {
             String name = this.olapTableName(pkId);
             RocksDBTable table = this.table(name);
-            if (table == null || !super.sessions.existsTable(table.table())) {
+            RocksDBSessions db = this.db(HugeType.OLAP);
+            if (table == null || !db.existsTable(table.table())) {
                 throw new HugeException("Not exist table '%s''", name);
             }
-            this.dropTable(super.sessions, table.table());
+            this.dropTable(db, table.table());
             this.unregisterTableManager(this.olapTableName(pkId));
         }
     }
