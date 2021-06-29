@@ -54,7 +54,7 @@ public class CrosspointsApiTest extends BaseApiTest {
                                                      id2Json(markoId),
                                                      "target",
                                                      id2Json(vadasId),
-                                                     "max_depth", 1000);
+                                                     "max_depth", 10);
         Response r = client().get(path, params);
         String respBody = assertResponseStatus(200, r);
         List<Map<String, Object>> crosspoints = assertJsonContains(respBody,

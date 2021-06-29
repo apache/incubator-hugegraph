@@ -51,13 +51,25 @@ public class KoutApiTest extends BaseApiTest {
         String markoId = name2Ids.get("marko");
         String peterId = name2Ids.get("peter");
         String joshId = name2Ids.get("josh");
+        String rippleId = name2Ids.get("ripple");
+        // Test for nearest is true
         Response r = client().get(path,
                                   ImmutableMap.of("source", id2Json(markoId),
                                                   "max_depth", 2));
         String respBody = assertResponseStatus(200, r);
         List<String> vertices = assertJsonContains(respBody, "vertices");
         Assert.assertEquals(1, vertices.size());
+        Assert.assertTrue(vertices.contains(joshId));
+        // Test for nearest is false
+        r = client().get(path,
+                         ImmutableMap.of("source", id2Json(markoId),
+                                         "max_depth", 2,
+                                         "nearest", "false"));
+        respBody = assertResponseStatus(200, r);
+        vertices = assertJsonContains(respBody, "vertices");
+        Assert.assertEquals(3, vertices.size());
         Assert.assertTrue(vertices.containsAll(ImmutableList.of(peterId,
+                                                                rippleId,
                                                                 joshId)));
     }
 

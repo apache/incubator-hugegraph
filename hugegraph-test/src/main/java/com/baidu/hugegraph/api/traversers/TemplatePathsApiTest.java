@@ -19,7 +19,14 @@
 
 package com.baidu.hugegraph.api.traversers;
 
+import org.junit.Test;
+
 import com.baidu.hugegraph.api.BaseApiTest;
 
 public class TemplatePathsApiTest extends BaseApiTest {
+
+    @Test
+    public void testGet() {
+        // TODO
+    }
 }
