@@ -169,8 +169,11 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
     }
 
     protected List<String> tableNames() {
-        return this.tables.values().stream().map(BackendTable::table)
-                                            .collect(Collectors.toList());
+        List<String> tables = this.tables.values().stream()
+                                         .map(BackendTable::table)
+                                         .collect(Collectors.toList());
+        tables.addAll(this.olapTables());
+        return tables;
     }
 
     protected List<String> olapTables() {
