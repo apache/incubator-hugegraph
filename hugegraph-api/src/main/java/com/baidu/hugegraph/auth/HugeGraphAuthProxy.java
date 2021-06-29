@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.auth;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -34,7 +35,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 
+import javax.security.sasl.AuthenticationException;
 import javax.ws.rs.ForbiddenException;
+import javax.ws.rs.NotAuthorizedException;
 
 import org.apache.tinkerpop.gremlin.groovy.jsr223.GroovyTranslator;
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
@@ -66,7 +69,7 @@ import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
 import com.baidu.hugegraph.backend.store.raft.RaftGroupManager;
-import com.baidu.hugegraph.config.CoreOptions;
+import com.baidu.hugegraph.config.AuthOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.TypedOption;
 import com.baidu.hugegraph.exception.NotSupportException;
@@ -105,6 +108,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     private static final Logger LOG = Log.logger(HugeGraphAuthProxy.class);
+    private final Cache<Id, UserWithRole> usersRoleCache;
     private final Cache<Id, RateLimiter> auditLimiters;
     private final double auditLogMaxRate;
 
@@ -114,15 +118,19 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
     public HugeGraphAuthProxy(HugeGraph hugegraph) {
         LOG.info("Wrap graph '{}' with HugeGraphAuthProxy", hugegraph.name());
+        HugeConfig config = (HugeConfig) hugegraph.configuration();
+        long expired = config.get(AuthOptions.AUTH_CACHE_EXPIRE);
+        long capacity = config.get(AuthOptions.AUTH_CACHE_CAPACITY);
+
         this.hugegraph = hugegraph;
         this.taskScheduler = new TaskSchedulerProxy(hugegraph.taskScheduler());
         this.authManager = new AuthManagerProxy(hugegraph.authManager());
-        this.auditLimiters = this.cache("audit-log-limiter");
+        this.auditLimiters = this.cache("audit-log-limiter", capacity, -1L);
+        this.usersRoleCache = this.cache("users-role", capacity, expired);
         this.hugegraph.proxy(this);
 
-        HugeConfig config = (HugeConfig) hugegraph.configuration();
         // TODO: Consider better way to get, use auth client's config now
-        this.auditLogMaxRate = config.get(CoreOptions.AUTH_AUDIT_LOG_RATE);
+        this.auditLogMaxRate = config.get(AuthOptions.AUTH_AUDIT_LOG_RATE);
         LOG.info("Audit log rate limit is {}/s", this.auditLogMaxRate);
     }
 
@@ -725,10 +733,15 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         this.hugegraph.resumeSnapshot();
     }
 
-    private <V> Cache<Id, V> cache(String prefix) {
+    private <V> Cache<Id, V> cache(String prefix, long capacity,
+                                   long expiredTime) {
         String name = prefix + "-" + this.hugegraph.name();
-        Cache<Id, V> cache = CacheManager.instance().cache(name);
-        cache.expire(-1L);
+        Cache<Id, V> cache = CacheManager.instance().cache(name, capacity);
+        if (expiredTime > 0L) {
+            cache.expire(Duration.ofSeconds(expiredTime).toMillis());
+        } else {
+            cache.expire(expiredTime);
+        }
         return cache;
     }
 
@@ -921,7 +934,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         }
 
         // Log user action, limit rate for each user
-        Id usrId = IdGenerator.of(username);
+        Id usrId = context.user().userId();
         RateLimiter auditLimiter = this.auditLimiters.getOrFetch(usrId, id -> {
             return RateLimiter.create(this.auditLogMaxRate);
         });
@@ -1155,7 +1168,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
             E.checkArgument(!HugeAuthenticator.USER_ADMIN.equals(user.name()),
                             "Can't delete user '%s'", user.name());
             verifyUserPermission(HugePermission.DELETE, user);
-            auditLimiters.invalidate(IdGenerator.of(user.name()));
+            auditLimiters.invalidate(user.id());
             return this.authManager.deleteUser(id);
         }
 
@@ -1391,17 +1404,54 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         }
 
         @Override
-        public RolePermission loginUser(String username, String password) {
-            // Can't verifyPermission() here, login first with temp permission
+        public UserWithRole validateUser(String username, String password) {
+            // Can't verifyPermission() here, validate first with tmp permission
             Context context = setContext(Context.admin());
+
             try {
-                return this.authManager.loginUser(username, password);
+                Id userKey = IdGenerator.of(username + password);
+                return usersRoleCache.getOrFetch(userKey, id -> {
+                    return this.authManager.validateUser(username, password);
+                });
             } catch (Exception e) {
-                LOG.error("Failed to login user {} with error: ", username, e);
+                LOG.error("Failed to validate user {} with error: ",
+                          username, e);
                 throw e;
             } finally {
                 setContext(context);
             }
+        }
+
+        @Override
+        public UserWithRole validateUser(String token) {
+            // Can't verifyPermission() here, validate first with tmp permission
+            Context context = setContext(Context.admin());
+
+            try {
+                Id userKey = IdGenerator.of(token);
+                return usersRoleCache.getOrFetch(userKey, id -> {
+                    return this.authManager.validateUser(token);
+                });
+            } catch (Exception e) {
+                LOG.error("Failed to validate token {} with error: ", token, e);
+                throw e;
+            } finally {
+                setContext(context);
+            }
+        }
+
+        @Override
+        public String loginUser(String username, String password) {
+            try {
+                return this.authManager.loginUser(username, password);
+            } catch (AuthenticationException e) {
+                throw new NotAuthorizedException(e.getMessage(), e);
+            }
+        }
+
+        @Override
+        public void logoutUser(String token) {
+            this.authManager.logoutUser(token);
         }
 
         private void switchAuthManager(AuthManager authManager) {
@@ -1463,7 +1513,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
     class TraversalStrategiesProxy implements TraversalStrategies {
 
-        private static final String REST_WOEKER = "grizzly-http-server";
+        private static final String REST_WORKER = "grizzly-http-server";
         private static final long serialVersionUID = -5424364720492307019L;
         private final TraversalStrategies strategies;
 
@@ -1496,7 +1546,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
              *  3.olap rest api (like centrality/lpa/louvain/subgraph)
              */
             String caller = Thread.currentThread().getName();
-            if (!caller.contains(REST_WOEKER)) {
+            if (!caller.contains(REST_WORKER)) {
                 verifyNamePermission(HugePermission.EXECUTE,
                                      ResourceType.GREMLIN, script);
             }

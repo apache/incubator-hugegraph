@@ -432,6 +432,8 @@ public abstract class CacheTest extends BaseUnitTest {
     @Test
     public void testHitsAndMiss() {
         Cache<Id, Object> cache = newCache();
+        Assert.assertEquals(false, cache.enableMetrics(true));
+
         Assert.assertEquals(0L, cache.hits());
         Assert.assertEquals(0L, cache.miss());
 
@@ -455,6 +457,47 @@ public abstract class CacheTest extends BaseUnitTest {
         cache.get(IdGenerator.of("1"));
         Assert.assertEquals(2L, cache.hits());
         Assert.assertEquals(2L, cache.miss());
+    }
+
+    @Test
+    public void testEnableMetrics() {
+        Cache<Id, Object> cache = newCache();
+        Assert.assertEquals(false, cache.enableMetrics(false));
+        Assert.assertEquals(false, cache.enableMetrics(true));
+
+        Assert.assertEquals(0L, cache.hits());
+        Assert.assertEquals(0L, cache.miss());
+
+        Id id = IdGenerator.of("1");
+        cache.update(id, "value-1");
+        Assert.assertEquals(0L, cache.hits());
+        Assert.assertEquals(0L, cache.miss());
+
+        cache.get(IdGenerator.of("not-exist"));
+        Assert.assertEquals(0L, cache.hits());
+        Assert.assertEquals(1L, cache.miss());
+
+        cache.get(IdGenerator.of("1"));
+        Assert.assertEquals(1L, cache.hits());
+        Assert.assertEquals(1L, cache.miss());
+
+        cache.get(IdGenerator.of("not-exist"));
+        Assert.assertEquals(1L, cache.hits());
+        Assert.assertEquals(2L, cache.miss());
+
+        cache.get(IdGenerator.of("1"));
+        Assert.assertEquals(2L, cache.hits());
+        Assert.assertEquals(2L, cache.miss());
+
+        Assert.assertEquals(true, cache.enableMetrics(false));
+
+        Assert.assertEquals(0L, cache.hits());
+        Assert.assertEquals(0L, cache.miss());
+
+        cache.get(IdGenerator.of("not-exist"));
+        cache.get(IdGenerator.of("1"));
+        Assert.assertEquals(0L, cache.hits());
+        Assert.assertEquals(0L, cache.miss());
     }
 
     @Test
@@ -530,7 +573,7 @@ public abstract class CacheTest extends BaseUnitTest {
     private static final int THREADS_NUM = 8;
 
     @Test
-    public void testMutiThreadsUpdate() {
+    public void testMultiThreadsUpdate() {
         Cache<Id, Object> cache = newCache(THREADS_NUM * 10000 * 10);
 
         runWithThreads(THREADS_NUM, () -> {
@@ -544,7 +587,7 @@ public abstract class CacheTest extends BaseUnitTest {
     }
 
     @Test
-    public void testMutiThreadsUpdateWithGtCapacity() {
+    public void testMultiThreadsUpdateWithGtCapacity() {
         int limit = 80;
         Cache<Id, Object> cache = newCache(limit);
 
@@ -560,7 +603,7 @@ public abstract class CacheTest extends BaseUnitTest {
     }
 
     @Test
-    public void testMutiThreadsUpdateAndCheck() {
+    public void testMultiThreadsUpdateAndCheck() {
         Cache<Id, Object> cache = newCache();
 
         runWithThreads(THREADS_NUM, () -> {
@@ -585,7 +628,7 @@ public abstract class CacheTest extends BaseUnitTest {
     }
 
     @Test
-    public void testMutiThreadsGetWith2Items() {
+    public void testMultiThreadsGetWith2Items() {
         Cache<Id, Object> cache = newCache(10);
 
         Id id1 = IdGenerator.of("1");
@@ -605,7 +648,7 @@ public abstract class CacheTest extends BaseUnitTest {
     }
 
     @Test
-    public void testMutiThreadsGetWith3Items() {
+    public void testMultiThreadsGetWith3Items() {
         Cache<Id, Object> cache = newCache(10);
 
         Id id1 = IdGenerator.of("1");
@@ -629,7 +672,7 @@ public abstract class CacheTest extends BaseUnitTest {
     }
 
     @Test
-    public void testMutiThreadsGetAndUpdate() {
+    public void testMultiThreadsGetAndUpdate() {
         Cache<Id, Object> cache = newCache(10);
 
         Id id1 = IdGenerator.of("1");
@@ -654,7 +697,7 @@ public abstract class CacheTest extends BaseUnitTest {
     }
 
     @Test
-    public void testMutiThreadsGetAndUpdateWithGtCapacity() {
+    public void testMultiThreadsGetAndUpdateWithGtCapacity() {
         Cache<Id, Object> cache = newCache(10);
 
         runWithThreads(THREADS_NUM, () -> {
@@ -693,4 +736,3 @@ public abstract class CacheTest extends BaseUnitTest {
         Assert.assertFalse(cache.containsKey(key));
     }
 }
-

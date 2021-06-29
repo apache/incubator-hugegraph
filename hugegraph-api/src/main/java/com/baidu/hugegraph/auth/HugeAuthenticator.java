@@ -32,6 +32,8 @@ import org.apache.tinkerpop.shaded.jackson.annotation.JsonProperty;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.auth.HugeGraphAuthProxy.Context;
 import com.baidu.hugegraph.auth.SchemaDefine.AuthElement;
+import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.OptionSpace;
 import com.baidu.hugegraph.config.ServerOptions;
@@ -45,6 +47,7 @@ public interface HugeAuthenticator extends Authenticator {
                                CredentialGraphTokens.PROPERTY_USERNAME;
     public static final String KEY_PASSWORD =
                                CredentialGraphTokens.PROPERTY_PASSWORD;
+    public static final String KEY_TOKEN = "token";
     public static final String KEY_ROLE = "role";
     public static final String KEY_ADDRESS = "address";
     public static final String KEY_PATH = "path";
@@ -63,7 +66,8 @@ public interface HugeAuthenticator extends Authenticator {
 
     public void setup(HugeConfig config);
 
-    public RolePermission authenticate(String username, String password);
+    public UserWithRole authenticate(String username, String password,
+                                     String token);
     public AuthManager authManager();
 
     @Override
@@ -86,15 +90,16 @@ public interface HugeAuthenticator extends Authenticator {
         if (this.requireAuthentication()) {
             String username = credentials.get(KEY_USERNAME);
             String password = credentials.get(KEY_PASSWORD);
+            String token = credentials.get(KEY_TOKEN);
 
             // Currently we just use config tokens to authenticate
-            RolePermission role = this.authenticate(username, password);
-            if (!verifyRole(role)) {
+            UserWithRole role = this.authenticate(username, password, token);
+            if (!verifyRole(role.role())) {
                 // Throw if not certified
                 String message = "Incorrect username or password";
                 throw new AuthenticationException(message);
             }
-            user = new User(username, role);
+            user = new User(role.username(), role.role());
             user.client(credentials.get(KEY_ADDRESS));
         }
 
@@ -150,6 +155,7 @@ public interface HugeAuthenticator extends Authenticator {
         public static final User ANONYMOUS = new User(USER_ANONY, ROLE_ADMIN);
 
         private final RolePermission role;
+        private final Id userId;
         private String client; // peer
 
         public User(String username, RolePermission role) {
@@ -158,10 +164,19 @@ public interface HugeAuthenticator extends Authenticator {
             E.checkNotNull(role, "role");
             this.role = role;
             this.client = null;
+            /*
+             * 1. Use username as the id to simplify getting userId
+             * 2. Only used as cache's key in auth proxy now
+             */
+            this.userId = IdGenerator.of(username);
         }
 
         public String username() {
             return this.getName();
+        }
+
+        public Id userId() {
+            return this.userId;
         }
 
         public RolePermission role() {

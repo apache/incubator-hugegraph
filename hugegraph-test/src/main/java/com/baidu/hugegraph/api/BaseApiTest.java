@@ -32,6 +32,7 @@ import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
+import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 
 import org.glassfish.jersey.client.authentication.HttpAuthenticationFeature;
@@ -126,6 +127,11 @@ public class BaseApiTest {
             return this.target.path(path).path(id).request().get();
         }
 
+        public Response get(String path,
+                            MultivaluedMap<String, Object> headers) {
+            return this.target.path(path).request().headers(headers).get();
+        }
+
         public Response get(String path, Map<String, Object> params) {
             WebTarget target = this.target.path(path);
             for (Map.Entry<String, Object> i : params.entrySet()) {
@@ -161,6 +167,12 @@ public class BaseApiTest {
                 target = target.queryParam(i.getKey(), i.getValue());
             }
             return target.request().delete();
+        }
+
+        public Response delete(String path,
+                               MultivaluedMap<String, Object> headers) {
+            WebTarget target = this.target.path(path);
+            return target.request().headers(headers).delete();
         }
     }
 

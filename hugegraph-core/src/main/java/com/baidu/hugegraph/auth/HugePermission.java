@@ -23,24 +23,26 @@ import com.baidu.hugegraph.type.define.SerialEnum;
 
 public enum HugePermission implements SerialEnum {
 
-    NONE(0x00),
+    NONE(0x00, "none"),
 
-    READ(0x01),
-    WRITE(0x02),
-    DELETE(0x04),
-    EXECUTE(0x08),
+    READ(0x01, "read"),
+    WRITE(0x02, "write"),
+    DELETE(0x04, "delete"),
+    EXECUTE(0x08, "execute"),
 
-    ANY(0x7f);
+    ANY(0x7f, "any");
 
-    private final byte code;
+    private byte code;
+    private String name;
 
     static {
         SerialEnum.register(HugePermission.class);
     }
 
-    HugePermission(int code) {
+    HugePermission(int code, String name) {
         assert code < 256;
         this.code = (byte) code;
+        this.name = name;
     }
 
     @Override
@@ -49,7 +51,7 @@ public enum HugePermission implements SerialEnum {
     }
 
     public String string() {
-        return this.name().toLowerCase();
+        return this.name;
     }
 
     public boolean match(HugePermission other) {

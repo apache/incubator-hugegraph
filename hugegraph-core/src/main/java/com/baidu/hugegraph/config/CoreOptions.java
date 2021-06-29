@@ -23,7 +23,6 @@ import static com.baidu.hugegraph.backend.tx.GraphTransaction.COMMIT_BATCH;
 import static com.baidu.hugegraph.config.OptionChecker.allowValues;
 import static com.baidu.hugegraph.config.OptionChecker.disallowEmpty;
 import static com.baidu.hugegraph.config.OptionChecker.positiveInt;
-import static com.baidu.hugegraph.config.OptionChecker.rangeDouble;
 import static com.baidu.hugegraph.config.OptionChecker.rangeInt;
 
 import com.baidu.hugegraph.backend.query.Query;
@@ -513,7 +512,7 @@ public class CoreOptions extends OptionHolder {
     public static final ConfigOption<Integer> VERTEX_CACHE_EXPIRE =
             new ConfigOption<>(
                     "vertex.cache_expire",
-                    "The expire time in seconds of vertex cache.",
+                    "The expiration time in seconds of vertex cache.",
                     rangeInt(0, Integer.MAX_VALUE),
                     (60 * 10)
             );
@@ -537,7 +536,7 @@ public class CoreOptions extends OptionHolder {
     public static final ConfigOption<Integer> EDGE_CACHE_EXPIRE =
             new ConfigOption<>(
                     "edge.cache_expire",
-                    "The expire time in seconds of edge cache.",
+                    "The expiration time in seconds of edge cache.",
                     rangeInt(0, Integer.MAX_VALUE),
                     (60 * 10)
             );
@@ -624,15 +623,6 @@ public class CoreOptions extends OptionHolder {
                     "The min depth to enable concurrent oltp algorithm.",
                     rangeInt(0, 65535),
                     10
-            );
-
-    public static final ConfigOption<Double> AUTH_AUDIT_LOG_RATE =
-            new ConfigOption<>(
-                    "auth.audit_log_rate",
-                    "The max rate of audit log output per user, " +
-                    "default value is 1000 records per second.",
-                    rangeDouble(0.0, Double.MAX_VALUE),
-                    1000.0
             );
 
     public static final ConfigConvOption<String, CollectionType> OLTP_COLLECTION_TYPE =

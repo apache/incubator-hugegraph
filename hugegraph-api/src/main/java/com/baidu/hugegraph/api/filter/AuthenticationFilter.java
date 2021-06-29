@@ -21,7 +21,9 @@ package com.baidu.hugegraph.api.filter;
 
 import java.io.IOException;
 import java.security.Principal;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.annotation.Priority;
 import javax.ws.rs.BadRequestException;
@@ -51,14 +53,22 @@ import com.baidu.hugegraph.auth.RolePermission;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableList;
 
 @Provider
 @PreMatching
 @Priority(Priorities.AUTHENTICATION)
 public class AuthenticationFilter implements ContainerRequestFilter {
 
+    public static final String BASIC_AUTH_PREFIX = "Basic ";
+    public static final String BEARER_TOKEN_PREFIX = "Bearer ";
+
     private static final Logger LOG = Log.logger(AuthenticationFilter.class);
+
+    private static final List<String> WHITE_API_LIST = ImmutableList.of(
+            "auth/login",
+            "versions"
+    );
 
     @Context
     private javax.inject.Provider<GraphManager> managerProvider;
@@ -68,6 +78,9 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
     @Override
     public void filter(ContainerRequestContext context) throws IOException {
+        if (AuthenticationFilter.isWhiteAPI(context)) {
+            return;
+        }
         User user = this.authenticate(context);
         Authorizer authorizer = new Authorizer(user, context.getUriInfo());
         context.setSecurityContext(authorizer);
@@ -91,6 +104,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
             path = request.getRequestURI();
         }
 
+        Map<String, String> credentials = new HashMap<>();
         // Extract authentication credentials
         String auth = context.getHeaderString(HttpHeaders.AUTHORIZATION);
         if (auth == null) {
@@ -98,39 +112,45 @@ public class AuthenticationFilter implements ContainerRequestFilter {
                       "Authentication credentials are required",
                       "Missing authentication credentials");
         }
-        if (!auth.startsWith("Basic ")) {
+
+        if (auth.startsWith(BASIC_AUTH_PREFIX)) {
+            auth = auth.substring(BASIC_AUTH_PREFIX.length());
+            auth = new String(DatatypeConverter.parseBase64Binary(auth),
+                              Charsets.ASCII_CHARSET);
+            String[] values = auth.split(":");
+            if (values.length != 2) {
+                throw new BadRequestException(
+                          "Invalid syntax for username and password");
+            }
+
+            final String username = values[0];
+            final String password = values[1];
+
+            if (StringUtils.isEmpty(username) ||
+                StringUtils.isEmpty(password)) {
+                throw new BadRequestException(
+                          "Invalid syntax for username and password");
+            }
+
+            credentials.put(HugeAuthenticator.KEY_USERNAME, username);
+            credentials.put(HugeAuthenticator.KEY_PASSWORD, password);
+        } else if (auth.startsWith(BEARER_TOKEN_PREFIX)) {
+            String token = auth.substring(BEARER_TOKEN_PREFIX.length());
+            credentials.put(HugeAuthenticator.KEY_TOKEN, token);
+        } else {
             throw new BadRequestException(
-                      "Only HTTP Basic authentication is supported");
+                      "Only HTTP Basic or Bearer authentication is supported");
         }
 
-        auth = auth.substring("Basic ".length());
-        auth = new String(DatatypeConverter.parseBase64Binary(auth),
-                          Charsets.ASCII_CHARSET);
-        String[] values = auth.split(":");
-        if (values.length != 2) {
-            throw new BadRequestException(
-                      "Invalid syntax for username and password");
-        }
-
-        final String username = values[0];
-        final String password = values[1];
-
-        if (StringUtils.isEmpty(username) || StringUtils.isEmpty(password)) {
-            throw new BadRequestException(
-                      "Invalid syntax for username and password");
-        }
+        credentials.put(HugeAuthenticator.KEY_ADDRESS, peer);
+        credentials.put(HugeAuthenticator.KEY_PATH, path);
 
         // Validate the extracted credentials
         try {
-            return manager.authenticate(ImmutableMap.of(
-                           HugeAuthenticator.KEY_USERNAME, username,
-                           HugeAuthenticator.KEY_PASSWORD, password,
-                           HugeAuthenticator.KEY_ADDRESS, peer,
-                           HugeAuthenticator.KEY_PATH, path));
+            return manager.authenticate(credentials);
         } catch (AuthenticationException e) {
-            String msg = String.format("Authentication failed for user '%s'",
-                                       username);
-            throw new NotAuthorizedException(msg, e.getMessage());
+            throw new NotAuthorizedException("Authentication failed",
+                                             e.getMessage());
         }
     }
 
@@ -256,5 +276,19 @@ public class AuthenticationFilter implements ContainerRequestFilter {
                 return Authorizer.this.user.equals(obj);
             }
         }
+    }
+
+    public static boolean isWhiteAPI(ContainerRequestContext context) {
+        String path = context.getUriInfo().getPath();
+
+        E.checkArgument(StringUtils.isNotEmpty(path),
+                        "Invalid request uri '%s'", path);
+
+        for (String whiteApi : WHITE_API_LIST) {
+            if (path.endsWith(whiteApi)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

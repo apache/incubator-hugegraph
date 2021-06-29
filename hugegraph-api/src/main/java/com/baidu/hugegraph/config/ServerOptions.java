@@ -69,7 +69,7 @@ public class ServerOptions extends OptionHolder {
     public static final ConfigOption<Integer> MAX_WORKER_THREADS =
             new ConfigOption<>(
                     "restserver.max_worker_threads",
-                    "The maxmium worker threads of rest server.",
+                    "The maximum worker threads of rest server.",
                     rangeInt(2, Integer.MAX_VALUE),
                     2 * CoreOptions.CPUS
             );
@@ -77,7 +77,7 @@ public class ServerOptions extends OptionHolder {
     public static final ConfigOption<Integer> MIN_FREE_MEMORY =
             new ConfigOption<>(
                     "restserver.min_free_memory",
-                    "The minmium free memory(MB) of rest server, requests " +
+                    "The minimum free memory(MB) of rest server, requests " +
                     "will be rejected when the available memory of system " +
                     "is lower than this value.",
                     nonNegativeInt(),
@@ -188,7 +188,7 @@ public class ServerOptions extends OptionHolder {
     public static final ConfigOption<String> AUTHENTICATOR =
             new ConfigOption<>(
                     "auth.authenticator",
-                    "The class path of authenticator implemention. " +
+                    "The class path of authenticator implementation. " +
                     "e.g., com.baidu.hugegraph.auth.StandardAuthenticator, " +
                     "or com.baidu.hugegraph.auth.ConfigAuthenticator.",
                     null,

@@ -17,32 +17,35 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.api;
+package com.baidu.hugegraph.auth;
 
-import org.junit.BeforeClass;
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
+import com.baidu.hugegraph.backend.id.Id;
 
-import com.baidu.hugegraph.dist.RegisterUtil;
+public class UserWithRole {
 
-@RunWith(Suite.class)
-@Suite.SuiteClasses({
-    PropertyKeyApiTest.class,
-    VertexLabelApiTest.class,
-    EdgeLabelApiTest.class,
-    IndexLabelApiTest.class,
-    VertexApiTest.class,
-    EdgeApiTest.class,
-    TaskApiTest.class,
-    GremlinApiTest.class,
-    MetricsApiTest.class,
-    UserApiTest.class,
-    LoginApiTest.class
-})
-public class ApiTestSuite {
+    private final Id userId;
+    private final String username;
+    private final RolePermission role;
 
-    @BeforeClass
-    public static void initEnv() {
-        RegisterUtil.registerBackends();
+    public UserWithRole(String username) {
+        this(null, username, null);
+    }
+
+    public UserWithRole(Id userId, String username, RolePermission role) {
+        this.userId = userId;
+        this.username = username;
+        this.role = role;
+    }
+
+    public Id userId() {
+        return this.userId;
+    }
+
+    public String username() {
+        return this.username;
+    }
+
+    public RolePermission role() {
+        return this.role;
     }
 }

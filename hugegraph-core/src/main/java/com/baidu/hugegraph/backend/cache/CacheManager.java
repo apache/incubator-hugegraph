@@ -51,6 +51,13 @@ public class CacheManager {
         return INSTANCE;
     }
 
+    public static boolean cacheEnableMetrics(String name, boolean enabled) {
+        Cache<Id, ?> cache = INSTANCE.caches.get(name);
+        E.checkArgument(cache != null,
+                        "Not found cache named '%s'", name);
+        return cache.enableMetrics(enabled);
+    }
+
     public CacheManager() {
         this.caches = new ConcurrentHashMap<>();
         this.timer = new Timer("cache-expirer", true);

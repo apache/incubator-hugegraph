@@ -179,6 +179,8 @@ public class UserAPI extends API {
         private String email;
         @JsonProperty("user_avatar")
         private String avatar;
+        @JsonProperty("user_description")
+        private String description;
 
         public HugeUser build(HugeUser user) {
             E.checkArgument(this.name == null || user.name().equals(this.name),
@@ -195,6 +197,9 @@ public class UserAPI extends API {
             if (this.avatar != null) {
                 user.avatar(this.avatar);
             }
+            if (this.description != null) {
+                user.description(this.description);
+            }
             return user;
         }
 
@@ -204,6 +209,7 @@ public class UserAPI extends API {
             user.phone(this.phone);
             user.email(this.email);
             user.avatar(this.avatar);
+            user.description(this.description);
             return user;
         }
 
