@@ -26,6 +26,7 @@ assignees: ''
 - **Data Size**:  xx vertices, xx edges <!-- (like 1000W 点, 9000W 边) -->
 
 ## Your Question ( 问题描述 )
+<!-- 请提供清晰的截图, 动图录屏更佳  -->
 
 xxx
 
