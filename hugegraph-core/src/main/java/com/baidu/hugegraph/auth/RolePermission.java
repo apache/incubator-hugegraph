@@ -66,7 +66,7 @@ public class RolePermission {
     }
 
     private RolePermission(Map<String, Map<HugePermission,
-                           List<HugeResource>>> roles) {
+                                       List<HugeResource>>> roles) {
         this.roles = roles;
     }
 
@@ -186,8 +186,8 @@ public class RolePermission {
         return role;
     }
 
-    private static class RolePermissionSer extends
-                                           StdSerializer<RolePermission> {
+    private static class RolePermissionSer
+                   extends StdSerializer<RolePermission> {
 
         private static final long serialVersionUID = -2533310506459479383L;
 
@@ -219,7 +219,7 @@ public class RolePermission {
                                           throws IOException {
             TypeReference<?> type = new TypeReference<TreeMap<String,
                              TreeMap<HugePermission, List<HugeResource>>>>() {};
-            if (parser.nextFieldName().equals("roles")) {
+            if ("roles".equals(parser.nextFieldName())) {
                 parser.nextValue();
                 return new RolePermission(parser.readValueAs(type));
             }
