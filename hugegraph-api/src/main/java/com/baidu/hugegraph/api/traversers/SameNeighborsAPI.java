@@ -19,8 +19,8 @@
 
 package com.baidu.hugegraph.api.traversers;
 
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_ELEMENTS_LIMIT;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEGREE;
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PATHS_LIMIT;
 
 import java.util.Set;
 
@@ -65,7 +65,7 @@ public class SameNeighborsAPI extends API {
                       @QueryParam("max_degree")
                       @DefaultValue(DEFAULT_MAX_DEGREE) long maxDegree,
                       @QueryParam("limit")
-                      @DefaultValue(DEFAULT_PATHS_LIMIT) long limit) {
+                      @DefaultValue(DEFAULT_ELEMENTS_LIMIT) long limit) {
         LOG.debug("Graph [{}] get same neighbors between '{}' and '{}' with " +
                   "direction {}, edge label {}, max degree '{}' and limit '{}'",
                   graph, vertex, other, direction, edgeLabel, maxDegree, limit);

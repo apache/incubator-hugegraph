@@ -1098,17 +1098,11 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
             User taskUser = User.fromJson(task.context());
             if (taskUser == null) {
-                if (User.ADMIN.equals(currentUser)) {
-                    return true;
-                }
-                return false;
+                return User.ADMIN.equals(currentUser);
             }
 
-            if (Objects.equals(currentUser.getName(), taskUser.getName()) ||
-                RolePerm.match(currentUser.role(), taskUser.role(), null)) {
-                return true;
-            }
-            return false;
+            return Objects.equals(currentUser.getName(), taskUser.getName()) ||
+                   RolePerm.match(currentUser.role(), taskUser.role(), null);
         }
     }
 
@@ -1159,6 +1153,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
                 this.updateCreator(updatedUser);
                 verifyUserPermission(HugePermission.WRITE, user);
             }
+            this.invalidRoleCache();
             return this.authManager.updateUser(updatedUser);
         }
 
@@ -1169,6 +1164,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
                             "Can't delete user '%s'", user.name());
             verifyUserPermission(HugePermission.DELETE, user);
             auditLimiters.invalidate(user.id());
+            this.invalidRoleCache();
             return this.authManager.deleteUser(id);
         }
 
@@ -1208,6 +1204,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         public Id createGroup(HugeGroup group) {
             this.updateCreator(group);
             verifyUserPermission(HugePermission.WRITE, group);
+            this.invalidRoleCache();
             return this.authManager.createGroup(group);
         }
 
@@ -1215,6 +1212,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         public Id updateGroup(HugeGroup group) {
             this.updateCreator(group);
             verifyUserPermission(HugePermission.WRITE, group);
+            this.invalidRoleCache();
             return this.authManager.updateGroup(group);
         }
 
@@ -1222,6 +1220,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         public HugeGroup deleteGroup(Id id) {
             verifyUserPermission(HugePermission.DELETE,
                                  this.authManager.getGroup(id));
+            this.invalidRoleCache();
             return this.authManager.deleteGroup(id);
         }
 
@@ -1247,6 +1246,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         public Id createTarget(HugeTarget target) {
             this.updateCreator(target);
             verifyUserPermission(HugePermission.WRITE, target);
+            this.invalidRoleCache();
             return this.authManager.createTarget(target);
         }
 
@@ -1254,6 +1254,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         public Id updateTarget(HugeTarget target) {
             this.updateCreator(target);
             verifyUserPermission(HugePermission.WRITE, target);
+            this.invalidRoleCache();
             return this.authManager.updateTarget(target);
         }
 
@@ -1261,6 +1262,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         public HugeTarget deleteTarget(Id id) {
             verifyUserPermission(HugePermission.DELETE,
                                  this.authManager.getTarget(id));
+            this.invalidRoleCache();
             return this.authManager.deleteTarget(id);
         }
 
@@ -1286,6 +1288,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         public Id createBelong(HugeBelong belong) {
             this.updateCreator(belong);
             verifyUserPermission(HugePermission.WRITE, belong);
+            this.invalidRoleCache();
             return this.authManager.createBelong(belong);
         }
 
@@ -1293,6 +1296,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         public Id updateBelong(HugeBelong belong) {
             this.updateCreator(belong);
             verifyUserPermission(HugePermission.WRITE, belong);
+            this.invalidRoleCache();
             return this.authManager.updateBelong(belong);
         }
 
@@ -1300,6 +1304,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         public HugeBelong deleteBelong(Id id) {
             verifyUserPermission(HugePermission.DELETE,
                                  this.authManager.getBelong(id));
+            this.invalidRoleCache();
             return this.authManager.deleteBelong(id);
         }
 
@@ -1338,6 +1343,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         public Id createAccess(HugeAccess access) {
             this.updateCreator(access);
             verifyUserPermission(HugePermission.WRITE, access);
+            this.invalidRoleCache();
             return this.authManager.createAccess(access);
         }
 
@@ -1345,6 +1351,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         public Id updateAccess(HugeAccess access) {
             this.updateCreator(access);
             verifyUserPermission(HugePermission.WRITE, access);
+            this.invalidRoleCache();
             return this.authManager.updateAccess(access);
         }
 
@@ -1352,6 +1359,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         public HugeAccess deleteAccess(Id id) {
             verifyUserPermission(HugePermission.DELETE,
                                  this.authManager.getAccess(id));
+            this.invalidRoleCache();
             return this.authManager.deleteAccess(id);
         }
 
@@ -1457,6 +1465,10 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         private void switchAuthManager(AuthManager authManager) {
             this.authManager = authManager;
             HugeGraphAuthProxy.this.hugegraph.switchAuthManager(authManager);
+        }
+
+        private void invalidRoleCache() {
+            usersRoleCache.clear();
         }
     }
 
