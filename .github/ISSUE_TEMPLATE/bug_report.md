@@ -30,6 +30,7 @@ assignees: ''
 xxx
 
 ## Actual behavior ( 实际表现 / 报错)
+<!-- 请提供清晰的截图, 动图录屏更佳  -->
 
 xxx
 
