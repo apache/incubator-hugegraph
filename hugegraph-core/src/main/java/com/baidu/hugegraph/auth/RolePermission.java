@@ -59,15 +59,15 @@ public class RolePermission {
 
     // Mapping of: graph -> action -> resource
     @JsonProperty("roles")
-    private final Map<String, Map<HugePermission, List<HugeResource>>> map;
+    private final Map<String, Map<HugePermission, List<HugeResource>>> roles;
 
     public RolePermission() {
         this(new TreeMap<>());
     }
 
     private RolePermission(Map<String, Map<HugePermission,
-                                           List<HugeResource>>> map) {
-        this.map = map;
+                                       List<HugeResource>>> roles) {
+        this.roles = roles;
     }
 
     protected void add(String graph, String action,
@@ -78,10 +78,10 @@ public class RolePermission {
     protected void add(String graph, HugePermission action,
                        List<HugeResource> resources) {
         Map<HugePermission, List<HugeResource>> permissions =
-                                                this.map.get(graph);
+                                                this.roles.get(graph);
         if (permissions == null) {
             permissions = new TreeMap<>();
-            this.map.put(graph, permissions);
+            this.roles.put(graph, permissions);
         }
         List<HugeResource> mergedResources = permissions.get(action);
         if (mergedResources == null) {
@@ -92,14 +92,14 @@ public class RolePermission {
     }
 
     protected Map<String, Map<HugePermission, List<HugeResource>>> map() {
-        return Collections.unmodifiableMap(this.map);
+        return Collections.unmodifiableMap(this.roles);
     }
 
     protected boolean contains(RolePermission other) {
         for (Map.Entry<String, Map<HugePermission, List<HugeResource>>> e1 :
-             other.map.entrySet()) {
+             other.roles.entrySet()) {
             String g = e1.getKey();
-            Map<HugePermission, List<HugeResource>> perms = this.map.get(g);
+            Map<HugePermission, List<HugeResource>> perms = this.roles.get(g);
             if (perms == null) {
                 return false;
             }
@@ -132,12 +132,12 @@ public class RolePermission {
             return false;
         }
         RolePermission other = (RolePermission) object;
-        return Objects.equals(this.map, other.map);
+        return Objects.equals(this.roles, other.roles);
     }
 
     @Override
     public String toString() {
-        return this.map.toString();
+        return this.roles.toString();
     }
 
     public String toJson() {
@@ -186,7 +186,8 @@ public class RolePermission {
         return role;
     }
 
-    private static class RolePermissionSer extends StdSerializer<RolePermission> {
+    private static class RolePermissionSer
+                   extends StdSerializer<RolePermission> {
 
         private static final long serialVersionUID = -2533310506459479383L;
 
@@ -199,7 +200,7 @@ public class RolePermission {
                               SerializerProvider provider)
                               throws IOException {
             generator.writeStartObject();
-            generator.writeObjectField("roles", role.map);
+            generator.writeObjectField("roles", role.roles);
             generator.writeEndObject();
         }
     }
@@ -218,7 +219,7 @@ public class RolePermission {
                                           throws IOException {
             TypeReference<?> type = new TypeReference<TreeMap<String,
                              TreeMap<HugePermission, List<HugeResource>>>>() {};
-            if (parser.nextFieldName().equals("roles")) {
+            if ("roles".equals(parser.nextFieldName())) {
                 parser.nextValue();
                 return new RolePermission(parser.readValueAs(type));
             }

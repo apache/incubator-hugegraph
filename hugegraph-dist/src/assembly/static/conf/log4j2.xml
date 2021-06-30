@@ -95,5 +95,8 @@
         <AsyncLogger name="com.baidu.hugegraph.auth" level="INFO" additivity="false">
             <appender-ref ref="audit"/>
         </AsyncLogger>
+        <AsyncLogger name="com.baidu.hugegraph.api.filter.AuthenticationFilter" level="INFO" additivity="false">
+            <appender-ref ref="audit"/>
+        </AsyncLogger>
     </loggers>
 </configuration>
