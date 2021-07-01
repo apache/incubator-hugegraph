@@ -24,6 +24,11 @@ import java.util.concurrent.Future;
 
 import org.slf4j.Logger;
 
+import com.alipay.remoting.rpc.RpcServer;
+import com.alipay.sofa.jraft.entity.PeerId;
+import com.alipay.sofa.jraft.rpc.RaftRpcServerFactory;
+import com.alipay.sofa.jraft.rpc.impl.BoltRpcServer;
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.BackendException;
@@ -46,18 +51,47 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
     private static final Logger LOG = Log.logger(RaftBackendStoreProvider.class);
 
     private final BackendStoreProvider provider;
-    private final RaftSharedContext context;
     private RaftBackendStore schemaStore;
     private RaftBackendStore graphStore;
     private RaftBackendStore systemStore;
+    private RaftContext context;
 
-    public RaftBackendStoreProvider(BackendStoreProvider provider,
-                                    HugeGraphParams params) {
+    public RaftBackendStoreProvider(BackendStoreProvider provider) {
         this.provider = provider;
-        this.context = new RaftSharedContext(params);
         this.schemaStore = null;
         this.graphStore = null;
         this.systemStore = null;
+        this.context = null;
+    }
+
+    public void initRaftContext(HugeGraphParams params, RpcServer rpcServer) {
+        HugeConfig config = params.configuration();
+        Integer lowWaterMark = config.get(
+                               CoreOptions.RAFT_RPC_BUF_LOW_WATER_MARK);
+        System.setProperty("bolt.channel_write_buf_low_water_mark",
+                           String.valueOf(lowWaterMark));
+        Integer highWaterMark = config.get(
+                                CoreOptions.RAFT_RPC_BUF_HIGH_WATER_MARK);
+        System.setProperty("bolt.channel_write_buf_high_water_mark",
+                           String.valueOf(highWaterMark));
+
+//        PeerId endpoint = new PeerId();
+//        String endpointStr = config.get(ServerOptions.RAFT_ENDPOINT);
+//        if (!endpoint.parse(endpointStr)) {
+//            throw new HugeException("Failed to parse endpoint %s", endpointStr);
+//        }
+
+        // Reference from RaftRpcServerFactory.createAndStartRaftRpcServer
+        com.alipay.sofa.jraft.rpc.RpcServer raftRpcServer =
+                                            new BoltRpcServer(rpcServer);
+        RaftRpcServerFactory.addRaftRequestProcessors(raftRpcServer);
+        raftRpcServer.init(null);
+
+        PeerId endpoint = new PeerId(rpcServer.ip(), rpcServer.port());
+        this.context = new RaftContext(params, raftRpcServer, endpoint);
+
+        //
+        this.context.addStore(StoreType.SYSTEM, this.systemStore);
     }
 
     public RaftGroupManager raftNodeManager() {
@@ -129,7 +163,6 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
             BackendStore store = this.provider.loadSystemStore(config, name);
             this.checkNonSharedStore(store);
             this.systemStore = new RaftBackendStore(store, this.context);
-            this.context.addStore(StoreType.SYSTEM, this.systemStore);
         }
         return this.systemStore;
     }
@@ -203,7 +236,9 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
         BackendStoreSystemInfo info = graph.backendStoreSystemInfo();
         info.init();
 
-        this.notifyAndWaitEvent(Events.STORE_INITED);
+        // 创建系统schema，保存到pool里面
+        init();
+//        this.notifyAndWaitEvent(Events.STORE_INITED);
         LOG.debug("Graph '{}' system info has been initialized", this.graph());
         /*
          * Take the initiative to generate a snapshot, it can avoid this

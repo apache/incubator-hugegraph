@@ -25,8 +25,6 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
-import javax.ws.rs.HEAD;
-
 import org.slf4j.Logger;
 
 import com.alipay.sofa.jraft.Closure;
@@ -47,8 +45,6 @@ import com.baidu.hugegraph.backend.store.raft.RaftBackendStore.IncrCounter;
 import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction;
 import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType;
 import com.baidu.hugegraph.util.E;
-import com.baidu.hugegraph.type.HugeType;
-import com.baidu.hugegraph.type.define.GraphMode;
 import com.baidu.hugegraph.util.LZ4Util;
 import com.baidu.hugegraph.util.Log;
 
@@ -56,10 +52,10 @@ public final class StoreStateMachine extends StateMachineAdapter {
 
     private static final Logger LOG = Log.logger(StoreStateMachine.class);
 
-    private final RaftSharedContext context;
+    private final RaftContext context;
     private final StoreSnapshotFile snapshotFile;
 
-    public StoreStateMachine(RaftSharedContext context) {
+    public StoreStateMachine(RaftContext context) {
         this.context = context;
         this.snapshotFile = new StoreSnapshotFile(context.stores());
     }
@@ -134,7 +130,7 @@ public final class StoreStateMachine extends StateMachineAdapter {
         // Let the backend thread do it directly
         return this.context.backendExecutor().submit(() -> {
             BytesBuffer buffer = LZ4Util.decompress(bytes,
-                                 RaftSharedContext.BLOCK_SIZE);
+                                                    RaftContext.BLOCK_SIZE);
             buffer.forReadWritten();
             StoreType type = StoreType.valueOf(buffer.read());
             StoreAction action = StoreAction.valueOf(buffer.read());

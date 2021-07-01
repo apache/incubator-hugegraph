@@ -46,7 +46,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.NullOutputStream;
 
-import com.baidu.hugegraph.backend.store.raft.RaftSharedContext;
+import com.baidu.hugegraph.backend.store.raft.RaftContext;
 
 import net.jpountz.lz4.LZ4BlockInputStream;
 import net.jpountz.lz4.LZ4BlockOutputStream;
@@ -63,7 +63,7 @@ public final class CompressUtil {
                                    Checksum checksum) throws IOException {
         LZ4Factory factory = LZ4Factory.fastestInstance();
         LZ4Compressor compressor = factory.fastCompressor();
-        int blockSize = RaftSharedContext.BLOCK_SIZE;
+        int blockSize = RaftContext.BLOCK_SIZE;
         try (FileOutputStream fos = new FileOutputStream(outputFile);
              CheckedOutputStream cos = new CheckedOutputStream(fos, checksum);
              BufferedOutputStream bos = new BufferedOutputStream(cos);

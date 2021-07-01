@@ -177,13 +177,13 @@ public class ServerOptions extends OptionHolder {
                     nonNegativeInt(),
                     0);
 
-    public static final ConfigOption<String> RAFT_ENDPOINT =
-            new ConfigOption<>(
-                    "raft.endpoint",
-                    "The peerid of current raft node.",
-                    disallowEmpty(),
-                    "127.0.0.1:8281"
-            );
+//    public static final ConfigOption<String> RAFT_ENDPOINT =
+//            new ConfigOption<>(
+//                    "raft.endpoint",
+//                    "The peerid of current raft node.",
+//                    disallowEmpty(),
+//                    "127.0.0.1:8281"
+//            );
 
     public static final ConfigOption<String> RAFT_GROUP_PEERS =
             new ConfigOption<>(

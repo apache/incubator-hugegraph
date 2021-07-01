@@ -19,7 +19,7 @@
 
 package com.baidu.hugegraph.backend.store.raft.rpc;
 
-import static com.baidu.hugegraph.backend.store.raft.RaftSharedContext.WAIT_RPC_TIMEOUT;
+import static com.baidu.hugegraph.backend.store.raft.RaftContext.WAIT_RPC_TIMEOUT;
 
 import java.util.concurrent.ExecutionException;
 

@@ -31,8 +31,6 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ThreadPoolExecutor;
 
-import javax.ws.rs.HEAD;
-
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 
@@ -69,9 +67,9 @@ import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Events;
 import com.baidu.hugegraph.util.Log;
 
-public final class RaftSharedContext {
+public final class RaftContext {
 
-    private static final Logger LOG = Log.logger(RaftSharedContext.class);
+    private static final Logger LOG = Log.logger(RaftContext.class);
 
     // unit is ms
     public static final int NO_TIMEOUT = -1;
@@ -91,13 +89,14 @@ public final class RaftSharedContext {
     public static final long KEEP_ALIVE_SECOND = 300L;
 
     private final HugeGraphParams params;
+    private final RpcServer rpcServer;
+    private final PeerId endpoint;
+
     private final String schemaStoreName;
     private final String graphStoreName;
     private final String systemStoreName;
     private final RaftBackendStore[] stores;
-    private final PeerId endpoint;
     private final Configuration groupPeers;
-    private final RpcServer rpcServer;
     @SuppressWarnings("unused")
     private final ExecutorService readIndexExecutor;
     private final ExecutorService snapshotExecutor;
@@ -107,21 +106,24 @@ public final class RaftSharedContext {
     private RaftGroupManager raftGroupManager;
     private RpcForwarder rpcForwarder;
 
-    public RaftSharedContext(HugeGraphParams params) {
+    public RaftContext(HugeGraphParams params, RpcServer rpcServer,
+                       PeerId endpoint) {
         this.params = params;
-        HugeConfig config = this.config();
+        this.rpcServer = rpcServer;
+        this.endpoint = endpoint;
 
+        HugeConfig config = params.configuration();
         this.schemaStoreName = config.get(CoreOptions.STORE_SCHEMA);
         this.graphStoreName = config.get(CoreOptions.STORE_GRAPH);
         this.systemStoreName = config.get(CoreOptions.STORE_SYSTEM);
         this.stores = new RaftBackendStore[StoreType.ALL.getNumber()];
 
-        // TODO: 依赖了ServerOptions的配置项名，需要打通ServerConfig和CoreConfig
-        this.endpoint = new PeerId();
-        String endpointStr = config.getString("raft.endpoint");
-        if (!this.endpoint.parse(endpointStr)) {
-            throw new HugeException("Failed to parse endpoint %s", endpointStr);
-        }
+//        // TODO: 依赖了ServerOptions的配置项名，需要打通ServerConfig和CoreConfig
+//        this.endpoint = new PeerId();
+//        String endpointStr = config.getString("raft.endpoint");
+//        if (!this.endpoint.parse(endpointStr)) {
+//            throw new HugeException("Failed to parse endpoint %s", endpointStr);
+//        }
         this.groupPeers = new Configuration();
         String groupPeersStr = config.getString("raft.group_peers");
         if (!this.groupPeers.parse(groupPeersStr)) {
@@ -129,7 +131,6 @@ public final class RaftSharedContext {
                                     groupPeersStr);
         }
 
-        this.rpcServer = this.initAndStartRpcServer();
         if (config.get(CoreOptions.RAFT_SAFE_READ)) {
             int threads = config.get(CoreOptions.RAFT_READ_INDEX_THREADS);
             this.readIndexExecutor = this.createReadIndexExecutor(threads);
@@ -155,8 +156,8 @@ public final class RaftSharedContext {
 
     public void waitRaftNodeStarted() {
         RaftNode node = this.node();
-        node.waitLeaderElected(RaftSharedContext.WAIT_LEADER_TIMEOUT);
-        node.waitRaftLogSynced(RaftSharedContext.NO_TIMEOUT);
+        node.waitLeaderElected(RaftContext.WAIT_LEADER_TIMEOUT);
+        node.waitRaftLogSynced(RaftContext.NO_TIMEOUT);
     }
 
     public void close() {
@@ -355,7 +356,6 @@ public final class RaftSharedContext {
     private HugeConfig config() {
         return this.params.configuration();
     }
-
     private RpcServer initAndStartRpcServer() {
         Integer lowWaterMark = this.config().get(
                                CoreOptions.RAFT_RPC_BUF_LOW_WATER_MARK);
@@ -385,7 +385,6 @@ public final class RaftSharedContext {
         this.rpcServer.registerProcessor(new SetLeaderProcessor(this));
         this.rpcServer.registerProcessor(new ListPeersProcessor(this));
     }
-
     private ExecutorService createReadIndexExecutor(int coreThreads) {
         int maxThreads = coreThreads << 2;
         String name = "store-read-index-callback";

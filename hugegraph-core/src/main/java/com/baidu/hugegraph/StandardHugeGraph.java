@@ -39,6 +39,7 @@ import org.apache.tinkerpop.gremlin.structure.util.AbstractThreadLocalTransactio
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import org.slf4j.Logger;
 
+import com.alipay.remoting.rpc.RpcServer;
 import com.baidu.hugegraph.analyzer.Analyzer;
 import com.baidu.hugegraph.analyzer.AnalyzerFactory;
 import com.baidu.hugegraph.auth.AuthManager;
@@ -310,7 +311,12 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
-    public void waitReady() {
+    public void waitReady(RpcServer rpcServer) {
+        if (this.storeProvider instanceof RaftBackendStoreProvider) {
+            ((RaftBackendStoreProvider) this.storeProvider).initRaftContext(
+                                                            this.params,
+                                                            rpcServer);
+        }
         // Just for trigger Tx.getOrNewTransaction, then load 3 stores
         this.schemaTransaction();
         this.storeProvider.waitStoreStarted();

@@ -174,6 +174,7 @@ public class EntityManager<T extends Entity> {
 
         // Add or update user in backend store, stale index might exist
         vertex = this.tx().addVertex(vertex);
+        addVertex(, System.User)
         this.commitOrRollback();
         return vertex.id();
     }

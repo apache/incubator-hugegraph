@@ -47,7 +47,7 @@ public final class RaftNode {
 
     private static final Logger LOG = Log.logger(RaftNode.class);
 
-    private final RaftSharedContext context;
+    private final RaftContext context;
     private RaftGroupService raftGroupService;
     private final Node node;
     private final StoreStateMachine stateMachine;
@@ -55,7 +55,7 @@ public final class RaftNode {
     private final AtomicBoolean started;
     private final AtomicInteger busyCounter;
 
-    public RaftNode(RaftSharedContext context) {
+    public RaftNode(RaftContext context) {
         this.context = context;
         this.stateMachine = new StoreStateMachine(context);
         try {
@@ -70,7 +70,7 @@ public final class RaftNode {
         this.busyCounter = new AtomicInteger();
     }
 
-    public RaftSharedContext context() {
+    public RaftContext context() {
         return this.context;
     }
 
@@ -133,7 +133,7 @@ public final class RaftNode {
     private void submitCommand(StoreCommand command, RaftStoreClosure closure) {
         // Wait leader elected
         LeaderInfo leaderInfo = this.waitLeaderElected(
-                                RaftSharedContext.WAIT_LEADER_TIMEOUT);
+                RaftContext.WAIT_LEADER_TIMEOUT);
         if (!leaderInfo.selfIsLeader) {
             this.context.rpcForwarder().forwardToLeader(leaderInfo.leaderId,
                                                         command, closure);
@@ -146,7 +146,7 @@ public final class RaftNode {
         task.setDone(closure);
         // compress return BytesBuffer
         ByteBuffer buffer = LZ4Util.compress(command.data(),
-                                             RaftSharedContext.BLOCK_SIZE)
+                                             RaftContext.BLOCK_SIZE)
                                    .forReadWritten()
                                    .asByteBuffer();
         LOG.debug("The bytes size of command(compressed) {} is {}",
@@ -182,7 +182,7 @@ public final class RaftNode {
         long beginTime = System.currentTimeMillis();
         while (leaderInfo.leaderId == null) {
             try {
-                Thread.sleep(RaftSharedContext.POLL_INTERVAL);
+                Thread.sleep(RaftContext.POLL_INTERVAL);
             } catch (InterruptedException e) {
                 throw new BackendException("Interrupted while waiting for " +
                                            "raft group '%s' election", group, e);
@@ -212,7 +212,7 @@ public final class RaftNode {
                 }
             });
             try {
-                Thread.sleep(RaftSharedContext.POLL_INTERVAL);
+                Thread.sleep(RaftContext.POLL_INTERVAL);
             } catch (InterruptedException e) {
                 throw new BackendException("Interrupted while waiting for " +
                                            "raft group '%s' log sync", group, e);
@@ -233,11 +233,11 @@ public final class RaftNode {
             return;
         }
         // It may lead many thread sleep, but this is exactly what I want
-        int delta = RaftSharedContext.BUSY_MAX_SLEEP_FACTOR -
-                    RaftSharedContext.BUSY_MIN_SLEEP_FACTOR;
+        int delta = RaftContext.BUSY_MAX_SLEEP_FACTOR -
+                    RaftContext.BUSY_MIN_SLEEP_FACTOR;
         Random random = new Random();
         int timeout = random.nextInt(delta) +
-                      RaftSharedContext.BUSY_MIN_SLEEP_FACTOR;
+                      RaftContext.BUSY_MIN_SLEEP_FACTOR;
         int time = counter * timeout;
         try {
             Thread.sleep(time);
@@ -283,7 +283,7 @@ public final class RaftNode {
         public void onError(PeerId peer, Status status) {
             long now = System.currentTimeMillis();
             long interval = now - this.lastPrintTime;
-            if (interval >= RaftSharedContext.LOG_WARN_INTERVAL) {
+            if (interval >= RaftContext.LOG_WARN_INTERVAL) {
                 LOG.warn("Replicator meet error: {}", status);
                 this.lastPrintTime = now;
             }
