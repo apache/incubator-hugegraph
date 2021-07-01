@@ -53,6 +53,7 @@ import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendAction;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
+import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import com.baidu.hugegraph.backend.store.raft.rpc.ListPeersProcessor;
 import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType;
 import com.baidu.hugegraph.backend.store.raft.rpc.RpcForwarder;
@@ -93,10 +94,6 @@ public final class RaftContext {
 
     private final Configuration groupPeers;
 
-    private final String schemaStoreName;
-    private final String graphStoreName;
-    private final String systemStoreName;
-
     private final RaftBackendStore[] stores;
 
     private final ExecutorService readIndexExecutor;
@@ -127,10 +124,6 @@ public final class RaftContext {
             throw new HugeException("Failed to parse raft.group_peers: '%s'",
                                     groupPeersString);
         }
-
-        this.schemaStoreName = config.get(CoreOptions.STORE_SCHEMA);
-        this.graphStoreName = config.get(CoreOptions.STORE_GRAPH);
-        this.systemStoreName = config.get(CoreOptions.STORE_SYSTEM);
 
         this.stores = new RaftBackendStore[StoreType.ALL.getNumber()];
 
@@ -210,12 +203,12 @@ public final class RaftContext {
     }
 
     public StoreType storeType(String store) {
-        if (this.schemaStoreName.equals(store)) {
+        if (BackendStoreProvider.SCHEMA_STORE.equals(store)) {
             return StoreType.SCHEMA;
-        } else if (this.graphStoreName.equals(store)) {
+        } else if (BackendStoreProvider.GRAPH_STORE.equals(store)) {
             return StoreType.GRAPH;
         } else {
-            assert this.systemStoreName.equals(store);
+            assert BackendStoreProvider.SYSTEM_STORE.equals(store);
             return StoreType.SYSTEM;
         }
     }

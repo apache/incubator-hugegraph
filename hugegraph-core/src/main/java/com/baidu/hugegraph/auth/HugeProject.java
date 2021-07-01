@@ -274,7 +274,7 @@ public class HugeProject extends Entity {
 
         @Override
         public void initSchemaIfNeeded() {
-            if (this.existEdgeLabel(this.label)) {
+            if (this.existVertexLabel(this.label)) {
                 return;
             }
 

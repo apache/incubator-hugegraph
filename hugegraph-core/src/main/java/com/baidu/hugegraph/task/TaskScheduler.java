@@ -50,6 +50,8 @@ public interface TaskScheduler {
     <V> Iterator<HugeTask<V>> tasks(TaskStatus status,
                                     long limit, String page);
 
+    void init();
+
     boolean close();
 
     <V> HugeTask<V> waitUntilTaskCompleted(Id id, long seconds)

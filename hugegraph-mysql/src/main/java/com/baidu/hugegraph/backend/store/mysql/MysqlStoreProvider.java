@@ -23,6 +23,7 @@ import com.baidu.hugegraph.backend.store.AbstractBackendStoreProvider;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.mysql.MysqlStore.MysqlGraphStore;
 import com.baidu.hugegraph.backend.store.mysql.MysqlStore.MysqlSchemaStore;
+import com.baidu.hugegraph.backend.store.mysql.MysqlStore.MysqlSystemStore;
 import com.baidu.hugegraph.config.HugeConfig;
 
 public class MysqlStoreProvider extends AbstractBackendStoreProvider {
@@ -42,12 +43,17 @@ public class MysqlStoreProvider extends AbstractBackendStoreProvider {
     }
 
     @Override
+    protected BackendStore newSystemStore(HugeConfig config, String store) {
+        return new MysqlSystemStore(this, this.database(), store);
+    }
+
+    @Override
     public String type() {
         return "mysql";
     }
 
     @Override
-    public String version() {
+    public String driverVersion() {
         /*
          * Versions history:
          * [1.0] HugeGraph-1328: supports backend table version checking
@@ -65,7 +71,8 @@ public class MysqlStoreProvider extends AbstractBackendStoreProvider {
          * [1.9] #295: support ttl for vertex and edge
          * [1.10] #1333: support read frequency for property key
          * [1.11] #1506: rename read frequency to write type
+         * [1.11] #1533: add meta table in system store
          */
-        return "1.10";
+        return "1.11";
     }
 }

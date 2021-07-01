@@ -36,7 +36,7 @@ import com.baidu.hugegraph.auth.AuthManager;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
-import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
+import com.baidu.hugegraph.backend.store.BackendStoreInfo;
 import com.baidu.hugegraph.backend.store.raft.RaftGroupManager;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.TypedOption;
@@ -179,17 +179,16 @@ public interface HugeGraph extends Graph {
 
     String backend();
 
-    String backendVersion();
-
-    BackendStoreSystemInfo backendStoreSystemInfo();
-
     BackendFeatures backendStoreFeatures();
+
+    BackendStoreInfo backendStoreInfo();
 
     GraphMode mode();
 
     void mode(GraphMode mode);
 
     GraphReadMode readMode();
+
 
     void readMode(GraphReadMode readMode);
 
@@ -208,6 +207,8 @@ public interface HugeGraph extends Graph {
     void clearBackend();
 
     void truncateBackend();
+
+    void initSystemInfo();
 
     void createSnapshot();
 
