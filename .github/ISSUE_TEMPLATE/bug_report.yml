@@ -64,7 +64,7 @@ body:
         type the main problem here 
         
         ```java
-        // Exception / Error info ⬇ (尽可能详细的日志 + 完整异常栈)
+        // Exception / Error info (尽可能详细的日志 + 完整异常栈)
 
         ```
     validations:
@@ -74,12 +74,12 @@ body:
     attributes:
       label: Vertex/Edge example (问题点 / 边数据举例)
       description: |
-        > 如果问题与具体的点 / 边数据相关, 请提供完整的 "查询语句 + 返回 JSON 结果"
+        > 如果问题与具体的点 / 边数据相关, 请提供完整的`查询语句 + 返回 JSON 结果`
       placeholder: |
         // Query URL
         GET http://localhost:8080/gremlin?gremlin=hugegraph.traversal().V('1:tom')
 
-        // JSON of Vertex / Edge ⬇
+        // JSON of Vertex / Edge
         {
           "vertex": { "id": "xxx" }
         }
@@ -89,12 +89,12 @@ body:
     attributes:
       label: Schema [VertexLabel, EdgeLabel, IndexLabel] (元数据结构)
       description: |
-        > 如果问题与具体的点 / 边 / 索引 label 相关, 请提供完整的 Schema 返回 JSON 结果"
+        > 如果问题与具体的点类型 / 边类型 / 索引类型相关, 请提供完整的 `Schema 返回 JSON 结果`
       placeholder: |
         // Query URL
         GET http://localhost:8080/graphs/hugegraph/schema/vertexlabels
 
-        // JSON of GraphSchema ⬇
+        // JSON of GraphSchema
         {
           "vertex": { "id": "xxx" }
         }
