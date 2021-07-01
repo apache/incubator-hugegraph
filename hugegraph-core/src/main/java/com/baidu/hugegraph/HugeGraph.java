@@ -35,9 +35,8 @@ import com.baidu.hugegraph.auth.AuthManager;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
-import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
+import com.baidu.hugegraph.backend.store.BackendStoreInfo;
 import com.baidu.hugegraph.backend.store.raft.RaftGroupManager;
-import com.baidu.hugegraph.config.ConfigOption;
 import com.baidu.hugegraph.config.TypedOption;
 import com.baidu.hugegraph.rpc.RpcServiceConfig4Client;
 import com.baidu.hugegraph.rpc.RpcServiceConfig4Server;
@@ -134,7 +133,7 @@ public interface HugeGraph extends Graph {
     public String name();
     public String backend();
     public String backendVersion();
-    public BackendStoreSystemInfo backendStoreSystemInfo();
+    public BackendStoreInfo backendStoreInfo();
     public BackendFeatures backendStoreFeatures();
 
     public GraphMode mode();
@@ -153,6 +152,9 @@ public interface HugeGraph extends Graph {
     public void initBackend();
     public void clearBackend();
     public void truncateBackend();
+
+    public void initSystemInfo();
+    public void initBackendInfo();
 
     public void createSnapshot();
     public void resumeSnapshot();

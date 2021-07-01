@@ -44,16 +44,13 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.config.AuthOptions;
 import com.baidu.hugegraph.config.HugeConfig;
-import com.baidu.hugegraph.event.EventListener;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
-import com.baidu.hugegraph.util.Events;
 import com.baidu.hugegraph.util.LockUtil;
 import com.baidu.hugegraph.util.Log;
 import com.baidu.hugegraph.util.StringEncoding;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 
 import io.jsonwebtoken.Claims;
 
@@ -62,7 +59,6 @@ public class StandardAuthManager implements AuthManager {
     protected static final Logger LOG = Log.logger(StandardAuthManager.class);
 
     private final HugeGraphParams graph;
-    private final EventListener eventListener;
 
     // Cache <username, HugeUser>
     private final Cache<Id, HugeUser> usersCache;
@@ -90,7 +86,6 @@ public class StandardAuthManager implements AuthManager {
         this.tokenExpire = config.get(AuthOptions.AUTH_TOKEN_EXPIRE);
 
         this.graph = graph;
-        this.eventListener = this.listenChanges();
         this.usersCache = this.cache("users", capacity, expired);
         this.pwdCache = this.cache("users_pwd", capacity, expired);
         this.tokenCache = this.cache("token", capacity, expired);
@@ -124,36 +119,8 @@ public class StandardAuthManager implements AuthManager {
         return cache;
     }
 
-    private EventListener listenChanges() {
-        // Listen store event: "store.inited"
-        Set<String> storeEvents = ImmutableSet.of(Events.STORE_INITED);
-        EventListener eventListener = event -> {
-            // Ensure user schema create after system info initialized
-            if (storeEvents.contains(event.name())) {
-                try {
-                    this.initSchemaIfNeeded();
-                } finally {
-                    this.graph.closeTx();
-                }
-                return true;
-            }
-            return false;
-        };
-        this.graph.loadSystemStore().provider().listen(eventListener);
-        return eventListener;
-    }
-
-    private void unlistenChanges() {
-        this.graph.loadSystemStore().provider().unlisten(this.eventListener);
-    }
-
     @Override
-    public boolean close() {
-        this.unlistenChanges();
-        return true;
-    }
-
-    private void initSchemaIfNeeded() {
+    public void init() {
         this.invalidateUserCache();
         HugeUser.schema(this.graph).initSchemaIfNeeded();
         HugeGroup.schema(this.graph).initSchemaIfNeeded();
@@ -161,6 +128,11 @@ public class StandardAuthManager implements AuthManager {
         HugeBelong.schema(this.graph).initSchemaIfNeeded();
         HugeAccess.schema(this.graph).initSchemaIfNeeded();
         HugeProject.schema(this.graph).initSchemaIfNeeded();
+    }
+
+    @Override
+    public boolean close() {
+        return true;
     }
 
     private void invalidateUserCache() {

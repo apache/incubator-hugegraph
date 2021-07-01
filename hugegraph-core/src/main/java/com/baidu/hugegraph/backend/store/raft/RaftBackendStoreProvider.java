@@ -24,11 +24,9 @@ import java.util.concurrent.Future;
 
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
-import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
 import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction;
 import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType;
 import com.baidu.hugegraph.event.EventHub;
@@ -157,7 +155,7 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
         for (RaftBackendStore store : this.stores()) {
             store.init();
         }
-        this.notifyAndWaitEvent(Events.STORE_INITED);
+        this.notifyAndWaitEvent(Events.STORE_INIT);
 
         LOG.debug("Graph '{}' store has been initialized", this.graph());
     }
@@ -187,28 +185,6 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
         this.notifyAndWaitEvent(Events.STORE_TRUNCATE);
 
         LOG.debug("Graph '{}' store has been truncated", this.graph());
-    }
-
-    @Override
-    public void initSystemInfo(HugeGraph graph) {
-        this.checkOpened();
-        BackendStoreSystemInfo info = graph.backendStoreSystemInfo();
-        info.init();
-
-        this.notifyAndWaitEvent(Events.STORE_INITED);
-        LOG.debug("Graph '{}' system info has been initialized", this.graph());
-        /*
-         * Take the initiative to generate a snapshot, it can avoid this
-         * situation: when the server restart need to read the database
-         * (such as checkBackendVersionInfo), it happens that raft replays
-         * the truncate log, at the same time, the store has been cleared
-         * (truncate) but init-store has not been completed, which will
-         * cause reading errors.
-         * When restarting, load the snapshot first and then read backend,
-         * will not encounter such an intermediate state.
-         */
-        this.createSnapshot();
-        LOG.debug("Graph '{}' snapshot has been created", this.graph());
     }
 
     @Override

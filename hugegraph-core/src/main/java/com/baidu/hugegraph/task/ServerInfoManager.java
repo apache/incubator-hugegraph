@@ -24,7 +24,6 @@ import static com.baidu.hugegraph.backend.query.Query.NO_LIMIT;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 
@@ -40,7 +39,6 @@ import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
-import com.baidu.hugegraph.event.EventListener;
 import com.baidu.hugegraph.exception.ConnectionException;
 import com.baidu.hugegraph.iterator.ListIterator;
 import com.baidu.hugegraph.iterator.MapperIterator;
@@ -52,10 +50,8 @@ import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.NodeRole;
 import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.E;
-import com.baidu.hugegraph.util.Events;
 import com.baidu.hugegraph.util.Log;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 
 public class ServerInfoManager {
 
@@ -66,7 +62,6 @@ public class ServerInfoManager {
 
     private final HugeGraphParams graph;
     private final ExecutorService dbExecutor;
-    private final EventListener eventListener;
 
     private Id selfServerId;
     private NodeRole selfServerRole;
@@ -82,8 +77,6 @@ public class ServerInfoManager {
         this.graph = graph;
         this.dbExecutor = dbExecutor;
 
-        this.eventListener = this.listenChanges();
-
         this.selfServerId = null;
         this.selfServerRole = NodeRole.MASTER;
 
@@ -91,32 +84,12 @@ public class ServerInfoManager {
         this.closed = false;
     }
 
-    private EventListener listenChanges() {
-        // Listen store event: "store.inited"
-        Set<String> storeEvents = ImmutableSet.of(Events.STORE_INITED);
-        EventListener eventListener = event -> {
-            // Ensure server info schema create after system info initialized
-            if (storeEvents.contains(event.name())) {
-                try {
-                    this.initSchemaIfNeeded();
-                } finally {
-                    this.graph.closeTx();
-                }
-                return true;
-            }
-            return false;
-        };
-        this.graph.loadSystemStore().provider().listen(eventListener);
-        return eventListener;
-    }
-
-    private void unlistenChanges() {
-        this.graph.loadSystemStore().provider().unlisten(this.eventListener);
+    public void init() {
+        HugeServerInfo.schema(this.graph).initSchemaIfNeeded();
     }
 
     public boolean close() {
         this.closed = true;
-        this.unlistenChanges();
         if (!this.dbExecutor.isShutdown()) {
             this.removeSelfServerInfo();
             this.call(() -> {
@@ -162,6 +135,7 @@ public class ServerInfoManager {
 
         HugeServerInfo serverInfo = new HugeServerInfo(server, role);
         serverInfo.maxLoad(this.calcMaxLoad());
+        // TODO: save ServerInfo at AuthServer
         this.save(serverInfo);
 
         LOG.info("Init server info: {}", serverInfo);
@@ -249,10 +223,6 @@ public class ServerInfoManager {
         }
 
         return serverWithMinLoad;
-    }
-
-    private void initSchemaIfNeeded() {
-        HugeServerInfo.schema(this.graph).initSchemaIfNeeded();
     }
 
     private GraphTransaction tx() {

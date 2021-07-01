@@ -65,7 +65,7 @@ import com.google.common.collect.ImmutableSet;
 
 public class SchemaTransaction extends IndexableTransaction {
 
-    private SchemaIndexTransaction indexTx;
+    private final SchemaIndexTransaction indexTx;
 
     public SchemaTransaction(HugeGraphParams graph, BackendStore store) {
         super(graph, store);
@@ -278,6 +278,13 @@ public class SchemaTransaction extends IndexableTransaction {
                   schema.type(), schema.id());
         setCreateTimeIfNeeded(schema);
 
+        // System schema just put into SystemSchemaStore in memory
+        // FIXME: backend info id is -36
+        if (schema.longId() < 0) {
+            this.store().systemSchemaStore().add(schema);
+            return;
+        }
+
         LockUtil.Locks locks = new LockUtil.Locks(this.params().name());
         try {
             locks.lockWrites(LockUtil.hugeType2Group(schema.type()),
@@ -294,6 +301,11 @@ public class SchemaTransaction extends IndexableTransaction {
     protected <T extends SchemaElement> T getSchema(HugeType type, Id id) {
         LOG.debug("SchemaTransaction get {} by id '{}'",
                   type.readableName(), id);
+        // System schema just get from SystemSchemaStore in memory
+        if (id.asLong() < 0) {
+            return this.store().systemSchemaStore().get(id);
+        }
+
         this.beforeRead();
         BackendEntry entry = this.query(type, id);
         if (entry == null) {
@@ -315,6 +327,8 @@ public class SchemaTransaction extends IndexableTransaction {
                                                     String name) {
         LOG.debug("SchemaTransaction get {} by name '{}'",
                   type.readableName(), name);
+        // Assume that system schema will not get by name
+
         this.beforeRead();
 
         ConditionQuery query = new ConditionQuery(type);
@@ -350,6 +364,12 @@ public class SchemaTransaction extends IndexableTransaction {
     protected void removeSchema(SchemaElement schema) {
         LOG.debug("SchemaTransaction remove {} by id '{}'",
                   schema.type(), schema.id());
+        // System schema just remove from SystemSchemaStore in memory
+        if (schema.longId() < 0) {
+            this.store().systemSchemaStore().remove(schema.id());
+            return;
+        }
+
         LockUtil.Locks locks = new LockUtil.Locks(this.graphName());
         try {
             locks.lockWrites(LockUtil.hugeType2Group(schema.type()),

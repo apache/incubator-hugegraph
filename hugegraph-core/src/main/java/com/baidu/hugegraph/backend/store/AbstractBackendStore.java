@@ -25,9 +25,11 @@ import com.baidu.hugegraph.type.HugeType;
 public abstract class AbstractBackendStore<Session extends BackendSession>
                 implements BackendStore {
 
+    private final SystemSchemaStore systemSchemaStore;
     private final MetaDispatcher<Session> dispatcher;
 
     public AbstractBackendStore() {
+        this.systemSchemaStore = new SystemSchemaStore();
         this.dispatcher = new MetaDispatcher<>();
     }
 
@@ -37,6 +39,11 @@ public abstract class AbstractBackendStore<Session extends BackendSession>
 
     public void registerMetaHandler(String name, MetaHandler<Session> handler) {
         this.dispatcher.registerMetaHandler(name, handler);
+    }
+
+    @Override
+    public SystemSchemaStore systemSchemaStore() {
+        return this.systemSchemaStore;
     }
 
     // Get metadata by key

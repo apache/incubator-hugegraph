@@ -33,7 +33,7 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 
-public class BackendStoreSystemInfo {
+public class BackendStoreInfo {
 
     private static final Logger LOG = Log.logger(HugeGraph.class);
 
@@ -41,7 +41,7 @@ public class BackendStoreSystemInfo {
 
     private final SchemaTransaction schemaTx;
 
-    public BackendStoreSystemInfo(SchemaTransaction schemaTx) {
+    public BackendStoreInfo(SchemaTransaction schemaTx) {
         this.schemaTx = schemaTx;
     }
 

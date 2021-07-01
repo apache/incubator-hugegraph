@@ -24,12 +24,12 @@ import org.mockito.Mockito;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
-import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
+import com.baidu.hugegraph.backend.store.BackendStoreInfo;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.testutil.Whitebox;
 
-public class BackendStoreSystemInfoTest {
+public class BackendStoreInfoTest {
 
     private static final String PK_BACKEND_INFO = "~backend_info";
 
@@ -43,10 +43,10 @@ public class BackendStoreSystemInfoTest {
         Mockito.when(stx.graph()).thenReturn(graph);
         Mockito.when(stx.storeInitialized()).thenReturn(true);
 
-        BackendStoreSystemInfo info = new BackendStoreSystemInfo(stx);
+        BackendStoreInfo info = new BackendStoreInfo(stx);
 
         Assert.assertThrows(HugeException.class, () -> {
-            Whitebox.invoke(BackendStoreSystemInfo.class, "info", info);
+            Whitebox.invoke(BackendStoreInfo.class, "info", info);
         }, e -> {
             Assert.assertContains("There exists multiple backend info",
                                   e.getMessage());

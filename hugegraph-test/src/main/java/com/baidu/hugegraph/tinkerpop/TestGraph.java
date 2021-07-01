@@ -37,7 +37,7 @@ import org.apache.tinkerpop.gremlin.structure.io.Io;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
-import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
+import com.baidu.hugegraph.backend.store.BackendStoreInfo;
 import com.baidu.hugegraph.io.HugeGraphIoRegistry;
 import com.baidu.hugegraph.io.HugeGraphSONModule;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
@@ -79,7 +79,7 @@ public class TestGraph implements Graph {
 
     @Watched
     protected void initBackend() {
-        BackendStoreSystemInfo sysInfo = this.graph.backendStoreSystemInfo();
+        BackendStoreInfo sysInfo = this.graph.backendStoreInfo();
         if (!sysInfo.exists()) {
             this.graph.initBackend();
         } else {

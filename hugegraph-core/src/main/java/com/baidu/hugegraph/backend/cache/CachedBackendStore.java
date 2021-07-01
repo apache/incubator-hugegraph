@@ -28,6 +28,7 @@ import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
+import com.baidu.hugegraph.backend.store.SystemSchemaStore;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.StringEncoding;
@@ -60,6 +61,11 @@ public class CachedBackendStore implements BackendStore {
     @Override
     public BackendStoreProvider provider() {
         return this.store.provider();
+    }
+
+    @Override
+    public SystemSchemaStore systemSchemaStore() {
+        return this.store.systemSchemaStore();
     }
 
     @Override

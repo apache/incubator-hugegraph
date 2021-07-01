@@ -57,8 +57,8 @@ import com.baidu.hugegraph.backend.serializer.SerializerFactory;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendProviderFactory;
 import com.baidu.hugegraph.backend.store.BackendStore;
+import com.baidu.hugegraph.backend.store.BackendStoreInfo;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
-import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
 import com.baidu.hugegraph.backend.store.raft.RaftBackendStoreProvider;
 import com.baidu.hugegraph.backend.store.raft.RaftGroupManager;
 import com.baidu.hugegraph.backend.store.ram.RamTable;
@@ -240,8 +240,8 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
-    public BackendStoreSystemInfo backendStoreSystemInfo() {
-        return new BackendStoreSystemInfo(this.schemaTransaction());
+    public BackendStoreInfo backendStoreInfo() {
+        return new BackendStoreInfo(this.schemaTransaction());
     }
 
     @Override
@@ -251,6 +251,9 @@ public class StandardHugeGraph implements HugeGraph {
 
     @Override
     public void serverStarted(Id serverId, NodeRole serverRole) {
+        LOG.info("Init system info for graph '{}'", this.name);
+        this.initSystemInfo();
+
         LOG.info("Init server info [{}-{}] for graph '{}'...",
                  serverId, serverRole, this.name);
         this.serverInfoManager().initServerInfo(serverId, serverRole);
@@ -320,7 +323,7 @@ public class StandardHugeGraph implements HugeGraph {
         LockUtil.lock(this.name, LockUtil.GRAPH_LOCK);
         try {
             this.storeProvider.init();
-            this.storeProvider.initSystemInfo(this);
+            this.initBackendInfo();
         } finally {
             LockUtil.unlock(this.name, LockUtil.GRAPH_LOCK);
             this.loadGraphStore().close();
@@ -359,7 +362,6 @@ public class StandardHugeGraph implements HugeGraph {
         LockUtil.lock(this.name, LockUtil.GRAPH_LOCK);
         try {
             this.storeProvider.truncate();
-            this.storeProvider.initSystemInfo(this);
             this.serverStarted(this.serverInfoManager().selfServerId(),
                                this.serverInfoManager().selfServerRole());
         } finally {
@@ -367,6 +369,26 @@ public class StandardHugeGraph implements HugeGraph {
         }
 
         LOG.info("Graph '{}' has been truncated", this.name);
+    }
+
+    @Override
+    public void initSystemInfo() {
+        // Initialize user schema
+        try {
+            this.serverInfoManager().init();
+            this.taskScheduler().init();
+            this.authManager().init();
+        } finally {
+            this.closeTx();
+        }
+        LOG.debug("Graph '{}' system info has been initialized", this);
+    }
+
+    @Override
+    public void initBackendInfo() {
+        BackendStoreInfo info = this.backendStoreInfo();
+        info.init();
+        LOG.debug("Graph '{}' backend info has been initialized", this);
     }
 
     @Override

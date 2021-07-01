@@ -40,6 +40,9 @@ public interface BackendStore {
     // Get the parent provider
     public BackendStoreProvider provider();
 
+    // Get the system schema store
+    public SystemSchemaStore systemSchemaStore();
+
     // Whether it is the storage of schema
     public boolean isSchemaStore();
 

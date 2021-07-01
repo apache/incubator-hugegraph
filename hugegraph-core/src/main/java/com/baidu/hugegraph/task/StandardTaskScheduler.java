@@ -24,7 +24,6 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -47,7 +46,6 @@ import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.config.CoreOptions;
-import com.baidu.hugegraph.event.EventListener;
 import com.baidu.hugegraph.exception.ConnectionException;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
@@ -66,10 +64,8 @@ import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
-import com.baidu.hugegraph.util.Events;
 import com.baidu.hugegraph.util.Log;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 
 public class StandardTaskScheduler implements TaskScheduler {
 
@@ -81,7 +77,6 @@ public class StandardTaskScheduler implements TaskScheduler {
     private final ExecutorService taskExecutor;
     private final ExecutorService taskDbExecutor;
 
-    private final EventListener eventListener;
     private final Map<Id, HugeTask<?>> tasks;
 
     private volatile TaskTransaction taskTx;
@@ -107,8 +102,6 @@ public class StandardTaskScheduler implements TaskScheduler {
         this.tasks = new ConcurrentHashMap<>();
 
         this.taskTx = null;
-
-        this.eventListener = this.listenChanges();
     }
 
     @Override
@@ -133,9 +126,9 @@ public class StandardTaskScheduler implements TaskScheduler {
              * this lock through scheduleTasks(), then query tasks and wait
              * for db-worker thread after call(), the tx may not be initialized
              * but can't catch this lock, then cause dead lock.
-             * We just use this.eventListener as a monitor here
+             * We just use this.serverManager as a monitor here
              */
-            synchronized (this.eventListener) {
+            synchronized (this.serverManager) {
                 if (this.taskTx == null) {
                     BackendStore store = this.graph.loadSystemStore();
                     TaskTransaction tx = new TaskTransaction(this.graph, store);
@@ -146,25 +139,6 @@ public class StandardTaskScheduler implements TaskScheduler {
         }
         assert this.taskTx != null;
         return this.taskTx;
-    }
-
-    private EventListener listenChanges() {
-        // Listen store event: "store.inited"
-        Set<String> storeEvents = ImmutableSet.of(Events.STORE_INITED);
-        EventListener eventListener = event -> {
-            // Ensure task schema create after system info initialized
-            if (storeEvents.contains(event.name())) {
-                this.call(() -> this.tx().initSchema());
-                return true;
-            }
-            return false;
-        };
-        this.graph.loadSystemStore().provider().listen(eventListener);
-        return eventListener;
-    }
-
-    private void unlistenChanges() {
-        this.graph.loadSystemStore().provider().unlisten(this.eventListener);
     }
 
     @Override
@@ -480,8 +454,12 @@ public class StandardTaskScheduler implements TaskScheduler {
     }
 
     @Override
+    public void init() {
+        this.tx().initSchema();
+    }
+
+    @Override
     public boolean close() {
-        this.unlistenChanges();
         if (!this.taskDbExecutor.isShutdown()) {
             this.call(() -> {
                 try {

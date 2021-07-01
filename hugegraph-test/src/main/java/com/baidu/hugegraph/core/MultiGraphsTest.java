@@ -239,9 +239,9 @@ public class MultiGraphsTest {
         HugeGraph g3 = graphs.get(2);
 
         g1.initBackend();
-        Assert.assertTrue(g1.backendStoreSystemInfo().exists());
-        Assert.assertTrue(g2.backendStoreSystemInfo().exists());
-        Assert.assertTrue(g3.backendStoreSystemInfo().exists());
+        Assert.assertTrue(g1.backendStoreInfo().exists());
+        Assert.assertTrue(g2.backendStoreInfo().exists());
+        Assert.assertTrue(g3.backendStoreInfo().exists());
 
         g2.initBackend(); // no error
         g3.initBackend();

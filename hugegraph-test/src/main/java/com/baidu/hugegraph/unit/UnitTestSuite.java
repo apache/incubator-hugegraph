@@ -31,7 +31,7 @@ import com.baidu.hugegraph.unit.cache.RamTableTest;
 import com.baidu.hugegraph.unit.cassandra.CassandraTest;
 import com.baidu.hugegraph.unit.core.AnalyzerTest;
 import com.baidu.hugegraph.unit.core.BackendMutationTest;
-import com.baidu.hugegraph.unit.core.BackendStoreSystemInfoTest;
+import com.baidu.hugegraph.unit.core.BackendStoreInfoTest;
 import com.baidu.hugegraph.unit.core.ConditionQueryFlattenTest;
 import com.baidu.hugegraph.unit.core.ConditionTest;
 import com.baidu.hugegraph.unit.core.DataTypeTest;
@@ -106,7 +106,7 @@ import com.baidu.hugegraph.unit.util.VersionTest;
     SecurityManagerTest.class,
     RolePermissionTest.class,
     ExceptionTest.class,
-    BackendStoreSystemInfoTest.class,
+    BackendStoreInfoTest.class,
     TraversalUtilTest.class,
     PageStateTest.class,
     Int2IntsMapTest.class,

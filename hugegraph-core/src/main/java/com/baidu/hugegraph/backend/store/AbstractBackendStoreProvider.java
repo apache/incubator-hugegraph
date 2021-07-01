@@ -25,7 +25,6 @@ import java.util.concurrent.Future;
 
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.store.raft.StoreSnapshotFile;
 import com.baidu.hugegraph.event.EventHub;
@@ -139,16 +138,6 @@ public abstract class AbstractBackendStoreProvider
         this.notifyAndWaitEvent(Events.STORE_TRUNCATE);
 
         LOG.debug("Graph '{}' store has been truncated", this.graph);
-    }
-
-    @Override
-    public void initSystemInfo(HugeGraph graph) {
-        this.checkOpened();
-        BackendStoreSystemInfo info = graph.backendStoreSystemInfo();
-        info.init();
-        this.notifyAndWaitEvent(Events.STORE_INITED);
-
-        LOG.debug("Graph '{}' system info has been initialized", this.graph);
     }
 
     @Override

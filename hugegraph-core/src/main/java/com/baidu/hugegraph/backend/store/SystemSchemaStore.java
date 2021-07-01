@@ -19,45 +19,29 @@
 
 package com.baidu.hugegraph.backend.store;
 
-import com.baidu.hugegraph.event.EventHub;
-import com.baidu.hugegraph.event.EventListener;
+import java.util.HashMap;
 
-public interface BackendStoreProvider {
+import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.schema.SchemaElement;
 
-    // Backend store type
-    public String type();
+public class SystemSchemaStore {
 
-    // Backend store version
-    public String version();
+    private final HashMap<Id, SchemaElement> store;
 
-    // Graph name (that's database name)
-    public String graph();
+    public SystemSchemaStore() {
+        this.store = new HashMap<>();
+    }
 
-    public BackendStore loadSystemStore(String name);
+    public void add(SchemaElement schema) {
+        this.store.put(schema.id(), schema);
+    }
 
-    public BackendStore loadSchemaStore(String name);
+    @SuppressWarnings("unchecked")
+    public <T extends SchemaElement> T get(Id id) {
+        return (T) this.store.get(id);
+    }
 
-    public BackendStore loadGraphStore(String name);
-
-    public void open(String name);
-
-    public void waitStoreStarted();
-
-    public void close();
-
-    public void init();
-
-    public void clear();
-
-    public void truncate();
-
-    public void createSnapshot();
-
-    public void resumeSnapshot();
-
-    public void listen(EventListener listener);
-
-    public void unlisten(EventListener listener);
-
-    public EventHub storeEventHub();
+    public void remove(Id id) {
+        this.store.remove(id);
+    }
 }

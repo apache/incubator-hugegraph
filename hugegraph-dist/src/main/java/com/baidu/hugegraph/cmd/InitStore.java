@@ -32,7 +32,7 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.auth.StandardAuthenticator;
-import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
+import com.baidu.hugegraph.backend.store.BackendStoreInfo;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
@@ -111,7 +111,7 @@ public class InitStore {
         config.setProperty(CoreOptions.RAFT_MODE.name(), "false");
         HugeGraph graph = (HugeGraph) GraphFactory.open(config);
 
-        BackendStoreSystemInfo sysInfo = graph.backendStoreSystemInfo();
+        BackendStoreInfo sysInfo = graph.backendStoreInfo();
         try {
             if (sysInfo.exists()) {
                 LOG.info("Skip init-store due to the backend store of '{}' " +
