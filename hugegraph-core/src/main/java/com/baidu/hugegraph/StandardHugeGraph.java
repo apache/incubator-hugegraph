@@ -362,17 +362,7 @@ public class StandardHugeGraph implements HugeGraph {
             this.storeProvider.initSystemInfo(this);
             this.serverStarted(this.serverInfoManager().selfServerId(),
                                this.serverInfoManager().selfServerRole());
-            /*
-             * Take the initiative to generate a snapshot, it can avoid this
-             * situation: when the server restart need to read the database
-             * (such as checkBackendVersionInfo), it happens that raft replays
-             * the truncate log, at the same time, the store has been cleared
-             * (truncate) but init-store has not been completed, which will
-             * cause reading errors.
-             * When restarting, load the snapshot first and then read backend,
-             * will not encounter such an intermediate state.
-             */
-            this.storeProvider.createSnapshot();
+            this.createSnapshotIfNeeded();
         } finally {
             LockUtil.unlock(this.name, LockUtil.GRAPH_LOCK);
         }
@@ -506,6 +496,23 @@ public class StandardHugeGraph implements HugeGraph {
         LOG.debug("Loading text analyzer '{}' with mode '{}' for graph '{}'",
                   name, mode, this.name);
         return AnalyzerFactory.analyzer(name, mode);
+    }
+
+    private void createSnapshotIfNeeded() {
+        if (!this.storeProvider.type().equals("rocksdb")) {
+            return;
+        }
+        /*
+         * Take the initiative to generate a snapshot, it can avoid this
+         * situation: when the server restart need to read the database
+         * (such as checkBackendVersionInfo), it happens that raft replays
+         * the truncate log, at the same time, the store has been cleared
+         * (truncate) but init-store has not been completed, which will
+         * cause reading errors.
+         * When restarting, load the snapshot first and then read backend,
+         * will not encounter such an intermediate state.
+         */
+        this.storeProvider.createSnapshot();
     }
 
     protected void reloadRamtable() {
