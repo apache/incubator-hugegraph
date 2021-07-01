@@ -21,6 +21,7 @@ package com.baidu.hugegraph.auth;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -534,7 +535,7 @@ public class StandardAuthManager implements AuthManager {
     @Override
     public Id createProject(HugeProject project) {
         E.checkArgument(!Strings.isNullOrEmpty(project.name()),
-                        "The project's name can't be null or empty");
+                        "The name of project can't be null or empty");
         return commit(() -> {
             // Create project admin group
             if (project.adminGroupId() == null) {
@@ -566,21 +567,20 @@ public class StandardAuthManager implements AuthManager {
 
             Id adminGroupId = project.adminGroupId();
             Id opGroupId = project.opGroupId();
-            HugeAccess adminGroupWriteAccess2Target = new HugeAccess(adminGroupId,
-                                                                     targetId,
-                                                                     HugePermission.WRITE);
-            adminGroupWriteAccess2Target.creator(project.creator());
-            HugeAccess adminGroupReadAccess2Target = new HugeAccess(adminGroupId,
-                                                                    targetId,
-                                                                    HugePermission.READ);
-            adminGroupReadAccess2Target.creator(project.creator());
-            HugeAccess opGroupReadAccess2Target = new HugeAccess(opGroupId,
-                                                                 targetId,
-                                                                 HugePermission.READ);
-            opGroupReadAccess2Target.creator(project.creator());
-            this.access.add(adminGroupWriteAccess2Target);
-            this.access.add(adminGroupReadAccess2Target);
-            this.access.add(opGroupReadAccess2Target);
+            HugeAccess adminGroupWriteAccess = new HugeAccess(
+                                                   adminGroupId, targetId,
+                                                   HugePermission.WRITE);
+            adminGroupWriteAccess.creator(project.creator());
+            HugeAccess adminGroupReadAccess = new HugeAccess(
+                                                  adminGroupId, targetId,
+                                                  HugePermission.READ);
+            adminGroupReadAccess.creator(project.creator());
+            HugeAccess opGroupReadAccess = new HugeAccess(opGroupId, targetId,
+                                                          HugePermission.READ);
+            opGroupReadAccess.creator(project.creator());
+            this.access.add(adminGroupWriteAccess);
+            this.access.add(adminGroupReadAccess);
+            this.access.add(opGroupReadAccess);
             return this.project.add(project);
         });
     }
@@ -594,11 +594,10 @@ public class StandardAuthManager implements AuthManager {
 
                 HugeProject oldProject = this.project.get(id);
                 E.checkArgumentNotNull(oldProject,
-                                       "The project with id '%s' " +
-                                       "can't be found", id);
+                                       "The project '%s' can't be found", id);
                 /*
-                 *  Check whether there are any graph binding this project,
-                 *  throw ForbiddenException, if it is
+                 * Check whether there are any graph binding this project,
+                 * throw ForbiddenException, if it is
                  */
                 if (!oldProject.graphs().isEmpty()) {
                     String errInfo = String.format("Can't delete project '%s' " +
@@ -613,20 +612,20 @@ public class StandardAuthManager implements AuthManager {
                                        id);
                 E.checkArgument(project.adminGroupId() != null,
                                 "Failed to delete the project '%s'," +
-                                "the project's admin group id can't be null",
+                                "the admin group id of project can't be null",
                                 id);
                 E.checkArgument(project.opGroupId() != null,
                                 "Failed to delete the project '%s'," +
-                                "the project's op group id can't be null", id);
+                                "the op group id of project can't be null", id);
                 E.checkArgument(project.targetId() != null,
                                 "Failed to delete the project '%s', " +
-                                "the project's target id can't be null", id);
+                                "the target id of project can't be null", id);
                 // Delete admin group
-                this.groups.delete(IdGenerator.of(project.adminGroupId()));
+                this.groups.delete(project.adminGroupId());
                 // Delete op group
-                this.groups.delete(IdGenerator.of(project.opGroupId()));
+                this.groups.delete(project.opGroupId());
                 // Delete project_target
-                this.targets.delete(IdGenerator.of(project.targetId()));
+                this.targets.delete(project.targetId());
                 return project;
             } finally {
                 locks.unlock();
@@ -638,9 +637,9 @@ public class StandardAuthManager implements AuthManager {
     public Id updateProject(HugeProject project) {
         E.checkArgumentNotNull(project, "The project can't be null");
         E.checkArgumentNotNull(project.id(),
-                               "The project's id can't be null");
+                               "The id of project can't be null");
         E.checkArgument(project.description() != null,
-                        "The project's '%s' description can't be null",
+                        "The description of project '%s' can't be null",
                         project.id());
         LockUtil.Locks locks = new LockUtil.Locks(this.graph.name());
         try {
@@ -666,9 +665,8 @@ public class StandardAuthManager implements AuthManager {
 
             HugeProject project = this.project.get(id);
             E.checkArgumentNotNull(project,
-                                   "The project with id '%s' can't be found",
-                                   id);
-            Set<String> graphs = project.copyGraphs();
+                                   "The project '%s' can't be found", id);
+            Set<String> graphs = new HashSet<>(project.graphs());
             E.checkArgument(!graphs.contains(graph),
                             "The graph named '%s' has been contained " +
                             "in the project '%s'", graph, id);
@@ -695,9 +693,8 @@ public class StandardAuthManager implements AuthManager {
 
             HugeProject project = this.project.get(id);
             E.checkArgumentNotNull(project,
-                                   "The project with id '%s' can't be found",
-                                   id);
-            Set<String> graphs = project.copyGraphs();
+                                   "The project '%s' can't be found", id);
+            Set<String> graphs = new HashSet<>(project.graphs());
             if (!graphs.contains(graph)) {
                 return id;
             }

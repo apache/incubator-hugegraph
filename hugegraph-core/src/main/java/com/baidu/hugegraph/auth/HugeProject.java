@@ -124,12 +124,6 @@ public class HugeProject extends Entity {
                Collections.unmodifiableSet(this.graphs);
     }
 
-    public Set<String> copyGraphs() {
-        Set<String> graphs = new HashSet<>();
-        graphs.addAll(this.graphs());
-        return graphs;
-    }
-
     public void graphs(Set<String> graphs) {
         this.graphs = graphs;
     }
@@ -145,12 +139,12 @@ public class HugeProject extends Entity {
     @Override
     public Map<String, Object> asMap() {
         E.checkState(!Strings.isNullOrEmpty(this.name),
-                     "The project's name can't be null");
+                     "The name of project can't be null");
         E.checkState(this.adminGroupId != null,
-                     "The project's '%s' Admin group id can't be null",
+                     "The admin group id of project '%s' can't be null",
                      this.name);
         E.checkState(this.opGroupId != null,
-                     "The project's '%s' Op group id can't be null",
+                     "The op group id of project '%s' can't be null",
                      this.name);
 
         Map<String, Object> map = new HashMap<>();
@@ -178,13 +172,12 @@ public class HugeProject extends Entity {
     @Override
     protected Object[] asArray() {
         E.checkState(!Strings.isNullOrEmpty(this.name),
-                     "The project's name can't be null");
+                     "The name of project can't be null");
         E.checkState(this.adminGroupId != null,
-                     "The project's '%s' Admin group id can't be null",
+                     "The admin group id of project can't be null",
                      this.name);
         E.checkState(this.opGroupId != null,
-                     "The project's '%s' Op group id can't be null",
-                     this.name);
+                     "The op group id of project can't be null", this.name);
 
         List<Object> list = new ArrayList<>(16);
 

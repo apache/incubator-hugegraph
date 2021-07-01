@@ -42,39 +42,56 @@ public class ProjectApiTest extends BaseApiTest {
 
     @Test
     public void testCreate() {
-        createProject("test_project", "this is a good project");
+        String project = String.format("{\"project_name\": \"test_project\"," +
+                                       "\"project_description\": " +
+                                       "\"this is a good project\"}");
+        Response resp = client().post(path, project);
+        String respBody = assertResponseStatus(201, resp);
+        String projectName = assertJsonContains(respBody, "project_name");
+        Assert.assertEquals("test_project", projectName);
+        String projectDescription = assertJsonContains(respBody,
+                                                       "project_description");
+        Assert.assertEquals("this is a good project", projectDescription);
+        String projectTarget = assertJsonContains(respBody, "project_target");
+        Assert.assertFalse(Strings.isNullOrEmpty(projectTarget));
+        String projectAdminGroup = assertJsonContains(respBody,
+                                                      "project_admin_group");
+        Assert.assertFalse(Strings.isNullOrEmpty(projectAdminGroup));
+        String projectOpGroup = assertJsonContains(respBody,
+                                                   "project_op_group");
+        Assert.assertFalse(Strings.isNullOrEmpty(projectOpGroup));
     }
 
     private String createProject(String name, String desc) {
-        String reqBody = String.format("{\"project_name\": \"%s\"," +
+        String project = String.format("{\"project_name\": \"%s\"," +
                                        "\"project_description\": " +
                                        "\"%s\"}", name, desc);
-        Response resp = client().post(path, reqBody);
+        Response resp = client().post(path, project);
         String respBody = assertResponseStatus(201, resp);
         String projectName = assertJsonContains(respBody, "project_name");
         Assert.assertEquals(name, projectName);
         if (!Strings.isNullOrEmpty(desc)) {
-            String projectDesc = assertJsonContains(respBody,
+            String description = assertJsonContains(respBody,
                                                     "project_description");
-            Assert.assertEquals(desc, projectDesc);
+            Assert.assertEquals(desc, description);
         }
-        Assert.assertFalse(Strings.isNullOrEmpty(assertJsonContains(respBody,
-                                                                    "project_target")));
-        Assert.assertFalse(Strings.isNullOrEmpty(assertJsonContains(respBody,
-                                                                    "project_admin_group")));
-        Assert.assertFalse(Strings.isNullOrEmpty(assertJsonContains(respBody,
-                                                                    "project_op_group")));
+        Assert.assertFalse(Strings.isNullOrEmpty(
+                           assertJsonContains(respBody, "project_target")));
+        Assert.assertFalse(Strings.isNullOrEmpty(
+                           assertJsonContains(respBody, "project_admin_group")));
+        Assert.assertFalse(Strings.isNullOrEmpty(
+                           assertJsonContains(respBody, "project_op_group")));
         return respBody;
     }
 
     @Test
     public void testDelete() {
-        String respBody = this.createProject("test_project1",
-                                             "this is a good project");
-        String id = assertJsonContains(respBody, "id");
+        String project = this.createProject("test_project1",
+                                            "this is a good project");
+        String projectId = assertJsonContains(project, "id");
         Response resp = client().target()
                                 .path(path)
-                                .path(id)
+                                .path(projectId)
                                 .request()
                                 .delete();
         assertResponseStatus(204, resp);
@@ -82,11 +99,11 @@ public class ProjectApiTest extends BaseApiTest {
 
     @Test
     public void testGet() {
-        String respBody = this.createProject("test_project",
-                                             "this is a good project");
-        String projectId = assertJsonContains(respBody, "id");
-        String respBody2 = this.getProject(projectId);
-        Assert.assertEquals(respBody, respBody2);
+        String project = this.createProject("test_project",
+                                            "this is a good project");
+        String projectId = assertJsonContains(project, "id");
+        String project2 = this.getProject(projectId);
+        Assert.assertEquals(project, project2);
     }
 
     @Test
@@ -102,12 +119,12 @@ public class ProjectApiTest extends BaseApiTest {
 
     @Test
     public void testUpdate() {
-        String reqBody = "{\"project_description\": \"update desc\"}";
+        String project = "{\"project_description\": \"update desc\"}";
         Response resp = client().target()
                                 .path(path)
                                 .path("no_exist_id")
                                 .request()
-                                .put(Entity.json(reqBody));
+                                .put(Entity.json(project));
         assertResponseStatus(400, resp);
 
         String projectId = assertJsonContains(createProject("test_project",
@@ -117,21 +134,22 @@ public class ProjectApiTest extends BaseApiTest {
                        .path(path)
                        .path(projectId)
                        .request()
-                       .put(Entity.json(reqBody));
+                       .put(Entity.json(project));
         String respBody = assertResponseStatus(200, resp);
-        String desc = assertJsonContains(respBody, "project_description");
-        Assert.assertEquals("update desc", desc);
+        String description = assertJsonContains(respBody,
+                                                "project_description");
+        Assert.assertEquals("update desc", description);
     }
 
     @Test
     public void testUpdateAddGraph() {
         String projectId = this.makeProjectWithGraph("project_test",
                                                      "graph_test");
-        String respBody = this.getProject(projectId);
-        assertJsonContains(respBody, "project_graphs");
+        String project = this.getProject(projectId);
+        assertJsonContains(project, "project_graphs");
         this.makeGraph(projectId, "graph_test2");
-        respBody = this.getProject(projectId);
-        List<String> graphs = assertJsonContains(respBody, "project_graphs");
+        project = this.getProject(projectId);
+        List<String> graphs = assertJsonContains(project, "project_graphs");
         Assert.assertEquals(2, graphs.size());
         Assert.assertTrue(graphs.contains("graph_test"));
         Assert.assertTrue(graphs.contains("graph_test2"));
@@ -143,14 +161,14 @@ public class ProjectApiTest extends BaseApiTest {
                                                      "graph_test");
         this.deleteGraph(projectId, "graph_test");
 
-        String respBody = this.getProject(projectId);
-        Assert.assertFalse(respBody.contains("project_graphs"));
+        String project = this.getProject(projectId);
+        Assert.assertFalse(project.contains("project_graphs"));
 
         this.makeGraph(projectId, "graph_test1");
         this.makeGraph(projectId, "graph_test2");
         this.deleteGraph(projectId, "graph_test2");
-        respBody = this.getProject(projectId);
-        List<String> graphs = assertJsonContains(respBody, "project_graphs");
+        project = this.getProject(projectId);
+        List<String> graphs = assertJsonContains(project, "project_graphs");
         Assert.assertEquals(1, graphs.size());
         Assert.assertTrue(graphs.contains("graph_test1"));
     }
@@ -163,25 +181,25 @@ public class ProjectApiTest extends BaseApiTest {
         return projectId;
     }
 
-    private void makeGraph(String projectId, String graph) {
-        String reqBody = String.format("{\"project_graph\":\"%s\"}", graph);
+    private void makeGraph(String projectId, String graphName) {
+        String graph = String.format("{\"project_graph\":\"%s\"}", graphName);
         Response resp = client().target()
                                 .path(path)
                                 .path(projectId)
                                 .queryParam("action", "add_graph")
                                 .request()
-                                .put(Entity.json(reqBody));
+                                .put(Entity.json(graph));
         assertResponseStatus(200, resp);
     }
 
-    private void deleteGraph(String projectId, String graph) {
-        String reqBody = String.format("{\"project_graph\":\"%s\"}", graph);
+    private void deleteGraph(String projectId, String graphName) {
+        String graph = String.format("{\"project_graph\":\"%s\"}", graphName);
         Response resp = client().target()
                                 .path(path)
                                 .path(projectId)
                                 .queryParam("action", "delete_graph")
                                 .request()
-                                .put(Entity.json(reqBody));
+                                .put(Entity.json(graph));
         assertResponseStatus(200, resp);
     }
 

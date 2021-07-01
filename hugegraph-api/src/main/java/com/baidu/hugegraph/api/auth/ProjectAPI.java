@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.api.auth;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -76,7 +77,7 @@ public class ProjectAPI extends API {
         HugeProject project = jsonProject.build();
         Id projectId = manager.authManager().createProject(project);
         /*
-         * Some fields of project(like admin_group ) can only be known after
+         * Some fields of project(like admin_group) can only be known after
          * created
          */
         project = manager.authManager().getProject(projectId);
@@ -185,14 +186,14 @@ public class ProjectAPI extends API {
         private String graph;
 
         public HugeProject build(String action, HugeProject project) {
-            if (isAddGraph(action)) {
+            if (ProjectAPI.isAddGraph(action)) {
                 this.checkGraph();
-                Set<String> graphs = project.copyGraphs();
+                Set<String> graphs = new HashSet<>(project.graphs());
                 graphs.add(this.graph);
                 project.graphs(graphs);
-            } else if (isDeleteGraph(action)) {
+            } else if (ProjectAPI.isDeleteGraph(action)) {
                 this.checkGraph();
-                Set<String> graphs = project.copyGraphs();
+                Set<String> graphs = new HashSet<>(project.graphs());
                 graphs.remove(this.graph);
                 project.graphs(graphs);
             } else {
@@ -209,7 +210,8 @@ public class ProjectAPI extends API {
 
         private void checkDescription() {
             E.checkArgumentNotNull(this.description,
-                                   "The project's description can't be null");
+                                   "The description of project " +
+                                   "can't be null");
         }
 
         public HugeProject build() {
@@ -220,13 +222,14 @@ public class ProjectAPI extends API {
         @Override
         public void checkCreate(boolean isBatch) {
             E.checkArgumentNotNull(this.name,
-                                   "The project's name can't be null");
+                                   "The name of project can't be null");
         }
 
         @Override
         public void checkUpdate() {
             E.checkArgumentNotNull(this.description,
-                                   "The project's description can't be null");
+                                   "The description of project " +
+                                   "can't be null");
         }
     }
 }
