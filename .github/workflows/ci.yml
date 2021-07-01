@@ -13,6 +13,7 @@ on:
       - /^test-.*$/
 
 jobs:
+
   build:
     runs-on: ubuntu-20.04
     env:
@@ -20,8 +21,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        BACKEND: [memory, cassandra, scylladb, hbase, rocksdb]
         JAVA_VERSION: ['8']
+        # BACKEND: [memory, cassandra, scylladb, hbase, rocksdb, mysql, postgresql]
+        BACKEND: [rocksdb, mysql, postgresql]
+    
     steps:
       - name: Install JDK ${{ matrix.JAVA_VERSION }}
         uses: actions/setup-java@v2
@@ -48,6 +51,19 @@ jobs:
       - name: Prepare env and service
         run: |
           $TRAVIS_DIR/install-backend.sh ${{ matrix.BACKEND }}
+
+      - name: Init Mysql Env
+        uses: mirromutth/mysql-action@v1.1
+        with:
+          host port: 3306 # Optional, default value is 3306. The port of host
+          container port: 3306 # Optional, default value is 3306. The port of container
+          character set server: 'utf8mb4' # Optional, default value is 'utf8mb4'. The '--character-set-server' option for mysqld
+          collation server: 'utf8mb4_general_ci' # Optional, default value is 'utf8mb4_general_ci'. The '--collation-server' option for mysqld
+          mysql version: '5.7' # Optional, default value is "latest". The version of the MySQL
+          mysql database: 'test' # Optional, default value is "test". The specified database which will be create
+          mysql root password: "123456" # Required if "mysql user" is empty, default is empty. The root superuser password
+          #mysql user: 'root' # Required if "mysql root password" is empty, default is empty. The superuser for the specified database. Can use secrets, too
+          #mysql password: ${{ secrets.DatabasePassword }} # Required if "mysql user" exists. The password for the "mysql user"
 
       - name: Run test
         run: |
