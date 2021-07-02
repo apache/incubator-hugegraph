@@ -1,0 +1,100 @@
+name: Ask question (提问)
+description: Question about usage or configs in HugeGraph
+title: '[Question] describe your problem'
+
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        ### Note (特别注意) : 
+
+        > 1. 请先**搜索**现有的[Issues](https://github.com/hugegraph/hugegraph/issues) 与
+        [FAQ](https://hugegraph.github.io/hugegraph-doc/guides/faq.html) 中没有与您相同
+        / 相关的问题 (请勿重复提交)
+
+        > 2. 我们需要尽可能**详细**的信息来**复现**问题, 越详细的信息 (包括**日志 / 截图 / 配置**等)
+        会**越快**被响应和处理
+
+        > 3. Issue 标题请保持原有模板分类(例如:`[Bug]`), 长段描述之间可以增加`空行`或使用`序号`标记, 保持排版清晰
+
+        > 4. 请在对应的模块提交 issue, 缺乏有效信息 / 长时间 (> 14 天) 没有回复的 issue 可能会被 **关闭**
+        (更新时会再开启)
+  
+  - type: dropdown
+    attributes:
+      label: Problem Type (问题类型)
+      options:
+        - gremlin (结果不合预期)
+        - rest-api (结果不合预期)
+        - server status (启动/运行异常)
+        - configs (配置项 / 文档相关)
+        - struct / logic (架构 / 逻辑设计问题)
+        - performence (性能优化)
+        - other exception / error (其他异常报错)
+        - others (please edit later)
+  
+  - type: checkboxes
+    attributes:
+      label: Before submit
+      options:
+        - label: 我已经确认现有的 [Issues](https://github.com/hugegraph/hugegraph/issues) 与 [FAQ](https://hugegraph.github.io/hugegraph-doc/guides/faq.html) 中没有相同 / 重复问题
+          required: true
+
+  - type: textarea
+    attributes:
+      label: Environment (环境信息)
+      description: |
+        > server version could get from [rest-api](https://hugegraph.github.io/hugegraph-doc/clients/restful-api/other.html) (http://localhost:8080/versions)
+      value: |
+        - Server Version: v0.11.x
+        - Backend: RocksDB x nodes, HDD or SSD 
+        - OS: xx CPUs, xx G RAM, Centos 7.x 
+        - Data Size:  xx vertices, xx edges <!-- (like 1000W 点, 9000W 边) -->
+    validations:
+      required: true
+  
+  - type: textarea
+    attributes:
+      label: Your Question (问题描述)
+      description: |
+        > 图使用 / 配置相关问题，请优先参考 [REST-API 文档](https://hugegraph.github.io/hugegraph-doc/clients/hugegraph-api.html), 以及 [Server 配置文档](https://hugegraph.github.io/hugegraph-doc/config/config-option.html)
+        > if possible, please provide screenshots or GIF (请提供清晰的截图, 动图录屏更佳)
+      placeholder: |        
+        type the main problem here 
+        
+        ```java
+        // Exception / Error info (尽可能详细的日志 + 完整异常栈)
+
+        ```
+    validations:
+      required: true
+  
+  - type: textarea
+    attributes:
+      label: Vertex/Edge example (问题点 / 边数据举例)
+      description: |
+        > 如果问题与具体的点 / 边数据相关, 请提供完整的`查询语句 + 返回 JSON 结果`
+      placeholder: |
+        // Query URL
+        GET http://localhost:8080/gremlin?gremlin=hugegraph.traversal().V('1:tom')
+
+        // JSON of Vertex / Edge
+        {
+          "vertex": { "id": "xxx" }
+        }
+      render: javascript
+  
+  - type: textarea
+    attributes:
+      label: Schema [VertexLabel, EdgeLabel, IndexLabel] (元数据结构)
+      description: |
+        > 如果问题与具体的点类型 / 边类型 / 索引类型相关, 请提供完整的 `Schema 返回 JSON 结果`
+      placeholder: |
+        // Query URL
+        GET http://localhost:8080/graphs/hugegraph/schema/vertexlabels
+
+        // JSON of GraphSchema
+        {
+          "vertex": { "id": "xxx" }
+        }
+      render: javascript
