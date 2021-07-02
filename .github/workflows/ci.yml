@@ -43,7 +43,6 @@ jobs:
           mvn test -Dtest=UnitTestSuite
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v1.0.2
+        uses: codecov/codecov-action@v1
         with:
-          token: ${{secrets.CODECOV_TOKEN}}
           file: target/jacoco.xml

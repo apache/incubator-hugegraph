@@ -1,0 +1,7 @@
+blank_issues_enabled: false
+
+# 设置提 issue 前的参考文档
+contact_links:
+  - name: HugeGraph API Doc
+    url: https://hugegraph.github.io/hugegraph-doc/clients/hugegraph-api.html
+    about: Please search usage here before opening a new issue
