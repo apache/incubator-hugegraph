@@ -159,14 +159,14 @@ public class ProjectApiTest extends BaseApiTest {
     public void testUpdateRemoveGraph() {
         String projectId = this.makeProjectWithGraph("project_test",
                                                      "graph_test");
-        this.deleteGraph(projectId, "graph_test");
+        this.removeGraph(projectId, "graph_test");
 
         String project = this.getProject(projectId);
         Assert.assertFalse(project.contains("project_graphs"));
 
         this.makeGraph(projectId, "graph_test1");
         this.makeGraph(projectId, "graph_test2");
-        this.deleteGraph(projectId, "graph_test2");
+        this.removeGraph(projectId, "graph_test2");
         project = this.getProject(projectId);
         List<String> graphs = assertJsonContains(project, "project_graphs");
         Assert.assertEquals(1, graphs.size());
@@ -192,12 +192,12 @@ public class ProjectApiTest extends BaseApiTest {
         assertResponseStatus(200, resp);
     }
 
-    private void deleteGraph(String projectId, String graphName) {
+    private void removeGraph(String projectId, String graphName) {
         String graph = String.format("{\"project_graph\":\"%s\"}", graphName);
         Response resp = client().target()
                                 .path(path)
                                 .path(projectId)
-                                .queryParam("action", "delete_graph")
+                                .queryParam("action", "remove_graph")
                                 .request()
                                 .put(Entity.json(graph));
         assertResponseStatus(200, resp);

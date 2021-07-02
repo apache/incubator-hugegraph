@@ -60,7 +60,7 @@ public class ProjectAPI extends API {
 
     private static final Logger LOG = Log.logger(RestServer.class);
     private static final String ACTION_ADD_GRAPH = "add_graph";
-    private static final String ACTION_DELETE_GRAPH = "delete_graph";
+    private static final String ACTION_REMOVE_GRAPH = "remove_graph";
 
     @POST
     @Timed
@@ -109,7 +109,7 @@ public class ProjectAPI extends API {
         project = jsonProject.build(action, project);
         if (this.isAddGraph(action)) {
             authManager.updateProjectAddGraph(projectId, jsonProject.graph);
-        } else if (this.isDeleteGraph(action)) {
+        } else if (this.isRemoveGraph(action)) {
             authManager.updateProjectRemoveGraph(projectId, jsonProject.graph);
         } else {
             authManager.updateProject(project);
@@ -172,8 +172,8 @@ public class ProjectAPI extends API {
         return ACTION_ADD_GRAPH.equals(action);
     }
 
-    public static boolean isDeleteGraph(String action) {
-        return ACTION_DELETE_GRAPH.equals(action);
+    public static boolean isRemoveGraph(String action) {
+        return ACTION_REMOVE_GRAPH.equals(action);
     }
 
     private static class JsonProject implements Checkable {
@@ -191,7 +191,7 @@ public class ProjectAPI extends API {
                 Set<String> graphs = new HashSet<>(project.graphs());
                 graphs.add(this.graph);
                 project.graphs(graphs);
-            } else if (ProjectAPI.isDeleteGraph(action)) {
+            } else if (ProjectAPI.isRemoveGraph(action)) {
                 this.checkGraph();
                 Set<String> graphs = new HashSet<>(project.graphs());
                 graphs.remove(this.graph);
