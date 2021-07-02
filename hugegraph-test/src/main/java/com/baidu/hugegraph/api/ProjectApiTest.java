@@ -62,32 +62,10 @@ public class ProjectApiTest extends BaseApiTest {
         Assert.assertFalse(Strings.isNullOrEmpty(projectOpGroup));
     }
 
-    private String createProject(String name, String desc) {
-        String project = String.format("{\"project_name\": \"%s\"," +
-                                       "\"project_description\": " +
-                                       "\"%s\"}", name, desc);
-        Response resp = client().post(path, project);
-        String respBody = assertResponseStatus(201, resp);
-        String projectName = assertJsonContains(respBody, "project_name");
-        Assert.assertEquals(name, projectName);
-        if (!Strings.isNullOrEmpty(desc)) {
-            String description = assertJsonContains(respBody,
-                                                    "project_description");
-            Assert.assertEquals(desc, description);
-        }
-        Assert.assertFalse(Strings.isNullOrEmpty(
-                           assertJsonContains(respBody, "project_target")));
-        Assert.assertFalse(Strings.isNullOrEmpty(
-                           assertJsonContains(respBody, "project_admin_group")));
-        Assert.assertFalse(Strings.isNullOrEmpty(
-                           assertJsonContains(respBody, "project_op_group")));
-        return respBody;
-    }
-
     @Test
     public void testDelete() {
-        String project = this.createProject("test_project1",
-                                            "this is a good project");
+        String project = this.makeProject("test_project1",
+                                          "this is a good project");
         String projectId = assertJsonContains(project, "id");
         Response resp = client().target()
                                 .path(path)
@@ -99,8 +77,8 @@ public class ProjectApiTest extends BaseApiTest {
 
     @Test
     public void testGet() {
-        String project = this.createProject("test_project",
-                                            "this is a good project");
+        String project = this.makeProject("test_project",
+                                          "this is a good project");
         String projectId = assertJsonContains(project, "id");
         String project2 = this.getProject(projectId);
         Assert.assertEquals(project, project2);
@@ -108,8 +86,8 @@ public class ProjectApiTest extends BaseApiTest {
 
     @Test
     public void testList() {
-        createProject("test_project", null);
-        createProject("test_project2", null);
+        makeProject("test_project", null);
+        makeProject("test_project2", null);
         Response resp = client().get(path);
         String respBody = assertResponseStatus(200, resp);
         List<Map> projects = readList(respBody, "projects", Map.class);
@@ -127,8 +105,8 @@ public class ProjectApiTest extends BaseApiTest {
                                 .put(Entity.json(project));
         assertResponseStatus(400, resp);
 
-        String projectId = assertJsonContains(createProject("test_project",
-                                                            "desc"),
+        String projectId = assertJsonContains(makeProject("test_project",
+                                                          "desc"),
                                               "id");
         resp = client().target()
                        .path(path)
@@ -173,10 +151,32 @@ public class ProjectApiTest extends BaseApiTest {
         Assert.assertTrue(graphs.contains("graph_test1"));
     }
 
+    private String makeProject(String name, String desc) {
+        String project = String.format("{\"project_name\": \"%s\"," +
+                                       "\"project_description\": " +
+                                       "\"%s\"}", name, desc);
+        Response resp = client().post(path, project);
+        String respBody = assertResponseStatus(201, resp);
+        String projectName = assertJsonContains(respBody, "project_name");
+        Assert.assertEquals(name, projectName);
+        if (!Strings.isNullOrEmpty(desc)) {
+            String description = assertJsonContains(respBody,
+                                                    "project_description");
+            Assert.assertEquals(desc, description);
+        }
+        Assert.assertFalse(Strings.isNullOrEmpty(
+                assertJsonContains(respBody, "project_target")));
+        Assert.assertFalse(Strings.isNullOrEmpty(
+                assertJsonContains(respBody, "project_admin_group")));
+        Assert.assertFalse(Strings.isNullOrEmpty(
+                assertJsonContains(respBody, "project_op_group")));
+        return respBody;
+    }
+
     private String makeProjectWithGraph(String projectName,
                                         String graph) {
-        String projectId = assertJsonContains(createProject(projectName,
-                                                            null), "id");
+        String projectId = assertJsonContains(makeProject(projectName,
+                                                          null), "id");
         makeGraph(projectId, graph);
         return projectId;
     }

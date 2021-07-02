@@ -72,7 +72,7 @@ public class AuthTest extends BaseCoreTest {
         }
         for (HugeProject project : authManager.listAllProject(-1)) {
             for (String projectGraph : project.graphs()) {
-                authManager.updateProjectRemoveGraph(project.id(), projectGraph);
+                authManager.projectRemoveGraph(project.id(), projectGraph);
             }
             authManager.deleteProject(project.id());
         }
@@ -1437,7 +1437,7 @@ public class AuthTest extends BaseCoreTest {
         HugeProject project = makeProject("test_project", "");
         AuthManager authManager = graph().authManager();
         Id projectId = authManager.createProject(project);
-        projectId = authManager.updateProjectAddGraph(projectId, "graph_test");
+        projectId = authManager.projectAddGraph(projectId, "graph_test");
         Assert.assertNotNull(projectId);
         project = authManager.getProject(projectId);
         Assert.assertFalse(project.graphs().isEmpty());
@@ -1452,8 +1452,8 @@ public class AuthTest extends BaseCoreTest {
         HugeProject project = authManager.getProject(projectId);
         Assert.assertNotNull(project);
         Assert.assertFalse(project.graphs().isEmpty());
-        projectId = authManager.updateProjectRemoveGraph(project.id(),
-                                                         "graph_test");
+        projectId = authManager.projectRemoveGraph(project.id(),
+                                                   "graph_test");
         project = authManager.getProject(projectId);
         Assert.assertNotNull(project);
         Assert.assertTrue(project.graphs().isEmpty());
@@ -1493,7 +1493,7 @@ public class AuthTest extends BaseCoreTest {
         HugeProject project = makeProject(projectName, "");
         AuthManager authManager = graph.authManager();
         Id projectId = authManager.createProject(project);
-        projectId = authManager.updateProjectAddGraph(projectId, graphName);
+        projectId = authManager.projectAddGraph(projectId, graphName);
         Assert.assertNotNull(projectId);
         return projectId;
     }

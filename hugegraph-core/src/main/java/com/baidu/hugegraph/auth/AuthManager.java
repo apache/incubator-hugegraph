@@ -70,6 +70,14 @@ public interface AuthManager {
     public List<HugeAccess> listAccessByGroup(Id group, long limit);
     public List<HugeAccess> listAccessByTarget(Id target, long limit);
 
+    public Id createProject(HugeProject project);
+    public HugeProject deleteProject(Id id);
+    public Id updateProject(HugeProject project);
+    public Id projectAddGraph(Id id, String graph);
+    public Id projectRemoveGraph(Id id, String graph);
+    public HugeProject getProject(Id id);
+    public List<HugeProject> listAllProject(long limit);
+
     public HugeUser matchUser(String name, String password);
     public RolePermission rolePermission(AuthElement element);
 
@@ -79,12 +87,4 @@ public interface AuthManager {
 
     public UserWithRole validateUser(String username, String password);
     public UserWithRole validateUser(String token);
-
-    public Id createProject(HugeProject project);
-    public HugeProject deleteProject(Id id);
-    public Id updateProject(HugeProject project);
-    public Id updateProjectAddGraph(Id id, String graph);
-    public Id updateProjectRemoveGraph(Id id, String graph);
-    public HugeProject getProject(Id id);
-    public List<HugeProject> listAllProject(long limit);
 }

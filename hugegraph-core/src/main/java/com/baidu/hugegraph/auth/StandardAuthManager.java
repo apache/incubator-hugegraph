@@ -389,6 +389,190 @@ public class StandardAuthManager implements AuthManager {
     }
 
     @Override
+    public Id createProject(HugeProject project) {
+        E.checkArgument(!Strings.isNullOrEmpty(project.name()),
+                        "The name of project can't be null or empty");
+        return commit(() -> {
+            // Create project admin group
+            if (project.adminGroupId() == null) {
+                HugeGroup adminGroup = new HugeGroup(project.adminGroupName());
+                adminGroup.creator(project.creator());
+                Id adminGroupId = this.createGroup(adminGroup);
+                project.adminGroupId(adminGroupId);
+            }
+
+            // Create project op group
+            if (project.opGroupId() == null) {
+                HugeGroup opGroup = new HugeGroup(project.opGroupName());
+                opGroup.creator(project.creator());
+                Id opGroupId = this.createGroup(opGroup);
+                project.opGroupId(opGroupId);
+            }
+
+            // Create project target to verify permission
+            HugeResource resource = new HugeResource(ResourceType.PROJECT,
+                                                     project.name(),
+                                                     null);
+            HugeTarget target = new HugeTarget(project.targetName(),
+                                               this.graph.name(),
+                                               "localhost:8080",
+                                               ImmutableList.of(resource));
+            target.creator(project.creator());
+            Id targetId = this.targets.add(target);
+            project.targetId(targetId);
+
+            Id adminGroupId = project.adminGroupId();
+            Id opGroupId = project.opGroupId();
+            HugeAccess adminGroupWriteAccess = new HugeAccess(
+                                                   adminGroupId, targetId,
+                                                   HugePermission.WRITE);
+            adminGroupWriteAccess.creator(project.creator());
+            HugeAccess adminGroupReadAccess = new HugeAccess(
+                                                  adminGroupId, targetId,
+                                                  HugePermission.READ);
+            adminGroupReadAccess.creator(project.creator());
+            HugeAccess opGroupReadAccess = new HugeAccess(opGroupId, targetId,
+                                                          HugePermission.READ);
+            opGroupReadAccess.creator(project.creator());
+            this.access.add(adminGroupWriteAccess);
+            this.access.add(adminGroupReadAccess);
+            this.access.add(opGroupReadAccess);
+            return this.project.add(project);
+        });
+    }
+
+    @Override
+    public HugeProject deleteProject(Id id) {
+        return this.commit(() -> {
+            LockUtil.Locks locks = new LockUtil.Locks(this.graph.name());
+            try {
+                locks.lockWrites(LockUtil.PROJECT_UPDATE, id);
+
+                HugeProject oldProject = this.project.get(id);
+                E.checkArgumentNotNull(oldProject,
+                                       "The project '%s' can't be found", id);
+                /*
+                 * Check whether there are any graph binding this project,
+                 * throw ForbiddenException, if it is
+                 */
+                if (!oldProject.graphs().isEmpty()) {
+                    String errInfo = String.format("Can't delete project '%s' " +
+                                                   "that contains any graph, " +
+                                                   "there are graphs bound " +
+                                                   "to it", id);
+                    throw new ForbiddenException(errInfo);
+                }
+                HugeProject project = this.project.delete(id);
+                E.checkArgumentNotNull(project,
+                                       "Failed to delete the project '%s'",
+                                       id);
+                E.checkArgument(project.adminGroupId() != null,
+                                "Failed to delete the project '%s'," +
+                                "the admin group of project can't be null",
+                                id);
+                E.checkArgument(project.opGroupId() != null,
+                                "Failed to delete the project '%s'," +
+                                "the op group of project can't be null", id);
+                E.checkArgument(project.targetId() != null,
+                                "Failed to delete the project '%s', " +
+                                "the target resource of project can't be null", id);
+                // Delete admin group
+                this.groups.delete(project.adminGroupId());
+                // Delete op group
+                this.groups.delete(project.opGroupId());
+                // Delete project_target
+                this.targets.delete(project.targetId());
+                return project;
+            } finally {
+                locks.unlock();
+            }
+        });
+    }
+
+    @Override
+    public Id updateProject(HugeProject project) {
+        E.checkArgumentNotNull(project, "The project can't be null");
+        E.checkArgumentNotNull(project.id(),
+                               "The id of project can't be null");
+        E.checkArgument(project.description() != null,
+                        "The description of project '%s' can't be null",
+                        project.id());
+        LockUtil.Locks locks = new LockUtil.Locks(this.graph.name());
+        try {
+            locks.lockWrites(LockUtil.PROJECT_UPDATE, project.id());
+
+            HugeProject source = this.project.get(project.id());
+            source.description(project.description());
+            return this.project.update(source);
+        } finally {
+            locks.unlock();
+        }
+    }
+
+    @Override
+    public Id projectAddGraph(Id id, String graph) {
+        E.checkArgument(!Strings.isNullOrEmpty(graph),
+                        "Failed to add graph to project '%s', the graph " +
+                        "parameter can't be empty", id);
+
+        LockUtil.Locks locks = new LockUtil.Locks(this.graph.name());
+        try {
+            locks.lockWrites(LockUtil.PROJECT_UPDATE, id);
+
+            HugeProject project = this.project.get(id);
+            E.checkArgumentNotNull(project,
+                                   "The project '%s' can't be found", id);
+            Set<String> graphs = new HashSet<>(project.graphs());
+            E.checkArgument(!graphs.contains(graph),
+                            "The graph named '%s' has been contained " +
+                            "in the project '%s'", graph, id);
+            graphs.add(graph);
+            project.graphs(graphs);
+            return this.project.update(project);
+        } finally {
+            locks.unlock();
+        }
+    }
+
+    @Override
+    public Id projectRemoveGraph(Id id, String graph) {
+        E.checkArgument(id != null,
+                        "Failed to remove graph, the project id parameter " +
+                        "can't be null");
+        E.checkArgument(!Strings.isNullOrEmpty(graph),
+                        "Failed to delete graph from the project '%s', " +
+                        "the graph parameter can't be null or empty", id);
+
+        LockUtil.Locks locks = new LockUtil.Locks(this.graph.name());
+        try {
+            locks.lockWrites(LockUtil.PROJECT_UPDATE, id);
+
+            HugeProject project = this.project.get(id);
+            E.checkArgumentNotNull(project,
+                                   "The project '%s' can't be found", id);
+            Set<String> graphs = new HashSet<>(project.graphs());
+            if (!graphs.contains(graph)) {
+                return id;
+            }
+            graphs.remove(graph);
+            project.graphs(graphs);
+            return this.project.update(project);
+        } finally {
+            locks.unlock();
+        }
+    }
+
+    @Override
+    public HugeProject getProject(Id id) {
+        return this.project.get(id);
+    }
+
+    @Override
+    public List<HugeProject> listAllProject(long limit) {
+        return this.project.list(limit);
+    }
+
+    @Override
     public HugeUser matchUser(String name, String password) {
         E.checkArgumentNotNull(name, "User name can't be null");
         E.checkArgumentNotNull(password, "User password can't be null");
@@ -530,190 +714,6 @@ public class StandardAuthManager implements AuthManager {
         }
 
         return new UserWithRole(user.id(), username, this.rolePermission(user));
-    }
-
-    @Override
-    public Id createProject(HugeProject project) {
-        E.checkArgument(!Strings.isNullOrEmpty(project.name()),
-                        "The name of project can't be null or empty");
-        return commit(() -> {
-            // Create project admin group
-            if (project.adminGroupId() == null) {
-                HugeGroup adminGroup = new HugeGroup(project.adminGroupName());
-                adminGroup.creator(project.creator());
-                Id adminGroupId = this.createGroup(adminGroup);
-                project.adminGroupId(adminGroupId);
-            }
-
-            // Create project op group
-            if (project.opGroupId() == null) {
-                HugeGroup opGroup = new HugeGroup(project.opGroupName());
-                opGroup.creator(project.creator());
-                Id opGroupId = this.createGroup(opGroup);
-                project.opGroupId(opGroupId);
-            }
-
-            // Create project target to verify permission
-            HugeResource resource = new HugeResource(ResourceType.PROJECT,
-                                                     project.name(),
-                                                     null);
-            HugeTarget target = new HugeTarget(project.targetName(),
-                                               this.graph.name(),
-                                               "localhost:8080",
-                                               ImmutableList.of(resource));
-            target.creator(project.creator());
-            Id targetId = this.targets.add(target);
-            project.targetId(targetId);
-
-            Id adminGroupId = project.adminGroupId();
-            Id opGroupId = project.opGroupId();
-            HugeAccess adminGroupWriteAccess = new HugeAccess(
-                                                   adminGroupId, targetId,
-                                                   HugePermission.WRITE);
-            adminGroupWriteAccess.creator(project.creator());
-            HugeAccess adminGroupReadAccess = new HugeAccess(
-                                                  adminGroupId, targetId,
-                                                  HugePermission.READ);
-            adminGroupReadAccess.creator(project.creator());
-            HugeAccess opGroupReadAccess = new HugeAccess(opGroupId, targetId,
-                                                          HugePermission.READ);
-            opGroupReadAccess.creator(project.creator());
-            this.access.add(adminGroupWriteAccess);
-            this.access.add(adminGroupReadAccess);
-            this.access.add(opGroupReadAccess);
-            return this.project.add(project);
-        });
-    }
-
-    @Override
-    public HugeProject deleteProject(Id id) {
-        return this.commit(() -> {
-            LockUtil.Locks locks = new LockUtil.Locks(this.graph.name());
-            try {
-                locks.lockWrites(LockUtil.PROJECT_UPDATE, id);
-
-                HugeProject oldProject = this.project.get(id);
-                E.checkArgumentNotNull(oldProject,
-                                       "The project '%s' can't be found", id);
-                /*
-                 * Check whether there are any graph binding this project,
-                 * throw ForbiddenException, if it is
-                 */
-                if (!oldProject.graphs().isEmpty()) {
-                    String errInfo = String.format("Can't delete project '%s' " +
-                                                   "that contains any graph, " +
-                                                   "there are graphs bound " +
-                                                   "to it", id);
-                    throw new ForbiddenException(errInfo);
-                }
-                HugeProject project = this.project.delete(id);
-                E.checkArgumentNotNull(project,
-                                       "Failed to delete the project '%s'",
-                                       id);
-                E.checkArgument(project.adminGroupId() != null,
-                                "Failed to delete the project '%s'," +
-                                "the admin group id of project can't be null",
-                                id);
-                E.checkArgument(project.opGroupId() != null,
-                                "Failed to delete the project '%s'," +
-                                "the op group id of project can't be null", id);
-                E.checkArgument(project.targetId() != null,
-                                "Failed to delete the project '%s', " +
-                                "the target id of project can't be null", id);
-                // Delete admin group
-                this.groups.delete(project.adminGroupId());
-                // Delete op group
-                this.groups.delete(project.opGroupId());
-                // Delete project_target
-                this.targets.delete(project.targetId());
-                return project;
-            } finally {
-                locks.unlock();
-            }
-        });
-    }
-
-    @Override
-    public Id updateProject(HugeProject project) {
-        E.checkArgumentNotNull(project, "The project can't be null");
-        E.checkArgumentNotNull(project.id(),
-                               "The id of project can't be null");
-        E.checkArgument(project.description() != null,
-                        "The description of project '%s' can't be null",
-                        project.id());
-        LockUtil.Locks locks = new LockUtil.Locks(this.graph.name());
-        try {
-            locks.lockWrites(LockUtil.PROJECT_UPDATE, project.id());
-
-            HugeProject source = this.project.get(project.id());
-            source.description(project.description());
-            return this.project.update(source);
-        } finally {
-            locks.unlock();
-        }
-    }
-
-    @Override
-    public Id updateProjectAddGraph(Id id, String graph) {
-        E.checkArgument(!Strings.isNullOrEmpty(graph),
-                        "Failed to add graph to project '%s', the graph " +
-                        "parameter can't be empty", id);
-
-        LockUtil.Locks locks = new LockUtil.Locks(this.graph.name());
-        try {
-            locks.lockWrites(LockUtil.PROJECT_UPDATE, id);
-
-            HugeProject project = this.project.get(id);
-            E.checkArgumentNotNull(project,
-                                   "The project '%s' can't be found", id);
-            Set<String> graphs = new HashSet<>(project.graphs());
-            E.checkArgument(!graphs.contains(graph),
-                            "The graph named '%s' has been contained " +
-                            "in the project '%s'", graph, id);
-            graphs.add(graph);
-            project.graphs(graphs);
-            return this.project.update(project);
-        } finally {
-            locks.unlock();
-        }
-    }
-
-    @Override
-    public Id updateProjectRemoveGraph(Id id, String graph) {
-        E.checkArgument(id != null,
-                        "Failed to remove graph, the project id parameter " +
-                        "can't be null");
-        E.checkArgument(!Strings.isNullOrEmpty(graph),
-                        "Failed to delete graph from the project '%s', " +
-                        "the graph parameter can't be null or empty", id);
-
-        LockUtil.Locks locks = new LockUtil.Locks(this.graph.name());
-        try {
-            locks.lockWrites(LockUtil.PROJECT_UPDATE, id);
-
-            HugeProject project = this.project.get(id);
-            E.checkArgumentNotNull(project,
-                                   "The project '%s' can't be found", id);
-            Set<String> graphs = new HashSet<>(project.graphs());
-            if (!graphs.contains(graph)) {
-                return id;
-            }
-            graphs.remove(graph);
-            project.graphs(graphs);
-            return this.project.update(project);
-        } finally {
-            locks.unlock();
-        }
-    }
-
-    @Override
-    public HugeProject getProject(Id id) {
-        return this.project.get(id);
-    }
-
-    @Override
-    public List<HugeProject> listAllProject(long limit) {
-        return this.project.list(limit);
     }
 
     /**

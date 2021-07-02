@@ -108,9 +108,9 @@ public class ProjectAPI extends API {
         }
         project = jsonProject.build(action, project);
         if (this.isAddGraph(action)) {
-            authManager.updateProjectAddGraph(projectId, jsonProject.graph);
+            authManager.projectAddGraph(projectId, jsonProject.graph());
         } else if (this.isRemoveGraph(action)) {
-            authManager.updateProjectRemoveGraph(projectId, jsonProject.graph);
+            authManager.projectRemoveGraph(projectId, jsonProject.graph());
         } else {
             authManager.updateProject(project);
         }
@@ -178,12 +178,12 @@ public class ProjectAPI extends API {
 
     private static class JsonProject implements Checkable {
 
-        @JsonProperty("project_description")
-        private String description;
         @JsonProperty("project_name")
         private String name;
         @JsonProperty("project_graph")
         private String graph;
+        @JsonProperty("project_description")
+        private String description;
 
         public HugeProject build(String action, HugeProject project) {
             if (ProjectAPI.isAddGraph(action)) {
@@ -217,6 +217,10 @@ public class ProjectAPI extends API {
         public HugeProject build() {
             HugeProject project = new HugeProject(this.name, this.description);
             return project;
+        }
+
+        public String graph() {
+            return this.graph;
         }
 
         @Override

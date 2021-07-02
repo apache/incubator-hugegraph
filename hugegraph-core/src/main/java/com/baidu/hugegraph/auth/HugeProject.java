@@ -22,7 +22,6 @@ package com.baidu.hugegraph.auth;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -44,11 +43,11 @@ import com.google.common.base.Strings;
 public class HugeProject extends Entity {
 
     private String name;
-    private String desc;
     private Id adminGroupId;
     private Id opGroupId;
     private Set<String> graphs;
     private Id targetId;
+    private String description;
 
     public HugeProject(Id id) {
         this(id, null, null, null, null, null, null);
@@ -58,14 +57,14 @@ public class HugeProject extends Entity {
         this(name, null);
     }
 
-    public HugeProject(String name, String desc) {
-        this(null, name, desc, null, null, null, null);
+    public HugeProject(String name, String description) {
+        this(null, name, description, null, null, null, null);
     }
 
-    public HugeProject(Id id, String name, String desc, Id adminGroupId,
+    public HugeProject(Id id, String name, String description, Id adminGroupId,
                        Id opGroupId, Set<String> graphs, Id targetId) {
         this.name = name;
-        this.desc = desc;
+        this.description = description;
         this.adminGroupId = adminGroupId;
         this.opGroupId = opGroupId;
         this.graphs = graphs;
@@ -93,14 +92,6 @@ public class HugeProject extends Entity {
 
     public String targetName() {
         return "project_res_" + this.name;
-    }
-
-    public String description() {
-        return this.desc;
-    }
-
-    public void description(String desc) {
-        this.desc = desc;
     }
 
     public Id adminGroupId() {
@@ -136,6 +127,14 @@ public class HugeProject extends Entity {
         this.targetId = targetId;
     }
 
+    public String description() {
+        return this.description;
+    }
+
+    public void description(String desc) {
+        this.description = desc;
+    }
+
     @Override
     public Map<String, Object> asMap() {
         E.checkState(!Strings.isNullOrEmpty(this.name),
@@ -157,9 +156,9 @@ public class HugeProject extends Entity {
         if (this.graphs != null && !this.graphs.isEmpty()) {
             map.put(Graph.Hidden.unHide(HugeProject.P.GRAPHS), this.graphs);
         }
-        if (!Strings.isNullOrEmpty(this.desc)) {
+        if (!Strings.isNullOrEmpty(this.description)) {
             map.put(Graph.Hidden.unHide(HugeProject.P.DESCRIPTIONS),
-                    this.desc);
+                    this.description);
         }
         if (this.targetId != null) {
             map.put(Graph.Hidden.unHide(HugeProject.P.TARGET),
@@ -187,9 +186,9 @@ public class HugeProject extends Entity {
         list.add(HugeProject.P.NAME);
         list.add(this.name);
 
-        if (!Strings.isNullOrEmpty(this.desc)) {
+        if (!Strings.isNullOrEmpty(this.description)) {
             list.add(HugeProject.P.DESCRIPTIONS);
-            list.add(this.desc);
+            list.add(this.description);
         }
 
         if (this.graphs != null && !this.graphs.isEmpty()) {
@@ -224,7 +223,7 @@ public class HugeProject extends Entity {
                 this.graphs = (Set<String>) value;
                 break;
             case HugeProject.P.DESCRIPTIONS:
-                this.desc = (String) value;
+                this.description = (String) value;
                 break;
             case P.ADMIN_GROUP:
                 this.adminGroupId = IdGenerator.of(value);
