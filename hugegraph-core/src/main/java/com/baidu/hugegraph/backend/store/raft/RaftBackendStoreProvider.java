@@ -197,6 +197,18 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
 
         this.notifyAndWaitEvent(Events.STORE_INITED);
         LOG.debug("Graph '{}' system info has been initialized", this.graph());
+        /*
+         * Take the initiative to generate a snapshot, it can avoid this
+         * situation: when the server restart need to read the database
+         * (such as checkBackendVersionInfo), it happens that raft replays
+         * the truncate log, at the same time, the store has been cleared
+         * (truncate) but init-store has not been completed, which will
+         * cause reading errors.
+         * When restarting, load the snapshot first and then read backend,
+         * will not encounter such an intermediate state.
+         */
+        this.createSnapshot();
+        LOG.debug("Graph '{}' snapshot has been created", this.graph());
     }
 
     @Override
