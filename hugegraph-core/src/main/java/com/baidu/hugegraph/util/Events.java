@@ -28,5 +28,4 @@ public final class Events {
     public static final String STORE_INIT = "store.init";
     public static final String STORE_CLEAR = "store.clear";
     public static final String STORE_TRUNCATE = "store.truncate";
-    public static final String STORE_INITED = "store.inited";
 }

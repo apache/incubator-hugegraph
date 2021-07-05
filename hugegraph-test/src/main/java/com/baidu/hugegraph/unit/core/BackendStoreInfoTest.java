@@ -22,34 +22,26 @@ package com.baidu.hugegraph.unit.core;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import com.baidu.hugegraph.HugeException;
-import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.BackendStoreInfo;
-import com.baidu.hugegraph.backend.tx.SchemaTransaction;
+import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import com.baidu.hugegraph.testutil.Assert;
-import com.baidu.hugegraph.testutil.Whitebox;
 
 public class BackendStoreInfoTest {
 
-    private static final String PK_BACKEND_INFO = "~backend_info";
-
     @Test
-    public void testBackendStoreSystemInfoIllegalStateException() {
-        HugeGraph graph = Mockito.mock(HugeGraph.class);
-        SchemaTransaction stx = Mockito.mock(SchemaTransaction.class);
-        Mockito.when(stx.getPropertyKey(PK_BACKEND_INFO))
-               .thenThrow(new IllegalStateException("Should not exist schema " +
-                          "with same name '~backend_info'"));
-        Mockito.when(stx.graph()).thenReturn(graph);
-        Mockito.when(stx.storeInitialized()).thenReturn(true);
+    public void testBackendStoreInfo() {
+        BackendStoreProvider provider = Mockito.mock(BackendStoreProvider.class);
+        BackendStore store = Mockito.mock(BackendStore.class);
 
-        BackendStoreInfo info = new BackendStoreInfo(stx);
+        Mockito.when(provider.initialized()).thenReturn(true);
+        Mockito.when(provider.loadSystemStore()).thenReturn(store);
+        Mockito.when(store.storedVersion()).thenReturn("1.11");
 
-        Assert.assertThrows(HugeException.class, () -> {
-            Whitebox.invoke(BackendStoreInfo.class, "info", info);
-        }, e -> {
-            Assert.assertContains("There exists multiple backend info",
-                                  e.getMessage());
-        });
+        BackendStoreInfo backendStoreInfo = new BackendStoreInfo(provider);
+        Assert.assertTrue(backendStoreInfo.exists());
+
+        Mockito.when(provider.driverVersion()).thenReturn("1.10");
+        Assert.assertFalse(backendStoreInfo.checkVersion());
     }
 }

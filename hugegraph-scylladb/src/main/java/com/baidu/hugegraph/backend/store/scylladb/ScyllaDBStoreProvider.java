@@ -45,7 +45,8 @@ public class ScyllaDBStoreProvider extends CassandraStoreProvider {
     }
 
     @Override
-    public BackendStore loadSchemaStore(String name) {
+    public BackendStore loadSchemaStore() {
+        String name = SCHEMA_STORE;
         LOG.debug("ScyllaDBStoreProvider load SchemaStore '{}'", name);
 
         if (!this.stores.containsKey(name)) {
@@ -61,7 +62,8 @@ public class ScyllaDBStoreProvider extends CassandraStoreProvider {
     }
 
     @Override
-    public BackendStore loadGraphStore(String name) {
+    public BackendStore loadGraphStore() {
+        String name = GRAPH_STORE;
         LOG.debug("ScyllaDBStoreProvider load GraphStore '{}'", name);
 
         if (!this.stores.containsKey(name)) {
@@ -73,6 +75,23 @@ public class ScyllaDBStoreProvider extends CassandraStoreProvider {
         E.checkNotNull(store, "store");
         E.checkState(store instanceof ScyllaDBGraphStore,
                      "GraphStore must be an instance of ScyllaDBGraphStore");
+        return store;
+    }
+
+    @Override
+    public BackendStore loadSystemStore() {
+        String name = SYSTEM_STORE;
+        LOG.debug("ScyllaDBStoreProvider load SystemStore '{}'", name);
+
+        if (!this.stores.containsKey(name)) {
+            BackendStore s = new ScyllaDBSystemStore(this, keyspace(), name);
+            this.stores.putIfAbsent(name, s);
+        }
+
+        BackendStore store = this.stores.get(name);
+        E.checkNotNull(store, "store");
+        E.checkState(store instanceof ScyllaDBSystemStore,
+                     "SystemStore must be an instance of ScyllaDBSystemStore");
         return store;
     }
 
@@ -119,6 +138,27 @@ public class ScyllaDBStoreProvider extends CassandraStoreProvider {
                                  ScyllaDBTablesWithMV.Edge.out(store));
             registerTableManager(HugeType.EDGE_IN,
                                  ScyllaDBTablesWithMV.Edge.in(store));
+        }
+
+        @Override
+        public BackendFeatures features() {
+            return FEATURES;
+        }
+
+        @Override
+        protected CassandraMetrics createMetrics(HugeConfig conf,
+                                                 CassandraSessionPool sessions,
+                                                 String keyspace) {
+            return new ScyllaDBMetrics(conf, sessions, keyspace);
+        }
+    }
+
+    public static class ScyllaDBSystemStore
+                  extends CassandraStore.CassandraSystemStore {
+
+        public ScyllaDBSystemStore(BackendStoreProvider provider,
+                                   String keyspace, String store) {
+            super(provider, keyspace, store);
         }
 
         @Override

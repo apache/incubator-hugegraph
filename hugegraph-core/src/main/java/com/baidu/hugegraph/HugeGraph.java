@@ -132,7 +132,6 @@ public interface HugeGraph extends Graph {
 
     public String name();
     public String backend();
-    public String backendVersion();
     public BackendStoreInfo backendStoreInfo();
     public BackendFeatures backendStoreFeatures();
 
@@ -154,7 +153,6 @@ public interface HugeGraph extends Graph {
     public void truncateBackend();
 
     public void initSystemInfo();
-    public void initBackendInfo();
 
     public void createSnapshot();
     public void resumeSnapshot();

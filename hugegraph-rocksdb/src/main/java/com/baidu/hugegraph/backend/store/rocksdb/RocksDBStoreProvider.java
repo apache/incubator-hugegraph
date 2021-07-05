@@ -23,6 +23,7 @@ import com.baidu.hugegraph.backend.store.AbstractBackendStoreProvider;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.rocksdb.RocksDBStore.RocksDBGraphStore;
 import com.baidu.hugegraph.backend.store.rocksdb.RocksDBStore.RocksDBSchemaStore;
+import com.baidu.hugegraph.backend.store.rocksdb.RocksDBStore.RocksDBSystemStore;
 
 public class RocksDBStoreProvider extends AbstractBackendStoreProvider {
 
@@ -41,12 +42,17 @@ public class RocksDBStoreProvider extends AbstractBackendStoreProvider {
     }
 
     @Override
+    protected BackendStore newSystemStore(String store) {
+        return new RocksDBSystemStore(this, this.database(), store);
+    }
+
+    @Override
     public String type() {
         return "rocksdb";
     }
 
     @Override
-    public String version() {
+    public String driverVersion() {
         /*
          * Versions history:
          * [1.0] HugeGraph-1328: supports backend table version checking
@@ -62,7 +68,8 @@ public class RocksDBStoreProvider extends AbstractBackendStoreProvider {
          * [1.8] #894: encode label id in string index
          * [1.9] #295: support ttl for vertex and edge
          * [1.10] #1333: support read frequency for property key
+         * [1.11] #1533: add meta table in system store
          */
-        return "1.10";
+        return "1.11";
     }
 }

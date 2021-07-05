@@ -591,12 +591,6 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     @Override
-    public String backendVersion() {
-        this.verifyAnyPermission();
-        return this.hugegraph.backendVersion();
-    }
-
-    @Override
     public BackendStoreInfo backendStoreInfo() {
         this.verifyAdminPermission();
         return this.hugegraph.backendStoreInfo();
@@ -725,12 +719,6 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     public void initSystemInfo() {
         this.verifyAdminPermission();
         this.hugegraph.initSystemInfo();
-    }
-
-    @Override
-    public void initBackendInfo() {
-        this.verifyAdminPermission();
-        this.hugegraph.initBackendInfo();
     }
 
     @Override

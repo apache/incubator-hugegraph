@@ -24,24 +24,51 @@ import java.util.HashMap;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.schema.SchemaElement;
 
+/**
+ * The system schema will be initialized when server started, and the
+ * initialization process is thread-safe, so it's unnecessary to lock it.
+ */
 public class SystemSchemaStore {
 
-    private final HashMap<Id, SchemaElement> store;
+    private static final int SYSTEM_SCHEMA_MAX_NUMS = 128;
+
+    private SchemaElement[] storeByIds;
+    private final HashMap<String, SchemaElement> storeByNames;
 
     public SystemSchemaStore() {
-        this.store = new HashMap<>();
+        this.storeByIds = new SchemaElement[SYSTEM_SCHEMA_MAX_NUMS];
+        this.storeByNames = new HashMap<>();
     }
 
     public void add(SchemaElement schema) {
-        this.store.put(schema.id(), schema);
+        long idValue = schema.id().asLong();
+        assert idValue < 0L;
+        int index = (int) Math.abs(idValue);
+        if (index >= this.storeByIds.length) {
+            this.expandCapacity();
+        }
+        this.storeByIds[index] = schema;
+        this.storeByNames.put(schema.name(), schema);
     }
 
     @SuppressWarnings("unchecked")
     public <T extends SchemaElement> T get(Id id) {
-        return (T) this.store.get(id);
+        long idValue = id.asLong();
+        assert idValue < 0L;
+        int index = (int) Math.abs(idValue);
+        return (T) this.storeByIds[index];
     }
 
-    public void remove(Id id) {
-        this.store.remove(id);
+    @SuppressWarnings("unchecked")
+    public <T extends SchemaElement> T get(String name) {
+        return (T) this.storeByNames.get(name);
+    }
+
+    private void expandCapacity() {
+        int newLength = this.storeByIds.length << 1;
+        SchemaElement[] newStoreByIds = new SchemaElement[newLength];
+        System.arraycopy(this.storeByIds, 0, newStoreByIds, 0,
+                         this.storeByIds.length);
+        this.storeByIds = newStoreByIds;
     }
 }

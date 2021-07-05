@@ -120,7 +120,7 @@ public class GraphTransaction extends IndexableTransaction {
     private Map<Id, HugeEdge> updatedEdges;
     private Set<HugeProperty<?>> updatedOldestProps; // Oldest props
 
-    private LockUtil.LocksTable locksTable;
+    private final LockUtil.LocksTable locksTable;
 
     private final boolean checkCustomVertexExist;
     private final boolean checkAdjacentVertexExist;

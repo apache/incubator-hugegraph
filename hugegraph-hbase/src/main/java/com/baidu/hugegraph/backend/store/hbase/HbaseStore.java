@@ -540,5 +540,45 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
             throw new UnsupportedOperationException(
                       "HbaseGraphStore.getCounter()");
         }
+
+        public Session getSession() {
+            return super.sessions.session();
+        }
+    }
+
+    public static class HbaseSystemStore extends HbaseGraphStore {
+
+        private final HbaseTables.Meta meta;
+
+        public HbaseSystemStore(BackendStoreProvider provider,
+                                String namespace, String store) {
+            super(provider, namespace, store);
+
+            this.meta = new HbaseTables.Meta();
+        }
+
+        @Override
+        protected List<String> tableNames() {
+            List<String> tableNames = super.tableNames();
+            tableNames.add(this.meta.table());
+            return tableNames;
+        }
+
+        @Override
+        public void init() {
+            super.init();
+            super.checkOpened();
+            Session session = super.getSession();
+            String driverVersion = this.provider().driverVersion();
+            this.meta.writeVersion(session, driverVersion);
+            LOG.info("Write down the backend version: {}", driverVersion);
+        }
+
+        @Override
+        public String storedVersion() {
+            super.checkOpened();
+            Session session = super.getSession();
+            return this.meta.readVersion(session);
+        }
     }
 }

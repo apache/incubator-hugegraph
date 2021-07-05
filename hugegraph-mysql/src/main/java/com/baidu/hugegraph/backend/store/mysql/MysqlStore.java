@@ -470,5 +470,46 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
             throw new UnsupportedOperationException(
                       "MysqlGraphStore.getCounter()");
         }
+
+        public Session getSession() {
+            return super.sessions.session();
+        }
+    }
+
+    public static class MysqlSystemStore extends MysqlGraphStore {
+
+        private final MysqlTables.Meta meta;
+
+        public MysqlSystemStore(BackendStoreProvider provider,
+                                String database, String store) {
+            super(provider, database, store);
+
+            this.meta = new MysqlTables.Meta();
+        }
+
+        @Override
+        public void init() {
+            super.init();
+            this.checkOpened();
+            Session session = this.getSession();
+            String driverVersion = this.provider().driverVersion();
+            this.meta.writeVersion(session, driverVersion);
+            LOG.info("Write down the backend version: {}", driverVersion);
+        }
+
+        @Override
+        public String storedVersion() {
+            super.init();
+            this.checkOpened();
+            Session session = this.getSession();
+            return this.meta.readVersion(session);
+        }
+
+        @Override
+        protected Collection<MysqlTable> tables() {
+            List<MysqlTable> tables = new ArrayList<>(super.tables());
+            tables.add(this.meta);
+            return tables;
+        }
     }
 }

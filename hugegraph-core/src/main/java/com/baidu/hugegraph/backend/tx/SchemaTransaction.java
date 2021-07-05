@@ -30,6 +30,7 @@ import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.BackendException;
+import com.baidu.hugegraph.backend.LocalCounter;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
@@ -37,6 +38,7 @@ import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendStore;
+import com.baidu.hugegraph.backend.store.SystemSchemaStore;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.exception.NotAllowException;
 import com.baidu.hugegraph.job.JobBuilder;
@@ -66,12 +68,16 @@ import com.google.common.collect.ImmutableSet;
 public class SchemaTransaction extends IndexableTransaction {
 
     private final SchemaIndexTransaction indexTx;
+    private final SystemSchemaStore systemSchemaStore;
+    private final LocalCounter counter;
 
     public SchemaTransaction(HugeGraphParams graph, BackendStore store) {
         super(graph, store);
         this.autoCommit(true);
 
         this.indexTx = new SchemaIndexTransaction(graph, store);
+        this.systemSchemaStore = store.systemSchemaStore();
+        this.counter = graph.counter();
     }
 
     @Override
@@ -279,9 +285,8 @@ public class SchemaTransaction extends IndexableTransaction {
         setCreateTimeIfNeeded(schema);
 
         // System schema just put into SystemSchemaStore in memory
-        // FIXME: backend info id is -36
-        if (schema.longId() < 0) {
-            this.store().systemSchemaStore().add(schema);
+        if (schema.longId() < 0L) {
+            this.systemSchemaStore.add(schema);
             return;
         }
 
@@ -302,8 +307,8 @@ public class SchemaTransaction extends IndexableTransaction {
         LOG.debug("SchemaTransaction get {} by id '{}'",
                   type.readableName(), id);
         // System schema just get from SystemSchemaStore in memory
-        if (id.asLong() < 0) {
-            return this.store().systemSchemaStore().get(id);
+        if (id.asLong() < 0L) {
+            return this.systemSchemaStore.get(id);
         }
 
         this.beforeRead();
@@ -327,7 +332,10 @@ public class SchemaTransaction extends IndexableTransaction {
                                                     String name) {
         LOG.debug("SchemaTransaction get {} by name '{}'",
                   type.readableName(), name);
-        // Assume that system schema will not get by name
+        T schema = this.systemSchemaStore.get(name);
+        if (schema != null) {
+            return schema;
+        }
 
         this.beforeRead();
 
@@ -342,7 +350,7 @@ public class SchemaTransaction extends IndexableTransaction {
         if (entry == null) {
             return null;
         }
-        T schema = this.deserialize(entry, type);
+        schema = this.deserialize(entry, type);
         return schema;
     }
 
@@ -365,9 +373,9 @@ public class SchemaTransaction extends IndexableTransaction {
         LOG.debug("SchemaTransaction remove {} by id '{}'",
                   schema.type(), schema.id());
         // System schema just remove from SystemSchemaStore in memory
-        if (schema.longId() < 0) {
-            this.store().systemSchemaStore().remove(schema.id());
-            return;
+        if (schema.longId() < 0L) {
+            throw new IllegalStateException("Deletion of system metadata " +
+                                            "should not occur");
         }
 
         LockUtil.Locks locks = new LockUtil.Locks(this.graphName());
@@ -484,7 +492,7 @@ public class SchemaTransaction extends IndexableTransaction {
     @Watched(prefix = "schema")
     public Id getNextSystemId() {
         LOG.debug("SchemaTransaction get next system id");
-        Id id = this.store().nextId(HugeType.SYS_SCHEMA);
+        Id id = this.counter.nextId(HugeType.SYS_SCHEMA);
         return IdGenerator.of(-id.asLong());
     }
 

@@ -84,8 +84,13 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
     }
 
     @Override
-    public String version() {
-        return this.provider.version();
+    public String driverVersion() {
+        return this.provider.driverVersion();
+    }
+
+    @Override
+    public String storedVersion() {
+        return this.provider.storedVersion();
     }
 
     @Override
@@ -94,10 +99,10 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
     }
 
     @Override
-    public synchronized BackendStore loadSchemaStore(final String name) {
+    public synchronized BackendStore loadSchemaStore() {
         if (this.schemaStore == null) {
             LOG.info("Init raft backend schema store");
-            BackendStore store = this.provider.loadSchemaStore(name);
+            BackendStore store = this.provider.loadSchemaStore();
             this.checkNonSharedStore(store);
             this.schemaStore = new RaftBackendStore(store, this.context);
             this.context.addStore(StoreType.SCHEMA, this.schemaStore);
@@ -106,10 +111,10 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
     }
 
     @Override
-    public synchronized BackendStore loadGraphStore(String name) {
+    public synchronized BackendStore loadGraphStore() {
         if (this.graphStore == null) {
             LOG.info("Init raft backend graph store");
-            BackendStore store = this.provider.loadGraphStore(name);
+            BackendStore store = this.provider.loadGraphStore();
             this.checkNonSharedStore(store);
             this.graphStore = new RaftBackendStore(store, this.context);
             this.context.addStore(StoreType.GRAPH, this.graphStore);
@@ -118,10 +123,10 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
     }
 
     @Override
-    public synchronized BackendStore loadSystemStore(String name) {
+    public synchronized BackendStore loadSystemStore() {
         if (this.systemStore == null) {
             LOG.info("Init raft backend system store");
-            BackendStore store = this.provider.loadSystemStore(name);
+            BackendStore store = this.provider.loadSystemStore();
             this.checkNonSharedStore(store);
             this.systemStore = new RaftBackendStore(store, this.context);
             this.context.addStore(StoreType.SYSTEM, this.systemStore);
@@ -183,8 +188,23 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
             store.truncate();
         }
         this.notifyAndWaitEvent(Events.STORE_TRUNCATE);
-
         LOG.debug("Graph '{}' store has been truncated", this.graph());
+        /*
+         * Take the initiative to generate a snapshot, it can avoid this
+         * situation: when the server restart need to read the database
+         * (such as checkBackendVersionInfo), it happens that raft replays
+         * the truncate log, at the same time, the store has been cleared
+         * (truncate) but init-store has not been completed, which will
+         * cause reading errors.
+         * When restarting, load the snapshot first and then read backend,
+         * will not encounter such an intermediate state.
+         */
+        this.createSnapshot();
+    }
+
+    @Override
+    public boolean initialized() {
+        return this.provider.initialized() && this.context != null;
     }
 
     @Override

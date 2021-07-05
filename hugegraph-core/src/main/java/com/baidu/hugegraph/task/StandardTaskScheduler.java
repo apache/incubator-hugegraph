@@ -455,7 +455,7 @@ public class StandardTaskScheduler implements TaskScheduler {
 
     @Override
     public void init() {
-        this.tx().initSchema();
+        this.call(() -> this.tx().initSchema());
     }
 
     @Override

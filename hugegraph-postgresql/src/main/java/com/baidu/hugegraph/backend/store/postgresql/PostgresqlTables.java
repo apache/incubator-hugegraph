@@ -19,6 +19,15 @@
 
 package com.baidu.hugegraph.backend.store.postgresql;
 
+import static com.baidu.hugegraph.backend.store.mysql.MysqlTables.BOOLEAN;
+import static com.baidu.hugegraph.backend.store.mysql.MysqlTables.HUGE_TEXT;
+import static com.baidu.hugegraph.backend.store.mysql.MysqlTables.INT;
+import static com.baidu.hugegraph.backend.store.mysql.MysqlTables.LARGE_TEXT;
+import static com.baidu.hugegraph.backend.store.mysql.MysqlTables.MID_TEXT;
+import static com.baidu.hugegraph.backend.store.mysql.MysqlTables.NUMERIC;
+import static com.baidu.hugegraph.backend.store.mysql.MysqlTables.SMALL_TEXT;
+import static com.baidu.hugegraph.backend.store.mysql.MysqlTables.TINYINT;
+
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
@@ -36,15 +45,6 @@ import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
 
 import jersey.repackaged.com.google.common.collect.ImmutableMap;
-
-import static com.baidu.hugegraph.backend.store.mysql.MysqlTables.BOOLEAN;
-import static com.baidu.hugegraph.backend.store.mysql.MysqlTables.HUGE_TEXT;
-import static com.baidu.hugegraph.backend.store.mysql.MysqlTables.INT;
-import static com.baidu.hugegraph.backend.store.mysql.MysqlTables.LARGE_TEXT;
-import static com.baidu.hugegraph.backend.store.mysql.MysqlTables.MID_TEXT;
-import static com.baidu.hugegraph.backend.store.mysql.MysqlTables.NUMERIC;
-import static com.baidu.hugegraph.backend.store.mysql.MysqlTables.SMALL_TEXT;
-import static com.baidu.hugegraph.backend.store.mysql.MysqlTables.TINYINT;
 
 public class PostgresqlTables {
 
@@ -72,6 +72,23 @@ public class PostgresqlTables {
         @Override
         public TableDefine tableDefine() {
             return this.template.tableDefine();
+        }
+    }
+
+    public static class Meta extends PostgresqlTableTemplate {
+
+        public Meta() {
+            super(new MysqlTables.Meta(TYPES_MAPPING));
+        }
+
+        public void writeVersion(Session session, String version) {
+            MysqlTables.Meta table = (MysqlTables.Meta) this.template;
+            table.writeVersion(session, version);
+        }
+
+        public String readVersion(Session session) {
+            MysqlTables.Meta table = (MysqlTables.Meta) this.template;
+            return table.readVersion(session);
         }
     }
 

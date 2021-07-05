@@ -23,6 +23,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import org.slf4j.Logger;
+
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
@@ -31,8 +33,11 @@ import com.baidu.hugegraph.backend.store.mysql.MysqlStoreProvider;
 import com.baidu.hugegraph.backend.store.mysql.MysqlTable;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Directions;
+import com.baidu.hugegraph.util.Log;
 
 public class PostgresqlStoreProvider extends MysqlStoreProvider {
+
+    private static final Logger LOG = Log.logger(PostgresqlStore.class);
 
     @Override
     protected BackendStore newSchemaStore(String store) {
@@ -45,12 +50,17 @@ public class PostgresqlStoreProvider extends MysqlStoreProvider {
     }
 
     @Override
+    protected BackendStore newSystemStore(String store) {
+        return new PostgresqlSystemStore(this, this.database(), store);
+    }
+
+    @Override
     public String type() {
         return "postgresql";
     }
 
     @Override
-    public String version() {
+    public String driverVersion() {
         /*
          * Versions history:
          * [1.0] #441: supports PostgreSQL and Cockroach backend
@@ -65,8 +75,9 @@ public class PostgresqlStoreProvider extends MysqlStoreProvider {
          *             instead of sortable B64
          * [1.7] #295: support ttl for vertex and edge
          * [1.8] #1333: support read frequency for property key
+         * [1.9] #1533: add meta table in system store
          */
-        return "1.8";
+        return "1.9";
     }
 
     public static class PostgresqlSchemaStore extends PostgresqlStore {
@@ -169,6 +180,43 @@ public class PostgresqlStoreProvider extends MysqlStoreProvider {
         public long getCounter(HugeType type) {
             throw new UnsupportedOperationException(
                       "PostgresqlGraphStore.getCounter()");
+        }
+    }
+
+    public static class PostgresqlSystemStore extends PostgresqlGraphStore {
+
+        private final PostgresqlTables.Meta meta;
+
+        public PostgresqlSystemStore(BackendStoreProvider provider,
+                                     String database, String store) {
+            super(provider, database, store);
+
+            this.meta = new PostgresqlTables.Meta();
+        }
+
+        @Override
+        public void init() {
+            super.init();
+            this.checkOpened();
+            MysqlSessions.Session session = this.session(HugeType.META);
+            String driverVersion = this.provider().driverVersion();
+            this.meta.writeVersion(session, driverVersion);
+            LOG.info("Write down the backend version: {}", driverVersion);
+        }
+
+        @Override
+        public String storedVersion() {
+            super.init();
+            this.checkOpened();
+            MysqlSessions.Session session = this.session(HugeType.META);
+            return this.meta.readVersion(session);
+        }
+
+        @Override
+        protected Collection<MysqlTable> tables() {
+            List<MysqlTable> tables = new ArrayList<>(super.tables());
+            tables.add(this.meta);
+            return tables;
         }
     }
 }

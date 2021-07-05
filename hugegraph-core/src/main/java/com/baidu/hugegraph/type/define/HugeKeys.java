@@ -28,6 +28,8 @@ public enum HugeKeys {
     NAME(2, "name"),
     TIMESTANMP(3, "timestamp"),
     SCHEMA_TYPE(4, "schema_type"),
+    VALUE(5, "value"),
+    VERSION(6, "version"),
 
     USER_DATA(10, "user_data"),
     STATUS(11, "status"),

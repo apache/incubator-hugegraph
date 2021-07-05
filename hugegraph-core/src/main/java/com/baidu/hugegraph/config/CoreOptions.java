@@ -72,30 +72,6 @@ public class CoreOptions extends OptionHolder {
                     "hugegraph"
             );
 
-    public static final ConfigOption<String> STORE_SYSTEM =
-            new ConfigOption<>(
-                    "store.system",
-                    "The system table name, which store system data.",
-                    disallowEmpty(),
-                    "s"
-            );
-
-    public static final ConfigOption<String> STORE_SCHEMA =
-            new ConfigOption<>(
-                    "store.schema",
-                    "The schema table name, which store meta data.",
-                    disallowEmpty(),
-                    "m"
-            );
-
-    public static final ConfigOption<String> STORE_GRAPH =
-            new ConfigOption<>(
-                    "store.graph",
-                    "The graph table name, which store vertex, edge and property.",
-                    disallowEmpty(),
-                    "g"
-            );
-
     public static final ConfigOption<String> SERIALIZER =
             new ConfigOption<>(
                     "serializer",

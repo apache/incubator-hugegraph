@@ -24,20 +24,27 @@ import com.baidu.hugegraph.event.EventListener;
 
 public interface BackendStoreProvider {
 
+    String SCHEMA_STORE = "m";
+    String GRAPH_STORE = "g";
+    String SYSTEM_STORE = "s";
+
     // Backend store type
     public String type();
 
-    // Backend store version
-    public String version();
+    // Current backend store driver version
+    public String driverVersion();
+
+    // Stored backend store version
+    public String storedVersion();
 
     // Graph name (that's database name)
     public String graph();
 
-    public BackendStore loadSystemStore(String name);
+    public BackendStore loadSystemStore();
 
-    public BackendStore loadSchemaStore(String name);
+    public BackendStore loadSchemaStore();
 
-    public BackendStore loadGraphStore(String name);
+    public BackendStore loadGraphStore();
 
     public void open(String name);
 
@@ -50,6 +57,8 @@ public interface BackendStoreProvider {
     public void clear();
 
     public void truncate();
+
+    public boolean initialized();
 
     public void createSnapshot();
 

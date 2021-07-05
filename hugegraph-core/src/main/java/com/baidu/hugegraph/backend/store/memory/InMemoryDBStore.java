@@ -353,6 +353,19 @@ public abstract class InMemoryDBStore
         }
     }
 
+    public static class InMemorySystemStore extends InMemoryGraphStore {
+
+        public InMemorySystemStore(BackendStoreProvider provider,
+                                   String database, String store) {
+            super(provider, database, store);
+        }
+
+        @Override
+        public String storedVersion() {
+            return this.provider().driverVersion();
+        }
+    }
+
     /**
      * InMemoryDBStore features
      */

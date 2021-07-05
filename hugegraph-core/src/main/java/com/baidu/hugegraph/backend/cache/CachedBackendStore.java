@@ -54,6 +54,11 @@ public class CachedBackendStore implements BackendStore {
     }
 
     @Override
+    public String storedVersion() {
+        return this.store.storedVersion();
+    }
+
+    @Override
     public String database() {
         return this.store.database();
     }

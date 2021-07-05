@@ -20,6 +20,7 @@
 package com.baidu.hugegraph;
 
 import com.baidu.hugegraph.analyzer.Analyzer;
+import com.baidu.hugegraph.backend.LocalCounter;
 import com.baidu.hugegraph.backend.serializer.AbstractSerializer;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendStore;
@@ -67,6 +68,7 @@ public interface HugeGraphParams {
 
     public ServerInfoManager serverManager();
 
+    public LocalCounter counter();
     public AbstractSerializer serializer();
     public Analyzer analyzer();
     public RateLimiter writeRateLimiter();

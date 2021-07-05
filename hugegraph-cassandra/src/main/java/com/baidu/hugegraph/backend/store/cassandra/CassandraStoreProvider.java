@@ -23,6 +23,7 @@ import com.baidu.hugegraph.backend.store.AbstractBackendStoreProvider;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.cassandra.CassandraStore.CassandraGraphStore;
 import com.baidu.hugegraph.backend.store.cassandra.CassandraStore.CassandraSchemaStore;
+import com.baidu.hugegraph.backend.store.cassandra.CassandraStore.CassandraSystemStore;
 
 public class CassandraStoreProvider extends AbstractBackendStoreProvider {
 
@@ -41,12 +42,17 @@ public class CassandraStoreProvider extends AbstractBackendStoreProvider {
     }
 
     @Override
+    protected BackendStore newSystemStore(String store) {
+        return new CassandraSystemStore(this, this.keyspace(), store);
+    }
+
+    @Override
     public String type() {
         return "cassandra";
     }
 
     @Override
-    public String version() {
+    public String driverVersion() {
         /*
          * Versions history:
          * [1.0] HugeGraph-1328: supports backend table version checking
@@ -62,7 +68,8 @@ public class CassandraStoreProvider extends AbstractBackendStoreProvider {
          * [1.8] #746: support userdata for indexlabel
          * [1.9] #295: support ttl for vertex and edge
          * [1.10] #1333: support read frequency for property key
+         * [1.11] #1533: add meta table in system store
          */
-        return "1.10";
+        return "1.11";
     }
 }

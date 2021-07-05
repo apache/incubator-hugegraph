@@ -42,6 +42,11 @@ public abstract class AbstractBackendStore<Session extends BackendSession>
     }
 
     @Override
+    public String storedVersion() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public SystemSchemaStore systemSchemaStore() {
         return this.systemSchemaStore;
     }
@@ -50,7 +55,7 @@ public abstract class AbstractBackendStore<Session extends BackendSession>
     @Override
     public <R> R metadata(HugeType type, String meta, Object[] args) {
         Session session = this.session(type);
-        MetaDispatcher<Session> dispatcher = null;
+        MetaDispatcher<Session> dispatcher;
         if (type == null) {
             dispatcher = this.metaDispatcher();
         } else {

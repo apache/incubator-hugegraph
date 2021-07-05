@@ -26,6 +26,7 @@ import com.baidu.hugegraph.backend.store.AbstractBackendStoreProvider;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.memory.InMemoryDBStore.InMemoryGraphStore;
 import com.baidu.hugegraph.backend.store.memory.InMemoryDBStore.InMemorySchemaStore;
+import com.baidu.hugegraph.backend.store.memory.InMemoryDBStore.InMemorySystemStore;
 import com.baidu.hugegraph.util.Events;
 
 public class InMemoryDBStoreProvider extends AbstractBackendStoreProvider {
@@ -76,12 +77,17 @@ public class InMemoryDBStoreProvider extends AbstractBackendStoreProvider {
     }
 
     @Override
+    protected BackendStore newSystemStore(String store) {
+        return new InMemorySystemStore(this, this.graph(), store);
+    }
+
+    @Override
     public String type() {
         return TYPE;
     }
 
     @Override
-    public String version() {
+    public String driverVersion() {
         /*
          * Versions history:
          * [1.0] HugeGraph-1328: supports backend table version checking
@@ -94,7 +100,8 @@ public class InMemoryDBStoreProvider extends AbstractBackendStoreProvider {
          * [1.5] #820: store vertex properties in one column
          * [1.6] #894: encode label id in string index
          * [1.7] #1333: support read frequency for property key
+         * [1.8] #1533: add meta table in system store
          */
-        return "1.7";
+        return "1.8";
     }
 }

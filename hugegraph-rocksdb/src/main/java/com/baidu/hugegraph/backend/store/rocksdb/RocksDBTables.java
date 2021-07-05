@@ -34,8 +34,38 @@ import com.baidu.hugegraph.backend.store.rocksdb.RocksDBSessions.Session;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.StringEncoding;
 
 public class RocksDBTables {
+
+    public static class Meta extends RocksDBTable {
+
+        private static final String TABLE = HugeType.META.string();
+
+        public Meta(String database) {
+            super(database, TABLE);
+        }
+
+        public void writeVersion(Session session, String version) {
+            byte[] key = new byte[]{HugeKeys.VERSION.code()};
+            byte[] value = StringEncoding.encode(version);
+            session.put(this.table(), key, value);
+            try {
+                session.commit();
+            } catch (Exception e) {
+                session.rollback();
+            }
+        }
+
+        public String readVersion(Session session) {
+            byte[] key = new byte[]{HugeKeys.VERSION.code()};
+            byte[] value = session.get(this.table(), key);
+            if (value == null) {
+                return null;
+            }
+            return StringEncoding.decode(value);
+        }
+    }
 
     public static class Counters extends RocksDBTable {
 

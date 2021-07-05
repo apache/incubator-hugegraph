@@ -85,6 +85,54 @@ public class MysqlTables {
         }
     }
 
+    public static class Meta extends MysqlTableTemplate {
+
+        public static final String TABLE = HugeType.META.string();
+
+        public Meta() {
+            this(TYPES_MAPPING);
+        }
+
+        public Meta(Map<String, String> typesMapping) {
+            super(TABLE);
+
+            this.define = new TableDefine(typesMapping);
+            this.define.column(HugeKeys.NAME, SMALL_TEXT);
+            this.define.column(HugeKeys.VALUE, MID_TEXT);
+            this.define.keys(HugeKeys.NAME);
+        }
+
+        public void writeVersion(Session session, String driverVersion) {
+            String insert = String.format("INSERT INTO %s VALUES ('%s', '%s')",
+                                          this.table(),
+                                          formatKey(HugeKeys.VERSION),
+                                          driverVersion);
+            try {
+                session.execute(insert);
+            } catch (SQLException throwables) {
+                throw new BackendException("Failed to insert driver version " +
+                                           "with '%s'", insert);
+            }
+        }
+
+        public String readVersion(Session session) {
+            String select = String.format("SELECT %s FROM %s WHERE %s = '%s'",
+                                          formatKey(HugeKeys.VALUE),
+                                          this.table(), formatKey(HugeKeys.NAME),
+                                          formatKey(HugeKeys.VERSION));
+            try {
+                ResultSet resultSet = session.select(select);
+                if (!resultSet.next()) {
+                    return null;
+                }
+                return resultSet.getString(formatKey(HugeKeys.VALUE));
+            } catch (SQLException e) {
+                throw new BackendException(
+                          "Failed to get stored version with '%s'", e, select);
+            }
+        }
+    }
+
     public static class Counters extends MysqlTableTemplate {
 
         public static final String TABLE = HugeType.COUNTER.string();

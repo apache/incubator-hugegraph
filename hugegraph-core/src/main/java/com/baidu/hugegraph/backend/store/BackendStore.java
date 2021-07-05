@@ -34,6 +34,9 @@ public interface BackendStore {
     // Store name
     public String store();
 
+    // Stored version
+    public String storedVersion();
+
     // Database name
     public String database();
 

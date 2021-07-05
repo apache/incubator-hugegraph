@@ -43,6 +43,7 @@ import com.baidu.hugegraph.analyzer.AnalyzerFactory;
 import com.baidu.hugegraph.auth.AuthManager;
 import com.baidu.hugegraph.auth.StandardAuthManager;
 import com.baidu.hugegraph.backend.BackendException;
+import com.baidu.hugegraph.backend.LocalCounter;
 import com.baidu.hugegraph.backend.cache.Cache;
 import com.baidu.hugegraph.backend.cache.CacheNotifier;
 import com.baidu.hugegraph.backend.cache.CacheNotifier.GraphCacheNotifier;
@@ -147,6 +148,7 @@ public class StandardHugeGraph implements HugeGraph {
     private final EventHub graphEventHub;
     private final EventHub indexEventHub;
 
+    private final LocalCounter localCounter;
     private final RateLimiter writeRateLimiter;
     private final RateLimiter readRateLimiter;
     private final TaskManager taskManager;
@@ -166,6 +168,8 @@ public class StandardHugeGraph implements HugeGraph {
         this.schemaEventHub = new EventHub("schema");
         this.graphEventHub = new EventHub("graph");
         this.indexEventHub = new EventHub("index");
+
+        this.localCounter = new LocalCounter();
 
         final int writeLimit = config.get(CoreOptions.RATE_LIMIT_WRITE);
         this.writeRateLimiter = writeLimit > 0 ?
@@ -235,13 +239,10 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
-    public String backendVersion() {
-        return this.storeProvider.version();
-    }
-
-    @Override
     public BackendStoreInfo backendStoreInfo() {
-        return new BackendStoreInfo(this.schemaTransaction());
+        // Just for trigger Tx.getOrNewTransaction, then load 3 stores
+        this.systemTransaction();
+        return new BackendStoreInfo(this.storeProvider);
     }
 
     @Override
@@ -323,7 +324,12 @@ public class StandardHugeGraph implements HugeGraph {
         LockUtil.lock(this.name, LockUtil.GRAPH_LOCK);
         try {
             this.storeProvider.init();
-            this.initBackendInfo();
+            /*
+             * NOTE: The main goal is to write the serverInfo to the central
+             * node, such as etcd, and also create the system schema in memory,
+             * which has no side effects
+             */
+            this.initSystemInfo();
         } finally {
             LockUtil.unlock(this.name, LockUtil.GRAPH_LOCK);
             this.loadGraphStore().close();
@@ -362,6 +368,7 @@ public class StandardHugeGraph implements HugeGraph {
         LockUtil.lock(this.name, LockUtil.GRAPH_LOCK);
         try {
             this.storeProvider.truncate();
+            // TOOD: remove this after serverinfo saved in etcd
             this.serverStarted(this.serverInfoManager().selfServerId(),
                                this.serverInfoManager().selfServerRole());
         } finally {
@@ -373,22 +380,14 @@ public class StandardHugeGraph implements HugeGraph {
 
     @Override
     public void initSystemInfo() {
-        // Initialize user schema
         try {
-            this.serverInfoManager().init();
             this.taskScheduler().init();
+            this.serverInfoManager().init();
             this.authManager().init();
         } finally {
             this.closeTx();
         }
         LOG.debug("Graph '{}' system info has been initialized", this);
-    }
-
-    @Override
-    public void initBackendInfo() {
-        BackendStoreInfo info = this.backendStoreInfo();
-        info.init();
-        LOG.debug("Graph '{}' backend info has been initialized", this);
     }
 
     @Override
@@ -452,18 +451,15 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     private BackendStore loadSchemaStore() {
-        String name = this.configuration.get(CoreOptions.STORE_SCHEMA);
-        return this.storeProvider.loadSchemaStore(name);
+        return this.storeProvider.loadSchemaStore();
     }
 
     private BackendStore loadGraphStore() {
-        String graph = this.configuration.get(CoreOptions.STORE_GRAPH);
-        return this.storeProvider.loadGraphStore(graph);
+        return this.storeProvider.loadGraphStore();
     }
 
     private BackendStore loadSystemStore() {
-        String name = this.configuration.get(CoreOptions.STORE_SYSTEM);
-        return this.storeProvider.loadSystemStore(name);
+        return this.storeProvider.loadSystemStore();
     }
 
     @Watched
@@ -1153,6 +1149,11 @@ public class StandardHugeGraph implements HugeGraph {
         public ServerInfoManager serverManager() {
             // this.serverManager.initSchemaIfNeeded();
             return StandardHugeGraph.this.serverInfoManager();
+        }
+
+        @Override
+        public LocalCounter counter() {
+            return StandardHugeGraph.this.localCounter;
         }
 
         @Override

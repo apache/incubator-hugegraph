@@ -46,6 +46,7 @@ import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.cache.Cache;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.store.BackendStore;
+import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import com.baidu.hugegraph.backend.store.raft.rpc.ListPeersProcessor;
 import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType;
 import com.baidu.hugegraph.backend.store.raft.rpc.RpcForwarder;
@@ -84,9 +85,6 @@ public final class RaftSharedContext {
     public static final String DEFAULT_GROUP = "default";
 
     private final HugeGraphParams params;
-    private final String schemaStoreName;
-    private final String graphStoreName;
-    private final String systemStoreName;
     private final RaftBackendStore[] stores;
     private final RpcServer rpcServer;
     @SuppressWarnings("unused")
@@ -102,9 +100,6 @@ public final class RaftSharedContext {
         this.params = params;
         HugeConfig config = params.configuration();
 
-        this.schemaStoreName = config.get(CoreOptions.STORE_SCHEMA);
-        this.graphStoreName = config.get(CoreOptions.STORE_GRAPH);
-        this.systemStoreName = config.get(CoreOptions.STORE_SYSTEM);
         this.stores = new RaftBackendStore[StoreType.ALL.getNumber()];
         this.rpcServer = this.initAndStartRpcServer();
         if (config.get(CoreOptions.RAFT_SAFE_READ)) {
@@ -180,12 +175,12 @@ public final class RaftSharedContext {
     }
 
     public StoreType storeType(String store) {
-        if (this.schemaStoreName.equals(store)) {
+        if (BackendStoreProvider.SCHEMA_STORE.equals(store)) {
             return StoreType.SCHEMA;
-        } else if (this.graphStoreName.equals(store)) {
+        } else if (BackendStoreProvider.GRAPH_STORE.equals(store)) {
             return StoreType.GRAPH;
         } else {
-            assert this.systemStoreName.equals(store);
+            assert BackendStoreProvider.SYSTEM_STORE.equals(store);
             return StoreType.SYSTEM;
         }
     }

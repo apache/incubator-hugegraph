@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.cmd;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -90,39 +91,41 @@ public class InitStore {
         E.checkArgument(!graphNames.isEmpty(),
                         "Must contain at least one graph");
 
-        for (ConfigurationNode graphName : graphNames) {
-            @SuppressWarnings("unchecked")
-            String name = ((Map.Entry<String, Object>)
-                           graphName.getReference()).getKey();
-            HugeFactory.checkGraphName(name, "gremlin-server.yaml");
-            String configPath = graphName.getValue().toString();
-            initGraph(configPath);
+        List<HugeGraph> graphs = new ArrayList<>(graphNames.size());
+        try {
+            for (ConfigurationNode graphName : graphNames) {
+                @SuppressWarnings("unchecked")
+                String name = ((Map.Entry<String, Object>)
+                              graphName.getReference()).getKey();
+                HugeFactory.checkGraphName(name, "gremlin-server.yaml");
+                String configPath = graphName.getValue().toString();
+                graphs.add(initGraph(configPath));
+            }
+            StandardAuthenticator.initAdminUserIfNeeded(restConfFile);
+        } finally {
+            for (HugeGraph graph : graphs) {
+                graph.close();
+            }
         }
-
-        StandardAuthenticator.initAdminUserIfNeeded(restConfFile);
-
         HugeFactory.shutdown(30L);
     }
 
-    private static void initGraph(String configPath) throws Exception {
+    private static HugeGraph initGraph(String configPath) throws Exception {
         LOG.info("Init graph with config file: {}", configPath);
         HugeConfig config = new HugeConfig(configPath);
         // Forced set RAFT_MODE to false when initializing backend
         config.setProperty(CoreOptions.RAFT_MODE.name(), "false");
         HugeGraph graph = (HugeGraph) GraphFactory.open(config);
 
-        BackendStoreInfo sysInfo = graph.backendStoreInfo();
-        try {
-            if (sysInfo.exists()) {
-                LOG.info("Skip init-store due to the backend store of '{}' " +
-                         "had been initialized", graph.name());
-                sysInfo.checkVersion();
-            } else {
-                initBackend(graph);
-            }
-        } finally {
-            graph.close();
+        BackendStoreInfo backendStoreInfo = graph.backendStoreInfo();
+        if (backendStoreInfo.exists()) {
+            LOG.info("Skip init-store due to the backend store of '{}' " +
+                     "had been initialized", graph.name());
+            backendStoreInfo.checkVersion();
+        } else {
+            initBackend(graph);
         }
+        return graph;
     }
 
     private static void initBackend(final HugeGraph graph)

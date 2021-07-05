@@ -670,5 +670,45 @@ public abstract class CassandraStore
         public boolean isSchemaStore() {
             return false;
         }
+
+        public CassandraSessionPool.Session getSession() {
+            return super.sessions.session();
+        }
+    }
+
+    public static class CassandraSystemStore extends CassandraGraphStore {
+
+        private final CassandraTables.Meta meta;
+
+        public CassandraSystemStore(BackendStoreProvider provider,
+                                    String keyspace, String store) {
+            super(provider, keyspace, store);
+
+            this.meta = new CassandraTables.Meta();
+        }
+
+        @Override
+        public void init() {
+            super.init();
+            this.checkOpened();
+            CassandraSessionPool.Session session = this.getSession();
+            String driverVersion = this.provider().driverVersion();
+            this.meta.writeVersion(session, driverVersion);
+            LOG.info("Write down the backend version: {}", driverVersion);
+        }
+
+        @Override
+        public String storedVersion() {
+            this.checkOpened();
+            CassandraSessionPool.Session session = this.getSession();
+            return this.meta.readVersion(session);
+        }
+
+        @Override
+        protected Collection<CassandraTable> tables() {
+            List<CassandraTable> tables = new ArrayList<>(super.tables());
+            tables.add(this.meta);
+            return tables;
+        }
     }
 }

@@ -34,10 +34,10 @@ import org.apache.cassandra.tools.nodetool.Compact;
 import org.apache.tinkerpop.gremlin.util.NumberHelper;
 
 import com.baidu.hugegraph.backend.store.BackendMetrics;
+import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import com.baidu.hugegraph.backend.store.BackendTable;
 import com.baidu.hugegraph.backend.store.cassandra.CassandraTables.Edge;
 import com.baidu.hugegraph.backend.store.cassandra.CassandraTables.Vertex;
-import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.testutil.Whitebox;
 import com.baidu.hugegraph.util.E;
@@ -70,7 +70,7 @@ public class CassandraMetrics implements BackendMetrics {
         assert this.username != null && this.password != null;
 
         this.keyspace = keyspace;
-        String g = conf.get(CoreOptions.STORE_GRAPH);
+        String g = BackendStoreProvider.GRAPH_STORE;
         String v = BackendTable.joinTableName(g, Vertex.TABLE);
         String oe = BackendTable.joinTableName(g, "o" + Edge.TABLE_SUFFIX);
         String ie = BackendTable.joinTableName(g, "i" + Edge.TABLE_SUFFIX);
