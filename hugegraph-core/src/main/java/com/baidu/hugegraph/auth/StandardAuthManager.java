@@ -395,7 +395,7 @@ public class StandardAuthManager implements AuthManager {
         return commit(() -> {
             // Create project admin group
             if (project.adminGroupId() == null) {
-                HugeGroup adminGroup = new HugeGroup(project.adminGroupName());
+                HugeGroup adminGroup = new HugeGroup("admin_" + project.name());
                 adminGroup.creator(project.creator());
                 Id adminGroupId = this.createGroup(adminGroup);
                 project.adminGroupId(adminGroupId);
@@ -403,17 +403,18 @@ public class StandardAuthManager implements AuthManager {
 
             // Create project op group
             if (project.opGroupId() == null) {
-                HugeGroup opGroup = new HugeGroup(project.opGroupName());
+                HugeGroup opGroup = new HugeGroup("op_" + project.name());
                 opGroup.creator(project.creator());
                 Id opGroupId = this.createGroup(opGroup);
                 project.opGroupId(opGroupId);
             }
 
             // Create project target to verify permission
+            final String targetName = "project_res_" + project.name();
             HugeResource resource = new HugeResource(ResourceType.PROJECT,
                                                      project.name(),
                                                      null);
-            HugeTarget target = new HugeTarget(project.targetName(),
+            HugeTarget target = new HugeTarget(targetName,
                                                this.graph.name(),
                                                "localhost:8080",
                                                ImmutableList.of(resource));
@@ -475,7 +476,8 @@ public class StandardAuthManager implements AuthManager {
                                 "the op group of project can't be null", id);
                 E.checkArgument(project.targetId() != null,
                                 "Failed to delete the project '%s', " +
-                                "the target resource of project can't be null", id);
+                                "the target resource of project can't be null",
+                                id);
                 // Delete admin group
                 this.groups.delete(project.adminGroupId());
                 // Delete op group

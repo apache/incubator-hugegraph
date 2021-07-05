@@ -125,7 +125,7 @@ public class ProjectApiTest extends BaseApiTest {
                                                      "graph_test");
         String project = this.getProject(projectId);
         assertJsonContains(project, "project_graphs");
-        this.makeGraph(projectId, "graph_test2");
+        this.addGraph(projectId, "graph_test2");
         project = this.getProject(projectId);
         List<String> graphs = assertJsonContains(project, "project_graphs");
         Assert.assertEquals(2, graphs.size());
@@ -142,8 +142,8 @@ public class ProjectApiTest extends BaseApiTest {
         String project = this.getProject(projectId);
         Assert.assertFalse(project.contains("project_graphs"));
 
-        this.makeGraph(projectId, "graph_test1");
-        this.makeGraph(projectId, "graph_test2");
+        this.addGraph(projectId, "graph_test1");
+        this.addGraph(projectId, "graph_test2");
         this.removeGraph(projectId, "graph_test2");
         project = this.getProject(projectId);
         List<String> graphs = assertJsonContains(project, "project_graphs");
@@ -175,13 +175,13 @@ public class ProjectApiTest extends BaseApiTest {
 
     private String makeProjectWithGraph(String projectName,
                                         String graph) {
-        String projectId = assertJsonContains(makeProject(projectName,
-                                                          null), "id");
-        makeGraph(projectId, graph);
+        String projectId = assertJsonContains(makeProject(projectName, null),
+                                              "id");
+        addGraph(projectId, graph);
         return projectId;
     }
 
-    private void makeGraph(String projectId, String graphName) {
+    private void addGraph(String projectId, String graphName) {
         String graph = String.format("{\"project_graph\":\"%s\"}", graphName);
         Response resp = client().target()
                                 .path(path)

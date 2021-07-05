@@ -82,18 +82,6 @@ public class HugeProject extends Entity {
         return P.PROJECT;
     }
 
-    public String opGroupName() {
-        return "op_" + this.name;
-    }
-
-    public String adminGroupName() {
-        return "admin_" + this.name;
-    }
-
-    public String targetName() {
-        return "project_res_" + this.name;
-    }
-
     public Id adminGroupId() {
         return this.adminGroupId;
     }

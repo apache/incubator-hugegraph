@@ -1433,7 +1433,7 @@ public class AuthTest extends BaseCoreTest {
     }
 
     @Test
-    public void testUpdateProjectAddGraph() {
+    public void testProjectAddGraph() {
         HugeProject project = makeProject("test_project", "");
         AuthManager authManager = graph().authManager();
         Id projectId = authManager.createProject(project);
@@ -1444,9 +1444,9 @@ public class AuthTest extends BaseCoreTest {
     }
 
     @Test
-    public void testUpdateProjectRemoveGraph() {
-        Id projectId = makeUpdateProjectAddGraph(graph(), "test_project",
-                                                 "graph_test");
+    public void testProjectRemoveGraph() {
+        Id projectId = makeProjectAndAddGraph(graph(), "test_project",
+                                              "graph_test");
         AuthManager authManager = graph().authManager();
         Assert.assertNotNull(projectId);
         HugeProject project = authManager.getProject(projectId);
@@ -1487,9 +1487,9 @@ public class AuthTest extends BaseCoreTest {
         Assert.assertTrue(projects.size() == 2);
     }
 
-    private static Id makeUpdateProjectAddGraph(HugeGraph graph,
-                                                String projectName,
-                                                String graphName) {
+    private static Id makeProjectAndAddGraph(HugeGraph graph,
+                                             String projectName,
+                                             String graphName) {
         HugeProject project = makeProject(projectName, "");
         AuthManager authManager = graph.authManager();
         Id projectId = authManager.createProject(project);

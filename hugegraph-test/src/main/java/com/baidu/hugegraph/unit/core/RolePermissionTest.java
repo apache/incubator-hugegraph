@@ -332,28 +332,6 @@ public class RolePermissionTest {
     }
 
     @Test
-    public void testHugeResourceFilterProject() {
-        HugeResource all = HugeResource.ALL;
-        HugeResource res = new HugeResource(ResourceType.PROJECT,
-                                            "project1",
-                                            null);
-        HugeResource rootRes = new HugeResource(ResourceType.ROOT,
-                                                HugeResource.ANY, null);
-        HugeProject project1 = new HugeProject("project1");
-        ResourceObject<SchemaDefine.AuthElement> r1 = ResourceObject.of("hugegraph",
-                                                                        project1);
-        Assert.assertFalse(all.filter(r1));
-
-        Assert.assertTrue(res.filter(r1));
-        Assert.assertTrue(rootRes.filter(r1));
-
-        HugeProject project2 = new HugeProject("project2");
-        ResourceObject<SchemaDefine.AuthElement> r2 = ResourceObject.of("hugegraph",
-                                                                        project2);
-        Assert.assertFalse(res.filter(r2));
-    }
-
-    @Test
     public void testHugeResourceFilterSchema() {
         HugeResource all = HugeResource.ALL;
         HugeResource schema = new HugeResource(ResourceType.SCHEMA,
@@ -517,6 +495,27 @@ public class RolePermissionTest {
         Assert.assertTrue(root.filter(r3));
         Assert.assertTrue(root.filter(r4));
         Assert.assertTrue(root.filter(r5));
+    }
+
+    @Test
+    public void testHugeResourceFilterProject() {
+        HugeResource all = HugeResource.ALL;
+        ResourceObject<?> r1 = ResourceObject.of("hugegraph",
+                                                 new HugeProject("project1"));
+        Assert.assertFalse(all.filter(r1));
+        
+        HugeResource project = new HugeResource(ResourceType.PROJECT,
+                                                "project1",
+                                                null);
+        Assert.assertTrue(project.filter(r1));
+
+        HugeResource root = new HugeResource(ResourceType.ROOT,
+                                             HugeResource.ANY, null);
+        Assert.assertTrue(root.filter(r1));
+
+        ResourceObject<?> r2 = ResourceObject.of("hugegraph",
+                                                 new HugeProject("project2"));
+        Assert.assertFalse(project.filter(r2));
     }
 
     private boolean roleContains(RolePermission role, RolePermission other) {
