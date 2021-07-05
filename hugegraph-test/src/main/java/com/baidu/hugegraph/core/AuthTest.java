@@ -49,6 +49,7 @@ import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.testutil.Whitebox;
 import com.baidu.hugegraph.util.JsonUtil;
+import com.baidu.hugegraph.util.ObjectUtils;
 import com.baidu.hugegraph.util.StringEncoding;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -71,8 +72,8 @@ public class AuthTest extends BaseCoreTest {
             authManager.deleteTarget(target.id());
         }
         for (HugeProject project : authManager.listAllProject(-1)) {
-            for (String projectGraph : project.graphs()) {
-                authManager.projectRemoveGraph(project.id(), projectGraph);
+            if (!ObjectUtils.isEmpty(project.graphs())) {
+                authManager.projectRemoveGraphs(project.id(), project.graphs());
             }
             authManager.deleteProject(project.id());
         }
@@ -1437,7 +1438,8 @@ public class AuthTest extends BaseCoreTest {
         HugeProject project = makeProject("test_project", "");
         AuthManager authManager = graph().authManager();
         Id projectId = authManager.createProject(project);
-        projectId = authManager.projectAddGraph(projectId, "graph_test");
+        projectId = authManager.projectAddGraphs(projectId,
+                                                 ImmutableSet.of("graph_test"));
         Assert.assertNotNull(projectId);
         project = authManager.getProject(projectId);
         Assert.assertFalse(project.graphs().isEmpty());
@@ -1452,8 +1454,8 @@ public class AuthTest extends BaseCoreTest {
         HugeProject project = authManager.getProject(projectId);
         Assert.assertNotNull(project);
         Assert.assertFalse(project.graphs().isEmpty());
-        projectId = authManager.projectRemoveGraph(project.id(),
-                                                   "graph_test");
+        projectId = authManager.projectRemoveGraphs(
+                                project.id(), ImmutableSet.of("graph_test"));
         project = authManager.getProject(projectId);
         Assert.assertNotNull(project);
         Assert.assertTrue(project.graphs().isEmpty());
@@ -1493,7 +1495,8 @@ public class AuthTest extends BaseCoreTest {
         HugeProject project = makeProject(projectName, "");
         AuthManager authManager = graph.authManager();
         Id projectId = authManager.createProject(project);
-        projectId = authManager.projectAddGraph(projectId, graphName);
+        projectId = authManager.projectAddGraphs(projectId,
+                                                 ImmutableSet.of(graphName));
         Assert.assertNotNull(projectId);
         return projectId;
     }

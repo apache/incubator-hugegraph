@@ -38,7 +38,7 @@ import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.util.E;
-import com.google.common.base.Strings;
+import com.baidu.hugegraph.util.ObjectUtils;
 
 public class HugeProject extends Entity {
 
@@ -125,7 +125,7 @@ public class HugeProject extends Entity {
 
     @Override
     public Map<String, Object> asMap() {
-        E.checkState(!Strings.isNullOrEmpty(this.name),
+        E.checkState(!ObjectUtils.isEmpty(this.name),
                      "The name of project can't be null");
         E.checkState(this.adminGroupId != null,
                      "The admin group id of project '%s' can't be null",
@@ -144,7 +144,7 @@ public class HugeProject extends Entity {
         if (this.graphs != null && !this.graphs.isEmpty()) {
             map.put(Graph.Hidden.unHide(HugeProject.P.GRAPHS), this.graphs);
         }
-        if (!Strings.isNullOrEmpty(this.description)) {
+        if (!ObjectUtils.isEmpty(this.description)) {
             map.put(Graph.Hidden.unHide(HugeProject.P.DESCRIPTIONS),
                     this.description);
         }
@@ -158,7 +158,7 @@ public class HugeProject extends Entity {
 
     @Override
     protected Object[] asArray() {
-        E.checkState(!Strings.isNullOrEmpty(this.name),
+        E.checkState(!ObjectUtils.isEmpty(this.name),
                      "The name of project can't be null");
         E.checkState(this.adminGroupId != null,
                      "The admin group id of project can't be null",
@@ -174,7 +174,7 @@ public class HugeProject extends Entity {
         list.add(HugeProject.P.NAME);
         list.add(this.name);
 
-        if (!Strings.isNullOrEmpty(this.description)) {
+        if (!ObjectUtils.isEmpty(this.description)) {
             list.add(HugeProject.P.DESCRIPTIONS);
             list.add(this.description);
         }

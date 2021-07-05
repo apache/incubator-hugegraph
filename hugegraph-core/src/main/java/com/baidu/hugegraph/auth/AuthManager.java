@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.auth;
 
 import java.util.List;
+import java.util.Set;
 
 import javax.security.sasl.AuthenticationException;
 
@@ -73,8 +74,8 @@ public interface AuthManager {
     public Id createProject(HugeProject project);
     public HugeProject deleteProject(Id id);
     public Id updateProject(HugeProject project);
-    public Id projectAddGraph(Id id, String graph);
-    public Id projectRemoveGraph(Id id, String graph);
+    public Id projectAddGraphs(Id id, Set<String> graphs);
+    public Id projectRemoveGraphs(Id id, Set<String> graphs);
     public HugeProject getProject(Id id);
     public List<HugeProject> listAllProject(long limit);
 

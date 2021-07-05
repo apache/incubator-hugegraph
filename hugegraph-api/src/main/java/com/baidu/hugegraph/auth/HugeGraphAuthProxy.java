@@ -1417,17 +1417,17 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         }
 
         @Override
-        public Id projectAddGraph(Id id, String graph) {
+        public Id projectAddGraphs(Id id, Set<String> graphs) {
             verifyUserPermission(HugePermission.WRITE,
                                  this.authManager.getProject(id));
-            return this.authManager.projectAddGraph(id, graph);
+            return this.authManager.projectAddGraphs(id, graphs);
         }
 
         @Override
-        public Id projectRemoveGraph(Id id, String graph) {
+        public Id projectRemoveGraphs(Id id, Set<String> graphs) {
             verifyUserPermission(HugePermission.WRITE,
                                  this.authManager.getProject(id));
-            return this.authManager.projectRemoveGraph(id, graph);
+            return this.authManager.projectRemoveGraphs(id, graphs);
         }
 
         @Override

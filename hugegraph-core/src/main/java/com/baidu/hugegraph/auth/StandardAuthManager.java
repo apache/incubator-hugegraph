@@ -48,8 +48,8 @@ import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Events;
 import com.baidu.hugegraph.util.LockUtil;
 import com.baidu.hugegraph.util.Log;
+import com.baidu.hugegraph.util.ObjectUtils;
 import com.baidu.hugegraph.util.StringEncoding;
-import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -390,12 +390,17 @@ public class StandardAuthManager implements AuthManager {
 
     @Override
     public Id createProject(HugeProject project) {
-        E.checkArgument(!Strings.isNullOrEmpty(project.name()),
+        E.checkArgument(!ObjectUtils.isEmpty(project.name()),
                         "The name of project can't be null or empty");
         return commit(() -> {
             // Create project admin group
             if (project.adminGroupId() == null) {
                 HugeGroup adminGroup = new HugeGroup("admin_" + project.name());
+                /*
+                 * "creator" is a necessary parameter, other places are passed
+                 * in "AuthManagerProxy", but here is the underlying module, so
+                 * pass it directly here
+                 */
                 adminGroup.creator(project.creator());
                 Id adminGroupId = this.createGroup(adminGroup);
                 project.adminGroupId(adminGroupId);
@@ -404,6 +409,7 @@ public class StandardAuthManager implements AuthManager {
             // Create project op group
             if (project.opGroupId() == null) {
                 HugeGroup opGroup = new HugeGroup("op_" + project.name());
+                // Ditto
                 opGroup.creator(project.creator());
                 Id opGroupId = this.createGroup(opGroup);
                 project.opGroupId(opGroupId);
@@ -418,6 +424,7 @@ public class StandardAuthManager implements AuthManager {
                                                this.graph.name(),
                                                "localhost:8080",
                                                ImmutableList.of(resource));
+            // Ditto
             target.creator(project.creator());
             Id targetId = this.targets.add(target);
             project.targetId(targetId);
@@ -427,13 +434,16 @@ public class StandardAuthManager implements AuthManager {
             HugeAccess adminGroupWriteAccess = new HugeAccess(
                                                    adminGroupId, targetId,
                                                    HugePermission.WRITE);
+            // Ditto
             adminGroupWriteAccess.creator(project.creator());
             HugeAccess adminGroupReadAccess = new HugeAccess(
                                                   adminGroupId, targetId,
                                                   HugePermission.READ);
+            // Ditto
             adminGroupReadAccess.creator(project.creator());
             HugeAccess opGroupReadAccess = new HugeAccess(opGroupId, targetId,
                                                           HugePermission.READ);
+            // Ditto
             opGroupReadAccess.creator(project.creator());
             this.access.add(adminGroupWriteAccess);
             this.access.add(adminGroupReadAccess);
@@ -450,13 +460,11 @@ public class StandardAuthManager implements AuthManager {
                 locks.lockWrites(LockUtil.PROJECT_UPDATE, id);
 
                 HugeProject oldProject = this.project.get(id);
-                E.checkArgumentNotNull(oldProject,
-                                       "The project '%s' can't be found", id);
                 /*
                  * Check whether there are any graph binding this project,
                  * throw ForbiddenException, if it is
                  */
-                if (!oldProject.graphs().isEmpty()) {
+                if (!ObjectUtils.isEmpty(oldProject.graphs())) {
                     String errInfo = String.format("Can't delete project '%s' " +
                                                    "that contains any graph, " +
                                                    "there are graphs bound " +
@@ -467,17 +475,18 @@ public class StandardAuthManager implements AuthManager {
                 E.checkArgumentNotNull(project,
                                        "Failed to delete the project '%s'",
                                        id);
-                E.checkArgument(project.adminGroupId() != null,
-                                "Failed to delete the project '%s'," +
-                                "the admin group of project can't be null",
-                                id);
-                E.checkArgument(project.opGroupId() != null,
-                                "Failed to delete the project '%s'," +
-                                "the op group of project can't be null", id);
-                E.checkArgument(project.targetId() != null,
-                                "Failed to delete the project '%s', " +
-                                "the target resource of project can't be null",
-                                id);
+                E.checkArgumentNotNull(project.adminGroupId(),
+                                       "Failed to delete the project '%s'," +
+                                       "the admin group of project can't " +
+                                       "be null", id);
+                E.checkArgumentNotNull(project.opGroupId(),
+                                       "Failed to delete the project '%s'," +
+                                       "the op group of project can't be null",
+                                       id);
+                E.checkArgumentNotNull(project.targetId(),
+                                       "Failed to delete the project '%s', " +
+                                       "the target resource of project " +
+                                       "can't be null", id);
                 // Delete admin group
                 this.groups.delete(project.adminGroupId());
                 // Delete op group
@@ -493,28 +502,13 @@ public class StandardAuthManager implements AuthManager {
 
     @Override
     public Id updateProject(HugeProject project) {
-        E.checkArgumentNotNull(project, "The project can't be null");
-        E.checkArgumentNotNull(project.id(),
-                               "The id of project can't be null");
-        E.checkArgument(project.description() != null,
-                        "The description of project '%s' can't be null",
-                        project.id());
-        LockUtil.Locks locks = new LockUtil.Locks(this.graph.name());
-        try {
-            locks.lockWrites(LockUtil.PROJECT_UPDATE, project.id());
-
-            HugeProject source = this.project.get(project.id());
-            source.description(project.description());
-            return this.project.update(source);
-        } finally {
-            locks.unlock();
-        }
+        return this.project.update(project);
     }
 
     @Override
-    public Id projectAddGraph(Id id, String graph) {
-        E.checkArgument(!Strings.isNullOrEmpty(graph),
-                        "Failed to add graph to project '%s', the graph " +
+    public Id projectAddGraphs(Id id, Set<String> graphs) {
+        E.checkArgument(!ObjectUtils.isEmpty(graphs),
+                        "Failed to add graphs to project '%s', the graphs " +
                         "parameter can't be empty", id);
 
         LockUtil.Locks locks = new LockUtil.Locks(this.graph.name());
@@ -522,14 +516,13 @@ public class StandardAuthManager implements AuthManager {
             locks.lockWrites(LockUtil.PROJECT_UPDATE, id);
 
             HugeProject project = this.project.get(id);
-            E.checkArgumentNotNull(project,
-                                   "The project '%s' can't be found", id);
-            Set<String> graphs = new HashSet<>(project.graphs());
-            E.checkArgument(!graphs.contains(graph),
-                            "The graph named '%s' has been contained " +
-                            "in the project '%s'", graph, id);
-            graphs.add(graph);
-            project.graphs(graphs);
+            Set<String> sourceGraphs = new HashSet<>(project.graphs());
+            E.checkArgument(!sourceGraphs.containsAll(graphs),
+                            "There are graphs '%s' of project '%s' that " +
+                            "have been added in the graph collection",
+                            graphs, id);
+            sourceGraphs.addAll(graphs);
+            project.graphs(sourceGraphs);
             return this.project.update(project);
         } finally {
             locks.unlock();
@@ -537,27 +530,25 @@ public class StandardAuthManager implements AuthManager {
     }
 
     @Override
-    public Id projectRemoveGraph(Id id, String graph) {
-        E.checkArgument(id != null,
-                        "Failed to remove graph, the project id parameter " +
-                        "can't be null");
-        E.checkArgument(!Strings.isNullOrEmpty(graph),
-                        "Failed to delete graph from the project '%s', " +
-                        "the graph parameter can't be null or empty", id);
+    public Id projectRemoveGraphs(Id id, Set<String> graphs) {
+        E.checkArgumentNotNull(id,
+                               "Failed to remove graphs, the project id " +
+                               "parameter can't be null");
+        E.checkArgument(!ObjectUtils.isEmpty(graphs),
+                        "Failed to delete graphs from the project '%s', " +
+                        "the graphs parameter can't be null or empty", id);
 
         LockUtil.Locks locks = new LockUtil.Locks(this.graph.name());
         try {
             locks.lockWrites(LockUtil.PROJECT_UPDATE, id);
 
             HugeProject project = this.project.get(id);
-            E.checkArgumentNotNull(project,
-                                   "The project '%s' can't be found", id);
-            Set<String> graphs = new HashSet<>(project.graphs());
-            if (!graphs.contains(graph)) {
+            Set<String> sourceGraphs = new HashSet<>(project.graphs());
+            if (!sourceGraphs.containsAll(graphs)) {
                 return id;
             }
-            graphs.remove(graph);
-            project.graphs(graphs);
+            sourceGraphs.removeAll(graphs);
+            project.graphs(sourceGraphs);
             return this.project.update(project);
         } finally {
             locks.unlock();
