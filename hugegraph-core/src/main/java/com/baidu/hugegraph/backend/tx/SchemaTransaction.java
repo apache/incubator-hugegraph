@@ -332,9 +332,9 @@ public class SchemaTransaction extends IndexableTransaction {
                                                     String name) {
         LOG.debug("SchemaTransaction get {} by name '{}'",
                   type.readableName(), name);
-        T schema = this.systemSchemaStore.get(name);
-        if (schema != null) {
-            return schema;
+        // System schema just get from SystemSchemaStore in memory
+        if (Graph.Hidden.isHidden(name)) {
+            return this.systemSchemaStore.get(name);
         }
 
         this.beforeRead();
@@ -350,7 +350,7 @@ public class SchemaTransaction extends IndexableTransaction {
         if (entry == null) {
             return null;
         }
-        schema = this.deserialize(entry, type);
+        T schema = this.deserialize(entry, type);
         return schema;
     }
 

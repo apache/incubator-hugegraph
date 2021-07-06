@@ -881,6 +881,12 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         }
 
         @Override
+        public String storedVersion() {
+            throw new UnsupportedOperationException(
+                      "RocksDBSchemaStore.storedVersion()");
+        }
+
+        @Override
         public boolean isSchemaStore() {
             return true;
         }
@@ -920,6 +926,12 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
                                  new RocksDBTables.ShardIndex(database));
             registerTableManager(HugeType.UNIQUE_INDEX,
                                  new RocksDBTables.UniqueIndex(database));
+        }
+
+        @Override
+        public String storedVersion() {
+            throw new UnsupportedOperationException(
+                      "RocksDBGraphStore.storedVersion()");
         }
 
         @Override

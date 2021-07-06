@@ -611,6 +611,12 @@ public abstract class CassandraStore
         }
 
         @Override
+        public String storedVersion() {
+            throw new UnsupportedOperationException(
+                      "CassandraSchemaStore.storedVersion()");
+        }
+
+        @Override
         public boolean isSchemaStore() {
             return true;
         }
@@ -664,6 +670,12 @@ public abstract class CassandraStore
         public long getCounter(HugeType type) {
             throw new UnsupportedOperationException(
                       "CassandraGraphStore.getCounter()");
+        }
+
+        @Override
+        public String storedVersion() {
+            throw new UnsupportedOperationException(
+                      "CassandraGraphStore.storedVersion()");
         }
 
         @Override

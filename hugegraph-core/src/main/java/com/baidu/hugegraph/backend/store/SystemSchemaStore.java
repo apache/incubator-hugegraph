@@ -19,10 +19,12 @@
 
 package com.baidu.hugegraph.backend.store;
 
-import java.util.HashMap;
+import java.util.Map;
 
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.schema.SchemaElement;
+import com.baidu.hugegraph.type.define.CollectionType;
+import com.baidu.hugegraph.util.collection.CollectionFactory;
 
 /**
  * The system schema will be initialized when server started, and the
@@ -33,11 +35,12 @@ public class SystemSchemaStore {
     private static final int SYSTEM_SCHEMA_MAX_NUMS = 128;
 
     private SchemaElement[] storeByIds;
-    private final HashMap<String, SchemaElement> storeByNames;
+    private final Map<String, SchemaElement> storeByNames;
 
     public SystemSchemaStore() {
+        CollectionFactory factory = new CollectionFactory(CollectionType.EC);
         this.storeByIds = new SchemaElement[SYSTEM_SCHEMA_MAX_NUMS];
-        this.storeByNames = new HashMap<>();
+        this.storeByNames = factory.newMap(SYSTEM_SCHEMA_MAX_NUMS);
     }
 
     public void add(SchemaElement schema) {

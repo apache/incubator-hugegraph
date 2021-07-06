@@ -294,6 +294,12 @@ public abstract class InMemoryDBStore
         }
 
         @Override
+        public String storedVersion() {
+            throw new UnsupportedOperationException(
+                      "InMemorySchemaStore.storedVersion()");
+        }
+
+        @Override
         public boolean isSchemaStore() {
             return true;
         }
@@ -327,6 +333,12 @@ public abstract class InMemoryDBStore
                                  new InMemoryDBTables.ShardIndex());
             registerTableManager(HugeType.UNIQUE_INDEX,
                                  new InMemoryDBTables.UniqueIndex());
+        }
+
+        @Override
+        public String storedVersion() {
+            throw new UnsupportedOperationException(
+                      "InMemoryGraphStore.storedVersion()");
         }
 
         @Override

@@ -37,6 +37,7 @@ import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.IdGenerator;
+import com.baidu.hugegraph.backend.store.BackendStoreInfo;
 import com.baidu.hugegraph.backend.store.rocksdb.RocksDBOptions;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.exception.ExistedException;
@@ -55,6 +56,23 @@ public class MultiGraphsTest {
 
     private static final String NAME48 =
             "g12345678901234567890123456789012345678901234567";
+
+    @Test
+    public void testWriteAndReadVersion() {
+        List<HugeGraph> graphs = openGraphs("g_1", NAME48);
+        for (HugeGraph graph : graphs) {
+            graph.initBackend();
+            // Init more than once no side effect
+            graph.initBackend();
+
+            BackendStoreInfo backendStoreInfo = graph.backendStoreInfo();
+            Assert.assertTrue(backendStoreInfo.exists());
+            Assert.assertTrue(backendStoreInfo.checkVersion());
+
+            graph.clearBackend();
+        }
+        destoryGraphs(graphs);
+    }
 
     @Test
     public void testCreateMultiGraphs() {
