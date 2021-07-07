@@ -237,8 +237,8 @@ public class ProjectAPI extends API {
                             "The name of project can't be updated");
             E.checkArgument(!CollectionUtils.isEmpty(this.graphs) ||
                             this.description != null,
-                            "Must specify the fields 'graphs/description' " +
-                            "that need to be updated");
+                            "Must specify 'graphs' or 'description' " +
+                            "field that need to be updated");
             }
         }
 }
