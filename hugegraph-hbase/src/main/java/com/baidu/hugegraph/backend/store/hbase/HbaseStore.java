@@ -477,12 +477,6 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
         }
 
         @Override
-        public String storedVersion() {
-            throw new UnsupportedOperationException(
-                      "HbaseSchemaStore.storedVersion()");
-        }
-
-        @Override
         public boolean isSchemaStore() {
             return true;
         }
@@ -522,12 +516,6 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
                                  new HbaseTables.ShardIndex(store));
             registerTableManager(HugeType.UNIQUE_INDEX,
                                  new HbaseTables.UniqueIndex(store));
-        }
-
-        @Override
-        public String storedVersion() {
-            throw new UnsupportedOperationException(
-                      "HbaseGraphStore.storedVersion()");
         }
 
         @Override

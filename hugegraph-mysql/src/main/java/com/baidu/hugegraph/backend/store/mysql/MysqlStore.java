@@ -412,12 +412,6 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
         }
 
         @Override
-        public String storedVersion() {
-            throw new UnsupportedOperationException(
-                      "MysqlSchemaStore.storedVersion()");
-        }
-
-        @Override
         public boolean isSchemaStore() {
             return true;
         }
@@ -453,12 +447,6 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
                                  new MysqlTables.ShardIndex(store));
             registerTableManager(HugeType.UNIQUE_INDEX,
                                  new MysqlTables.UniqueIndex(store));
-        }
-
-        @Override
-        public String storedVersion() {
-            throw new UnsupportedOperationException(
-                      "MysqlGraphStore.storedVersion()");
         }
 
         @Override

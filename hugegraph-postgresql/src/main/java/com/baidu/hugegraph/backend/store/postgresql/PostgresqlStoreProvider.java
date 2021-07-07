@@ -122,12 +122,6 @@ public class PostgresqlStoreProvider extends MysqlStoreProvider {
         }
 
         @Override
-        public String storedVersion() {
-            throw new UnsupportedOperationException(
-                      "PostgresqlSchemaStore.storedVersion()");
-        }
-
-        @Override
         public boolean isSchemaStore() {
             return true;
         }
@@ -163,12 +157,6 @@ public class PostgresqlStoreProvider extends MysqlStoreProvider {
                                  new PostgresqlTables.ShardIndex(store));
             registerTableManager(HugeType.UNIQUE_INDEX,
                                  new PostgresqlTables.UniqueIndex(store));
-        }
-
-        @Override
-        public String storedVersion() {
-            throw new UnsupportedOperationException(
-                      "PostgresqlGraphStore.storedVersion()");
         }
 
         @Override

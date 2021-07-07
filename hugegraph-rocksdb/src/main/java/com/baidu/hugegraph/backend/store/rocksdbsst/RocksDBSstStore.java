@@ -91,12 +91,6 @@ public abstract class RocksDBSstStore extends RocksDBStore {
         }
 
         @Override
-        public String storedVersion() {
-            throw new UnsupportedOperationException(
-                      "RocksDBSstGraphStore.storedVersion()");
-        }
-
-        @Override
         public boolean isSchemaStore() {
             return false;
         }

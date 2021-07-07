@@ -42,6 +42,12 @@ public abstract class AbstractBackendStore<Session extends BackendSession>
     }
 
     @Override
+    public String storedVersion() {
+        throw new UnsupportedOperationException(
+                  "AbstractBackendStore.storedVersion()");
+    }
+
+    @Override
     public SystemSchemaStore systemSchemaStore() {
         return this.systemSchemaStore;
     }

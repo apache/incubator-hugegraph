@@ -110,12 +110,6 @@ public class PaloStoreProvider extends MysqlStoreProvider {
         }
 
         @Override
-        public String storedVersion() {
-            throw new UnsupportedOperationException(
-                      "PaloSchemaStore.storedVersion()");
-        }
-
-        @Override
         public boolean isSchemaStore() {
             return true;
         }
@@ -154,12 +148,6 @@ public class PaloStoreProvider extends MysqlStoreProvider {
         @Override
         public BackendFeatures features() {
             return FEATURES;
-        }
-
-        @Override
-        public String storedVersion() {
-            throw new UnsupportedOperationException(
-                      "PaloGraphStore.storedVersion()");
         }
 
         @Override
